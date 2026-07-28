@@ -23,8 +23,11 @@ struct RightClickDetector: NSViewRepresentable {
         }
         
         override func hitTest(_ aPoint: NSPoint) -> NSView? {
-            // Allow clicks to pass through to underlying SwiftUI gestures while receiving rightMouseDown
-            return super.hitTest(aPoint)
+            guard let event = NSApp.currentEvent else { return nil }
+            if event.type == .rightMouseDown || event.type == .rightMouseUp {
+                return super.hitTest(aPoint)
+            }
+            return nil
         }
     }
 }

@@ -31,7 +31,7 @@ struct WilesApp: App {
                     }
                     for window in NSApplication.shared.windows {
                         window.tabbingMode = .disallowed
-                        window.isMovableByWindowBackground = true
+                        window.isMovableByWindowBackground = false
                         window.setFrameAutosaveName("WilesMainWindow")
                     }
                     appState.refreshCurrentDirectory()
