@@ -2,22 +2,22 @@ import SwiftUI
 
 struct NewFolderSheet: View {
     var appState: AppState
-    @State private var folderName: String = "New Folder"
+    @State private var folderName: String = ""
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isFocused: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Create New Folder").font(.system(size: 15, weight: .bold))
-            TextField("Folder Name", text: $folderName)
+            Text(appState.tr(.createNewFolder)).font(.system(size: 15, weight: .bold))
+            TextField(appState.tr(.folderNamePlaceholder), text: $folderName)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
                 .onSubmit { createFolder() }
             
             HStack {
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Create") { createFolder() }
+                Button(appState.tr(.cancel)) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(appState.tr(.create)) { createFolder() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(folderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -25,7 +25,7 @@ struct NewFolderSheet: View {
         .padding(20).frame(width: 300)
         .onAppear {
             isFocused = true
-            folderName = "New Folder"
+            folderName = appState.tr(.defaultFolderName)
         }
     }
     

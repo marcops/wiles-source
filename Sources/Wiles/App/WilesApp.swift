@@ -15,7 +15,7 @@ struct WilesApp: App {
         WindowGroup("Wiles") {
             MainContentView(appState: appState)
                 .sheet(item: $appState.propertiesItem) { item in
-                    FilePropertiesSheet(item: item)
+                    FilePropertiesSheet(item: item, appState: appState)
                 }
                 .sheet(isPresented: $appState.showNewFolderSheet) {
                     NewFolderSheet(appState: appState)
@@ -42,6 +42,29 @@ struct WilesApp: App {
             CommandGroup(after: .newItem) {
                 Button("New Folder...") { appState.showNewFolderSheet = true }
                     .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .sidebar) {
+                Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
+                    .keyboardShortcut("/", modifiers: .command)
+                Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
+                    .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
+                Divider()
+                Toggle("Show Favorites", isOn: $appState.showFavorites)
+                Toggle("Show MAC Section", isOn: $appState.showMacSection)
+                if appState.showMacSection {
+                    Toggle("Show Recents", isOn: $appState.showRecents)
+                }
+                Divider()
+                Picker("View Mode", selection: $appState.viewMode) {
+                    Text("Grid View").tag(ViewMode.grid)
+                    Text("List View").tag(ViewMode.list)
+                }
+                Picker("Sidebar Mode", selection: $appState.sidebarMode) {
+                    ForEach(SidebarMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
+                }
+                Picker("Shortcut Mode", selection: $appState.navigationMode) {
+                    ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
+                }
             }
             CommandGroup(replacing: .help) {
                 Button("Wiles Help & Shortcuts") {

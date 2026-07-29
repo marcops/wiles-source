@@ -55,6 +55,14 @@ struct FileListView: View {
                     .onTapGesture {
                         appState.selectedURLs.removeAll()
                     }
+                    .overlay(
+                        RightClickDetector {
+                            appState.selectedURLs.removeAll()
+                        }
+                    )
+                    .contextMenu {
+                        SharedBackgroundContextMenu(appState: appState)
+                    }
 
                 if appState.items.isEmpty && !appState.isLoading {
                     emptyStateView
@@ -92,14 +100,14 @@ struct FileListView: View {
     
     private var tableHeader: some View {
         HStack(spacing: 12) {
-            headerColumn("Name", option: .name)
+            headerColumn(appState.tr(.name), option: .name)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            headerColumn("Size", option: .size)
-                .frame(width: 90, alignment: .trailing)
-            headerColumn("Date Modified", option: .dateModified)
-                .frame(width: 140, alignment: .trailing)
-            headerColumn("Kind", option: .kind)
-                .frame(width: 90, alignment: .trailing)
+            headerColumn(appState.tr(.size), option: .size)
+                .frame(width: LayoutTokens.columnSizeWidth, alignment: .trailing)
+            headerColumn(appState.tr(.dateModified), option: .dateModified)
+                .frame(width: LayoutTokens.columnDateWidth, alignment: .trailing)
+            headerColumn(appState.tr(.kind), option: .kind)
+                .frame(width: LayoutTokens.columnKindWidth, alignment: .trailing)
         }
         .font(.system(size: 11, weight: .semibold))
         .foregroundColor(.secondary)
@@ -134,13 +142,17 @@ struct FileListView: View {
             Spacer().frame(height: 80)
             Image(systemName: appState.isSearching ? "magnifyingglass" : "folder")
                 .font(.system(size: 48)).foregroundColor(.secondary.opacity(0.5))
-            Text(appState.isSearching ? "No Results Found" : "Folder is Empty")
+            Text(appState.isSearching ? appState.tr(.noResultsFound) : appState.tr(.folderIsEmpty))
                 .font(.system(size: 16, weight: .medium)).foregroundColor(.secondary)
             Spacer()
         }
         .frame(maxWidth: .infinity, minHeight: 300)
     }
     
+    private var listIconSize: CGFloat {
+        max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.iconSize) * LayoutTokens.listIconScaleMultiplier))
+    }
+
     private func listRow(for item: FileItem) -> some View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
@@ -148,7 +160,7 @@ struct FileListView: View {
         return HStack(spacing: 12) {
             HStack(spacing: 8) {
                 Image(nsImage: item.icon)
-                    .resizable().scaledToFit().frame(width: 18, height: 18)
+                    .resizable().scaledToFit().frame(width: listIconSize, height: listIconSize)
                 Text(item.name)
                     .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                     .lineLimit(1)
@@ -159,20 +171,20 @@ struct FileListView: View {
             Text(item.formattedSize)
                 .font(.system(size: 12))
                 .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .frame(width: 90, alignment: .trailing)
+                .frame(width: LayoutTokens.columnSizeWidth, alignment: .trailing)
                 
             Text(item.formattedDate)
                 .font(.system(size: 12))
                 .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .frame(width: 140, alignment: .trailing)
+                .frame(width: LayoutTokens.columnDateWidth, alignment: .trailing)
                 
-            Text(item.isDirectory ? "Folder" : item.fileExtension.uppercased())
+            Text(item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased())
                 .font(.system(size: 12))
                 .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .frame(width: 90, alignment: .trailing)
+                .frame(width: LayoutTokens.columnKindWidth, alignment: .trailing)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.vertical, max(4, listIconSize * 0.25))
         .background(isSel ? Color.accentColor : Color.clear)
         .cornerRadius(6)
         .opacity(isCut ? 0.5 : 1.0)
@@ -187,7 +199,7 @@ struct FileListView: View {
         }
         .simultaneousGesture(
             TapGesture().onEnded {
-                handleSelection(for: item)
+                appState.handleSelection(for: item)
             }
         )
         .onDrag {
@@ -203,87 +215,18 @@ struct FileListView: View {
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             if item.isDirectory {
-                handleDrop(providers: providers, targetFolder: item.url)
+                appState.handleDrop(providers: providers, targetFolder: item.url)
                 return true
             }
             return false
         }
         .overlay(
             RightClickDetector {
-                appState.selectedURLs = [item.url]
+                if !appState.selectedURLs.contains(item.url) {
+                    appState.selectedURLs = [item.url]
+                }
             }
         )
-        .contextMenu { listContextMenu(for: item) }
-    }
-    
-    private func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
-        for provider in providers {
-            _ = provider.loadObject(ofClass: URL.self) { droppedURL, _ in
-                guard let droppedURL = droppedURL, droppedURL.standardizedFileURL != targetFolder.standardizedFileURL else { return }
-                Task { @MainActor in
-                    try? FileSystemService.moveItem(at: droppedURL, toFolder: targetFolder)
-                    appState.refreshCurrentDirectory()
-                }
-            }
-        }
-    }
-    
-    private func handleSelection(for item: FileItem) {
-        let flags = NSEvent.modifierFlags
-        if flags.contains(.command) {
-            if appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs.remove(item.url)
-            } else {
-                appState.selectedURLs.insert(item.url)
-            }
-        } else if flags.contains(.shift), let last = appState.selectedURLs.first, let lastIdx = appState.items.firstIndex(where: { $0.url == last }), let curIdx = appState.items.firstIndex(where: { $0.url == item.url }) {
-            let range = min(lastIdx, curIdx)...max(lastIdx, curIdx)
-            let rangeURLs = appState.items[range].map { $0.url }
-            appState.selectedURLs.formUnion(rangeURLs)
-        } else {
-            appState.selectedURLs = [item.url]
-        }
-    }
-    
-    @ViewBuilder
-    private func listContextMenu(for item: FileItem) -> some View {
-        Group {
-            Button("Open") { appState.navigateTo(item.url) }
-            Button("Quick Look (Space)") { appState.quickLookURL = item.url }
-            Divider()
-            if item.isDirectory {
-                if appState.isFavorite(item.url) {
-                    Button("Remove from Favorites") { appState.removeFavorite(item.url) }
-                } else {
-                    Button("Add to Favorites") { appState.addFavorite(item.url) }
-                }
-                Divider()
-            }
-            Button("Cut (Cmd+X)") {
-                if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-                appState.cutSelected()
-            }
-            Button("Copy (Cmd+C)") {
-                if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-                appState.copySelected()
-            }
-            Button("Paste Here (Cmd+V)") { appState.pasteToCurrentDirectory() }
-            if !item.isDirectory {
-                Button("Copy Content (#10)") {
-                    if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-                    appState.copyContentOfSelected()
-                }
-            }
-            Divider()
-            Button("Move to Trash", role: .destructive) {
-                if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-                appState.deleteSelected()
-            }
-            Divider()
-            Button("Properties (Cmd+I)") {
-                if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-                appState.propertiesItem = item
-            }
-        }
+        .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
     }
 }

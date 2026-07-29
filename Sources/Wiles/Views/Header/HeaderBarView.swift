@@ -46,14 +46,14 @@ struct HeaderBarView: View {
                 Image(systemName: "arrow.up").font(.system(size: 12, weight: .semibold))
                     .frame(width: 28, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
             }
-            .buttonStyle(.plain).help("Parent Folder")
+            .buttonStyle(.plain).help(appState.tr(.parentFolder))
             .keyboardShortcut(.upArrow, modifiers: .command)
             
             Button(action: { appState.refreshCurrentDirectory() }) {
                 Image(systemName: "arrow.clockwise").font(.system(size: 12, weight: .semibold))
                     .frame(width: 28, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
             }
-            .buttonStyle(.plain).help("Refresh (Cmd+R)")
+            .buttonStyle(.plain).help("\(appState.tr(.refresh)) (Cmd+R)")
             .keyboardShortcut("r", modifiers: .command)
         }
     }
@@ -71,7 +71,7 @@ struct HeaderBarView: View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
             Image(systemName: "magnifyingglass").foregroundColor(.secondary)
-            TextField("Search in \(appState.currentURL.lastPathComponent)...", text: $appState.searchQuery)
+            TextField("\(appState.tr(.searchPlaceholder)) \(appState.currentURL.lastPathComponent)...", text: $appState.searchQuery)
                 .textFieldStyle(.plain)
                 .onSubmit {
                     NSApp.keyWindow?.makeFirstResponder(nil)
@@ -115,7 +115,7 @@ struct HeaderBarView: View {
                 .background(appState.isSearching ? Color.accentColor.opacity(0.25) : Color(NSColor.controlBackgroundColor))
                 .cornerRadius(6)
         }
-        .buttonStyle(.plain).help("Search (Cmd+F)")
+        .buttonStyle(.plain).help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")
         .keyboardShortcut("f", modifiers: .command)
     }
     
@@ -143,14 +143,14 @@ struct HeaderBarView: View {
     private var sortMenu: some View {
         @Bindable var appState = appState
         return Menu {
-            Picker("Sort By", selection: $appState.sortOption) {
+            Picker(appState.tr(.sortBy), selection: $appState.sortOption) {
                 ForEach(SortOption.allCases) { opt in Text(opt.rawValue).tag(opt) }
             }
             .onChange(of: appState.sortOption) { _, _ in appState.refreshCurrentDirectory() }
             
             Divider()
             
-            Toggle("Ascending", isOn: $appState.sortAscending)
+            Toggle(appState.tr(.ascending), isOn: $appState.sortAscending)
                 .onChange(of: appState.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
         } label: {
             HStack(spacing: 4) {
@@ -165,32 +165,37 @@ struct HeaderBarView: View {
     private var optionsMenu: some View {
         @Bindable var appState = appState
         return Menu {
-            Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
+            Toggle(appState.navigationMode == .gnome ? appState.tr(.showHiddenFilesGnome) : appState.tr(.showHiddenFilesMac), isOn: $appState.showHiddenFiles)
                 .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
-            Toggle("Show Favorites", isOn: $appState.showFavorites)
-            Toggle("Show MAC Section", isOn: $appState.showMacSection)
+            Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)
+            Toggle(appState.tr(.showMacSection), isOn: $appState.showMacSection)
             if appState.showMacSection {
-                Toggle("Show Recents", isOn: $appState.showRecents)
+                Toggle(appState.tr(.showRecents), isOn: $appState.showRecents)
             }
-            Picker("Sidebar Mode", selection: $appState.sidebarMode) {
+            Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
                 ForEach(SidebarMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
             }
             Divider()
-            Picker("Navigation Shortcut Mode", selection: $appState.navigationMode) {
+            Picker(appState.tr(.shortcutMode), selection: $appState.navigationMode) {
                 ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
             }
+            Picker(appState.tr(.language), selection: $appState.appLanguage) {
+                ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
+            }
             Divider()
-            Button("Copy Current Path") {
+            Toggle(appState.showFooter ? appState.tr(.hideStatusBar) : appState.tr(.showStatusBar), isOn: $appState.showFooter)
+            Divider()
+            Button(appState.tr(.copyPath)) {
                 let pb = NSPasteboard.general
                 pb.clearContents()
                 pb.setString(appState.currentURL.path, forType: .string)
             }
-            Button("New Folder... (Shift+Cmd+N)") {
+            Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
                 appState.showNewFolderSheet = true
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
             Divider()
-            Button("Help & Shortcuts...") {
+            Button("\(appState.tr(.helpShortcuts))...") {
                 appState.showHelpSheet = true
             }
         } label: {

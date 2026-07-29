@@ -151,7 +151,7 @@ struct HelpSheet: View {
     private var footerView: some View {
         HStack {
             Spacer()
-            Button("Done") {
+            Button(appState.tr(.done)) {
                 dismiss()
             }
             .keyboardShortcut(.defaultAction)

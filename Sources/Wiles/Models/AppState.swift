@@ -37,6 +37,33 @@ public final class AppState {
     public var showMacSection: Bool = true {
         didSet { UserDefaults.standard.set(showMacSection, forKey: "wiles_showMacSection") }
     }
+    public var appLanguage: AppLanguage = .system {
+        didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: "wiles_appLanguage") }
+    }
+    public var isFavoritesExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isFavoritesExpanded, forKey: "wiles_isFavoritesExpanded") }
+    }
+    public var isMacExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isMacExpanded, forKey: "wiles_isMacExpanded") }
+    }
+    public var isRecentsExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isRecentsExpanded, forKey: "wiles_isRecentsExpanded") }
+    }
+    public var isDevicesExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isDevicesExpanded, forKey: "wiles_isDevicesExpanded") }
+    }
+    public var isTreeExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isTreeExpanded, forKey: "wiles_isTreeExpanded") }
+    }
+    public var expandedTreePaths: Set<String> = [] {
+        didSet { UserDefaults.standard.set(Array(expandedTreePaths), forKey: "wiles_expandedTreePaths") }
+    }
+    public var showFooter: Bool = true {
+        didSet { UserDefaults.standard.set(showFooter, forKey: "wiles_showFooter") }
+    }
+    public var iconSize: Double = 54.0 {
+        didSet { UserDefaults.standard.set(iconSize, forKey: "wiles_iconSize") }
+    }
     public var favoriteURLs: [URL] = [] {
         didSet {
             let paths = favoriteURLs.map { $0.path }
@@ -62,7 +89,64 @@ public final class AppState {
     }
     
     public var propertiesItem: FileItem? = nil
+    public var renameItem: FileItem? = nil
+    public var imageConverterItem: FileItem? = nil
+    public var showBatchRenameSheet: Bool = false
     public var showNewFolderSheet: Bool = false
+    
+    public func performImageConversion(
+        item: FileItem,
+        targetFormat: ImageFormat,
+        preset: ResizePreset,
+        cropPreset: CropPreset,
+        cropRegion: CustomCropRegion = CustomCropRegion(),
+        customWidth: Int? = nil,
+        customHeight: Int? = nil,
+        quality: Double
+    ) {
+        Task.detached(priority: .userInitiated) {
+            do {
+                let newURL = try ImageConverterService.convertImage(
+                    at: item.url,
+                    targetFormat: targetFormat,
+                    preset: preset,
+                    cropPreset: cropPreset,
+                    cropRegion: cropRegion,
+                    customWidth: customWidth,
+                    customHeight: customHeight,
+                    quality: quality
+                )
+                await MainActor.run {
+                    self.refreshCurrentDirectory()
+                    self.selectedURLs = [newURL]
+                }
+            } catch {
+                print("Error converting image \(item.url.path): \(error)")
+            }
+        }
+    }
+    
+    public func performRename(item: FileItem, newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != item.name else { return }
+        do {
+            let newURL = try FileSystemService.renameItem(at: item.url, newName: trimmed)
+            self.refreshCurrentDirectory()
+            self.selectedURLs = [newURL]
+        } catch {
+            print("Error renaming item \(item.url.path): \(error)")
+        }
+    }
+    
+    public func performBatchRename(items: [FileItem], mode: BatchRenameMode) {
+        do {
+            let newURLs = try BatchRenameService.performBatchRename(items: items, mode: mode)
+            self.refreshCurrentDirectory()
+            self.selectedURLs = Set(newURLs)
+        } catch {
+            print("Error in batch rename: \(error)")
+        }
+    }
     
     public init() {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -97,6 +181,39 @@ public final class AppState {
         if defaults.object(forKey: "wiles_showMacSection") != nil {
             self.showMacSection = defaults.bool(forKey: "wiles_showMacSection")
         }
+        if let langStr = defaults.string(forKey: "wiles_appLanguage"), let lang = AppLanguage(rawValue: langStr) {
+            self.appLanguage = lang
+        }
+        if defaults.object(forKey: "wiles_isFavoritesExpanded") != nil {
+            self.isFavoritesExpanded = defaults.bool(forKey: "wiles_isFavoritesExpanded")
+        }
+        if defaults.object(forKey: "wiles_isMacExpanded") != nil {
+            self.isMacExpanded = defaults.bool(forKey: "wiles_isMacExpanded")
+        }
+        if defaults.object(forKey: "wiles_isRecentsExpanded") != nil {
+            self.isRecentsExpanded = defaults.bool(forKey: "wiles_isRecentsExpanded")
+        }
+        if defaults.object(forKey: "wiles_isDevicesExpanded") != nil {
+            self.isDevicesExpanded = defaults.bool(forKey: "wiles_isDevicesExpanded")
+        }
+        if defaults.object(forKey: "wiles_isTreeExpanded") != nil {
+            self.isTreeExpanded = defaults.bool(forKey: "wiles_isTreeExpanded")
+        }
+        if let paths = defaults.stringArray(forKey: "wiles_expandedTreePaths") {
+            self.expandedTreePaths = Set(paths)
+        } else {
+            let homePath = home.standardizedFileURL.path
+            self.expandedTreePaths = ["/", homePath]
+        }
+        if defaults.object(forKey: "wiles_showFooter") != nil {
+            self.showFooter = defaults.bool(forKey: "wiles_showFooter")
+        }
+        if defaults.object(forKey: "wiles_iconSize") != nil {
+            let val = defaults.double(forKey: "wiles_iconSize")
+            if val >= 36 && val <= 128 {
+                self.iconSize = val
+            }
+        }
         if let favPaths = defaults.stringArray(forKey: "wiles_favoriteURLs"), !favPaths.isEmpty {
             self.favoriteURLs = favPaths
                 .map { URL(fileURLWithPath: $0).standardizedFileURL }
@@ -114,6 +231,42 @@ public final class AppState {
         }
     }
     
+    public func tr(_ key: L10n.Key) -> String {
+        L10n.string(key, lang: appLanguage)
+    }
+    
+    public var statusText: String {
+        let totalCount = items.count
+        let selCount = selectedURLs.count
+        
+        if selCount == 0 {
+            let totalFilesSize = items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
+            if totalFilesSize > 0 {
+                let formattedSize = ByteCountFormatter.string(fromByteCount: totalFilesSize, countStyle: .file)
+                return "\(totalCount) \(totalCount == 1 ? "item" : "itens") (\(formattedSize))"
+            }
+            return "\(totalCount) \(totalCount == 1 ? "item" : "itens")"
+        } else {
+            let selItems = items.filter { selectedURLs.contains($0.url) }
+            let selFilesSize = selItems.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
+            if selFilesSize > 0 {
+                let formattedSize = ByteCountFormatter.string(fromByteCount: selFilesSize, countStyle: .file)
+                return "\(selCount) / \(totalCount) (\(formattedSize))"
+            } else {
+                return "\(selCount) / \(totalCount)"
+            }
+        }
+    }
+    
+    public var freeSpaceText: String? {
+        if let values = try? currentURL.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
+           let capacity = values.volumeAvailableCapacity {
+            let formatted = ByteCountFormatter.string(fromByteCount: Int64(capacity), countStyle: .file)
+            return "\(formatted) \(tr(.freeSpace))"
+        }
+        return nil
+    }
+    
     public func addFavorite(_ url: URL) {
         let std = url.standardizedFileURL
         if !favoriteURLs.contains(where: { $0.standardizedFileURL == std }) {
@@ -129,6 +282,28 @@ public final class AppState {
     public func isFavorite(_ url: URL) -> Bool {
         let std = url.standardizedFileURL
         return favoriteURLs.contains(where: { $0.standardizedFileURL == std })
+    }
+    
+    public func compressSelectedToZIP() {
+        let urls = Array(selectedURLs)
+        guard !urls.isEmpty else { return }
+        let current = currentURL
+        Task.detached(priority: .userInitiated) {
+            try? FileSystemService.compressToZIP(urls: urls, in: current)
+            await MainActor.run {
+                self.refreshCurrentDirectory()
+            }
+        }
+    }
+    
+    public func extractArchive(url: URL) {
+        let current = currentURL
+        Task.detached(priority: .userInitiated) {
+            try? FileSystemService.extractZIP(archiveURL: url, to: current)
+            await MainActor.run {
+                self.refreshCurrentDirectory()
+            }
+        }
     }
     
     public func navigateTo(_ url: URL, addToHistory: Bool = true) {

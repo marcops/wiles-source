@@ -51,4 +51,12 @@ extension FileSystemService {
         pb.clearContents()
         pb.setString(content, forType: .string)
     }
+    
+    public static func compressToZIP(urls: [URL], in destinationFolder: URL) throws {
+        try ZipArchiveService.compressToZIP(urls: urls, in: destinationFolder)
+    }
+    
+    public static func extractZIP(archiveURL: URL, to destinationFolder: URL) throws {
+        try ZipArchiveService.extractZIP(archiveURL: archiveURL, to: destinationFolder)
+    }
 }
