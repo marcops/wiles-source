@@ -53,3 +53,15 @@
 - **`marcops/wiles` (PUBLIC REPOSITORY)**: Contains public Homebrew cask formulas (`Casks/wiles.rb`), public release assets (`releases/wiles-vX.Y.Z.dmg`, `releases/wiles-vX.Y.Z.zip`), documentation, and public issue tracking. All Homebrew cask URLs MUST point exclusively to this public repository (`https://raw.githubusercontent.com/marcops/wiles/main/...`).
 - **`marcops/wiles-source` (PRIVATE REPOSITORY)**: Contains internal Swift source code. NEVER reference private URLs (`wiles-source`) in public Homebrew formulas or public documentation.
 
+## 12. Automated Homebrew & Release Packaging Protocol
+- **Zip Packaging Requirement**: ALWAYS use `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app` to ensure the root `Wiles.app/` folder is preserved inside the archive. Never use `ditto` directly on `Wiles.app` for Homebrew releases as it strips the root folder.
+- **SHA256 Verification Checklist**:
+  1. Build release binary `swift build -c release` and sign `Wiles.app`.
+  2. Package DMG `hdiutil create ... releases/wiles-vX.Y.Z.dmg`.
+  3. Package ZIP `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app`.
+  4. Compute `shasum -a 256 dist/wiles-vX.Y.Z.zip`.
+  5. Copy ZIP & DMG to public tap repo `marcops/wiles/releases/`.
+  6. Update `Casks/wiles.rb` version and SHA256 in public repo `marcops/wiles`.
+  7. Push public repo and verify live with `curl` before declaring completion.
+
+

@@ -52,6 +52,9 @@ struct SharedBackgroundContextMenu: View {
             pb.clearContents()
             pb.setString(appState.currentURL.path, forType: .string)
         }
+        Button("\(appState.tr(.diskUsageVisualizer))... (Shift+Cmd+D)") {
+            appState.showDiskUsageSheet = true
+        }
         Divider()
         Button(appState.tr(.folderProperties)) {
             let fileItem = FileItem(url: appState.currentURL, icon: NSWorkspace.shared.icon(forFile: appState.currentURL.path))

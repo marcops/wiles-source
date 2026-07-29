@@ -34,6 +34,9 @@ struct MainContentView: View {
             let selectedItems = appState.items.filter { appState.selectedURLs.contains($0.url) }
             BatchRenameSheetView(items: selectedItems, appState: appState)
         }
+        .sheet(isPresented: $appState.showDiskUsageSheet) {
+            DiskSpaceVisualizerSheetView(appState: appState)
+        }
         .background(
             ZStack {
                 keyboardShortcutsHandler
@@ -62,6 +65,7 @@ struct MainContentView: View {
             Button("") { triggerQuickLook() }.keyboardShortcut(" ", modifiers: []).hidden()
             Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
             Button("") { openPropertiesForSelected() }.keyboardShortcut("i", modifiers: .command).hidden()
+            Button("") { appState.showDiskUsageSheet = true }.keyboardShortcut("d", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
             Button("") { focusPathField() }.keyboardShortcut("l", modifiers: .command).hidden()

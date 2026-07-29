@@ -92,6 +92,7 @@ public final class AppState {
     public var renameItem: FileItem? = nil
     public var imageConverterItem: FileItem? = nil
     public var showBatchRenameSheet: Bool = false
+    public var showDiskUsageSheet: Bool = false
     public var showNewFolderSheet: Bool = false
     
     public func performImageConversion(

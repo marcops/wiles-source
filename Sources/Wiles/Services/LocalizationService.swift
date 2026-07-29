@@ -135,6 +135,8 @@ public struct L10n {
         case cropPreset
         case quality
         case convert
+        case diskUsageVisualizer
+        case topLargestItems
     }
 
     private static let localized: [Key: [String: String]] = [
@@ -781,6 +783,20 @@ public struct L10n {
             "es": "Convertir",
             "fr": "Convertir",
             "de": "Konvertieren"
+        ],
+        .diskUsageVisualizer: [
+            "en": "Folder Disk Usage Visualizer",
+            "pt": "Visualizador de Uso de Disco",
+            "es": "Visualizador de Uso de Disco",
+            "fr": "Visualiseur d'espace disque",
+            "de": "Speicherplatz-Visualisierung"
+        ],
+        .topLargestItems: [
+            "en": "Top Largest Items",
+            "pt": "Principais Itens por Tamanho",
+            "es": "Principales Elementos por Tamaño",
+            "fr": "Éléments les plus volumineux",
+            "de": "Größte Elemente"
         ]
     ]
 }

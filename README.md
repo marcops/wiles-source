@@ -4,8 +4,12 @@ A fast, native macOS file manager designed for speed, bridging the best of **GNO
 
 ---
 
-## ⚡️ Quick Install (Homebrew)
+## ⚡️ Quick Install (Homebrew & Direct DMG)
 
+### Option 1: Direct DMG Download (GUI)
+Download **[wiles-v0.0.4.dmg](https://raw.githubusercontent.com/marcops/wiles/main/releases/wiles-v0.0.4.dmg)**, open it, and drag `Wiles.app` to `/Applications`.
+
+### Option 2: Homebrew Cask Terminal
 ```bash
 brew tap marcops/wiles git@github.com:marcops/wiles.git
 brew install --cask wiles
@@ -32,8 +36,9 @@ brew upgrade --cask wiles
 - **Dual Navigation Modes**:
   - **macOS Finder**: `Cmd+Down` to open, `Enter` to rename, `Cmd+Up` to go up.
   - **GNOME Nautilus**: `Enter` to open, `F2` to rename, `Backspace` to go up.
+- **Folder Disk Usage Visualizer**: Visual breakdown of top 10 largest files/subfolders with colored proportional bars and "Others" grouping (`Cmd+Shift+D`).
 - **Single & Batch File Renamer**: Rename individual files or batch rename multiple files with live before/after previews (Find & Replace, Prefix/Suffix, Sequence Numbering).
-- **Native Image Converter & Crop**: Quick format conversion (`JPEG`, `PNG`, `HEIC`, `TIFF`), aspect ratio cropping, and exact pixel resizer.
+- **Native Image Converter & Crop**: Quick format conversion (`JPEG`, `PNG`, `HEIC`, `TIFF`), aspect ratio cropping, interactive drag-to-crop selection, and exact pixel resizer.
 - **Native ZIP Compression**: Built-in async compression & extraction via Apple's native `/usr/bin/ditto`.
 - **Flexible Sidebar**: Toggle between standard Places/Favorites and a full **Directory Tree**.
 - **Seamless Drag & Drop**: Native drag preview shadows, folder drop targets, and background marquee box selection.
@@ -50,6 +55,7 @@ brew upgrade --cask wiles
 | **Open Item** | `Double Click` or `Enter` (GNOME) / `Cmd + Down` (macOS) |
 | **Rename Item(s)** | `F2` (GNOME) / `Return` (macOS) |
 | **Go Up Directory** | `Backspace` (GNOME) / `Cmd + Up` (macOS) |
+| **Disk Usage Visualizer** | `Cmd + Shift + D` |
 | **Focus Path Bar** | `Cmd + L` |
 | **In-Folder Search** | `Cmd + F` |
 | **Move to Trash** | `Cmd + Delete` or `Delete` |
