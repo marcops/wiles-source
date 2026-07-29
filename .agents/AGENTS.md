@@ -55,13 +55,15 @@
 
 ## 12. Automated Homebrew & Release Packaging Protocol
 - **Zip Packaging Requirement**: ALWAYS use `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app` to ensure the root `Wiles.app/` folder is preserved inside the archive. Never use `ditto` directly on `Wiles.app` for Homebrew releases as it strips the root folder.
+- **CDN Cache Busting (CRITICAL)**: When updating `Casks/wiles.rb`, the `url` MUST use the **exact git commit SHA** where the `.zip` was pushed (e.g., `url "https://raw.githubusercontent.com/marcops/wiles/<COMMIT_SHA>/releases/wiles-v#{version}.zip"`). Never use `main` in the URL, as GitHub's Fastly CDN will cache the old binary and cause a Homebrew SHA256 mismatch error.
 - **SHA256 Verification Checklist**:
   1. Build release binary `swift build -c release` and sign `Wiles.app`.
-  2. Package DMG `hdiutil create ... releases/wiles-vX.Y.Z.dmg`.
+  2. Package DMG `hdiutil create -volname "Wiles" -srcfolder Wiles.app -ov -format UDZO releases/wiles-vX.Y.Z.dmg`. (DMG is correct)
   3. Package ZIP `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app`.
   4. Compute `shasum -a 256 dist/wiles-vX.Y.Z.zip`.
   5. Copy ZIP & DMG to public tap repo `marcops/wiles/releases/`.
-  6. Update `Casks/wiles.rb` version and SHA256 in public repo `marcops/wiles`.
-  7. Push public repo and verify live with `curl` before declaring completion.
+  6. Push binaries to public repo first and get the exact commit SHA.
+  7. Update `Casks/wiles.rb` version, SHA256, and URL with the exact commit SHA.
+  8. Push the Cask update to public repo and verify live with `curl` before declaring completion.
 
 
