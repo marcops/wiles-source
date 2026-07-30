@@ -76,7 +76,9 @@ struct HeaderBarView: View {
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
                 .onAppear {
-                    isSearchFocused = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        isSearchFocused = true
+                    }
                 }
                 .onSubmit {
                     NSApp.keyWindow?.makeFirstResponder(nil)
