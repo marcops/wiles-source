@@ -49,8 +49,14 @@ struct WilesApp: App {
                         window.setFrameAutosaveName("WilesMainWindow")
                     }
                     PermissionService.requestInitialPermissions()
-                    appState.refreshCurrentDirectory()
-                    AutoOrganizationService.shared.startMonitoring()
+                    if CommandLine.arguments.contains("--test") || CommandLine.arguments.contains("--run-tests") {
+                        Task {
+                            await AutomatedTestSuite.runAllTests()
+                        }
+                    } else {
+                        appState.refreshCurrentDirectory()
+                        AutoOrganizationService.shared.startMonitoring()
+                    }
                 }
         }
         .windowStyle(.hiddenTitleBar)
