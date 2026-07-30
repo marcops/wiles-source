@@ -171,13 +171,25 @@ struct FileListView: View {
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
         
         return HStack(spacing: 12) {
-            HStack(spacing: 8) {
+            HStack(alignment: .center, spacing: 8) {
                 Image(nsImage: item.icon)
                     .resizable().scaledToFit().frame(width: listIconSize, height: listIconSize)
                 Text(item.name)
                     .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                     .lineLimit(1)
                     .foregroundColor(isSel ? .white : .primary)
+                
+                if appState.showTags && !item.tags.isEmpty {
+                    HStack(alignment: .center, spacing: -2) {
+                        ForEach(item.tags, id: \.self) { tag in
+                            Circle()
+                                .fill(colorForTag(tag))
+                                .frame(width: 8, height: 8)
+                                .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
+                        }
+                    }
+                    .offset(y: appState.isCompactMode ? 1 : 0)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             

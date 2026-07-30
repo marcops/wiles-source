@@ -105,6 +105,7 @@ struct FileColumnView: View {
             let rootItems = await FileSystemService.loadDirectoryContents(
                 at: appState.currentURL,
                 showHidden: appState.showHiddenFiles,
+                showTags: appState.showTags,
                 searchQuery: appState.searchQuery,
                 sortOption: appState.sortOption,
                 sortAscending: appState.sortAscending
@@ -130,6 +131,7 @@ struct FileColumnView: View {
                 let subItems = await FileSystemService.loadDirectoryContents(
                     at: item.url,
                     showHidden: appState.showHiddenFiles,
+                    showTags: appState.showTags,
                     searchQuery: "",
                     sortOption: appState.sortOption,
                     sortAscending: appState.sortAscending

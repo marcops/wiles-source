@@ -3,11 +3,15 @@ import AppKit
 
 public struct FileSystemService: Sendable {
     public static func loadDirectoryContents(
-        at url: URL, showHidden: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool
+        at url: URL, showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool
     ) async -> [FileItem] {
         return await Task.detached(priority: .userInitiated) {
             let fm = FileManager.default
-            let keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey]
+            var keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey]
+            if showTags {
+                keys.append(.tagNamesKey)
+                keys.append(.labelColorKey)
+            }
             guard let fileURLs = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsSubdirectoryDescendants]) else {
                 return []
             }
@@ -19,7 +23,7 @@ public struct FileSystemService: Sendable {
                 if !matchesSearch(fileURL: fileURL, query: searchQuery, regex: regex) { continue }
                 
                 let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
-                items.append(FileItem(url: fileURL, icon: icon))
+                items.append(FileItem(url: fileURL, icon: icon, fetchTags: showTags))
             }
             return sortItems(items, by: sortOption, ascending: sortAscending)
         }.value
@@ -46,6 +50,17 @@ public struct FileSystemService: Sendable {
     
     private static func matchesSearch(fileURL: URL, query: String, regex: NSRegularExpression?) -> Bool {
         guard !query.isEmpty else { return true }
+        
+        if query.hasPrefix("tag:") {
+            let targetTag = String(query.dropFirst(4)).lowercased()
+            if let tags = try? (fileURL as NSURL).resourceValues(forKeys: [.tagNamesKey]) {
+                if let tagArray = tags[.tagNamesKey] as? [String] {
+                    return tagArray.contains { $0.lowercased() == targetTag }
+                }
+            }
+            return false
+        }
+        
         let fileName = fileURL.lastPathComponent
         if fileName.localizedCaseInsensitiveContains(query) { return true }
         
@@ -78,5 +93,9 @@ public struct FileSystemService: Sendable {
             }
             return ascending ? res : !res
         }
+    }
+    
+    public static func setTags(for url: URL, tags: [String]) throws {
+        try (url as NSURL).setResourceValue(tags, forKey: .tagNamesKey)
     }
 }

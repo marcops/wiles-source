@@ -138,6 +138,17 @@ struct FileGridView: View {
                 .foregroundColor(isSel ? .white : .primary)
                 .padding(.horizontal, 6).padding(.vertical, 2)
                 .background(isSel ? Color.accentColor : Color.clear).cornerRadius(4)
+            
+            if appState.showTags && !item.tags.isEmpty {
+                HStack(spacing: -2) {
+                    ForEach(item.tags, id: \.self) { tag in
+                        Circle()
+                            .fill(colorForTag(tag))
+                            .frame(width: 8, height: 8)
+                            .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
+                    }
+                }
+            }
         }
         .frame(width: cardWidth, height: cardHeight).padding(6)
         .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear).cornerRadius(10)

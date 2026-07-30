@@ -69,6 +69,9 @@ struct SharedBackgroundContextMenu: View {
             pb.clearContents()
             pb.setString(appState.currentURL.path, forType: .string)
         }
+        Button(appState.tr(.openInTerminal)) {
+            openTerminal(at: appState.currentURL)
+        }
         Button("\(appState.tr(.diskUsageVisualizer))... (Shift+Cmd+D)") {
             appState.showDiskUsageSheet = true
         }
@@ -89,6 +92,9 @@ struct SharedFileItemContextMenu: View {
         Button("\(appState.tr(.quickLook)) (Space)") { appState.quickLookURL = item.url }
         Divider()
         if item.isDirectory {
+            Button(appState.tr(.openInTerminal)) {
+                openTerminal(at: item.url)
+            }
             if appState.isFavorite(item.url) {
                 Button(appState.tr(.removeFromFavorites)) { appState.removeFavorite(item.url) }
             } else {
@@ -160,11 +166,49 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Divider()
-        Menu("Services") {
+        Menu(appState.tr(.services)) {
             let services = NSSharingService.sharingServices(forItems: [item.url])
             ForEach(services, id: \.title) { service in
                 Button(service.title) {
                     service.perform(withItems: [item.url])
+                }
+            }
+        }
+        if appState.showTags {
+            Menu(appState.tr(.tags)) {
+                let predefinedTags = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Gray"]
+                let tagKeys: [String: L10n.Key] = [
+                    "Red": .red, "Orange": .orange, "Yellow": .yellow, "Green": .green, "Blue": .blue, "Purple": .purple, "Gray": .gray
+                ]
+                ForEach(predefinedTags, id: \.self) { tag in
+                    Button(action: {
+                        var newTags = item.tags
+                        if newTags.contains(tag) {
+                            newTags.removeAll { $0 == tag }
+                        } else {
+                            newTags.append(tag)
+                        }
+                        try? FileSystemService.setTags(for: item.url, tags: newTags)
+                        appState.refreshCurrentDirectory()
+                    }) {
+                        HStack {
+                            if let key = tagKeys[tag] {
+                                Text(appState.tr(key))
+                            } else {
+                                Text(tag)
+                            }
+                            if item.tags.contains(tag) {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+                if !item.tags.isEmpty {
+                    Divider()
+                    Button(appState.tr(.clearAllTags)) {
+                        try? FileSystemService.setTags(for: item.url, tags: [])
+                        appState.refreshCurrentDirectory()
+                    }
                 }
             }
         }
@@ -203,5 +247,24 @@ extension AppState {
                 }
             }
         }
+    }
+}
+
+public func colorForTag(_ tag: String) -> Color {
+    switch tag.lowercased() {
+    case "red": return .red
+    case "orange": return .orange
+    case "yellow": return .yellow
+    case "green": return .green
+    case "blue": return .blue
+    case "purple": return .purple
+    case "gray", "grey": return .gray
+    default: return .secondary
+    }
+}
+
+public func openTerminal(at url: URL) {
+    if let terminalURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") {
+        NSWorkspace.shared.open([url], withApplicationAt: terminalURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
     }
 }

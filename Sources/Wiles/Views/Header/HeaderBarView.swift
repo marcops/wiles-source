@@ -61,6 +61,7 @@ struct HeaderBarView: View {
     
     private var rightControls: some View {
         HStack(spacing: 8) {
+            openInButtons
             searchButton
             viewSwitcher
             sortMenu
@@ -68,6 +69,38 @@ struct HeaderBarView: View {
         }
     }
     
+    private var openInButtons: some View {
+        HStack(spacing: 2) {
+            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.microsoft.VSCode") != nil {
+                Button(action: { openApp(bundleId: "com.microsoft.VSCode") }) {
+                    Image(systemName: "curlybraces").font(.system(size: 13, weight: .medium))
+                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
+                }
+                .buttonStyle(.plain).help(appState.tr(.openInVSCode))
+            }
+            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.todesktop.230313mzl4w4u92") != nil {
+                Button(action: { openApp(bundleId: "com.todesktop.230313mzl4w4u92") }) {
+                    Image(systemName: "chevron.left.forwardslash.chevron.right").font(.system(size: 10, weight: .medium))
+                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
+                }
+                .buttonStyle(.plain).help(appState.tr(.openInCursor))
+            }
+            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.dt.Xcode") != nil {
+                Button(action: { openApp(bundleId: "com.apple.dt.Xcode") }) {
+                    Image(systemName: "hammer").font(.system(size: 13, weight: .medium))
+                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
+                }
+                .buttonStyle(.plain).help(appState.tr(.openInXcode))
+            }
+        }
+        .padding(2).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
+    }
+
+    private func openApp(bundleId: String) {
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return }
+        NSWorkspace.shared.open([appState.currentURL], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
+    }
+
     private var searchField: some View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
@@ -192,6 +225,7 @@ struct HeaderBarView: View {
             Divider()
             Toggle(appState.navigationMode == .gnome ? appState.tr(.showHiddenFilesGnome) : appState.tr(.showHiddenFilesMac), isOn: $appState.showHiddenFiles)
                 .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
+            Toggle(appState.tr(.showTags), isOn: $appState.showTags)
             Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)
             Toggle(appState.tr(.showMacSection), isOn: $appState.showMacSection)
             if appState.showMacSection {
@@ -208,7 +242,7 @@ struct HeaderBarView: View {
                 ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
             }
             Divider()
-            Toggle("Compact Density Layout", isOn: $appState.isCompactMode)
+            Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
             Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
             Toggle(appState.showFooter ? appState.tr(.hideStatusBar) : appState.tr(.showStatusBar), isOn: $appState.showFooter)
             Divider()

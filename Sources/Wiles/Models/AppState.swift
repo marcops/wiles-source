@@ -58,6 +58,15 @@ public final class AppState {
     public var expandedTreePaths: Set<String> = [] {
         didSet { UserDefaults.standard.set(Array(expandedTreePaths), forKey: "wiles_expandedTreePaths") }
     }
+    public var isTagsExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isTagsExpanded, forKey: "wiles_isTagsExpanded") }
+    }
+    public var showTags: Bool = false {
+        didSet {
+            UserDefaults.standard.set(showTags, forKey: "wiles_showTags")
+            refreshCurrentDirectory()
+        }
+    }
     public var showFooter: Bool = true {
         didSet { UserDefaults.standard.set(showFooter, forKey: "wiles_showFooter") }
     }
@@ -231,6 +240,9 @@ public final class AppState {
             let homePath = home.standardizedFileURL.path
             self.expandedTreePaths = ["/", homePath]
         }
+        if defaults.object(forKey: "wiles_showTags") != nil {
+            self.showTags = defaults.bool(forKey: "wiles_showTags")
+        }
         if defaults.object(forKey: "wiles_showFooter") != nil {
             self.showFooter = defaults.bool(forKey: "wiles_showFooter")
         }
@@ -376,13 +388,14 @@ public final class AppState {
         isLoading = true
         let target = currentURL
         let hidden = showHiddenFiles
+        let tags = showTags
         let query = searchQuery
         let sort = sortOption
         let asc = sortAscending
         
         Task {
             let loaded = await FileSystemService.loadDirectoryContents(
-                at: target, showHidden: hidden, searchQuery: query, sortOption: sort, sortAscending: asc
+                at: target, showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc
             )
             if self.currentURL == target {
                 self.items = loaded

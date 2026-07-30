@@ -83,6 +83,7 @@ struct WilesApp: App {
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
                     .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
+                Toggle(appState.tr(.showTags), isOn: $appState.showTags)
                 Divider()
                 Toggle("Show Favorites", isOn: $appState.showFavorites)
                 Toggle("Show MAC Section", isOn: $appState.showMacSection)

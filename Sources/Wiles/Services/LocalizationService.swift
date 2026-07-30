@@ -148,6 +148,21 @@ public struct L10n {
         case createdBy
         case version
         case translucentLevel
+        case showTags
+        case tags
+        case red
+        case orange
+        case yellow
+        case green
+        case blue
+        case purple
+        case gray
+        case clearAllTags
+        case openInTerminal
+        case openInVSCode
+        case openInCursor
+        case openInXcode
+        case services
         
         case showPreviewSidebar
         case moreInfo
@@ -160,6 +175,76 @@ public struct L10n {
         case dimensions
         case duration
         case fetchError
+        case compactDensity
+        case helpGuideTitle
+        case tabOverview
+        case tabFeatures
+        case tabSystem
+        case tabShortcuts
+        case overviewDesc
+        case domainToolsTitle
+        case helpTagsTitle
+        case helpTagsDesc
+        case helpTerminalTitle
+        case helpTerminalDesc
+        case helpOpenInTitle
+        case helpOpenInDesc
+        case helpZipTitle
+        case helpZipDesc
+        case helpDiskTitle
+        case helpDiskDesc
+        case helpImageTitle
+        case helpImageDesc
+        case helpBatchTitle
+        case helpBatchDesc
+        case helpSymlinkTitle
+        case helpSymlinkDesc
+        case helpTemplateTitle
+        case helpTemplateDesc
+        case helpCopyContentTitle
+        case helpCopyContentDesc
+        case helpShredTitle
+        case helpShredDesc
+        case helpServerTitle
+        case helpServerDesc
+        case navSystemTitle
+        case helpUndoTitle
+        case helpUndoDesc
+        case helpPreviewTitle
+        case helpPreviewDesc
+        case helpViewModeMemoryTitle
+        case helpViewModeMemoryDesc
+        case helpPathBarTitle
+        case helpPathBarDesc
+        case helpDragDropTitle
+        case helpDragDropDesc
+        case helpI18nTitle
+        case helpI18nDesc
+        case helpTranslucentTitle
+        case helpTranslucentDesc
+        case navProfilesTitle
+        case gnomeModeTitle
+        case gnomeModeDesc
+        case macModeTitle
+        case macModeDesc
+        case shortcutsCheatsheetTitle
+        case actUndo
+        case actRedo
+        case actQuickLook
+        case actTogglePreview
+        case actSearch
+        case actDiskVisualizer
+        case actConnectServer
+        case actNewFolderShortcut
+        case actItemProperties
+        case actCopyShortcut
+        case actCutShortcut
+        case actPasteShortcut
+        case actMoveTrash
+        case actNavBackForward
+        case actParentFolder
+        case actRefreshShortcut
+        case actToggleStatusBar
     }
 
     private static let localized: [Key: [String: String]] = [
@@ -974,6 +1059,457 @@ public struct L10n {
             "es": "Conectar",
             "fr": "Connecter",
             "de": "Verbinden"
-        ]
+        ],
+        .showTags: [
+            "en": "Show Tags",
+            "pt": "Mostrar Etiquetas",
+            "es": "Mostrar Etiquetas",
+            "fr": "Afficher les étiquettes",
+            "de": "Tags anzeigen"
+        ],
+        .tags: [
+            "en": "Tags",
+            "pt": "Etiquetas",
+            "es": "Etiquetas",
+            "fr": "Étiquettes",
+            "de": "Tags"
+        ],
+        .red: ["en": "Red", "pt": "Vermelho", "es": "Rojo", "fr": "Rouge", "de": "Rot"],
+        .orange: ["en": "Orange", "pt": "Laranja", "es": "Naranja", "fr": "Orange", "de": "Orange"],
+        .yellow: ["en": "Yellow", "pt": "Amarelo", "es": "Amarillo", "fr": "Jaune", "de": "Gelb"],
+        .green: ["en": "Green", "pt": "Verde", "es": "Verde", "fr": "Vert", "de": "Grün"],
+        .blue: ["en": "Blue", "pt": "Azul", "es": "Azul", "fr": "Bleu", "de": "Blau"],
+        .purple: ["en": "Purple", "pt": "Roxo", "es": "Morado", "fr": "Violet", "de": "Lila"],
+        .gray: ["en": "Gray", "pt": "Cinza", "es": "Gris", "fr": "Gris", "de": "Grau"],
+        .clearAllTags: [
+            "en": "Clear All Tags",
+            "pt": "Limpar Todas as Etiquetas",
+            "es": "Borrar todas las etiquetas",
+            "fr": "Effacer toutes les étiquettes",
+            "de": "Alle Tags löschen"
+        ],
+        .openInTerminal: [
+            "en": "Open in Terminal",
+            "pt": "Abrir no Terminal",
+            "es": "Abrir en Terminal",
+            "fr": "Ouvrir dans le Terminal",
+            "de": "Im Terminal öffnen"
+        ],
+        .openInVSCode: [
+            "en": "Open in VS Code",
+            "pt": "Abrir no VS Code",
+            "es": "Abrir en VS Code",
+            "fr": "Ouvrir dans VS Code",
+            "de": "In VS Code öffnen"
+        ],
+        .openInCursor: [
+            "en": "Open in Cursor",
+            "pt": "Abrir no Cursor",
+            "es": "Abrir en Cursor",
+            "fr": "Ouvrir dans Cursor",
+            "de": "In Cursor öffnen"
+        ],
+        .openInXcode: [
+            "en": "Open in Xcode",
+            "pt": "Abrir no Xcode",
+            "es": "Abrir en Xcode",
+            "fr": "Ouvrir dans Xcode",
+            "de": "In Xcode öffnen"
+        ],
+        .services: [
+            "en": "Services",
+            "pt": "Serviços",
+            "es": "Servicios",
+            "fr": "Services",
+            "de": "Dienste"
+        ],
+        .compactDensity: [
+            "en": "Compact Density Layout",
+            "pt": "Layout de Densidade Compacta",
+            "es": "Diseño de Densidad Compacta",
+            "fr": "Disposition à densité compacte",
+            "de": "Kompakte Dichte-Layout"
+        ],
+        .helpGuideTitle: [
+            "en": "Help & Feature Guide",
+            "pt": "Guia de Ajuda e Recursos",
+            "es": "Guía de Ayuda y Funciones",
+            "fr": "Guide d'Aide et Fonctionnalités",
+            "de": "Hilfe & Funktionshandbuch"
+        ],
+        .tabOverview: [
+            "en": "Overview",
+            "pt": "Visão Geral",
+            "es": "Visión General",
+            "fr": "Aperçu",
+            "de": "Übersicht"
+        ],
+        .tabFeatures: [
+            "en": "Features & Tools",
+            "pt": "Recursos e Ferramentas",
+            "es": "Funciones y Herramientas",
+            "fr": "Fonctionnalités et Outils",
+            "de": "Funktionen & Werkzeuge"
+        ],
+        .tabSystem: [
+            "en": "Navigation & System",
+            "pt": "Navegação e Sistema",
+            "es": "Navegación y Sistema",
+            "fr": "Navigation et Système",
+            "de": "Navigation & System"
+        ],
+        .tabShortcuts: [
+            "en": "Shortcuts",
+            "pt": "Atalhos",
+            "es": "Atajos",
+            "fr": "Raccourcis",
+            "de": "Tastaturkurzbefehle"
+        ],
+        .overviewDesc: [
+            "en": "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+            "pt": "O Wiles é um gerenciador de arquivos nativo de alto desempenho para macOS construído com AppKit e SwiftUI. Ele une a eficiência do GNOME Files (Nautilus) aos recursos do macOS Finder.",
+            "es": "Wiles es un administrador de archivos nativo de alto rendimiento para macOS construído con AppKit y SwiftUI.",
+            "fr": "Wiles est un gestionnaire de fichiers macOS natif et performant.",
+            "de": "Wiles ist ein leistungsstarker, nativer macOS-Dateimanager."
+        ],
+        .domainToolsTitle: [
+            "en": "Domain Tools & Feature Highlights",
+            "pt": "Ferramentas do Domínio e Destaques",
+            "es": "Herramientas del Dominio y Destacados",
+            "fr": "Outils du Domaine et Points Forts",
+            "de": "Domänenwerkzeuge & Highlights"
+        ],
+        .helpTagsTitle: [
+            "en": "Native macOS Tags & Filtering",
+            "pt": "Etiquetas Nativas do macOS e Filtragem",
+            "es": "Etiquetas Nativas de macOS y Filtrado",
+            "fr": "Étiquettes N 커 de macOS et Filtrage",
+            "de": "Native macOS-Tags & Filterung"
+        ],
+        .helpTagsDesc: [
+            "en": "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",
+            "pt": "Ative 'Mostrar Etiquetas' no menu Visualizar ou Opções. Clique com o botão direito no arquivo > Etiquetas. Clique na barra lateral ou busque 'tag:cor' para filtrar.",
+            "es": "Active 'Mostrar Etiquetas' en el menú Vista u Opciones.",
+            "fr": "Activez 'Afficher les étiquettes' dans le menu Présentation.",
+            "de": "Aktivieren Sie 'Tags anzeigen' im Menü Ansicht."
+        ],
+        .helpTerminalTitle: [
+            "en": "Open in Terminal",
+            "pt": "Abrir no Terminal",
+            "es": "Abrir en Terminal",
+            "fr": "Ouvrir dans le Terminal",
+            "de": "Im Terminal öffnen"
+        ],
+        .helpTerminalDesc: [
+            "en": "Right-click any folder or empty background area -> 'Open in Terminal' to launch native Terminal directly at that directory.",
+            "pt": "Clique com o botão direito em qualquer pasta ou área vazia -> 'Abrir no Terminal' para abrir o Terminal nativo na pasta atual.",
+            "es": "Haga clic derecho en cualquier carpeta -> 'Abrir en Terminal'.",
+            "fr": "Faites un clic droit sur n'importe quel dossier -> 'Ouvrir dans le Terminal'.",
+            "de": "Rechtsklick auf einen Ordner -> 'Im Terminal öffnen'."
+        ],
+        .helpOpenInTitle: [
+            "en": "Quick 'Open In...' IDE Buttons",
+            "pt": "Botões Rápidos 'Abrir no...' (IDEs)",
+            "es": "Botones Rápidos 'Abrir en...' (IDEs)",
+            "fr": "Boutons Rapides 'Ouvrir dans...' (IDE)",
+            "de": "Schnell-Schaltflächen 'Öffnen in...' (IDEs)"
+        ],
+        .helpOpenInDesc: [
+            "en": "Toolbar buttons detect installed IDEs (VS Code, Cursor, Xcode) and launch the working folder in your editor with a single click.",
+            "pt": "Botões da barra de ferramentas detectam IDEs instaladas (VS Code, Cursor, Xcode) e abrem a pasta de trabalho com um clique.",
+            "es": "Botones en la barra de herramientas detectan IDEs instaladas.",
+            "fr": "Des boutons de la barre d'outils détectent les IDE installés.",
+            "de": "Schaltflächen in der Werkzeugleiste erkennen installierte IDEs."
+        ],
+        .helpZipTitle: [
+            "en": "ZIP Archive Compression & Extraction",
+            "pt": "Compactação e Extração de Arquivos ZIP",
+            "es": "Compresión y Extracción de Archivos ZIP",
+            "fr": "Compression et Extraction d'Archives ZIP",
+            "de": "ZIP-Archiv-Komprimierung & Extraktion"
+        ],
+        .helpZipDesc: [
+            "en": "Right-click selected files -> 'Compress to ZIP' or right-click any .zip file -> 'Extract Here' for background archive processing.",
+            "pt": "Clique com o botão direito nos arquivos -> 'Compactar para ZIP' ou em um .zip -> 'Extrair Aqui'.",
+            "es": "Haga clic derecho -> 'Comprimir a ZIP' o 'Extraer Aquí'.",
+            "fr": "Clic droit -> 'Compresser en ZIP' ou 'Extraire ici'.",
+            "de": "Rechtsklick -> 'In ZIP komprimieren' oder 'Hier entpacken'."
+        ],
+        .helpDiskTitle: [
+            "en": "Disk Space Visualizer",
+            "pt": "Visualizador de Espaço em Disco",
+            "es": "Visualizador de Espacio en Disco",
+            "fr": "Visualiseur d'Espace Disque",
+            "de": "Speicherplatz-Visualisierung"
+        ],
+        .helpDiskDesc: [
+            "en": "Press Shift+Cmd+D or choose 'Disk Usage Visualizer...' from background menu to inspect largest files and folder size breakdowns.",
+            "pt": "Pressione Shift+Cmd+D ou escolha 'Visualizador de Espaço em Disco...' no menu de contexto para inspecionar os maiores arquivos.",
+            "es": "Presione Shift+Cmd+D para inspeccionar archivos grandes.",
+            "fr": "Appuyez sur Shift+Cmd+D pour inspecter les fichiers volumineux.",
+            "de": "Drücken Sie Umschalt+Cmd+D, um große Dateien zu untersuchen."
+        ],
+        .helpImageTitle: [
+            "en": "Image Quick Converter",
+            "pt": "Conversor Rápido de Imagens",
+            "es": "Convertidor Rápido de Imágenes",
+            "fr": "Convertisseur Rapide d'Images",
+            "de": "Schneller Bildkonverter"
+        ],
+        .helpImageDesc: [
+            "en": "Right-click any image -> 'Quick Convert Image...' to batch convert (PNG, JPG, WEBP, HEIC), resize, or crop.",
+            "pt": "Clique com o botão direito em uma imagem -> 'Conversão Rápida de Imagem...' para converter formato (PNG, JPG, WEBP, HEIC), redimensionar ou cortar.",
+            "es": "Haga clic derecho en una imagen -> 'Conversión Rápida de Imagen...'.",
+            "fr": "Clic droit sur une image -> 'Convertir rapidement l'image...'.",
+            "de": "Rechtsklick auf ein Bild -> 'Schnelles Konvertieren des Bildes...'."
+        ],
+        .helpBatchTitle: [
+            "en": "Batch Rename Tool",
+            "pt": "Ferramenta de Renomeação em Lote",
+            "es": "Herramienta de Renombrado en Lote",
+            "fr": "Outil de Renommage en Lot",
+            "de": "Stapel-Umbenennungswerkzeug"
+        ],
+        .helpBatchDesc: [
+            "en": "Select multiple files and press F2 (or Rename) to open Batch Rename with regex matching, prefix/suffix additions, and sequence numbers.",
+            "pt": "Selecione vários arquivos e pressione F2 (ou Renomear) para abrir a renomeação em lote com regex, prefixo, sufixo e numeração.",
+            "es": "Seleccione varios archivos y presione F2 para renombrar en lote.",
+            "fr": "Sélectionnez plusieurs fichiers et appuyez sur F2.",
+            "de": "Wählen Sie mehrere Dateien aus und drücken Sie F2."
+        ],
+        .helpSymlinkTitle: [
+            "en": "Symbolic Link Creation",
+            "pt": "Criação de Links Simbólicos (Symlinks)",
+            "es": "Creación de Enlaces Simbólicos",
+            "fr": "Création de Liens Symboliques",
+            "de": "Erstellung Symbolischer Links"
+        ],
+        .helpSymlinkDesc: [
+            "en": "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.",
+            "pt": "Clique com o botão direito -> 'Criar Link Simbólico...' para gerar atalhos de sistema relativos ou absolutos.",
+            "es": "Haga clic derecho -> 'Crear Enlace Simbólico...'.",
+            "fr": "Clic droit -> 'Créer un lien symbolique...'.",
+            "de": "Rechtsklick -> 'Symbolischen Link erstellen...'."
+        ],
+        .helpTemplateTitle: [
+            "en": "New File Templates",
+            "pt": "Modelos de Novos Arquivos",
+            "es": "Plantillas de Nuevos Archivos",
+            "fr": "Modèles de Nouveaux Fichiers",
+            "de": "Neue Dateivorlagen"
+        ],
+        .helpTemplateDesc: [
+            "en": "Right-click background -> 'New File...' to quickly generate empty text, markdown, code files, or custom templates.",
+            "pt": "Clique com o botão direito na área vazia -> 'Novo Arquivo...' para criar arquivos de texto, código ou modelos rapidamente.",
+            "es": "Haga clic derecho en el fondo -> 'Nuevo Archivo...'.",
+            "fr": "Clic droit sur l'arrière-plan -> 'Nouveau fichier...'.",
+            "de": "Rechtsklick auf den Hintergrund -> 'Neue Datei...'."
+        ],
+        .helpCopyContentTitle: [
+            "en": "Copy File Content to Clipboard",
+            "pt": "Copiar Conteúdo do Arquivo para a Área de Transferência",
+            "es": "Copiar Contenido del Archivo al Portapapeles",
+            "fr": "Copier le Contenu du Fichier dans le Presse-papiers",
+            "de": "Dateiinhalt in die Zwischenablage kopieren"
+        ],
+        .helpCopyContentDesc: [
+            "en": "Right-click text/data files -> 'Copy Content' to copy raw file contents directly into your clipboard without opening the file.",
+            "pt": "Clique com o botão direito em arquivos de texto -> 'Copiar Conteúdo' para copiar o texto direto para a área de transferência.",
+            "es": "Haga clic derecho -> 'Copiar Contenido'.",
+            "fr": "Clic droit -> 'Copier le contenu'.",
+            "de": "Rechtsklick -> 'Inhalt kopieren'."
+        ],
+        .helpShredTitle: [
+            "en": "Secure File Shredder",
+            "pt": "Triturador Seguro de Arquivos",
+            "es": "Trituradora Segura de Archivos",
+            "fr": "Broyeur Sécurisé de Fichiers",
+            "de": "Sicherer Datei-Schredder"
+        ],
+        .helpShredDesc: [
+            "en": "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.",
+            "pt": "Clique com o botão direito em arquivos sensíveis -> 'Triturar Arquivo...' para sobrescrever blocos de dados antes de excluir permanentemente.",
+            "es": "Haga clic derecho -> 'Triturar Archivo...'.",
+            "fr": "Clic droit -> 'Broyer le fichier...'.",
+            "de": "Rechtsklick -> 'Datei sicher schreddern...'."
+        ],
+        .helpServerTitle: [
+            "en": "Connect to Network Server",
+            "pt": "Conectar ao Servidor de Rede",
+            "es": "Conectarse al Servidor de Red",
+            "fr": "Se Connecter au Serveur Réseau",
+            "de": "Mit Netzwerkserver verbinden"
+        ],
+        .helpServerDesc: [
+            "en": "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.",
+            "pt": "Pressione Cmd+K ou escolha 'Conectar ao Servidor...' no menu de opções para conectar a compartilhamentos remotos (SMB, FTP, SFTP).",
+            "es": "Presione Cmd+K para conectarse a servidores de red.",
+            "fr": "Appuyez sur Cmd+K pour vous connecter à un serveur réseau.",
+            "de": "Drücken Sie Cmd+K, um eine Verbindung zu einem Netzwerkserver herzustellen."
+        ],
+        .navSystemTitle: [
+            "en": "Navigation, System & Customization",
+            "pt": "Navegação, Sistema e Personalização",
+            "es": "Navegación, Sistema y Personalización",
+            "fr": "Navigation, Système et Personnalisation",
+            "de": "Navigation, System & Anpassung"
+        ],
+        .helpUndoTitle: [
+            "en": "Full Undo / Redo Operations Engine",
+            "pt": "Mecanismo Completo de Desfazer / Refazer",
+            "es": "Motor Completo de Deshacer / Rehacer",
+            "fr": "Moteur Complet Annuler / Rétablir",
+            "de": "Vollständige Rückgängig / Wiederholen Engine"
+        ],
+        .helpUndoDesc: [
+            "en": "Press Cmd+Z to undo or Cmd+Shift+Z to redo file renames, creations, moves, and deletions safely.",
+            "pt": "Pressione Cmd+Z para desfazer ou Cmd+Shift+Z para refazer renomeações, criações, movimentações e exclusões.",
+            "es": "Presione Cmd+Z para deshacer o Cmd+Shift+Z para rehacer.",
+            "fr": "Appuyez sur Cmd+Z pour annuler ou Cmd+Shift+Z pour rétablir.",
+            "de": "Drücken Sie Cmd+Z zum Rückgängigmachen oder Cmd+Shift+Z zum Wiederholen."
+        ],
+        .helpPreviewTitle: [
+            "en": "Syntax-Highlighted Preview Sidebar",
+            "pt": "Barra Lateral de Pré-visualização com Destaque de Sintaxe",
+            "es": "Barra Lateral de Vista Previa con Resaltado de Sintaxis",
+            "fr": "Barre Latérale d'Aperçu avec Coloration Syntaxique",
+            "de": "Vorschau-Seitenleiste mit Syntax-Hervorhebung"
+        ],
+        .helpPreviewDesc: [
+            "en": "Press Shift+Cmd+P or toggle Preview in the View menu to view syntax-highlighted code, markdown, audio, and images without opening apps.",
+            "pt": "Pressione Shift+Cmd+P ou ative Pré-visualização para ver códigos com sintaxe destacada, markdown, áudio e imagens.",
+            "es": "Presione Shift+Cmd+P para ver vista previa.",
+            "fr": "Appuyez sur Shift+Cmd+P pour afficher l'aperçu.",
+            "de": "Drücken Sie Umschalt+Cmd+P für die Vorschau-Seitenleiste."
+        ],
+        .helpViewModeMemoryTitle: [
+            "en": "Per-Directory View Mode Memory",
+            "pt": "Memória de Modo de Visualização por Diretório",
+            "es": "Memoria de Modo de Vista por Directorio",
+            "fr": "Mémoire du Mode d'Affichage par Dossier",
+            "de": "Ansichtsmodus-Speicher pro Verzeichnis"
+        ],
+        .helpViewModeMemoryDesc: [
+            "en": "Wiles remembers whether you prefer Grid, List, or Column view individually for each folder you navigate.",
+            "pt": "O Wiles lembra se você prefere a visualização em Grade, Lista ou Coluna individualmente para cada pasta.",
+            "es": "Wiles recuerda la vista preferida para cada carpeta.",
+            "fr": "Wiles se souvient du mode d'affichage préféré pour chaque dossier.",
+            "de": "Wiles merkt sich den bevorzugten Ansichtsmodus für jeden Ordner."
+        ],
+        .helpPathBarTitle: [
+            "en": "Interactive Path Bar & Breadcrumbs",
+            "pt": "Barra de Caminho Interativa (Breadcrumbs)",
+            "es": "Barra de Ruta Interactiva",
+            "fr": "Barre de Chemin Interactive",
+            "de": "Interaktive Pfadleiste"
+        ],
+        .helpPathBarDesc: [
+            "en": "Click any segment in the top or bottom path bar to navigate instantly. Click the edit pencil icon to manually type or paste paths.",
+            "pt": "Clique em qualquer segmento da barra de caminho para navegar instantaneamente. Clique no ícone de lápis para digitar caminhos.",
+            "es": "Haga clic en cualquier segmento para navegar.",
+            "fr": "Cliquez sur n'importe quel segment pour naviguer.",
+            "de": "Klicken Sie auf ein Segment, um zu navigieren."
+        ],
+        .helpDragDropTitle: [
+            "en": "Drag & Drop File Operations",
+            "pt": "Operações de Arrastar e Soltar (Drag & Drop)",
+            "es": "Operaciones de Arrastrar y Soltar",
+            "fr": "Glisser-déposer de Fichiers",
+            "de": "Drag & Drop Dateivorgänge"
+        ],
+        .helpDragDropDesc: [
+            "en": "Drag files into sidebar favorites, subfolders, or external apps. Supports box marquee selection in Grid and List views.",
+            "pt": "Arraste arquivos para os favoritos da barra lateral, subpastas ou aplicativos externos. Suporta seleção por caixa no Grid e Lista.",
+            "es": "Arrastre archivos a favoritos o carpetas.",
+            "fr": "Glissez des fichiers dans les favoris ou dossiers.",
+            "de": "Ziehen Sie Dateien in Favoriten oder Ordner."
+        ],
+        .helpI18nTitle: [
+            "en": "Multi-Language System (i18n)",
+            "pt": "Sistema Multi-idioma (i18n)",
+            "es": "Sistema Multilingüe (i18n)",
+            "fr": "Système Multilingue (i18n)",
+            "de": "Mehrsprachiges System (i18n)"
+        ],
+        .helpI18nDesc: [
+            "en": "Automatic macOS system language detection with manual preference overrides (English, Portuguese, Spanish, French, German).",
+            "pt": "Detecção automática do idioma do sistema macOS com alteração manual (Inglês, Português, Espanhol, Francês, Alemão).",
+            "es": "Detección automática del idioma del sistema con opción manual.",
+            "fr": "Détection automatique de la langue avec choix manuel.",
+            "de": "Automatische Erkennung der System-Sprache mit manueller Wahl."
+        ],
+        .helpTranslucentTitle: [
+            "en": "Translucent Background & Density Settings",
+            "pt": "Fundo Translucido e Configurações de Densidade",
+            "es": "Fondo Traslúcido y Configuración de Densidad",
+            "fr": "Arrière-plan Translucide et Densité",
+            "de": "Transparenter Hintergrund & Dichte-Einstellungen"
+        ],
+        .helpTranslucentDesc: [
+            "en": "Adjust sidebar background glassmorphism (Translucent Level) and enable Compact Density Layout in the Options menu.",
+            "pt": "Ajuste a transparência da barra lateral e ative o Layout de Densidade Compacta no menu de Opções.",
+            "es": "Ajuste la transparencia y la densidad compacta.",
+            "fr": "Ajustez la transparence et la densité compacte.",
+            "de": "Passen Sie die Transparenz und die kompakte Dichte an."
+        ],
+        .navProfilesTitle: [
+            "en": "Navigation Shortcut Profiles",
+            "pt": "Perfis de Atalho de Navegação",
+            "es": "Perfiles de Atajos de Navegación",
+            "fr": "Profils de Raccourcis de Navigation",
+            "de": "Navigations-Tastaturprofil"
+        ],
+        .gnomeModeTitle: [
+            "en": "GNOME Mode (Default)",
+            "pt": "Modo GNOME (Padrão)",
+            "es": "Modo GNOME (Predeterminado)",
+            "fr": "Mode GNOME (Par défaut)",
+            "de": "GNOME-Modus (Standard)"
+        ],
+        .gnomeModeDesc: [
+            "en": "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files",
+            "pt": "• Enter: Abrir pasta ou arquivo\n• F2: Renomear item\n• Backspace: Voltar para pasta pai\n• Ctrl+H: Alternar arquivos ocultos",
+            "es": "• Enter: Abrir carpeta\n• F2: Renombrar\n• Backspace: Carpeta superior\n• Ctrl+H: Archivos ocultos",
+            "fr": "• Entrée: Ouvrir le dossier\n• F2: Renommer\n• Retour arrière: Dossier parent\n• Ctrl+H: Fichiers masqués",
+            "de": "• Eingabe: Ordner öffnen\n• F2: Umbenennen\n• Rückschritt: Übergeordneter Ordner\n• Strg+H: Ausgeblendete Dateien"
+        ],
+        .macModeTitle: [
+            "en": "macOS Finder Mode",
+            "pt": "Modo macOS Finder",
+            "es": "Modo macOS Finder",
+            "fr": "Mode macOS Finder",
+            "de": "macOS Finder-Modus"
+        ],
+        .macModeDesc: [
+            "en": "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files",
+            "pt": "• Cmd+Baixo: Abrir pasta ou arquivo\n• Enter: Renomear item\n• Cmd+Cima: Voltar para pasta pai\n• Cmd+Shift+.: Alternar arquivos ocultos",
+            "es": "• Cmd+Abajo: Abrir carpeta\n• Enter: Renombrar\n• Cmd+Arriba: Carpeta superior\n• Cmd+Shift+.: Archivos ocultos",
+            "fr": "• Cmd+Bas: Ouvrir le dossier\n• Entrée: Renommer\n• Cmd+Haut: Dossier parent\n• Cmd+Shift+.: Fichiers masqués",
+            "de": "• Cmd+Runter: Ordner öffnen\n• Eingabe: Umbenennen\n• Cmd+Hoch: Übergeordneter Ordner\n• Cmd+Shift+.: Ausgeblendete Dateien"
+        ],
+        .shortcutsCheatsheetTitle: [
+            "en": "Keyboard Shortcuts Cheatsheet",
+            "pt": "Lista de Atalhos de Teclado",
+            "es": "Lista de Atajos de Teclado",
+            "fr": "Aide-mémoire des Raccourcis Clavier",
+            "de": "Tastaturkurzbefehle Übersicht"
+        ],
+        .actUndo: ["en": "Undo Operation", "pt": "Desfazer Operação", "es": "Deshacer Operación", "fr": "Annuler l'opération", "de": "Vorgang rückgängig machen"],
+        .actRedo: ["en": "Redo Operation", "pt": "Refazer Operação", "es": "Rehacer Operación", "fr": "Rétablir l'opération", "de": "Vorgang wiederholen"],
+        .actQuickLook: ["en": "Quick Look Preview", "pt": "Pré-visualização Quick Look", "es": "Vista Previa Quick Look", "fr": "Aperçu Coup d'œil", "de": "Übersicht-Vorschau"],
+        .actTogglePreview: ["en": "Toggle Preview Sidebar", "pt": "Alternar Barra de Pré-visualização", "es": "Alternar Barra Lateral de Vista Previa", "fr": "Basculer la barre d'aperçu", "de": "Vorschau-Seitenleiste umschalten"],
+        .actSearch: ["en": "Search in Directory", "pt": "Pesquisar no Diretório", "es": "Buscar en el Directorio", "fr": "Rechercher dans le dossier", "de": "Im Verzeichnis suchen"],
+        .actDiskVisualizer: ["en": "Disk Usage Visualizer", "pt": "Visualizador de Uso de Disco", "es": "Visualizador de Uso de Disco", "fr": "Visualiseur d'espace disque", "de": "Speicherplatz-Visualisierung"],
+        .actConnectServer: ["en": "Connect to Server", "pt": "Conectar ao Servidor", "es": "Conectarse al Servidor", "fr": "Se connecter au serveur", "de": "Mit Server verbinden"],
+        .actNewFolderShortcut: ["en": "New Folder", "pt": "Nova Pasta", "es": "Nueva Carpeta", "fr": "Nouveau dossier", "de": "Neuer Ordner"],
+        .actItemProperties: ["en": "Item Properties / Info", "pt": "Propriedades / Informações do Item", "es": "Propiedades / Información del Elemento", "fr": "Propriétés du fichier", "de": "Element-Eigenschaften / Info"],
+        .actCopyShortcut: ["en": "Copy Selected", "pt": "Copiar Selecionado", "es": "Copiar Seleccionado", "fr": "Copier la sélection", "de": "Auswahl kopieren"],
+        .actCutShortcut: ["en": "Cut Selected", "pt": "Recortar Selecionado", "es": "Cortar Seleccionado", "fr": "Couper la sélection", "de": "Auswahl ausschneiden"],
+        .actPasteShortcut: ["en": "Paste Files", "pt": "Colar Arquivos", "es": "Pegar Archivos", "fr": "Coller les fichiers", "de": "Dateien einfügen"],
+        .actMoveTrash: ["en": "Move to Trash", "pt": "Mover para o Lixo", "es": "Mover a la Papelera", "fr": "Placer dans la corbeille", "de": "In den Papierkorb verschieben"],
+        .actNavBackForward: ["en": "Navigate Back / Forward", "pt": "Navegar Voltar / Avançar", "es": "Navegar Atrás / Adelante", "fr": "Naviguer Précédent / Suivant", "de": "Zurück / Vorwärts navigieren"],
+        .actParentFolder: ["en": "Parent Folder", "pt": "Pasta Pai (Superior)", "es": "Carpeta Superior", "fr": "Dossier parent", "de": "Übergeordneter Ordner"],
+        .actRefreshShortcut: ["en": "Refresh Directory", "pt": "Atualizar Diretório", "es": "Actualizar Directorio", "fr": "Actualiser le dossier", "de": "Verzeichnis aktualisieren"],
+        .actToggleStatusBar: ["en": "Toggle Status Bar", "pt": "Alternar Barra de Status", "es": "Alternar Barra de Estado", "fr": "Basculer la barre d'état", "de": "Statusleiste umschalten"]
     ]
 }

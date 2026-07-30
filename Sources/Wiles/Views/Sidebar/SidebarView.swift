@@ -214,6 +214,22 @@ struct SidebarView: View {
                         }
                     }
                 }
+                
+                if appState.showTags {
+                    Divider().padding(.horizontal, 12)
+                    VStack(alignment: .leading, spacing: 4) {
+                        sectionHeader(title: appState.tr(.tags), isExpanded: $appState.isTagsExpanded)
+                        if appState.isTagsExpanded {
+                            tagRow(tag: "Red", colorKey: .red)
+                            tagRow(tag: "Orange", colorKey: .orange)
+                            tagRow(tag: "Yellow", colorKey: .yellow)
+                            tagRow(tag: "Green", colorKey: .green)
+                            tagRow(tag: "Blue", colorKey: .blue)
+                            tagRow(tag: "Purple", colorKey: .purple)
+                            tagRow(tag: "Gray", colorKey: .gray)
+                        }
+                    }
+                }
             }
             .padding(.vertical, 12)
         }
@@ -249,6 +265,31 @@ struct SidebarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+    
+    private func tagRow(tag: String, colorKey: L10n.Key) -> some View {
+        let query = "tag:\(tag.lowercased())"
+        let isSel = appState.searchQuery.lowercased() == query
+        return Button(action: {
+            if isSel {
+                appState.searchQuery = ""
+            } else {
+                appState.searchQuery = query
+            }
+        }) {
+            HStack(spacing: 6) {
+                Circle().fill(colorForTag(tag)).frame(width: 10, height: 10)
+                Text(appState.tr(colorKey))
+                    .font(.system(size: 12, weight: isSel ? .bold : .regular))
+                    .foregroundColor(isSel ? .white : .primary)
+                Spacer()
+            }
+            .padding(.horizontal, 10).padding(.vertical, 4)
+            .background(isSel ? Color.accentColor : Color.clear)
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 6)
     }
     
     private func collapsibleSection(title: String, isExpanded: Binding<Bool>, items: [SidebarItem], isFavoritesSection: Bool = false) -> some View {

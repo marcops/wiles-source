@@ -11,13 +11,19 @@ public struct FileItem: Identifiable, Hashable, Sendable {
     public let isHidden: Bool
     public let fileExtension: String
     public let icon: NSImage
+    public let tags: [String]
+    public let tagColor: NSColor?
 
-    public init(url: URL, icon: NSImage) {
+    public init(url: URL, icon: NSImage, fetchTags: Bool = false) {
         self.url = url.standardizedFileURL
         self.name = url.lastPathComponent
         self.icon = icon
         
-        let keys: Set<URLResourceKey> = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey]
+        var keys: Set<URLResourceKey> = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey]
+        if fetchTags {
+            keys.insert(.tagNamesKey)
+            keys.insert(.labelColorKey)
+        }
         let values = try? url.resourceValues(forKeys: keys)
         
         self.isDirectory = values?.isDirectory ?? false
@@ -25,6 +31,14 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         self.dateModified = values?.contentModificationDate ?? Date()
         self.isHidden = values?.isHidden ?? url.lastPathComponent.hasPrefix(".")
         self.fileExtension = url.pathExtension.lowercased()
+        
+        if fetchTags {
+            self.tags = values?.tagNames ?? []
+            self.tagColor = values?.labelColor
+        } else {
+            self.tags = []
+            self.tagColor = nil
+        }
     }
 
     public var formattedSize: String {

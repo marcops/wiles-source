@@ -2,45 +2,84 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+enum HelpTab: CaseIterable, Identifiable {
+    case overview
+    case features
+    case system
+    case shortcuts
+    
+    var id: Self { self }
+    
+    @MainActor func title(appState: AppState) -> String {
+        switch self {
+        case .overview: return appState.tr(.tabOverview)
+        case .features: return appState.tr(.tabFeatures)
+        case .system: return appState.tr(.tabSystem)
+        case .shortcuts: return appState.tr(.tabShortcuts)
+        }
+    }
+}
+
 struct HelpSheet: View {
     @Environment(\.dismiss) private var dismiss
     var appState: AppState
+    @State private var selectedTab: HelpTab = .overview
     
     var body: some View {
         VStack(spacing: 0) {
             headerView
             Divider()
+            
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    overviewSection
-                    sidebarSection
-                    navigationModesSection
-                    shortcutsSection
+                    switch selectedTab {
+                    case .overview:
+                        overviewSection
+                        navigationModesSection
+                        sidebarAndTagsSection
+                    case .features:
+                        featureHighlightsSection
+                    case .system:
+                        navigationAndSystemSection
+                    case .shortcuts:
+                        shortcutsSection
+                    }
                 }
                 .padding(20)
             }
+            
             Divider()
             footerView
         }
-        .frame(width: 580, height: 520)
+        .frame(width: 660, height: 580)
         .background(Color(NSColor.windowBackgroundColor))
     }
     
     private var headerView: some View {
-        HStack(spacing: 12) {
-            Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 36, height: 36)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Wiles File Manager")
-                    .font(.system(size: 16, weight: .bold))
-                Text("Help & Keyboard Shortcuts Cheatsheet")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 36, height: 36)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Wiles File Manager")
+                        .font(.system(size: 16, weight: .bold))
+                    Text(appState.tr(.helpGuideTitle))
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
             }
-            Spacer()
+            
+            Picker("", selection: $selectedTab) {
+                ForEach(HelpTab.allCases) { tab in
+                    Text(tab.title(appState: appState)).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 500)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
@@ -49,19 +88,80 @@ struct HelpSheet: View {
     
     private var overviewSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Overview")
+            Text(appState.tr(.tabOverview))
                 .font(.system(size: 14, weight: .semibold))
-            Text("Wiles is a fast, native macOS file manager designed to bridge the best of GNOME Files (Nautilus) and macOS Finder. It supports instant directory navigation, flexible sidebar views, search, quick look, and customizable shortcut profiles.")
+            Text(appState.tr(.overviewDesc))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
     }
-    
-    private var sidebarSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Sidebar & Favorites")
+
+    private var featureHighlightsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(appState.tr(.domainToolsTitle))
                 .font(.system(size: 14, weight: .semibold))
-            Text("The sidebar can display either standard Places or a full Directory Tree. When **Show Favorites** is enabled in options, your favorite folders appear right above the tree for quick access. Defaults dynamically adjust based on your active Navigation Shortcut Mode.")
+            
+            VStack(spacing: 8) {
+                featureRow(icon: "tag.fill", title: appState.tr(.helpTagsTitle), desc: appState.tr(.helpTagsDesc))
+                featureRow(icon: "terminal.fill", title: appState.tr(.helpTerminalTitle), desc: appState.tr(.helpTerminalDesc))
+                featureRow(icon: "arrow.up.forward.app.fill", title: appState.tr(.helpOpenInTitle), desc: appState.tr(.helpOpenInDesc))
+                featureRow(icon: "doc.zipper", title: appState.tr(.helpZipTitle), desc: appState.tr(.helpZipDesc))
+                featureRow(icon: "chart.pie.fill", title: appState.tr(.helpDiskTitle), desc: appState.tr(.helpDiskDesc))
+                featureRow(icon: "photo.stack.fill", title: appState.tr(.helpImageTitle), desc: appState.tr(.helpImageDesc))
+                featureRow(icon: "textformat.123", title: appState.tr(.helpBatchTitle), desc: appState.tr(.helpBatchDesc))
+                featureRow(icon: "link", title: appState.tr(.helpSymlinkTitle), desc: appState.tr(.helpSymlinkDesc))
+                featureRow(icon: "doc.badge.plus", title: appState.tr(.helpTemplateTitle), desc: appState.tr(.helpTemplateDesc))
+                featureRow(icon: "doc.on.clipboard", title: appState.tr(.helpCopyContentTitle), desc: appState.tr(.helpCopyContentDesc))
+                featureRow(icon: "trash.slash.fill", title: appState.tr(.helpShredTitle), desc: appState.tr(.helpShredDesc))
+                featureRow(icon: "network", title: appState.tr(.helpServerTitle), desc: appState.tr(.helpServerDesc))
+            }
+        }
+    }
+
+    private var navigationAndSystemSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(appState.tr(.navSystemTitle))
+                .font(.system(size: 14, weight: .semibold))
+            
+            VStack(spacing: 8) {
+                featureRow(icon: "arrow.uturn.backward.circle.fill", title: appState.tr(.helpUndoTitle), desc: appState.tr(.helpUndoDesc))
+                featureRow(icon: "sidebar.right", title: appState.tr(.helpPreviewTitle), desc: appState.tr(.helpPreviewDesc))
+                featureRow(icon: "folder.badge.gearshape", title: appState.tr(.helpViewModeMemoryTitle), desc: appState.tr(.helpViewModeMemoryDesc))
+                featureRow(icon: "path", title: appState.tr(.helpPathBarTitle), desc: appState.tr(.helpPathBarDesc))
+                featureRow(icon: "square.and.arrow.down", title: appState.tr(.helpDragDropTitle), desc: appState.tr(.helpDragDropDesc))
+                featureRow(icon: "globe", title: appState.tr(.helpI18nTitle), desc: appState.tr(.helpI18nDesc))
+                featureRow(icon: "slider.horizontal.3", title: appState.tr(.helpTranslucentTitle), desc: appState.tr(.helpTranslucentDesc))
+            }
+        }
+    }
+    
+    private func featureRow(icon: String, title: String, desc: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(.accentColor)
+                .frame(width: 20, height: 20)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .bold))
+                Text(desc)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(6)
+    }
+    
+    private var sidebarAndTagsSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(appState.tr(.sidebarMode))
+                .font(.system(size: 14, weight: .semibold))
+            Text(appState.tr(.helpTranslucentDesc))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
@@ -69,7 +169,7 @@ struct HelpSheet: View {
     
     private var navigationModesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Navigation Modes")
+            Text(appState.tr(.navProfilesTitle))
                 .font(.system(size: 14, weight: .semibold))
             
             HStack(alignment: .top, spacing: 12) {
@@ -78,10 +178,10 @@ struct HelpSheet: View {
                         Image(systemName: "circle.fill")
                             .font(.system(size: 6))
                             .foregroundColor(.accentColor)
-                        Text("GNOME Mode (Default)")
+                        Text(appState.tr(.gnomeModeTitle))
                             .font(.system(size: 12, weight: .bold))
                     }
-                    Text("• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files")
+                    Text(appState.tr(.gnomeModeDesc))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
@@ -95,10 +195,10 @@ struct HelpSheet: View {
                         Image(systemName: "circle.fill")
                             .font(.system(size: 6))
                             .foregroundColor(.accentColor)
-                        Text("macOS Finder Mode")
+                        Text(appState.tr(.macModeTitle))
                             .font(.system(size: 12, weight: .bold))
                     }
-                    Text("• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files")
+                    Text(appState.tr(.macModeDesc))
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
@@ -112,21 +212,27 @@ struct HelpSheet: View {
     
     private var shortcutsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Keyboard Shortcuts")
+            Text(appState.tr(.shortcutsCheatsheetTitle))
                 .font(.system(size: 14, weight: .semibold))
             
             VStack(spacing: 4) {
-                shortcutRow(action: "Quick Look Preview", shortcut: "Space")
-                shortcutRow(action: "Search in Directory", shortcut: "Cmd + F")
-                shortcutRow(action: "New Folder", shortcut: "Cmd + Shift + N")
-                shortcutRow(action: "Item Properties / Info", shortcut: "Cmd + I")
-                shortcutRow(action: "Copy Selected", shortcut: "Cmd + C")
-                shortcutRow(action: "Cut Selected", shortcut: "Cmd + X")
-                shortcutRow(action: "Paste Files", shortcut: "Cmd + V")
-                shortcutRow(action: "Move to Trash", shortcut: "Cmd + Delete")
-                shortcutRow(action: "Navigate Back / Forward", shortcut: "Cmd + [  /  Cmd + ]")
-                shortcutRow(action: "Parent Folder", shortcut: "Cmd + Up")
-                shortcutRow(action: "Refresh Directory", shortcut: "Cmd + R")
+                shortcutRow(action: appState.tr(.actUndo), shortcut: "Cmd + Z")
+                shortcutRow(action: appState.tr(.actRedo), shortcut: "Cmd + Shift + Z")
+                shortcutRow(action: appState.tr(.actQuickLook), shortcut: "Space")
+                shortcutRow(action: appState.tr(.actTogglePreview), shortcut: "Cmd + Shift + P")
+                shortcutRow(action: appState.tr(.actSearch), shortcut: "Cmd + F")
+                shortcutRow(action: appState.tr(.actDiskVisualizer), shortcut: "Cmd + Shift + D")
+                shortcutRow(action: appState.tr(.actConnectServer), shortcut: "Cmd + K")
+                shortcutRow(action: appState.tr(.actNewFolderShortcut), shortcut: "Cmd + Shift + N")
+                shortcutRow(action: appState.tr(.actItemProperties), shortcut: "Cmd + I")
+                shortcutRow(action: appState.tr(.actCopyShortcut), shortcut: "Cmd + C")
+                shortcutRow(action: appState.tr(.actCutShortcut), shortcut: "Cmd + X")
+                shortcutRow(action: appState.tr(.actPasteShortcut), shortcut: "Cmd + V")
+                shortcutRow(action: appState.tr(.actMoveTrash), shortcut: "Cmd + Delete")
+                shortcutRow(action: appState.tr(.actNavBackForward), shortcut: "Cmd + [  /  Cmd + ]")
+                shortcutRow(action: appState.tr(.actParentFolder), shortcut: "Cmd + Up")
+                shortcutRow(action: appState.tr(.actRefreshShortcut), shortcut: "Cmd + R")
+                shortcutRow(action: appState.tr(.actToggleStatusBar), shortcut: "Cmd + /")
             }
             .padding(10)
             .background(Color(NSColor.controlBackgroundColor))
@@ -161,3 +267,4 @@ struct HelpSheet: View {
         .padding(.vertical, 12)
     }
 }
+
