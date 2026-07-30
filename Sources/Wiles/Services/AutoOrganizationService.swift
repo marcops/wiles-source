@@ -90,7 +90,7 @@ public class AutoOrganizationService {
         source.resume()
     }
     
-    func processFolder(_ folder: URL) {
+    public func processFolder(_ folder: URL) {
         let activeRules = rules.filter { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
         guard !activeRules.isEmpty else { return }
         

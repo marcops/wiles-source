@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import WilesCore
 
 @MainActor
 public struct BatchRenameTests {

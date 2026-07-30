@@ -21,6 +21,10 @@ public final class AutomatedTestService {
         await UndoRedoTests.run()
         await HttpServerTests.run()
         await AutoOrganizationTests.run()
+        NewFileTemplateTests.run()
+        await DiskSpaceVisualizerTests.run()
+        ImageConverterTests.run()
+        NetworkDiscoveryTests.run()
         
         let passed = TestReporter.passed
         let failed = TestReporter.failed
