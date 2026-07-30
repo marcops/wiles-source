@@ -76,4 +76,5 @@
   10. Update `Casks/wiles.rb` version, SHA256, and URL with the exact commit SHA.
   11. Push the Cask update to public repo and verify live with `curl` before declaring completion.
 
-
+## 13. Generic README Documentation
+- **Never Hardcode Versions in README**: The public `README.md` must remain completely generic across versions. Never hardcode version numbers (e.g. `v0.0.5`) in download links, titles, or release notes links. Always use terms like "Latest Release" and point to `releases/latest` or `RELEASE_NOTES.md`.
