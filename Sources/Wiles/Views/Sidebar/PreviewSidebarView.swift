@@ -1,0 +1,80 @@
+import SwiftUI
+import AppKit
+
+struct PreviewSidebarView: View {
+    var appState: AppState
+    @State private var detailedProps: DetailedFileProperties?
+    
+    var body: some View {
+        VStack {
+            if appState.selectedURLs.isEmpty {
+                Text("No Selection").foregroundColor(.secondary)
+            } else if appState.selectedURLs.count == 1 {
+                singleSelectionView
+            } else {
+                Text("\(appState.selectedURLs.count) items selected").foregroundColor(.secondary)
+            }
+        }
+        .frame(minWidth: 200, idealWidth: 250, maxWidth: 350, maxHeight: .infinity)
+        .padding()
+        .background(
+            ZStack {
+                TranslucentVisualEffectView(material: .sidebar)
+                Color(NSColor.windowBackgroundColor)
+                    .opacity(1.0 - Double(appState.translucentLevel) / 100.0)
+            }
+        )
+        .task(id: appState.selectedURLs) {
+            if let first = appState.selectedURLs.first, appState.selectedURLs.count == 1 {
+                detailedProps = await FileMetadataService.shared.fetchProperties(for: first)
+            } else {
+                detailedProps = nil
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var singleSelectionView: some View {
+        if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
+            VStack(alignment: .center, spacing: 16) {
+                Image(nsImage: item.icon)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 120, height: 120)
+                
+                Text(item.name)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                
+                Divider()
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    propertyRow(label: appState.tr(.kind), value: detailedProps?.kind ?? (item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()))
+                    propertyRow(label: appState.tr(.size), value: item.formattedSize)
+                    if let dims = detailedProps?.dimensions {
+                        propertyRow(label: appState.tr(.dimensions), value: dims)
+                    }
+                    if let dur = detailedProps?.duration {
+                        propertyRow(label: appState.tr(.duration), value: dur)
+                    }
+                    propertyRow(label: appState.tr(.dateModified), value: item.formattedDate)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer()
+                
+                Button(appState.tr(.moreInfo)) {
+                    appState.propertiesItem = item
+                }
+                .buttonStyle(.link)
+            }
+        }
+    }
+    
+    private func propertyRow(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)
+            Text(value).font(.system(size: 12)).textSelection(.enabled).lineLimit(2)
+        }
+    }
+}

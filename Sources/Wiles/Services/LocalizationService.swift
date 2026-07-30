@@ -142,6 +142,18 @@ public struct L10n {
         case createdBy
         case version
         case translucentLevel
+        
+        case showPreviewSidebar
+        case moreInfo
+        case general
+        case permissions
+        case owner
+        case group
+        case created
+        case lastOpened
+        case dimensions
+        case duration
+        case fetchError
     }
 
     private static let localized: [Key: [String: String]] = [
@@ -837,6 +849,83 @@ public struct L10n {
             "es": "Nivel de Transparencia",
             "fr": "Niveau de Translucidité",
             "de": "Transparenzgrad"
+        ],
+        .showPreviewSidebar: [
+            "en": "Show Preview",
+            "pt": "Mostrar Pré-visualização",
+            "es": "Mostrar Vista Previa",
+            "fr": "Afficher l'aperçu",
+            "de": "Vorschau anzeigen"
+        ],
+        .moreInfo: [
+            "en": "More Info...",
+            "pt": "Mais Informações...",
+            "es": "Más Información...",
+            "fr": "Plus d'infos...",
+            "de": "Mehr Info..."
+        ],
+        .general: [
+            "en": "General",
+            "pt": "Geral",
+            "es": "General",
+            "fr": "Général",
+            "de": "Allgemein"
+        ],
+        .permissions: [
+            "en": "Sharing & Permissions",
+            "pt": "Compartilhamento e Permissões",
+            "es": "Compartir y Permisos",
+            "fr": "Partage et permissions",
+            "de": "Freigabe & Zugriffsrechte"
+        ],
+        .owner: [
+            "en": "Owner",
+            "pt": "Proprietário",
+            "es": "Propietario",
+            "fr": "Propriétaire",
+            "de": "Eigentümer"
+        ],
+        .group: [
+            "en": "Group",
+            "pt": "Grupo",
+            "es": "Grupo",
+            "fr": "Groupe",
+            "de": "Gruppe"
+        ],
+        .created: [
+            "en": "Created",
+            "pt": "Criado",
+            "es": "Creado",
+            "fr": "Créé",
+            "de": "Erstellt"
+        ],
+        .lastOpened: [
+            "en": "Last Opened",
+            "pt": "Último Acesso",
+            "es": "Último Acceso",
+            "fr": "Dernière ouverture",
+            "de": "Zuletzt geöffnet"
+        ],
+        .dimensions: [
+            "en": "Dimensions",
+            "pt": "Dimensões",
+            "es": "Dimensiones",
+            "fr": "Dimensions",
+            "de": "Abmessungen"
+        ],
+        .duration: [
+            "en": "Duration",
+            "pt": "Duração",
+            "es": "Duración",
+            "fr": "Durée",
+            "de": "Dauer"
+        ],
+        .fetchError: [
+            "en": "Unable to load properties.",
+            "pt": "Não foi possível carregar propriedades.",
+            "es": "No se pudieron cargar las propiedades.",
+            "fr": "Impossible de charger les propriétés.",
+            "de": "Eigenschaften konnten nicht geladen werden."
         ]
     ]
 }

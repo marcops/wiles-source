@@ -61,6 +61,9 @@ public final class AppState {
     public var showFooter: Bool = true {
         didSet { UserDefaults.standard.set(showFooter, forKey: "wiles_showFooter") }
     }
+    public var showPreviewSidebar: Bool = false {
+        didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: "wiles_showPreviewSidebar") }
+    }
     public var translucentLevel: Int = 60 {
         didSet { UserDefaults.standard.set(translucentLevel, forKey: "wiles_translucentLevel") }
     }
@@ -206,6 +209,9 @@ public final class AppState {
         }
         if defaults.object(forKey: "wiles_showFooter") != nil {
             self.showFooter = defaults.bool(forKey: "wiles_showFooter")
+        }
+        if defaults.object(forKey: "wiles_showPreviewSidebar") != nil {
+            self.showPreviewSidebar = defaults.bool(forKey: "wiles_showPreviewSidebar")
         }
         if defaults.object(forKey: "wiles_translucentLevel") != nil {
             self.translucentLevel = defaults.integer(forKey: "wiles_translucentLevel")

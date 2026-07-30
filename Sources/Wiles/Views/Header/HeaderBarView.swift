@@ -198,6 +198,7 @@ struct HeaderBarView: View {
                 ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
             }
             Divider()
+            Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
             Toggle(appState.showFooter ? appState.tr(.hideStatusBar) : appState.tr(.showStatusBar), isOn: $appState.showFooter)
             Divider()
             Button(appState.tr(.copyPath)) {

@@ -15,6 +15,9 @@ struct MainContentView: View {
                     .frame(minWidth: 140, idealWidth: 150, maxWidth: 260)
                 contentArea
                     .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
+                if appState.showPreviewSidebar {
+                    PreviewSidebarView(appState: appState)
+                }
             }
             if appState.showFooter {
                 Divider()

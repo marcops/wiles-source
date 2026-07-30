@@ -76,6 +76,8 @@ struct WilesApp: App {
                 }
                 Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
                     .keyboardShortcut("/", modifiers: .command)
+                Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
+                    .keyboardShortcut("p", modifiers: [.command, .shift])
                 Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
                     .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
                 Divider()
