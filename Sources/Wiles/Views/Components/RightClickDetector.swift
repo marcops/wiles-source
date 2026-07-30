@@ -16,17 +16,39 @@ struct RightClickDetector: NSViewRepresentable {
 
     class RightClickNSView: NSView {
         var onRightClick: (() -> Void)?
+        private var monitor: Any?
 
-        override func rightMouseDown(with event: NSEvent) {
-            onRightClick?()
-            super.rightMouseDown(with: event)
-        }
-        
-        override func hitTest(_ aPoint: NSPoint) -> NSView? {
-            guard let event = NSApp.currentEvent else { return nil }
-            if event.type == .rightMouseDown || event.type == .rightMouseUp {
-                return super.hitTest(aPoint)
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if window != nil {
+                if monitor == nil {
+                    monitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown]) { [weak self] event in
+                        guard let self = self, let window = self.window, event.window == window else { return event }
+                        let locationInView = self.convert(event.locationInWindow, from: nil)
+                        if self.bounds.contains(locationInView) {
+                            self.onRightClick?()
+                        }
+                        return event
+                    }
+                }
+            } else {
+                removeMonitor()
             }
+        }
+
+        override func removeFromSuperview() {
+            super.removeFromSuperview()
+            removeMonitor()
+        }
+
+        private func removeMonitor() {
+            if let m = monitor {
+                NSEvent.removeMonitor(m)
+                monitor = nil
+            }
+        }
+
+        override func hitTest(_ aPoint: NSPoint) -> NSView? {
             return nil
         }
     }
