@@ -7,15 +7,14 @@ let package = Package(
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "Wiles", targets: ["Wiles"]),
-        .executable(name: "WilesTestRunner", targets: ["WilesTestRunner"])
+        .executable(name: "Wiles", targets: ["Wiles"])
     ],
     dependencies: [
         .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", exact: "1.2.1")
     ],
     targets: [
-        .target(
-            name: "WilesCore",
+        .executableTarget(
+            name: "Wiles",
             dependencies: [
                 .product(name: "SwiftTerm", package: "SwiftTerm")
             ],
@@ -23,16 +22,6 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]
-        ),
-        .executableTarget(
-            name: "Wiles",
-            dependencies: ["WilesCore"],
-            path: "Sources/WilesApp"
-        ),
-        .executableTarget(
-            name: "WilesTestRunner",
-            dependencies: ["WilesCore"],
-            path: "Tests/WilesTests"
         )
     ]
 )
