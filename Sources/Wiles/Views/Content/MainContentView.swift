@@ -39,6 +39,9 @@ struct MainContentView: View {
         }
         .background(
             ZStack {
+                TranslucentVisualEffectView(material: .underWindowBackground)
+                Color(NSColor.windowBackgroundColor)
+                    .opacity(1.0 - Double(appState.translucentLevel) / 100.0)
                 keyboardShortcutsHandler
                 GlobalKeyMonitor(appState: appState)
             }

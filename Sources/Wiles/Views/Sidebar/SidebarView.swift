@@ -222,7 +222,13 @@ struct SidebarView: View {
         }
         .padding(.vertical, 12)
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth)
-        .background(Color(NSColor.windowBackgroundColor).opacity(0.85))
+        .background(
+            ZStack {
+                TranslucentVisualEffectView(material: .sidebar)
+                Color(NSColor.windowBackgroundColor)
+                    .opacity(1.0 - Double(appState.translucentLevel) / 100.0)
+            }
+        )
     }
     
     private func sectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {

@@ -165,6 +165,17 @@ struct HeaderBarView: View {
     private var optionsMenu: some View {
         @Bindable var appState = appState
         return Menu {
+            Menu(appState.tr(.translucentLevel)) {
+                ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
+                    Button(action: { appState.translucentLevel = level }) {
+                        HStack {
+                            Text("\(level)%")
+                            if appState.translucentLevel == level { Image(systemName: "checkmark") }
+                        }
+                    }
+                }
+            }
+            Divider()
             Toggle(appState.navigationMode == .gnome ? appState.tr(.showHiddenFilesGnome) : appState.tr(.showHiddenFilesMac), isOn: $appState.showHiddenFiles)
                 .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
             Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)

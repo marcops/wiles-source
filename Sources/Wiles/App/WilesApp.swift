@@ -12,7 +12,7 @@ struct WilesApp: App {
     }
     
     var body: some Scene {
-        WindowGroup("Wiles") {
+        WindowGroup(AppConstants.appName) {
             MainContentView(appState: appState)
                 .sheet(item: $appState.propertiesItem) { item in
                     FilePropertiesSheet(item: item, appState: appState)
@@ -22,6 +22,9 @@ struct WilesApp: App {
                 }
                 .sheet(isPresented: $appState.showHelpSheet) {
                     HelpSheet(appState: appState)
+                }
+                .sheet(isPresented: $appState.showAboutSheet) {
+                    AboutSheet(appState: appState)
                 }
                 .onAppear {
                     NSApplication.shared.activate(ignoringOtherApps: true)
@@ -34,16 +37,43 @@ struct WilesApp: App {
                         window.isMovableByWindowBackground = false
                         window.setFrameAutosaveName("WilesMainWindow")
                     }
+                    PermissionService.requestInitialPermissions()
                     appState.refreshCurrentDirectory()
                 }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(appState.tr(.aboutWiles)) {
+                    appState.showAboutSheet = true
+                }
+                Divider()
+                Menu(appState.tr(.translucentLevel)) {
+                    ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
+                        Button(action: { appState.translucentLevel = level }) {
+                            HStack {
+                                Text("\(level)%")
+                                if appState.translucentLevel == level { Image(systemName: "checkmark") }
+                            }
+                        }
+                    }
+                }
+            }
             CommandGroup(after: .newItem) {
                 Button("New Folder...") { appState.showNewFolderSheet = true }
                     .keyboardShortcut("n", modifiers: [.command, .shift])
             }
             CommandGroup(after: .sidebar) {
+                Menu(appState.tr(.translucentLevel)) {
+                    ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
+                        Button(action: { appState.translucentLevel = level }) {
+                            HStack {
+                                Text("\(level)%")
+                                if appState.translucentLevel == level { Image(systemName: "checkmark") }
+                            }
+                        }
+                    }
+                }
                 Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
                     .keyboardShortcut("/", modifiers: .command)
                 Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)

@@ -1,5 +1,10 @@
 # AGENTS.md - Senior Apple Swift Architect Rules & Guidelines for Wiles
 
+## 0. ABSOLUTE COMPLIANCE (READ THIS FIRST)
+- **YOU MUST ALWAYS RESPECT AND FOLLOW THESE RULES EXACTLY.** 
+- **NUNCA ENTREGAR CÓDIGO SEM SEGUIR AS REGRAS.** (NEVER DELIVER CODE WITHOUT FOLLOWING THE RULES).
+- These are not suggestions; they are strict constraints. Before writing any code or making any architectural decisions, you must cross-check your plan against these rules (especially regarding Zero Hardcoded Strings, No Magic Numbers, and Native APIs). Failure to comply is a critical error.
+
 ## 1. Core Architectural Principles (KISS, YAGNI, DRY, SOLID)
 - **KISS (Keep It Simple, Stupid)**: Prefer straightforward, clean SwiftUI state management over over-engineered abstractions or unnecessary layers. Write clear, maintainable Swift code.
 - **YAGNI (You Aren't Gonna Need It)**: Build features strictly for concrete requirements. Avoid speculative code or unused generic wrappers.
@@ -57,13 +62,18 @@
 - **Zip Packaging Requirement**: ALWAYS use `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app` to ensure the root `Wiles.app/` folder is preserved inside the archive. Never use `ditto` directly on `Wiles.app` for Homebrew releases as it strips the root folder.
 - **CDN Cache Busting (CRITICAL)**: When updating `Casks/wiles.rb`, the `url` MUST use the **exact git commit SHA** where the `.zip` was pushed (e.g., `url "https://raw.githubusercontent.com/marcops/wiles/<COMMIT_SHA>/releases/wiles-v#{version}.zip"`). Never use `main` in the URL, as GitHub's Fastly CDN will cache the old binary and cause a Homebrew SHA256 mismatch error.
 - **SHA256 Verification Checklist**:
-  1. Build release binary `swift build -c release` and sign `Wiles.app`.
-  2. Package DMG `hdiutil create -volname "Wiles" -srcfolder Wiles.app -ov -format UDZO releases/wiles-vX.Y.Z.dmg`. (DMG is correct)
-  3. Package ZIP `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app`.
-  4. Compute `shasum -a 256 dist/wiles-vX.Y.Z.zip`.
-  5. Copy ZIP & DMG to public tap repo `marcops/wiles/releases/`.
-  6. Push binaries to public repo first and get the exact commit SHA.
-  7. Update `Casks/wiles.rb` version, SHA256, and URL with the exact commit SHA.
-  8. Push the Cask update to public repo and verify live with `curl` before declaring completion.
+  1. Build release binary `swift build -c release`.
+  2. Copy binary and resources to `Wiles.app`:
+     - `cp .build/arm64-apple-macosx/release/Wiles Wiles.app/Contents/MacOS/`
+     - `cp -r .build/arm64-apple-macosx/release/Wiles_Wiles.bundle Wiles.app/Contents/Resources/`
+  3. Validate bundle exists: `find Wiles.app -name "*.bundle"` (Must return `Wiles.app/Contents/Resources/Wiles_Wiles.bundle`).
+  4. Sign `Wiles.app` (e.g., `codesign -f -s - Wiles.app`).
+  5. Package DMG `hdiutil create -volname "Wiles" -srcfolder Wiles.app -ov -format UDZO releases/wiles-vX.Y.Z.dmg`. (DMG is correct)
+  6. Package ZIP `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app`.
+  7. Compute `shasum -a 256 dist/wiles-vX.Y.Z.zip`.
+  8. Copy ZIP & DMG to public tap repo `marcops/wiles/releases/`.
+  9. Push binaries to public repo first and get the exact commit SHA.
+  10. Update `Casks/wiles.rb` version, SHA256, and URL with the exact commit SHA.
+  11. Push the Cask update to public repo and verify live with `curl` before declaring completion.
 
 

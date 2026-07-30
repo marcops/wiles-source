@@ -61,6 +61,9 @@ public final class AppState {
     public var showFooter: Bool = true {
         didSet { UserDefaults.standard.set(showFooter, forKey: "wiles_showFooter") }
     }
+    public var translucentLevel: Int = 60 {
+        didSet { UserDefaults.standard.set(translucentLevel, forKey: "wiles_translucentLevel") }
+    }
     public var iconSize: Double = 54.0 {
         didSet { UserDefaults.standard.set(iconSize, forKey: "wiles_iconSize") }
     }
@@ -71,6 +74,7 @@ public final class AppState {
         }
     }
     public var showHelpSheet: Bool = false
+    public var showAboutSheet: Bool = false
     
     public var isEditingPath: Bool = false
     public var pathText: String = ""
@@ -100,9 +104,6 @@ public final class AppState {
         targetFormat: ImageFormat,
         preset: ResizePreset,
         cropPreset: CropPreset,
-        cropRegion: CustomCropRegion = CustomCropRegion(),
-        customWidth: Int? = nil,
-        customHeight: Int? = nil,
         quality: Double
     ) {
         Task.detached(priority: .userInitiated) {
@@ -112,9 +113,6 @@ public final class AppState {
                     targetFormat: targetFormat,
                     preset: preset,
                     cropPreset: cropPreset,
-                    cropRegion: cropRegion,
-                    customWidth: customWidth,
-                    customHeight: customHeight,
                     quality: quality
                 )
                 await MainActor.run {
@@ -208,6 +206,9 @@ public final class AppState {
         }
         if defaults.object(forKey: "wiles_showFooter") != nil {
             self.showFooter = defaults.bool(forKey: "wiles_showFooter")
+        }
+        if defaults.object(forKey: "wiles_translucentLevel") != nil {
+            self.translucentLevel = defaults.integer(forKey: "wiles_translucentLevel")
         }
         if defaults.object(forKey: "wiles_iconSize") != nil {
             let val = defaults.double(forKey: "wiles_iconSize")

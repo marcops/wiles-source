@@ -45,7 +45,6 @@ public enum ResizePreset: String, CaseIterable, Identifiable, Sendable {
     case scale50 = "scale50"
     case max1080p = "max1080p"
     case max4K = "max4K"
-    case custom = "custom"
     
     public var id: String { rawValue }
     
@@ -56,7 +55,6 @@ public enum ResizePreset: String, CaseIterable, Identifiable, Sendable {
         case .scale50: return "50% Scale"
         case .max1080p: return "Max 1080p (1920x1080)"
         case .max4K: return "Max 4K (3840x2160)"
-        case .custom: return "Custom Dimensions (px)"
         }
     }
 }
@@ -67,7 +65,6 @@ public enum CropPreset: String, CaseIterable, Identifiable, Sendable {
     case landscape16x9 = "landscape16x9"
     case portrait9x16 = "portrait9x16"
     case standard4x3 = "standard4x3"
-    case custom = "custom"
     
     public var id: String { rawValue }
     
@@ -78,7 +75,6 @@ public enum CropPreset: String, CaseIterable, Identifiable, Sendable {
         case .landscape16x9: return "16:9 Landscape"
         case .portrait9x16: return "9:16 Portrait"
         case .standard4x3: return "4:3 Standard"
-        case .custom: return "Custom Selection / Drag"
         }
     }
 }
@@ -103,9 +99,6 @@ public final class ImageConverterService {
         targetFormat: ImageFormat,
         preset: ResizePreset,
         cropPreset: CropPreset = .none,
-        cropRegion: CustomCropRegion = CustomCropRegion(),
-        customWidth: Int? = nil,
-        customHeight: Int? = nil,
         quality: Double = 0.85
     ) throws -> URL {
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
@@ -117,17 +110,7 @@ public final class ImageConverterService {
         let fullH = CGFloat(cgImage.height)
         var workingImage = cgImage
         
-        if cropPreset == .custom {
-            let cropX = fullW * CGFloat(cropRegion.normX)
-            let cropY = fullH * (1.0 - CGFloat(cropRegion.normY) - CGFloat(cropRegion.normH))
-            let cropW = fullW * CGFloat(cropRegion.normW)
-            let cropH = fullH * CGFloat(cropRegion.normH)
-            
-            let cropRect = CGRect(x: cropX, y: cropY, width: cropW, height: cropH)
-            if let cropped = cgImage.cropping(to: cropRect) {
-                workingImage = cropped
-            }
-        } else if cropPreset != .none {
+        if cropPreset != .none {
             var cropW = fullW
             var cropH = fullH
             
@@ -208,9 +191,6 @@ public final class ImageConverterService {
                     targetWidth = 2160 * aspect
                 }
             }
-        case .custom:
-            if let cw = customWidth, cw > 0 { targetWidth = CGFloat(cw) }
-            if let ch = customHeight, ch > 0 { targetHeight = CGFloat(ch) }
         }
         
         let context = CGContext(

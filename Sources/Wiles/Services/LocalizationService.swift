@@ -137,6 +137,11 @@ public struct L10n {
         case convert
         case diskUsageVisualizer
         case topLargestItems
+        case aboutWiles
+        case aboutDescription
+        case createdBy
+        case version
+        case translucentLevel
     }
 
     private static let localized: [Key: [String: String]] = [
@@ -797,6 +802,41 @@ public struct L10n {
             "es": "Principales Elementos por Tamaño",
             "fr": "Éléments les plus volumineux",
             "de": "Größte Elemente"
+        ],
+        .aboutWiles: [
+            "en": "About Wiles",
+            "pt": "Sobre o Wiles",
+            "es": "Acerca de Wiles",
+            "fr": "À propos de Wiles",
+            "de": "Über Wiles"
+        ],
+        .aboutDescription: [
+            "en": "A fast, native macOS file manager designed to bridge the best of GNOME Files (Nautilus) and macOS Finder.",
+            "pt": "Um gerenciador de arquivos nativo do macOS, super rápido e projetado para unir o melhor do GNOME Files e Finder.",
+            "es": "Un administrador de archivos nativo de macOS, súper rápido y diseñado para unir lo mejor de GNOME Files y Finder.",
+            "fr": "Un gestionnaire de fichiers natif de macOS, très rapide et conçu pour réunir le meilleur de GNOME Files et Finder.",
+            "de": "Ein nativer macOS-Dateimanager, sehr schnell und entwickelt, um das Beste aus GNOME Files und Finder zu vereinen."
+        ],
+        .createdBy: [
+            "en": "Created by Marco PS",
+            "pt": "Criado por Marco PS",
+            "es": "Creado por Marco PS",
+            "fr": "Créé par Marco PS",
+            "de": "Erstellt von Marco PS"
+        ],
+        .version: [
+            "en": "Version",
+            "pt": "Versão",
+            "es": "Versión",
+            "fr": "Version",
+            "de": "Version"
+        ],
+        .translucentLevel: [
+            "en": "Translucency Level",
+            "pt": "Nível de Transparência",
+            "es": "Nivel de Transparencia",
+            "fr": "Niveau de Translucidité",
+            "de": "Transparenzgrad"
         ]
     ]
 }
