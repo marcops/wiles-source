@@ -51,7 +51,7 @@
 
 ## 10. Communication & Commit Discipline
 - **Git Commits in English**: All `git commit` messages MUST be written in English using Conventional Commits format (e.g., `feat: ...`, `fix: ...`, `refactor: ...`).
-- **Agent Responses in English**: All agent responses to the user MUST be written in English.
+- **Agent Responses ALWAYS in English**: All agent responses to the user MUST be written strictly in English under all circumstances. NEVER reply in Portuguese or any other language, even when the user prompts in Portuguese.
 - **Strict Command Discipline**: DO NOT run `git commit` or `git push` or publish release binaries/archives unless the user explicitly requests it.
 
 ## 11. Repository Architecture & Public/Private Separation
