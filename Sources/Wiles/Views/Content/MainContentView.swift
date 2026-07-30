@@ -40,6 +40,9 @@ struct MainContentView: View {
         .sheet(isPresented: $appState.showDiskUsageSheet) {
             DiskSpaceVisualizerSheetView(appState: appState)
         }
+        .sheet(isPresented: $appState.showNewFileSheet) {
+            NewFileSheetView()
+        }
         .background(
             ZStack {
                 TranslucentVisualEffectView(material: .underWindowBackground)

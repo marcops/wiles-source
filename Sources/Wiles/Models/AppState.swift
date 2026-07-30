@@ -101,6 +101,7 @@ public final class AppState {
     public var showBatchRenameSheet: Bool = false
     public var showDiskUsageSheet: Bool = false
     public var showNewFolderSheet: Bool = false
+    public var showNewFileSheet: Bool = false
     
     public func performImageConversion(
         item: FileItem,

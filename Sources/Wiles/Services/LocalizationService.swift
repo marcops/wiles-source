@@ -138,6 +138,10 @@ public struct L10n {
         case diskUsageVisualizer
         case topLargestItems
         case aboutWiles
+        case newFileTitle
+        case selectTemplate
+        case fileNameLabel
+        case extractArchive
         case aboutDescription
         case createdBy
         case version
@@ -926,6 +930,34 @@ public struct L10n {
             "es": "No se pudieron cargar las propiedades.",
             "fr": "Impossible de charger les propriétés.",
             "de": "Eigenschaften konnten nicht geladen werden."
+        ],
+        .newFileTitle: [
+            "en": "New File",
+            "pt": "Novo Arquivo",
+            "es": "Nuevo Archivo",
+            "fr": "Nouveau Fichier",
+            "de": "Neue Datei"
+        ],
+        .selectTemplate: [
+            "en": "Select Template",
+            "pt": "Selecionar Template",
+            "es": "Seleccionar Plantilla",
+            "fr": "Sélectionner un Modèle",
+            "de": "Vorlage Auswählen"
+        ],
+        .fileNameLabel: [
+            "en": "File Name",
+            "pt": "Nome do Arquivo",
+            "es": "Nombre del Archivo",
+            "fr": "Nom du Fichier",
+            "de": "Dateiname"
+        ],
+        .extractArchive: [
+            "en": "Extract Archive",
+            "pt": "Extrair Arquivo",
+            "es": "Extraer Archivo",
+            "fr": "Extraire L'Archive",
+            "de": "Archiv Entpacken"
         ]
     ]
 }

@@ -1,13 +1,6 @@
-# 🚀 Wiles: Roadmap of Pending & In-Progress Features
+# 🚀 Wiles: Roadmap of Pending & Planned Features
 
-This document tracks **in-progress items** as well as **50 upcoming planned features** for **Wiles** (Native macOS File Manager). All fully completed features have been filtered out.
-
----
-
-## 🚧 In-Progress & Partial Features
-- 🚧 **Template-Based "New File" Creation**: Native New Folder creation is implemented; template-based "New File" context menu (`.txt`, `.md`, `.swift`, `.json`, `.py`) is currently in progress.
-- 🚧 **Search Expansion (Regex & Content Indexing)**: Real-time search with auto-focus is implemented; regex pattern matching and content indexing are in progress.
-- 🚧 **Archive Expansion (`.7z`, `.rar`, `.tar.gz`)**: Native ZIP compression and extraction via `ZipArchiveService` are implemented; expanding format support is in progress.
+This document tracks **50 upcoming planned features** for **Wiles** (Native macOS File Manager). All completed features (including New File Templates, Regex & Content Search, and Multi-format Archive Extraction) have been recorded in completed state.
 
 ---
 

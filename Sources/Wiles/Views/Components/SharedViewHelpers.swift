@@ -23,6 +23,9 @@ struct SharedBackgroundContextMenu: View {
         Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
             appState.showNewFolderSheet = true
         }
+        Button("\(appState.tr(.newFileTitle))...") {
+            appState.showNewFileSheet = true
+        }
         if appState.clipboard != nil {
             Button("\(appState.tr(.paste)) (Cmd+V)") {
                 appState.pasteToCurrentDirectory()
@@ -116,8 +119,8 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Divider()
-        if item.fileExtension.lowercased() == "zip" {
-            Button(appState.tr(.extractHere)) {
+        if ArchiveService.isArchive(url: item.url) {
+            Button(appState.tr(.extractArchive)) {
                 appState.extractArchive(url: item.url)
             }
         }
