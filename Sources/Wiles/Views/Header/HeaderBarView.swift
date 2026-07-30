@@ -3,6 +3,7 @@ import AppKit
 
 struct HeaderBarView: View {
     var appState: AppState
+    @FocusState private var isSearchFocused: Bool
     
     var body: some View {
         HStack(spacing: 12) {
@@ -73,6 +74,10 @@ struct HeaderBarView: View {
             Image(systemName: "magnifyingglass").foregroundColor(.secondary)
             TextField("\(appState.tr(.searchPlaceholder)) \(appState.currentURL.lastPathComponent)...", text: $appState.searchQuery)
                 .textFieldStyle(.plain)
+                .focused($isSearchFocused)
+                .onAppear {
+                    isSearchFocused = true
+                }
                 .onSubmit {
                     NSApp.keyWindow?.makeFirstResponder(nil)
                 }
@@ -94,10 +99,9 @@ struct HeaderBarView: View {
         .background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.6), lineWidth: 1.5))
         .background(ClickOutsideDetector {
-            if appState.isSearching {
+            if appState.isSearching && appState.searchQuery.isEmpty {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     appState.isSearching = false
-                    appState.searchQuery = ""
                 }
             }
         })
