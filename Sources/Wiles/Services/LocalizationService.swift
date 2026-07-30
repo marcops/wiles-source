@@ -232,7 +232,23 @@ public struct L10n {
         case actRedo
         case actQuickLook
         case actTogglePreview
+        case actToggleTerminal
         case actSearch
+        case networkAndCloud
+        case shareFolderWifi
+        case helpWifiShareTitle
+        case helpWifiShareDesc
+        case helpAutoOrgTitle
+        case helpAutoOrgDesc
+        case autoOrganization
+        case noAutoOrgRules
+        case noAutoOrgRulesDesc
+        case addNewRule
+        case ifFileIn
+        case selectFolder
+        case ruleValuePlaceholder
+        case moveTo
+        case addRule
         case actDiskVisualizer
         case actConnectServer
         case actNewFolderShortcut
@@ -1340,6 +1356,34 @@ public struct L10n {
             "fr": "Se Connecter au Serveur Réseau",
             "de": "Mit Netzwerkserver verbinden"
         ],
+        .helpWifiShareTitle: [
+            "en": "Wi-Fi Folder Sharing",
+            "pt": "Compartilhamento Wi-Fi",
+            "es": "Compartir por Wi-Fi",
+            "fr": "Partage Wi-Fi",
+            "de": "WLAN-Freigabe"
+        ],
+        .helpWifiShareDesc: [
+            "en": "Instantly share any folder over your local network via HTTP.",
+            "pt": "Compartilhe pastas instantaneamente na sua rede local via HTTP.",
+            "es": "Comparte carpetas al instante en tu red local vía HTTP.",
+            "fr": "Partagez instantanément n'importe quel dossier sur votre réseau local via HTTP.",
+            "de": "Teilen Sie jeden Ordner sofort über Ihr lokales Netzwerk per HTTP."
+        ],
+        .helpAutoOrgTitle: [
+            "en": "Auto-Organization",
+            "pt": "Organização Automática",
+            "es": "Organización Automática",
+            "fr": "Organisation Automatique",
+            "de": "Automatische Organisation"
+        ],
+        .helpAutoOrgDesc: [
+            "en": "Set rules to automatically move incoming files into specific folders.",
+            "pt": "Crie regras para mover arquivos recebidos automaticamente para pastas.",
+            "es": "Crea reglas para mover archivos automáticamente a carpetas específicas.",
+            "fr": "Définissez des règles pour déplacer automatiquement les fichiers entrants.",
+            "de": "Erstellen Sie Regeln, um eingehende Dateien automatisch in bestimmte Ordner zu verschieben."
+        ],
         .helpServerDesc: [
             "en": "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.",
             "pt": "Pressione Cmd+K ou escolha 'Conectar ao Servidor...' no menu de opções para conectar a compartilhamentos remotos (SMB, FTP, SFTP).",
@@ -1498,7 +1542,19 @@ public struct L10n {
         .actRedo: ["en": "Redo Operation", "pt": "Refazer Operação", "es": "Rehacer Operación", "fr": "Rétablir l'opération", "de": "Vorgang wiederholen"],
         .actQuickLook: ["en": "Quick Look Preview", "pt": "Pré-visualização Quick Look", "es": "Vista Previa Quick Look", "fr": "Aperçu Coup d'œil", "de": "Übersicht-Vorschau"],
         .actTogglePreview: ["en": "Toggle Preview Sidebar", "pt": "Alternar Barra de Pré-visualização", "es": "Alternar Barra Lateral de Vista Previa", "fr": "Basculer la barre d'aperçu", "de": "Vorschau-Seitenleiste umschalten"],
+        .actToggleTerminal: ["en": "Toggle Terminal Drawer", "pt": "Alternar Terminal Integrado", "es": "Alternar Terminal Integrado", "fr": "Basculer le terminal intégré", "de": "Integriertes Terminal umschalten"],
         .actSearch: ["en": "Search in Directory", "pt": "Pesquisar no Diretório", "es": "Buscar en el Directorio", "fr": "Rechercher dans le dossier", "de": "Im Verzeichnis suchen"],
+        .networkAndCloud: ["en": "NETWORK & CLOUD", "pt": "REDE E NUVEM", "es": "RED Y NUBE", "fr": "RÉSEAU ET CLOUD", "de": "NETZWERK & CLOUD"],
+        .shareFolderWifi: ["en": "Share Folder over Wi-Fi", "pt": "Compartilhar Pasta por Wi-Fi", "es": "Compartir Carpeta por Wi-Fi", "fr": "Partager le dossier via Wi-Fi", "de": "Ordner über WLAN freigeben"],
+        .autoOrganization: ["en": "Auto-Organization Rules...", "pt": "Regras de Organização Automática...", "es": "Reglas de Organización Automática...", "fr": "Règles d'organisation automatique...", "de": "Regeln für automatische Organisation..."],
+        .noAutoOrgRules: ["en": "No Auto-Organization Rules", "pt": "Nenhuma Regra", "es": "Sin reglas", "fr": "Aucune règle", "de": "Keine Regeln"],
+        .noAutoOrgRulesDesc: ["en": "Files will stay where they are.", "pt": "Os arquivos não serão movidos.", "es": "Los archivos no se moverán.", "fr": "Les fichiers ne seront pas déplacés.", "de": "Dateien bleiben, wo sie sind."],
+        .addNewRule: ["en": "Add New Rule", "pt": "Adicionar Nova Regra", "es": "Añadir nueva regla", "fr": "Ajouter une nouvelle règle", "de": "Neue Regel hinzufügen"],
+        .ifFileIn: ["en": "If file in:", "pt": "Se arquivo em:", "es": "Si el archivo en:", "fr": "Si fichier dans:", "de": "Wenn Datei in:"],
+        .selectFolder: ["en": "Select Folder...", "pt": "Selecionar Pasta...", "es": "Seleccionar carpeta...", "fr": "Sélectionner un dossier...", "de": "Ordner auswählen..."],
+        .ruleValuePlaceholder: ["en": "Value (e.g. pdf)", "pt": "Valor (ex: pdf)", "es": "Valor (ej: pdf)", "fr": "Valeur (ex: pdf)", "de": "Wert (z.B. pdf)"],
+        .moveTo: ["en": "Move to:", "pt": "Mover para:", "es": "Mover a:", "fr": "Déplacer vers:", "de": "Verschieben nach:"],
+        .addRule: ["en": "Add Rule", "pt": "Adicionar Regra", "es": "Añadir regla", "fr": "Ajouter la règle", "de": "Regel hinzufügen"],
         .actDiskVisualizer: ["en": "Disk Usage Visualizer", "pt": "Visualizador de Uso de Disco", "es": "Visualizador de Uso de Disco", "fr": "Visualiseur d'espace disque", "de": "Speicherplatz-Visualisierung"],
         .actConnectServer: ["en": "Connect to Server", "pt": "Conectar ao Servidor", "es": "Conectarse al Servidor", "fr": "Se connecter au serveur", "de": "Mit Server verbinden"],
         .actNewFolderShortcut: ["en": "New Folder", "pt": "Nova Pasta", "es": "Nueva Carpeta", "fr": "Nouveau dossier", "de": "Neuer Ordner"],

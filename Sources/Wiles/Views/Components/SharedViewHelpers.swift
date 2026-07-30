@@ -72,6 +72,10 @@ struct SharedBackgroundContextMenu: View {
         Button(appState.tr(.openInTerminal)) {
             openTerminal(at: appState.currentURL)
         }
+        Button(appState.tr(.shareFolderWifi)) {
+            appState.httpShareFolderURL = appState.currentURL
+            appState.showHttpShareSheet = true
+        }
         Button("\(appState.tr(.diskUsageVisualizer))... (Shift+Cmd+D)") {
             appState.showDiskUsageSheet = true
         }
@@ -94,6 +98,10 @@ struct SharedFileItemContextMenu: View {
         if item.isDirectory {
             Button(appState.tr(.openInTerminal)) {
                 openTerminal(at: item.url)
+            }
+            Button(appState.tr(.shareFolderWifi)) {
+                appState.httpShareFolderURL = item.url
+                appState.showHttpShareSheet = true
             }
             if appState.isFavorite(item.url) {
                 Button(appState.tr(.removeFromFavorites)) { appState.removeFavorite(item.url) }

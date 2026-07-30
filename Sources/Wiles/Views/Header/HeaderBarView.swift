@@ -62,11 +62,26 @@ struct HeaderBarView: View {
     private var rightControls: some View {
         HStack(spacing: 8) {
             openInButtons
+            terminalToggleButton
             searchButton
             viewSwitcher
             sortMenu
             optionsMenu
         }
+    }
+    
+    private var terminalToggleButton: some View {
+        Button(action: {
+            withAnimation {
+                appState.showTerminalDrawer.toggle()
+            }
+        }) {
+            Image(systemName: "terminal").font(.system(size: 13, weight: .medium))
+                .frame(width: 30, height: 28)
+                .background(appState.showTerminalDrawer ? Color.accentColor.opacity(0.25) : Color(NSColor.controlBackgroundColor))
+                .cornerRadius(6)
+        }
+        .buttonStyle(.plain).help("Toggle Terminal Drawer (Cmd+J)")
     }
     
     private var openInButtons: some View {
@@ -91,6 +106,13 @@ struct HeaderBarView: View {
                         .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
                 }
                 .buttonStyle(.plain).help(appState.tr(.openInXcode))
+            }
+            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") != nil {
+                Button(action: { openApp(bundleId: "com.apple.Terminal") }) {
+                    Image(systemName: "apple.terminal").font(.system(size: 13, weight: .medium))
+                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
+                }
+                .buttonStyle(.plain).help(appState.tr(.openInTerminal))
             }
         }
         .padding(2).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
@@ -243,6 +265,7 @@ struct HeaderBarView: View {
             }
             Divider()
             Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
+            Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
             Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
             Toggle(appState.showFooter ? appState.tr(.hideStatusBar) : appState.tr(.showStatusBar), isOn: $appState.showFooter)
             Divider()

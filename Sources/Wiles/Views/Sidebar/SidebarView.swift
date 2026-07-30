@@ -199,6 +199,21 @@ struct SidebarView: View {
                     }
                 }
                 
+                if appState.showNetworkAndCloud {
+                    let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
+                        SidebarItem(name: $0.name, iconName: "network", url: $0.url)
+                    }
+                    if !networkShares.isEmpty {
+                        collapsibleSection(
+                            title: appState.tr(.networkAndCloud),
+                            isExpanded: $appState.isNetworkExpanded,
+                            items: networkShares,
+                            isFavoritesSection: false
+                        )
+                        Divider().padding(.horizontal, 12)
+                    }
+                }
+                
                 if appState.sidebarMode == .places {
                     collapsibleSection(
                         title: appState.tr(.devices),

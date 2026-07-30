@@ -26,6 +26,14 @@ struct WilesApp: App {
                 .sheet(isPresented: $appState.showAboutSheet) {
                     AboutSheet(appState: appState)
                 }
+                .sheet(isPresented: $appState.showAutoOrganizationSheet) {
+                    AutoOrganizationSheet(appState: appState)
+                }
+                .sheet(isPresented: $appState.showHttpShareSheet) {
+                    if let url = appState.httpShareFolderURL {
+                        HttpShareSheet(appState: appState, folderURL: url)
+                    }
+                }
                 .onAppear {
                     NSApplication.shared.activate(ignoringOtherApps: true)
                     let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ?? 
@@ -42,6 +50,7 @@ struct WilesApp: App {
                     }
                     PermissionService.requestInitialPermissions()
                     appState.refreshCurrentDirectory()
+                    AutoOrganizationService.shared.startMonitoring()
                 }
         }
         .windowStyle(.hiddenTitleBar)
@@ -79,6 +88,8 @@ struct WilesApp: App {
                 }
                 Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
                     .keyboardShortcut("/", modifiers: .command)
+                Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
+                    .keyboardShortcut("j", modifiers: .command)
                 Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                 Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
@@ -89,6 +100,11 @@ struct WilesApp: App {
                 Toggle("Show MAC Section", isOn: $appState.showMacSection)
                 if appState.showMacSection {
                     Toggle("Show Recents", isOn: $appState.showRecents)
+                }
+                Toggle("Show Network & Cloud", isOn: $appState.showNetworkAndCloud)
+                Divider()
+                Button("Auto-Organization Rules...") {
+                    appState.showAutoOrganizationSheet = true
                 }
                 Divider()
                 Picker("View Mode", selection: $appState.viewMode) {

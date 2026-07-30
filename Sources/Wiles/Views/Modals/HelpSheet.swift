@@ -114,6 +114,8 @@ struct HelpSheet: View {
                 featureRow(icon: "doc.on.clipboard", title: appState.tr(.helpCopyContentTitle), desc: appState.tr(.helpCopyContentDesc))
                 featureRow(icon: "trash.slash.fill", title: appState.tr(.helpShredTitle), desc: appState.tr(.helpShredDesc))
                 featureRow(icon: "network", title: appState.tr(.helpServerTitle), desc: appState.tr(.helpServerDesc))
+                featureRow(icon: "wifi", title: appState.tr(.helpWifiShareTitle), desc: appState.tr(.helpWifiShareDesc))
+                featureRow(icon: "wand.and.stars", title: appState.tr(.helpAutoOrgTitle), desc: appState.tr(.helpAutoOrgDesc))
             }
         }
     }
@@ -220,6 +222,7 @@ struct HelpSheet: View {
                 shortcutRow(action: appState.tr(.actRedo), shortcut: "Cmd + Shift + Z")
                 shortcutRow(action: appState.tr(.actQuickLook), shortcut: "Space")
                 shortcutRow(action: appState.tr(.actTogglePreview), shortcut: "Cmd + Shift + P")
+                shortcutRow(action: appState.tr(.actToggleTerminal), shortcut: "Cmd + J")
                 shortcutRow(action: appState.tr(.actSearch), shortcut: "Cmd + F")
                 shortcutRow(action: appState.tr(.actDiskVisualizer), shortcut: "Cmd + Shift + D")
                 shortcutRow(action: appState.tr(.actConnectServer), shortcut: "Cmd + K")

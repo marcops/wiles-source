@@ -37,6 +37,9 @@ public final class AppState {
     public var showMacSection: Bool = true {
         didSet { UserDefaults.standard.set(showMacSection, forKey: "wiles_showMacSection") }
     }
+    public var showNetworkAndCloud: Bool = false {
+        didSet { UserDefaults.standard.set(showNetworkAndCloud, forKey: "wiles_showNetworkAndCloud") }
+    }
     public var appLanguage: AppLanguage = .system {
         didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: "wiles_appLanguage") }
     }
@@ -45,6 +48,9 @@ public final class AppState {
     }
     public var isMacExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isMacExpanded, forKey: "wiles_isMacExpanded") }
+    }
+    public var isNetworkExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isNetworkExpanded, forKey: "wiles_isNetworkExpanded") }
     }
     public var isRecentsExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isRecentsExpanded, forKey: "wiles_isRecentsExpanded") }
@@ -69,6 +75,9 @@ public final class AppState {
     }
     public var showFooter: Bool = true {
         didSet { UserDefaults.standard.set(showFooter, forKey: "wiles_showFooter") }
+    }
+    public var showTerminalDrawer: Bool = false {
+        didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: "wiles_showTerminalDrawer") }
     }
     public var showPreviewSidebar: Bool = false {
         didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: "wiles_showPreviewSidebar") }
@@ -113,6 +122,9 @@ public final class AppState {
     public var showNewFolderSheet: Bool = false
     public var showNewFileSheet: Bool = false
     public var showConnectToServerSheet: Bool = false
+    public var showAutoOrganizationSheet: Bool = false
+    public var showHttpShareSheet: Bool = false
+    public var httpShareFolderURL: URL? = nil
     
     public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: "wiles_isCompactMode") {
         didSet { UserDefaults.standard.set(isCompactMode, forKey: "wiles_isCompactMode") }
@@ -216,6 +228,9 @@ public final class AppState {
         if defaults.object(forKey: "wiles_showMacSection") != nil {
             self.showMacSection = defaults.bool(forKey: "wiles_showMacSection")
         }
+        if defaults.object(forKey: "wiles_showNetworkAndCloud") != nil {
+            self.showNetworkAndCloud = defaults.bool(forKey: "wiles_showNetworkAndCloud")
+        }
         if let langStr = defaults.string(forKey: "wiles_appLanguage"), let lang = AppLanguage(rawValue: langStr) {
             self.appLanguage = lang
         }
@@ -224,6 +239,9 @@ public final class AppState {
         }
         if defaults.object(forKey: "wiles_isMacExpanded") != nil {
             self.isMacExpanded = defaults.bool(forKey: "wiles_isMacExpanded")
+        }
+        if defaults.object(forKey: "wiles_isNetworkExpanded") != nil {
+            self.isNetworkExpanded = defaults.bool(forKey: "wiles_isNetworkExpanded")
         }
         if defaults.object(forKey: "wiles_isRecentsExpanded") != nil {
             self.isRecentsExpanded = defaults.bool(forKey: "wiles_isRecentsExpanded")
@@ -248,6 +266,9 @@ public final class AppState {
         }
         if defaults.object(forKey: "wiles_showPreviewSidebar") != nil {
             self.showPreviewSidebar = defaults.bool(forKey: "wiles_showPreviewSidebar")
+        }
+        if defaults.object(forKey: "wiles_showTerminalDrawer") != nil {
+            self.showTerminalDrawer = defaults.bool(forKey: "wiles_showTerminalDrawer")
         }
         if defaults.object(forKey: "wiles_translucentLevel") != nil {
             self.translucentLevel = defaults.integer(forKey: "wiles_translucentLevel")

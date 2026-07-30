@@ -10,14 +10,22 @@ struct MainContentView: View {
         return VStack(spacing: 0) {
             HeaderBarView(appState: appState)
             Divider()
-            HSplitView {
-                SidebarView(appState: appState)
-                    .frame(minWidth: 140, idealWidth: 150, maxWidth: 260, maxHeight: .infinity)
-                contentArea
-                    .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
-                if appState.showPreviewSidebar {
-                    PreviewSidebarView(appState: appState)
-                        .frame(maxHeight: .infinity)
+            VSplitView {
+                HSplitView {
+                    SidebarView(appState: appState)
+                        .frame(minWidth: 140, idealWidth: 150, maxWidth: 260, maxHeight: .infinity)
+                    contentArea
+                        .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
+                    if appState.showPreviewSidebar {
+                        PreviewSidebarView(appState: appState)
+                            .frame(maxHeight: .infinity)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                if appState.showTerminalDrawer {
+                    IntegratedTerminalView(appState: appState)
+                        .frame(minHeight: 100, idealHeight: 200, maxHeight: .infinity)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -6,16 +6,13 @@ This document tracks **31 remaining pending features** for **Wiles** (Native mac
 
 ## ⭐️ Category 1: Essential & Core Navigation
 1. **Multi-Tab Navigation**: Safari/Finder-style tabs for opening multiple directories within a single window.
-2. **Native macOS Tags Support**: View, add, filter, and modify colored macOS Finder tags.
 3. **Folder Pinning & Quick Navigation Bar**: Pin frequently accessed directories to a persistent quick-access bar below the header.
 
 ---
 
 ## ⚡️ Category 2: Developer & Power-User Tools
 4. **Dual-Pane Mode (Commander Style)**: Side-by-side independent navigation panes for rapid keyboard-driven file transfers.
-5. **Integrated Terminal Panel**: Built-in terminal drawer synced with the current working directory (`pwd`).
 6. **Git Status Integration**: File and folder badges indicating Git status (Modified, Untracked, Ignored).
-7. **Quick "Open In..."**: Direct toolbar buttons to launch the current folder in VS Code, Cursor, Xcode, or Terminal.
 8. **Checksum / Hash Calculator**: Property tab to calculate and copy MD5, SHA1, and SHA256 hashes.
 9. **File Splitter & Joiner**: Tool to chunk large files into smaller parts and merge them back.
 10. **Keep Folders on Top**: Preference setting to force folders to sort above files regardless of sort mode.
@@ -36,11 +33,9 @@ This document tracks **31 remaining pending features** for **Wiles** (Native mac
 ---
 
 ## ☁️ Category 4: Cloud, Network & Sharing
-20. **Native SFTP / SSH Browser**: Browse remote Linux servers securely without mounting globally.
-21. **S3 / R2 Bucket Manager**: Native object storage browser for AWS S3 and Cloudflare R2.
-22. **Cloud Sync Badges**: Sync state indicators for iCloud, Google Drive, and Dropbox.
-23. **Bonjour Network Discovery**: Automatic sidebar population of local network computers and shares.
-24. **Instant Local HTTP Share**: Spin up an instant temporary local HTTP server to share a folder over Wi-Fi.
+36. **Native SFTP / SSH Browser**: Browse remote Linux servers securely without mounting globally.
+37. **S3 / R2 Bucket Manager**: Native object storage browser for AWS S3 and Cloudflare R2.
+38. **Cloud Sync Badges**: Sync state indicators for iCloud, Google Drive, and Dropbox.
 
 ---
 
@@ -48,7 +43,6 @@ This document tracks **31 remaining pending features** for **Wiles** (Native mac
 25. **Built-in Hex Viewer**: Hexadecimal inspection tab in the preview sidebar for binary files.
 26. **RAM Disk Creator**: One-click RAM disk creation for ultra-fast temporary storage.
 27. **Drop Stack (File Shelf)**: Floating temporary collection shelf for gathering files across directories.
-28. **Folder Auto-Organization**: Rule-based file routing (e.g. automatically moving PDFs to Documents).
 29. **UNIX File Lock Toggle**: Quick toggle for UNIX `uchg` (immutable) file flags.
 30. **Directory Diff & Comparison**: Side-by-side folder comparison highlighting missing or updated files.
 31. **App Uninstaller**: Full `.app` removal tool detecting leftover cache and preference files in `~/Library`.
