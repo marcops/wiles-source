@@ -5,9 +5,9 @@ This document tracks **in-progress items** as well as **50 upcoming planned feat
 ---
 
 ## 🚧 In-Progress & Partial Features
+- 🚧 **Template-Based "New File" Creation**: Native New Folder creation is implemented; template-based "New File" context menu (`.txt`, `.md`, `.swift`, `.json`, `.py`) is currently in progress.
 - 🚧 **Search Expansion (Regex & Content Indexing)**: Real-time search with auto-focus is implemented; regex pattern matching and content indexing are in progress.
 - 🚧 **Archive Expansion (`.7z`, `.rar`, `.tar.gz`)**: Native ZIP compression and extraction via `ZipArchiveService` are implemented; expanding format support is in progress.
-- 🚧 **Template-Based "New File" Creation**: Native New Folder sheet is implemented; template-based "New File" context menu (`.txt`, `.md`, `.swift`, `.json`) is in progress.
 
 ---
 
@@ -21,7 +21,7 @@ This document tracks **in-progress items** as well as **50 upcoming planned feat
 7. **Connect to Server GUI**: Native dialog for mounting network storage (SMB, AFP, NFS, FTP).
 8. **macOS Services Integration**: Right-click access to system Services (Automator, Shortcuts, Quick Actions).
 9. **Per-Folder Layout Memory**: Remember View Mode (Grid vs List) on a per-directory basis.
-10. **Template-Based "New File" Menu**: Right-click context menu to instantly create empty files (`.txt`, `.md`, `.swift`, `.json`, `.py`).
+10. **Folder Pinning & Quick Navigation Bar**: Pin frequently accessed directories to a persistent quick-access bar below the header.
 
 ---
 
