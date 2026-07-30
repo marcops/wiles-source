@@ -28,8 +28,11 @@ struct WilesApp: App {
                 }
                 .onAppear {
                     NSApplication.shared.activate(ignoringOtherApps: true)
-                    if let iconURL = Bundle.module.url(forResource: "AppIcon", withExtension: "png"),
-                       let iconImage = NSImage(contentsOf: iconURL) {
+                    let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ?? 
+                                  Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png") ??
+                                  Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png")
+                    
+                    if let iconImage = NSImage(contentsOf: iconURL) {
                         NSApplication.shared.applicationIconImage = iconImage
                     }
                     for window in NSApplication.shared.windows {
