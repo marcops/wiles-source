@@ -1,13 +1,15 @@
 import SwiftUI
 
 public struct NewFileSheetView: View {
-    @Environment(AppState.self) private var appState
+    var appState: AppState
     @FocusState private var isNameFocused: Bool
     
     @State private var fileName: String = ""
     @State private var selectedTemplate: FileTemplate = .text
     
-    public init() {}
+    public init(appState: AppState) {
+        self.appState = appState
+    }
     
     public var body: some View {
         VStack(spacing: 16) {

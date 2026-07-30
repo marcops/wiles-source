@@ -41,7 +41,7 @@ struct MainContentView: View {
             DiskSpaceVisualizerSheetView(appState: appState)
         }
         .sheet(isPresented: $appState.showNewFileSheet) {
-            NewFileSheetView()
+            NewFileSheetView(appState: appState)
         }
         .background(
             ZStack {

@@ -74,21 +74,41 @@ struct PathBarView: View {
     }
     
     private var breadcrumbMode: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 2) {
-                ForEach(pathSegments) { item in
-                    breadcrumbPill(for: item)
-                    if item.url != appState.currentURL.standardizedFileURL {
-                        Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundColor(.secondary.opacity(0.6))
+        HStack(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 2) {
+                    ForEach(pathSegments) { item in
+                        breadcrumbPill(for: item)
+                        if item.url != appState.currentURL.standardizedFileURL {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.secondary.opacity(0.6))
+                        }
                     }
                 }
+                .padding(.horizontal, 4)
+                .frame(height: 28)
             }
-            .padding(.horizontal, 4)
-            .frame(height: 28)
+            
+            Spacer(minLength: 4)
+            
+            Button(action: {
+                appState.pathText = appState.currentURL.path
+                appState.isEditingPath = true
+            }) {
+                Image(systemName: "pencil")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary.opacity(0.7))
+                    .padding(.horizontal, 6)
+                    .frame(height: 22)
+            }
+            .buttonStyle(.plain)
+            .help("Edit Path (Cmd+L)")
         }
         .frame(height: 28)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5)).cornerRadius(6)
-        .onTapGesture {
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .cornerRadius(6)
+        .onTapGesture(count: 2) {
             appState.pathText = appState.currentURL.path
             appState.isEditingPath = true
         }
