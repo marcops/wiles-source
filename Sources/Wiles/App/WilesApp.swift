@@ -51,7 +51,7 @@ struct WilesApp: App {
                     PermissionService.requestInitialPermissions()
                     if CommandLine.arguments.contains("--test") || CommandLine.arguments.contains("--run-tests") {
                         Task {
-                            await AutomatedTestSuite.runAllTests()
+                            await AutomatedTestService.runAllTests()
                         }
                     } else {
                         appState.refreshCurrentDirectory()
