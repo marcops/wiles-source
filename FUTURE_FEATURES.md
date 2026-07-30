@@ -1,88 +1,104 @@
-# 🚀 Wiles: Roadmap & Lista de 55 Melhorias do File Manager
+# 🚀 Wiles: Roadmap & Feature Tracker (Top 58)
 
-Este documento reúne um levantamento completo de **55 ideias, melhorias e novas funcionalidades** para o **Wiles** (Gerenciador de Arquivos nativo para macOS). As sugestões estão organizadas por categorias estratégicas, desde recursos essenciais de gerenciamento de arquivos até otimizações avançadas de produtividade e UI/UX.
+This document provides a comprehensive roadmap of **58 features, enhancements, and roadmap items** for **Wiles** (Native macOS File Manager). Each item is written in English and tagged with its current status in the codebase (v0.0.5).
 
----
-
-## ⭐️ Categoria 1: Funcionalidades Essenciais & Padrão
-*Recursos fundamentais esperados em gerenciadores de arquivos modernos.*
-
-1. **Navegação por Abas (Multi-Tab Navigation)**: Suporte a abas na mesma janela (estilo Safari/Finder) para alternar rapidamente entre pastas sem poluir a tela.
-2. **Exibição em Colunas (Miller Columns)**: Visualização em colunas encadeadas clássica do macOS para navegação hierárquica rápida em pastas profundas.
-3. **Ordenação Completa de Arquivos**: Suporte nativo para ordenar por Nome, Data de Modificação, Tamanho, Tipo e Tags nas visões de Grade (Grid) e Lista.
-4. **Slider de Tamanho de Ícones**: Controle deslizante no footer/toolbar para redimensionar dinamicamente as miniaturas no Grid View.
-5. **Desfazer / Refazer Nativo (`Cmd+Z` / `Cmd+Shift+Z`)**: Capacidade de desfazer operações de arquivo (mover, copiar, renomear, deletar).
-6. **Gerenciador de Operações em Segundo Plano**: Janela flutuante ou popover no footer exibindo progresso de cópias/transferências com opção de pausar e cancelar.
-7. **Suporte Nativo a Tags do macOS**: Visualizar, adicionar e remover tags coloridas do Finder nos arquivos e pastas.
-8. **Sidebar com Favoritos Editáveis (Drag-and-Drop)**: Permitir arrastar e soltar qualquer pasta para fixá-la na seção "FAVORITES" da barra lateral.
-9. **Criar Novo Arquivo no Menu de Contexto**: Opção no botão direito para criar arquivos vazios instantaneamente (`.txt`, `.md`, `.swift`, `.json`).
-10. **Gerenciamento Nativo da Lixeira**: Botão para esvaziar lixeira e visualização/restauração de itens contidos nela.
-11. **Ejeção Nativa de Discos e DMGs**: Botão de ejeção ao lado de pendrives, HDs externos e volumes montados na barra lateral.
-12. **Conectar a Servidor (SMB / AFP / NFS / FTP)**: Modal nativo para conectar e montar volumes de rede.
-13. **Integração com Serviços do macOS**: Acesso aos "Serviços" do sistema no menu de contexto (Shortcuts, Automator, Quick Actions).
-14. **Layouts de Exibição por Pasta**: Memorizar o modo de exibição (Grade ou Lista) individualmente para cada diretório.
+### Status Legend
+- ✅ **Completed** — Fully implemented and available in Wiles.
+- 🚧 **In Progress / Partial** — Foundation or partial implementation built.
+- ⏳ **Planned** — Scheduled for future releases.
 
 ---
 
-## ⚡️ Categoria 2: Produtividade & Workflow Avançado
-*Recursos projetados para desenvolvedores e power users ganharem velocidade extrema.*
+## ⭐️ Category 1: Essential & Standard Features
+*Fundamental capabilities expected in modern file managers.*
 
-15. **Modo Painel Duplo (Commander Style)**: Dois painéis independentes lado a lado para transferências rápidas acionadas via teclado.
-16. **Terminal Integrado (Drawer/Panel)**: Terminal embutido expansível na parte inferior sincronizado com o diretório atual (`pwd`).
-17. **Busca Avançada com Regex e Spotlight**: Integração profunda com Spotlight e suporte a Expressões Regulares no campo de busca.
-18. **Pastas Inteligentes (Smart Folders)**: Salvar consultas de busca complexas como atalhos virtuais na sidebar.
-19. **Integração com Git Status**: Indicadores visuais nos arquivos/pastas exibindo status do Git (Modificado, Não Rasteado, Ignorado).
-20. **Atalhos Rápidos "Abrir No..."**: Botões diretos para abrir a pasta atual no VSCode, Cursor, Xcode ou Terminal nativo.
-21. **Criador GUI de Symlinks**: Criar links simbólicos (`ln -s`) absolutos e relativos via interface, além dos aliases nativos do macOS.
-22. **Suporte Expandido a Compactação (`.7z`, `.rar`, `.tar.gz`)**: Suporte a descompactação e leitura de múltiplos formatos de arquivo.
-23. **Calculadora e Verificador de Checksum / Hash**: Aba de propriedades para calcular hashes MD5, SHA1 e SHA256 com cópia rápida.
-24. **Divisor e Junção de Arquivos (File Splitter / Joiner)**: Dividir arquivos grandes em partes menores para envio e reconstituí-los.
-25. **Manter Pastas Sempre no Topo**: Configuração para que pastas sempre apareçam antes de arquivos ao aplicar ordenações.
-26. **Modos de Cópia de Caminho**: Botão direito com opções de copiar caminho como Absoluto, Relativo, URI (`file://`) ou Escapado para Terminal.
-27. **Visualizador Rápido de Markdown e Código**: Renderização de markdown e sintaxe destacada no painel de preview lateral.
-
----
-
-## 🎨 Categoria 3: Design, UI & Personalização Nativa
-*Melhorias estéticas e de experiência que elevam o app ao padrão Apple Premium.*
-
-28. **Barra de Ferramentas Personalizável**: Interface de arrastar e soltar para adicionar, remover ou reordenar itens da Toolbar.
-29. **Ícones e Cores Customizadas em Pastas**: Personalizar a cor da pasta ou definir um Emoji exclusivo como ícone de diretório.
-30. **Sobrescrita da Cor de Destaque (Accent Color)**: Opção de escolher uma cor de destaque personalizada independente do sistema.
-31. **Modo de Densidade Compacta**: Toggle para diminuir padding e altura das linhas em telas menores de MacBooks.
-32. **Mapeador de Atalhos de Teclado**: Painel nas preferências para customizar todos os atalhos de teclado da aplicação.
-33. **Editor de Menu de Contexto**: Ocultar itens não utilizados do menu de clique com o botão direito para máxima rapidez.
-34. **Planos de Fundo Customizados por Pasta**: Definir imagem ou marca d'água de fundo para diretórios específicos.
-35. **Translucidez Adaptativa Dinâmica**: Efeitos vibrantes de translucidez (Glassmorphism nativo AppKit/SwiftUI) ajustáveis por horário ou tema.
+1. ✅ **Sort By Options**: Sorting by Name, Date Modified, Size, and Kind across Grid and List views.
+2. ✅ **Icon Size Scaling**: Dynamic icon sizing for Grid View stored persistently in user preferences.
+3. ✅ **Sidebar Favorites & Navigation**: Sidebar navigation featuring Favorites, Mac, Devices, Recents, and Directory Tree.
+4. ✅ **Trash Management**: Native "Move to Trash" support via keyboard shortcuts and context menus.
+5. 🚧 **New File / Folder Creation**: Native New Folder sheet implemented; template-based "New File" menu planned.
+6. ⏳ **Multi-Tab Navigation**: Safari/Finder-style tabs for opening multiple directories within a single window.
+7. ⏳ **Column View (Miller Columns)**: Miller columns layout for deep, hierarchical directory traversal.
+8. ⏳ **Undo / Redo (`Cmd+Z` / `Cmd+Shift+Z`)**: Ability to undo file operations (move, copy, rename, delete).
+9. ⏳ **Background Operations Manager**: Status bar popover/window tracking concurrent file operations with pause/cancel controls.
+10. ⏳ **Native macOS Tags Support**: View, add, filter, and modify colored macOS Finder tags.
+11. ⏳ **Eject External Volumes**: Native eject button next to external drives, USB storage, and mounted DMGs in the sidebar.
+12. ⏳ **Connect to Server GUI**: Dialog for mounting network storage (SMB, AFP, NFS, FTP).
+13. ⏳ **macOS Services Integration**: Right-click access to macOS system Services (Automator, Shortcuts, Quick Actions).
+14. ⏳ **Per-Folder Layout Memory**: Remember View Mode (Grid vs List) on a per-directory basis.
 
 ---
 
-## ☁️ Categoria 4: Redes, Nuvem e Conectividade
-*Conexão transparente entre arquivos locais, servidores remotos e nuvem.*
+## ⚡️ Categoria 2: Productivity & Developer Workflow
+*Power tools designed for developers and heavy workflows.*
 
-36. **Navegador SFTP / SSH Nativo**: Conectar e navegar em servidores Linux remotos diretamente no Wiles.
-37. **Integração Nativa com Buckets S3 / R2 / MinIO**: Gerenciador de arquivos para armazenamento em nuvem S3.
-38. **Envio Rápido via AirDrop**: Ação de menu de contexto e toolbar para disparar AirDrop nativo do arquivo selecionado.
-39. **Indicadores de Status de Nuvem**: Badges para iCloud, Google Drive e Dropbox mostrando estado de sincronização.
-40. **Descoberta de Rede Local (Bonjour)**: Lista automática de computadores e servidores disponíveis na rede local na sidebar.
-41. **Compartilhamento Rápido via HTTP Local**: Clique com botão direito em uma pasta para subir um mini servidor HTTP local e compartilhar via IP.
+15. ✅ **Right Preview Sidebar**: Collapsible right sidebar rendering live file metadata, media previews, and dimensions.
+16. ✅ **File Properties Inspector**: Modernized properties sheet displaying file paths, size, dates, permissions, and MIME types.
+17. ✅ **Native Image Converter**: Image conversion service supporting PNG, JPEG, HEIC, TIFF, with JPEG quality control.
+18. ✅ **Batch Renamer**: Dedicated batch rename service supporting prefix, suffix, search & replace, and numbering patterns.
+19. 🚧 **Advanced Search**: Header search bar with auto-focus, real-time filtering, and shortcut activation; Regex planned.
+20. 🚧 **Archive Management**: Native ZIP compression and extraction via `ZipArchiveService`; `.7z`/`.rar` expansion planned.
+21. ⏳ **Dual-Pane Mode (Commander Style)**: Side-by-side independent navigation panes for rapid keyboard-driven file transfers.
+22. ⏳ **Integrated Terminal Panel**: Built-in terminal drawer synced with the current working directory (`pwd`).
+23. ⏳ **Git Status Integration**: File and folder badges indicating Git status (Modified, Untracked, Ignored).
+24. ⏳ **Quick "Open In..."**: Direct toolbar buttons to launch the current folder in VS Code, Cursor, Xcode, or Terminal.
+25. ⏳ **Symlink Creator GUI**: Interface to generate absolute and relative symbolic links (`ln -s`).
+26. ⏳ **Checksum / Hash Calculator**: Property tab to calculate and copy MD5, SHA1, and SHA256 hashes.
+27. ⏳ **File Splitter & Joiner**: Tool to chunk large files into smaller parts and merge them back.
+28. ⏳ **Keep Folders on Top**: Preference setting to force folders to sort above files regardless of sort mode.
+29. ⏳ **Copy File Path Modes**: Right-click menu options to copy Absolute, Relative, URI (`file://`), or Terminal-escaped paths.
+30. ⏳ **Markdown & Code Syntax Previewer**: Live syntax-highlighted code rendering in the preview sidebar.
+31. ⏳ **Smart Folders**: Save complex search queries as dynamic virtual folders in the sidebar.
 
 ---
 
-## 🔥 Categoria 5: Recursos Power User & Funcionalidades Únicas
-*Recursos diferenciados que tornam o Wiles único e indispensável.*
+## 🎨 Category 3: Native macOS Design & UI/UX
+*Aesthetics and UI polish following Apple Human Interface Guidelines (HIG).*
 
-42. **Visualizador Hexadecimal Integrado (Hex Viewer)**: Aba no painel lateral de preview para inspecionar arquivos binários em hexadecimal.
-43. **Batch Renamer com Captura Regex**: Expansão do renomeador em lote com suporte a grupos de captura Regex (`$1, $2`).
-44. **Visualizador Interativo de Espaço em Disco (Treemap / Sunburst)**: Gráfico interativo estilo DaisyDisk para analisar uso de espaço em disco.
-45. **Exclusão Segura (File Shredder)**: Sobrescrever dados com zeros antes de deletar, ignorando a lixeira para arquivos sensíveis.
-46. **Criador de RAM Disk**: Montar instantaneamente uma porção da memória RAM como disco virtual ultra rápido.
-47. **Prateleira de Arquivos (Drop Stack / Shelf)**: Zona flutuante temporária para juntar arquivos de diferentes pastas antes de movê-los.
-48. **Regras de Auto-Organização**: Regras automáticas em pastas (ex: "Mover todos os PDFs para Documentos").
-49. **Bloqueio de Arquivos (Lock / Unlock Flag)**: Alternar a flag nativa `uchg` (imutável) do UNIX para proteger arquivos contra modificações.
-50. **Comparador de Diretórios (Folder Diff)**: Selecionar duas pastas e destacar diferenças, arquivos ausentes ou atualizados.
-51. **Editor de Metadados de Mídia**: Editar tags ID3 de MP3s ou EXIF de fotos diretamente no painel de Propriedades.
-52. **Desinstalador de Aplicativos**: Ao deletar um `.app`, buscar e remover automaticamente arquivos órfãos de cache e preferências na `Library`.
-53. **Sistema de Plugins por Scripts**: API para criar ações no menu de contexto com scripts Swift / Shell / Python.
-54. **Exibição Plana (Flat View)**: Exibir todos os arquivos contidos em subpastas em uma única lista plana contínua.
-55. **Modo Privado / Furtivo (Ghost Mode)**: Desativar gravação de arquivos `.DS_Store` e histórico recente durante a navegação.
+32. ✅ **Native Translucent Glassmorphism**: Vibrant AppKit and SwiftUI material translucency across windows, sidebars, and headers.
+33. ✅ **Startup Permission Manager**: Asynchronous startup routine (`PermissionService`) auditing Desktop, Documents, and Downloads access.
+34. ✅ **Native About & Help Modals**: Custom SwiftUI About and Help sheets replacing default system dialogs.
+35. ⏳ **Customizable Toolbar**: Drag-and-drop toolbar editor to add, remove, and reorder controls.
+36. ⏳ **Custom Folder Colors & Icons**: Assign custom colors or emoji icons to specific folders.
+37. ⏳ **Accent Color Override**: Custom accent color selection overriding system defaults.
+38. ⏳ **Compact Density Layout**: Toggleable tight spacing mode for smaller MacBook screens.
+39. ⏳ **Keyboard Shortcut Re-mapper**: Preference pane to customize all application hotkeys.
+40. ⏳ **Context Menu Customizer**: Hide unused context menu actions for a cleaner experience.
+41. ⏳ **Dynamic Folder Backgrounds**: Custom background images or watermarks per directory.
+
+---
+
+## ☁️ Category 4: Cloud, Network & Connectivity
+*Seamless remote filesystem access and file sharing.*
+
+42. ⏳ **Native SFTP / SSH Browser**: Browse remote Linux servers securely without mounting.
+43. ⏳ **S3 / R2 Bucket Manager**: Native object storage browser for AWS S3 and Cloudflare R2.
+44. ⏳ **AirDrop Integration**: Context menu and toolbar actions to trigger native AirDrop transfer.
+45. ⏳ **Cloud Sync Badges**: Sync state indicators for iCloud, Google Drive, and Dropbox.
+46. ⏳ **Bonjour Network Discovery**: Automatic sidebar population of local network computers and shares.
+47. ⏳ **Instant Local HTTP Share**: Spin up an instant temporary local HTTP server to share a folder over Wi-Fi.
+
+---
+
+## 🔥 Category 5: Power User Capabilities
+*Unique features distinguishing Wiles from traditional file explorers.*
+
+48. ✅ **Folder Disk Space Visualizer**: Disk visualizer breaking down folder space usage with a Top 10 heavy files list.
+49. ⏳ **Built-in Hex Viewer**: Hexadecimal inspection tab in the preview sidebar for binary files.
+50. ⏳ **Regex Batch Rename Expansion**: Support for regular expression capture groups (`$1`, `$2`) in batch renaming.
+51. ⏳ **File Shredder (Secure Erase)**: Multi-pass zero-overwrite deletion bypassing the Trash.
+52. ⏳ **RAM Disk Creator**: One-click RAM disk creation for ultra-fast temporary storage.
+53. ⏳ **Drop Stack (File Shelf)**: Floating temporary collection shelf for gathering files across directories.
+54. ⏳ **Folder Auto-Organization**: Rule-based file routing (e.g. automatically moving PDFs to Documents).
+55. ⏳ **UNIX File Lock Toggle**: Quick toggle for UNIX `uchg` (immutable) file flags.
+56. ⏳ **Directory Diff & Comparison**: Side-by-side folder comparison highlighting missing or updated files.
+57. ⏳ **App Uninstaller**: Full `.app` removal tool detecting leftover cache and preference files in `~/Library`.
+58. ⏳ **Ghost Mode (Stealth Browsing)**: Temporarily suppress `.DS_Store` creation and recent file history logging.
+
+---
+
+## 📊 Summary Statistics
+- ✅ **Completed Features**: 12
+- 🚧 **In Progress / Partial**: 3
+- ⏳ **Planned Features**: 43
+- **Total Tracked Features**: 58
