@@ -34,6 +34,9 @@ public final class ArchiveService: Sendable {
         process.arguments = args
         try process.run()
         process.waitUntilExit()
+        if process.terminationStatus != 0 {
+            throw NSError(domain: "ArchiveService", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Compression process failed."])
+        }
     }
     
     public static func extractArchive(archiveURL: URL, to destinationFolder: URL) throws {
@@ -51,8 +54,12 @@ public final class ArchiveService: Sendable {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
             process.arguments = ["-x", "-k", archiveURL.path, destinationFolder.path]
         }
+        process.standardError = Pipe()
         try process.run()
         process.waitUntilExit()
+        if process.terminationStatus != 0 {
+            throw NSError(domain: "ArchiveService", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Extraction process failed."])
+        }
     }
     
     public static func extractZIP(archiveURL: URL, to destinationFolder: URL) throws {
