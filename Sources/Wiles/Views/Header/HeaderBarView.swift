@@ -142,6 +142,14 @@ struct HeaderBarView: View {
                     .foregroundColor(appState.viewMode == .list ? .white : .primary).cornerRadius(4)
             }
             .buttonStyle(.plain)
+            
+            Button(action: { appState.viewMode = .column }) {
+                Image(systemName: "sidebar.left").font(.system(size: 12))
+                    .frame(width: 26, height: 24)
+                    .background(appState.viewMode == .column ? Color.accentColor : Color.clear)
+                    .foregroundColor(appState.viewMode == .column ? .white : .primary).cornerRadius(4)
+            }
+            .buttonStyle(.plain)
         }
         .padding(2).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
     }
@@ -200,6 +208,7 @@ struct HeaderBarView: View {
                 ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
             }
             Divider()
+            Toggle("Compact Density Layout", isOn: $appState.isCompactMode)
             Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
             Toggle(appState.showFooter ? appState.tr(.hideStatusBar) : appState.tr(.showStatusBar), isOn: $appState.showFooter)
             Divider()
@@ -212,6 +221,9 @@ struct HeaderBarView: View {
                 appState.showNewFolderSheet = true
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
+            Button("Connect to Server... (Cmd+K)") {
+                appState.showConnectToServerSheet = true
+            }
             Divider()
             Button("\(appState.tr(.helpShortcuts))...") {
                 appState.showHelpSheet = true

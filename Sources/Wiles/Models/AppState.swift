@@ -98,10 +98,32 @@ public final class AppState {
     public var propertiesItem: FileItem? = nil
     public var renameItem: FileItem? = nil
     public var imageConverterItem: FileItem? = nil
+    public var symlinkItem: FileItem? = nil
     public var showBatchRenameSheet: Bool = false
     public var showDiskUsageSheet: Bool = false
     public var showNewFolderSheet: Bool = false
     public var showNewFileSheet: Bool = false
+    public var showConnectToServerSheet: Bool = false
+    
+    public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: "wiles_isCompactMode") {
+        didSet { UserDefaults.standard.set(isCompactMode, forKey: "wiles_isCompactMode") }
+    }
+    
+    public var perFolderViewModes: [String: String] = (UserDefaults.standard.dictionary(forKey: "wiles_perFolderViewModes") as? [String: String]) ?? [:] {
+        didSet { UserDefaults.standard.set(perFolderViewModes, forKey: "wiles_perFolderViewModes") }
+    }
+    
+    public func viewModeForFolder(_ url: URL) -> ViewMode {
+        if let raw = perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
+            return mode
+        }
+        return viewMode
+    }
+    
+    public func setViewModeForFolder(_ mode: ViewMode, for url: URL) {
+        perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
+        self.viewMode = mode
+    }
     
     public func performImageConversion(
         item: FileItem,
@@ -134,6 +156,7 @@ public final class AppState {
         guard !trimmed.isEmpty, trimmed != item.name else { return }
         do {
             let newURL = try FileSystemService.renameItem(at: item.url, newName: trimmed)
+            UndoRedoService.shared.recordAction(.rename(oldURL: item.url, newURL: newURL))
             self.refreshCurrentDirectory()
             self.selectedURLs = [newURL]
         } catch {

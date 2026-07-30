@@ -2,32 +2,42 @@ import Foundation
 import AppKit
 
 extension FileSystemService {
-    public static func moveItem(at url: URL, toFolder targetFolder: URL) throws {
+    @discardableResult
+    public static func moveItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
         let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
         if FileManager.default.fileExists(atPath: destURL.path) {
             try FileManager.default.removeItem(at: destURL)
         }
         try FileManager.default.moveItem(at: url, to: destURL)
+        return destURL
     }
     
-    public static func copyItem(at url: URL, toFolder targetFolder: URL) throws {
+    @discardableResult
+    public static func copyItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
         let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
         try FileManager.default.copyItem(at: url, to: destURL)
+        return destURL
     }
     
-    public static func moveToTrash(url: URL) throws {
-        try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+    @discardableResult
+    public static func moveToTrash(url: URL) throws -> URL {
+        var trashedURL: NSURL?
+        try FileManager.default.trashItem(at: url, resultingItemURL: &trashedURL)
+        return (trashedURL as URL?) ?? url
     }
     
+    @discardableResult
     public static func renameItem(at url: URL, newName: String) throws -> URL {
         let destURL = url.deletingLastPathComponent().appendingPathComponent(newName)
         try FileManager.default.moveItem(at: url, to: destURL)
         return destURL
     }
     
-    public static func createDirectory(at parentURL: URL, name: String) throws {
+    @discardableResult
+    public static func createDirectory(at parentURL: URL, name: String) throws -> URL {
         let newURL = parentURL.appendingPathComponent(name)
         try FileManager.default.createDirectory(at: newURL, withIntermediateDirectories: false)
+        return newURL
     }
     
     public static func writeToPasteboard(urls: [URL]) {

@@ -22,20 +22,12 @@ struct ClickOutsideDetector: NSViewRepresentable {
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            if window != nil {
-                if monitor == nil {
-                    monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
-                        guard let self = self, let window = self.window, event.window == window else { return event }
-                        let locationInView = self.convert(event.locationInWindow, from: nil)
-                        if !self.bounds.contains(locationInView) {
-                            DispatchQueue.main.async {
-                                self.onOutsideClick?()
-                            }
-                        }
-                        return event
-                    }
-                }
-            } else {
+            setupMonitor()
+        }
+
+        override func viewWillMove(toWindow newWindow: NSWindow?) {
+            super.viewWillMove(toWindow: newWindow)
+            if newWindow == nil {
                 removeMonitor()
             }
         }
@@ -43,6 +35,23 @@ struct ClickOutsideDetector: NSViewRepresentable {
         override func removeFromSuperview() {
             super.removeFromSuperview()
             removeMonitor()
+        }
+
+        private func setupMonitor() {
+            guard window != nil, monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+                guard let self = self, let myWindow = self.window else { return event }
+                let isSameWindow = (event.window == myWindow) || (event.window?.sheetParent == myWindow)
+                if isSameWindow || event.window == nil {
+                    let locationInView = self.convert(event.locationInWindow, from: nil)
+                    if !self.bounds.contains(locationInView) {
+                        DispatchQueue.main.async {
+                            self.onOutsideClick?()
+                        }
+                    }
+                }
+                return event
+            }
         }
 
         private func removeMonitor() {

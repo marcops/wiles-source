@@ -17,44 +17,88 @@ struct FileListView: View {
     @State private var dragStartPoint: CGPoint? = nil
 
     var body: some View {
-        ScrollView {
-            ZStack(alignment: .topLeading) {
-                Color(NSColor.controlBackgroundColor).opacity(0.001)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
-                            .onChanged { gesture in
-                                let start = dragStartPoint ?? gesture.startLocation
-                                if dragStartPoint == nil { dragStartPoint = start }
-                                
-                                let minX = min(start.x, gesture.location.x)
-                                let minY = min(start.y, gesture.location.y)
-                                let maxX = max(start.x, gesture.location.x)
-                                let maxY = max(start.y, gesture.location.y)
-                                let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-                                
-                                self.selectionRect = rect
-                                
-                                var matched = Set<URL>()
-                                for (url, frame) in cellFrames {
-                                    if frame.intersects(rect) {
-                                        matched.insert(url)
+        GeometryReader { geometry in
+            ScrollView {
+                ZStack(alignment: .topLeading) {
+                    Color(NSColor.controlBackgroundColor).opacity(0.001)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
+                                .onChanged { gesture in
+                                    let start = dragStartPoint ?? gesture.startLocation
+                                    if dragStartPoint == nil { dragStartPoint = start }
+                                    
+                                    let minX = min(start.x, gesture.location.x)
+                                    let minY = min(start.y, gesture.location.y)
+                                    let maxX = max(start.x, gesture.location.x)
+                                    let maxY = max(start.y, gesture.location.y)
+                                    let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+                                    
+                                    self.selectionRect = rect
+                                    
+                                    var matched = Set<URL>()
+                                    for (url, frame) in cellFrames {
+                                        if frame.intersects(rect) {
+                                            matched.insert(url)
+                                        }
+                                    }
+                                    if NSEvent.modifierFlags.contains(.command) {
+                                        appState.selectedURLs.formUnion(matched)
+                                    } else {
+                                        appState.selectedURLs = matched
                                     }
                                 }
-                                if NSEvent.modifierFlags.contains(.command) {
-                                    appState.selectedURLs.formUnion(matched)
-                                } else {
-                                    appState.selectedURLs = matched
+                                .onEnded { _ in
+                                    selectionRect = nil
+                                    dragStartPoint = nil
+                                }
+                        )
+                        .onTapGesture {
+                            appState.selectedURLs.removeAll()
+                        }
+                        .overlay(
+                            RightClickDetector {
+                                appState.selectedURLs.removeAll()
+                            }
+                        )
+                        .contextMenu {
+                            SharedBackgroundContextMenu(appState: appState)
+                        }
+
+                    if appState.items.isEmpty && !appState.isLoading {
+                        emptyStateView
+                    } else {
+                        VStack(spacing: 0) {
+                            tableHeader
+                            
+                            LazyVStack(spacing: 2) {
+                                ForEach(appState.items) { item in
+                                    listRow(for: item)
                                 }
                             }
-                            .onEnded { _ in
-                                selectionRect = nil
-                                dragStartPoint = nil
-                            }
-                    )
-                    .onTapGesture {
-                        appState.selectedURLs.removeAll()
+                            .padding(.horizontal, 10)
+                            .padding(.bottom, 10)
+                        }
                     }
+
+                    if let rect = selectionRect {
+                        Rectangle()
+                            .fill(Color.accentColor.opacity(0.15))
+                            .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
+                            .frame(width: rect.width, height: rect.height)
+                            .offset(x: rect.minX, y: rect.minY)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .coordinateSpace(name: "listContainer")
+                .onPreferenceChange(ListCellFrameKey.self) { frames in
+                    self.cellFrames = frames
+                }
+                .frame(maxWidth: .infinity, minHeight: max(geometry.size.height, 600), maxHeight: .infinity, alignment: .topLeading)
+            }
+            .background(
+                Color(NSColor.controlBackgroundColor).opacity(0.3)
+                    .contentShape(Rectangle())
                     .overlay(
                         RightClickDetector {
                             appState.selectedURLs.removeAll()
@@ -63,39 +107,8 @@ struct FileListView: View {
                     .contextMenu {
                         SharedBackgroundContextMenu(appState: appState)
                     }
-
-                if appState.items.isEmpty && !appState.isLoading {
-                    emptyStateView
-                } else {
-                    VStack(spacing: 0) {
-                        tableHeader
-                        
-                        LazyVStack(spacing: 2) {
-                            ForEach(appState.items) { item in
-                                listRow(for: item)
-                            }
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.bottom, 10)
-                    }
-                }
-
-                if let rect = selectionRect {
-                    Rectangle()
-                        .fill(Color.accentColor.opacity(0.15))
-                        .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
-                        .frame(width: rect.width, height: rect.height)
-                        .offset(x: rect.minX, y: rect.minY)
-                        .allowsHitTesting(false)
-                }
-            }
-            .coordinateSpace(name: "listContainer")
-            .onPreferenceChange(ListCellFrameKey.self) { frames in
-                self.cellFrames = frames
-            }
-            .frame(maxWidth: .infinity, minHeight: 400, alignment: .topLeading)
+            )
         }
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.3))
     }
     
     private var tableHeader: some View {
@@ -184,7 +197,7 @@ struct FileListView: View {
                 .frame(width: LayoutTokens.columnKindWidth, alignment: .trailing)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, max(4, listIconSize * 0.25))
+        .padding(.vertical, appState.isCompactMode ? 2 : max(4, listIconSize * 0.25))
         .background(isSel ? Color.accentColor : Color.clear)
         .cornerRadius(6)
         .opacity(isCut ? 0.5 : 1.0)

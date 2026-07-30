@@ -142,6 +142,8 @@ public struct L10n {
         case selectTemplate
         case fileNameLabel
         case extractArchive
+        case connectToServer
+        case connect
         case aboutDescription
         case createdBy
         case version
@@ -958,6 +960,20 @@ public struct L10n {
             "es": "Extraer Archivo",
             "fr": "Extraire L'Archive",
             "de": "Archiv Entpacken"
+        ],
+        .connectToServer: [
+            "en": "Connect to Server",
+            "pt": "Conectar ao Servidor",
+            "es": "Conectarse al Servidor",
+            "fr": "Se Connecter au Serveur",
+            "de": "Mit Server Verbinden"
+        ],
+        .connect: [
+            "en": "Connect",
+            "pt": "Conectar",
+            "es": "Conectar",
+            "fr": "Connecter",
+            "de": "Verbinden"
         ]
     ]
 }

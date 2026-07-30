@@ -142,7 +142,32 @@ struct SharedFileItemContextMenu: View {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.deleteSelected()
         }
+        Button("Delete Immediately (Opt+Cmd+Del)", role: .destructive) {
+            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            appState.deletePermanentlySelected()
+        }
+        Button("Secure Shred File...", role: .destructive) {
+            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            appState.shredSelected()
+        }
+        Button("Create Symlink...") {
+            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            appState.symlinkItem = item
+        }
+        Button("AirDrop...") {
+            if let airDrop = NSSharingService(named: .sendViaAirDrop) {
+                airDrop.perform(withItems: [item.url])
+            }
+        }
         Divider()
+        Menu("Services") {
+            let services = NSSharingService.sharingServices(forItems: [item.url])
+            ForEach(services, id: \.title) { service in
+                Button(service.title) {
+                    service.perform(withItems: [item.url])
+                }
+            }
+        }
         Button("\(appState.tr(.properties)) (Cmd+I)") {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.propertiesItem = item

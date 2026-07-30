@@ -61,6 +61,28 @@ struct PreviewSidebarView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
+                if !item.isDirectory, let content = try? String(contentsOf: item.url), content.count < 1_000_000 {
+                    let ext = item.fileExtension.lowercased()
+                    if ["swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "md", "txt"].contains(ext) {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Code Preview")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.secondary)
+                            ScrollView(.vertical) {
+                                Text(SyntaxHighlighterService.highlightCode(content: content, fileExtension: ext))
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .multilineTextAlignment(.leading)
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                                    .padding(6)
+                            }
+                            .frame(maxHeight: 160)
+                            .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+                            .cornerRadius(6)
+                        }
+                    }
+                }
+                
                 Spacer()
                 
                 Button(appState.tr(.moreInfo)) {

@@ -27,6 +27,10 @@ struct FooterBarView: View {
             
             Spacer()
             
+            if !BackgroundOperationsService.shared.activeTasks.isEmpty {
+                OperationsButtonView()
+            }
+            
             // Icon Size Zoom Slider (Grid/List View icon scaling)
             HStack(spacing: 6) {
                 Image(systemName: "photo")
@@ -47,5 +51,29 @@ struct FooterBarView: View {
         .padding(.vertical, 4)
         .frame(height: 26)
         .background(Color(NSColor.windowBackgroundColor))
+    }
+}
+
+struct OperationsButtonView: View {
+    @State private var showPopover = false
+    
+    var body: some View {
+        Button(action: { showPopover.toggle() }) {
+            HStack(spacing: 4) {
+                ProgressView()
+                    .controlSize(.mini)
+                Text("\(BackgroundOperationsService.shared.activeTasks.count) background tasks")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.accentColor)
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor.opacity(0.15))
+            .cornerRadius(4)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showPopover) {
+            OperationsPopoverView()
+        }
     }
 }

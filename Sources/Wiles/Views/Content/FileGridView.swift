@@ -24,44 +24,83 @@ struct FileGridView: View {
     @State private var dragStartPoint: CGPoint? = nil
 
     var body: some View {
-        ScrollView {
-            ZStack(alignment: .topLeading) {
-                Color(NSColor.controlBackgroundColor).opacity(0.001)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 2, coordinateSpace: .named("gridContainer"))
-                            .onChanged { gesture in
-                                let start = dragStartPoint ?? gesture.startLocation
-                                if dragStartPoint == nil { dragStartPoint = start }
-                                
-                                let minX = min(start.x, gesture.location.x)
-                                let minY = min(start.y, gesture.location.y)
-                                let maxX = max(start.x, gesture.location.x)
-                                let maxY = max(start.y, gesture.location.y)
-                                let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-                                
-                                self.selectionRect = rect
-                                
-                                var matched = Set<URL>()
-                                for (url, frame) in cellFrames {
-                                    if frame.intersects(rect) {
-                                        matched.insert(url)
+        GeometryReader { geometry in
+            ScrollView {
+                ZStack(alignment: .topLeading) {
+                    Color(NSColor.controlBackgroundColor).opacity(0.001)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 2, coordinateSpace: .named("gridContainer"))
+                                .onChanged { gesture in
+                                    let start = dragStartPoint ?? gesture.startLocation
+                                    if dragStartPoint == nil { dragStartPoint = start }
+                                    
+                                    let minX = min(start.x, gesture.location.x)
+                                    let minY = min(start.y, gesture.location.y)
+                                    let maxX = max(start.x, gesture.location.x)
+                                    let maxY = max(start.y, gesture.location.y)
+                                    let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+                                    
+                                    self.selectionRect = rect
+                                    
+                                    var matched = Set<URL>()
+                                    for (url, frame) in cellFrames {
+                                        if frame.intersects(rect) {
+                                            matched.insert(url)
+                                        }
+                                    }
+                                    if NSEvent.modifierFlags.contains(.command) {
+                                        appState.selectedURLs.formUnion(matched)
+                                    } else {
+                                        appState.selectedURLs = matched
                                     }
                                 }
-                                if NSEvent.modifierFlags.contains(.command) {
-                                    appState.selectedURLs.formUnion(matched)
-                                } else {
-                                    appState.selectedURLs = matched
+                                .onEnded { _ in
+                                    selectionRect = nil
+                                    dragStartPoint = nil
                                 }
+                        )
+                        .onTapGesture {
+                            appState.selectedURLs.removeAll()
+                        }
+                        .overlay(
+                            RightClickDetector {
+                                appState.selectedURLs.removeAll()
                             }
-                            .onEnded { _ in
-                                selectionRect = nil
-                                dragStartPoint = nil
+                        )
+                        .contextMenu {
+                            SharedBackgroundContextMenu(appState: appState)
+                        }
+
+                    if appState.items.isEmpty && !appState.isLoading {
+                        emptyStateView
+                    } else {
+                        LazyVGrid(columns: columns, spacing: 20) {
+                            ForEach(appState.items) { item in
+                                gridCard(for: item)
                             }
-                    )
-                    .onTapGesture {
-                        appState.selectedURLs.removeAll()
+                        }
+                        .padding(20)
                     }
+
+                    if let rect = selectionRect {
+                        Rectangle()
+                            .fill(Color.accentColor.opacity(0.15))
+                            .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
+                            .frame(width: rect.width, height: rect.height)
+                            .offset(x: rect.minX, y: rect.minY)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .coordinateSpace(name: "gridContainer")
+                .onPreferenceChange(CellFrameKey.self) { frames in
+                    self.cellFrames = frames
+                }
+                .frame(maxWidth: .infinity, minHeight: max(geometry.size.height, 600), maxHeight: .infinity, alignment: .topLeading)
+            }
+            .background(
+                Color(NSColor.controlBackgroundColor).opacity(0.3)
+                    .contentShape(Rectangle())
                     .overlay(
                         RightClickDetector {
                             appState.selectedURLs.removeAll()
@@ -70,34 +109,8 @@ struct FileGridView: View {
                     .contextMenu {
                         SharedBackgroundContextMenu(appState: appState)
                     }
-
-                if appState.items.isEmpty && !appState.isLoading {
-                    emptyStateView
-                } else {
-                    LazyVGrid(columns: columns, spacing: 20) {
-                        ForEach(appState.items) { item in
-                            gridCard(for: item)
-                        }
-                    }
-                    .padding(20)
-                }
-
-                if let rect = selectionRect {
-                    Rectangle()
-                        .fill(Color.accentColor.opacity(0.15))
-                        .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
-                        .frame(width: rect.width, height: rect.height)
-                        .offset(x: rect.minX, y: rect.minY)
-                        .allowsHitTesting(false)
-                }
-            }
-            .coordinateSpace(name: "gridContainer")
-            .onPreferenceChange(CellFrameKey.self) { frames in
-                self.cellFrames = frames
-            }
-            .frame(maxWidth: .infinity, minHeight: 400, alignment: .topLeading)
+            )
         }
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.3))
     }
     
     private var emptyStateView: some View {

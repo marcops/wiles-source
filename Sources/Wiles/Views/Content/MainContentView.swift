@@ -12,20 +12,22 @@ struct MainContentView: View {
             Divider()
             HSplitView {
                 SidebarView(appState: appState)
-                    .frame(minWidth: 140, idealWidth: 150, maxWidth: 260)
+                    .frame(minWidth: 140, idealWidth: 150, maxWidth: 260, maxHeight: .infinity)
                 contentArea
                     .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
                 if appState.showPreviewSidebar {
                     PreviewSidebarView(appState: appState)
+                        .frame(maxHeight: .infinity)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             if appState.showFooter {
                 Divider()
                 FooterBarView(appState: appState)
             }
         }
         .ignoresSafeArea(.all, edges: .top)
-        .frame(minWidth: 650, minHeight: 450)
+        .frame(minWidth: 650, maxWidth: .infinity, minHeight: 450, maxHeight: .infinity)
         .quickLookPreview($appState.quickLookURL)
         .sheet(item: $appState.renameItem) { item in
             RenameSheetView(item: item, appState: appState)
@@ -43,6 +45,12 @@ struct MainContentView: View {
         .sheet(isPresented: $appState.showNewFileSheet) {
             NewFileSheetView(appState: appState)
         }
+        .sheet(isPresented: $appState.showConnectToServerSheet) {
+            ConnectToServerSheetView(appState: appState)
+        }
+        .sheet(item: $appState.symlinkItem) { item in
+            SymlinkSheetView(item: item, appState: appState)
+        }
         .background(
             ZStack {
                 TranslucentVisualEffectView(material: .underWindowBackground)
@@ -58,8 +66,10 @@ struct MainContentView: View {
     private var contentArea: some View {
         if appState.viewMode == .grid {
             FileGridView(appState: appState)
-        } else {
+        } else if appState.viewMode == .list {
             FileListView(appState: appState)
+        } else {
+            FileColumnView(appState: appState)
         }
     }
     
@@ -70,6 +80,8 @@ struct MainContentView: View {
             Button("") { appState.cutSelected() }.keyboardShortcut("x", modifiers: .command).hidden()
             Button("") { appState.copySelected() }.keyboardShortcut("c", modifiers: .command).hidden()
             Button("") { appState.pasteToCurrentDirectory() }.keyboardShortcut("v", modifiers: .command).hidden()
+            Button("") { appState.undoLastAction() }.keyboardShortcut("z", modifiers: .command).hidden()
+            Button("") { appState.redoLastAction() }.keyboardShortcut("z", modifiers: [.command, .shift]).hidden()
             Button("") { openSelectedItem() }.keyboardShortcut("o", modifiers: .command).hidden()
             Button("") { triggerQuickLook() }.keyboardShortcut(" ", modifiers: []).hidden()
             Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
@@ -78,6 +90,7 @@ struct MainContentView: View {
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
             Button("") { focusPathField() }.keyboardShortcut("l", modifiers: .command).hidden()
+            Button("") { appState.showConnectToServerSheet = true }.keyboardShortcut("k", modifiers: .command).hidden()
             Button("") { appState.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
         }
         .onDeleteCommand {

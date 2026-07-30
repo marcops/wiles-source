@@ -167,67 +167,64 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var appState = appState
         
-        return VStack(alignment: .leading, spacing: 12) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    if appState.showFavorites && !appState.favoriteURLs.isEmpty {
-                        collapsibleSection(
-                            title: appState.tr(.favorites),
-                            isExpanded: $appState.isFavoritesExpanded,
-                            items: appState.favoriteURLs.map { sidebarItem(for: $0) },
-                            isFavoritesSection: true
-                        )
-                        Divider().padding(.horizontal, 12)
-                    }
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                if appState.showFavorites && !appState.favoriteURLs.isEmpty {
+                    collapsibleSection(
+                        title: appState.tr(.favorites),
+                        isExpanded: $appState.isFavoritesExpanded,
+                        items: appState.favoriteURLs.map { sidebarItem(for: $0) },
+                        isFavoritesSection: true
+                    )
+                    Divider().padding(.horizontal, 12)
+                }
+                
+                if appState.showMacSection {
+                    collapsibleSection(
+                        title: appState.tr(.mac),
+                        isExpanded: $appState.isMacExpanded,
+                        items: macItems,
+                        isFavoritesSection: false
+                    )
+                    Divider().padding(.horizontal, 12)
                     
-                    if appState.showMacSection {
+                    if appState.showRecents && !recentItems.isEmpty {
                         collapsibleSection(
-                            title: appState.tr(.mac),
-                            isExpanded: $appState.isMacExpanded,
-                            items: macItems,
+                            title: appState.tr(.recents),
+                            isExpanded: $appState.isRecentsExpanded,
+                            items: recentItems,
                             isFavoritesSection: false
                         )
                         Divider().padding(.horizontal, 12)
-                        
-                        if appState.showRecents && !recentItems.isEmpty {
-                            collapsibleSection(
-                                title: appState.tr(.recents),
-                                isExpanded: $appState.isRecentsExpanded,
-                                items: recentItems,
-                                isFavoritesSection: false
-                            )
-                            Divider().padding(.horizontal, 12)
-                        }
                     }
-                    
-                    if appState.sidebarMode == .places {
-                        collapsibleSection(
-                            title: appState.tr(.devices),
-                            isExpanded: $appState.isDevicesExpanded,
-                            items: devices,
-                            isFavoritesSection: false
-                        )
-                    } else {
-                        VStack(alignment: .leading, spacing: 4) {
-                            sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.isTreeExpanded)
-                            if appState.isTreeExpanded {
-                                DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
-                            }
+                }
+                
+                if appState.sidebarMode == .places {
+                    collapsibleSection(
+                        title: appState.tr(.devices),
+                        isExpanded: $appState.isDevicesExpanded,
+                        items: devices,
+                        isFavoritesSection: false
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 4) {
+                        sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.isTreeExpanded)
+                        if appState.isTreeExpanded {
+                            DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
                         }
                     }
                 }
             }
-            
-            Spacer()
+            .padding(.vertical, 12)
         }
-        .padding(.vertical, 12)
-        .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth)
+        .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
         .background(
             ZStack {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
                     .opacity(1.0 - Double(appState.translucentLevel) / 100.0)
             }
+            .ignoresSafeArea()
         )
     }
     
@@ -308,6 +305,19 @@ struct SidebarView: View {
                     .font(.system(size: 13, weight: isSel ? .medium : .regular))
                     .foregroundColor(isSel ? .white : .primary)
                 Spacer()
+                if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
+                    Button(action: {
+                        let target = item.url
+                        try? NSWorkspace.shared.unmountAndEjectDevice(at: target)
+                        appState.refreshCurrentDirectory()
+                    }) {
+                        Image(systemName: "eject.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(isSel ? .white : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Eject Volume")
+                }
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(isSel ? Color.accentColor : Color.clear).cornerRadius(6)

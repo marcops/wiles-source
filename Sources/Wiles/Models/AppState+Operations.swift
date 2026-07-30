@@ -16,7 +16,6 @@ extension AppState {
     
     public func pasteToCurrentDirectory() {
         guard let clip = clipboard, !clip.urls.isEmpty else {
-            // Check if system pasteboard has URLs
             if let urls = FileSystemService.readFromPasteboard(), !urls.isEmpty {
                 executePaste(urls: urls, isCut: false)
             }
@@ -33,9 +32,11 @@ extension AppState {
             for url in urls {
                 do {
                     if isCut {
-                        try FileSystemService.moveItem(at: url, toFolder: currentURL)
+                        let destURL = try FileSystemService.moveItem(at: url, toFolder: currentURL)
+                        UndoRedoService.shared.recordAction(.move(sourceURL: url, destinationURL: destURL))
                     } else {
-                        try FileSystemService.copyItem(at: url, toFolder: currentURL)
+                        let destURL = try FileSystemService.copyItem(at: url, toFolder: currentURL)
+                        UndoRedoService.shared.recordAction(.create(url: destURL))
                     }
                 } catch {
                     print("Paste error for \(url): \(error)")
@@ -50,15 +51,59 @@ extension AppState {
         let urls = Array(selectedURLs)
         Task {
             for url in urls {
-                try? FileSystemService.moveToTrash(url: url)
+                if let trashed = try? FileSystemService.moveToTrash(url: url) {
+                    UndoRedoService.shared.recordAction(.trash(originalURL: url, trashedURL: trashed))
+                }
             }
             selectedURLs.removeAll()
             refreshCurrentDirectory()
         }
     }
     
+    public func deletePermanentlySelected() {
+        guard !selectedURLs.isEmpty else { return }
+        let urls = Array(selectedURLs)
+        do {
+            try FileShredderService.deletePermanently(urls: urls)
+            selectedURLs.removeAll()
+            refreshCurrentDirectory()
+        } catch {
+            print("Error deleting permanently: \(error)")
+        }
+    }
+    
+    public func shredSelected() {
+        guard !selectedURLs.isEmpty else { return }
+        let urls = Array(selectedURLs)
+        Task.detached(priority: .utility) {
+            try? await FileShredderService.shredFiles(urls: urls)
+            await MainActor.run {
+                self.selectedURLs.removeAll()
+                self.refreshCurrentDirectory()
+            }
+        }
+    }
+    
     public func copyContentOfSelected() {
         guard let firstURL = selectedURLs.first else { return }
         FileSystemService.copyFileContentToClipboard(url: firstURL)
+    }
+    
+    public func undoLastAction() {
+        Task {
+            if let targetURL = await UndoRedoService.shared.undo() {
+                self.refreshCurrentDirectory()
+                self.selectedURLs = [targetURL]
+            }
+        }
+    }
+    
+    public func redoLastAction() {
+        Task {
+            if let targetURL = await UndoRedoService.shared.redo() {
+                self.refreshCurrentDirectory()
+                self.selectedURLs = [targetURL]
+            }
+        }
     }
 }

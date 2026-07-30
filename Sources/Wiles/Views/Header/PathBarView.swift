@@ -91,19 +91,6 @@ struct PathBarView: View {
             }
             
             Spacer(minLength: 4)
-            
-            Button(action: {
-                appState.pathText = appState.currentURL.path
-                appState.isEditingPath = true
-            }) {
-                Image(systemName: "pencil")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary.opacity(0.7))
-                    .padding(.horizontal, 6)
-                    .frame(height: 22)
-            }
-            .buttonStyle(.plain)
-            .help("Edit Path (Cmd+L)")
         }
         .frame(height: 28)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
