@@ -1,4 +1,5 @@
 import Foundation
+import WilesCore
 
 @MainActor
 public final class AutomatedTestService {
@@ -10,6 +11,7 @@ public final class AutomatedTestService {
         TestReporter.reset()
         
         NavigationTests.run()
+        UITests.run()
         LocalizationTests.run()
         FileSystemTests.run()
         ArchiveTests.run()
