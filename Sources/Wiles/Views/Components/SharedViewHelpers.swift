@@ -69,9 +69,6 @@ struct SharedBackgroundContextMenu: View {
             pb.clearContents()
             pb.setString(appState.currentURL.path, forType: .string)
         }
-        Button(appState.tr(.openInTerminal)) {
-            openTerminal(at: appState.currentURL)
-        }
         Button(appState.tr(.shareFolderWifi)) {
             appState.httpShareFolderURL = appState.currentURL
             appState.showHttpShareSheet = true
@@ -96,9 +93,6 @@ struct SharedFileItemContextMenu: View {
         Button("\(appState.tr(.quickLook)) (Space)") { appState.quickLookURL = item.url }
         Divider()
         if item.isDirectory {
-            Button(appState.tr(.openInTerminal)) {
-                openTerminal(at: item.url)
-            }
             Button(appState.tr(.shareFolderWifi)) {
                 appState.httpShareFolderURL = item.url
                 appState.showHttpShareSheet = true
@@ -268,11 +262,5 @@ public func colorForTag(_ tag: String) -> Color {
     case "purple": return .purple
     case "gray", "grey": return .gray
     default: return .secondary
-    }
-}
-
-public func openTerminal(at url: URL) {
-    if let terminalURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") {
-        NSWorkspace.shared.open([url], withApplicationAt: terminalURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
     }
 }

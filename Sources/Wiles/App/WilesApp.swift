@@ -82,25 +82,18 @@ struct WilesApp: App {
                     .keyboardShortcut("n", modifiers: [.command, .shift])
             }
             CommandGroup(after: .sidebar) {
-                Menu(appState.tr(.translucentLevel)) {
-                    ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                        Button(action: { appState.translucentLevel = level }) {
-                            HStack {
-                                Text("\(level)%")
-                                if appState.translucentLevel == level { Image(systemName: "checkmark") }
-                            }
-                        }
-                    }
-                }
+                Divider()
                 Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
                     .keyboardShortcut("/", modifiers: .command)
                 Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
                     .keyboardShortcut("j", modifiers: .command)
                 Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
                     .keyboardShortcut("p", modifiers: [.command, .shift])
+                Divider()
                 Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
                     .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
                 Toggle(appState.tr(.showTags), isOn: $appState.showTags)
+                Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
                 Divider()
                 Toggle("Show Favorites", isOn: $appState.showFavorites)
                 Toggle("Show MAC Section", isOn: $appState.showMacSection)
@@ -109,13 +102,10 @@ struct WilesApp: App {
                 }
                 Toggle("Show Network & Cloud", isOn: $appState.showNetworkAndCloud)
                 Divider()
-                Button("Auto-Organization Rules...") {
-                    appState.showAutoOrganizationSheet = true
-                }
-                Divider()
                 Picker("View Mode", selection: $appState.viewMode) {
                     Text("Grid View").tag(ViewMode.grid)
                     Text("List View").tag(ViewMode.list)
+                    Text("Column View").tag(ViewMode.column)
                 }
                 Picker("Sidebar Mode", selection: $appState.sidebarMode) {
                     ForEach(SidebarMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
@@ -123,6 +113,23 @@ struct WilesApp: App {
                 Picker("Shortcut Mode", selection: $appState.navigationMode) {
                     ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
                 }
+                Picker(appState.tr(.language), selection: $appState.appLanguage) {
+                    ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
+                }
+                Divider()
+                Button("Auto-Organization Rules...") {
+                    appState.showAutoOrganizationSheet = true
+                }
+                Divider()
+                Button(appState.tr(.copyPath)) {
+                    let pb = NSPasteboard.general
+                    pb.clearContents()
+                    pb.setString(appState.currentURL.path, forType: .string)
+                }
+                Button("Connect to Server... (Cmd+K)") {
+                    appState.showConnectToServerSheet = true
+                }
+                    .keyboardShortcut("k", modifiers: .command)
             }
             CommandGroup(replacing: .help) {
                 Button("Wiles Help & Shortcuts") {

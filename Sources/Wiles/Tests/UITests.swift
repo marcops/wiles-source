@@ -85,14 +85,28 @@ public struct UITests {
         }
         
         // ========================================================
-        // 4. QUICK OPEN IN EXTERNAL APP LAUNCHER UTILITIES
+        // 4. DYNAMIC LIST VIEW COLUMN RESIZING & VISIBILITY
         // ========================================================
         do {
-            let testDir = FileManager.default.homeDirectoryForCurrentUser
+            appState.listColumnStates = ListColumnState.defaults()
             
-            // Verify terminal opening handler constructs without crash
-            openTerminal(at: testDir)
-            report("UI/OpenIn", "POS: openTerminal helper executes safely", result: true)
+            // Name is always visible and cannot be toggled
+            appState.toggleColumnVisibility(.name)
+            report("UI/ListColumns", "POS: Name column remains visible after toggle attempt", result: appState.isColumnVisible(.name) == true)
+            
+            // Toggle Size visibility
+            appState.toggleColumnVisibility(.size)
+            report("UI/ListColumns", "POS: Size column toggles to hidden", result: appState.isColumnVisible(.size) == false)
+            appState.toggleColumnVisibility(.size)
+            report("UI/ListColumns", "POS: Size column toggles back to visible", result: appState.isColumnVisible(.size) == true)
+            
+            // Resize Date Modified column width
+            appState.setColumnWidth(.dateModified, width: 220)
+            report("UI/ListColumns", "POS: Column width for Date Modified updated to 220", result: appState.columnWidth(for: .dateModified) == 220)
+            
+            // Clamping check (minimum 60pt width)
+            appState.setColumnWidth(.kind, width: 30)
+            report("UI/ListColumns", "POS: Column width clamped to minimum 60pt", result: appState.columnWidth(for: .kind) == 60)
         }
     }
     

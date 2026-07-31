@@ -16,7 +16,7 @@ public final class AppState {
     public var viewMode: ViewMode = .grid {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "wiles_viewMode") }
     }
-    public var sidebarMode: SidebarMode = .places {
+    public var sidebarMode: SidebarMode = .tree {
         didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: "wiles_sidebarMode") }
     }
     public var sortOption: SortOption = .name {
@@ -34,7 +34,7 @@ public final class AppState {
     public var showRecents: Bool = true {
         didSet { UserDefaults.standard.set(showRecents, forKey: "wiles_showRecents") }
     }
-    public var showMacSection: Bool = true {
+    public var showMacSection: Bool = false {
         didSet { UserDefaults.standard.set(showMacSection, forKey: "wiles_showMacSection") }
     }
     public var showNetworkAndCloud: Bool = false {
@@ -128,6 +128,35 @@ public final class AppState {
     
     public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: "wiles_isCompactMode") {
         didSet { UserDefaults.standard.set(isCompactMode, forKey: "wiles_isCompactMode") }
+    }
+
+    public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
+        didSet { saveListColumnStates() }
+    }
+
+    private func saveListColumnStates() {
+        if let data = try? JSONEncoder().encode(listColumnStates) {
+            UserDefaults.standard.set(data, forKey: "wiles_listColumnStates")
+        }
+    }
+
+    public func columnWidth(for column: ListColumn) -> CGFloat {
+        listColumnStates.first { $0.column == column }?.width ?? column.defaultWidth
+    }
+
+    public func isColumnVisible(_ column: ListColumn) -> Bool {
+        listColumnStates.first { $0.column == column }?.isVisible ?? true
+    }
+
+    public func setColumnWidth(_ column: ListColumn, width: CGFloat) {
+        guard let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
+        listColumnStates[idx].width = max(60, width)
+    }
+
+    public func toggleColumnVisibility(_ column: ListColumn) {
+        guard !column.isAlwaysVisible,
+              let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
+        listColumnStates[idx].isVisible.toggle()
     }
     
     public var perFolderViewModes: [String: String] = (UserDefaults.standard.dictionary(forKey: "wiles_perFolderViewModes") as? [String: String]) ?? [:] {
@@ -293,6 +322,17 @@ public final class AppState {
                 home.appendingPathComponent("Pictures"),
                 home.appendingPathComponent("Movies")
             ].map { $0.standardizedFileURL }
+        }
+        if let data = defaults.data(forKey: "wiles_listColumnStates"),
+           let saved = try? JSONDecoder().decode([ListColumnState].self, from: data) {
+            // Merge saved states with defaults so new columns added in future are included
+            var merged = ListColumnState.defaults()
+            for (i, state) in merged.enumerated() {
+                if let s = saved.first(where: { $0.column == state.column }) {
+                    merged[i] = s
+                }
+            }
+            self.listColumnStates = merged
         }
     }
     

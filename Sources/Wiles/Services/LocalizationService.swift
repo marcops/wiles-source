@@ -158,10 +158,6 @@ public struct L10n {
         case purple
         case gray
         case clearAllTags
-        case openInTerminal
-        case openInVSCode
-        case openInCursor
-        case openInXcode
         case services
         
         case showPreviewSidebar
@@ -187,8 +183,6 @@ public struct L10n {
         case helpTagsDesc
         case helpTerminalTitle
         case helpTerminalDesc
-        case helpOpenInTitle
-        case helpOpenInDesc
         case helpZipTitle
         case helpZipDesc
         case helpDiskTitle
@@ -1104,34 +1098,6 @@ public struct L10n {
             "fr": "Effacer toutes les étiquettes",
             "de": "Alle Tags löschen"
         ],
-        .openInTerminal: [
-            "en": "Open in Terminal",
-            "pt": "Abrir no Terminal",
-            "es": "Abrir en Terminal",
-            "fr": "Ouvrir dans le Terminal",
-            "de": "Im Terminal öffnen"
-        ],
-        .openInVSCode: [
-            "en": "Open in VS Code",
-            "pt": "Abrir no VS Code",
-            "es": "Abrir en VS Code",
-            "fr": "Ouvrir dans VS Code",
-            "de": "In VS Code öffnen"
-        ],
-        .openInCursor: [
-            "en": "Open in Cursor",
-            "pt": "Abrir no Cursor",
-            "es": "Abrir en Cursor",
-            "fr": "Ouvrir dans Cursor",
-            "de": "In Cursor öffnen"
-        ],
-        .openInXcode: [
-            "en": "Open in Xcode",
-            "pt": "Abrir no Xcode",
-            "es": "Abrir en Xcode",
-            "fr": "Ouvrir dans Xcode",
-            "de": "In Xcode öffnen"
-        ],
         .services: [
             "en": "Services",
             "pt": "Serviços",
@@ -1222,20 +1188,6 @@ public struct L10n {
             "es": "Haga clic derecho en cualquier carpeta -> 'Abrir en Terminal'.",
             "fr": "Faites un clic droit sur n'importe quel dossier -> 'Ouvrir dans le Terminal'.",
             "de": "Rechtsklick auf einen Ordner -> 'Im Terminal öffnen'."
-        ],
-        .helpOpenInTitle: [
-            "en": "Quick 'Open In...' IDE Buttons",
-            "pt": "Botões Rápidos 'Abrir no...' (IDEs)",
-            "es": "Botones Rápidos 'Abrir en...' (IDEs)",
-            "fr": "Boutons Rapides 'Ouvrir dans...' (IDE)",
-            "de": "Schnell-Schaltflächen 'Öffnen in...' (IDEs)"
-        ],
-        .helpOpenInDesc: [
-            "en": "Toolbar buttons detect installed IDEs (VS Code, Cursor, Xcode) and launch the working folder in your editor with a single click.",
-            "pt": "Botões da barra de ferramentas detectam IDEs instaladas (VS Code, Cursor, Xcode) e abrem a pasta de trabalho com um clique.",
-            "es": "Botones en la barra de herramientas detectan IDEs instaladas.",
-            "fr": "Des boutons de la barre d'outils détectent les IDE installés.",
-            "de": "Schaltflächen in der Werkzeugleiste erkennen installierte IDEs."
         ],
         .helpZipTitle: [
             "en": "ZIP Archive Compression & Extraction",

@@ -104,7 +104,6 @@ struct HelpSheet: View {
             VStack(spacing: 8) {
                 featureRow(icon: "tag.fill", title: appState.tr(.helpTagsTitle), desc: appState.tr(.helpTagsDesc))
                 featureRow(icon: "terminal.fill", title: appState.tr(.helpTerminalTitle), desc: appState.tr(.helpTerminalDesc))
-                featureRow(icon: "arrow.up.forward.app.fill", title: appState.tr(.helpOpenInTitle), desc: appState.tr(.helpOpenInDesc))
                 featureRow(icon: "doc.zipper", title: appState.tr(.helpZipTitle), desc: appState.tr(.helpZipDesc))
                 featureRow(icon: "chart.pie.fill", title: appState.tr(.helpDiskTitle), desc: appState.tr(.helpDiskDesc))
                 featureRow(icon: "photo.stack.fill", title: appState.tr(.helpImageTitle), desc: appState.tr(.helpImageDesc))

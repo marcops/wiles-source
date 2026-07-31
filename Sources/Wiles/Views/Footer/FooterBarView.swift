@@ -31,6 +31,19 @@ struct FooterBarView: View {
                 OperationsButtonView()
             }
             
+            // Terminal toggle button
+            Button(action: {
+                withAnimation { appState.showTerminalDrawer.toggle() }
+            }) {
+                Image(systemName: "terminal")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(appState.showTerminalDrawer ? .accentColor : .secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Toggle Terminal (Cmd+J)")
+            
+            Divider().frame(height: 12)
+            
             // Icon Size Zoom Slider (Grid/List View icon scaling)
             HStack(spacing: 6) {
                 Image(systemName: "photo")

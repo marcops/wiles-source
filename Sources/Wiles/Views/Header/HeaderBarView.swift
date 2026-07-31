@@ -4,6 +4,7 @@ import AppKit
 struct HeaderBarView: View {
     var appState: AppState
     @FocusState private var isSearchFocused: Bool
+    @State private var viewSwitcherExpanded = false
     
     var body: some View {
         HStack(spacing: 12) {
@@ -42,86 +43,18 @@ struct HeaderBarView: View {
             .buttonStyle(.plain).disabled(appState.historyForward.isEmpty)
             .opacity(appState.historyForward.isEmpty ? 0.4 : 1.0)
             .keyboardShortcut("]", modifiers: .command)
-            
-            Button(action: { appState.goUp() }) {
-                Image(systemName: "arrow.up").font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
-            }
-            .buttonStyle(.plain).help(appState.tr(.parentFolder))
-            .keyboardShortcut(.upArrow, modifiers: .command)
-            
-            Button(action: { appState.refreshCurrentDirectory() }) {
-                Image(systemName: "arrow.clockwise").font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
-            }
-            .buttonStyle(.plain).help("\(appState.tr(.refresh)) (Cmd+R)")
-            .keyboardShortcut("r", modifiers: .command)
         }
     }
     
     private var rightControls: some View {
         HStack(spacing: 8) {
-            openInButtons
-            terminalToggleButton
             searchButton
             viewSwitcher
             sortMenu
-            optionsMenu
         }
     }
     
-    private var terminalToggleButton: some View {
-        Button(action: {
-            withAnimation {
-                appState.showTerminalDrawer.toggle()
-            }
-        }) {
-            Image(systemName: "terminal").font(.system(size: 13, weight: .medium))
-                .frame(width: 30, height: 28)
-                .background(appState.showTerminalDrawer ? Color.accentColor.opacity(0.25) : Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
-        }
-        .buttonStyle(.plain).help("Toggle Terminal Drawer (Cmd+J)")
-    }
-    
-    private var openInButtons: some View {
-        HStack(spacing: 2) {
-            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.microsoft.VSCode") != nil {
-                Button(action: { openApp(bundleId: "com.microsoft.VSCode") }) {
-                    Image(systemName: "curlybraces").font(.system(size: 13, weight: .medium))
-                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
-                }
-                .buttonStyle(.plain).help(appState.tr(.openInVSCode))
-            }
-            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.todesktop.230313mzl4w4u92") != nil {
-                Button(action: { openApp(bundleId: "com.todesktop.230313mzl4w4u92") }) {
-                    Image(systemName: "chevron.left.forwardslash.chevron.right").font(.system(size: 10, weight: .medium))
-                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
-                }
-                .buttonStyle(.plain).help(appState.tr(.openInCursor))
-            }
-            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.dt.Xcode") != nil {
-                Button(action: { openApp(bundleId: "com.apple.dt.Xcode") }) {
-                    Image(systemName: "hammer").font(.system(size: 13, weight: .medium))
-                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
-                }
-                .buttonStyle(.plain).help(appState.tr(.openInXcode))
-            }
-            if NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Terminal") != nil {
-                Button(action: { openApp(bundleId: "com.apple.Terminal") }) {
-                    Image(systemName: "apple.terminal").font(.system(size: 13, weight: .medium))
-                        .frame(width: 26, height: 24).background(Color.clear).foregroundColor(.primary).cornerRadius(4)
-                }
-                .buttonStyle(.plain).help(appState.tr(.openInTerminal))
-            }
-        }
-        .padding(2).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
-    }
 
-    private func openApp(bundleId: String) {
-        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else { return }
-        NSWorkspace.shared.open([appState.currentURL], withApplicationAt: appURL, configuration: NSWorkspace.OpenConfiguration(), completionHandler: nil)
-    }
 
     private var searchField: some View {
         @Bindable var appState = appState
@@ -180,33 +113,53 @@ struct HeaderBarView: View {
         .keyboardShortcut("f", modifiers: .command)
     }
     
+    private func iconName(for mode: ViewMode) -> String {
+        switch mode {
+        case .grid:   return "square.grid.2x2"
+        case .list:   return "list.bullet"
+        case .column: return "sidebar.left"
+        }
+    }
+
     private var viewSwitcher: some View {
         HStack(spacing: 2) {
-            Button(action: { appState.viewMode = .grid }) {
-                Image(systemName: "square.grid.2x2").font(.system(size: 12))
-                    .frame(width: 26, height: 24)
-                    .background(appState.viewMode == .grid ? Color.accentColor : Color.clear)
-                    .foregroundColor(appState.viewMode == .grid ? .white : .primary).cornerRadius(4)
+            if viewSwitcherExpanded {
+                ForEach(ViewMode.allCases) { mode in
+                    Button(action: {
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                            appState.viewMode = mode
+                            viewSwitcherExpanded = false
+                        }
+                    }) {
+                        Image(systemName: iconName(for: mode)).font(.system(size: 12))
+                            .frame(width: 26, height: 24)
+                            .background(appState.viewMode == mode ? Color.accentColor : Color.clear)
+                            .foregroundColor(appState.viewMode == mode ? .white : .primary)
+                            .cornerRadius(4)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
+                }
+            } else {
+                Button(action: {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                        viewSwitcherExpanded = true
+                    }
+                }) {
+                    Image(systemName: iconName(for: appState.viewMode)).font(.system(size: 12))
+                        .frame(width: 26, height: 24)
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(4)
+                }
+                .buttonStyle(.plain)
+                .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
-            .buttonStyle(.plain)
-            
-            Button(action: { appState.viewMode = .list }) {
-                Image(systemName: "list.bullet").font(.system(size: 12))
-                    .frame(width: 26, height: 24)
-                    .background(appState.viewMode == .list ? Color.accentColor : Color.clear)
-                    .foregroundColor(appState.viewMode == .list ? .white : .primary).cornerRadius(4)
-            }
-            .buttonStyle(.plain)
-            
-            Button(action: { appState.viewMode = .column }) {
-                Image(systemName: "sidebar.left").font(.system(size: 12))
-                    .frame(width: 26, height: 24)
-                    .background(appState.viewMode == .column ? Color.accentColor : Color.clear)
-                    .foregroundColor(appState.viewMode == .column ? .white : .primary).cornerRadius(4)
-            }
-            .buttonStyle(.plain)
         }
-        .padding(2).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
+        .padding(2)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(6)
+        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: viewSwitcherExpanded)
     }
     
     private var sortMenu: some View {
@@ -222,75 +175,12 @@ struct HeaderBarView: View {
             Toggle(appState.tr(.ascending), isOn: $appState.sortAscending)
                 .onChange(of: appState.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.up.arrow.down").font(.system(size: 12))
-                Text(appState.sortOption.rawValue).font(.system(size: 12))
-            }
-            .frame(height: 28).padding(.horizontal, 8).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
-        }
-        .menuStyle(.borderlessButton)
-    }
-    
-    private var optionsMenu: some View {
-        @Bindable var appState = appState
-        return Menu {
-            Menu(appState.tr(.translucentLevel)) {
-                ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                    Button(action: { appState.translucentLevel = level }) {
-                        HStack {
-                            Text("\(level)%")
-                            if appState.translucentLevel == level { Image(systemName: "checkmark") }
-                        }
-                    }
-                }
-            }
-            Divider()
-            Toggle(appState.navigationMode == .gnome ? appState.tr(.showHiddenFilesGnome) : appState.tr(.showHiddenFilesMac), isOn: $appState.showHiddenFiles)
-                .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
-            Toggle(appState.tr(.showTags), isOn: $appState.showTags)
-            Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)
-            Toggle(appState.tr(.showMacSection), isOn: $appState.showMacSection)
-            if appState.showMacSection {
-                Toggle(appState.tr(.showRecents), isOn: $appState.showRecents)
-            }
-            Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
-                ForEach(SidebarMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
-            }
-            Divider()
-            Picker(appState.tr(.shortcutMode), selection: $appState.navigationMode) {
-                ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
-            }
-            Picker(appState.tr(.language), selection: $appState.appLanguage) {
-                ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
-            }
-            Divider()
-            Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
-            Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
-            Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
-            Toggle(appState.showFooter ? appState.tr(.hideStatusBar) : appState.tr(.showStatusBar), isOn: $appState.showFooter)
-            Divider()
-            Button(appState.tr(.copyPath)) {
-                let pb = NSPasteboard.general
-                pb.clearContents()
-                pb.setString(appState.currentURL.path, forType: .string)
-            }
-            Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
-                appState.showNewFolderSheet = true
-            }
-            .keyboardShortcut("n", modifiers: [.command, .shift])
-            Button("Connect to Server... (Cmd+K)") {
-                appState.showConnectToServerSheet = true
-            }
-            Divider()
-            Button("\(appState.tr(.helpShortcuts))...") {
-                appState.showHelpSheet = true
-            }
-        } label: {
-            Image(systemName: "line.3.horizontal").font(.system(size: 13, weight: .medium))
+            Image(systemName: "arrow.up.arrow.down").font(.system(size: 12))
                 .frame(width: 30, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
         }
         .menuStyle(.borderlessButton)
     }
+    
 }
 
 struct TrafficLightRepositioner: NSViewRepresentable {
