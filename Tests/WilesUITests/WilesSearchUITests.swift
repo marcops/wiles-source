@@ -2,6 +2,7 @@ import XCTest
 
 final class WilesSearchUITests: XCTestCase {
     
+    var app: XCUIApplication!
     private let testDirPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesUITestSearch")
     
     override func setUpWithError() throws {

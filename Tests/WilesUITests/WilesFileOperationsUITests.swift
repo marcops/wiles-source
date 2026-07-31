@@ -2,6 +2,7 @@ import XCTest
 
 final class WilesFileOperationsUITests: XCTestCase {
     
+    var app: XCUIApplication!
     private let opPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesFileOperationsUITests")
     
     override func setUpWithError() throws {

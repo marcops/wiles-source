@@ -2,6 +2,7 @@ import XCTest
 
 final class WilesNavigationUITests: XCTestCase {
     
+    var app: XCUIApplication!
     private let navTestPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesNavigationUITests")
     
     override func setUpWithError() throws {
