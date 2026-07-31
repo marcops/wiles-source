@@ -63,4 +63,51 @@ final class WilesQABugFindingUITests: XCTestCase {
         let emptyStateText = app.staticTexts.matching(XCTestDescription("Empty")).firstMatch
         XCTAssertNotNil(emptyStateText)
     }
+
+    func testWifiSharingSheetLayout() throws {
+        // QA Bug Finding: Right click on a file, choose Share over Wi-Fi context menu, and check modal rendering
+        app.typeKey("2", modifierFlags: .command) // switch to list view
+        
+        let headerRow = app.scrollViews.firstMatch
+        XCTAssertTrue(headerRow.waitForExistence(timeout: 2.0))
+        
+        // Right click background to show Context Menu
+        headerRow.rightClick()
+        
+        let menu = app.menus.firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 2.0))
+        
+        let wifiShareItem = menu.menuItems["Share Folder over Wi-Fi"]
+        if wifiShareItem.exists {
+            wifiShareItem.click()
+            
+            // Check that the HttpShareSheet modal is displayed
+            let shareSheet = app.sheets.firstMatch
+            XCTAssertTrue(shareSheet.waitForExistence(timeout: 2.0), "Share sheet did not appear")
+            
+            // Click Close to dismiss
+            let closeBtn = shareSheet.buttons["Close"]
+            if closeBtn.exists {
+                closeBtn.click()
+            } else {
+                app.typeKey(.escape, modifierFlags: [])
+            }
+        }
+    }
+    
+    func testDiskUsageSheetLayout() throws {
+        // QA Bug Finding: Trigger Disk Usage Modal via Shift+Cmd+D
+        app.typeKey("d", modifierFlags: [.command, .shift])
+        
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 2.0), "Disk Space Visualizer sheet did not appear")
+        
+        // Dismiss
+        let closeBtn = sheet.buttons["Close"]
+        if closeBtn.exists {
+            closeBtn.click()
+        } else {
+            app.typeKey(.escape, modifierFlags: [])
+        }
+    }
 }
