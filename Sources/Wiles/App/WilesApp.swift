@@ -68,6 +68,10 @@ struct WilesApp: App {
                     appState.showAboutSheet = true
                 }
                 Divider()
+                Button("Grant Full Disk Access...") {
+                    PermissionService.openFullDiskAccessSettings()
+                }
+                Divider()
                 Menu(appState.tr(.translucentLevel)) {
                     ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
                         Button(action: { appState.translucentLevel = level }) {
