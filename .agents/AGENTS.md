@@ -78,3 +78,7 @@
 
 ## 13. Generic README Documentation
 - **Never Hardcode Versions in README**: The public `README.md` must remain completely generic across versions. Never hardcode version numbers (e.g. `v0.0.5`) in download links, titles, or release notes links. Always use terms like "Latest Release" and point to `releases/latest` or `RELEASE_NOTES.md`.
+
+## 14. Zero Hardcoded Absolute Workspace or User Paths
+- **Never Hardcode User-Specific Absolute Paths**: Never hardcode absolute user-specific directory paths (e.g., `/Users/marco/...`) in any codebase files, test targets, or scripts.
+- **Dynamic or Relative Paths Only**: Always use dynamic system directories (e.g., `NSTemporaryDirectory()`, `NSHomeDirectory()`), user/context relative paths, or environment-injected configurations to determine locations. This ensures codebase portability across different developer machines and CI/CD runners.

@@ -3,7 +3,7 @@ import XCTest
 final class WilesNavigationUITests: XCTestCase {
     
     var app: XCUIApplication!
-    private let navTestPath = "/Users/marco/source/wiles/ui_test_temp/WilesNavigationUITests"
+    private let navTestPath = (NSHomeDirectory() as NSString).appendingPathComponent("wiles_ui_test_temp/WilesNavigationUITests")
     
     override func setUpWithError() throws {
         continueAfterFailure = false

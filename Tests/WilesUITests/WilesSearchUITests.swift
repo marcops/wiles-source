@@ -3,7 +3,7 @@ import XCTest
 final class WilesSearchUITests: XCTestCase {
     
     var app: XCUIApplication!
-    private let testDirPath = "/Users/marco/source/wiles/ui_test_temp/WilesUITestSearch"
+    private let testDirPath = (NSHomeDirectory() as NSString).appendingPathComponent("wiles_ui_test_temp/WilesUITestSearch")
     
     override func setUpWithError() throws {
         continueAfterFailure = false
