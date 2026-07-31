@@ -39,7 +39,7 @@ final class WilesQABugFindingUITests: XCTestCase {
         // We trigger extreme resizing behavior and verify the window stays stable
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
-        let tempDir = (NSHomeDirectory() as NSString).appendingPathComponent("wiles_ui_test_temp")
+        let tempDir = NSTemporaryDirectory()
         pathField.click()
         pathField.typeText("\(tempDir)\r")
         
@@ -49,7 +49,7 @@ final class WilesQABugFindingUITests: XCTestCase {
     func testEmptyStateLayoutBehavior() throws {
         // QA Bug Finding: Create an empty directory and navigate to it to verify empty state renders cleanly
         let fm = FileManager.default
-        let emptyPath = (NSHomeDirectory() as NSString).appendingPathComponent("wiles_ui_test_temp/WilesQAEmptyFolder")
+        let emptyPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesQAEmptyFolder")
         try? fm.removeItem(atPath: emptyPath)
         try fm.createDirectory(atPath: emptyPath, withIntermediateDirectories: true)
         

@@ -68,7 +68,7 @@ final class WilesAppRobot {
 final class WilesGoldStandardUITests: XCTestCase {
     
     private var app: XCUIApplication!
-    private let testPath = (NSHomeDirectory() as NSString).appendingPathComponent("wiles_ui_test_temp/WilesGoldStandardTests")
+    private let testPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesGoldStandardTests")
 
     override func setUpWithError() throws {
         continueAfterFailure = false

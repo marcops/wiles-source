@@ -3,7 +3,7 @@ import XCTest
 final class WilesFileOperationsUITests: XCTestCase {
     
     var app: XCUIApplication!
-    private let opPath = (NSHomeDirectory() as NSString).appendingPathComponent("wiles_ui_test_temp/WilesFileOperationsUITests")
+    private let opPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesFileOperationsUITests")
     
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -17,6 +17,11 @@ final class WilesFileOperationsUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--ui-testing"]
         app.launch()
+        
+        let window = app.windows.firstMatch
+        if window.waitForExistence(timeout: 5.0) {
+            window.click()
+        }
     }
 
     override func tearDownWithError() throws {
