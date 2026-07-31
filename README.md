@@ -2,12 +2,20 @@
 
 A fast, native macOS file manager designed for speed, bridging the best of **GNOME Files (Nautilus)** and **macOS Finder**.
 
+![Wiles Screenshot](docs/screenshots/v0.0.9-hero.png)
+
+---
+
+## 🆕 What's New
+Check out the latest features and updates in our Release Notes!
+👉 **[Read the Release Notes](RELEASE_NOTES.md)**
+
 ---
 
 ## ⚡️ Quick Install (Homebrew & Direct DMG)
 
 ### Option 1: Direct DMG Download (GUI)
-Download **[wiles-v0.0.4.dmg](https://raw.githubusercontent.com/marcops/wiles/main/releases/wiles-v0.0.4.dmg)**, open it, and drag `Wiles.app` to `/Applications`.
+Download the **[Latest Release DMG](https://github.com/marcops/wiles/releases/latest)**, open it, and drag `Wiles.app` to `/Applications`.
 
 ### Option 2: Homebrew Cask Terminal
 ```bash
@@ -47,6 +55,14 @@ brew upgrade --cask wiles
 
 ---
 
+## 📸 Screenshots
+
+| Grid View | List View |
+| :---: | :---: |
+| <img src="docs/screenshots/v0.0.9-grid.png" width="100%"/> | <img src="docs/screenshots/v0.0.9-list.png" width="100%"/> |
+
+---
+
 ## ⌨️ Shortcuts Cheatsheet
 
 | Action | Shortcut |
@@ -69,10 +85,9 @@ brew upgrade --cask wiles
 
 Have a feature request or found a bug? We welcome your feedback!
 
-Please submit all bug reports and feature proposals directly via **GitHub**:
+Please submit all bug reports and feature proposals directly via **GitHub Issues**:
 - 🐛 **Report a Bug**: [Open a Bug Report](https://github.com/marcops/wiles/issues/new?template=bug_report.md)
 - 💡 **Request a Feature**: [Submit a Feature Request](https://github.com/marcops/wiles/issues/new?template=feature_request.md)
-- 🗣️ **Community Discussions**: [Join GitHub Discussions](https://github.com/marcops/wiles/discussions)
 
 ---
 
