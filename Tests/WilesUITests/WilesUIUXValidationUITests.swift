@@ -45,6 +45,7 @@ final class WilesUIUXValidationUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
+        pathField.click()
         pathField.typeText("\(testPath)\r")
         
         app.typeKey("2", modifierFlags: .command) // Force list mode

@@ -40,6 +40,7 @@ final class WilesQABugFindingUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         let tempDir = NSTemporaryDirectory()
+        pathField.click()
         pathField.typeText("\(tempDir)\r")
         
         XCTAssertTrue(headerRow.exists)
@@ -59,6 +60,7 @@ final class WilesQABugFindingUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
+        pathField.click()
         pathField.typeText("\(emptyPath)\r")
         
         // Verify empty state warning text displays and doesn't crash the list view

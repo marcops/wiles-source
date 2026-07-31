@@ -40,6 +40,7 @@ final class WilesSearchUITests: XCTestCase {
         
         // Clear whatever is there and type the test path
         let pathField = textFields.firstMatch
+        pathField.click()
         pathField.typeText("\(testDirPath)\r")
         
         // Verify both files are visible initially

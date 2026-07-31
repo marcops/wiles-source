@@ -29,6 +29,7 @@ final class WilesFileOperationsUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
+        pathField.click()
         pathField.typeText("\(opPath)\r")
         
         // Trigger New Folder via shortcut Shift+Cmd+N
@@ -51,6 +52,7 @@ final class WilesFileOperationsUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
+        pathField.click()
         pathField.typeText("\(opPath)\r")
         
         // Pre-create a folder to delete

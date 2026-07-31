@@ -30,6 +30,7 @@ final class WilesNavigationUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
+        pathField.click()
         pathField.typeText("\(navTestPath)\r")
         
         // Find SubFolderA and double-click it to enter

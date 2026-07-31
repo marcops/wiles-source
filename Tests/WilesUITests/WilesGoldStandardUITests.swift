@@ -20,6 +20,7 @@ final class WilesAppRobot {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0), "Path input field did not appear")
+        pathField.click()
         pathField.typeText("\(path)\r")
         return self
     }
