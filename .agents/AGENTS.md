@@ -61,20 +61,27 @@
 ## 12. Automated Homebrew & Release Packaging Protocol
 - **Zip Packaging Requirement**: ALWAYS use `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app` to ensure the root `Wiles.app/` folder is preserved inside the archive. Never use `ditto` directly on `Wiles.app` for Homebrew releases as it strips the root folder.
 - **CDN Cache Busting (CRITICAL)**: When updating `Casks/wiles.rb`, the `url` MUST use the **exact git commit SHA** where the `.zip` was pushed (e.g., `url "https://raw.githubusercontent.com/marcops/wiles/<COMMIT_SHA>/releases/wiles-v#{version}.zip"`). Never use `main` in the URL, as GitHub's Fastly CDN will cache the old binary and cause a Homebrew SHA256 mismatch error.
+- **Synchronous Build & Version Verification Guardrail (CRITICAL)**:
+  - ALWAYS wait for `swift build -c release` to finish 100% synchronously BEFORE running any copy, codesign, or zip commands. NEVER copy binary assets while a background build task is still running.
+  - ALWAYS update `CFBundleShortVersionString` and `CFBundleVersion` in `Wiles.app/Contents/Info.plist` to match the target release version (`vX.Y.Z`).
+  - ALWAYS run `strings Wiles.app/Contents/MacOS/Wiles | grep "X.Y.Z"` to verify the binary version BEFORE packaging.
 - **SHA256 Verification Checklist**:
-  1. Build release binary `swift build -c release`.
-  2. Copy binary and resources to `Wiles.app`:
+  1. Build release binary `swift build -c release` and wait for completion.
+  2. Update `Wiles.app/Contents/Info.plist` version strings to `X.Y.Z`.
+  3. Copy binary and resources to `Wiles.app`:
      - `cp .build/arm64-apple-macosx/release/Wiles Wiles.app/Contents/MacOS/`
      - `cp -r .build/arm64-apple-macosx/release/Wiles_Wiles.bundle Wiles.app/Contents/Resources/`
-  3. Validate bundle exists: `find Wiles.app -name "*.bundle"` (Must return `Wiles.app/Contents/Resources/Wiles_Wiles.bundle`).
-  4. Sign `Wiles.app` (e.g., `codesign -f -s - Wiles.app`).
-  5. Package DMG `hdiutil create -volname "Wiles" -srcfolder Wiles.app -ov -format UDZO releases/wiles-vX.Y.Z.dmg`. (DMG is correct)
-  6. Package ZIP `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app`.
-  7. Compute `shasum -a 256 dist/wiles-vX.Y.Z.zip`.
-  8. Copy ZIP & DMG to public tap repo `marcops/wiles/releases/`.
-  9. Push binaries to public repo first and get the exact commit SHA.
-  10. Update `Casks/wiles.rb` version, SHA256, and URL with the exact commit SHA.
-  11. Push the Cask update to public repo and verify live with `curl` before declaring completion.
+  4. Verify compiled binary version: `strings Wiles.app/Contents/MacOS/Wiles | grep "X.Y.Z"`.
+  5. Validate bundle exists: `find Wiles.app -name "*.bundle"` (Must return `Wiles.app/Contents/Resources/Wiles_Wiles.bundle`).
+  6. Sign `Wiles.app` (e.g., `codesign -f -s - Wiles.app`).
+  7. Package DMG `hdiutil create -volname "Wiles" -srcfolder Wiles.app -ov -format UDZO releases/wiles-vX.Y.Z.dmg`.
+  8. Package ZIP `/usr/bin/zip -r -y dist/wiles-vX.Y.Z.zip Wiles.app`.
+  9. Compute `shasum -a 256 dist/wiles-vX.Y.Z.zip`.
+  10. Copy ZIP & DMG to public tap repo `marcops/wiles/releases/`.
+  11. Push binaries to public repo first and get the exact commit SHA.
+  12. Update `Casks/wiles.rb` version, SHA256, and URL with the exact commit SHA.
+  13. Push the Cask update to public repo and verify live with `curl` before declaring completion.
+
 
 ## 13. Generic README Documentation
 - **Never Hardcode Versions in README**: The public `README.md` must remain completely generic across versions. Never hardcode version numbers (e.g. `v0.0.5`) in download links, titles, or release notes links. Always use terms like "Latest Release" and point to `releases/latest` or `RELEASE_NOTES.md`.
