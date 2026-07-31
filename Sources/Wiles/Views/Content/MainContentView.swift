@@ -259,21 +259,23 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                     }
                 }
             } else if code == KeyCode.arrowUp {
-                moveSelection(by: -1, isShift: isShift, appState: appState)
+                let offset = appState.viewMode == .grid ? -gridColumns(appState: appState) : -1
+                moveSelection(by: offset, isShift: isShift, appState: appState)
                 return true
             } else if code == KeyCode.arrowDown {
-                moveSelection(by: 1, isShift: isShift, appState: appState)
+                let offset = appState.viewMode == .grid ? gridColumns(appState: appState) : 1
+                moveSelection(by: offset, isShift: isShift, appState: appState)
                 return true
             } else if code == KeyCode.arrowLeft {
                 if appState.viewMode == .grid {
-                    moveSelection(by: -gridColumns(appState: appState), isShift: isShift, appState: appState)
+                    moveSelection(by: -1, isShift: isShift, appState: appState)
                 } else {
                     appState.goUp()
                 }
                 return true
             } else if code == KeyCode.arrowRight {
                 if appState.viewMode == .grid {
-                    moveSelection(by: gridColumns(appState: appState), isShift: isShift, appState: appState)
+                    moveSelection(by: 1, isShift: isShift, appState: appState)
                 } else {
                     if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }), item.isDirectory {
                         appState.navigateTo(first)
