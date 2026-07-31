@@ -259,11 +259,11 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                     }
                 }
             } else if code == KeyCode.arrowUp {
-                let offset = appState.viewMode == .grid ? -gridColumns(appState: appState) : -1
+                let offset = appState.viewMode == .grid ? -appState.gridColumnCount : -1
                 moveSelection(by: offset, isShift: isShift, appState: appState)
                 return true
             } else if code == KeyCode.arrowDown {
-                let offset = appState.viewMode == .grid ? gridColumns(appState: appState) : 1
+                let offset = appState.viewMode == .grid ? appState.gridColumnCount : 1
                 moveSelection(by: offset, isShift: isShift, appState: appState)
                 return true
             } else if code == KeyCode.arrowLeft {
@@ -300,11 +300,6 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             } else {
                 appState.selectedURLs = [newURL]
             }
-        }
-
-        private func gridColumns(appState: AppState) -> Int {
-            let size = max(1, Int(appState.iconSize) + 40)
-            return max(1, 800 / size)
         }
 
         private func triggerRenameForSelected(appState: AppState) {

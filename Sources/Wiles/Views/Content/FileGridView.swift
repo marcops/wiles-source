@@ -95,6 +95,7 @@ struct FileGridView: View {
                 .coordinateSpace(name: "gridContainer")
                 .onPreferenceChange(CellFrameKey.self) { frames in
                     self.cellFrames = frames
+                    appState.gridCellFrames = frames
                 }
                 .frame(maxWidth: .infinity, minHeight: max(geometry.size.height, 600), maxHeight: .infinity, alignment: .topLeading)
             }

@@ -12,6 +12,15 @@ public final class AppState {
     public var historyForward: [URL] = []
     public var items: [FileItem] = []
     public var isLoading: Bool = false
+    /// Cell frames from the Grid View, updated live. Used to compute the real column count.
+    public var gridCellFrames: [URL: CGRect] = [:]
+    /// Actual number of columns currently rendered in Grid View — derived from real cell Y positions.
+    public var gridColumnCount: Int {
+        guard gridCellFrames.count > 1 else { return 1 }
+        let ys = gridCellFrames.values.map { $0.origin.y }
+        guard let firstY = ys.min() else { return 1 }
+        return ys.filter { abs($0 - firstY) < 5 }.count
+    }
     
     public var viewMode: ViewMode = .grid {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "wiles_viewMode") }
