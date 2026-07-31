@@ -216,7 +216,7 @@ struct SidebarView: View {
                 
                 if appState.sidebarMode == .places {
                     collapsibleSection(
-                        title: appState.tr(.devices),
+                        title: appState.tr(.places),
                         isExpanded: $appState.isDevicesExpanded,
                         items: devices,
                         isFavoritesSection: false

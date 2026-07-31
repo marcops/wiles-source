@@ -12,10 +12,11 @@ public struct UITests {
     }
     
     private static func testColumnVisibilityAndResizing(appState: AppState) {
-        let defaultVisible: [ListColumn] = [.name, .size, .dateModified, .kind]
+        let defaultVisible: [ListColumn] = [.name, .size, .dateModified]
         for col in defaultVisible {
             report("UI/Columns", "POS: Default column \(col) is visible", result: appState.isColumnVisible(col))
         }
+        report("UI/Columns", "POS: Kind column is initially hidden", result: !appState.isColumnVisible(.kind))
         report("UI/Columns", "POS: DateCreated column is initially hidden", result: !appState.isColumnVisible(.dateCreated))
         
         appState.toggleColumnVisibility(.dateCreated)

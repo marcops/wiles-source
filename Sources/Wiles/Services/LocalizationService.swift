@@ -55,6 +55,8 @@ public struct L10n {
         case showMacSection
         case showRecents
         case sidebarMode
+        case places
+        case directoryTree
         case shortcutMode
         case refresh
         case copyPath
@@ -82,7 +84,6 @@ public struct L10n {
         case mac
         case recents
         case devices
-        case directoryTree
         case searchPlaceholder
         case home
         case desktop
@@ -369,6 +370,13 @@ public struct L10n {
             "es": "Modo de Barra Lateral",
             "fr": "Mode barre latérale",
             "de": "Seitenleistenmodus"
+        ],
+        .places: [
+            "en": "Places & Devices",
+            "pt": "Locais & Dispositivos",
+            "es": "Lugares y Dispositivos",
+            "fr": "Emplacements & Dispositifs",
+            "de": "Orte & Geräte"
         ],
         .shortcutMode: [
             "en": "Shortcut Mode",

@@ -134,10 +134,8 @@ struct FileListView: View {
                 headerCell(columnTitle(col), option: sortOption(for: col), isLeading: col == .name)
                     .frame(width: appState.columnWidth(for: col), alignment: col == .name ? .leading : .trailing)
                     .overlay(alignment: .trailing) {
-                        if index < visibleColumns.count - 1 {
-                            ColumnResizeHandle(column: col, appState: appState)
-                                .offset(x: 4)
-                        }
+                        ColumnResizeHandle(column: col, appState: appState)
+                            .offset(x: 4)
                     }
             }
             Spacer(minLength: 0)

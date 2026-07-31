@@ -16,7 +16,7 @@ public final class AppState {
     public var viewMode: ViewMode = .grid {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "wiles_viewMode") }
     }
-    public var sidebarMode: SidebarMode = .tree {
+    public var sidebarMode: SidebarMode = .places {
         didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: "wiles_sidebarMode") }
     }
     public var sortOption: SortOption = .name {

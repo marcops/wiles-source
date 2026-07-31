@@ -113,8 +113,8 @@ struct WilesApp: App {
                     Text("List View").tag(ViewMode.list)
                     Text("Column View").tag(ViewMode.column)
                 }
-                Picker("Sidebar Mode", selection: $appState.sidebarMode) {
-                    ForEach(SidebarMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
+                Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
+                    ForEach(SidebarMode.allCases) { mode in Text(appState.tr(mode.l10nKey)).tag(mode) }
                 }
                 Picker("Shortcut Mode", selection: $appState.navigationMode) {
                     ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }

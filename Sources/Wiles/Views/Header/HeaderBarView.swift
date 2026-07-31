@@ -148,8 +148,8 @@ struct HeaderBarView: View {
                 }) {
                     Image(systemName: iconName(for: appState.viewMode)).font(.system(size: 12))
                         .frame(width: 26, height: 24)
-                        .background(Color.accentColor)
-                        .foregroundColor(.white)
+                        .background(Color.clear)
+                        .foregroundColor(.primary)
                         .cornerRadius(4)
                 }
                 .buttonStyle(.plain)
