@@ -19,85 +19,87 @@ struct FileListView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollView([.horizontal, .vertical]) {
-                ZStack(alignment: .topLeading) {
-                    Color(NSColor.controlBackgroundColor).opacity(0.001)
-                        .frame(minWidth: geometry.size.width)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
-                                .onChanged { gesture in
-                                    let start = dragStartPoint ?? gesture.startLocation
-                                    if dragStartPoint == nil { dragStartPoint = start }
-                                    
-                                    let minX = min(start.x, gesture.location.x)
-                                    let minY = min(start.y, gesture.location.y)
-                                    let maxX = max(start.x, gesture.location.x)
-                                    let maxY = max(start.y, gesture.location.y)
-                                    let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-                                    
-                                    self.selectionRect = rect
-                                    
-                                    var matched = Set<URL>()
-                                    for (url, frame) in cellFrames {
-                                        if frame.intersects(rect) {
-                                            matched.insert(url)
+            ScrollView(.vertical) {
+                ScrollView(.horizontal) {
+                    ZStack(alignment: .topLeading) {
+                        Color(NSColor.controlBackgroundColor).opacity(0.001)
+                            .frame(minWidth: geometry.size.width)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
+                                    .onChanged { gesture in
+                                        let start = dragStartPoint ?? gesture.startLocation
+                                        if dragStartPoint == nil { dragStartPoint = start }
+                                        
+                                        let minX = min(start.x, gesture.location.x)
+                                        let minY = min(start.y, gesture.location.y)
+                                        let maxX = max(start.x, gesture.location.x)
+                                        let maxY = max(start.y, gesture.location.y)
+                                        let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+                                        
+                                        self.selectionRect = rect
+                                        
+                                        var matched = Set<URL>()
+                                        for (url, frame) in cellFrames {
+                                            if frame.intersects(rect) {
+                                                matched.insert(url)
+                                            }
+                                        }
+                                        if NSEvent.modifierFlags.contains(.command) {
+                                            appState.selectedURLs.formUnion(matched)
+                                        } else {
+                                            appState.selectedURLs = matched
                                         }
                                     }
-                                    if NSEvent.modifierFlags.contains(.command) {
-                                        appState.selectedURLs.formUnion(matched)
-                                    } else {
-                                        appState.selectedURLs = matched
+                                    .onEnded { _ in
+                                        selectionRect = nil
+                                        dragStartPoint = nil
                                     }
-                                }
-                                .onEnded { _ in
-                                    selectionRect = nil
-                                    dragStartPoint = nil
-                                }
-                        )
-                        .onTapGesture {
-                            appState.selectedURLs.removeAll()
-                        }
-                        .overlay(
-                            RightClickDetector {
+                            )
+                            .onTapGesture {
                                 appState.selectedURLs.removeAll()
                             }
-                        )
-                        .contextMenu {
-                            SharedBackgroundContextMenu(appState: appState)
-                        }
-
-                    if appState.items.isEmpty && !appState.isLoading {
-                        emptyStateView
-                    } else {
-                        VStack(spacing: 0) {
-                            tableHeader
-                            
-                            LazyVStack(spacing: 2) {
-                                ForEach(appState.items) { item in
-                                    listRow(for: item)
+                            .overlay(
+                                RightClickDetector {
+                                    appState.selectedURLs.removeAll()
                                 }
+                            )
+                            .contextMenu {
+                                SharedBackgroundContextMenu(appState: appState)
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.bottom, 10)
-                        }
-                        .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
-                    }
 
-                    if let rect = selectionRect {
-                        Rectangle()
-                            .fill(Color.accentColor.opacity(0.15))
-                            .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
-                            .frame(width: rect.width, height: rect.height)
-                            .offset(x: rect.minX, y: rect.minY)
-                            .allowsHitTesting(false)
+                        if appState.items.isEmpty && !appState.isLoading {
+                            emptyStateView
+                        } else {
+                            VStack(spacing: 0) {
+                                tableHeader
+                                
+                                LazyVStack(spacing: 2) {
+                                    ForEach(appState.items) { item in
+                                        listRow(for: item)
+                                    }
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.bottom, 10)
+                            }
+                            .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
+                        }
+
+                        if let rect = selectionRect {
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.15))
+                                .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
+                                .frame(width: rect.width, height: rect.height)
+                                .offset(x: rect.minX, y: rect.minY)
+                                .allowsHitTesting(false)
+                        }
                     }
+                    .coordinateSpace(name: "listContainer")
+                    .onPreferenceChange(ListCellFrameKey.self) { frames in
+                        self.cellFrames = frames
+                    }
+                    .frame(minHeight: geometry.size.height, alignment: .topLeading)
                 }
-                .coordinateSpace(name: "listContainer")
-                .onPreferenceChange(ListCellFrameKey.self) { frames in
-                    self.cellFrames = frames
-                }
-                .frame(minHeight: max(geometry.size.height, 600), maxHeight: .infinity, alignment: .topLeading)
             }
             .onChange(of: geometry.size.width) { oldWidth, newWidth in
                 if let last = lastWindowWidth {

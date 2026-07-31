@@ -8,5 +8,5 @@ public enum AppConstants {
         Bundle.main.infoDictionary?["CFBundleName"] as? String ?? String()
     }
     
-    public static let appVersion = "0.0.9"
+    public static let appVersion = "0.0.10"
 }

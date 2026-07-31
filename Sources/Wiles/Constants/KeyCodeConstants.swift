@@ -11,6 +11,10 @@ public enum KeyCode {
     public static let forwardDelete: UInt16 = 117
     public static let returnKey: UInt16 = 36
     public static let f2: UInt16 = 120
+    public static let arrowUp: UInt16 = 126
+    public static let arrowDown: UInt16 = 125
+    public static let arrowLeft: UInt16 = 123
+    public static let arrowRight: UInt16 = 124
 }
 
 public enum IconSizeToken {

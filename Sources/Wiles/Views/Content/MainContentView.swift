@@ -231,6 +231,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         }
 
         private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState) -> Bool {
+            let isShift = NSEvent.modifierFlags.contains(.shift)
             if code == KeyCode.f2 {
                 if !appState.selectedURLs.isEmpty {
                     triggerRenameForSelected(appState: appState)
@@ -257,8 +258,51 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                         return true
                     }
                 }
+            } else if code == KeyCode.arrowUp {
+                moveSelection(by: -1, isShift: isShift, appState: appState)
+                return true
+            } else if code == KeyCode.arrowDown {
+                moveSelection(by: 1, isShift: isShift, appState: appState)
+                return true
+            } else if code == KeyCode.arrowLeft {
+                if appState.viewMode == .grid {
+                    moveSelection(by: -gridColumns(appState: appState), isShift: isShift, appState: appState)
+                } else {
+                    appState.goUp()
+                }
+                return true
+            } else if code == KeyCode.arrowRight {
+                if appState.viewMode == .grid {
+                    moveSelection(by: gridColumns(appState: appState), isShift: isShift, appState: appState)
+                } else {
+                    if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }), item.isDirectory {
+                        appState.navigateTo(first)
+                    }
+                }
+                return true
             }
             return false
+        }
+
+        private func moveSelection(by offset: Int, isShift: Bool, appState: AppState) {
+            let items = appState.items
+            guard !items.isEmpty else { return }
+            let anchorURL = appState.selectedURLs.first
+            let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? -1
+            let newIndex = max(0, min(items.count - 1, anchorIndex + offset))
+            let newURL = items[newIndex].url
+            if isShift && anchorIndex >= 0 {
+                let lo = min(anchorIndex, newIndex)
+                let hi = max(anchorIndex, newIndex)
+                appState.selectedURLs = Set(items[lo...hi].map { $0.url })
+            } else {
+                appState.selectedURLs = [newURL]
+            }
+        }
+
+        private func gridColumns(appState: AppState) -> Int {
+            let size = max(1, Int(appState.iconSize) + 40)
+            return max(1, 800 / size)
         }
 
         private func triggerRenameForSelected(appState: AppState) {

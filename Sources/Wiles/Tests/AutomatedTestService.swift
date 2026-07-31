@@ -10,6 +10,7 @@ public final class AutomatedTestService {
         TestReporter.reset()
         
         NavigationTests.run()
+        ArrowKeyNavigationTests.run()
         ListColumnTests.run()
         await UISearchTests.run()
         UITests.run()
