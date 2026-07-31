@@ -26,6 +26,7 @@ public final class AutomatedTestService {
         await DiskSpaceVisualizerTests.run()
         ImageConverterTests.run()
         NetworkDiscoveryTests.run()
+        PermissionTests.run()
         
         let passed = TestReporter.passed
         let failed = TestReporter.failed

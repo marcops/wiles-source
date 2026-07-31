@@ -1,23 +1,37 @@
 import Foundation
 
 public struct PermissionService: Sendable {
-    /// Dispara os prompts de permissão do macOS (TCC) para as pastas principais
-    /// no momento em que o app abre. Isso evita que o usuário seja interrompido
-    /// múltiplas vezes enquanto navega, pedindo tudo de uma vez.
+    private static let hasRequestedKey = "wiles_hasRequestedInitialPermissions"
+    
+    /// Requests macOS system permissions (TCC) for user directories ONLY ONCE on initial launch.
+    /// Prevents prompting the user repeatedly on every application startup.
     public static func requestInitialPermissions() {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: hasRequestedKey) {
+            return
+        }
+        defaults.set(true, forKey: hasRequestedKey)
+        
         let fm = FileManager.default
         let folders: [URL] = [
             fm.urls(for: .desktopDirectory, in: .userDomainMask).first,
             fm.urls(for: .documentDirectory, in: .userDomainMask).first,
-            fm.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            fm.urls(for: .downloadsDirectory, in: .userDomainMask).first,
+            fm.urls(for: .musicDirectory, in: .userDomainMask).first,
+            fm.urls(for: .picturesDirectory, in: .userDomainMask).first,
+            fm.urls(for: .moviesDirectory, in: .userDomainMask).first
         ].compactMap { $0 }
         
-        Task.detached(priority: .background) {
+        Task.detached(priority: .userInitiated) {
             for folder in folders {
-                // Apenas tentar ler o diretório já dispara o prompt nativo do macOS
-                // caso o app ainda não tenha permissão.
                 _ = try? fm.contentsOfDirectory(atPath: folder.path)
             }
         }
     }
+    
+    /// Resets initial permission flag if needed for testing or user request.
+    public static func resetInitialPermissionsFlag() {
+        UserDefaults.standard.removeObject(forKey: hasRequestedKey)
+    }
 }
+
