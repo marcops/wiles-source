@@ -21,6 +21,7 @@ final class WilesSearchUITests: XCTestCase {
         try "Decoy".write(toFile: decoyFile, atomically: true, encoding: .utf8)
         
         app = XCUIApplication()
+        app.launchArguments = ["--ui-testing"]
         app.launch()
     }
 

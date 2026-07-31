@@ -48,7 +48,9 @@ struct WilesApp: App {
                         window.isMovableByWindowBackground = false
                         window.setFrameAutosaveName("WilesMainWindow")
                     }
-                    PermissionService.requestInitialPermissions()
+                    if !CommandLine.arguments.contains("--ui-testing") && !CommandLine.arguments.contains("--test") && !CommandLine.arguments.contains("--run-tests") {
+                        PermissionService.requestInitialPermissions()
+                    }
                     if CommandLine.arguments.contains("--test") || CommandLine.arguments.contains("--run-tests") {
                         Task {
                             await AutomatedTestService.runAllTests()

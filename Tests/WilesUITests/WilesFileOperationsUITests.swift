@@ -15,6 +15,7 @@ final class WilesFileOperationsUITests: XCTestCase {
         try fm.createDirectory(atPath: opPath, withIntermediateDirectories: true)
         
         app = XCUIApplication()
+        app.launchArguments = ["--ui-testing"]
         app.launch()
     }
 

@@ -10,6 +10,7 @@ final class WilesAppRobot {
     
     @discardableResult
     func launch() -> Self {
+        app.launchArguments = ["--ui-testing"]
         app.launch()
         return self
     }

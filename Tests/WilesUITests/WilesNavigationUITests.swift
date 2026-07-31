@@ -16,6 +16,7 @@ final class WilesNavigationUITests: XCTestCase {
         try fm.createDirectory(atPath: navTestPath + "/SubFolderA", withIntermediateDirectories: true)
         
         app = XCUIApplication()
+        app.launchArguments = ["--ui-testing"]
         app.launch()
     }
 
