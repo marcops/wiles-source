@@ -30,7 +30,7 @@ final class WilesUIUXValidationUITests: XCTestCase {
     func testTextTruncationInColumns() throws {
         // UI/UX Validation: Ensure extremely long file names don't expand the row vertically or break layout
         let fm = FileManager.default
-        let testPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesUIUXTruncation")
+        let testPath = "/Users/marco/source/wiles/ui_test_temp/WilesUIUXTruncation"
         try? fm.removeItem(atPath: testPath)
         try fm.createDirectory(atPath: testPath, withIntermediateDirectories: true)
         
@@ -50,7 +50,7 @@ final class WilesUIUXValidationUITests: XCTestCase {
         
         app.typeKey("2", modifierFlags: .command) // Force list mode
         
-        let fileRow = app.staticTexts[longName]
+        let fileRow = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'ThisIsAnExtremelyLong'")).firstMatch
         XCTAssertTrue(fileRow.waitForExistence(timeout: 3.0))
         
         // Confirm the cell height remains compact (rows should be around 20-40pt high depending on density)

@@ -3,7 +3,7 @@ import XCTest
 final class WilesSearchUITests: XCTestCase {
     
     var app: XCUIApplication!
-    private let testDirPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesUITestSearch")
+    private let testDirPath = "/Users/marco/source/wiles/ui_test_temp/WilesUITestSearch"
     
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -15,8 +15,8 @@ final class WilesSearchUITests: XCTestCase {
         }
         try fm.createDirectory(atPath: testDirPath, withIntermediateDirectories: true)
         
-        let targetFile = testDirPath + "/WilesUniqueTargetFile.txt"
-        let decoyFile = testDirPath + "/WilesDecoyFile.txt"
+        let targetFile = testDirPath + "/TargetFile.txt"
+        let decoyFile = testDirPath + "/DecoyFile.txt"
         try "Target".write(toFile: targetFile, atomically: true, encoding: .utf8)
         try "Decoy".write(toFile: decoyFile, atomically: true, encoding: .utf8)
         
@@ -44,8 +44,8 @@ final class WilesSearchUITests: XCTestCase {
         pathField.typeText("\(testDirPath)\r")
         
         // Verify both files are visible initially
-        let targetText = app.staticTexts["WilesUniqueTargetFile.txt"]
-        let decoyText = app.staticTexts["WilesDecoyFile.txt"]
+        let targetText = app.staticTexts["TargetFile.txt"]
+        let decoyText = app.staticTexts["DecoyFile.txt"]
         XCTAssertTrue(targetText.waitForExistence(timeout: 3.0), "Target file should be visible before search")
         XCTAssertTrue(decoyText.waitForExistence(timeout: 3.0), "Decoy file should be visible before search")
         
@@ -55,7 +55,7 @@ final class WilesSearchUITests: XCTestCase {
         XCTAssertTrue(searchField.waitForExistence(timeout: 2.0), "Search field must appear")
         
         // Step 3: Type search query
-        searchField.typeText("UniqueTarget")
+        searchField.typeText("Target")
         
         // Step 4: Verify search filters the results!
         // Target file must remain visible.
