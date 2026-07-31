@@ -15,12 +15,14 @@ struct FileListView: View {
     @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect? = nil
     @State private var dragStartPoint: CGPoint? = nil
+    @State private var lastWindowWidth: CGFloat? = nil
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollView {
+            ScrollView([.horizontal, .vertical]) {
                 ZStack(alignment: .topLeading) {
                     Color(NSColor.controlBackgroundColor).opacity(0.001)
+                        .frame(minWidth: geometry.size.width)
                         .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
@@ -79,6 +81,7 @@ struct FileListView: View {
                             .padding(.horizontal, 10)
                             .padding(.bottom, 10)
                         }
+                        .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
                     }
 
                     if let rect = selectionRect {
@@ -94,7 +97,21 @@ struct FileListView: View {
                 .onPreferenceChange(ListCellFrameKey.self) { frames in
                     self.cellFrames = frames
                 }
-                .frame(maxWidth: .infinity, minHeight: max(geometry.size.height, 600), maxHeight: .infinity, alignment: .topLeading)
+                .frame(minHeight: max(geometry.size.height, 600), maxHeight: .infinity, alignment: .topLeading)
+            }
+            .onChange(of: geometry.size.width) { oldWidth, newWidth in
+                if let last = lastWindowWidth {
+                    let diff = newWidth - last
+                    if diff != 0 {
+                        let currentName = appState.columnWidth(for: .name)
+                        let newName = max(100, currentName + diff)
+                        appState.setColumnWidth(.name, width: newName)
+                    }
+                }
+                lastWindowWidth = newWidth
+            }
+            .onAppear {
+                lastWindowWidth = geometry.size.width
             }
             .background(
                 Color(NSColor.controlBackgroundColor).opacity(0.3)
@@ -139,12 +156,20 @@ struct FileListView: View {
         ListColumn.allCases.filter { appState.isColumnVisible($0) }
     }
 
+    private var totalColumnsWidth: CGFloat {
+        visibleColumns.map { appState.columnWidth(for: $0) }.reduce(0, +) + 44
+    }
+
     private func columnTitle(_ col: ListColumn) -> String {
         switch col {
         case .name:         return appState.tr(.name)
         case .size:         return appState.tr(.size)
         case .dateModified: return appState.tr(.dateModified)
+        case .dateCreated:  return appState.tr(.created)
+        case .dateAccessed: return appState.tr(.lastOpened)
         case .kind:         return appState.tr(.kind)
+        case .owner:        return appState.tr(.owner)
+        case .group:        return appState.tr(.group)
         }
     }
 
@@ -175,7 +200,11 @@ struct FileListView: View {
         case .name:         return .name
         case .size:         return .size
         case .dateModified: return .dateModified
+        case .dateCreated:  return .dateCreated
+        case .dateAccessed: return .dateAccessed
         case .kind:         return .kind
+        case .owner:        return .owner
+        case .group:        return .group
         }
     }
 
@@ -210,6 +239,58 @@ struct FileListView: View {
         max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.iconSize) * LayoutTokens.listIconScaleMultiplier))
     }
 
+    
+    @ViewBuilder
+    private func dynamicColumn(_ col: ListColumn, for item: FileItem, isSel: Bool) -> some View {
+        let width = appState.columnWidth(for: col)
+        switch col {
+        case .size:
+            Text(item.formattedSize)
+                .font(.system(size: 12))
+                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                .padding(.trailing, 4)
+                .frame(width: width, alignment: .trailing)
+        case .dateModified:
+            Text(item.formattedDate)
+                .font(.system(size: 12))
+                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                .padding(.trailing, 4)
+                .frame(width: width, alignment: .trailing)
+        case .dateCreated:
+            Text(item.formattedDateCreated)
+                .font(.system(size: 12))
+                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                .padding(.trailing, 4)
+                .frame(width: width, alignment: .trailing)
+        case .dateAccessed:
+            Text(item.formattedDateAccessed)
+                .font(.system(size: 12))
+                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                .padding(.trailing, 4)
+                .frame(width: width, alignment: .trailing)
+        case .kind:
+            Text(item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased())
+                .font(.system(size: 12))
+                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                .padding(.trailing, 4)
+                .frame(width: width, alignment: .trailing)
+        case .owner:
+            Text(item.ownerName)
+                .font(.system(size: 12))
+                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                .padding(.trailing, 4)
+                .frame(width: width, alignment: .trailing)
+        case .group:
+            Text(item.groupName)
+                .font(.system(size: 12))
+                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                .padding(.trailing, 4)
+                .frame(width: width, alignment: .trailing)
+        case .name:
+            EmptyView()
+        }
+    }
+
     private func listRow(for item: FileItem) -> some View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
@@ -239,26 +320,10 @@ struct FileListView: View {
             .frame(width: appState.columnWidth(for: .name), alignment: .leading)
 
             // Dynamic fixed-width columns
-            if appState.isColumnVisible(.size) {
-                Text(item.formattedSize)
-                    .font(.system(size: 12))
-                    .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                    .padding(.trailing, 4)
-                    .frame(width: appState.columnWidth(for: .size), alignment: .trailing)
-            }
-            if appState.isColumnVisible(.dateModified) {
-                Text(item.formattedDate)
-                    .font(.system(size: 12))
-                    .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                    .padding(.trailing, 4)
-                    .frame(width: appState.columnWidth(for: .dateModified), alignment: .trailing)
-            }
-            if appState.isColumnVisible(.kind) {
-                Text(item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased())
-                    .font(.system(size: 12))
-                    .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                    .padding(.trailing, 4)
-                    .frame(width: appState.columnWidth(for: .kind), alignment: .trailing)
+            ForEach(visibleColumns, id: \.self) { col in
+                if col != .name {
+                    dynamicColumn(col, for: item, isSel: isSel)
+                }
             }
             
             Spacer(minLength: 0)

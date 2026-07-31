@@ -7,7 +7,11 @@ public enum ListColumn: String, CaseIterable, Identifiable, Codable, Hashable, S
     case name         = "Name"
     case size         = "Size"
     case dateModified = "Date Modified"
+    case dateCreated  = "Date Created"
+    case dateAccessed = "Date Last Opened"
     case kind         = "Kind"
+    case owner        = "Owner"
+    case group        = "Group"
 
     public var id: String { rawValue }
 
@@ -20,7 +24,11 @@ public enum ListColumn: String, CaseIterable, Identifiable, Codable, Hashable, S
         case .name:         return 280
         case .size:         return 90
         case .dateModified: return 160
-        case .kind:         return 90
+        case .dateCreated:  return 160
+        case .dateAccessed: return 160
+        case .kind:         return 120
+        case .owner:        return 100
+        case .group:        return 100
         }
     }
 }

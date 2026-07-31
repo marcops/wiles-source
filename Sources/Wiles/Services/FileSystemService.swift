@@ -88,8 +88,15 @@ public struct FileSystemService: Sendable {
             switch option {
             case .name: res = a.name.localizedStandardCompare(b.name) == .orderedAscending
             case .dateModified: res = a.dateModified < b.dateModified
+            case .dateCreated: res = a.dateCreated < b.dateCreated
+            case .dateAccessed: 
+                let d1 = a.dateAccessed ?? Date.distantPast
+                let d2 = b.dateAccessed ?? Date.distantPast
+                res = d1 < d2
             case .size: res = a.size < b.size
             case .kind: res = a.fileExtension.localizedStandardCompare(b.fileExtension) == .orderedAscending
+            case .owner: res = a.ownerName.localizedStandardCompare(b.ownerName) == .orderedAscending
+            case .group: res = a.groupName.localizedStandardCompare(b.groupName) == .orderedAscending
             }
             return ascending ? res : !res
         }

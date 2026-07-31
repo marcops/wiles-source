@@ -8,6 +8,26 @@ public struct UITests {
         testPathBarNavigation(appState: appState)
         testSelectionAndContextMenu(appState: appState)
         testPerFolderViewModes(appState: appState)
+        testColumnVisibilityAndResizing(appState: appState)
+    }
+    
+    private static func testColumnVisibilityAndResizing(appState: AppState) {
+        let defaultVisible: [ListColumn] = [.name, .size, .dateModified, .kind]
+        for col in defaultVisible {
+            report("UI/Columns", "POS: Default column \(col) is visible", result: appState.isColumnVisible(col))
+        }
+        report("UI/Columns", "POS: DateCreated column is initially hidden", result: !appState.isColumnVisible(.dateCreated))
+        
+        appState.toggleColumnVisibility(.dateCreated)
+        report("UI/Columns", "POS: Toggling DateCreated makes it visible", result: appState.isColumnVisible(.dateCreated))
+        
+        let initialWidth = appState.columnWidth(for: .size)
+        appState.setColumnWidth(.size, width: 300)
+        report("UI/Columns", "POS: Resizing Size column updates state", result: appState.columnWidth(for: .size) == 300)
+        
+        // Restore
+        appState.toggleColumnVisibility(.dateCreated)
+        appState.setColumnWidth(.size, width: initialWidth)
     }
     
     private static func testPathBarNavigation(appState: AppState) {
