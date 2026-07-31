@@ -38,7 +38,8 @@ final class WilesQABugFindingUITests: XCTestCase {
         // We trigger extreme resizing behavior and verify the window stays stable
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
-        pathField.typeText("/tmp\r")
+        let tempDir = NSTemporaryDirectory()
+        pathField.typeText("\(tempDir)\r")
         
         XCTAssertTrue(headerRow.exists)
     }
@@ -46,7 +47,7 @@ final class WilesQABugFindingUITests: XCTestCase {
     func testEmptyStateLayoutBehavior() throws {
         // QA Bug Finding: Create an empty directory and navigate to it to verify empty state renders cleanly
         let fm = FileManager.default
-        let emptyPath = "/tmp/WilesQAEmptyFolder"
+        let emptyPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesQAEmptyFolder")
         try? fm.removeItem(atPath: emptyPath)
         try fm.createDirectory(atPath: emptyPath, withIntermediateDirectories: true)
         
@@ -57,11 +58,11 @@ final class WilesQABugFindingUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
-        pathField.typeText("/tmp/WilesQAEmptyFolder\r")
+        pathField.typeText("\(emptyPath)\r")
         
         // Verify empty state warning text displays and doesn't crash the list view
-        let emptyStateText = app.staticTexts.matching(XCTestDescription("Empty")).firstMatch
-        XCTAssertNotNil(emptyStateText)
+        let emptyStateText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'empty'")).firstMatch
+        XCTAssertTrue(emptyStateText.waitForExistence(timeout: 2.0))
     }
 
     func testWifiSharingSheetLayout() throws {

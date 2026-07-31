@@ -2,13 +2,12 @@ import XCTest
 
 final class WilesFileOperationsUITests: XCTestCase {
     
-    var app: XCUIApplication!
-
+    private let opPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesFileOperationsUITests")
+    
     override func setUpWithError() throws {
         continueAfterFailure = false
         
         let fm = FileManager.default
-        let opPath = "/tmp/WilesFileOperationsUITests"
         if fm.fileExists(atPath: opPath) {
             try fm.removeItem(atPath: opPath)
         }
@@ -20,7 +19,7 @@ final class WilesFileOperationsUITests: XCTestCase {
 
     override func tearDownWithError() throws {
         app = nil
-        try? FileManager.default.removeItem(atPath: "/tmp/WilesFileOperationsUITests")
+        try? FileManager.default.removeItem(atPath: opPath)
     }
 
     func testCreateNewFolder() throws {
@@ -28,7 +27,7 @@ final class WilesFileOperationsUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
-        pathField.typeText("/tmp/WilesFileOperationsUITests\r")
+        pathField.typeText("\(opPath)\r")
         
         // Trigger New Folder via shortcut Shift+Cmd+N
         app.typeKey("n", modifierFlags: [.command, .shift])
@@ -50,11 +49,11 @@ final class WilesFileOperationsUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
-        pathField.typeText("/tmp/WilesFileOperationsUITests\r")
+        pathField.typeText("\(opPath)\r")
         
         // Pre-create a folder to delete
         let fm = FileManager.default
-        try fm.createDirectory(atPath: "/tmp/WilesFileOperationsUITests/DeleteMe", withIntermediateDirectories: true)
+        try fm.createDirectory(atPath: "\(opPath)/DeleteMe", withIntermediateDirectories: true)
         
         let targetText = app.staticTexts["DeleteMe"]
         XCTAssertTrue(targetText.waitForExistence(timeout: 3.0))

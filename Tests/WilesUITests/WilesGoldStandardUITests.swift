@@ -66,7 +66,7 @@ final class WilesAppRobot {
 final class WilesGoldStandardUITests: XCTestCase {
     
     private var app: XCUIApplication!
-    private let testPath = "/tmp/WilesGoldStandardTests"
+    private let testPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesGoldStandardTests")
 
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -84,10 +84,10 @@ final class WilesGoldStandardUITests: XCTestCase {
 
     override func tearDownWithError() throws {
         // Capture screenshot on failure
-        if let lastFailure = self.testRun?.failures.last {
+        if let run = self.testRun, !run.hasSucceeded {
             let screenshot = app.screenshot()
             let attachment = XCTAttachment(screenshot: screenshot)
-            attachment.name = "Failure_Screenshot_\(lastFailure.description.replacingOccurrences(of: " ", with: "_"))"
+            attachment.name = "Failure_Screenshot"
             attachment.lifetime = .keepAlways
             add(attachment)
         }

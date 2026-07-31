@@ -2,14 +2,13 @@ import XCTest
 
 final class WilesSearchUITests: XCTestCase {
     
-    var app: XCUIApplication!
-
+    private let testDirPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesUITestSearch")
+    
     override func setUpWithError() throws {
         continueAfterFailure = false
         
         // 1. Setup a test directory with specific files for testing search
         let fm = FileManager.default
-        let testDirPath = "/tmp/WilesUITestSearch"
         if fm.fileExists(atPath: testDirPath) {
             try fm.removeItem(atPath: testDirPath)
         }
@@ -26,7 +25,7 @@ final class WilesSearchUITests: XCTestCase {
 
     override func tearDownWithError() throws {
         app = nil
-        try? FileManager.default.removeItem(atPath: "/tmp/WilesUITestSearch")
+        try? FileManager.default.removeItem(atPath: testDirPath)
     }
 
     func testCompleteSearchFlow() throws {
@@ -39,7 +38,7 @@ final class WilesSearchUITests: XCTestCase {
         
         // Clear whatever is there and type the test path
         let pathField = textFields.firstMatch
-        pathField.typeText("/tmp/WilesUITestSearch\r")
+        pathField.typeText("\(testDirPath)\r")
         
         // Verify both files are visible initially
         let targetText = app.staticTexts["WilesUniqueTargetFile.txt"]

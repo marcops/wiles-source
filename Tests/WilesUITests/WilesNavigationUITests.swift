@@ -2,13 +2,12 @@ import XCTest
 
 final class WilesNavigationUITests: XCTestCase {
     
-    var app: XCUIApplication!
-
+    private let navTestPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesNavigationUITests")
+    
     override func setUpWithError() throws {
         continueAfterFailure = false
         
         let fm = FileManager.default
-        let navTestPath = "/tmp/WilesNavigationUITests"
         if fm.fileExists(atPath: navTestPath) {
             try fm.removeItem(atPath: navTestPath)
         }
@@ -21,7 +20,7 @@ final class WilesNavigationUITests: XCTestCase {
 
     override func tearDownWithError() throws {
         app = nil
-        try? FileManager.default.removeItem(atPath: "/tmp/WilesNavigationUITests")
+        try? FileManager.default.removeItem(atPath: navTestPath)
     }
 
     func testNavigationBackAndForward() throws {
@@ -29,7 +28,7 @@ final class WilesNavigationUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
-        pathField.typeText("/tmp/WilesNavigationUITests\r")
+        pathField.typeText("\(navTestPath)\r")
         
         // Find SubFolderA and double-click it to enter
         let subFolderItem = app.staticTexts["SubFolderA"]

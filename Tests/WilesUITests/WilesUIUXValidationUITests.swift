@@ -29,7 +29,7 @@ final class WilesUIUXValidationUITests: XCTestCase {
     func testTextTruncationInColumns() throws {
         // UI/UX Validation: Ensure extremely long file names don't expand the row vertically or break layout
         let fm = FileManager.default
-        let testPath = "/tmp/WilesUIUXTruncation"
+        let testPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesUIUXTruncation")
         try? fm.removeItem(atPath: testPath)
         try fm.createDirectory(atPath: testPath, withIntermediateDirectories: true)
         
@@ -44,7 +44,7 @@ final class WilesUIUXValidationUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields.firstMatch
         XCTAssertTrue(pathField.waitForExistence(timeout: 2.0))
-        pathField.typeText("/tmp/WilesUIUXTruncation\r")
+        pathField.typeText("\(testPath)\r")
         
         app.typeKey("2", modifierFlags: .command) // Force list mode
         
