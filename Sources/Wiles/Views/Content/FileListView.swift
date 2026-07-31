@@ -113,21 +113,24 @@ struct FileListView: View {
     
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            // Name column — always visible, fills remaining space
-            headerCell(appState.tr(.name), column: .name, isLast: visibleColumns.last == .name)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Dynamic fixed-width columns
-            ForEach(visibleColumns.filter { $0 != .name }, id: \.self) { col in
-                headerCell(columnTitle(col), column: col, isLast: visibleColumns.last == col)
-                    .frame(width: appState.columnWidth(for: col), alignment: .trailing)
+            ForEach(Array(visibleColumns.enumerated()), id: \.element) { index, col in
+                headerCell(columnTitle(col), option: sortOption(for: col), isLeading: col == .name)
+                    .frame(width: appState.columnWidth(for: col), alignment: col == .name ? .leading : .trailing)
+                    .overlay(alignment: .trailing) {
+                        if index < visibleColumns.count - 1 {
+                            ColumnResizeHandle(column: col, appState: appState)
+                                .offset(x: 4)
+                        }
+                    }
             }
+            Spacer(minLength: 0)
         }
         .font(.system(size: 11, weight: .semibold))
         .foregroundColor(.secondary)
-        .padding(.leading, 22)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 22)
+        .frame(height: 30)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .clipped()
         .contextMenu { columnVisibilityMenu }
     }
 
@@ -145,29 +148,7 @@ struct FileListView: View {
         }
     }
 
-    @ViewBuilder
-    private func headerCell(_ title: String, column: ListColumn, isLast: Bool) -> some View {
-        HStack(spacing: 0) {
-            sortButton(title, option: sortOption(for: column))
-                .frame(maxWidth: .infinity, alignment: column == .name ? .leading : .trailing)
-                .padding(.trailing, column == .name ? 0 : 4)
-
-            if !column.isAlwaysVisible || !isLast {
-                ColumnResizeHandle(column: column, appState: appState)
-            }
-        }
-    }
-
-    private func sortOption(for col: ListColumn) -> SortOption {
-        switch col {
-        case .name:         return .name
-        case .size:         return .size
-        case .dateModified: return .dateModified
-        case .kind:         return .kind
-        }
-    }
-
-    private func sortButton(_ title: String, option: SortOption) -> some View {
+    private func headerCell(_ title: String, option: SortOption, isLeading: Bool) -> some View {
         Button(action: {
             if appState.sortOption == option {
                 appState.sortAscending.toggle()
@@ -184,8 +165,18 @@ struct FileListView: View {
                         .font(.system(size: 9, weight: .bold))
                 }
             }
+            .padding(.trailing, isLeading ? 0 : 4)
         }
         .buttonStyle(.plain)
+    }
+
+    private func sortOption(for col: ListColumn) -> SortOption {
+        switch col {
+        case .name:         return .name
+        case .size:         return .size
+        case .dateModified: return .dateModified
+        case .kind:         return .kind
+        }
     }
 
     @ViewBuilder
@@ -245,27 +236,32 @@ struct FileListView: View {
                     .offset(y: appState.isCompactMode ? 1 : 0)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: appState.columnWidth(for: .name), alignment: .leading)
 
             // Dynamic fixed-width columns
             if appState.isColumnVisible(.size) {
                 Text(item.formattedSize)
                     .font(.system(size: 12))
                     .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                    .padding(.trailing, 4)
                     .frame(width: appState.columnWidth(for: .size), alignment: .trailing)
             }
             if appState.isColumnVisible(.dateModified) {
                 Text(item.formattedDate)
                     .font(.system(size: 12))
                     .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                    .padding(.trailing, 4)
                     .frame(width: appState.columnWidth(for: .dateModified), alignment: .trailing)
             }
             if appState.isColumnVisible(.kind) {
                 Text(item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased())
                     .font(.system(size: 12))
                     .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
+                    .padding(.trailing, 4)
                     .frame(width: appState.columnWidth(for: .kind), alignment: .trailing)
             }
+            
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, appState.isCompactMode ? 2 : max(4, listIconSize * 0.25))

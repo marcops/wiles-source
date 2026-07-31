@@ -17,7 +17,7 @@ public enum ListColumn: String, CaseIterable, Identifiable, Codable, Hashable, S
     /// Default fixed width. Name returns 0 — it uses maxWidth: .infinity instead.
     public var defaultWidth: CGFloat {
         switch self {
-        case .name:         return 0
+        case .name:         return 280
         case .size:         return 90
         case .dateModified: return 160
         case .kind:         return 90

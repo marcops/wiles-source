@@ -10,6 +10,8 @@ public final class AutomatedTestService {
         TestReporter.reset()
         
         NavigationTests.run()
+        ListColumnTests.run()
+        await UISearchTests.run()
         UITests.run()
         LocalizationTests.run()
         FileSystemTests.run()

@@ -1,49 +1,52 @@
 import SwiftUI
 import AppKit
 
-/// Invisible drag handle placed at the trailing edge of each resizable column header.
-/// Shows a visible divider on hover and changes the cursor to a resize cursor.
+/// Interactive drag handle placed at the trailing edge of a table column.
+/// Dragging left/right adjusts the column width directly, matching macOS Finder behavior.
 struct ColumnResizeHandle: View {
     let column: ListColumn
     var appState: AppState
 
     @State private var isHovered = false
-    @State private var dragStartX: CGFloat? = nil
     @State private var dragStartWidth: CGFloat? = nil
 
-    private static let handleWidth: CGFloat = 8
+    private static let hitAreaWidth: CGFloat = 8
+    private static let lineWidth: CGFloat = 1
 
     var body: some View {
-        Rectangle()
-            .fill(isHovered ? Color.accentColor.opacity(0.5) : Color.secondary.opacity(0.15))
-            .frame(width: Self.handleWidth)
-            .contentShape(Rectangle())
-            .onHover { hovering in
-                isHovered = hovering
-                if hovering {
-                    NSCursor.resizeLeftRight.push()
-                } else {
+        ZStack {
+            // Wide transparent hit area
+            Color.clear
+                .frame(width: Self.hitAreaWidth)
+                .contentShape(Rectangle())
+
+            // 1pt visual divider line
+            Rectangle()
+                .fill(isHovered ? Color.accentColor : Color.secondary.opacity(0.25))
+                .frame(width: Self.lineWidth)
+        }
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) { isHovered = hovering }
+            if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+        }
+        .gesture(
+            DragGesture(coordinateSpace: .global)
+                .onChanged { value in
+                    if dragStartWidth == nil {
+                        dragStartWidth = appState.columnWidth(for: column)
+                    }
+                    let dx = value.translation.width
+                    let initWidth = dragStartWidth ?? column.defaultWidth
+                    let newWidth = max(60, initWidth + dx)
+                    
+                    appState.setColumnWidth(column, width: newWidth)
+                }
+                .onEnded { _ in
+                    dragStartWidth = nil
                     NSCursor.pop()
                 }
-            }
-            .gesture(
-                DragGesture(minimumDistance: 1)
-                    .onChanged { value in
-                        if dragStartX == nil {
-                            dragStartX = value.startLocation.x
-                            dragStartWidth = appState.columnWidth(for: column)
-                        }
-                        let delta = value.location.x - (dragStartX ?? 0)
-                        let base = dragStartWidth ?? column.defaultWidth
-                        appState.setColumnWidth(column, width: base + delta)
-                    }
-                    .onEnded { _ in
-                        dragStartX = nil
-                        dragStartWidth = nil
-                        NSCursor.pop()
-                    }
-            )
-            .cursor(.resizeLeftRight)
+        )
+        .cursor(.resizeLeftRight)
     }
 }
 
