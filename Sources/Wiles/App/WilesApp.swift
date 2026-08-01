@@ -14,6 +14,7 @@ struct WilesApp: App {
     var body: some Scene {
         WindowGroup(AppConstants.appName) {
             MainContentView(appState: appState)
+                .preferredColorScheme(appState.appAppearance.colorScheme)
                 .sheet(item: $appState.propertiesItem) { item in
                     FilePropertiesSheet(item: item, appState: appState)
                 }
@@ -49,7 +50,7 @@ struct WilesApp: App {
                         window.setFrameAutosaveName("WilesMainWindow")
                     }
                     if !CommandLine.arguments.contains("--ui-testing") && !CommandLine.arguments.contains("--test") && !CommandLine.arguments.contains("--run-tests") {
-                        PermissionService.requestInitialPermissions()
+                        PermissionService.requestInitialPermissions(language: appState.appLanguage)
                     }
                     if CommandLine.arguments.contains("--test") || CommandLine.arguments.contains("--run-tests") {
                         Task {
@@ -63,86 +64,168 @@ struct WilesApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
-            CommandGroup(replacing: .appInfo) {
-                Button(appState.tr(.aboutWiles)) {
-                    appState.showAboutSheet = true
-                }
-                Divider()
-                Button("Grant Full Disk Access...") {
-                    PermissionService.openFullDiskAccessSettings()
-                }
-                Divider()
-                Menu(appState.tr(.translucentLevel)) {
-                    ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                        Button(action: { appState.translucentLevel = level }) {
-                            HStack {
-                                Text("\(level)%")
-                                if appState.translucentLevel == level { Image(systemName: "checkmark") }
-                            }
+            appMenuCommands
+            fileMenuCommands
+            editMenuCommands
+            viewMenuCommands
+            CommandMenu("Go") { goMenuCommands }
+            CommandMenu("Tools") { toolsMenuCommands }
+            helpMenuCommands
+        }
+    }
+
+    @CommandsBuilder
+    private var appMenuCommands: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button(appState.tr(.aboutWiles)) { appState.showAboutSheet = true }
+            Divider()
+            Picker(appState.tr(.language), selection: $appState.appLanguage) {
+                ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
+            }
+            Picker("Theme", selection: $appState.appAppearance) {
+                ForEach(AppAppearance.allCases) { appearance in Text(appearance.rawValue).tag(appearance) }
+            }
+            Picker("Shortcut Mode", selection: $appState.navigationMode) {
+                ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
+            }
+            Menu(appState.tr(.translucentLevel)) {
+                ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
+                    Button(action: { appState.translucentLevel = level }) {
+                        HStack {
+                            Text("\(level)%")
+                            if appState.translucentLevel == level { Image(systemName: "checkmark") }
                         }
                     }
                 }
             }
-            CommandGroup(after: .newItem) {
-                Button("New Folder...") { appState.showNewFolderSheet = true }
-                    .keyboardShortcut("n", modifiers: [.command, .shift])
+        }
+    }
+
+    @CommandsBuilder
+    private var fileMenuCommands: some Commands {
+        CommandGroup(after: .newItem) {
+            Button("New Folder...") { appState.showNewFolderSheet = true }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            Divider()
+            Button("Open") { appState.openSelectedItem() }
+                .keyboardShortcut("o", modifiers: .command)
+                .disabled(appState.selectedURLs.isEmpty)
+            Button(appState.tr(.properties)) { appState.openPropertiesForSelected() }
+                .keyboardShortcut("i", modifiers: .command)
+                .disabled(appState.selectedURLs.isEmpty)
+            Button("Quick Look") { appState.triggerQuickLookForSelected() }
+                .keyboardShortcut(" ", modifiers: [])
+                .disabled(appState.selectedURLs.isEmpty)
+            Divider()
+            Button("Move to Trash") { appState.deleteSelected() }
+                .disabled(appState.selectedURLs.isEmpty)
+        }
+    }
+
+    @CommandsBuilder
+    private var editMenuCommands: some Commands {
+        CommandGroup(after: .undoRedo) {
+            Button("Undo") { appState.undoLastAction() }
+                .keyboardShortcut("z", modifiers: .command)
+            Button("Redo") { appState.redoLastAction() }
+                .keyboardShortcut("z", modifiers: [.command, .shift])
+        }
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Button("Cut") { appState.cutSelected() }
+                .keyboardShortcut("x", modifiers: .command)
+                .disabled(appState.selectedURLs.isEmpty)
+            Button("Copy") { appState.copySelected() }
+                .keyboardShortcut("c", modifiers: .command)
+                .disabled(appState.selectedURLs.isEmpty)
+            Button("Paste") { appState.pasteToCurrentDirectory() }
+                .keyboardShortcut("v", modifiers: .command)
+            Divider()
+            Button("Select All") { appState.selectAllItems() }
+                .keyboardShortcut("a", modifiers: .command)
+            Divider()
+            Button("Find") { appState.toggleSearching() }
+                .keyboardShortcut("f", modifiers: .command)
+        }
+    }
+
+    @CommandsBuilder
+    private var viewMenuCommands: some Commands {
+        CommandGroup(after: .sidebar) {
+            Divider()
+            Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
+                .keyboardShortcut("/", modifiers: .command)
+            Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
+                .keyboardShortcut("j", modifiers: .command)
+            Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+            Divider()
+            Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
+                .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
+            Toggle(appState.tr(.showTags), isOn: $appState.showTags)
+            Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
+            Divider()
+            Toggle("Show Favorites", isOn: $appState.showFavorites)
+            Toggle("Show MAC Section", isOn: $appState.showMacSection)
+            if appState.showMacSection {
+                Toggle("Show Recents", isOn: $appState.showRecents)
             }
-            CommandGroup(after: .sidebar) {
-                Divider()
-                Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
-                    .keyboardShortcut("/", modifiers: .command)
-                Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
-                    .keyboardShortcut("j", modifiers: .command)
-                Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
-                    .keyboardShortcut("p", modifiers: [.command, .shift])
-                Divider()
-                Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
-                    .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
-                Toggle(appState.tr(.showTags), isOn: $appState.showTags)
-                Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
-                Divider()
-                Toggle("Show Favorites", isOn: $appState.showFavorites)
-                Toggle("Show MAC Section", isOn: $appState.showMacSection)
-                if appState.showMacSection {
-                    Toggle("Show Recents", isOn: $appState.showRecents)
-                }
-                Toggle("Show Network & Cloud", isOn: $appState.showNetworkAndCloud)
-                Divider()
-                Picker("View Mode", selection: $appState.viewMode) {
-                    Text("Grid View").tag(ViewMode.grid)
-                    Text("List View").tag(ViewMode.list)
-                    Text("Column View").tag(ViewMode.column)
-                }
-                Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
-                    ForEach(SidebarMode.allCases) { mode in Text(appState.tr(mode.l10nKey)).tag(mode) }
-                }
-                Picker("Shortcut Mode", selection: $appState.navigationMode) {
-                    ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
-                }
-                Picker(appState.tr(.language), selection: $appState.appLanguage) {
-                    ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
-                }
-                Divider()
-                Button("Auto-Organization Rules...") {
-                    appState.showAutoOrganizationSheet = true
-                }
-                Divider()
-                Button(appState.tr(.copyPath)) {
-                    let pb = NSPasteboard.general
-                    pb.clearContents()
-                    pb.setString(appState.currentURL.path, forType: .string)
-                }
-                Button("Connect to Server... (Cmd+K)") {
-                    appState.showConnectToServerSheet = true
-                }
-                    .keyboardShortcut("k", modifiers: .command)
+            Toggle("Show Network & Cloud", isOn: $appState.showNetworkAndCloud)
+            Divider()
+            Picker("View Mode", selection: $appState.viewMode) {
+                Text("Grid View").tag(ViewMode.grid)
+                Text("List View").tag(ViewMode.list)
+                Text("Column View").tag(ViewMode.column)
             }
-            CommandGroup(replacing: .help) {
-                Button("Wiles Help & Shortcuts") {
-                    appState.showHelpSheet = true
+            Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
+                ForEach(SidebarMode.allCases) { mode in Text(appState.tr(mode.l10nKey)).tag(mode) }
+            }
+            Menu(appState.tr(.sortBy)) {
+                Picker(appState.tr(.sortBy), selection: $appState.sortOption) {
+                    ForEach(SortOption.allCases) { opt in Text(opt.rawValue).tag(opt) }
                 }
+                .onChange(of: appState.sortOption) { _, _ in appState.refreshCurrentDirectory() }
+                Divider()
+                Toggle(appState.tr(.ascending), isOn: $appState.sortAscending)
+                    .onChange(of: appState.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var goMenuCommands: some View {
+        Button("Back") { appState.goBack() }
+            .keyboardShortcut("[", modifiers: .command)
+            .disabled(appState.historyBack.isEmpty)
+        Button("Forward") { appState.goForward() }
+            .keyboardShortcut("]", modifiers: .command)
+            .disabled(appState.historyForward.isEmpty)
+        Button("Enclosing Folder") { appState.goUp() }
+        Divider()
+        Button("Go to Folder...") { appState.startEditingPath() }
+            .keyboardShortcut("l", modifiers: .command)
+        Button("Connect to Server...") { appState.showConnectToServerSheet = true }
+            .keyboardShortcut("k", modifiers: .command)
+    }
+
+    @ViewBuilder
+    private var toolsMenuCommands: some View {
+        Button("Disk Usage Visualizer...") { appState.showDiskUsageSheet = true }
+            .keyboardShortcut("d", modifiers: [.command, .shift])
+        Button("Auto-Organization Rules...") { appState.showAutoOrganizationSheet = true }
+        Divider()
+        Button(appState.tr(.copyPath)) {
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(appState.currentURL.path, forType: .string)
+        }
+    }
+
+    @CommandsBuilder
+    private var helpMenuCommands: some Commands {
+        CommandGroup(replacing: .help) {
+            Button("Wiles Help & Shortcuts") { appState.showHelpSheet = true }
                 .keyboardShortcut("?", modifiers: .command)
-            }
         }
     }
 }

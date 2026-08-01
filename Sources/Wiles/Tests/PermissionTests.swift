@@ -5,8 +5,13 @@ public final class PermissionTests {
     public static func run() {
         print("\n--- Running PermissionTests ---")
         
-        PermissionService.requestInitialPermissions()
-        TestReporter.report("Permission", "requestInitialPermissions is a safe no-op on launch", result: true)
+        _ = PermissionService.hasFullDiskAccess()
+        TestReporter.report("Permission", "hasFullDiskAccess runs safely without error", result: true)
+
+        PermissionService.markFullDiskAccessPromptAsShown()
+        PermissionService.requestInitialPermissions(language: .system)
+        TestReporter.report("Permission", "requestInitialPermissions is a safe no-op once already shown", result: true)
+
         PermissionService.resetInitialPermissionsFlag()
         TestReporter.report("Permission", "resetInitialPermissionsFlag runs safely without error", result: true)
     }

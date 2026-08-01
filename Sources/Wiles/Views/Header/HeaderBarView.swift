@@ -8,9 +8,6 @@ struct HeaderBarView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Reserved spacer for native macOS window traffic lights (Red/Yellow/Green)
-            Spacer().frame(width: 60)
-            
             historyButtons
             if appState.isSearching {
                 searchField.frame(maxWidth: .infinity)
@@ -22,27 +19,29 @@ struct HeaderBarView: View {
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .padding(.bottom, 6)
-        .background(Color(NSColor.windowBackgroundColor))
         .background(TrafficLightRepositioner(offsetY: 6))
+        .doubleClickToZoom()
     }
     
     private var historyButtons: some View {
         HStack(spacing: 4) {
             Button(action: { appState.goBack() }) {
                 Image(systemName: "chevron.left").font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain).disabled(appState.historyBack.isEmpty)
             .opacity(appState.historyBack.isEmpty ? 0.4 : 1.0)
-            .keyboardShortcut("[", modifiers: .command)
-            
+            .help("Back (Cmd+[)")
+
             Button(action: { appState.goForward() }) {
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain).disabled(appState.historyForward.isEmpty)
             .opacity(appState.historyForward.isEmpty ? 0.4 : 1.0)
-            .keyboardShortcut("]", modifiers: .command)
+            .help("Forward (Cmd+])")
         }
     }
     
@@ -50,7 +49,6 @@ struct HeaderBarView: View {
         HStack(spacing: 8) {
             searchButton
             viewSwitcher
-            sortMenu
         }
     }
     
@@ -99,18 +97,14 @@ struct HeaderBarView: View {
 
     private var searchButton: some View {
         Button(action: {
-            withAnimation {
-                appState.isSearching.toggle()
-                if !appState.isSearching { appState.searchQuery = "" }
-            }
+            withAnimation { appState.toggleSearching() }
         }) {
             Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium))
                 .frame(width: 30, height: 28)
-                .background(appState.isSearching ? Color.accentColor.opacity(0.25) : Color(NSColor.controlBackgroundColor))
-                .cornerRadius(6)
+                .foregroundColor(appState.isSearching ? .accentColor : .primary)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain).help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")
-        .keyboardShortcut("f", modifiers: .command)
     }
     
     private func iconName(for mode: ViewMode) -> String {
@@ -136,6 +130,7 @@ struct HeaderBarView: View {
                             .background(appState.viewMode == mode ? Color.accentColor : Color.clear)
                             .foregroundColor(appState.viewMode == mode ? .white : .primary)
                             .cornerRadius(4)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
@@ -151,34 +146,17 @@ struct HeaderBarView: View {
                         .background(Color.clear)
                         .foregroundColor(.primary)
                         .cornerRadius(4)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }
         .padding(2)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(6)
         .animation(.spring(response: 0.28, dampingFraction: 0.75), value: viewSwitcherExpanded)
-    }
-    
-    private var sortMenu: some View {
-        @Bindable var appState = appState
-        return Menu {
-            Picker(appState.tr(.sortBy), selection: $appState.sortOption) {
-                ForEach(SortOption.allCases) { opt in Text(opt.rawValue).tag(opt) }
-            }
-            .onChange(of: appState.sortOption) { _, _ in appState.refreshCurrentDirectory() }
-            
-            Divider()
-            
-            Toggle(appState.tr(.ascending), isOn: $appState.sortAscending)
-                .onChange(of: appState.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
-        } label: {
-            Image(systemName: "arrow.up.arrow.down").font(.system(size: 12))
-                .frame(width: 30, height: 28).background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
-        }
-        .menuStyle(.borderlessButton)
+        .background(ClickOutsideDetector {
+            if viewSwitcherExpanded { viewSwitcherExpanded = false }
+        })
     }
     
 }
@@ -200,6 +178,10 @@ struct TrafficLightRepositioner: NSViewRepresentable {
 
     class RepositionerView: NSView {
         var offsetY: CGFloat = 6
+
+        /// Purely a passive layout observer — must never intercept clicks meant for whatever's
+        /// drawn on top of or behind it, since the default NSView.hitTest claims everything.
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()

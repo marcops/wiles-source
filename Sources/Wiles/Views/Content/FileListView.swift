@@ -21,9 +21,9 @@ struct FileListView: View {
         GeometryReader { geometry in
             ScrollView(.vertical) {
                 ScrollView(.horizontal) {
-                    ZStack(alignment: .topLeading) {
+                ZStack(alignment: .topLeading) {
                         Color(NSColor.controlBackgroundColor).opacity(0.001)
-                            .frame(minWidth: geometry.size.width)
+                            .frame(minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness)
                             .contentShape(Rectangle())
                             .gesture(
                                 DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
@@ -94,13 +94,15 @@ struct FileListView: View {
                                 .allowsHitTesting(false)
                         }
                     }
-                    .coordinateSpace(name: "listContainer")
-                    .onPreferenceChange(ListCellFrameKey.self) { frames in
-                        self.cellFrames = frames
-                    }
-                    .frame(minHeight: geometry.size.height, alignment: .topLeading)
+                .coordinateSpace(name: "listContainer")
+                .onPreferenceChange(ListCellFrameKey.self) { frames in
+                    self.cellFrames = frames
+                }
+                .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
+                .background(ScrollerAutoHideSetter())
                 }
             }
+            .background(ScrollerAutoHideSetter())
             .onChange(of: geometry.size.width) { oldWidth, newWidth in
                 if let last = lastWindowWidth {
                     let diff = newWidth - last
@@ -116,7 +118,7 @@ struct FileListView: View {
                 lastWindowWidth = geometry.size.width
             }
             .background(
-                Color(NSColor.controlBackgroundColor).opacity(0.3)
+                Color.clear
                     .contentShape(Rectangle())
                     .overlay(
                         RightClickDetector {
@@ -146,7 +148,7 @@ struct FileListView: View {
         .foregroundColor(.secondary)
         .padding(.horizontal, 22)
         .frame(height: 30)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.08))
         .clipped()
         .contextMenu { columnVisibilityMenu }
     }

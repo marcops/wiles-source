@@ -256,6 +256,10 @@ public struct L10n {
         case actParentFolder
         case actRefreshShortcut
         case actToggleStatusBar
+        case fullDiskAccessPromptTitle
+        case fullDiskAccessPromptMessage
+        case openSystemSettings
+        case notNow
     }
 
     private static let localized: [Key: [String: String]] = [
@@ -1526,6 +1530,16 @@ public struct L10n {
         .actNavBackForward: ["en": "Navigate Back / Forward", "pt": "Navegar Voltar / Avançar", "es": "Navegar Atrás / Adelante", "fr": "Naviguer Précédent / Suivant", "de": "Zurück / Vorwärts navigieren"],
         .actParentFolder: ["en": "Parent Folder", "pt": "Pasta Pai (Superior)", "es": "Carpeta Superior", "fr": "Dossier parent", "de": "Übergeordneter Ordner"],
         .actRefreshShortcut: ["en": "Refresh Directory", "pt": "Atualizar Diretório", "es": "Actualizar Directorio", "fr": "Actualiser le dossier", "de": "Verzeichnis aktualisieren"],
-        .actToggleStatusBar: ["en": "Toggle Status Bar", "pt": "Alternar Barra de Status", "es": "Alternar Barra de Estado", "fr": "Basculer la barre d'état", "de": "Statusleiste umschalten"]
+        .actToggleStatusBar: ["en": "Toggle Status Bar", "pt": "Alternar Barra de Status", "es": "Alternar Barra de Estado", "fr": "Basculer la barre d'état", "de": "Statusleiste umschalten"],
+        .fullDiskAccessPromptTitle: ["en": "Full Disk Access", "pt": "Acesso Total ao Disco", "es": "Acceso Total al Disco", "fr": "Accès complet au disque", "de": "Voller Festplattenzugriff"],
+        .fullDiskAccessPromptMessage: [
+            "en": "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.",
+            "pt": "O Wiles precisa de Acesso Total ao Disco para navegar em todas as suas pastas sem pedir permissão repetidamente. Conceda uma vez nos Ajustes do Sistema.",
+            "es": "Wiles necesita Acceso Total al Disco para explorar todas tus carpetas sin solicitudes de permiso repetidas. Concédelo una vez en Ajustes del Sistema.",
+            "fr": "Wiles a besoin d'un accès complet au disque pour parcourir tous vos dossiers sans demandes d'autorisation répétées. Accordez-le une fois dans Réglages Système.",
+            "de": "Wiles benötigt vollen Festplattenzugriff, um alle Ordner ohne wiederholte Berechtigungsanfragen zu durchsuchen. Erteile ihn einmal in den Systemeinstellungen."
+        ],
+        .openSystemSettings: ["en": "Open System Settings", "pt": "Abrir Ajustes do Sistema", "es": "Abrir Ajustes del Sistema", "fr": "Ouvrir Réglages Système", "de": "Systemeinstellungen öffnen"],
+        .notNow: ["en": "Not Now", "pt": "Agora Não", "es": "Ahora No", "fr": "Plus tard", "de": "Nicht jetzt"]
     ]
 }

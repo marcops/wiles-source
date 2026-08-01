@@ -49,7 +49,8 @@ struct DirectoryTreeNodeView: View {
     let node: FolderNode
     let depth: Int
     var appState: AppState
-    
+    @State private var isRightClicked = false
+
     init(node: FolderNode, depth: Int = 0, appState: AppState) {
         self.node = node
         self.depth = depth
@@ -87,22 +88,29 @@ struct DirectoryTreeNodeView: View {
     }
     
     private var rowContent: some View {
-        let isSel = appState.currentURL.standardizedFileURL == node.url.standardizedFileURL
-        return Button(action: { appState.navigateTo(node.url) }) {
+        let isSel = appState.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
+        return Button(action: {
+            isRightClicked = false
+            appState.navigateTo(node.url)
+        }) {
             HStack(spacing: 6) {
                 Image(systemName: "folder.fill")
                     .font(.system(size: 12))
-                    .foregroundColor(isSel ? .white : .accentColor)
+                    .foregroundColor(.accentColor)
                 Text(node.name)
-                    .font(.system(size: 12, weight: isSel ? .bold : .regular))
-                    .foregroundColor(isSel ? .white : .primary)
+                    .font(.system(size: 12, weight: isSel ? .semibold : .regular))
+                    .foregroundColor(.primary)
                 Spacer()
             }
             .padding(.horizontal, 6).padding(.vertical, 3)
-            .background(isSel ? Color.accentColor : Color.clear)
-            .cornerRadius(4)
+            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
+            .cornerRadius(6)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .overlay(
+            RightClickDetector { isRightClicked = true }
+        )
         .contextMenu {
             Button(appState.tr(.open)) { appState.navigateTo(node.url) }
             Button(appState.tr(.copyPath)) {
@@ -121,7 +129,8 @@ struct DirectoryTreeNodeView: View {
 
 struct SidebarView: View {
     var appState: AppState
-    
+    @State private var rightClickedRowKey: String?
+
     var macItems: [SidebarItem] {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let cloudDocs = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
@@ -246,17 +255,27 @@ struct SidebarView: View {
                     }
                 }
             }
-            .padding(.vertical, 12)
+            .padding(.top, LayoutTokens.sidebarTrafficLightInset)
+            .padding(.bottom, 12)
         }
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
         .background(
             ZStack {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
-                    .opacity(1.0 - Double(appState.translucentLevel) / 100.0)
+                    .opacity(appState.sidebarOverlayOpacity)
             }
             .ignoresSafeArea()
         )
+        .overlay(alignment: .top) {
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: LayoutTokens.sidebarDoubleClickZoneHeight)
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2) {
+                    NSApp.keyWindow?.zoom(nil)
+                }
+        }
     }
     
     private func sectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
@@ -295,13 +314,14 @@ struct SidebarView: View {
             HStack(spacing: 6) {
                 Circle().fill(colorForTag(tag)).frame(width: 10, height: 10)
                 Text(appState.tr(colorKey))
-                    .font(.system(size: 12, weight: isSel ? .bold : .regular))
-                    .foregroundColor(isSel ? .white : .primary)
+                    .font(.system(size: 12, weight: isSel ? .semibold : .regular))
+                    .foregroundColor(.primary)
                 Spacer()
             }
             .padding(.horizontal, 10).padding(.vertical, 4)
-            .background(isSel ? Color.accentColor : Color.clear)
+            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
             .cornerRadius(6)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 6)
@@ -312,7 +332,7 @@ struct SidebarView: View {
             sectionHeader(title: title, isExpanded: isExpanded)
             if isExpanded.wrappedValue {
                 ForEach(items) { item in
-                    sidebarRow(for: item, isFavoritesSection: isFavoritesSection)
+                    sidebarRow(for: item, sectionKey: title, isFavoritesSection: isFavoritesSection)
                 }
             }
         }
@@ -351,15 +371,42 @@ struct SidebarView: View {
         return SidebarItem(name: name, iconName: icon, url: std)
     }
     
-    private func sidebarRow(for item: SidebarItem, isFavoritesSection: Bool = false) -> some View {
-        let isSel = appState.currentURL.standardizedFileURL == item.url.standardizedFileURL
-        return Button(action: { appState.navigateTo(item.url) }) {
+    private func sidebarRow(for item: SidebarItem, sectionKey: String, isFavoritesSection: Bool = false) -> some View {
+        let rowKey = "\(sectionKey)|\(item.url.path)"
+        return SidebarRowView(
+            item: item,
+            appState: appState,
+            isFavoritesSection: isFavoritesSection,
+            isRightClicked: rightClickedRowKey == rowKey,
+            isAnotherRowRightClicked: rightClickedRowKey != nil && rightClickedRowKey != rowKey,
+            onRightClick: { rightClickedRowKey = rowKey },
+            onLeftClick: { rightClickedRowKey = nil }
+        )
+    }
+}
+
+private struct SidebarRowView: View {
+    let item: SidebarItem
+    var appState: AppState
+    let isFavoritesSection: Bool
+    let isRightClicked: Bool
+    let isAnotherRowRightClicked: Bool
+    let onRightClick: () -> Void
+    let onLeftClick: () -> Void
+
+    var body: some View {
+        let isCurrentFolder = appState.currentURL.standardizedFileURL == item.url.standardizedFileURL
+        let isSel = isRightClicked || (isCurrentFolder && !isAnotherRowRightClicked)
+        return Button(action: {
+            onLeftClick()
+            appState.navigateTo(item.url)
+        }) {
             HStack(spacing: 10) {
                 Image(systemName: item.iconName)
-                    .font(.system(size: 14)).foregroundColor(isSel ? .white : .accentColor).frame(width: 20)
+                    .font(.system(size: 15)).foregroundColor(.accentColor).frame(width: 20)
                 Text(item.name)
-                    .font(.system(size: 13, weight: isSel ? .medium : .regular))
-                    .foregroundColor(isSel ? .white : .primary)
+                    .font(.system(size: 13, weight: isSel ? .semibold : .regular))
+                    .foregroundColor(.primary)
                 Spacer()
                 if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
                     Button(action: {
@@ -369,16 +416,20 @@ struct SidebarView: View {
                     }) {
                         Image(systemName: "eject.fill")
                             .font(.system(size: 11))
-                            .foregroundColor(isSel ? .white : .secondary)
+                            .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
                     .help("Eject Volume")
                 }
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(isSel ? Color.accentColor : Color.clear).cornerRadius(6)
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear).cornerRadius(8)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain).padding(.horizontal, 8)
+        .overlay(
+            RightClickDetector { onRightClick() }
+        )
         .contextMenu {
             Button(appState.tr(.open)) { appState.navigateTo(item.url) }
             Button(appState.tr(.copyPath)) {

@@ -97,10 +97,10 @@ struct FileGridView: View {
                     self.cellFrames = frames
                     appState.gridCellFrames = frames
                 }
-                .frame(maxWidth: .infinity, minHeight: max(geometry.size.height, 600), maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height, maxHeight: .infinity, alignment: .topLeading)
             }
             .background(
-                Color(NSColor.controlBackgroundColor).opacity(0.3)
+                Color.clear
                     .contentShape(Rectangle())
                     .overlay(
                         RightClickDetector {
@@ -111,6 +111,7 @@ struct FileGridView: View {
                         SharedBackgroundContextMenu(appState: appState)
                     }
             )
+            .background(ScrollerAutoHideSetter())
         }
     }
     
@@ -126,13 +127,24 @@ struct FileGridView: View {
         .frame(maxWidth: .infinity, minHeight: 300)
     }
     
+    @ViewBuilder
+    private func gridCardImage(for item: FileItem) -> some View {
+        if !item.isDirectory,
+           iconSize >= LayoutTokens.thumbnailMinimumIconSize,
+           ThumbnailService.isImage(fileExtension: item.fileExtension) {
+            ImageThumbnailView(url: item.url, size: iconSize, fallback: item.icon)
+        } else {
+            Image(nsImage: item.icon).resizable().scaledToFit()
+        }
+    }
+
     private func gridCard(for item: FileItem) -> some View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
         
         return VStack(spacing: 6) {
-            Image(nsImage: item.icon)
-                .resizable().scaledToFit().frame(width: iconSize, height: iconSize)
+            gridCardImage(for: item)
+                .frame(width: iconSize, height: iconSize)
             Text(item.name)
                 .font(.system(size: max(10, min(14, iconSize * 0.22)), weight: isSel ? .semibold : .regular))
                 .lineLimit(2).multilineTextAlignment(.center)
@@ -198,5 +210,27 @@ struct FileGridView: View {
             }
         )
         .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
+    }
+}
+
+/// Shows the generic file icon immediately, then swaps in the real thumbnail once it loads.
+/// `.task(id: url)` ties the fetch to this cell's lifecycle — scrolling the cell away cancels it.
+private struct ImageThumbnailView: View {
+    let url: URL
+    let size: CGFloat
+    let fallback: NSImage
+    @State private var thumbnail: NSImage?
+
+    var body: some View {
+        Image(nsImage: thumbnail ?? fallback)
+            .resizable()
+            .scaledToFit()
+            .task(id: url) {
+                if let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size) {
+                    thumbnail = cached
+                    return
+                }
+                thumbnail = await ThumbnailService.shared.loadThumbnail(for: url, size: size)
+            }
     }
 }

@@ -3,17 +3,18 @@ import AppKit
 
 struct FooterBarView: View {
     var appState: AppState
-    
+    @State private var isIconSizeControlExpanded = false
+
     var body: some View {
         @Bindable var appState = appState
-        
+
         HStack(spacing: 12) {
             // Status text (item counts, total/selection sizes, free disk space)
             HStack(spacing: 4) {
                 Text(appState.statusText)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundColor(.secondary)
-                
+
                 if let freeSpace = appState.freeSpaceText {
                     Text("•")
                         .font(.system(size: 11))
@@ -24,13 +25,17 @@ struct FooterBarView: View {
                 }
             }
             .lineLimit(1)
-            
+
             Spacer()
-            
+
             if !BackgroundOperationsService.shared.activeTasks.isEmpty {
                 OperationsButtonView()
             }
-            
+
+            iconSizeControl(appState: appState)
+
+            Divider().frame(height: 12)
+
             // Terminal toggle button
             Button(action: {
                 withAnimation { appState.showTerminalDrawer.toggle() }
@@ -41,29 +46,41 @@ struct FooterBarView: View {
             }
             .buttonStyle(.plain)
             .help("Toggle Terminal (Cmd+J)")
-            
-            Divider().frame(height: 12)
-            
-            // Icon Size Zoom Slider (Grid/List View icon scaling)
-            HStack(spacing: 6) {
-                Image(systemName: "photo")
-                    .font(.system(size: 10, weight: .regular))
-                    .foregroundColor(.secondary)
-                
-                Slider(value: $appState.iconSize, in: 36...128, step: 2)
-                    .frame(width: 110)
-                    .controlSize(.mini)
-                
-                Image(systemName: "photo")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(.secondary)
-            }
-            .help("Ajustar tamanho dos ícones (Cmd/Ctrl + Wheel ou Cmd/Ctrl + +/-)")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 4)
         .frame(height: 26)
-        .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    /// Collapses down to just an icon; hovering near it reveals the slider to adjust icon size.
+    private func iconSizeControl(appState: AppState) -> some View {
+        @Bindable var appState = appState
+        return HStack(spacing: 6) {
+            Image(systemName: "photo")
+                .font(.system(size: 11, weight: .regular))
+                .foregroundColor(.secondary)
+
+            if isIconSizeControlExpanded {
+                Slider(value: $appState.iconSize, in: 36...128, step: 2)
+                    .frame(width: 100)
+                    .controlSize(.mini)
+                    .transition(.opacity.combined(with: .move(edge: .trailing)))
+
+                Image(systemName: "photo")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(.secondary)
+                    .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, isIconSizeControlExpanded ? 6 : 4)
+        .frame(height: 20)
+        .background(isIconSizeControlExpanded ? Color(NSColor.controlBackgroundColor).opacity(appState.contentOverlayOpacity) : Color.clear)
+        .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) { isIconSizeControlExpanded = hovering }
+        }
+        .help("Ajustar tamanho dos ícones (Cmd/Ctrl + Wheel ou Cmd/Ctrl + +/-)")
     }
 }
 

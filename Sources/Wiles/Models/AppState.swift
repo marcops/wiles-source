@@ -12,6 +12,13 @@ public final class AppState {
     public var historyForward: [URL] = []
     public var items: [FileItem] = []
     public var isLoading: Bool = false
+    /// Bumped by the right-arrow key handler so Column View can drill into the selected item's column, same as a click.
+    public var columnViewDrillRightTrigger: Int = 0
+    /// Set alongside `columnViewVerticalTrigger` so Column View moves selection within its own active column instead of the root `items` list.
+    public var columnViewVerticalDirection: Int = 0
+    public var columnViewVerticalTrigger: Int = 0
+    /// Bumped by the left-arrow key handler so Column View shifts focus back one column instead of resetting via `goUp()`.
+    public var columnViewMoveLeftTrigger: Int = 0
     /// Cell frames from the Grid View, updated live. Used to compute the real column count.
     public var gridCellFrames: [URL: CGRect] = [:]
     /// Actual number of columns currently rendered in Grid View — derived from real cell Y positions.
@@ -25,8 +32,14 @@ public final class AppState {
     public var viewMode: ViewMode = .grid {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "wiles_viewMode") }
     }
+    public var appAppearance: AppAppearance = .system {
+        didSet { UserDefaults.standard.set(appAppearance.rawValue, forKey: "wiles_appAppearance") }
+    }
     public var sidebarMode: SidebarMode = .places {
         didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: "wiles_sidebarMode") }
+    }
+    public var sidebarWidth: Double = Double(LayoutTokens.sidebarIdealWidth) {
+        didSet { UserDefaults.standard.set(sidebarWidth, forKey: "wiles_sidebarWidth") }
     }
     public var sortOption: SortOption = .name {
         didSet { UserDefaults.standard.set(sortOption.rawValue, forKey: "wiles_sortOption") }
@@ -93,6 +106,15 @@ public final class AppState {
     }
     public var translucentLevel: Int = 60 {
         didSet { UserDefaults.standard.set(translucentLevel, forKey: "wiles_translucentLevel") }
+    }
+    /// Single source of truth for translucency math — every translucent surface in the app
+    /// (sidebar, content, footer controls, etc.) must read its opacity from here, never
+    /// recompute its own formula, so they all stay in lockstep with one shared level.
+    public var sidebarOverlayOpacity: Double {
+        1.0 - Double(translucentLevel) / 100.0
+    }
+    public var contentOverlayOpacity: Double {
+        min(1.0, sidebarOverlayOpacity + LayoutTokens.contentTranslucencyDarkenOffset)
     }
     public var iconSize: Double = 54.0 {
         didSet { UserDefaults.standard.set(iconSize, forKey: "wiles_iconSize") }
@@ -242,11 +264,18 @@ public final class AppState {
         if let modeStr = defaults.string(forKey: "wiles_sidebarMode"), let mode = SidebarMode(rawValue: modeStr) {
             self.sidebarMode = mode
         }
+        if defaults.object(forKey: "wiles_sidebarWidth") != nil {
+            let savedWidth = defaults.double(forKey: "wiles_sidebarWidth")
+            self.sidebarWidth = min(Double(LayoutTokens.sidebarMaxWidth), max(Double(LayoutTokens.sidebarMinWidth), savedWidth))
+        }
         if let navStr = defaults.string(forKey: "wiles_navigationMode"), let mode = NavigationMode(rawValue: navStr) {
             self.navigationMode = mode
         }
         if let viewStr = defaults.string(forKey: "wiles_viewMode"), let mode = ViewMode(rawValue: viewStr) {
             self.viewMode = mode
+        }
+        if let appearanceStr = defaults.string(forKey: "wiles_appAppearance"), let appearance = AppAppearance(rawValue: appearanceStr) {
+            self.appAppearance = appearance
         }
         if let sortStr = defaults.string(forKey: "wiles_sortOption"), let opt = SortOption(rawValue: sortStr) {
             self.sortOption = opt
@@ -470,6 +499,9 @@ public final class AppState {
             if self.currentURL == target {
                 self.items = loaded
                 self.isLoading = false
+                if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
+                    self.selectedURLs = [first.url]
+                }
             }
         }
     }

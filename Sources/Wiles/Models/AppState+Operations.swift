@@ -106,4 +106,36 @@ extension AppState {
             }
         }
     }
+
+    public func selectAllItems() {
+        selectedURLs = Set(items.map { $0.url })
+    }
+
+    public func openSelectedItem() {
+        if let first = selectedURLs.first {
+            navigateTo(first)
+        }
+    }
+
+    public func triggerQuickLookForSelected() {
+        if let first = selectedURLs.first {
+            quickLookURL = first
+        }
+    }
+
+    public func openPropertiesForSelected() {
+        if let first = selectedURLs.first, let item = items.first(where: { $0.url == first }) {
+            propertiesItem = item
+        }
+    }
+
+    public func startEditingPath() {
+        pathText = currentURL.path
+        isEditingPath = true
+    }
+
+    public func toggleSearching() {
+        isSearching.toggle()
+        if !isSearching { searchQuery = "" }
+    }
 }

@@ -244,7 +244,7 @@ extension AppState {
             _ = provider.loadObject(ofClass: URL.self) { droppedURL, _ in
                 guard let droppedURL = droppedURL, droppedURL.standardizedFileURL != targetFolder.standardizedFileURL else { return }
                 Task { @MainActor in
-                    try? FileSystemService.moveItem(at: droppedURL, toFolder: targetFolder)
+                    _ = try? FileSystemService.moveItem(at: droppedURL, toFolder: targetFolder)
                     self.refreshCurrentDirectory()
                 }
             }

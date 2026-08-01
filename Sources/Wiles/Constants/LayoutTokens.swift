@@ -4,8 +4,14 @@ import CoreGraphics
 public enum LayoutTokens {
     // Sidebar
     public static let sidebarMinWidth: CGFloat = 140.0
-    public static let sidebarIdealWidth: CGFloat = 180.0
+    public static let sidebarIdealWidth: CGFloat = 200.0
     public static let sidebarMaxWidth: CGFloat = 260.0
+    public static let sidebarTrafficLightInset: CGFloat = 12.0
+    public static let sidebarDoubleClickZoneHeight: CGFloat = 34.0
+    public static let sidebarWidthSaveDebounceMs: Int = 400
+    public static let scrollbarReservedThickness: CGFloat = 15.0
+    public static let contentTranslucencyDarkenOffset: Double = 0.20
+    public static let thumbnailMinimumIconSize: CGFloat = 48.0
     
     // Content Area
     public static let contentMinWidth: CGFloat = 400.0

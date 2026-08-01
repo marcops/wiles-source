@@ -4,38 +4,47 @@ import AppKit
 
 struct MainContentView: View {
     var appState: AppState
-    
+    @State private var sidebarWidthSaveTask: Task<Void, Never>?
+
     var body: some View {
         @Bindable var appState = appState
-        return VStack(spacing: 0) {
-            HeaderBarView(appState: appState)
-            Divider()
-            VSplitView {
-                HSplitView {
-                    SidebarView(appState: appState)
-                        .frame(minWidth: 140, idealWidth: 150, maxWidth: 260, maxHeight: .infinity)
-                    contentArea
-                        .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
-                    if appState.showPreviewSidebar {
-                        PreviewSidebarView(appState: appState)
-                            .frame(maxHeight: .infinity)
+        return HSplitView {
+            SidebarView(appState: appState)
+                .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: CGFloat(appState.sidebarWidth), maxWidth: LayoutTokens.sidebarMaxWidth, maxHeight: .infinity)
+                .background(sidebarWidthTracker)
+                .background(SplitViewDividerSetter(position: CGFloat(appState.sidebarWidth)))
+                .layoutPriority(0)
+            VStack(spacing: 0) {
+                HeaderBarView(appState: appState)
+                VSplitView {
+                    HSplitView {
+                        contentArea
+                            .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
+                            .background(contentTranslucentBackground)
+                        if appState.showPreviewSidebar {
+                            PreviewSidebarView(appState: appState)
+                                .frame(maxHeight: .infinity)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    if appState.showTerminalDrawer {
+                        IntegratedTerminalView(appState: appState)
+                            .frame(minHeight: 100, idealHeight: 200, maxHeight: .infinity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                
-                if appState.showTerminalDrawer {
-                    IntegratedTerminalView(appState: appState)
-                        .frame(minHeight: 100, idealHeight: 200, maxHeight: .infinity)
+                if appState.showFooter {
+                    FooterBarView(appState: appState)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if appState.showFooter {
-                Divider()
-                FooterBarView(appState: appState)
-            }
+            .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(.all, edges: .top)
+            .background(contentTranslucentBackground)
+            .layoutPriority(1)
         }
         .ignoresSafeArea(.all, edges: .top)
-        .frame(minWidth: 650, maxWidth: .infinity, minHeight: 450, maxHeight: .infinity)
+        .frame(minWidth: LayoutTokens.windowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
         .quickLookPreview($appState.quickLookURL)
         .sheet(item: $appState.renameItem) { item in
             RenameSheetView(item: item, appState: appState)
@@ -63,13 +72,41 @@ struct MainContentView: View {
             ZStack {
                 TranslucentVisualEffectView(material: .underWindowBackground)
                 Color(NSColor.windowBackgroundColor)
-                    .opacity(1.0 - Double(appState.translucentLevel) / 100.0)
+                    .opacity(appState.sidebarOverlayOpacity)
                 keyboardShortcutsHandler
                 GlobalKeyMonitor(appState: appState)
             }
         )
     }
     
+    private var contentTranslucentBackground: some View {
+        ZStack {
+            TranslucentVisualEffectView(material: .contentBackground)
+            Color(NSColor.controlBackgroundColor)
+                .opacity(appState.contentOverlayOpacity)
+        }
+        .ignoresSafeArea()
+    }
+
+    private var sidebarWidthTracker: some View {
+        GeometryReader { geo in
+            Color.clear
+                .onChange(of: geo.size.width) { _, newWidth in
+                    scheduleSidebarWidthSave(newWidth)
+                }
+        }
+    }
+
+    private func scheduleSidebarWidthSave(_ newWidth: CGFloat) {
+        guard newWidth > 0 else { return }
+        sidebarWidthSaveTask?.cancel()
+        sidebarWidthSaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(LayoutTokens.sidebarWidthSaveDebounceMs))
+            guard !Task.isCancelled else { return }
+            appState.sidebarWidth = Double(newWidth)
+        }
+    }
+
     @ViewBuilder
     private var contentArea: some View {
         if appState.viewMode == .grid {
@@ -81,24 +118,15 @@ struct MainContentView: View {
         }
     }
     
+    /// Shortcuts kept invisible on purpose: they're aliases for actions already discoverable
+    /// elsewhere (a menu item, a toolbar button, or a mode-dependent alternate binding),
+    /// so a second menu row for the same command would just be noise.
     private var keyboardShortcutsHandler: some View {
         HStack {
             Button("") { appState.selectedURLs.removeAll() }.keyboardShortcut(.escape, modifiers: []).hidden()
-            Button("") { appState.selectedURLs = Set(appState.items.map { $0.url }) }.keyboardShortcut("a", modifiers: .command).hidden()
-            Button("") { appState.cutSelected() }.keyboardShortcut("x", modifiers: .command).hidden()
-            Button("") { appState.copySelected() }.keyboardShortcut("c", modifiers: .command).hidden()
-            Button("") { appState.pasteToCurrentDirectory() }.keyboardShortcut("v", modifiers: .command).hidden()
-            Button("") { appState.undoLastAction() }.keyboardShortcut("z", modifiers: .command).hidden()
-            Button("") { appState.redoLastAction() }.keyboardShortcut("z", modifiers: [.command, .shift]).hidden()
-            Button("") { openSelectedItem() }.keyboardShortcut("o", modifiers: .command).hidden()
-            Button("") { triggerQuickLook() }.keyboardShortcut(" ", modifiers: []).hidden()
             Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
-            Button("") { openPropertiesForSelected() }.keyboardShortcut("i", modifiers: .command).hidden()
-            Button("") { appState.showDiskUsageSheet = true }.keyboardShortcut("d", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
-            Button("") { focusPathField() }.keyboardShortcut("l", modifiers: .command).hidden()
-            Button("") { appState.showConnectToServerSheet = true }.keyboardShortcut("k", modifiers: .command).hidden()
             Button("") { appState.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
         }
         .onDeleteCommand {
@@ -116,33 +144,56 @@ struct MainContentView: View {
         appState.showHiddenFiles.toggle()
         appState.refreshCurrentDirectory()
     }
-    
-    private func triggerQuickLook() {
-        if let first = appState.selectedURLs.first {
-            appState.quickLookURL = first
-        }
-    }
-    
-    private func openPropertiesForSelected() {
-        if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
-            appState.propertiesItem = item
-        }
-    }
-    
-    private func focusPathField() {
-        appState.pathText = appState.currentURL.path
-        appState.isEditingPath = true
-    }
 
     private func handleDownArrowKey() {
         if appState.navigationMode == .macOS {
-            openSelectedItem()
+            appState.openSelectedItem()
         }
     }
-    
-    private func openSelectedItem() {
-        if let first = appState.selectedURLs.first {
-            appState.navigateTo(first)
+}
+
+struct SplitViewDividerSetter: NSViewRepresentable {
+    let position: CGFloat
+
+    func makeNSView(context: Context) -> ApplierView {
+        let view = ApplierView()
+        view.position = position
+        return view
+    }
+
+    func updateNSView(_ nsView: ApplierView, context: Context) {
+        nsView.position = position
+    }
+
+    class ApplierView: NSView {
+        var position: CGFloat = 0
+        private var hasApplied = false
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            applyIfNeeded()
+        }
+
+        override func layout() {
+            super.layout()
+            applyIfNeeded()
+        }
+
+        private func applyIfNeeded() {
+            guard !hasApplied, let splitView = enclosingSplitView() else { return }
+            hasApplied = true
+            splitView.setPosition(position, ofDividerAt: 0)
+        }
+
+        private func enclosingSplitView() -> NSSplitView? {
+            var view = superview
+            while let current = view {
+                if let splitView = current as? NSSplitView { return splitView }
+                view = current.superview
+            }
+            return nil
         }
     }
 }
@@ -259,16 +310,28 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                     }
                 }
             } else if code == KeyCode.arrowUp {
-                let offset = appState.viewMode == .grid ? -appState.gridColumnCount : -1
-                moveSelection(by: offset, isShift: isShift, appState: appState)
+                if appState.viewMode == .column {
+                    appState.columnViewVerticalDirection = -1
+                    appState.columnViewVerticalTrigger += 1
+                } else {
+                    let offset = appState.viewMode == .grid ? -appState.gridColumnCount : -1
+                    moveSelection(by: offset, isShift: isShift, appState: appState)
+                }
                 return true
             } else if code == KeyCode.arrowDown {
-                let offset = appState.viewMode == .grid ? appState.gridColumnCount : 1
-                moveSelection(by: offset, isShift: isShift, appState: appState)
+                if appState.viewMode == .column {
+                    appState.columnViewVerticalDirection = 1
+                    appState.columnViewVerticalTrigger += 1
+                } else {
+                    let offset = appState.viewMode == .grid ? appState.gridColumnCount : 1
+                    moveSelection(by: offset, isShift: isShift, appState: appState)
+                }
                 return true
             } else if code == KeyCode.arrowLeft {
                 if appState.viewMode == .grid {
                     moveSelection(by: -1, isShift: isShift, appState: appState)
+                } else if appState.viewMode == .column {
+                    appState.columnViewMoveLeftTrigger += 1
                 } else {
                     appState.goUp()
                 }
@@ -276,6 +339,8 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             } else if code == KeyCode.arrowRight {
                 if appState.viewMode == .grid {
                     moveSelection(by: 1, isShift: isShift, appState: appState)
+                } else if appState.viewMode == .column {
+                    appState.columnViewDrillRightTrigger += 1
                 } else {
                     if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }), item.isDirectory {
                         appState.navigateTo(first)

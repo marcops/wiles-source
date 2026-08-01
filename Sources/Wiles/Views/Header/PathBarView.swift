@@ -2,15 +2,24 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct PathSegment: Identifiable, Hashable {
-    let id = UUID()
+    var id: String { url.path }
     let name: String
     let url: URL
     let isFirst: Bool
 }
 
+private struct BreadcrumbContentWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 struct PathBarView: View {
     var appState: AppState
     @FocusState private var isFocused: Bool
+    @State private var isHovering = false
+    @State private var breadcrumbContentWidth: CGFloat = 0
     
     var pathSegments: [PathSegment] {
         var res: [(name: String, url: URL)] = []
@@ -75,33 +84,81 @@ struct PathBarView: View {
     
     private var breadcrumbMode: some View {
         HStack(spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 2) {
-                    ForEach(pathSegments) { item in
-                        breadcrumbPill(for: item)
-                        if item.url != appState.currentURL.standardizedFileURL {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.secondary.opacity(0.6))
+            GeometryReader { outerGeo in
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 2) {
+                            if isHovering {
+                                ForEach(pathSegments) { item in
+                                    breadcrumbPill(for: item)
+                                        .id(item.id)
+                                    if item.url != appState.currentURL.standardizedFileURL {
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(.secondary.opacity(0.6))
+                                    }
+                                }
+                            } else if let last = pathSegments.last {
+                                breadcrumbPill(for: last, isCollapsed: true)
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        .frame(height: 28)
+                    }
+                    .onChange(of: isHovering) { _, hovering in
+                        // fullBreadcrumbWidth comes from the always-rendered hidden measurer
+                        // below, so it's already known by the time this fires — no race with
+                        // the ForEach switching content in this same transition.
+                        guard hovering, breadcrumbContentWidth > outerGeo.size.width,
+                              let lastID = pathSegments.last?.id else { return }
+                        DispatchQueue.main.async {
+                            proxy.scrollTo(lastID, anchor: .trailing)
                         }
                     }
                 }
-                .padding(.horizontal, 4)
-                .frame(height: 28)
             }
-            
+            .background(hiddenFullBreadcrumbMeasurer)
+
             Spacer(minLength: 4)
         }
         .frame(height: 28)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-        .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) { isHovering = hovering }
+        }
         .onTapGesture(count: 2) {
             appState.pathText = appState.currentURL.path
             appState.isEditingPath = true
         }
     }
-    
-    private func breadcrumbPill(for item: PathSegment) -> some View {
+
+    /// Renders the full breadcrumb off-screen at all times, purely to know its natural width
+    /// ahead of the hover transition — decoupled from the visible collapsed/expanded toggle so
+    /// there's no one-frame-late race between measuring and deciding whether to scroll.
+    private var hiddenFullBreadcrumbMeasurer: some View {
+        HStack(spacing: 2) {
+            ForEach(pathSegments) { item in
+                breadcrumbPill(for: item)
+                if item.url != appState.currentURL.standardizedFileURL {
+                    Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .fixedSize()
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: BreadcrumbContentWidthKey.self, value: geo.size.width)
+            }
+        )
+        .opacity(0)
+        .allowsHitTesting(false)
+        .frame(width: 0, height: 0)
+        .clipped()
+        .onPreferenceChange(BreadcrumbContentWidthKey.self) { breadcrumbContentWidth = $0 }
+    }
+
+    private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {
         let isHome = item.url.standardizedFileURL == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
         return Button(action: { appState.navigateTo(item.url) }) {
             HStack(spacing: 4) {
@@ -110,8 +167,8 @@ struct PathBarView: View {
             }
             .padding(.horizontal, 6)
             .frame(height: 22)
-            .background(item.url == appState.currentURL ? Color.accentColor.opacity(0.2) : Color.clear)
-            .foregroundColor(item.url == appState.currentURL ? .primary : .secondary)
+            .background(!isCollapsed && item.url == appState.currentURL ? Color.accentColor.opacity(0.2) : Color.clear)
+            .foregroundColor(isCollapsed || item.url == appState.currentURL ? .primary : .secondary)
             .cornerRadius(4)
         }
         .buttonStyle(.plain)
@@ -126,7 +183,7 @@ struct PathBarView: View {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 guard let url = url else { return }
                 Task { @MainActor in
-                    try? FileSystemService.moveItem(at: url, toFolder: targetFolder)
+                    _ = try? FileSystemService.moveItem(at: url, toFolder: targetFolder)
                     appState.refreshCurrentDirectory()
                 }
             }
