@@ -24,10 +24,11 @@ public enum LayoutTokens {
     public static let columnKindWidth: CGFloat = 90.0
     
     // Grid Cards
-    public static let cardWidthOffset: CGFloat = 46.0
-    public static let cardHeightOffset: CGFloat = 51.0
+    public static let cardWidthOffset: CGFloat = 20.0
+    public static let cardHeightOffset: CGFloat = 25.0
     public static let gridSpacing: CGFloat = 20.0
     public static let gridPadding: CGFloat = 20.0
+    public static let gridIconScaleMultiplier: CGFloat = 1.25
     
     // List Icons
     public static let listIconMinSize: CGFloat = 16.0

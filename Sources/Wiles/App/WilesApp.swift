@@ -142,8 +142,7 @@ struct WilesApp: App {
             Button("Redo") { appState.redoLastAction() }
                 .keyboardShortcut("z", modifiers: [.command, .shift])
         }
-        CommandGroup(after: .pasteboard) {
-            Divider()
+        CommandGroup(replacing: .pasteboard) {
             Button("Cut") { appState.cutSelected() }
                 .keyboardShortcut("x", modifiers: .command)
                 .disabled(appState.selectedURLs.isEmpty)

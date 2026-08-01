@@ -55,7 +55,7 @@ struct FooterBarView: View {
     /// Collapses down to just an icon; hovering near it reveals the slider to adjust icon size.
     private func iconSizeControl(appState: AppState) -> some View {
         @Bindable var appState = appState
-        return HStack(spacing: 6) {
+        return HStack(alignment: .center, spacing: 6) {
             Image(systemName: "photo")
                 .font(.system(size: 11, weight: .regular))
                 .foregroundColor(.secondary)
@@ -74,7 +74,7 @@ struct FooterBarView: View {
         }
         .padding(.horizontal, isIconSizeControlExpanded ? 6 : 4)
         .frame(height: 20)
-        .background(isIconSizeControlExpanded ? Color(NSColor.controlBackgroundColor).opacity(appState.contentOverlayOpacity) : Color.clear)
+        .background(Color.clear)
         .cornerRadius(6)
         .contentShape(Rectangle())
         .onHover { hovering in

@@ -12,7 +12,7 @@ struct CellFrameKey: PreferenceKey {
 struct FileGridView: View {
     var appState: AppState
     
-    private var iconSize: CGFloat { CGFloat(appState.iconSize) }
+    private var iconSize: CGFloat { CGFloat(appState.iconSize) * LayoutTokens.gridIconScaleMultiplier }
     private var cardWidth: CGFloat { iconSize + LayoutTokens.cardWidthOffset }
     private var cardHeight: CGFloat { iconSize + LayoutTokens.cardHeightOffset }
     private var columns: [GridItem] {
