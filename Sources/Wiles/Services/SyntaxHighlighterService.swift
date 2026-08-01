@@ -8,8 +8,7 @@ public struct SyntaxHighlighterService: Sendable {
         let truncatedContent = content.count > maxChars ? String(content.prefix(maxChars)) + "\n... (truncated)" : content
         
         var attributed = AttributedString(truncatedContent)
-        let font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
-        attributed.font = font
+        attributed.font = Font.system(size: 11, design: .monospaced)
         attributed.foregroundColor = NSColor.textColor
         
         let ext = fileExtension.lowercased()
