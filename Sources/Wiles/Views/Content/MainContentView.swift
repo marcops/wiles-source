@@ -81,8 +81,8 @@ struct MainContentView: View {
     
     private var contentTranslucentBackground: some View {
         ZStack {
-            TranslucentVisualEffectView(material: .contentBackground)
-            Color(NSColor.controlBackgroundColor)
+            TranslucentVisualEffectView(material: .sidebar)
+            Color(NSColor.windowBackgroundColor)
                 .opacity(appState.contentOverlayOpacity)
         }
         .ignoresSafeArea()

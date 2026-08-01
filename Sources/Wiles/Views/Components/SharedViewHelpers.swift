@@ -37,33 +37,6 @@ struct SharedBackgroundContextMenu: View {
             appState.selectedURLs = Set(appState.items.map { $0.url })
         }
         Divider()
-        Menu(appState.tr(.sortBy)) {
-            ForEach(SortOption.allCases) { opt in
-                Button(action: {
-                    appState.sortOption = opt
-                    appState.refreshCurrentDirectory()
-                }) {
-                    HStack {
-                        Text(opt.rawValue)
-                        if appState.sortOption == opt {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-        }
-        Menu(appState.tr(.viewMode)) {
-            Button(appState.tr(.gridView)) { appState.viewMode = .grid }
-            Button(appState.tr(.listView)) { appState.viewMode = .list }
-        }
-        Toggle(appState.navigationMode == .gnome ? appState.tr(.showHiddenFilesGnome) : appState.tr(.showHiddenFilesMac), isOn: Binding(
-            get: { appState.showHiddenFiles },
-            set: { appState.showHiddenFiles = $0; appState.refreshCurrentDirectory() }
-        ))
-        Divider()
-        Button("\(appState.tr(.refresh)) (Cmd+R)") {
-            appState.refreshCurrentDirectory()
-        }
         Button(appState.tr(.copyPath)) {
             let pb = NSPasteboard.general
             pb.clearContents()
@@ -168,13 +141,8 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Divider()
-        Menu(appState.tr(.services)) {
-            let services = NSSharingService.sharingServices(forItems: [item.url])
-            ForEach(services, id: \.title) { service in
-                Button(service.title) {
-                    service.perform(withItems: [item.url])
-                }
-            }
+        ShareLink(item: item.url) {
+            Text(appState.tr(.services))
         }
         if appState.showTags {
             Menu(appState.tr(.tags)) {

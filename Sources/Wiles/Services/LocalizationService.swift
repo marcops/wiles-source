@@ -149,6 +149,8 @@ public struct L10n {
         case createdBy
         case version
         case translucentLevel
+        case sidebarTranslucentLevel
+        case contentTranslucentLevel
         case showTags
         case tags
         case red
@@ -957,11 +959,25 @@ public struct L10n {
             "de": "Version"
         ],
         .translucentLevel: [
-            "en": "Translucency Level",
-            "pt": "Nível de Transparência",
-            "es": "Nivel de Transparencia",
-            "fr": "Niveau de Translucidité",
-            "de": "Transparenzgrad"
+            "en": "Transparency",
+            "pt": "Transparência",
+            "es": "Transparencia",
+            "fr": "Translucidité",
+            "de": "Transparenz"
+        ],
+        .sidebarTranslucentLevel: [
+            "en": "Sidebar Translucency",
+            "pt": "Transparência da Lateral",
+            "es": "Transparencia Lateral",
+            "fr": "Translucidité de la Barre Latérale",
+            "de": "Seitenleisten-Transparenz"
+        ],
+        .contentTranslucentLevel: [
+            "en": "Content Translucency",
+            "pt": "Transparência do Conteúdo",
+            "es": "Transparencia del Contenido",
+            "fr": "Translucidité du Contenu",
+            "de": "Inhalts-Transparenz"
         ],
         .showPreviewSidebar: [
             "en": "Show Preview",

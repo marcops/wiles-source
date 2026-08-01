@@ -185,7 +185,6 @@ struct SidebarView: View {
                         items: appState.favoriteURLs.map { sidebarItem(for: $0) },
                         isFavoritesSection: true
                     )
-                    Divider().padding(.horizontal, 12)
                 }
                 
                 if appState.showMacSection {
@@ -195,7 +194,6 @@ struct SidebarView: View {
                         items: macItems,
                         isFavoritesSection: false
                     )
-                    Divider().padding(.horizontal, 12)
                     
                     if appState.showRecents && !recentItems.isEmpty {
                         collapsibleSection(
@@ -204,7 +202,6 @@ struct SidebarView: View {
                             items: recentItems,
                             isFavoritesSection: false
                         )
-                        Divider().padding(.horizontal, 12)
                     }
                 }
                 
@@ -219,7 +216,6 @@ struct SidebarView: View {
                             items: networkShares,
                             isFavoritesSection: false
                         )
-                        Divider().padding(.horizontal, 12)
                     }
                 }
                 
@@ -240,7 +236,6 @@ struct SidebarView: View {
                 }
                 
                 if appState.showTags {
-                    Divider().padding(.horizontal, 12)
                     VStack(alignment: .leading, spacing: 4) {
                         sectionHeader(title: appState.tr(.tags), isExpanded: $appState.isTagsExpanded)
                         if appState.isTagsExpanded {

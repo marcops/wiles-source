@@ -104,17 +104,28 @@ public final class AppState {
     public var showPreviewSidebar: Bool = false {
         didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: "wiles_showPreviewSidebar") }
     }
-    public var translucentLevel: Int = 60 {
-        didSet { UserDefaults.standard.set(translucentLevel, forKey: "wiles_translucentLevel") }
+    public var sidebarTranslucentLevel: Int = 80 {
+        didSet { UserDefaults.standard.set(sidebarTranslucentLevel, forKey: "wiles_sidebarTranslucentLevel") }
+    }
+    public var contentTranslucentLevel: Int = 40 {
+        didSet { UserDefaults.standard.set(contentTranslucentLevel, forKey: "wiles_contentTranslucentLevel") }
+    }
+    public var translucentLevel: Int {
+        get { sidebarTranslucentLevel }
+        set {
+            sidebarTranslucentLevel = newValue
+            contentTranslucentLevel = newValue
+        }
     }
     /// Single source of truth for translucency math — every translucent surface in the app
-    /// (sidebar, content, footer controls, etc.) must read its opacity from here, never
-    /// recompute its own formula, so they all stay in lockstep with one shared level.
+    /// (sidebar, content, footer controls, etc.) reads its opacity from here.
     public var sidebarOverlayOpacity: Double {
-        1.0 - Double(translucentLevel) / 100.0
+        let base = 1.0 - Double(sidebarTranslucentLevel) / 100.0
+        return appAppearance == .light ? base * 0.5 : base
     }
     public var contentOverlayOpacity: Double {
-        min(1.0, sidebarOverlayOpacity + LayoutTokens.contentTranslucencyDarkenOffset)
+        let base = 1.0 - Double(contentTranslucentLevel) / 100.0
+        return appAppearance == .light ? base * 0.5 : base
     }
     public var iconSize: Double = 54.0 {
         didSet { UserDefaults.standard.set(iconSize, forKey: "wiles_iconSize") }
@@ -337,8 +348,11 @@ public final class AppState {
         if defaults.object(forKey: "wiles_showTerminalDrawer") != nil {
             self.showTerminalDrawer = defaults.bool(forKey: "wiles_showTerminalDrawer")
         }
-        if defaults.object(forKey: "wiles_translucentLevel") != nil {
-            self.translucentLevel = defaults.integer(forKey: "wiles_translucentLevel")
+        if defaults.object(forKey: "wiles_sidebarTranslucentLevel") != nil {
+            self.sidebarTranslucentLevel = defaults.integer(forKey: "wiles_sidebarTranslucentLevel")
+        }
+        if defaults.object(forKey: "wiles_contentTranslucentLevel") != nil {
+            self.contentTranslucentLevel = defaults.integer(forKey: "wiles_contentTranslucentLevel")
         }
         if defaults.object(forKey: "wiles_iconSize") != nil {
             let val = defaults.double(forKey: "wiles_iconSize")

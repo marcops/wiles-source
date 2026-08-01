@@ -89,11 +89,23 @@ struct WilesApp: App {
                 ForEach(NavigationMode.allCases) { mode in Text(mode.rawValue).tag(mode) }
             }
             Menu(appState.tr(.translucentLevel)) {
-                ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                    Button(action: { appState.translucentLevel = level }) {
-                        HStack {
-                            Text("\(level)%")
-                            if appState.translucentLevel == level { Image(systemName: "checkmark") }
+                Menu(appState.tr(.sidebarTranslucentLevel)) {
+                    ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
+                        Button(action: { appState.sidebarTranslucentLevel = level }) {
+                            HStack {
+                                Text("\(level)%")
+                                if appState.sidebarTranslucentLevel == level { Image(systemName: "checkmark") }
+                            }
+                        }
+                    }
+                }
+                Menu(appState.tr(.contentTranslucentLevel)) {
+                    ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
+                        Button(action: { appState.contentTranslucentLevel = level }) {
+                            HStack {
+                                Text("\(level)%")
+                                if appState.contentTranslucentLevel == level { Image(systemName: "checkmark") }
+                            }
                         }
                     }
                 }
