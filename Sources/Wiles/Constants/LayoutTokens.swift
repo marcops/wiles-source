@@ -7,7 +7,7 @@ public enum LayoutTokens {
     public static let sidebarIdealWidth: CGFloat = 200.0
     public static let sidebarMaxWidth: CGFloat = 260.0
     public static let sidebarTrafficLightInset: CGFloat = 12.0
-    public static let sidebarDoubleClickZoneHeight: CGFloat = 34.0
+    public static let sidebarDoubleClickZoneHeight: CGFloat = sidebarTrafficLightInset
     public static let sidebarWidthSaveDebounceMs: Int = 400
     public static let scrollbarReservedThickness: CGFloat = 15.0
     public static let contentTranslucencyDarkenOffset: Double = 0.20
