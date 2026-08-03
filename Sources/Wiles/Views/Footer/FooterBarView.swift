@@ -28,6 +28,20 @@ struct FooterBarView: View {
 
             Spacer()
 
+            if appState.isLoading {
+                HStack(spacing: 4) {
+                    ProgressView()
+                        .controlSize(.mini)
+                    Text(appState.tr(.refresh))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.primary.opacity(0.05))
+                .cornerRadius(4)
+            }
+
             if !BackgroundOperationsService.shared.activeTasks.isEmpty {
                 OperationsButtonView()
             }

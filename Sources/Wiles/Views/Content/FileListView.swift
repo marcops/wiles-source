@@ -365,6 +365,8 @@ struct FileListView: View {
             }
         )
         .contentShape(Rectangle())
+        .accessibilityLabel(item.name)
+        .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
         .onTapGesture(count: 2) {
             appState.navigateTo(item.url)
         }
