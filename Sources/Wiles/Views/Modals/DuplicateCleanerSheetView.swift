@@ -175,11 +175,19 @@ public struct DuplicateCleanerSheetView: View {
     private func trashSelected() {
         let urls = Array(selectedURLsToTrash)
         Task { @MainActor in
+            var failureCount = 0
             for u in urls {
-                _ = try? FileSystemService.moveToTrash(url: u)
+                do {
+                    _ = try FileSystemService.moveToTrash(url: u)
+                } catch {
+                    failureCount += 1
+                }
             }
             DirectoryCacheService.shared.invalidate(url: appState.currentURL)
             appState.refreshCurrentDirectory()
+            if failureCount > 0 {
+                appState.showError(WilesError.operationFailed(reason: "\(failureCount) of \(urls.count) items could not be moved to Trash.").localizedDescription)
+            }
         }
     }
 }

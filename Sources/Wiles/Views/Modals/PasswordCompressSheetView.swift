@@ -22,8 +22,12 @@ struct PasswordCompressSheetView: View {
                 Spacer()
                 Button("OK") {
                     if let urls = appState.passwordCompressURLs {
-                        try? ArchiveService.compressToZIP(urls: urls, in: appState.currentURL, password: password)
-                        appState.refreshCurrentDirectory()
+                        do {
+                            try ArchiveService.compressToZIP(urls: urls, in: appState.currentURL, password: password)
+                            appState.refreshCurrentDirectory()
+                        } catch {
+                            appState.showError(error.localizedDescription)
+                        }
                     }
                     dismiss()
                 }

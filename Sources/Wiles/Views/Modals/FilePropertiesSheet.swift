@@ -104,7 +104,11 @@ struct FilePropertiesSheet: View {
                                     permissionsRow(title: appState.tr(.others), read: $permissions.othersRead, write: $permissions.othersWrite, execute: $permissions.othersExecute)
                                     
                                     Button(appState.tr(.applyPermissions)) {
-                                        try? FilePermissionsService.setPermissions(for: item.url, permissions: permissions)
+                                        do {
+                                            try FilePermissionsService.setPermissions(for: item.url, permissions: permissions)
+                                        } catch {
+                                            appState.showError(error.localizedDescription)
+                                        }
                                     }
                                     .buttonStyle(.borderedProminent)
                                     .controlSize(.small)

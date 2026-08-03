@@ -339,8 +339,12 @@ private struct SidebarRowView: View {
                 if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
                     Button(action: {
                         let target = item.url
-                        try? NSWorkspace.shared.unmountAndEjectDevice(at: target)
-                        appState.refreshCurrentDirectory()
+                        do {
+                            try NSWorkspace.shared.unmountAndEjectDevice(at: target)
+                            appState.refreshCurrentDirectory()
+                        } catch {
+                            appState.showError(error.localizedDescription)
+                        }
                     }) {
                         Image(systemName: "eject.fill")
                             .font(.system(size: 11))
@@ -415,8 +419,12 @@ private struct SidebarRowView: View {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 guard let url = url else { return }
                 Task { @MainActor in
-                    _ = try? FileSystemService.moveItem(at: url, toFolder: targetFolder)
-                    appState.refreshCurrentDirectory()
+                    do {
+                        _ = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
+                        appState.refreshCurrentDirectory()
+                    } catch {
+                        appState.showError(error.localizedDescription)
+                    }
                 }
             }
         }
