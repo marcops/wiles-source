@@ -26,7 +26,8 @@ struct NewFolderSheet: View {
             appState.refreshCurrentDirectory()
             dismiss()
         } catch {
-            print("Failed to create folder: \(error)")
+            appState.showError(error.localizedDescription)
+            dismiss()
         }
     }
 }

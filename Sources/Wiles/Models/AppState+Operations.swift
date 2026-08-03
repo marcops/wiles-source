@@ -48,7 +48,7 @@ extension AppState {
                         UndoRedoService.shared.recordAction(.create(url: destURL))
                     }
                 } catch {
-                    print("Paste error for \(url): \(error)")
+                    self.showError(error.localizedDescription)
                 }
             }
             refreshCurrentDirectory()
@@ -60,8 +60,11 @@ extension AppState {
         let urls = Array(selectedURLs)
         Task {
             for url in urls {
-                if let trashed = try? FileSystemService.moveToTrash(url: url) {
+                do {
+                    let trashed = try FileSystemService.moveToTrash(url: url)
                     UndoRedoService.shared.recordAction(.trash(originalURL: url, trashedURL: trashed))
+                } catch {
+                    self.showError(error.localizedDescription)
                 }
             }
             selectedURLs.removeAll()
@@ -77,7 +80,7 @@ extension AppState {
             selectedURLs.removeAll()
             refreshCurrentDirectory()
         } catch {
-            print("Error deleting permanently: \(error)")
+            showError(error.localizedDescription)
         }
     }
     
@@ -85,10 +88,16 @@ extension AppState {
         guard !selectedURLs.isEmpty else { return }
         let urls = Array(selectedURLs)
         Task.detached(priority: .utility) {
-            try? await FileShredderService.shredFiles(urls: urls)
-            await MainActor.run {
-                self.selectedURLs.removeAll()
-                self.refreshCurrentDirectory()
+            do {
+                try await FileShredderService.shredFiles(urls: urls)
+                await MainActor.run { [weak self] in
+                    self?.selectedURLs.removeAll()
+                    self?.refreshCurrentDirectory()
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.showError(error.localizedDescription)
+                }
             }
         }
     }

@@ -8,8 +8,8 @@ struct AutoOrganizationSheet: View {
     @State private var rules: [AutoOrganizationRule] = []
     
     // New rule state
-    @State private var sourceURL: URL? = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
-    @State private var destinationURL: URL? = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents")
+    @State private var sourceURL: URL? = URL.userHome.appendingPathComponent("Downloads")
+    @State private var destinationURL: URL? = URL.userHome.appendingPathComponent("Documents")
     @State private var conditionType: RuleConditionType = .extensionEquals
     @State private var conditionValue: String = "pdf"
     

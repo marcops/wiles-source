@@ -114,6 +114,18 @@ struct SharedFileItemContextMenu: View {
                 let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
                 OpenWithService.chooseOtherApplication(toOpen: targetURLs)
             }
+            if !availableApps.isEmpty && !item.fileExtension.isEmpty {
+                Divider()
+                Menu(appState.tr(.changeAllDefaultApp) + "...") {
+                    ForEach(availableApps) { app in
+                        Button(action: {
+                            OpenWithService.setDefaultApplication(for: item.fileExtension, applicationURL: app.url)
+                        }) {
+                            Text(app.name)
+                        }
+                    }
+                }
+            }
         }
         if item.isUbiquitousNotDownloaded {
             Button(appState.tr(.downloadFromiCloud)) {
@@ -176,8 +188,27 @@ struct SharedFileItemContextMenu: View {
                 }
             }
         }
+        let pdfMergeTargets = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
+        let canMergePDF = pdfMergeTargets.allSatisfy { url in
+            let ext = url.pathExtension.lowercased()
+            return ext == "pdf" || ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"].contains(ext)
+        }
+        if canMergePDF && pdfMergeTargets.count >= 1 {
+            Button(appState.tr(.mergeIntoPDF)) {
+                do {
+                    _ = try PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.currentURL)
+                } catch {
+                    appState.showError(error.localizedDescription)
+                }
+                appState.refreshCurrentDirectory()
+            }
+        }
         Divider()
         if ArchiveService.isArchive(url: item.url) {
+            Button(appState.tr(.inspectArchive)) {
+                appState.inspectArchiveURL = item.url
+                appState.showArchiveInspectionSheet = true
+            }
             Button(appState.tr(.extractArchive)) {
                 appState.extractArchive(url: item.url)
             }
@@ -232,15 +263,23 @@ struct SharedFileItemContextMenu: View {
                 let tagKeys: [String: L10n.Key] = [
                     "Red": .red, "Orange": .orange, "Yellow": .yellow, "Green": .green, "Blue": .blue, "Purple": .purple, "Gray": .gray
                 ]
+                let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
                 ForEach(predefinedTags, id: \.self) { tag in
                     Button(action: {
-                        var newTags = item.tags
-                        if newTags.contains(tag) {
-                            newTags.removeAll { $0 == tag }
-                        } else {
-                            newTags.append(tag)
+                        for url in targetURLs {
+                            let currentItem = appState.items.first(where: { $0.url == url }) ?? FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
+                            var newTags = currentItem.tags
+                            if newTags.contains(tag) {
+                                newTags.removeAll { $0 == tag }
+                            } else {
+                                newTags.append(tag)
+                            }
+                            do {
+                                try FileSystemService.setTags(for: url, tags: newTags)
+                            } catch {
+                                appState.showError(error.localizedDescription)
+                            }
                         }
-                        try? FileSystemService.setTags(for: item.url, tags: newTags)
                         appState.refreshCurrentDirectory()
                     }) {
                         HStack {
@@ -255,10 +294,16 @@ struct SharedFileItemContextMenu: View {
                         }
                     }
                 }
-                if !item.tags.isEmpty {
+                if !item.tags.isEmpty || targetURLs.count > 1 {
                     Divider()
                     Button(appState.tr(.clearAllTags)) {
-                        try? FileSystemService.setTags(for: item.url, tags: [])
+                        for url in targetURLs {
+                            do {
+                                try FileSystemService.setTags(for: url, tags: [])
+                            } catch {
+                                appState.showError(error.localizedDescription)
+                            }
+                        }
                         appState.refreshCurrentDirectory()
                     }
                 }

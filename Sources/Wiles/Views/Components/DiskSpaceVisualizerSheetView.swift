@@ -137,7 +137,7 @@ struct DiskSpaceVisualizerSheetView: View {
         .padding(.vertical, 3)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
-            if item.isDirectory && FileManager.default.fileExists(atPath: item.url.path) {
+            if item.isDirectory {
                 appState.navigateTo(item.url)
                 dismiss()
             }

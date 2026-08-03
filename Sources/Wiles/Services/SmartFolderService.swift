@@ -70,4 +70,29 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         metadataQuery.start()
         query = metadataQuery
     }
+
+    public func executeContentQuery(queryText: String, in folderURL: URL, completion: @escaping @Sendable ([FileItem]) -> Void) {
+        query?.stop()
+        let metadataQuery = NSMetadataQuery()
+        let cleanQuery = queryText.replacingOccurrences(of: "'", with: "")
+        let predicateStr = "(kMDItemTextContent == '*\(cleanQuery)*'c || kMDItemFSName == '*\(cleanQuery)*'c)"
+        metadataQuery.predicate = NSPredicate(format: predicateStr)
+        metadataQuery.searchScopes = [folderURL]
+        
+        NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak metadataQuery] _ in
+            metadataQuery?.stop()
+            guard let results = metadataQuery?.results as? [NSMetadataItem] else { completion([]); return }
+            var items: [FileItem] = []
+            for res in results {
+                if let path = res.value(forAttribute: NSMetadataItemPathKey) as? String {
+                    let url = URL(fileURLWithPath: path)
+                    let icon = NSWorkspace.shared.icon(forFile: path)
+                    items.append(FileItem(url: url, icon: icon))
+                }
+            }
+            completion(items)
+        }
+        metadataQuery.start()
+        query = metadataQuery
+    }
 }

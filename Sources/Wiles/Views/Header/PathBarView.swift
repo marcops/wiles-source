@@ -159,7 +159,7 @@ struct PathBarView: View {
     }
 
     private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {
-        let isHome = item.url.standardizedFileURL == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+        let isHome = item.url.standardizedFileURL == URL.userHome.standardizedFileURL
         return Button(action: { appState.navigateTo(item.url) }) {
             HStack(spacing: 4) {
                 if isHome { Image(systemName: "house.fill").font(.system(size: 11)) }

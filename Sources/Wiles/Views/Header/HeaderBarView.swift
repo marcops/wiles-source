@@ -107,6 +107,11 @@ struct HeaderBarView: View {
     private var searchFilterMenu: some View {
         @Bindable var appState = appState
         return Menu {
+            Picker(appState.tr(.searchScope), selection: $appState.searchScope) {
+                Text(appState.tr(.searchByName)).tag(SearchScope.name)
+                Text(appState.tr(.searchByContent)).tag(SearchScope.content)
+            }
+            Divider()
             Button("Modified Today (date:today)") {
                 appState.searchQuery = "date:today"
                 appState.refreshCurrentDirectory()

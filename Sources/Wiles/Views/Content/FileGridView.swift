@@ -11,6 +11,7 @@ struct CellFrameKey: PreferenceKey {
 
 struct FileGridView: View {
     var appState: AppState
+    @State private var isHovered = false
     
     private var iconSize: CGFloat { CGFloat(appState.iconSize) * LayoutTokens.gridIconScaleMultiplier }
     private var cardWidth: CGFloat { iconSize + LayoutTokens.cardWidthOffset }
@@ -189,12 +190,14 @@ struct FileGridView: View {
             }
         }
         .frame(width: cardWidth, height: cardHeight).padding(6)
-        .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear).cornerRadius(10)
+        .background(isSel ? Color.accentColor.opacity(0.18) : (isHovered ? Color.primary.opacity(0.05) : Color.clear)).cornerRadius(10)
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(isSel ? Color.accentColor : Color.clear, lineWidth: 2)
+                .stroke(isSel ? Color.accentColor : (isHovered ? Color.primary.opacity(0.15) : Color.clear), lineWidth: isSel ? 2 : 1)
         )
         .opacity(isCut ? 0.5 : 1.0)
+        .animation(MotionTokens.quickEase, value: isHovered)
+        .onHover { isHovered = $0 }
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: CellFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])

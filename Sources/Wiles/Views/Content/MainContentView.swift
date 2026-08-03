@@ -75,6 +75,11 @@ struct MainContentView: View {
         .sheet(isPresented: $appState.showPasswordCompressSheet) {
             PasswordCompressSheetView(appState: appState)
         }
+        .sheet(isPresented: $appState.showArchiveInspectionSheet) {
+            if let url = appState.inspectArchiveURL {
+                ArchiveInspectionSheetView(archiveURL: url, appState: appState)
+            }
+        }
         .alert(appState.tr(.emptyTrash) + "?", isPresented: $appState.showEmptyTrashAlert) {
             Button(appState.tr(.emptyTrash), role: .destructive) {
                 appState.performEmptyTrash()
@@ -82,6 +87,11 @@ struct MainContentView: View {
             Button(appState.tr(.cancel), role: .cancel) {}
         } message: {
             Text(appState.tr(.emptyTrashConfirm))
+        }
+        .alert("Error", isPresented: $appState.showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(appState.errorMessage ?? "An error occurred.")
         }
         .background(
             ZStack {

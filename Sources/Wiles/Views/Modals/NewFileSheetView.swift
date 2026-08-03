@@ -34,7 +34,7 @@ public struct NewFileSheetView: View {
             appState.refreshCurrentDirectory()
             appState.selectedURLs = [createdURL]
         } catch {
-            print("Failed to create file: \(error)")
+            appState.showError(error.localizedDescription)
         }
         appState.showNewFileSheet = false
     }

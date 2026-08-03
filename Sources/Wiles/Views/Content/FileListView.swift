@@ -17,6 +17,7 @@ struct FileListView: View {
     @State private var dragStartPoint: CGPoint? = nil
     @State private var lastWindowWidth: CGFloat? = nil
     @State private var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
+    @State private var hoveredURL: URL? = nil
 
     var body: some View {
         let visibleItems = Array(appState.items.prefix(visibleLimit))
@@ -321,6 +322,7 @@ struct FileListView: View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
 
+        let isHovered = hoveredURL == item.url
         return HStack(spacing: 0) {
             // Name (always visible)
             HStack(alignment: .center, spacing: 8) {
@@ -362,9 +364,13 @@ struct FileListView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, appState.isCompactMode ? 2 : max(4, listIconSize * 0.25))
-        .background(isSel ? Color.accentColor : Color.clear)
+        .background(isSel ? Color.accentColor : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
         .cornerRadius(6)
         .opacity(isCut ? 0.5 : 1.0)
+        .animation(MotionTokens.quickEase, value: isHovered)
+        .onHover { isHovering in
+            hoveredURL = isHovering ? item.url : nil
+        }
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: ListCellFrameKey.self, value: [item.url: geo.frame(in: .named("listContainer"))])

@@ -6,11 +6,10 @@ struct SidebarView: View {
     @State private var rightClickedRowKey: String?
 
     var devices: [SidebarItem] {
-        let home = FileManager.default.homeDirectoryForCurrentUser
+        let home = URL.userHome
         let cloudDocs = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
         let airDrop = URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app")
-        let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
-            ?? home.appendingPathComponent(".Trash")
+        let trashURL = URL.userTrash
             
         return [
             SidebarItem(name: appState.tr(.applications), iconName: "square.grid.3x3.fill", url: URL(fileURLWithPath: "/Applications")),
@@ -211,7 +210,7 @@ struct SidebarView: View {
     }
     
     private func sidebarItem(for url: URL) -> SidebarItem {
-        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+        let home = URL.userHome.standardizedFileURL
         let std = url.standardizedFileURL
         let path = std.path
         
@@ -252,7 +251,9 @@ struct SidebarView: View {
             appState.searchQuery = folder.searchQuery
             appState.isSearching = true
             SmartFolderService.shared.executeQuery(for: folder) { items in
-                appState.items = items
+                Task { @MainActor in
+                    appState.items = items
+                }
             }
         }) {
             HStack(spacing: 8) {
@@ -301,10 +302,12 @@ private struct SidebarRowView: View {
 
     @State private var isDragTargeted = false
 
+    @State private var isHovered = false
+    
     var body: some View {
         let isCurrentFolder = appState.currentURL.standardizedFileURL == item.url.standardizedFileURL
         let isSel = isRightClicked || (isCurrentFolder && !isAnotherRowRightClicked)
-        let isTrash = item.url.standardizedFileURL == FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first?.standardizedFileURL
+        let isTrash = item.url.standardizedFileURL == URL.userTrash.standardizedFileURL
         return Button(action: {
             onLeftClick()
             appState.navigateTo(item.url)
@@ -348,13 +351,19 @@ private struct SidebarRowView: View {
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(isDragTargeted ? Color.accentColor.opacity(0.25) : (isSel ? Color.accentColor.opacity(0.15) : Color.clear))
+            .background(
+                isDragTargeted ? Color.accentColor.opacity(0.25) :
+                (isSel ? Color.accentColor.opacity(0.18) :
+                (isHovered ? Color.primary.opacity(0.06) : Color.clear))
+            )
             .cornerRadius(8)
             .scaleEffect(isDragTargeted ? 1.02 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragTargeted)
+            .animation(MotionTokens.snappySpring, value: isDragTargeted)
+            .animation(MotionTokens.quickEase, value: isHovered)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain).padding(.horizontal, 8)
+        .onHover { isHovered = $0 }
         .overlay(
             RightClickDetector { onRightClick() }
         )

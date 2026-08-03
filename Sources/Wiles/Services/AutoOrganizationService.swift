@@ -114,9 +114,8 @@ public class AutoOrganizationService {
                         do {
                             _ = try FileSystemService.moveItem(at: file, toFolder: rule.destinationURL)
                             UndoRedoService.shared.recordAction(.move(sourceURL: file, destinationURL: rule.destinationURL.appendingPathComponent(file.lastPathComponent)))
-                            print("Auto-Organized: \(file.lastPathComponent) to \(rule.destinationURL.path)")
                         } catch {
-                            print("Failed to auto-organize \(file.path): \(error)")
+                            // Suppress silent failures during background file monitoring
                         }
                     }
                     break // Stop checking other rules for this file if one matched

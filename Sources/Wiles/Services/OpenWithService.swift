@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import UniformTypeIdentifiers
 
 public struct ApplicationApp: Identifiable, Sendable {
     public let id: String
@@ -20,6 +21,7 @@ public protocol OpenWithServiceProtocol: Sendable {
     static func availableApplications(for url: URL) -> [ApplicationApp]
     static func open(urls: [URL], with applicationURL: URL)
     static func chooseOtherApplication(toOpen urls: [URL])
+    static func setDefaultApplication(for fileExtension: String, applicationURL: URL)
 }
 
 public final class OpenWithService: OpenWithServiceProtocol, Sendable {
@@ -67,5 +69,11 @@ public final class OpenWithService: OpenWithServiceProtocol, Sendable {
                 open(urls: urls, with: appURL)
             }
         }
+    }
+
+    @MainActor
+    public static func setDefaultApplication(for fileExtension: String, applicationURL: URL) {
+        guard let uti = UTType(tag: fileExtension, tagClass: .filenameExtension, conformingTo: nil) else { return }
+        NSWorkspace.shared.setDefaultApplication(at: applicationURL, toOpen: uti) { _ in }
     }
 }

@@ -1,6 +1,11 @@
 import Foundation
 import AppKit
 
+extension URL {
+    public static let userHome: URL = FileManager.default.homeDirectoryForCurrentUser
+    public static let userTrash: URL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: "/Users/\(NSUserName())/.Trash")
+}
+
 public struct FileSystemService: Sendable {
     public static func loadDirectoryContents(
         at url: URL, showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool

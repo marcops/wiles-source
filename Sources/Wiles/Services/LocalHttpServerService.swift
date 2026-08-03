@@ -44,7 +44,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             
             listener?.start(queue: queue)
         } catch {
-            print("Failed to start HTTP server: \(error)")
+            stop()
         }
     }
     

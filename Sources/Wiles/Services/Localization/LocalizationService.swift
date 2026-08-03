@@ -331,6 +331,18 @@ public struct L10n {
         case enterPassword
         case password
         case others
+        case changeAllDefaultApp
+        case recentServers
+        case mergeIntoPDF
+        case camera
+        case lens
+        case aperture
+        case focalLength
+        case dateTaken
+        case searchScope
+        case searchByName
+        case searchByContent
+        case inspectArchive
         case permissionDeniedNotice
         case emptyFolder
         case clearSearch

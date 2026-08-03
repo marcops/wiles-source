@@ -10,9 +10,11 @@ struct FilePropertiesSheet: View {
     
     @State private var isGeneralExpanded = true
     @State private var isMoreInfoExpanded = true
+    @State private var isExifExpanded = true
     @State private var isPermissionsExpanded = true
     @State private var permissions = POSIXPermissions(posixPermissions: 0o644)
     @State private var hasPermissions = false
+    @State private var exifData: ExifMetadata? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -61,6 +63,24 @@ struct FilePropertiesSheet: View {
                             .padding(.top, 8)
                         } label: {
                             Text(appState.tr(.moreInfo)).font(.headline)
+                        }
+                    }
+                    
+                    if let exif = exifData {
+                        Divider()
+                        DisclosureGroup(isExpanded: $isExifExpanded) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                if let model = exif.cameraModel { propertyRow(label: appState.tr(.camera), value: model) }
+                                if let lens = exif.lensModel { propertyRow(label: appState.tr(.lens), value: lens) }
+                                if let iso = exif.iso { propertyRow(label: "ISO", value: iso) }
+                                if let ap = exif.aperture { propertyRow(label: appState.tr(.aperture), value: ap) }
+                                if let fl = exif.focalLength { propertyRow(label: appState.tr(.focalLength), value: fl) }
+                                if let dt = exif.dateTimeOriginal { propertyRow(label: appState.tr(.dateTaken), value: dt) }
+                                if let gps = exif.gpsCoordinates { propertyRow(label: "GPS", value: gps) }
+                            }
+                            .padding(.top, 8)
+                        } label: {
+                            Text("EXIF").font(.headline)
                         }
                     }
                     
@@ -113,6 +133,7 @@ struct FilePropertiesSheet: View {
         .frame(width: 400, height: 500)
         .task {
             detailedProps = await FileMetadataService.shared.fetchProperties(for: item.url)
+            exifData = ExifMetadataService.extractExif(from: item.url)
             if let p = FilePermissionsService.getPermissions(for: item.url) {
                 permissions = p
                 hasPermissions = true

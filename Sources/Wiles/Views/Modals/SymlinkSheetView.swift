@@ -91,7 +91,8 @@ public struct SymlinkSheetView: View {
             appState.selectedURLs = [createdURL]
             dismiss()
         } catch {
-            print("Failed to create symlink: \(error)")
+            appState.showError(error.localizedDescription)
+            dismiss()
         }
     }
 }

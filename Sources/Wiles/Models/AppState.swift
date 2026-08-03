@@ -1,11 +1,21 @@
 import SwiftUI
 import Observation
 
+public enum SearchScope: String, CaseIterable, Identifiable, Codable, Sendable {
+    case name
+    case content
+    
+    public var id: String { rawValue }
+}
+
 @Observable
 @MainActor
 public final class AppState {
     public var currentURL: URL {
-        didSet { pathText = currentURL.path }
+        didSet {
+            pathText = currentURL.path
+            UserDefaults.standard.set(currentURL.path, forKey: "wiles_lastOpenedFolder")
+        }
     }
     
     public var historyBack: [URL] = []
@@ -106,10 +116,22 @@ public final class AppState {
     public var isSmartFoldersExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isSmartFoldersExpanded, forKey: "wiles_isSmartFoldersExpanded") }
     }
+    public var searchScope: SearchScope = .name {
+        didSet { UserDefaults.standard.set(searchScope.rawValue, forKey: "wiles_searchScope") }
+    }
     public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
     public var showSaveSmartFolderSheet: Bool = false
     public var showPasswordCompressSheet: Bool = false
     public var passwordCompressURLs: [URL]? = nil
+    public var inspectArchiveURL: URL? = nil
+    public var showArchiveInspectionSheet: Bool = false
+    public var errorMessage: String? = nil
+    public var showErrorAlert: Bool = false
+
+    public func showError(_ message: String) {
+        self.errorMessage = message
+        self.showErrorAlert = true
+    }
 
     public func addSmartFolder(_ folder: SmartFolder) {
         smartFolders.append(folder)
@@ -285,7 +307,9 @@ public final class AppState {
                     self.selectedURLs = [newURL]
                 }
             } catch {
-                print("Error converting image \(item.url.path): \(error)")
+                await MainActor.run {
+                    self.showError(error.localizedDescription)
+                }
             }
         }
     }
@@ -299,7 +323,7 @@ public final class AppState {
             self.refreshCurrentDirectory()
             self.selectedURLs = [newURL]
         } catch {
-            print("Error renaming item \(item.url.path): \(error)")
+            self.showError(error.localizedDescription)
         }
     }
     
@@ -309,16 +333,22 @@ public final class AppState {
             self.refreshCurrentDirectory()
             self.selectedURLs = Set(newURLs)
         } catch {
-            print("Error in batch rename: \(error)")
+            self.showError(error.localizedDescription)
         }
     }
     
     public init() {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        self.currentURL = home
-        self.pathText = home.path
-        
         let defaults = UserDefaults.standard
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        if let lastFolder = defaults.string(forKey: "wiles_lastOpenedFolder"),
+           FileManager.default.fileExists(atPath: lastFolder) {
+            let lastURL = URL(fileURLWithPath: lastFolder)
+            self.currentURL = lastURL
+            self.pathText = lastURL.path
+        } else {
+            self.currentURL = home
+            self.pathText = home.path
+        }
         if let modeStr = defaults.string(forKey: "wiles_sidebarMode"), let mode = SidebarMode(rawValue: modeStr) {
             self.sidebarMode = mode
         }

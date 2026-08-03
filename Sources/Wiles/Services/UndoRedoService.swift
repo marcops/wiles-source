@@ -65,7 +65,6 @@ public final class UndoRedoService {
                 return try FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
             }
         } catch {
-            print("Undo execution failed: \(error)")
             return nil
         }
     }
@@ -86,7 +85,6 @@ public final class UndoRedoService {
                 return trashedURL.deletingLastPathComponent()
             }
         } catch {
-            print("Redo execution failed: \(error)")
             return nil
         }
     }
