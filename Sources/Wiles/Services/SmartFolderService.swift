@@ -54,9 +54,10 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
             metadataQuery.searchScopes = [NSMetadataQueryUserHomeScope]
         }
         
-        NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak metadataQuery] _ in
-            metadataQuery?.stop()
-            guard let results = metadataQuery?.results as? [NSMetadataItem] else { completion([]); return }
+        NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { notification in
+            guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
+            query.stop()
+            guard let results = query.results as? [NSMetadataItem] else { completion([]); return }
             var items: [FileItem] = []
             for res in results {
                 if let path = res.value(forAttribute: NSMetadataItemPathKey) as? String {
@@ -79,9 +80,10 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         metadataQuery.predicate = NSPredicate(format: predicateStr)
         metadataQuery.searchScopes = [folderURL]
         
-        NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak metadataQuery] _ in
-            metadataQuery?.stop()
-            guard let results = metadataQuery?.results as? [NSMetadataItem] else { completion([]); return }
+        NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { notification in
+            guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
+            query.stop()
+            guard let results = query.results as? [NSMetadataItem] else { completion([]); return }
             var items: [FileItem] = []
             for res in results {
                 if let path = res.value(forAttribute: NSMetadataItemPathKey) as? String {
