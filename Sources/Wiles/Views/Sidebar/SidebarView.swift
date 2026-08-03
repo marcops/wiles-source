@@ -5,27 +5,19 @@ struct SidebarView: View {
     var appState: AppState
     @State private var rightClickedRowKey: String?
 
-    var macItems: [SidebarItem] {
+    var devices: [SidebarItem] {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let cloudDocs = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
         let airDrop = URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app")
-        
-        var items = [
-            SidebarItem(name: appState.tr(.applications), iconName: "square.grid.3x3.fill", url: URL(fileURLWithPath: "/Applications")),
-            SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: airDrop)
-        ]
-        
-        if FileManager.default.fileExists(atPath: cloudDocs.path) {
-            items.append(SidebarItem(name: appState.tr(.iCloudDrive), iconName: "icloud.fill", url: cloudDocs))
-        }
-        
-        items.append(SidebarItem(name: "Macintosh HD", iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/")))
-        return items
-    }
-    
-    var devices: [SidebarItem] {
+        let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
+            ?? home.appendingPathComponent(".Trash")
+            
         return [
-            SidebarItem(name: "Macintosh HD", iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/"))
+            SidebarItem(name: appState.tr(.applications), iconName: "square.grid.3x3.fill", url: URL(fileURLWithPath: "/Applications")),
+            SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: airDrop),
+            SidebarItem(name: appState.tr(.iCloudDrive), iconName: "icloud.fill", url: cloudDocs),
+            SidebarItem(name: "Macintosh HD", iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/")),
+            SidebarItem(name: appState.tr(.trash), iconName: "trash.fill", url: trashURL)
         ]
     }
     
@@ -68,15 +60,6 @@ struct SidebarView: View {
                     )
                 }
                 
-                if appState.showMacSection {
-                    collapsibleSection(
-                        title: appState.tr(.mac),
-                        isExpanded: $appState.isMacExpanded,
-                        items: macItems,
-                        isFavoritesSection: false
-                    )
-                }
-                
                 if appState.showNetworkAndCloud {
                     let items: [SidebarItem] = {
                         let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
@@ -103,8 +86,10 @@ struct SidebarView: View {
                     )
                 } else if appState.sidebarMode == .tree {
                     VStack(alignment: .leading, spacing: 4) {
-                        sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.isTreeExpanded)
-                        if appState.isTreeExpanded {
+                        if appState.showSidebarSectionTitles {
+                            sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.isTreeExpanded)
+                        }
+                        if !appState.showSidebarSectionTitles || appState.isTreeExpanded {
                             DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
                         }
                     }
@@ -112,8 +97,10 @@ struct SidebarView: View {
                 
                 if appState.showTags {
                     VStack(alignment: .leading, spacing: 4) {
-                        sectionHeader(title: appState.tr(.tags), isExpanded: $appState.isTagsExpanded)
-                        if appState.isTagsExpanded {
+                        if appState.showSidebarSectionTitles {
+                            sectionHeader(title: appState.tr(.tags), isExpanded: $appState.isTagsExpanded)
+                        }
+                        if !appState.showSidebarSectionTitles || appState.isTagsExpanded {
                             tagRow(tag: "Red", colorKey: .red)
                             tagRow(tag: "Orange", colorKey: .orange)
                             tagRow(tag: "Yellow", colorKey: .yellow)
@@ -121,6 +108,19 @@ struct SidebarView: View {
                             tagRow(tag: "Blue", colorKey: .blue)
                             tagRow(tag: "Purple", colorKey: .purple)
                             tagRow(tag: "Gray", colorKey: .gray)
+                        }
+                    }
+                }
+
+                if !appState.smartFolders.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if appState.showSidebarSectionTitles {
+                            sectionHeader(title: appState.tr(.smartFolders), isExpanded: $appState.isSmartFoldersExpanded)
+                        }
+                        if !appState.showSidebarSectionTitles || appState.isSmartFoldersExpanded {
+                            ForEach(appState.smartFolders) { folder in
+                                smartFolderRow(folder: folder)
+                            }
                         }
                     }
                 }
@@ -199,8 +199,10 @@ struct SidebarView: View {
     
     private func collapsibleSection(title: String, isExpanded: Binding<Bool>, items: [SidebarItem], isFavoritesSection: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            sectionHeader(title: title, isExpanded: isExpanded)
-            if isExpanded.wrappedValue {
+            if appState.showSidebarSectionTitles {
+                sectionHeader(title: title, isExpanded: isExpanded)
+            }
+            if !appState.showSidebarSectionTitles || isExpanded.wrappedValue {
                 ForEach(items) { item in
                     sidebarRow(for: item, sectionKey: title, isFavoritesSection: isFavoritesSection)
                 }
@@ -216,7 +218,9 @@ struct SidebarView: View {
         let icon: String
         let name: String
         
-        if path == home.path {
+        if url == AppState.recentsVirtualURL || std.absoluteString == AppState.recentsVirtualURL.absoluteString {
+            name = appState.tr(.recents); icon = "clock.fill"
+        } else if path == home.path {
             name = appState.tr(.home); icon = "house.fill"
         } else if path == home.appendingPathComponent("Desktop").path {
             name = appState.tr(.desktop); icon = "desktopcomputer"
@@ -234,11 +238,42 @@ struct SidebarView: View {
             name = appState.tr(.movies); icon = "film.fill"
         } else if path == home.appendingPathComponent(".Trash").path {
             name = appState.tr(.trash); icon = "trash.fill"
+        } else if path == "/" {
+            name = "Macintosh HD"; icon = "internaldrive.fill"
         } else {
-            name = std.lastPathComponent
+            name = std.lastPathComponent.isEmpty ? "/" : std.lastPathComponent
             icon = "folder.fill"
         }
         return SidebarItem(name: name, iconName: icon, url: std)
+    }
+    
+    private func smartFolderRow(folder: SmartFolder) -> some View {
+        Button(action: {
+            appState.searchQuery = folder.searchQuery
+            appState.isSearching = true
+            SmartFolderService.shared.executeQuery(for: folder) { items in
+                appState.items = items
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: folder.icon)
+                    .foregroundColor(.accentColor)
+                    .frame(width: 16, height: 16)
+                Text(folder.name)
+                    .font(.system(size: 13))
+                    .lineLimit(1)
+                Spacer()
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(appState.tr(.moveToTrash), role: .destructive) {
+                appState.removeSmartFolder(folder)
+            }
+        }
     }
     
     private func sidebarRow(for item: SidebarItem, sectionKey: String, isFavoritesSection: Bool = false) -> some View {
@@ -329,10 +364,19 @@ private struct SidebarRowView: View {
         }
         .contextMenu {
             Button(appState.tr(.open)) { appState.navigateTo(item.url) }
-            Button(appState.tr(.copyPath)) {
-                let pb = NSPasteboard.general
-                pb.clearContents()
-                pb.setString(item.url.path, forType: .string)
+            Menu(appState.tr(.copyPath)) {
+                Button(appState.tr(.copyPathAbsolute)) {
+                    CopyPathService.copy(urls: [item.url], variant: .absolute)
+                }
+                Button(appState.tr(.copyPathRelative)) {
+                    CopyPathService.copy(urls: [item.url], variant: .relative, relativeTo: appState.currentURL)
+                }
+                Button(appState.tr(.copyPathURL)) {
+                    CopyPathService.copy(urls: [item.url], variant: .fileURL)
+                }
+                Button(appState.tr(.copyPathTerminal)) {
+                    CopyPathService.copy(urls: [item.url], variant: .terminalEscaped)
+                }
             }
             Divider()
             if isFavoritesSection || appState.isFavorite(item.url) {

@@ -182,9 +182,9 @@ struct WilesApp: App {
             Divider()
             Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)
             Toggle(appState.tr(.showPlaces), isOn: $appState.showPlaces)
-            Toggle(appState.tr(.showMacSection), isOn: $appState.showMacSection)
             Toggle(appState.tr(.showRecents), isOn: $appState.showRecents)
             Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.showNetworkAndCloud)
+            Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.showSidebarSectionTitles)
             Divider()
             Picker(appState.tr(.viewMode), selection: $appState.viewMode) {
                 Text(appState.tr(.gridView)).tag(ViewMode.grid)
@@ -228,10 +228,19 @@ struct WilesApp: App {
             .keyboardShortcut("d", modifiers: [.command, .shift])
         Button(appState.tr(.autoOrganization) + "...") { appState.showAutoOrganizationSheet = true }
         Divider()
-        Button(appState.tr(.copyPath)) {
-            let pb = NSPasteboard.general
-            pb.clearContents()
-            pb.setString(appState.currentURL.path, forType: .string)
+        Menu(appState.tr(.copyPath)) {
+            Button(appState.tr(.copyPathAbsolute)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .absolute)
+            }
+            Button(appState.tr(.copyPathRelative)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .relative, relativeTo: appState.currentURL.deletingLastPathComponent())
+            }
+            Button(appState.tr(.copyPathURL)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .fileURL)
+            }
+            Button(appState.tr(.copyPathTerminal)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .terminalEscaped)
+            }
         }
         Divider()
         Button(appState.tr(.shortcutsCheatsheetTitle)) {

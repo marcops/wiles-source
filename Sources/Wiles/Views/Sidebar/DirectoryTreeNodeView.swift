@@ -69,10 +69,19 @@ struct DirectoryTreeNodeView: View {
         )
         .contextMenu {
             Button(appState.tr(.open)) { appState.navigateTo(node.url) }
-            Button(appState.tr(.copyPath)) {
-                let pb = NSPasteboard.general
-                pb.clearContents()
-                pb.setString(node.url.path, forType: .string)
+            Menu(appState.tr(.copyPath)) {
+                Button(appState.tr(.copyPathAbsolute)) {
+                    CopyPathService.copy(urls: [node.url], variant: .absolute)
+                }
+                Button(appState.tr(.copyPathRelative)) {
+                    CopyPathService.copy(urls: [node.url], variant: .relative, relativeTo: appState.currentURL)
+                }
+                Button(appState.tr(.copyPathURL)) {
+                    CopyPathService.copy(urls: [node.url], variant: .fileURL)
+                }
+                Button(appState.tr(.copyPathTerminal)) {
+                    CopyPathService.copy(urls: [node.url], variant: .terminalEscaped)
+                }
             }
             Divider()
             Button("\(appState.tr(.properties)) (Cmd+I)") {

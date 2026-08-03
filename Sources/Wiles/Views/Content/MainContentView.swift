@@ -69,6 +69,12 @@ struct MainContentView: View {
         .sheet(item: $appState.symlinkItem) { item in
             SymlinkSheetView(item: item, appState: appState)
         }
+        .sheet(isPresented: $appState.showSaveSmartFolderSheet) {
+            SaveSmartFolderSheetView(appState: appState)
+        }
+        .sheet(isPresented: $appState.showPasswordCompressSheet) {
+            PasswordCompressSheetView(appState: appState)
+        }
         .alert(appState.tr(.emptyTrash) + "?", isPresented: $appState.showEmptyTrashAlert) {
             Button(appState.tr(.emptyTrash), role: .destructive) {
                 appState.performEmptyTrash()

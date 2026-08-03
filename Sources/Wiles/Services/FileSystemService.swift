@@ -27,7 +27,11 @@ public struct FileSystemService: Sendable {
         }
         return await Task.detached(priority: .userInitiated) {
             let fm = FileManager.default
-            var keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey]
+            var keys: [URLResourceKey] = [
+                .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
+                .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
+                .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
+            ]
             if showTags {
                 keys.append(.tagNamesKey)
                 keys.append(.labelColorKey)

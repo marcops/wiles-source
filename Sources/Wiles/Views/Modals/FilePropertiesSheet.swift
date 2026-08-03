@@ -11,6 +11,8 @@ struct FilePropertiesSheet: View {
     @State private var isGeneralExpanded = true
     @State private var isMoreInfoExpanded = true
     @State private var isPermissionsExpanded = true
+    @State private var permissions = POSIXPermissions(posixPermissions: 0o644)
+    @State private var hasPermissions = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -62,24 +64,37 @@ struct FilePropertiesSheet: View {
                         }
                     }
                     
-                    if detailedProps?.ownerName != nil || detailedProps?.groupName != nil || detailedProps?.posixPermissions != nil {
-                        Divider()
-                        DisclosureGroup(isExpanded: $isPermissionsExpanded) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                if let owner = detailedProps?.ownerName {
-                                    propertyRow(label: appState.tr(.owner), value: owner)
-                                }
-                                if let group = detailedProps?.groupName {
-                                    propertyRow(label: appState.tr(.group), value: group)
-                                }
-                                if let perms = detailedProps?.posixPermissions {
-                                    propertyRow(label: appState.tr(.permissions), value: perms)
+                    Divider()
+                    DisclosureGroup(isExpanded: $isPermissionsExpanded) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            propertyRow(label: appState.tr(.owner), value: item.ownerName)
+                            propertyRow(label: appState.tr(.group), value: item.groupName)
+                            
+                            if hasPermissions {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text(appState.tr(.permissions) + " (" + permissions.octalString + "):")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                    }
+                                    
+                                    permissionsRow(title: appState.tr(.owner), read: $permissions.ownerRead, write: $permissions.ownerWrite, execute: $permissions.ownerExecute)
+                                    permissionsRow(title: appState.tr(.group), read: $permissions.groupRead, write: $permissions.groupWrite, execute: $permissions.groupExecute)
+                                    permissionsRow(title: appState.tr(.others), read: $permissions.othersRead, write: $permissions.othersWrite, execute: $permissions.othersExecute)
+                                    
+                                    Button(appState.tr(.applyPermissions)) {
+                                        try? FilePermissionsService.setPermissions(for: item.url, permissions: permissions)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.small)
+                                    .padding(.top, 4)
                                 }
                             }
-                            .padding(.top, 8)
-                        } label: {
-                            Text(appState.tr(.permissions)).font(.headline)
                         }
+                        .padding(.top, 8)
+                    } label: {
+                        Text(appState.tr(.sharingAndPermissions)).font(.headline)
                     }
                 }
                 .padding()
@@ -98,6 +113,29 @@ struct FilePropertiesSheet: View {
         .frame(width: 400, height: 500)
         .task {
             detailedProps = await FileMetadataService.shared.fetchProperties(for: item.url)
+            if let p = FilePermissionsService.getPermissions(for: item.url) {
+                permissions = p
+                hasPermissions = true
+            }
+        }
+    }
+    
+    private func permissionsRow(title: String, read: Binding<Bool>, write: Binding<Bool>, execute: Binding<Bool>) -> some View {
+        HStack(spacing: 12) {
+            Text(title + ":")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.secondary)
+                .frame(width: 70, alignment: .trailing)
+            Toggle(appState.tr(.read), isOn: read)
+                .toggleStyle(.checkbox)
+                .font(.system(size: 11))
+            Toggle(appState.tr(.write), isOn: write)
+                .toggleStyle(.checkbox)
+                .font(.system(size: 11))
+            Toggle(appState.tr(.execute), isOn: execute)
+                .toggleStyle(.checkbox)
+                .font(.system(size: 11))
+            Spacer()
         }
     }
     

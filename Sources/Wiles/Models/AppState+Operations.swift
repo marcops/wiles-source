@@ -2,6 +2,15 @@ import SwiftUI
 import AppKit
 
 extension AppState {
+    public func downloadFromiCloud(url: URL) {
+        Task.detached(priority: .userInitiated) {
+            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+            await MainActor.run { [weak self] in
+                self?.refreshCurrentDirectory()
+            }
+        }
+    }
+
     public func cutSelected() {
         guard !selectedURLs.isEmpty else { return }
         clipboard = ClipboardState(urls: Array(selectedURLs), action: .cut)

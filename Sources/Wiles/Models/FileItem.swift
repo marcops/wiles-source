@@ -17,6 +17,10 @@ public struct FileItem: Identifiable, Hashable, Sendable {
     public let icon: NSImage
     public let tags: [String]
     public let tagColor: NSColor?
+    public let isUbiquitous: Bool
+    public let isUbiquitousNotDownloaded: Bool
+    public let isUbiquitousDownloading: Bool
+    public let isUbiquitousUploading: Bool
 
     public init(url: URL, icon: NSImage, fetchTags: Bool = false) {
         self.url = url.standardizedFileURL
@@ -26,10 +30,11 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         var keys: Set<URLResourceKey> = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, 
             .creationDateKey, .contentAccessDateKey,
-            .isHiddenKey
+            .isHiddenKey, .isUbiquitousItemKey,
+            .ubiquitousItemDownloadingStatusKey,
+            .ubiquitousItemIsDownloadingKey,
+            .ubiquitousItemIsUploadingKey
         ]
-        // groupNameKey doesn't exist as a native URLResourceKey, we can get it via POSIX attributes if needed,
-        // but let's just stick to URL properties, we'll fetch POSIX for owner/group to be reliable.
         if fetchTags {
             keys.insert(.tagNamesKey)
             keys.insert(.labelColorKey)
@@ -43,6 +48,12 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         self.dateAccessed = values?.contentAccessDate
         self.isHidden = values?.isHidden ?? url.lastPathComponent.hasPrefix(".")
         self.fileExtension = url.pathExtension.lowercased()
+        
+        self.isUbiquitous = values?.isUbiquitousItem ?? false
+        let status = values?.ubiquitousItemDownloadingStatus
+        self.isUbiquitousNotDownloaded = (status == .notDownloaded)
+        self.isUbiquitousDownloading = values?.ubiquitousItemIsDownloading ?? false
+        self.isUbiquitousUploading = values?.ubiquitousItemIsUploading ?? false
         
         // Fetch POSIX owner/group
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {

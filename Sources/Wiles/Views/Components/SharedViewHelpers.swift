@@ -2,6 +2,30 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+public struct ICloudStatusBadgeView: View {
+    let item: FileItem
+    
+    public init(item: FileItem) {
+        self.item = item
+    }
+
+    public var body: some View {
+        if item.isUbiquitousDownloading {
+            ProgressView()
+                .scaleEffect(0.5)
+                .frame(width: 14, height: 14)
+        } else if item.isUbiquitousNotDownloaded {
+            Image(systemName: "icloud.and.arrow.down.fill")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.accentColor)
+        } else if item.isUbiquitousUploading {
+            Image(systemName: "icloud.and.arrow.up")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
 struct TranslucentVisualEffectView: NSViewRepresentable {
     var material: NSVisualEffectView.Material = .underWindowBackground
     func makeNSView(context: Context) -> NSVisualEffectView {
@@ -37,10 +61,19 @@ struct SharedBackgroundContextMenu: View {
             appState.selectedURLs = Set(appState.items.map { $0.url })
         }
         Divider()
-        Button(appState.tr(.copyPath)) {
-            let pb = NSPasteboard.general
-            pb.clearContents()
-            pb.setString(appState.currentURL.path, forType: .string)
+        Menu(appState.tr(.copyPath)) {
+            Button(appState.tr(.copyPathAbsolute)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .absolute)
+            }
+            Button(appState.tr(.copyPathRelative)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .relative, relativeTo: appState.currentURL.deletingLastPathComponent())
+            }
+            Button(appState.tr(.copyPathURL)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .fileURL)
+            }
+            Button(appState.tr(.copyPathTerminal)) {
+                CopyPathService.copy(urls: [appState.currentURL], variant: .terminalEscaped)
+            }
         }
         Button(appState.tr(.shareFolderWifi)) {
             appState.httpShareFolderURL = appState.currentURL
@@ -64,6 +97,32 @@ struct SharedFileItemContextMenu: View {
     var body: some View {
         Button(appState.tr(.open)) { appState.navigateTo(item.url) }
         Button("\(appState.tr(.quickLook)) (Space)") { appState.quickLookURL = item.url }
+        Menu(appState.tr(.openWith)) {
+            let availableApps = OpenWithService.availableApplications(for: item.url)
+            ForEach(availableApps) { app in
+                Button(action: {
+                    let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+                    OpenWithService.open(urls: targetURLs, with: app.url)
+                }) {
+                    Text(app.name)
+                }
+            }
+            if !availableApps.isEmpty {
+                Divider()
+            }
+            Button(appState.tr(.selectOtherApp)) {
+                let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+                OpenWithService.chooseOtherApplication(toOpen: targetURLs)
+            }
+        }
+        if item.isUbiquitousNotDownloaded {
+            Button(appState.tr(.downloadFromiCloud)) {
+                let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+                for url in targetURLs {
+                    appState.downloadFromiCloud(url: url)
+                }
+            }
+        }
         Divider()
         if item.isDirectory {
             Button(appState.tr(.shareFolderWifi)) {
@@ -84,6 +143,24 @@ struct SharedFileItemContextMenu: View {
         Button("\(appState.tr(.copy)) (Cmd+C)") {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.copySelected()
+        }
+        Menu(appState.tr(.copyPath)) {
+            Button(appState.tr(.copyPathAbsolute)) {
+                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+                CopyPathService.copy(urls: target, variant: .absolute)
+            }
+            Button(appState.tr(.copyPathRelative)) {
+                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+                CopyPathService.copy(urls: target, variant: .relative, relativeTo: appState.currentURL)
+            }
+            Button(appState.tr(.copyPathURL)) {
+                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+                CopyPathService.copy(urls: target, variant: .fileURL)
+            }
+            Button(appState.tr(.copyPathTerminal)) {
+                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+                CopyPathService.copy(urls: target, variant: .terminalEscaped)
+            }
         }
         Button("\(appState.tr(.paste)) (Cmd+V)") { appState.pasteToCurrentDirectory() }
         if !item.isDirectory {
@@ -108,6 +185,11 @@ struct SharedFileItemContextMenu: View {
         Button(appState.tr(.compressToZip)) {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.compressSelectedToZIP()
+        }
+        Button(appState.tr(.compressWithPassword)) {
+            let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
+            appState.passwordCompressURLs = targetURLs
+            appState.showPasswordCompressSheet = true
         }
         Divider()
         let renameHint = appState.navigationMode == .gnome ? "(F2)" : "(Return)"

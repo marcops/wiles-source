@@ -78,6 +78,13 @@ struct HeaderBarView: View {
             searchFilterMenu
 
             if !appState.searchQuery.isEmpty {
+                Button(action: { appState.showSaveSmartFolderSheet = true }) {
+                    Image(systemName: "folder.badge.plus")
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+                .help(appState.tr(.saveAsSmartFolder))
+
                 Button(action: { appState.searchQuery = "" }) {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
                 }

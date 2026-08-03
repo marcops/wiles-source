@@ -331,6 +331,7 @@ struct FileListView: View {
                     Image(nsImage: item.icon)
                         .resizable().scaledToFit().frame(width: listIconSize, height: listIconSize)
                 }
+                ICloudStatusBadgeView(item: item)
                 Text(item.name)
                     .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                     .lineLimit(1)

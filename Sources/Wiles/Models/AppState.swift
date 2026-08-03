@@ -70,11 +70,11 @@ public final class AppState {
     public var showPlaces: Bool = true {
         didSet { UserDefaults.standard.set(showPlaces, forKey: "wiles_showPlaces") }
     }
-    public var showMacSection: Bool = false {
-        didSet { UserDefaults.standard.set(showMacSection, forKey: "wiles_showMacSection") }
-    }
     public var showNetworkAndCloud: Bool = false {
         didSet { UserDefaults.standard.set(showNetworkAndCloud, forKey: "wiles_showNetworkAndCloud") }
+    }
+    public var showSidebarSectionTitles: Bool = true {
+        didSet { UserDefaults.standard.set(showSidebarSectionTitles, forKey: "wiles_showSidebarSectionTitles") }
     }
     public var appLanguage: AppLanguage = .system {
         didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: "wiles_appLanguage") }
@@ -102,6 +102,23 @@ public final class AppState {
     }
     public var isTagsExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isTagsExpanded, forKey: "wiles_isTagsExpanded") }
+    }
+    public var isSmartFoldersExpanded: Bool = true {
+        didSet { UserDefaults.standard.set(isSmartFoldersExpanded, forKey: "wiles_isSmartFoldersExpanded") }
+    }
+    public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
+    public var showSaveSmartFolderSheet: Bool = false
+    public var showPasswordCompressSheet: Bool = false
+    public var passwordCompressURLs: [URL]? = nil
+
+    public func addSmartFolder(_ folder: SmartFolder) {
+        smartFolders.append(folder)
+        SmartFolderService.saveSmartFolders(smartFolders)
+    }
+
+    public func removeSmartFolder(_ folder: SmartFolder) {
+        smartFolders.removeAll { $0.id == folder.id }
+        SmartFolderService.saveSmartFolders(smartFolders)
     }
     public static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
     public var recentOpenedURLs: [URL] = [] {
@@ -336,11 +353,11 @@ public final class AppState {
         if defaults.object(forKey: "wiles_showPlaces") != nil {
             self.showPlaces = defaults.bool(forKey: "wiles_showPlaces")
         }
-        if defaults.object(forKey: "wiles_showMacSection") != nil {
-            self.showMacSection = defaults.bool(forKey: "wiles_showMacSection")
-        }
         if defaults.object(forKey: "wiles_showNetworkAndCloud") != nil {
             self.showNetworkAndCloud = defaults.bool(forKey: "wiles_showNetworkAndCloud")
+        }
+        if defaults.object(forKey: "wiles_showSidebarSectionTitles") != nil {
+            self.showSidebarSectionTitles = defaults.bool(forKey: "wiles_showSidebarSectionTitles")
         }
         if let langStr = defaults.string(forKey: "wiles_appLanguage"), let lang = AppLanguage(rawValue: langStr) {
             self.appLanguage = lang

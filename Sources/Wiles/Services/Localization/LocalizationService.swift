@@ -72,6 +72,7 @@ public struct L10n {
         case showMacSection
         case showRecents
         case showPlaces
+        case showSidebarSectionTitles
         case sidebarMode
         case places
         case directoryTree
@@ -80,6 +81,10 @@ public struct L10n {
         case shortcutMode
         case refresh
         case copyPath
+        case copyPathAbsolute
+        case copyPathRelative
+        case copyPathURL
+        case copyPathTerminal
         case folderProperties
         case open
         case quickLook
@@ -311,6 +316,21 @@ public struct L10n {
         case noSelection
         case codePreview
         case openWith
+        case selectOtherApp
+        case downloadFromiCloud
+        case smartFolders
+        case saveSearch
+        case saveAsSmartFolder
+        case smartFolderName
+        case sharingAndPermissions
+        case read
+        case write
+        case execute
+        case applyPermissions
+        case compressWithPassword
+        case enterPassword
+        case password
+        case others
         case permissionDeniedNotice
         case emptyFolder
         case clearSearch

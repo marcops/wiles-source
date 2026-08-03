@@ -165,6 +165,11 @@ struct FileGridView: View {
         return VStack(spacing: 6) {
             gridCardImage(for: item)
                 .frame(width: iconSize, height: iconSize)
+                .overlay(
+                    ICloudStatusBadgeView(item: item)
+                        .padding(2),
+                    alignment: .topTrailing
+                )
             Text(item.name)
                 .font(.system(size: max(10, min(14, iconSize * 0.22)), weight: isSel ? .semibold : .regular))
                 .lineLimit(2).multilineTextAlignment(.center)

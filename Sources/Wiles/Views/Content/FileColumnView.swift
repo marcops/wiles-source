@@ -97,6 +97,7 @@ struct FileColumnView: View {
                     .scaledToFit()
                     .frame(width: 16, height: 16)
             }
+            ICloudStatusBadgeView(item: item)
             
             Text(item.name)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))

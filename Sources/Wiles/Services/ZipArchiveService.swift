@@ -7,7 +7,7 @@ public final class ArchiveService: Sendable {
         return ext == "zip" || ext == "tar" || ext == "tgz" || name.hasSuffix(".tar.gz") || name.hasSuffix(".tar.bz2") || name.hasSuffix(".tar.xz")
     }
     
-    public static func compressToZIP(urls: [URL], in destinationFolder: URL) throws {
+    public static func compressToZIP(urls: [URL], in destinationFolder: URL, password: String? = nil) throws {
         guard !urls.isEmpty else { return }
         
         let zipName: String
@@ -27,11 +27,19 @@ public final class ArchiveService: Sendable {
         }
         
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-        var args = ["-c", "-k", "--sequesterRsrc"]
-        args.append(contentsOf: urls.map { $0.path })
-        args.append(destURL.path)
-        process.arguments = args
+        if let pwd = password, !pwd.isEmpty {
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+            process.currentDirectoryURL = destinationFolder
+            var args = ["-r", "-P", pwd, destURL.path]
+            args.append(contentsOf: urls.map { $0.lastPathComponent })
+            process.arguments = args
+        } else {
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+            var args = ["-c", "-k", "--sequesterRsrc"]
+            args.append(contentsOf: urls.map { $0.path })
+            args.append(destURL.path)
+            process.arguments = args
+        }
         try process.run()
         process.waitUntilExit()
         if process.terminationStatus != 0 {
