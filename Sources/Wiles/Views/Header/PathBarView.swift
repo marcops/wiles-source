@@ -47,7 +47,7 @@ struct PathBarView: View {
                 breadcrumbMode
             }
         }
-        .animation(.easeInOut(duration: 0.15), value: appState.isEditingPath)
+        .animation(MotionTokens.quickEase, value: appState.isEditingPath)
     }
     
     private var textFieldMode: some View {
@@ -124,7 +124,7 @@ struct PathBarView: View {
         .frame(height: 28)
         .contentShape(Rectangle())
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) { isHovering = hovering }
+            withAnimation(MotionTokens.quickEase) { isHovering = hovering }
         }
         .onTapGesture(count: 2) {
             appState.pathText = appState.currentURL.path

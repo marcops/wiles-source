@@ -119,7 +119,7 @@ struct FileListView: View {
             }
             .onChange(of: appState.searchQuery) { _, newValue in
                 if newValue.isEmpty {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(MotionTokens.mediumEase) {
                         proxy.scrollTo("top", anchor: .top)
                     }
                 }

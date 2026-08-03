@@ -26,7 +26,7 @@ struct ColumnResizeHandle: View {
                 .frame(width: Self.lineWidth)
         }
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.12)) { isHovered = hovering }
+            withAnimation(MotionTokens.quickEase) { isHovered = hovering }
             if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
         }
         .onTapGesture(count: 2) {

@@ -102,30 +102,34 @@ public struct ArrowKeyNavigationTests {
 
     private static func testArrowRightEntersDirectory() {
         let appState = AppState()
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let icon = NSWorkspace.shared.icon(forFile: home.path)
-        let dirItem = FileItem(url: home, icon: icon)
+        let parentDir = tempDir()
+        let childDir = parentDir.appendingPathComponent("subfolder")
+        try? FileManager.default.createDirectory(at: childDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parentDir) }
+
+        let icon = NSWorkspace.shared.icon(forFile: childDir.path)
+        let dirItem = FileItem(url: childDir, icon: icon)
         appState.items = [dirItem]
-        appState.selectedURLs = [home]
+        appState.selectedURLs = [childDir]
         // Simulate → on a directory in List View
         if let first = appState.selectedURLs.first,
            let item = appState.items.first(where: { $0.url == first }),
            item.isDirectory {
             appState.navigateTo(first)
         }
-        report("Navigation/ArrowKeys", "POS: → navigates into selected directory in List View", result: appState.currentURL.standardizedFileURL == home.standardizedFileURL)
+        report("Navigation/ArrowKeys", "POS: → navigates into selected directory in List View", result: appState.currentURL.standardizedFileURL == childDir.standardizedFileURL)
     }
 
     private static func testArrowLeftGoesUp() {
         let appState = AppState()
-        let docs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents")
-        if FileManager.default.fileExists(atPath: docs.path) {
-            appState.navigateTo(docs)
-            appState.goUp()
-            report("Navigation/ArrowKeys", "POS: ← (goUp) navigates to parent directory", result: appState.currentURL.standardizedFileURL == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL)
-        } else {
-            report("Navigation/ArrowKeys", "SKIP: ← test skipped (~/Documents not found)", result: true)
-        }
+        let parentDir = tempDir()
+        let childDir = parentDir.appendingPathComponent("subfolder")
+        try? FileManager.default.createDirectory(at: childDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parentDir) }
+
+        appState.navigateTo(childDir)
+        appState.goUp()
+        report("Navigation/ArrowKeys", "POS: ← (goUp) navigates to parent directory", result: appState.currentURL.standardizedFileURL == parentDir.standardizedFileURL)
     }
 
     private static func testDefaultColumns() {

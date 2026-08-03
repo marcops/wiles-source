@@ -159,7 +159,7 @@ struct WilesApp: App {
         CommandGroup(after: .sidebar) {
             Divider()
             Button(appState.tr(.shortcutsCheatsheetTitle)) {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                withAnimation(MotionTokens.snappySpring) {
                     appState.showShortcutsHUD.toggle()
                 }
             }
@@ -238,7 +238,7 @@ struct WilesApp: App {
         }
         Divider()
         Button(appState.tr(.shortcutsCheatsheetTitle)) {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            withAnimation(MotionTokens.snappySpring) {
                 appState.showShortcutsHUD.toggle()
             }
         }

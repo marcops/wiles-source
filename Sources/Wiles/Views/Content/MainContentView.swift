@@ -159,7 +159,7 @@ struct MainContentView: View {
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
             Button("") { appState.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
             Button("") {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                withAnimation(MotionTokens.snappySpring) {
                     appState.showShortcutsHUD.toggle()
                 }
             }.keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom)).hidden()

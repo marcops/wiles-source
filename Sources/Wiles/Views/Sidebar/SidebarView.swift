@@ -149,7 +149,7 @@ struct SidebarView: View {
     
     private func sectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
         Button(action: {
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(MotionTokens.quickEase) {
                 isExpanded.wrappedValue.toggle()
             }
         }) {

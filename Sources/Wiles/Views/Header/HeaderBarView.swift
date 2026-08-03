@@ -221,7 +221,7 @@ struct HeaderBarView: View {
             }
         }
         .padding(2)
-        .animation(.spring(response: 0.28, dampingFraction: 0.75), value: viewSwitcherExpanded)
+        .animation(MotionTokens.expandSpring, value: viewSwitcherExpanded)
         .background(ClickOutsideDetector {
             if viewSwitcherExpanded { viewSwitcherExpanded = false }
         })
