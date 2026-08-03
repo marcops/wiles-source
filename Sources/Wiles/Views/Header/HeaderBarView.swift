@@ -57,7 +57,6 @@ struct HeaderBarView: View {
     private var searchField: some View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass").foregroundColor(.secondary)
             TextField("\(appState.tr(.searchPlaceholder)) \(appState.currentURL.lastPathComponent)...", text: $appState.searchQuery)
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
@@ -145,8 +144,8 @@ struct HeaderBarView: View {
             }
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(appState.searchQuery.contains(":") ? .accentColor : .secondary)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
         }
         .menuStyle(.borderlessButton)
         .help("Search Filters (Date, Type, Size)")
