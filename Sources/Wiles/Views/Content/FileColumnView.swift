@@ -88,10 +88,15 @@ struct FileColumnView: View {
     
     private func columnRow(item: FileItem, columnIndex: Int, isSelected: Bool) -> some View {
         HStack(spacing: 8) {
-            Image(nsImage: item.icon)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 16, height: 16)
+            if !item.isDirectory {
+                ImageThumbnailView(url: item.url, size: 16, fallback: item.icon)
+                    .frame(width: 16, height: 16)
+            } else {
+                Image(nsImage: item.icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
+            }
             
             Text(item.name)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))

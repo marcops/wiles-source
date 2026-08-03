@@ -30,7 +30,7 @@ public final class ThumbnailService {
             fileAt: url,
             size: CGSize(width: size, height: size),
             scale: scale,
-            representationTypes: .thumbnail
+            representationTypes: .all
         )
         guard let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
             return nil

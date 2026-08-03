@@ -151,9 +151,7 @@ struct FileGridView: View {
     
     @ViewBuilder
     private func gridCardImage(for item: FileItem) -> some View {
-        if !item.isDirectory,
-           iconSize >= LayoutTokens.thumbnailMinimumIconSize,
-           ThumbnailService.isImage(fileExtension: item.fileExtension) {
+        if !item.isDirectory {
             ImageThumbnailView(url: item.url, size: iconSize, fallback: item.icon)
         } else {
             Image(nsImage: item.icon).resizable().scaledToFit()

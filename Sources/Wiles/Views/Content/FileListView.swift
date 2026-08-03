@@ -322,8 +322,13 @@ struct FileListView: View {
         return HStack(spacing: 0) {
             // Name (always visible)
             HStack(alignment: .center, spacing: 8) {
-                Image(nsImage: item.icon)
-                    .resizable().scaledToFit().frame(width: listIconSize, height: listIconSize)
+                if !item.isDirectory {
+                    ImageThumbnailView(url: item.url, size: listIconSize, fallback: item.icon)
+                        .frame(width: listIconSize, height: listIconSize)
+                } else {
+                    Image(nsImage: item.icon)
+                        .resizable().scaledToFit().frame(width: listIconSize, height: listIconSize)
+                }
                 Text(item.name)
                     .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                     .lineLimit(1)
