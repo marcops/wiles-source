@@ -11,10 +11,10 @@ struct ColumnData: Identifiable {
 
 struct FileColumnView: View {
     var appState: AppState
-    
+
     @State private var columns: [ColumnData] = []
     @State private var activeColumnIndex: Int = 0
-    
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: true) {
@@ -45,12 +45,12 @@ struct FileColumnView: View {
             }
         }
     }
-    
+
     private func columnView(for column: ColumnData, index: Int) -> some View {
         let visibleItems = Array(column.items.prefix(column.visibleLimit))
         return VStack(spacing: 0) {
             columnHeader(title: column.folderURL.lastPathComponent.isEmpty ? "/" : column.folderURL.lastPathComponent)
-            
+
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 1) {
                     ForEach(visibleItems) { item in
@@ -80,7 +80,7 @@ struct FileColumnView: View {
         }
         .frame(width: 220)
     }
-    
+
     private func columnHeader(title: String) -> some View {
         HStack {
             Text(title)
@@ -93,16 +93,18 @@ struct FileColumnView: View {
         .padding(.vertical, 6)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.08))
     }
-    
+
     private func loadInitialColumns() {
         Task {
             let rootItems = await FileSystemService.loadDirectoryContents(
                 at: appState.currentURL,
-                showHidden: appState.showHiddenFiles,
-                showTags: appState.showTags,
-                searchQuery: appState.searchQuery,
-                sortOption: appState.sortOption,
-                sortAscending: appState.sortAscending
+                options: DirectoryLoadOptions(
+                    showHidden: appState.showHiddenFiles,
+                    showTags: appState.showTags,
+                    searchQuery: appState.searchQuery,
+                    sortOption: appState.sortOption,
+                    sortAscending: appState.sortAscending
+                )
             )
             await MainActor.run {
                 self.columns = [ColumnData(folderURL: appState.currentURL, items: rootItems, selectedURL: nil)]
@@ -113,13 +115,13 @@ struct FileColumnView: View {
             }
         }
     }
-    
+
     private func drillRightFromSelection() {
         guard activeColumnIndex < columns.count else { return }
         let col = columns[activeColumnIndex]
         guard let selURL = col.selectedURL,
               let item = col.items.first(where: { $0.url == selURL }) else { return }
-        
+
         if item.isDirectory {
             selectItem(item: item, columnIndex: activeColumnIndex, autoSelectFirst: true)
         }
@@ -129,11 +131,11 @@ struct FileColumnView: View {
         guard activeColumnIndex < columns.count else { return }
         let col = columns[activeColumnIndex]
         guard !col.items.isEmpty else { return }
-        
+
         let currentIndex = col.items.firstIndex(where: { $0.url == col.selectedURL }) ?? 0
         let targetIndex = max(0, min(col.items.count - 1, currentIndex + offset))
         let targetItem = col.items[targetIndex]
-        
+
         selectItem(item: targetItem, columnIndex: activeColumnIndex)
     }
 
@@ -142,7 +144,7 @@ struct FileColumnView: View {
         let parentColumnIndex = activeColumnIndex - 1
         let parentCol = columns[parentColumnIndex]
         guard let parentItem = parentCol.items.first(where: { $0.url == parentCol.selectedURL }) else { return }
-        
+
         appState.selectedURLs = [parentItem.url]
         columns[parentColumnIndex].selectedURL = parentItem.url
         activeColumnIndex = parentColumnIndex
@@ -160,11 +162,13 @@ struct FileColumnView: View {
         Task {
             let subItems = await FileSystemService.loadDirectoryContents(
                 at: item.url,
-                showHidden: appState.showHiddenFiles,
-                showTags: appState.showTags,
-                searchQuery: "",
-                sortOption: appState.sortOption,
-                sortAscending: appState.sortAscending
+                options: DirectoryLoadOptions(
+                    showHidden: appState.showHiddenFiles,
+                    showTags: appState.showTags,
+                    searchQuery: "",
+                    sortOption: appState.sortOption,
+                    sortAscending: appState.sortAscending
+                )
             )
             await MainActor.run {
                 // Verify the user hasn't changed selection while loading before
@@ -201,14 +205,14 @@ struct FileColumnRowView: View {
         HStack(spacing: 8) {
             FileItemIconView(item: item, size: 16)
             ICloudStatusBadgeView(item: item)
-            
+
             Text(item.name)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                 .lineLimit(1)
                 .foregroundColor(isSelected ? .white : .primary)
-            
+
             Spacer()
-            
+
             if item.isDirectory {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))

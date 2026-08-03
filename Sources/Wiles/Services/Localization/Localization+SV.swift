@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let swedish: [Key: String] = [
+        .undo: "Ångra",
+        .redo: "Gör om",
+        .enclosingFolder: "Överordnad Mapp",
+        .wilesHelpAndShortcuts: "Wiles Hjälp och Kortkommandon",
         .newFolder: "Ny mapp",
         .paste: "Klistra in",
         .selectAll: "Markera alla",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Kopiera",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "Inget Markerat",
+        .codePreview: "Kodförhandsgranskning",
+        .sharingActive: "Delning Aktiv",
+        .createSymbolicLink: "Skapa Symbolisk Länk",
+        .linkType: "Länktyp",
+        .symlinkNameLabel: "Symlänk-namn",
+        .createLink: "Skapa Länk",
+        .wilesFileManager: "Wiles Filhanterare",
+        .backgroundOperations: "Bakgrundsåtgärder",
+        .noActiveOperations: "Inga aktiva åtgärder",
+        .itemsSelectedSuffix: "objekt markerade",
+        .activeSuffix: "aktiva",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "Byt namn",
@@ -144,7 +160,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

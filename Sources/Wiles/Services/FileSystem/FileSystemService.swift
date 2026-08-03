@@ -6,64 +6,86 @@ extension URL {
     public static let userTrash: URL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: "/Users/\(NSUserName())/.Trash")
 }
 
+public struct DirectoryLoadOptions: Sendable {
+    public let showHidden: Bool
+    public let showTags: Bool
+    public let searchQuery: String
+    public let sortOption: SortOption
+    public let sortAscending: Bool
+
+    public init(showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool) {
+        self.showHidden = showHidden
+        self.showTags = showTags
+        self.searchQuery = searchQuery
+        self.sortOption = sortOption
+        self.sortAscending = sortAscending
+    }
+}
+
 public struct FileSystemService: Sendable {
-    public static func loadDirectoryContents(
-        at url: URL, showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool
-    ) async -> [FileItem] {
+    public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
         if url.path == "/virtual/recents" {
-            return await Task.detached(priority: .userInitiated) {
-                let defaults = UserDefaults.standard
-                let paths = defaults.stringArray(forKey: "wiles_recentOpenedURLs") ?? []
-                let fm = FileManager.default
-                var items: [FileItem] = []
-                for path in paths {
-                    let fileURL = URL(fileURLWithPath: path)
-                    guard fm.fileExists(atPath: fileURL.path) else { continue }
-                    
-                    let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
-                    items.append(FileItem(url: fileURL, icon: icon, fetchTags: showTags))
-                }
-                if !searchQuery.isEmpty {
-                    let regex = parseSearchRegex(query: searchQuery)
-                    items = items.filter { matchesSearch(fileURL: $0.url, query: searchQuery, regex: regex) }
-                }
-                return items
-            }.value
+            return await loadRecentsVirtualDirectory(options: options)
         }
-        return await Task.detached(priority: .userInitiated) {
+        return await loadRealDirectoryContents(at: url, options: options)
+    }
+
+    private static func loadRecentsVirtualDirectory(options: DirectoryLoadOptions) async -> [FileItem] {
+        await Task.detached(priority: .userInitiated) {
+            let defaults = UserDefaults.standard
+            let paths = defaults.stringArray(forKey: "wiles_recentOpenedURLs") ?? []
+            let fm = FileManager.default
+            var items: [FileItem] = []
+            for path in paths {
+                let fileURL = URL(fileURLWithPath: path)
+                guard fm.fileExists(atPath: fileURL.path) else { continue }
+
+                let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
+                items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags))
+            }
+            if !options.searchQuery.isEmpty {
+                let regex = parseSearchRegex(query: options.searchQuery)
+                items = items.filter { matchesSearch(fileURL: $0.url, query: options.searchQuery, regex: regex) }
+            }
+            return items
+        }.value
+    }
+
+    private static func loadRealDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
+        await Task.detached(priority: .userInitiated) {
             let fm = FileManager.default
             var keys: [URLResourceKey] = [
                 .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
                 .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
                 .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
             ]
-            if showTags {
+            if options.showTags {
                 keys.append(.tagNamesKey)
                 keys.append(.labelColorKey)
             }
             guard let fileURLs = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsSubdirectoryDescendants]) else {
                 return []
             }
-            
-            let regex = parseSearchRegex(query: searchQuery)
+
+            let regex = parseSearchRegex(query: options.searchQuery)
             var items: [FileItem] = []
             for fileURL in fileURLs {
-                if isFileHidden(fileURL: fileURL, showHidden: showHidden) { continue }
-                if !matchesSearch(fileURL: fileURL, query: searchQuery, regex: regex) { continue }
-                
+                if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) { continue }
+                if !matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
+
                 let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
-                items.append(FileItem(url: fileURL, icon: icon, fetchTags: showTags))
+                items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags))
             }
-            return sortItems(items, by: sortOption, ascending: sortAscending)
+            return sortItems(items, by: options.sortOption, ascending: options.sortAscending)
         }.value
     }
-    
+
     private static func isFileHidden(fileURL: URL, showHidden: Bool) -> Bool {
         if showHidden { return false }
         if fileURL.lastPathComponent.hasPrefix(".") { return true }
         return (try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden) == true
     }
-    
+
     private static func parseSearchRegex(query: String) -> NSRegularExpression? {
         guard !query.isEmpty else { return nil }
         let pattern: String
@@ -76,11 +98,11 @@ public struct FileSystemService: Sendable {
         }
         return try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
     }
-    
+
     private static func matchesSearch(fileURL: URL, query: String, regex: NSRegularExpression?) -> Bool {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return true }
-        
+
         let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         for token in tokens {
             let lowerToken = token.lowercased()
@@ -122,10 +144,13 @@ public struct FileSystemService: Sendable {
         let unit = valueStr.filter { $0.isLetter }
 
         var seconds: TimeInterval = Double(num) * 86400
-        if unit == "h" { seconds = Double(num) * 3600 }
-        else if unit == "w" { seconds = Double(num) * 7 * 86400 }
-        else if unit == "m" { seconds = Double(num) * 30 * 86400 }
-        else if unit == "y" { seconds = Double(num) * 365 * 86400 }
+        switch unit {
+        case "h": seconds = Double(num) * 3600
+        case "w": seconds = Double(num) * 7 * 86400
+        case "m": seconds = Double(num) * 30 * 86400
+        case "y": seconds = Double(num) * 365 * 86400
+        default: break
+        }
 
         let targetDate = Date().addingTimeInterval(-seconds)
         switch op {
@@ -151,9 +176,13 @@ public struct FileSystemService: Sendable {
         let unit = valueStr.filter { $0.isLetter }
 
         var multiplier: Int64 = 1024 * 1024
-        if unit.hasPrefix("k") { multiplier = 1024 }
-        else if unit.hasPrefix("b") && !unit.hasPrefix("by") { multiplier = 1 }
-        else if unit.hasPrefix("g") { multiplier = 1024 * 1024 * 1024 }
+        if unit.hasPrefix("k") {
+            multiplier = 1024
+        } else if unit.hasPrefix("b") && !unit.hasPrefix("by") {
+            multiplier = 1
+        } else if unit.hasPrefix("g") {
+            multiplier = 1024 * 1024 * 1024
+        }
 
         let targetBytes = num * multiplier
         switch op {
@@ -168,7 +197,7 @@ public struct FileSystemService: Sendable {
     private static func matchesKindFilter(fileURL: URL, token: String) -> Bool {
         let lower = token.lowercased()
         let ext = fileURL.pathExtension.lowercased()
-        
+
         switch lower {
         case "image", "img", "images":
             return ["png", "jpg", "jpeg", "gif", "svg", "webp", "heic", "tiff", "icns", "bmp"].contains(ext)
@@ -203,7 +232,7 @@ public struct FileSystemService: Sendable {
         }
         return matchesContent(fileURL: fileURL, query: token)
     }
-    
+
     private static func matchesContent(fileURL: URL, query: String) -> Bool {
         guard query.count >= 3 else { return false }
         let textExtensions: Set<String> = ["txt", "md", "swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "xml", "csv"]
@@ -212,28 +241,28 @@ public struct FileSystemService: Sendable {
         guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else { return false }
         return content.localizedCaseInsensitiveContains(query)
     }
-    
+
     private static func sortItems(_ items: [FileItem], by option: SortOption, ascending: Bool) -> [FileItem] {
-        return items.sorted { a, b in
-            if a.isDirectory != b.isDirectory { return a.isDirectory && !b.isDirectory }
+        return items.sorted { lhs, rhs in
+            if lhs.isDirectory != rhs.isDirectory { return lhs.isDirectory && !rhs.isDirectory }
             let res: Bool
             switch option {
-            case .name: res = a.name.localizedStandardCompare(b.name) == .orderedAscending
-            case .dateModified: res = a.dateModified < b.dateModified
-            case .dateCreated: res = a.dateCreated < b.dateCreated
-            case .dateAccessed: 
-                let d1 = a.dateAccessed ?? Date.distantPast
-                let d2 = b.dateAccessed ?? Date.distantPast
+            case .name: res = lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            case .dateModified: res = lhs.dateModified < rhs.dateModified
+            case .dateCreated: res = lhs.dateCreated < rhs.dateCreated
+            case .dateAccessed:
+                let d1 = lhs.dateAccessed ?? Date.distantPast
+                let d2 = rhs.dateAccessed ?? Date.distantPast
                 res = d1 < d2
-            case .size: res = a.size < b.size
-            case .kind: res = a.fileExtension.localizedStandardCompare(b.fileExtension) == .orderedAscending
-            case .owner: res = a.ownerName.localizedStandardCompare(b.ownerName) == .orderedAscending
-            case .group: res = a.groupName.localizedStandardCompare(b.groupName) == .orderedAscending
+            case .size: res = lhs.size < rhs.size
+            case .kind: res = lhs.fileExtension.localizedStandardCompare(rhs.fileExtension) == .orderedAscending
+            case .owner: res = lhs.ownerName.localizedStandardCompare(rhs.ownerName) == .orderedAscending
+            case .group: res = lhs.groupName.localizedStandardCompare(rhs.groupName) == .orderedAscending
             }
             return ascending ? res : !res
         }
     }
-    
+
     public static func setTags(for url: URL, tags: [String]) throws {
         try (url as NSURL).setResourceValue(tags, forKey: .tagNamesKey)
     }

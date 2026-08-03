@@ -4,6 +4,6 @@ public enum ViewMode: String, CaseIterable, Identifiable, Hashable, Equatable, S
     case grid = "Grid"
     case list = "List"
     case column = "Column"
-    
+
     public var id: String { rawValue }
 }

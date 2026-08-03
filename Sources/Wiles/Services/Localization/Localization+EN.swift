@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let english: [Key: String] = [
+        .undo: "Undo",
+        .redo: "Redo",
+        .enclosingFolder: "Enclosing Folder",
+        .wilesHelpAndShortcuts: "Wiles Help & Shortcuts",
         .newFolder: "New Folder...",
         .paste: "Paste",
         .selectAll: "Select All",
@@ -40,6 +44,18 @@ extension L10n {
         .copy: "Copy",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "No Selection",
+        .codePreview: "Code Preview",
+        .sharingActive: "Sharing Active",
+        .createSymbolicLink: "Create Symbolic Link",
+        .linkType: "Link Type",
+        .symlinkNameLabel: "Symlink Name",
+        .createLink: "Create Link",
+        .wilesFileManager: "Wiles File Manager",
+        .backgroundOperations: "Background Operations",
+        .noActiveOperations: "No active operations",
+        .itemsSelectedSuffix: "items selected",
+        .activeSuffix: "active",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "Rename...",
@@ -147,7 +163,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

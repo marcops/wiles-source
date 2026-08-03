@@ -9,7 +9,7 @@ public struct PermissionService: Sendable {
             NSWorkspace.shared.open(url)
         }
     }
-    
+
     private static let hasShownFullDiskAccessPromptKey = "wiles_hasShownFullDiskAccessPrompt"
 
     /// Checks Full Disk Access by testing readability of TCC.db, the standard heuristic for this permission.
@@ -57,5 +57,3 @@ public struct PermissionService: Sendable {
         UserDefaults.standard.set(true, forKey: hasShownFullDiskAccessPromptKey)
     }
 }
-
-

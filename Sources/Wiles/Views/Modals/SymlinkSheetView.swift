@@ -3,18 +3,19 @@ import SwiftUI
 public struct SymlinkSheetView: View {
     let item: FileItem
     var appState: AppState
-    
-    @Environment(\.dismiss) private var dismiss
+
+    @Environment(\.dismiss)
+    private var dismiss
     @FocusState private var isNameFocused: Bool
-    
+
     @State private var symlinkName: String = ""
     @State private var mode: SymlinkMode = .absolute
-    
+
     public init(item: FileItem, appState: AppState) {
         self.item = item
         self.appState = appState
     }
-    
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             headerSection
@@ -29,34 +30,34 @@ public struct SymlinkSheetView: View {
             isNameFocused = true
         }
     }
-    
+
     private var headerSection: some View {
         HStack(spacing: 8) {
             Image(systemName: "link")
                 .font(.system(size: 20))
                 .foregroundColor(.accentColor)
-            Text("Create Symbolic Link")
+            Text(appState.tr(.createSymbolicLink))
                 .font(.system(size: 15, weight: .bold))
         }
     }
-    
+
     private var modePickerSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Link Type")
+            Text(appState.tr(.linkType))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             Picker("", selection: $mode) {
-                ForEach(SymlinkMode.allCases) { m in
-                    Text(m.rawValue).tag(m)
+                ForEach(SymlinkMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
         }
     }
-    
+
     private var nameInputSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Symlink Name")
+            Text(appState.tr(.symlinkNameLabel))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             TextField("", text: $symlinkName)
@@ -65,20 +66,20 @@ public struct SymlinkSheetView: View {
                 .onSubmit { createSymlink() }
         }
     }
-    
+
     private var actionButtonsSection: some View {
         HStack {
             Spacer()
             Button(appState.tr(.cancel)) { dismiss() }
                 .keyboardShortcut(.escape, modifiers: [])
-            
-            Button("Create Link") { createSymlink() }
+
+            Button(appState.tr(.createLink)) { createSymlink() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.return, modifiers: [])
                 .disabled(symlinkName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
-    
+
     private func createSymlink() {
         do {
             let createdURL = try SymlinkService.createSymlink(

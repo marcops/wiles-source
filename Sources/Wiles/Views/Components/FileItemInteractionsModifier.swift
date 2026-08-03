@@ -20,8 +20,8 @@ public struct FileItemInteractionsModifier: ViewModifier {
                 }
                 let urls = Array(appState.selectedURLs)
                 let provider = NSItemProvider()
-                for u in urls {
-                    provider.registerObject(u as NSURL, visibility: .all)
+                for fileURL in urls {
+                    provider.registerObject(fileURL as NSURL, visibility: .all)
                 }
                 return provider
             }

@@ -8,22 +8,22 @@ struct IntegratedTerminalView: NSViewRepresentable {
     func makeNSView(context: Context) -> LocalProcessTerminalView {
         let terminalView = LocalProcessTerminalView(frame: .zero)
         terminalView.processDelegate = context.coordinator
-        
+
         let path = appState.currentURL.path
-        
+
         terminalView.startProcess(
             executable: "/bin/zsh",
             args: ["-l"],
             environment: nil,
             execName: nil
         )
-        
+
         // Initial cd
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             terminalView.send(txt: "cd \"\(path)\"\r")
             terminalView.send(txt: "clear\r")
         }
-        
+
         return terminalView
     }
 
@@ -48,7 +48,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
             self.parent = parent
             self.lastPath = initialPath
         }
-        
+
         func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
         func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
         func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}

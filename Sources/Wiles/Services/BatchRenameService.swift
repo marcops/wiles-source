@@ -13,7 +13,7 @@ public final class BatchRenameService {
             let ext = item.fileExtension
             let extWithDot = ext.isEmpty ? "" : ".\(ext)"
             let baseName = item.isDirectory ? item.name : item.url.deletingPathExtension().lastPathComponent
-            
+
             let newBaseName: String
             switch mode {
             case .replace(let find, let replaceWith):
@@ -38,16 +38,16 @@ public final class BatchRenameService {
                     newBaseName = baseName
                 }
             }
-            
+
             let finalName = item.isDirectory ? newBaseName : "\(newBaseName)\(extWithDot)"
             return (original: item, newName: finalName)
         }
     }
-    
+
     public static func performBatchRename(items: [FileItem], mode: BatchRenameMode) throws -> [URL] {
         let previews = previewNewNames(items: items, mode: mode)
         var renamedURLs: [URL] = []
-        
+
         for (item, newName) in previews {
             guard !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, newName != item.name else {
                 renamedURLs.append(item.url)
@@ -56,7 +56,7 @@ public final class BatchRenameService {
             let newURL = try FileSystemService.renameItem(at: item.url, newName: newName)
             renamedURLs.append(newURL)
         }
-        
+
         return renamedURLs
     }
 }

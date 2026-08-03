@@ -23,11 +23,32 @@ APP_DIR="$DIST_DIR/Wiles.app"
 rm -rf "$APP_DIR"
 mkdir -p "$DIST_DIR" "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
-echo "==> swift build -c release"
+echo "==> 1. Building release binary (swift build -c release)..."
 swift build -c release
 
-cp ".build/release/Wiles" "$APP_DIR/Contents/MacOS/Wiles"
-cp "Sources/Wiles/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+BIN_PATH=""
+if [[ -f ".build/arm64-apple-macosx/release/Wiles" ]]; then
+  BIN_PATH=".build/arm64-apple-macosx/release/Wiles"
+elif [[ -f ".build/release/Wiles" ]]; then
+  BIN_PATH=".build/release/Wiles"
+else
+  echo "error: release binary not found" >&2
+  exit 1
+fi
+
+cp "$BIN_PATH" "$APP_DIR/Contents/MacOS/Wiles"
+
+# Copy SPM Resource Bundle if exists
+if [[ -d ".build/arm64-apple-macosx/release/Wiles_Wiles.bundle" ]]; then
+  cp -r ".build/arm64-apple-macosx/release/Wiles_Wiles.bundle" "$APP_DIR/Contents/Resources/"
+elif [[ -d ".build/release/Wiles_Wiles.bundle" ]]; then
+  cp -r ".build/release/Wiles_Wiles.bundle" "$APP_DIR/Contents/Resources/"
+fi
+
+# Copy App Icon
+if [[ -f "Sources/Wiles/Resources/AppIcon.icns" ]]; then
+  cp "Sources/Wiles/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+fi
 
 cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -68,17 +89,17 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-echo "==> ad-hoc codesign"
+echo "==> 2. Ad-hoc codesign..."
 codesign --force --deep --sign - "$APP_DIR"
 
 ZIP_PATH="$DIST_DIR/wiles-v$VERSION.zip"
 DMG_PATH="$DIST_DIR/wiles-v$VERSION.dmg"
 rm -f "$ZIP_PATH" "$DMG_PATH"
 
-echo "==> creating zip (for Homebrew cask)"
-ditto -c -k --sequesterRsrc --keepParent "$APP_DIR" "$ZIP_PATH"
+echo "==> 3. Creating ZIP archive (for Homebrew Cask)..."
+(cd "$DIST_DIR" && /usr/bin/zip -r -y "wiles-v$VERSION.zip" "Wiles.app")
 
-echo "==> creating dmg (for direct download)"
+echo "==> 4. Creating DMG package..."
 STAGING_DIR=$(mktemp -d)
 cp -R "$APP_DIR" "$STAGING_DIR/"
 ln -s /Applications "$STAGING_DIR/Applications"
@@ -88,7 +109,7 @@ rm -rf "$STAGING_DIR"
 SHA256=$(shasum -a 256 "$ZIP_PATH" | awk '{print $1}')
 echo "$SHA256" > "$DIST_DIR/wiles-v$VERSION.sha256"
 
-echo "==> done"
+echo "==> Build Release Successful!"
 echo "version=$VERSION"
 echo "zip=$ZIP_PATH"
 echo "dmg=$DMG_PATH"

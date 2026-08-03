@@ -4,27 +4,28 @@ enum RenameTabMode: String, CaseIterable, Identifiable {
     case findReplace = "Find & Replace"
     case prefixSuffix = "Prefix & Suffix"
     case sequence = "Sequence"
-    
+
     var id: String { rawValue }
 }
 
 struct BatchRenameSheetView: View {
     let items: [FileItem]
     var appState: AppState
-    
-    @Environment(\.dismiss) private var dismiss
+
+    @Environment(\.dismiss)
+    private var dismiss
     @State private var tabMode: RenameTabMode = .findReplace
-    
+
     @State private var findText: String = ""
     @State private var replaceText: String = ""
-    
+
     @State private var prefixText: String = ""
     @State private var suffixText: String = ""
-    
+
     @State private var sequencePrefix: String = "file"
     @State private var startNumber: Int = 1
     @State private var paddingDigits: Int = 3
-    
+
     private var currentMode: BatchRenameMode {
         switch tabMode {
         case .findReplace:
@@ -35,11 +36,11 @@ struct BatchRenameSheetView: View {
             return .sequenceNumber(prefix: sequencePrefix, startNumber: startNumber, paddingDigits: paddingDigits)
         }
     }
-    
+
     private var previews: [(original: FileItem, newName: String)] {
         BatchRenameService.previewNewNames(items: items, mode: currentMode)
     }
-    
+
     var body: some View {
         VStack(spacing: 16) {
             HStack {
@@ -47,22 +48,22 @@ struct BatchRenameSheetView: View {
                     .font(.system(size: 15, weight: .bold))
                 Spacer()
             }
-            
+
             Picker("", selection: $tabMode) {
                 Text(appState.tr(.find)).tag(RenameTabMode.findReplace)
                 Text(appState.tr(.prefix)).tag(RenameTabMode.prefixSuffix)
                 Text(appState.tr(.sequenceNumbering)).tag(RenameTabMode.sequence)
             }
             .pickerStyle(.segmented)
-            
+
             modeInputView
-            
+
             Divider()
-            
+
             Text(appState.tr(.preview))
                 .font(.system(size: 13, weight: .semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             ScrollView {
                 VStack(spacing: 4) {
                     ForEach(previews, id: \.original.url) { pair in
@@ -72,11 +73,11 @@ struct BatchRenameSheetView: View {
                                 .lineLimit(1)
                                 .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            
+
                             Image(systemName: "arrow.right")
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
-                            
+
                             Text(pair.newName)
                                 .font(.system(size: 12, weight: .medium))
                                 .lineLimit(1)
@@ -89,14 +90,14 @@ struct BatchRenameSheetView: View {
                 }
             }
             .frame(height: 140)
-            
+
             HStack(spacing: 12) {
                 Spacer()
                 Button(appState.tr(.cancel)) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape, modifiers: [])
-                
+
                 Button(appState.tr(.apply)) {
                     appState.performBatchRename(items: items, mode: currentMode)
                     dismiss()
@@ -108,9 +109,8 @@ struct BatchRenameSheetView: View {
         .padding(20)
         .frame(width: 480, height: 380)
     }
-    
-    @ViewBuilder
-    private var modeInputView: some View {
+
+    @ViewBuilder private var modeInputView: some View {
         switch tabMode {
         case .findReplace:
             HStack(spacing: 12) {

@@ -7,7 +7,7 @@ public struct FileOperationTask: Identifiable, Sendable {
     public var bytesTransferred: Int64
     public var totalBytes: Int64
     public var isCancelled: Bool
-    
+
     public init(
         id: UUID = UUID(),
         title: String,

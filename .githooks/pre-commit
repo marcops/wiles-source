@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Blocks the commit if SwiftLint or SwiftFormat find issues in staged .swift files.
+# Does NOT run the full build/test suite (too slow for every commit) —
+# use scripts/validate.sh for that before pushing/releasing.
+
+set -uo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR"
+
+STAGED_SWIFT_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.swift')
+
+if [[ -z "$STAGED_SWIFT_FILES" ]]; then
+  exit 0
+fi
+
+FAILED=0
+
+if command -v swiftformat >/dev/null 2>&1; then
+  if ! echo "$STAGED_SWIFT_FILES" | xargs swiftformat --lint; then
+    echo
+    echo "pre-commit: files are not formatted. Run 'swiftformat .' and re-stage."
+    FAILED=1
+  fi
+else
+  echo "pre-commit: swiftformat not installed, skipping (brew install swiftformat)"
+fi
+
+if command -v swiftlint >/dev/null 2>&1; then
+  if ! echo "$STAGED_SWIFT_FILES" | xargs swiftlint lint --strict; then
+    echo
+    echo "pre-commit: swiftlint found issues."
+    FAILED=1
+  fi
+else
+  echo "pre-commit: swiftlint not installed, skipping (brew install swiftlint)"
+fi
+
+if [[ "$FAILED" -ne 0 ]]; then
+  echo
+  echo "Commit blocked. Fix the issues above, or use 'git commit --no-verify' to bypass (not recommended)."
+  exit 1
+fi
+
+exit 0

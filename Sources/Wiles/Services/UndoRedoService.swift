@@ -16,13 +16,13 @@ public struct UndoRecord: Sendable {
 @MainActor
 public final class UndoRedoService {
     public static let shared = UndoRedoService()
-    
+
     private var undoStack: [UndoRecord] = []
     private var redoStack: [UndoRecord] = []
     private let maxHistoryLimit = 50
-    
+
     private init() {}
-    
+
     public func recordAction(_ action: UndoActionType) {
         undoStack.append(UndoRecord(actionType: action))
         if undoStack.count > maxHistoryLimit {
@@ -30,27 +30,27 @@ public final class UndoRedoService {
         }
         redoStack.removeAll()
     }
-    
+
     public func canUndo() -> Bool {
         !undoStack.isEmpty
     }
-    
+
     public func canRedo() -> Bool {
         !redoStack.isEmpty
     }
-    
+
     public func undo() async -> URL? {
         guard let record = undoStack.popLast() else { return nil }
         redoStack.append(record)
         return await executeReverseAction(record.actionType)
     }
-    
+
     public func redo() async -> URL? {
         guard let record = redoStack.popLast() else { return nil }
         undoStack.append(record)
         return await executeForwardAction(record.actionType)
     }
-    
+
     private func executeReverseAction(_ action: UndoActionType) async -> URL? {
         do {
             switch action {
@@ -68,7 +68,7 @@ public final class UndoRedoService {
             return nil
         }
     }
-    
+
     private func executeForwardAction(_ action: UndoActionType) async -> URL? {
         do {
             switch action {

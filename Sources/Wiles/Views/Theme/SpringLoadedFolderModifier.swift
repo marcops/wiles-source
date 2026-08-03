@@ -5,9 +5,9 @@ public struct SpringLoadedFolderModifier: ViewModifier {
     let isDirectory: Bool
     var appState: AppState
     let onTargetedChanged: (Bool) -> Void
-    
+
     @State private var isTargeted = false
-    @State private var springTask: Task<Void, Never>? = nil
+    @State private var springTask: Task<Void, Never>?
 
     public init(folderURL: URL, isDirectory: Bool, appState: AppState, onTargetedChanged: @escaping (Bool) -> Void) {
         self.folderURL = folderURL

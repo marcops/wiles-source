@@ -11,17 +11,17 @@ struct CellFrameKey: PreferenceKey {
 
 struct FileGridView: View {
     var appState: AppState
-    
+
     private var iconSize: CGFloat { CGFloat(appState.iconSize) * LayoutTokens.gridIconScaleMultiplier }
     private var cardWidth: CGFloat { iconSize + LayoutTokens.cardWidthOffset }
     private var cardHeight: CGFloat { iconSize + LayoutTokens.cardHeightOffset }
     private var columns: [GridItem] {
         [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth + 24), spacing: LayoutTokens.gridSpacing)]
     }
-    
+
     @State private var cellFrames: [URL: CGRect] = [:]
-    @State private var selectionRect: CGRect? = nil
-    @State private var dragStartPoint: CGPoint? = nil
+    @State private var selectionRect: CGRect?
+    @State private var dragStartPoint: CGPoint?
     @State private var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
 
     var body: some View {
@@ -31,7 +31,7 @@ struct FileGridView: View {
                 ScrollView {
                     ZStack(alignment: .topLeading) {
                         Color.clear.frame(height: 1).id("top")
-                        
+
                         Color(NSColor.controlBackgroundColor).opacity(0.001)
                         .contentShape(Rectangle())
                         .gesture(
@@ -39,15 +39,15 @@ struct FileGridView: View {
                                 .onChanged { gesture in
                                     let start = dragStartPoint ?? gesture.startLocation
                                     if dragStartPoint == nil { dragStartPoint = start }
-                                    
+
                                     let minX = min(start.x, gesture.location.x)
                                     let minY = min(start.y, gesture.location.y)
                                     let maxX = max(start.x, gesture.location.x)
                                     let maxY = max(start.y, gesture.location.y)
                                     let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-                                    
+
                                     self.selectionRect = rect
-                                    
+
                                     let selected = cellFrames.compactMap { (url, frame) -> URL? in
                                         frame.intersects(rect) ? url : nil
                                     }
@@ -157,7 +157,7 @@ struct FileGridCardItemView: View {
     var body: some View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
-        
+
         return mainContent(isSel: isSel, isCut: isCut)
             .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState) { targeted in
                 withAnimation(MotionTokens.quickEase) { isDropTargeted = targeted }
@@ -168,7 +168,7 @@ struct FileGridCardItemView: View {
     private func mainContent(isSel: Bool, isCut: Bool) -> some View {
         let borderStroke = isDropTargeted ? Color.accentColor : (isSel ? Color.accentColor : Color.clear)
         let strokeWidth: CGFloat = isDropTargeted ? 3 : 2
-        
+
         return cardVStack(isSel: isSel)
             .frame(width: cardWidth, height: cardHeight)
             .padding(6)

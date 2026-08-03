@@ -7,7 +7,7 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
     case itemNotFound(path: String)
     case operationFailed(reason: String)
     case invalidZipPassword
-    
+
     public var errorDescription: String? {
         switch self {
         case .permissionDenied(let path):

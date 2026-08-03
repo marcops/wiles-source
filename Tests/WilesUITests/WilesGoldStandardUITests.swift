@@ -3,18 +3,18 @@ import XCTest
 // MARK: - Robot (Page Object) Pattern for Wiles macOS UI Tests
 final class WilesAppRobot {
     private let app: XCUIApplication
-    
+
     init(_ app: XCUIApplication) {
         self.app = app
     }
-    
+
     @discardableResult
     func launch() -> Self {
         app.launchArguments = ["--ui-testing"]
         app.launch()
         return self
     }
-    
+
     @discardableResult
     func navigate(to path: String) -> Self {
         app.typeKey("l", modifierFlags: .command)
@@ -24,7 +24,7 @@ final class WilesAppRobot {
         pathField.typeText("\(path)\r")
         return self
     }
-    
+
     @discardableResult
     func search(for query: String) -> Self {
         app.typeKey("f", modifierFlags: .command)
@@ -33,21 +33,21 @@ final class WilesAppRobot {
         searchField.typeText(query)
         return self
     }
-    
+
     @discardableResult
     func verifyItemExists(_ name: String, file: StaticString = #file, line: UInt = #line) -> Self {
         let element = app.staticTexts[name]
         XCTAssertTrue(element.waitForExistence(timeout: 3.0), "Item '\(name)' should exist", file: file, line: line)
         return self
     }
-    
+
     @discardableResult
     func verifyItemDoesNotExist(_ name: String, file: StaticString = #file, line: UInt = #line) -> Self {
         let element = app.staticTexts[name]
         XCTAssertFalse(element.exists, "Item '\(name)' should NOT exist", file: file, line: line)
         return self
     }
-    
+
     @discardableResult
     func rightClickItem(_ name: String) -> Self {
         let element = app.staticTexts[name]
@@ -55,7 +55,7 @@ final class WilesAppRobot {
         element.rightClick()
         return self
     }
-    
+
     @discardableResult
     func verifyContextMenuVisible(file: StaticString = #file, line: UInt = #line) -> Self {
         let menu = app.menus.firstMatch
@@ -66,14 +66,15 @@ final class WilesAppRobot {
 
 // MARK: - Gold Standard Test Case
 final class WilesGoldStandardUITests: XCTestCase {
-    
+
+    // swiftlint:disable:next implicitly_unwrapped_optional - standard XCTest lifecycle property, set in setUp/tearDown
     private var app: XCUIApplication!
     private let testPath = (NSTemporaryDirectory() as NSString).appendingPathComponent("WilesGoldStandardTests")
 
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        
+
         // Setup clean mock file system state
         let fm = FileManager.default
         if fm.fileExists(atPath: testPath) {
@@ -93,7 +94,7 @@ final class WilesGoldStandardUITests: XCTestCase {
             attachment.lifetime = .keepAlways
             add(attachment)
         }
-        
+
         app = nil
         try? FileManager.default.removeItem(atPath: testPath)
     }
@@ -109,7 +110,7 @@ final class WilesGoldStandardUITests: XCTestCase {
             .verifyItemExists("TargetFile.txt")
             .verifyItemDoesNotExist("DecoyFile.txt")
     }
-    
+
     func testContextMenuOnSearchResultGoldStandard() throws {
         WilesAppRobot(app)
             .launch()

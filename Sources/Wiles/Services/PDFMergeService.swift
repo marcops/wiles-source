@@ -13,16 +13,16 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
         guard !urls.isEmpty else {
             throw NSError(domain: "PDFMergeService", code: 1, userInfo: [NSLocalizedDescriptionKey: "No files provided."])
         }
-        
+
         let outputPDF = PDFDocument()
         var pageIndex = 0
-        
+
         for url in urls {
             let ext = url.pathExtension.lowercased()
             if ext == "pdf" {
                 if let doc = PDFDocument(url: url) {
-                    for i in 0..<doc.pageCount {
-                        if let page = doc.page(at: i) {
+                    for pageNum in 0..<doc.pageCount {
+                        if let page = doc.page(at: pageNum) {
                             outputPDF.insert(page, at: pageIndex)
                             pageIndex += 1
                         }
@@ -33,7 +33,7 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
                 pageIndex += 1
             }
         }
-        
+
         let fileName = outputName ?? "Merged_\(Int(Date().timeIntervalSince1970)).pdf"
         var destURL = destinationFolder.appendingPathComponent(fileName)
         var counter = 2
@@ -42,7 +42,7 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
             destURL = destinationFolder.appendingPathComponent("\(baseName) \(counter).pdf")
             counter += 1
         }
-        
+
         outputPDF.write(to: destURL)
         return destURL
     }

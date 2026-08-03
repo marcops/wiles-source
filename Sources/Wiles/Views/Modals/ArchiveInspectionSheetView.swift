@@ -4,7 +4,8 @@ import AppKit
 struct ArchiveInspectionSheetView: View {
     let archiveURL: URL
     var appState: AppState
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     @State private var entries: [ArchiveEntryItem] = []
 
     var body: some View {
@@ -17,9 +18,9 @@ struct ArchiveInspectionSheetView: View {
                     .font(.headline)
                 Spacer()
             }
-            
+
             Divider()
-            
+
             if entries.isEmpty {
                 VStack {
                     ProgressView()
@@ -51,9 +52,9 @@ struct ArchiveInspectionSheetView: View {
                     }
                 }
             }
-            
+
             Divider()
-            
+
             HStack {
                 Spacer()
                 Button(appState.tr(.close)) {

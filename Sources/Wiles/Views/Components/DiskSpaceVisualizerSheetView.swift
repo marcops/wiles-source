@@ -2,10 +2,11 @@ import SwiftUI
 
 struct DiskSpaceVisualizerSheetView: View {
     var appState: AppState
-    @Environment(\.dismiss) private var dismiss
-    @State private var report: DiskUsageReport? = nil
+    @Environment(\.dismiss)
+    private var dismiss
+    @State private var report: DiskUsageReport?
     @State private var isLoading: Bool = true
-    
+
     var body: some View {
         VStack(spacing: 16) {
             HStack {
@@ -18,15 +19,15 @@ struct DiskSpaceVisualizerSheetView: View {
                         .lineLimit(1)
                 }
                 Spacer()
-                if let r = report {
-                    Text(r.formattedTotalSize)
+                if let report {
+                    Text(report.formattedTotalSize)
                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                         .foregroundColor(.accentColor)
                 }
             }
-            
+
             Divider()
-            
+
             if isLoading {
                 VStack(spacing: 12) {
                     Spacer()
@@ -37,33 +38,33 @@ struct DiskSpaceVisualizerSheetView: View {
                     Spacer()
                 }
                 .frame(height: 260)
-            } else if let r = report, !r.topItems.isEmpty {
+            } else if let report, !report.topItems.isEmpty {
                 VStack(spacing: 14) {
                     HStack(spacing: 2) {
-                        ForEach(r.topItems) { item in
+                        ForEach(report.topItems) { item in
                             Rectangle()
                                 .fill(Color(hue: item.colorHue, saturation: 0.7, brightness: 0.8))
                                 .frame(height: 14)
                         }
-                        if let _ = r.othersItem {
+                        if report.othersItem != nil {
                             Rectangle()
                                 .fill(Color.gray.opacity(0.5))
                                 .frame(height: 14)
                         }
                     }
                     .cornerRadius(4)
-                    
+
                     Text(appState.tr(.topLargestItems))
                         .font(.system(size: 12, weight: .semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     ScrollView {
                         VStack(spacing: 6) {
-                            ForEach(r.topItems) { item in
+                            ForEach(report.topItems) { item in
                                 usageRow(item: item)
                             }
-                            if let oth = r.othersItem {
-                                usageRow(item: oth)
+                            if let othersItem = report.othersItem {
+                                usageRow(item: othersItem)
                             }
                         }
                     }
@@ -79,9 +80,9 @@ struct DiskSpaceVisualizerSheetView: View {
                 }
                 .frame(height: 260)
             }
-            
+
             Divider()
-            
+
             HStack {
                 Spacer()
                 Button(appState.tr(.close)) {
@@ -96,7 +97,7 @@ struct DiskSpaceVisualizerSheetView: View {
             loadUsage()
         }
     }
-    
+
     private func loadUsage() {
         isLoading = true
         let current = appState.currentURL
@@ -108,28 +109,28 @@ struct DiskSpaceVisualizerSheetView: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func usageRow(item: DiskUsageItem) -> some View {
         HStack(spacing: 10) {
             Circle()
                 .fill(item.colorHue == 0.0 ? Color.gray : Color(hue: item.colorHue, saturation: 0.7, brightness: 0.8))
                 .frame(width: 10, height: 10)
-            
+
             Image(systemName: item.isDirectory ? "folder.fill" : "doc.fill")
                 .foregroundColor(item.isDirectory ? .accentColor : .secondary)
                 .font(.system(size: 12))
-            
+
             Text(item.name)
                 .font(.system(size: 12))
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             Text(String(format: "%.1f%%", item.percentage))
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(.secondary)
                 .frame(width: 50, alignment: .trailing)
-            
+
             Text(item.formattedSize)
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .frame(width: 80, alignment: .trailing)

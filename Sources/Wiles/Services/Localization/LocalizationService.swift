@@ -58,6 +58,10 @@ public struct L10n {
         case newFolder
         case paste
         case selectAll
+        case undo
+        case redo
+        case enclosingFolder
+        case wilesHelpAndShortcuts
         case sortBy
         case viewMode
         case gridView
@@ -94,6 +98,18 @@ public struct L10n {
         case copy
         case copyContent
         case moveToTrash
+        case noSelection
+        case codePreview
+        case sharingActive
+        case createSymbolicLink
+        case linkType
+        case symlinkNameLabel
+        case createLink
+        case wilesFileManager
+        case backgroundOperations
+        case noActiveOperations
+        case itemsSelectedSuffix
+        case activeSuffix
         case compressToZip
         case extractHere
         case rename
@@ -187,7 +203,7 @@ public struct L10n {
         case gray
         case clearAllTags
         case services
-        
+
         case showPreviewSidebar
         case moreInfo
         case general

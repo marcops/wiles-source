@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let es: [Key: String] = [
+        .undo: "Deshacer",
+        .redo: "Rehacer",
+        .enclosingFolder: "Carpeta Contenedora",
+        .wilesHelpAndShortcuts: "Ayuda y Atajos de Wiles",
         .newFolder: "Nueva Carpeta...",
         .paste: "Pegar",
         .selectAll: "Seleccionar Todo",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Copiar",
         .copyContent: "Copiar Contenido",
         .moveToTrash: "Mover a la Papelera",
+        .noSelection: "Sin Selección",
+        .codePreview: "Vista Previa de Código",
+        .sharingActive: "Compartición Activa",
+        .createSymbolicLink: "Crear Enlace Simbólico",
+        .linkType: "Tipo de Enlace",
+        .symlinkNameLabel: "Nombre del Enlace",
+        .createLink: "Crear Enlace",
+        .wilesFileManager: "Gestor de Archivos Wiles",
+        .backgroundOperations: "Operaciones en Segundo Plano",
+        .noActiveOperations: "Sin operaciones activas",
+        .itemsSelectedSuffix: "elementos seleccionados",
+        .activeSuffix: "activas",
         .compressToZip: "Comprimir a ZIP",
         .extractHere: "Extraer Archivo Aquí",
         .rename: "Renombrar...",
@@ -223,7 +239,8 @@ extension L10n {
         .actRefreshShortcut: "Actualizar Directorio",
         .actToggleStatusBar: "Alternar Barra de Estado",
         .fullDiskAccessPromptTitle: "Acceso Total al Disco",
-        .fullDiskAccessPromptMessage: "Wiles necesita Acceso Total al Disco para explorar todas tus carpetas sin solicitudes de permiso repetidas. Concédelo una vez en Ajustes del Sistema.",
+        .fullDiskAccessPromptMessage: "Wiles necesita Acceso Total al Disco para explorar todas tus carpetas sin " +
+            "solicitudes de permiso repetidas. Concédelo una vez en Ajustes del Sistema.",
         .openSystemSettings: "Abrir Ajustes del Sistema",
         .notNow: "Ahora No"
 ,

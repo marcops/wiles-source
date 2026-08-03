@@ -10,8 +10,8 @@ public struct ExifMetadataTests {
         if let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
             try? png.write(to: tempFile)
         }
-        
-        let _ = ExifMetadataService.extractExif(from: tempFile)
+
+        _ = ExifMetadataService.extractExif(from: tempFile)
         TestReporter.report("ExifMetadata", "POS: extractExif runs safely on image", result: true)
     }
 }

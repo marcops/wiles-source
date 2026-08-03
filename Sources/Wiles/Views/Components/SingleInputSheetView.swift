@@ -8,10 +8,10 @@ struct SingleInputSheetView: View {
     let cancelTitle: String
     let onCancel: () -> Void
     let onSubmit: (String) -> Void
-    
+
     @State private var textValue: String = ""
     @FocusState private var isFocused: Bool
-    
+
     init(
         title: String,
         iconName: String? = nil,
@@ -29,7 +29,7 @@ struct SingleInputSheetView: View {
         self.onCancel = onCancel
         self.onSubmit = onSubmit
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 8) {
@@ -41,19 +41,19 @@ struct SingleInputSheetView: View {
                 Text(title)
                     .font(.system(size: 15, weight: .bold))
             }
-            
+
             TextField("", text: $textValue)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
                 .onSubmit { submit() }
-            
+
             HStack(spacing: 12) {
                 Spacer()
                 Button(cancelTitle) {
                     onCancel()
                 }
                 .keyboardShortcut(.escape, modifiers: [])
-                
+
                 Button(actionButtonTitle) {
                     submit()
                 }
@@ -69,7 +69,7 @@ struct SingleInputSheetView: View {
             isFocused = true
         }
     }
-    
+
     private func submit() {
         let trimmed = textValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }

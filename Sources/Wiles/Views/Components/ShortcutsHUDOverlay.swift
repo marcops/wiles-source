@@ -3,7 +3,7 @@ import AppKit
 
 struct ShortcutsHUDOverlay: View {
     var appState: AppState
-    
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.3)
@@ -12,7 +12,7 @@ struct ShortcutsHUDOverlay: View {
                         appState.showShortcutsHUD = false
                     }
                 }
-            
+
             VStack(spacing: 16) {
                 HStack {
                     Image(systemName: "keyboard")
@@ -21,18 +21,18 @@ struct ShortcutsHUDOverlay: View {
                     Text(appState.tr(.shortcutsCheatsheetTitle))
                         .font(.system(size: 16, weight: .bold))
                     Spacer()
-                    Button(action: {
+                    Button {
                         withAnimation(MotionTokens.snappySpring) {
                             appState.showShortcutsHUD = false
                         }
-                    }) {
+                    } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 16))
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
-                
+
                 Text(appState.navigationMode.shortName)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.accentColor)
@@ -41,7 +41,7 @@ struct ShortcutsHUDOverlay: View {
                     .background(Color.accentColor.opacity(0.15))
                     .cornerRadius(6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 ScrollView {
                     VStack(spacing: 12) {
                         shortcutGroup(title: appState.tr(.shortcutsNav), items: navigationShortcuts)
@@ -65,7 +65,7 @@ struct ShortcutsHUDOverlay: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var navigationShortcuts: [(String, String)] {
         if appState.navigationMode == .macOS {
             return [
@@ -81,7 +81,7 @@ struct ShortcutsHUDOverlay: View {
             ]
         }
     }
-    
+
     private var fileActionsShortcuts: [(String, String)] {
         let renameKey = appState.navigationMode == .gnome ? "F2" : "Return"
         return [
@@ -95,7 +95,7 @@ struct ShortcutsHUDOverlay: View {
             (appState.tr(.actMoveTrash), "⌘ Delete")
         ]
     }
-    
+
     private var systemShortcuts: [(String, String)] {
         let hiddenKey = appState.navigationMode == .gnome ? "Ctrl + H" : "⌘ Shift ."
         return [
@@ -106,14 +106,14 @@ struct ShortcutsHUDOverlay: View {
             (appState.tr(.shortcutsToggleOverlay), "⌘ /")
         ]
     }
-    
+
     private func shortcutGroup(title: String, items: [(String, String)]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title.uppercased())
                 .font(.system(size: 9, weight: .bold))
                 .foregroundColor(.secondary)
                 .padding(.bottom, 2)
-            
+
             ForEach(items, id: \.0) { item in
                 HStack {
                     Text(item.0)

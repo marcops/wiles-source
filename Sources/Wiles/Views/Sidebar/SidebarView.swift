@@ -10,7 +10,7 @@ struct SidebarView: View {
         let cloudDocs = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
         let airDrop = URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app")
         let trashURL = URL.userTrash
-            
+
         return [
             SidebarItem(name: appState.tr(.applications), iconName: "square.grid.3x3.fill", url: URL(fileURLWithPath: "/Applications")),
             SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: airDrop),
@@ -19,7 +19,7 @@ struct SidebarView: View {
             SidebarItem(name: appState.tr(.trash), iconName: "trash.fill", url: trashURL)
         ]
     }
-    
+
     var recentItems: [SidebarItem] {
         var seen = Set<URL>()
         var items: [SidebarItem] = []
@@ -33,14 +33,14 @@ struct SidebarView: View {
         }
         return items
     }
-    
+
     var rootFolderNode: FolderNode {
         FolderNode.buildRootTree()
     }
-    
+
     var body: some View {
         @Bindable var appState = appState
-        
+
         let favItems = appState.favoriteURLs.map { sidebarItem(for: $0) }
 
         return ScrollView {
@@ -58,7 +58,7 @@ struct SidebarView: View {
                         isFavoritesSection: true
                     )
                 }
-                
+
                 if appState.showNetworkAndCloud {
                     let items: [SidebarItem] = {
                         let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
@@ -75,7 +75,7 @@ struct SidebarView: View {
                         isFavoritesSection: false
                     )
                 }
-                
+
                 if appState.showPlaces && appState.sidebarMode == .places {
                     collapsibleSection(
                         title: appState.tr(.places),
@@ -93,7 +93,7 @@ struct SidebarView: View {
                         }
                     }
                 }
-                
+
                 if appState.showTags {
                     VStack(alignment: .leading, spacing: 4) {
                         if appState.showSidebarSectionTitles {
@@ -146,13 +146,13 @@ struct SidebarView: View {
                 }
         }
     }
-    
+
     private func sectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
-        Button(action: {
+        Button {
             withAnimation(MotionTokens.quickEase) {
                 isExpanded.wrappedValue.toggle()
             }
-        }) {
+        } label: {
             HStack(spacing: 4) {
                 Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
                     .font(.system(size: 9, weight: .bold))
@@ -169,17 +169,17 @@ struct SidebarView: View {
         }
         .buttonStyle(.plain)
     }
-    
+
     private func tagRow(tag: String, colorKey: L10n.Key) -> some View {
         let query = "tag:\(tag.lowercased())"
         let isSel = appState.searchQuery.lowercased() == query
-        return Button(action: {
+        return Button {
             if isSel {
                 appState.searchQuery = ""
             } else {
                 appState.searchQuery = query
             }
-        }) {
+        } label: {
             HStack(spacing: 6) {
                 Circle().fill(colorForTag(tag)).frame(width: 10, height: 10)
                 Text(appState.tr(colorKey))
@@ -195,7 +195,7 @@ struct SidebarView: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 6)
     }
-    
+
     private func collapsibleSection(title: String, isExpanded: Binding<Bool>, items: [SidebarItem], isFavoritesSection: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if appState.showSidebarSectionTitles {
@@ -208,15 +208,15 @@ struct SidebarView: View {
             }
         }
     }
-    
+
     private func sidebarItem(for url: URL) -> SidebarItem {
         let home = URL.userHome.standardizedFileURL
         let std = url.standardizedFileURL
         let path = std.path
-        
+
         let icon: String
         let name: String
-        
+
         if url == AppState.recentsVirtualURL || std.absoluteString == AppState.recentsVirtualURL.absoluteString {
             name = appState.tr(.recents); icon = "clock.fill"
         } else if path == home.path {
@@ -245,9 +245,9 @@ struct SidebarView: View {
         }
         return SidebarItem(name: name, iconName: icon, url: std)
     }
-    
+
     private func smartFolderRow(folder: SmartFolder) -> some View {
-        Button(action: {
+        Button {
             appState.searchQuery = folder.searchQuery
             appState.isSearching = true
             SmartFolderService.shared.executeQuery(for: folder) { items in
@@ -255,7 +255,7 @@ struct SidebarView: View {
                     appState.items = items
                 }
             }
-        }) {
+        } label: {
             HStack(spacing: 8) {
                 Image(systemName: folder.icon)
                     .foregroundColor(.accentColor)
@@ -276,7 +276,7 @@ struct SidebarView: View {
             }
         }
     }
-    
+
     private func sidebarRow(for item: SidebarItem, sectionKey: String, isFavoritesSection: Bool = false) -> some View {
         let rowKey = "\(sectionKey)|\(item.url.path)"
         return SidebarRowView(
@@ -303,15 +303,15 @@ private struct SidebarRowView: View {
     @State private var isDragTargeted = false
 
     @State private var isHovered = false
-    
+
     var body: some View {
         let isCurrentFolder = appState.currentURL.standardizedFileURL == item.url.standardizedFileURL
         let isSel = isRightClicked || (isCurrentFolder && !isAnotherRowRightClicked)
         let isTrash = item.url.standardizedFileURL == URL.userTrash.standardizedFileURL
-        return Button(action: {
+        return Button {
             onLeftClick()
             appState.navigateTo(item.url)
-        }) {
+        } label: {
             HStack(spacing: 10) {
                 Image(systemName: item.iconName)
                     .font(.system(size: 15)).foregroundColor(.accentColor).frame(width: 20)
@@ -326,7 +326,8 @@ private struct SidebarRowView: View {
                             .controlSize(.mini)
                             .scaleEffect(0.6)
                             .frame(width: 16, height: 16)
-                    } else if !appState.trashSizeString.isEmpty && appState.trashSizeString != "Zero KB" && appState.trashSizeString != "0 KB" && appState.trashSizeString != "0 bytes" {
+                    } else if !appState.trashSizeString.isEmpty
+                        && !["Zero KB", "0 KB", "0 bytes"].contains(appState.trashSizeString) {
                         Text(appState.trashSizeString)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
@@ -337,7 +338,7 @@ private struct SidebarRowView: View {
                     }
                 }
                 if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
-                    Button(action: {
+                    Button {
                         let target = item.url
                         do {
                             try NSWorkspace.shared.unmountAndEjectDevice(at: target)
@@ -345,7 +346,7 @@ private struct SidebarRowView: View {
                         } catch {
                             appState.showError(error.localizedDescription)
                         }
-                    }) {
+                    } label: {
                         Image(systemName: "eject.fill")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)

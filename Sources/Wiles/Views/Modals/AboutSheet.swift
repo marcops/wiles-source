@@ -2,44 +2,46 @@ import SwiftUI
 import AppKit
 
 struct AboutSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
-    
+    @Environment(\.dismiss)
+    private var dismiss
+    @Environment(\.openURL)
+    private var openURL
+
     var appState: AppState
-    
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
             Divider()
-            
+
             VStack(spacing: 16) {
                 Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: LayoutTokens.aboutIconSize, height: LayoutTokens.aboutIconSize)
-                
+
                 VStack(spacing: 4) {
                     Text(AppConstants.appName)
                         .font(.system(size: LayoutTokens.aboutTitleFontSize, weight: .bold))
-                    Text("\(appState.tr(.version)) \(AppConstants.appVersion)") 
+                    Text("\(appState.tr(.version)) \(AppConstants.appVersion)")
                         .font(.system(size: LayoutTokens.aboutTextFontSize))
                         .foregroundColor(.secondary)
                 }
-                
+
                 Text(appState.tr(.aboutDescription))
                     .font(.system(size: LayoutTokens.aboutTextFontSize))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
-                
+
                 VStack(spacing: 6) {
                     Text(appState.tr(.createdBy))
                         .font(.system(size: LayoutTokens.aboutTextFontSize, weight: .medium))
-                    
-                    Button(action: {
+
+                    Button {
                         if let url = URL(string: AppConstants.githubURL) {
                             openURL(url)
                         }
-                    }) {
+                    } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "link")
                             Text(AppConstants.githubDisplayString)
@@ -58,14 +60,14 @@ struct AboutSheet: View {
                 .padding(.top, 8)
             }
             .padding(.vertical, 32)
-            
+
             Divider()
             footerView
         }
         .frame(width: LayoutTokens.aboutWindowWidth)
         .background(Color(NSColor.windowBackgroundColor))
     }
-    
+
     private var headerView: some View {
         HStack {
             Text(appState.tr(.aboutWiles))
@@ -76,7 +78,7 @@ struct AboutSheet: View {
         .padding(.vertical, 14)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
-    
+
     private var footerView: some View {
         HStack {
             Spacer()

@@ -6,10 +6,10 @@ public struct ArchiveTests {
     public static func run() {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        
+
         let file1 = tempDir.appendingPathComponent("doc1.txt")
         try? "Content 1".write(to: file1, atomically: true, encoding: .utf8)
-        
+
         // Positive: Compression
         var compressPassed = false
         do {
@@ -20,7 +20,7 @@ public struct ArchiveTests {
             print("ZIP Compress error: \(error)")
         }
         TestReporter.report("ZipArchive", "POS: compressToZIP creates valid .zip archive", result: compressPassed)
-        
+
         // Positive: Extraction
         var extractPassed = false
         if compressPassed {
@@ -35,7 +35,7 @@ public struct ArchiveTests {
             }
         }
         TestReporter.report("ZipArchive", "POS: extractZIP expands archive successfully", result: extractPassed)
-        
+
         // Negative: Extract Invalid File
         var negExtractPassed = false
         let invalidArchive = tempDir.appendingPathComponent("not_a_zip.zip")
@@ -46,7 +46,7 @@ public struct ArchiveTests {
             negExtractPassed = true
         }
         TestReporter.report("ZipArchive", "NEG: extractZIP on invalid archive throws error", result: negExtractPassed)
-        
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 }

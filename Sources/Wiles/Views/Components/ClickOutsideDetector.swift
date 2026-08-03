@@ -11,8 +11,8 @@ struct ClickOutsideDetector: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        if let v = nsView as? ClickView {
-            v.onOutsideClick = onOutsideClick
+        if let clickView = nsView as? ClickView {
+            clickView.onOutsideClick = onOutsideClick
         }
     }
 
@@ -55,12 +55,12 @@ struct ClickOutsideDetector: NSViewRepresentable {
         }
 
         private func removeMonitor() {
-            if let m = monitor {
-                NSEvent.removeMonitor(m)
+            if let existingMonitor = monitor {
+                NSEvent.removeMonitor(existingMonitor)
                 monitor = nil
             }
         }
-        
+
         override func hitTest(_ aPoint: NSPoint) -> NSView? {
             return nil
         }

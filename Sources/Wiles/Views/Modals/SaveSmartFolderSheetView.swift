@@ -3,18 +3,19 @@ import AppKit
 
 struct SaveSmartFolderSheetView: View {
     var appState: AppState
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     @State private var folderName: String = ""
 
     var body: some View {
         VStack(spacing: 16) {
             Text(appState.tr(.saveAsSmartFolder))
                 .font(.headline)
-            
+
             TextField(appState.tr(.smartFolderName), text: $folderName)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 260)
-            
+
             HStack {
                 Button(appState.tr(.cancel)) {
                     dismiss()

@@ -8,7 +8,7 @@ public struct SmartFolder: Identifiable, Codable, Hashable, Sendable {
     public var searchQuery: String
     public var scopePath: String
     public var createdAt: Date
-    
+
     public init(id: UUID = UUID(), name: String, icon: String = "folder.badge.gearshape", searchQuery: String, scopePath: String, createdAt: Date = Date()) {
         self.id = id
         self.name = name
@@ -29,19 +29,19 @@ public protocol SmartFolderServiceProtocol: Sendable {
 public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @unchecked Sendable {
     public static let shared = SmartFolderService()
     private var query: NSMetadataQuery?
-    
+
     public static func loadSavedSmartFolders() -> [SmartFolder] {
         guard let data = UserDefaults.standard.data(forKey: "wiles_smartFolders"),
               let folders = try? JSONDecoder().decode([SmartFolder].self, from: data) else { return [] }
         return folders
     }
-    
+
     public static func saveSmartFolders(_ folders: [SmartFolder]) {
         if let data = try? JSONEncoder().encode(folders) {
             UserDefaults.standard.set(data, forKey: "wiles_smartFolders")
         }
     }
-    
+
     public func executeQuery(for smartFolder: SmartFolder, completion: @escaping @Sendable ([FileItem]) -> Void) {
         query?.stop()
         let metadataQuery = NSMetadataQuery()
@@ -53,7 +53,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         } else {
             metadataQuery.searchScopes = [NSMetadataQueryUserHomeScope]
         }
-        
+
         NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { notification in
             guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
             query.stop()
@@ -79,7 +79,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         let predicateStr = "(kMDItemTextContent == '*\(cleanQuery)*'c || kMDItemFSName == '*\(cleanQuery)*'c)"
         metadataQuery.predicate = NSPredicate(format: predicateStr)
         metadataQuery.searchScopes = [folderURL]
-        
+
         NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { notification in
             guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
             query.stop()

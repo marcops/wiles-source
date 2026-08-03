@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let italian: [Key: String] = [
+        .undo: "Annulla",
+        .redo: "Ripeti",
+        .enclosingFolder: "Cartella Superiore",
+        .wilesHelpAndShortcuts: "Guida e Scorciatoie di Wiles",
         .newFolder: "Nuova cartella",
         .paste: "Incolla",
         .selectAll: "Seleziona tutto",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Copia",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "Nessuna Selezione",
+        .codePreview: "Anteprima Codice",
+        .sharingActive: "Condivisione Attiva",
+        .createSymbolicLink: "Crea Collegamento Simbolico",
+        .linkType: "Tipo di Collegamento",
+        .symlinkNameLabel: "Nome Collegamento",
+        .createLink: "Crea Collegamento",
+        .wilesFileManager: "Gestore File Wiles",
+        .backgroundOperations: "Operazioni in Background",
+        .noActiveOperations: "Nessuna operazione attiva",
+        .itemsSelectedSuffix: "elementi selezionati",
+        .activeSuffix: "attive",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "Rinomina",
@@ -144,7 +160,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

@@ -12,7 +12,7 @@ struct DirectoryTreeNodeView: View {
         self.depth = depth
         self.appState = appState
     }
-    
+
     private var isExpandedBinding: Binding<Bool> {
         Binding(
             get: { appState.expandedTreePaths.contains(node.url.path) },
@@ -25,13 +25,13 @@ struct DirectoryTreeNodeView: View {
             }
         )
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             if let children = node.children, !children.isEmpty {
                 DisclosureGroup(isExpanded: isExpandedBinding) {
                     ForEach(children) { child in
-                        DirectoryTreeNodeView(node: child, depth: depth + 1, appState: appState)
+                        Self(node: child, depth: depth + 1, appState: appState)
                     }
                 } label: {
                     rowContent
@@ -42,13 +42,13 @@ struct DirectoryTreeNodeView: View {
         }
         .padding(.leading, CGFloat(depth) * 12)
     }
-    
+
     private var rowContent: some View {
         let isSel = appState.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
-        return Button(action: {
+        return Button {
             isRightClicked = false
             appState.navigateTo(node.url)
-        }) {
+        } label: {
             HStack(spacing: 6) {
                 Image(systemName: "folder.fill")
                     .font(.system(size: 12))

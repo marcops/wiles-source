@@ -8,7 +8,7 @@ struct ColumnResizeHandle: View {
     var appState: AppState
 
     @State private var isHovered = false
-    @State private var dragStartWidth: CGFloat? = nil
+    @State private var dragStartWidth: CGFloat?
 
     private static let hitAreaWidth: CGFloat = 8
     private static let lineWidth: CGFloat = 1
@@ -41,7 +41,7 @@ struct ColumnResizeHandle: View {
                     let dx = value.translation.width
                     let initWidth = dragStartWidth ?? column.defaultWidth
                     let newWidth = max(LayoutTokens.columnMinWidth, initWidth + dx)
-                    
+
                     appState.setColumnWidth(column, width: newWidth)
                 }
                 .onEnded { _ in

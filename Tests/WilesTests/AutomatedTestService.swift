@@ -7,9 +7,9 @@ public final class AutomatedTestService {
         print("\n=======================================================")
         print("🧪 RUNNING WILES COMPREHENSIVE AUTOMATED TEST SUITE")
         print("=======================================================")
-        
+
         TestReporter.reset()
-        
+
         NavigationTests.run()
         ArrowKeyNavigationTests.run()
         ListColumnTests.run()
@@ -37,14 +37,14 @@ public final class AutomatedTestService {
         ImageConverterTests.run()
         NetworkDiscoveryTests.run()
         PermissionTests.run()
-        
+
         let passed = TestReporter.passed
         let failed = TestReporter.failed
-        
+
         print("=======================================================")
         print("🏁 COMPREHENSIVE SUITE COMPLETE: \(passed) Passed, \(failed) Failed")
         print("=======================================================\n")
-        
+
         exit(failed == 0 ? 0 : 1)
     }
 }

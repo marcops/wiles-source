@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 public struct ICloudStatusBadgeView: View {
     let item: FileItem
-    
+
     public init(item: FileItem) {
         self.item = item
     }
@@ -100,10 +100,10 @@ struct SharedFileItemContextMenu: View {
         Menu(appState.tr(.openWith)) {
             let availableApps = OpenWithService.availableApplications(for: item.url)
             ForEach(availableApps) { app in
-                Button(action: {
+                Button {
                     let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
                     OpenWithService.open(urls: targetURLs, with: app.url)
-                }) {
+                } label: {
                     Text(app.name)
                 }
             }
@@ -118,9 +118,9 @@ struct SharedFileItemContextMenu: View {
                 Divider()
                 Menu(appState.tr(.changeAllDefaultApp) + "...") {
                     ForEach(availableApps) { app in
-                        Button(action: {
+                        Button {
                             OpenWithService.setDefaultApplication(for: item.fileExtension, applicationURL: app.url)
-                        }) {
+                        } label: {
                             Text(app.name)
                         }
                     }
@@ -265,9 +265,10 @@ struct SharedFileItemContextMenu: View {
                 ]
                 let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
                 ForEach(predefinedTags, id: \.self) { tag in
-                    Button(action: {
+                    Button {
                         for url in targetURLs {
-                            let currentItem = appState.items.first(where: { $0.url == url }) ?? FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
+                            let fallbackItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
+                            let currentItem = appState.items.first(where: { $0.url == url }) ?? fallbackItem
                             var newTags = currentItem.tags
                             if newTags.contains(tag) {
                                 newTags.removeAll { $0 == tag }
@@ -281,7 +282,7 @@ struct SharedFileItemContextMenu: View {
                             }
                         }
                         appState.refreshCurrentDirectory()
-                    }) {
+                    } label: {
                         HStack {
                             if let key = tagKeys[tag] {
                                 Text(appState.tr(key))
@@ -325,7 +326,10 @@ extension AppState {
             } else {
                 selectedURLs.insert(item.url)
             }
-        } else if flags.contains(.shift), let last = selectedURLs.first, let lastIdx = items.firstIndex(where: { $0.url == last }), let curIdx = items.firstIndex(where: { $0.url == item.url }) {
+        } else if flags.contains(.shift),
+            let last = selectedURLs.first,
+            let lastIdx = items.firstIndex(where: { $0.url == last }),
+            let curIdx = items.firstIndex(where: { $0.url == item.url }) {
             let range = min(lastIdx, curIdx)...max(lastIdx, curIdx)
             let rangeURLs = items[range].map { $0.url }
             selectedURLs.formUnion(rangeURLs)
@@ -339,8 +343,12 @@ extension AppState {
             _ = provider.loadObject(ofClass: URL.self) { droppedURL, _ in
                 guard let droppedURL = droppedURL, droppedURL.standardizedFileURL != targetFolder.standardizedFileURL else { return }
                 Task { @MainActor in
-                    _ = try? FileSystemService.moveItem(at: droppedURL, toFolder: targetFolder)
-                    self.refreshCurrentDirectory()
+                    do {
+                        _ = try FileSystemService.moveItem(at: droppedURL, toFolder: targetFolder)
+                        self.refreshCurrentDirectory()
+                    } catch {
+                        self.showError(error.localizedDescription)
+                    }
                 }
             }
         }

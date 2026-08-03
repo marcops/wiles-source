@@ -6,7 +6,7 @@ public struct HoverItemHighlightModifier: ViewModifier {
     let hoverBackground: Color
     let selectedBackground: Color
     let cornerRadius: CGFloat
-    
+
     @State private var isHovered: Bool = false
 
     public init(

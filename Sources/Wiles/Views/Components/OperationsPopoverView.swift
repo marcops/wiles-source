@@ -2,23 +2,23 @@ import SwiftUI
 
 public struct OperationsPopoverView: View {
     var service = BackgroundOperationsService.shared
-    
+
     public init() {}
-    
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Background Operations")
+                Text(appState.tr(.backgroundOperations))
                     .font(.system(size: 13, weight: .bold))
                 Spacer()
-                Text("\(service.activeTasks.count) active")
+                Text("\(service.activeTasks.count) \(appState.tr(.activeSuffix))")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
             Divider()
-            
+
             if service.activeTasks.isEmpty {
-                Text("No active operations")
+                Text(appState.tr(.noActiveOperations))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.vertical, 8)
@@ -36,7 +36,7 @@ public struct OperationsPopoverView: View {
         .padding(14)
         .frame(width: 300)
     }
-    
+
     private func taskRow(for task: FileOperationTask) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -44,18 +44,18 @@ public struct OperationsPopoverView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .lineLimit(1)
                 Spacer()
-                Button(action: {
+                Button {
                     service.cancelTask(id: task.id)
-                }) {
+                } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
             }
-            
+
             ProgressView(value: task.progress)
                 .progressViewStyle(.linear)
-            
+
             HStack {
                 Text("\(Int(task.progress * 100))%")
                     .font(.system(size: 10))

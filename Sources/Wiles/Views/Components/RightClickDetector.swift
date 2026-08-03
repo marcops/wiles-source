@@ -20,7 +20,7 @@ struct RightClickDetector: NSViewRepresentable {
         override func hitTest(_ aPoint: NSPoint) -> NSView? {
             let pointInView = convert(aPoint, from: superview)
             if bounds.contains(pointInView) {
-                if let event = NSApp.currentEvent, (event.type == .rightMouseDown || event.type == .rightMouseUp) {
+                if let event = NSApp.currentEvent, event.type == .rightMouseDown || event.type == .rightMouseUp {
                     return self
                 }
             }

@@ -3,15 +3,16 @@ import SwiftUI
 struct ImageConverterSheetView: View {
     let item: FileItem
     var appState: AppState
-    
-    @Environment(\.dismiss) private var dismiss
+
+    @Environment(\.dismiss)
+    private var dismiss
     @State private var targetFormat: ImageFormat = .jpeg
     @State private var preset: ResizePreset = .original
     @State private var cropPreset: CropPreset = .none
     @State private var quality: Double = 0.85
-    
-    @State private var loadedNSImage: NSImage? = nil
-    
+
+    @State private var loadedNSImage: NSImage?
+
     var body: some View {
         VStack(spacing: 14) {
             HStack(spacing: 12) {
@@ -28,9 +29,9 @@ struct ImageConverterSheetView: View {
                 }
                 Spacer()
             }
-            
+
             Divider()
-            
+
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(appState.tr(.targetFormat) + ":")
@@ -43,31 +44,31 @@ struct ImageConverterSheetView: View {
                     }
                     .pickerStyle(.menu)
                 }
-                
+
                 HStack {
                     Text(appState.tr(.cropPreset) + ":")
                         .font(.system(size: 12, weight: .semibold))
                         .frame(width: 130, alignment: .leading)
                     Picker("", selection: $cropPreset) {
-                        ForEach(CropPreset.allCases) { c in
-                            Text(c.displayName).tag(c)
+                        ForEach(CropPreset.allCases) { cropOption in
+                            Text(cropOption.displayName).tag(cropOption)
                         }
                     }
                     .pickerStyle(.menu)
                 }
-                
+
                 HStack {
                     Text(appState.tr(.resizePreset) + ":")
                         .font(.system(size: 12, weight: .semibold))
                         .frame(width: 130, alignment: .leading)
                     Picker("", selection: $preset) {
-                        ForEach(ResizePreset.allCases) { p in
-                            Text(p.displayName).tag(p)
+                        ForEach(ResizePreset.allCases) { resizePreset in
+                            Text(resizePreset.displayName).tag(resizePreset)
                         }
                     }
                     .pickerStyle(.menu)
                 }
-                
+
                 if targetFormat == .jpeg || targetFormat == .heic {
                     HStack {
                         Text(appState.tr(.quality) + ":")
@@ -80,16 +81,16 @@ struct ImageConverterSheetView: View {
                     }
                 }
             }
-            
+
             Divider()
-            
+
             HStack(spacing: 12) {
                 Spacer()
                 Button(appState.tr(.cancel)) {
                     dismiss()
                 }
                 .keyboardShortcut(.escape, modifiers: [])
-                
+
                 Button(appState.tr(.convert)) {
                     appState.performImageConversion(
                         item: item,

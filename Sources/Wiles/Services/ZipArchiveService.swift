@@ -6,10 +6,10 @@ public final class ArchiveService: Sendable {
         let name = url.lastPathComponent.lowercased()
         return ext == "zip" || ext == "tar" || ext == "tgz" || name.hasSuffix(".tar.gz") || name.hasSuffix(".tar.bz2") || name.hasSuffix(".tar.xz")
     }
-    
+
     public static func compressToZIP(urls: [URL], in destinationFolder: URL, password: String? = nil) throws {
         guard !urls.isEmpty else { return }
-        
+
         let zipName: String
         if urls.count == 1 {
             let baseName = urls[0].deletingPathExtension().lastPathComponent
@@ -17,7 +17,7 @@ public final class ArchiveService: Sendable {
         } else {
             zipName = "Archive.zip"
         }
-        
+
         var destURL = destinationFolder.appendingPathComponent(zipName)
         var counter = 2
         while FileManager.default.fileExists(atPath: destURL.path) {
@@ -25,7 +25,7 @@ public final class ArchiveService: Sendable {
             destURL = destinationFolder.appendingPathComponent("\(baseName) \(counter).zip")
             counter += 1
         }
-        
+
         let process = Process()
         if let pwd = password, !pwd.isEmpty {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
@@ -46,11 +46,11 @@ public final class ArchiveService: Sendable {
             throw NSError(domain: "ArchiveService", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Compression process failed."])
         }
     }
-    
+
     public static func extractArchive(archiveURL: URL, to destinationFolder: URL) throws {
         let name = archiveURL.lastPathComponent.lowercased()
         let ext = archiveURL.pathExtension.lowercased()
-        
+
         let process = Process()
         if ext == "zip" {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
@@ -69,7 +69,7 @@ public final class ArchiveService: Sendable {
             throw NSError(domain: "ArchiveService", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Extraction process failed."])
         }
     }
-    
+
     public static func extractZIP(archiveURL: URL, to destinationFolder: URL) throws {
         try extractArchive(archiveURL: archiveURL, to: destinationFolder)
     }

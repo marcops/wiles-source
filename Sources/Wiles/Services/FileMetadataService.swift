@@ -14,20 +14,20 @@ public struct DetailedFileProperties: Sendable {
 
 public actor FileMetadataService {
     public static let shared = FileMetadataService()
-    
+
     public func fetchProperties(for url: URL) -> DetailedFileProperties {
-        var owner: String? = nil
-        var group: String? = nil
-        var permsString: String? = nil
-        var dims: String? = nil
-        var duration: String? = nil
-        var kind: String? = nil
-        
+        var owner: String?
+        var group: String?
+        var permsString: String?
+        var dims: String?
+        var duration: String?
+        var kind: String?
+
         let keys: Set<URLResourceKey> = [.localizedTypeDescriptionKey]
         if let values = try? url.resourceValues(forKeys: keys) {
             kind = values.localizedTypeDescription
         }
-        
+
         if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {
             owner = attrs[.ownerAccountName] as? String
             group = attrs[.groupOwnerAccountName] as? String
@@ -35,11 +35,11 @@ public actor FileMetadataService {
                 permsString = formatPermissions(posix.intValue)
             }
         }
-        
+
         if let mdItem = MDItemCreateWithURL(kCFAllocatorDefault, url as CFURL) {
-            if let w = MDItemCopyAttribute(mdItem, kMDItemPixelWidth) as? Int,
-               let h = MDItemCopyAttribute(mdItem, kMDItemPixelHeight) as? Int {
-                dims = "\(w) × \(h)"
+            if let width = MDItemCopyAttribute(mdItem, kMDItemPixelWidth) as? Int,
+               let height = MDItemCopyAttribute(mdItem, kMDItemPixelHeight) as? Int {
+                dims = "\(width) × \(height)"
             }
             if let dur = MDItemCopyAttribute(mdItem, kMDItemDurationSeconds) as? Double {
                 let formatter = DateComponentsFormatter()
@@ -48,7 +48,7 @@ public actor FileMetadataService {
                 duration = formatter.string(from: dur)
             }
         }
-        
+
         return DetailedFileProperties(
             url: url,
             ownerName: owner,
@@ -59,7 +59,7 @@ public actor FileMetadataService {
             kind: kind
         )
     }
-    
+
     private func formatPermissions(_ posix: Int) -> String {
         let roles = [
             (posix >> 6) & 0x7,

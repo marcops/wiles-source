@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let de: [Key: String] = [
+        .undo: "Rückgängig",
+        .redo: "Wiederholen",
+        .enclosingFolder: "Übergeordneter Ordner",
+        .wilesHelpAndShortcuts: "Wiles Hilfe & Tastenkürzel",
         .newFolder: "Neuer Ordner...",
         .paste: "Einfügen",
         .selectAll: "Alles auswählen",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Kopieren",
         .copyContent: "Inhalt kopieren",
         .moveToTrash: "In den Papierkorb legen",
+        .noSelection: "Keine Auswahl",
+        .codePreview: "Code-Vorschau",
+        .sharingActive: "Freigabe Aktiv",
+        .createSymbolicLink: "Symbolischen Link Erstellen",
+        .linkType: "Verknüpfungstyp",
+        .symlinkNameLabel: "Link-Name",
+        .createLink: "Link Erstellen",
+        .wilesFileManager: "Wiles Dateimanager",
+        .backgroundOperations: "Hintergrundvorgänge",
+        .noActiveOperations: "Keine aktiven Vorgänge",
+        .itemsSelectedSuffix: "Elemente ausgewählt",
+        .activeSuffix: "aktiv",
         .compressToZip: "In ZIP komprimieren",
         .extractHere: "Archiv hier entpacken",
         .rename: "Umbenennen...",
@@ -223,7 +239,8 @@ extension L10n {
         .actRefreshShortcut: "Verzeichnis aktualisieren",
         .actToggleStatusBar: "Statusleiste umschalten",
         .fullDiskAccessPromptTitle: "Voller Festplattenzugriff",
-        .fullDiskAccessPromptMessage: "Wiles benötigt vollen Festplattenzugriff, um alle Ordner ohne wiederholte Berechtigungsanfragen zu durchsuchen. Erteile ihn einmal in den Systemeinstellungen.",
+        .fullDiskAccessPromptMessage: "Wiles benötigt vollen Festplattenzugriff, um alle Ordner ohne wiederholte " +
+            "Berechtigungsanfragen zu durchsuchen. Erteile ihn einmal in den Systemeinstellungen.",
         .openSystemSettings: "Systemeinstellungen öffnen",
         .notNow: "Nicht jetzt"
 ,

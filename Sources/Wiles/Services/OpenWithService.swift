@@ -30,17 +30,17 @@ public final class OpenWithService: OpenWithServiceProtocol, Sendable {
         let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: url)
         var results: [ApplicationApp] = []
         var seenBundleIDs = Set<String>()
-        
+
         for appURL in appURLs {
             let bundle = Bundle(url: appURL)
             let bundleID = bundle?.bundleIdentifier ?? appURL.lastPathComponent
             guard !seenBundleIDs.contains(bundleID) else { continue }
             seenBundleIDs.insert(bundleID)
-            
+
             let displayName = FileManager.default.displayName(atPath: appURL.path).replacingOccurrences(of: ".app", with: "")
             let icon = NSWorkspace.shared.icon(forFile: appURL.path)
             icon.size = NSSize(width: 16, height: 16)
-            
+
             results.append(ApplicationApp(id: bundleID, name: displayName, icon: icon, url: appURL))
         }
         return results.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }

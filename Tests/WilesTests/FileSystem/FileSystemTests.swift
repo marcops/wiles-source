@@ -6,20 +6,20 @@ public struct FileSystemTests {
     public static func run() {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        
+
         // Positive: Folder Creation
         let createdDir = try? FileSystemService.createDirectory(at: tempDir, name: "TestFolder")
-        TestReporter.report("FileSystem", "POS: createDirectory", result: createdDir != nil && FileManager.default.fileExists(atPath: createdDir!.path))
-        
+        TestReporter.report("FileSystem", "POS: createDirectory", result: createdDir.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)
+
         // Positive: File Creation
         let testFile = tempDir.appendingPathComponent("sample.txt")
         try? "Sample Data".write(to: testFile, atomically: true, encoding: .utf8)
         TestReporter.report("FileSystem", "POS: File creation", result: FileManager.default.fileExists(atPath: testFile.path))
-        
+
         // Positive: Rename
         let renamedFile = try? FileSystemService.renameItem(at: testFile, newName: "renamed_sample.txt")
-        TestReporter.report("FileSystem", "POS: renameItem", result: renamedFile != nil && FileManager.default.fileExists(atPath: renamedFile!.path))
-        
+        TestReporter.report("FileSystem", "POS: renameItem", result: renamedFile.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)
+
         // Negative: Rename Non-Existent File
         var negRenamePassed = false
         do {
@@ -29,7 +29,7 @@ public struct FileSystemTests {
             negRenamePassed = true
         }
         TestReporter.report("FileSystem", "NEG: renameItem on non-existent path throws error", result: negRenamePassed)
-        
+
         // Negative: Move to Non-Existent Target Folder
         var negMovePassed = false
         do {
@@ -41,7 +41,7 @@ public struct FileSystemTests {
             negMovePassed = true
         }
         TestReporter.report("FileSystem", "NEG: moveItem to non-existent folder throws error", result: negMovePassed)
-        
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 }

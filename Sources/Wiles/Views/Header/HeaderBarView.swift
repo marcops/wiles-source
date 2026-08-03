@@ -5,7 +5,7 @@ struct HeaderBarView: View {
     var appState: AppState
     @FocusState private var isSearchFocused: Bool
     @State private var viewSwitcherExpanded = false
-    
+
     var body: some View {
         HStack(spacing: 12) {
             historyButtons
@@ -22,10 +22,10 @@ struct HeaderBarView: View {
         .background(TrafficLightRepositioner(offsetY: 6))
         .doubleClickToZoom()
     }
-    
+
     private var historyButtons: some View {
         HStack(spacing: 4) {
-            Button(action: { appState.goBack() }) {
+            Button { appState.goBack() } label: {
                 Image(systemName: "chevron.left").font(.system(size: 12, weight: .semibold))
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
@@ -34,7 +34,7 @@ struct HeaderBarView: View {
             .opacity(appState.historyBack.isEmpty ? 0.4 : 1.0)
             .help("Back (Cmd+[)")
 
-            Button(action: { appState.goForward() }) {
+            Button { appState.goForward() } label: {
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
@@ -44,15 +44,13 @@ struct HeaderBarView: View {
             .help("Forward (Cmd+])")
         }
     }
-    
+
     private var rightControls: some View {
         HStack(spacing: 8) {
             searchButton
             viewSwitcher
         }
     }
-    
-
 
     private var searchField: some View {
         @Bindable var appState = appState
@@ -74,18 +72,18 @@ struct HeaderBarView: View {
                         appState.searchQuery = ""
                     }
                 }
-            
+
             searchFilterMenu
 
             if !appState.searchQuery.isEmpty {
-                Button(action: { appState.showSaveSmartFolderSheet = true }) {
+                Button { appState.showSaveSmartFolderSheet = true } label: {
                     Image(systemName: "folder.badge.plus")
                         .foregroundColor(.accentColor)
                 }
                 .buttonStyle(.plain)
                 .help(appState.tr(.saveAsSmartFolder))
 
-                Button(action: { appState.searchQuery = "" }) {
+                Button { appState.searchQuery = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
@@ -164,9 +162,9 @@ struct HeaderBarView: View {
     }
 
     private var searchButton: some View {
-        Button(action: {
+        Button {
             withAnimation { appState.toggleSearching() }
-        }) {
+        } label: {
             Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium))
                 .frame(width: 30, height: 28)
                 .foregroundColor(appState.isSearching ? .accentColor : .primary)
@@ -174,7 +172,7 @@ struct HeaderBarView: View {
         }
         .buttonStyle(.plain).help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")
     }
-    
+
     private func iconName(for mode: ViewMode) -> String {
         switch mode {
         case .grid:   return "square.grid.2x2"
@@ -187,12 +185,12 @@ struct HeaderBarView: View {
         HStack(spacing: 2) {
             if viewSwitcherExpanded {
                 ForEach(ViewMode.allCases) { mode in
-                    Button(action: {
+                    Button {
                         withAnimation(MotionTokens.snappySpring) {
                             appState.viewMode = mode
                             viewSwitcherExpanded = false
                         }
-                    }) {
+                    } label: {
                         Image(systemName: iconName(for: mode)).font(.system(size: 12))
                             .frame(width: 26, height: 24)
                             .background(appState.viewMode == mode ? Color.accentColor : Color.clear)
@@ -204,11 +202,11 @@ struct HeaderBarView: View {
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
                 }
             } else {
-                Button(action: {
+                Button {
                     withAnimation(MotionTokens.snappySpring) {
                         viewSwitcherExpanded = true
                     }
-                }) {
+                } label: {
                     Image(systemName: iconName(for: appState.viewMode)).font(.system(size: 12))
                         .frame(width: 26, height: 24)
                         .background(Color.clear)
@@ -226,7 +224,7 @@ struct HeaderBarView: View {
             if viewSwitcherExpanded { viewSwitcherExpanded = false }
         })
     }
-    
+
 }
 
 struct TrafficLightRepositioner: NSViewRepresentable {
@@ -273,10 +271,10 @@ struct TrafficLightRepositioner: NSViewRepresentable {
             ]
 
             for btn in buttons {
-                guard let b = btn else { continue }
-                var f = b.frame
-                f.origin.y = (superview.bounds.height - f.height) / 2 - offsetY
-                b.setFrameOrigin(f.origin)
+                guard let button = btn else { continue }
+                var buttonFrame = button.frame
+                buttonFrame.origin.y = (superview.bounds.height - buttonFrame.height) / 2 - offsetY
+                button.setFrameOrigin(buttonFrame.origin)
             }
         }
     }

@@ -51,9 +51,9 @@ struct FooterBarView: View {
             Divider().frame(height: 12)
 
             // Terminal toggle button
-            Button(action: {
+            Button {
                 withAnimation { appState.showTerminalDrawer.toggle() }
-            }) {
+            } label: {
                 Image(systemName: "terminal")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(appState.showTerminalDrawer ? .accentColor : .secondary)
@@ -100,9 +100,9 @@ struct FooterBarView: View {
 
 struct OperationsButtonView: View {
     @State private var showPopover = false
-    
+
     var body: some View {
-        Button(action: { showPopover.toggle() }) {
+        Button { showPopover.toggle() } label: {
             HStack(spacing: 4) {
                 ProgressView()
                     .controlSize(.mini)

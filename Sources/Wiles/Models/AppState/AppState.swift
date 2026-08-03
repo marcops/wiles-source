@@ -4,7 +4,7 @@ import Observation
 public enum SearchScope: String, CaseIterable, Identifiable, Codable, Sendable {
     case name
     case content
-    
+
     public var id: String { rawValue }
 }
 
@@ -17,7 +17,7 @@ public final class AppState {
             UserDefaults.standard.set(currentURL.path, forKey: "wiles_lastOpenedFolder")
         }
     }
-    
+
     public var historyBack: [URL] = []
     public var historyForward: [URL] = []
     public var items: [FileItem] = []
@@ -32,7 +32,7 @@ public final class AppState {
     /// Cell frames from the Grid View, updated live. Used to compute the real column count.
     public var gridCellFrames: [URL: CGRect] = [:]
     private let directoryMonitor = DirectoryMonitor()
-    
+
     func startDirectoryMonitoring(for url: URL) {
         guard url.isFileURL else { return }
         directoryMonitor.start(path: url.path) { [weak self] in
@@ -49,7 +49,7 @@ public final class AppState {
         guard let firstY = ys.min() else { return 1 }
         return ys.filter { abs($0 - firstY) < 5 }.count
     }
-    
+
     public var viewMode: ViewMode = .grid {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "wiles_viewMode") }
     }
@@ -59,7 +59,7 @@ public final class AppState {
     public var sidebarMode: SidebarMode = .places {
         didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: "wiles_sidebarMode") }
     }
-    public var sidebarWidth: Double = Double(LayoutTokens.sidebarIdealWidth) {
+    public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
         didSet { UserDefaults.standard.set(sidebarWidth, forKey: "wiles_sidebarWidth") }
     }
     public var sortOption: SortOption = .name {
@@ -122,10 +122,10 @@ public final class AppState {
     public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
     public var showSaveSmartFolderSheet: Bool = false
     public var showPasswordCompressSheet: Bool = false
-    public var passwordCompressURLs: [URL]? = nil
-    public var inspectArchiveURL: URL? = nil
+    public var passwordCompressURLs: [URL]?
+    public var inspectArchiveURL: URL?
     public var showArchiveInspectionSheet: Bool = false
-    public var errorMessage: String? = nil
+    public var errorMessage: String?
     public var showErrorAlert: Bool = false
 
     public func showError(_ message: String) {
@@ -198,7 +198,7 @@ public final class AppState {
     }
     public var showHelpSheet: Bool = false
     public var showAboutSheet: Bool = false
-    
+
     public var isEditingPath: Bool = false
     public var pathText: String = ""
     public var searchQuery: String = "" {
@@ -207,18 +207,18 @@ public final class AppState {
         }
     }
     public var isSearching: Bool = false
-    
+
     public var selectedURLs: Set<URL> = []
-    public var quickLookURL: URL? = nil
-    public var clipboard: ClipboardState? = nil
+    public var quickLookURL: URL?
+    public var clipboard: ClipboardState?
     public var navigationMode: NavigationMode = .gnome {
         didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: "wiles_navigationMode") }
     }
-    
-    public var propertiesItem: FileItem? = nil
-    public var renameItem: FileItem? = nil
-    public var imageConverterItem: FileItem? = nil
-    public var symlinkItem: FileItem? = nil
+
+    public var propertiesItem: FileItem?
+    public var renameItem: FileItem?
+    public var imageConverterItem: FileItem?
+    public var symlinkItem: FileItem?
     public var showBatchRenameSheet: Bool = false
     public var showDiskUsageSheet: Bool = false
     public var showNewFolderSheet: Bool = false
@@ -230,8 +230,8 @@ public final class AppState {
     public var showConnectToServerSheet: Bool = false
     public var showAutoOrganizationSheet: Bool = false
     public var showHttpShareSheet: Bool = false
-    public var httpShareFolderURL: URL? = nil
-    
+    public var httpShareFolderURL: URL?
+
     public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: "wiles_isCompactMode") {
         didSet { UserDefaults.standard.set(isCompactMode, forKey: "wiles_isCompactMode") }
     }
@@ -240,103 +240,10 @@ public final class AppState {
         didSet { saveListColumnStates() }
     }
 
-    private func saveListColumnStates() {
-        if let data = try? JSONEncoder().encode(listColumnStates) {
-            UserDefaults.standard.set(data, forKey: "wiles_listColumnStates")
-        }
-    }
-
-    public func columnWidth(for column: ListColumn) -> CGFloat {
-        listColumnStates.first { $0.column == column }?.width ?? column.defaultWidth
-    }
-
-    public func isColumnVisible(_ column: ListColumn) -> Bool {
-        listColumnStates.first { $0.column == column }?.isVisible ?? true
-    }
-
-    public func setColumnWidth(_ column: ListColumn, width: CGFloat) {
-        guard let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
-        listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
-    }
-
-    public func autoFitColumnWidth(_ column: ListColumn) {
-        let newWidth = ColumnAutoFitService.calculateAutoFitWidth(for: column, in: self)
-        setColumnWidth(column, width: newWidth)
-    }
-
-    public func toggleColumnVisibility(_ column: ListColumn) {
-        guard !column.isAlwaysVisible,
-              let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
-        listColumnStates[idx].isVisible.toggle()
-    }
-    
     public var perFolderViewModes: [String: String] = (UserDefaults.standard.dictionary(forKey: "wiles_perFolderViewModes") as? [String: String]) ?? [:] {
         didSet { UserDefaults.standard.set(perFolderViewModes, forKey: "wiles_perFolderViewModes") }
     }
-    
-    public func viewModeForFolder(_ url: URL) -> ViewMode {
-        if let raw = perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
-            return mode
-        }
-        return viewMode
-    }
-    
-    public func setViewModeForFolder(_ mode: ViewMode, for url: URL) {
-        perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
-        self.viewMode = mode
-    }
-    
-    public func performImageConversion(
-        item: FileItem,
-        targetFormat: ImageFormat,
-        preset: ResizePreset,
-        cropPreset: CropPreset,
-        quality: Double
-    ) {
-        Task.detached(priority: .userInitiated) {
-            do {
-                let newURL = try ImageConverterService.convertImage(
-                    at: item.url,
-                    targetFormat: targetFormat,
-                    preset: preset,
-                    cropPreset: cropPreset,
-                    quality: quality
-                )
-                await MainActor.run {
-                    self.refreshCurrentDirectory()
-                    self.selectedURLs = [newURL]
-                }
-            } catch {
-                await MainActor.run {
-                    self.showError(error.localizedDescription)
-                }
-            }
-        }
-    }
-    
-    public func performRename(item: FileItem, newName: String) {
-        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed != item.name else { return }
-        do {
-            let newURL = try FileSystemService.renameItem(at: item.url, newName: trimmed)
-            UndoRedoService.shared.recordAction(.rename(oldURL: item.url, newURL: newURL))
-            self.refreshCurrentDirectory()
-            self.selectedURLs = [newURL]
-        } catch {
-            self.showError(error.localizedDescription)
-        }
-    }
-    
-    public func performBatchRename(items: [FileItem], mode: BatchRenameMode) {
-        do {
-            let newURLs = try BatchRenameService.performBatchRename(items: items, mode: mode)
-            self.refreshCurrentDirectory()
-            self.selectedURLs = Set(newURLs)
-        } catch {
-            self.showError(error.localizedDescription)
-        }
-    }
-    
+
     public init() {
         let defaults = UserDefaults.standard
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -349,137 +256,21 @@ public final class AppState {
             self.currentURL = home
             self.pathText = home.path
         }
-        if let modeStr = defaults.string(forKey: "wiles_sidebarMode"), let mode = SidebarMode(rawValue: modeStr) {
-            self.sidebarMode = mode
-        }
-        if defaults.object(forKey: "wiles_sidebarWidth") != nil {
-            let savedWidth = defaults.double(forKey: "wiles_sidebarWidth")
-            self.sidebarWidth = min(Double(LayoutTokens.sidebarMaxWidth), max(Double(LayoutTokens.sidebarMinWidth), savedWidth))
-        }
-        if let navStr = defaults.string(forKey: "wiles_navigationMode"), let mode = NavigationMode(rawValue: navStr) {
-            self.navigationMode = mode
-        }
-        if let viewStr = defaults.string(forKey: "wiles_viewMode"), let mode = ViewMode(rawValue: viewStr) {
-            self.viewMode = mode
-        }
-        if let appearanceStr = defaults.string(forKey: "wiles_appAppearance"), let appearance = AppAppearance(rawValue: appearanceStr) {
-            self.appAppearance = appearance
-        }
-        if let sortStr = defaults.string(forKey: "wiles_sortOption"), let opt = SortOption(rawValue: sortStr) {
-            self.sortOption = opt
-        }
-        if defaults.object(forKey: "wiles_sortAscending") != nil {
-            self.sortAscending = defaults.bool(forKey: "wiles_sortAscending")
-        }
-        if defaults.object(forKey: "wiles_showHiddenFiles") != nil {
-            self.showHiddenFiles = defaults.bool(forKey: "wiles_showHiddenFiles")
-        }
-        if defaults.object(forKey: "wiles_showFavorites") != nil {
-            self.showFavorites = defaults.bool(forKey: "wiles_showFavorites")
-        }
-        if defaults.object(forKey: "wiles_showRecents") != nil {
-            self.showRecents = defaults.bool(forKey: "wiles_showRecents")
-        }
-        if defaults.object(forKey: "wiles_showPlaces") != nil {
-            self.showPlaces = defaults.bool(forKey: "wiles_showPlaces")
-        }
-        if defaults.object(forKey: "wiles_showNetworkAndCloud") != nil {
-            self.showNetworkAndCloud = defaults.bool(forKey: "wiles_showNetworkAndCloud")
-        }
-        if defaults.object(forKey: "wiles_showSidebarSectionTitles") != nil {
-            self.showSidebarSectionTitles = defaults.bool(forKey: "wiles_showSidebarSectionTitles")
-        }
-        if let langStr = defaults.string(forKey: "wiles_appLanguage"), let lang = AppLanguage(rawValue: langStr) {
-            self.appLanguage = lang
-        }
-        if defaults.object(forKey: "wiles_isFavoritesExpanded") != nil {
-            self.isFavoritesExpanded = defaults.bool(forKey: "wiles_isFavoritesExpanded")
-        }
-        if defaults.object(forKey: "wiles_isMacExpanded") != nil {
-            self.isMacExpanded = defaults.bool(forKey: "wiles_isMacExpanded")
-        }
-        if defaults.object(forKey: "wiles_isNetworkExpanded") != nil {
-            self.isNetworkExpanded = defaults.bool(forKey: "wiles_isNetworkExpanded")
-        }
-        if defaults.object(forKey: "wiles_isRecentsExpanded") != nil {
-            self.isRecentsExpanded = defaults.bool(forKey: "wiles_isRecentsExpanded")
-        }
-        if defaults.object(forKey: "wiles_isDevicesExpanded") != nil {
-            self.isDevicesExpanded = defaults.bool(forKey: "wiles_isDevicesExpanded")
-        }
-        if defaults.object(forKey: "wiles_isTreeExpanded") != nil {
-            self.isTreeExpanded = defaults.bool(forKey: "wiles_isTreeExpanded")
-        }
-        if let paths = defaults.stringArray(forKey: "wiles_expandedTreePaths") {
-            self.expandedTreePaths = Set(paths)
-        } else {
-            let homePath = home.standardizedFileURL.path
-            self.expandedTreePaths = ["/", homePath]
-        }
-        if let paths = defaults.stringArray(forKey: "wiles_recentOpenedURLs") {
-            self.recentOpenedURLs = paths.map { URL(fileURLWithPath: $0) }
-        }
-        if defaults.object(forKey: "wiles_showTags") != nil {
-            self.showTags = defaults.bool(forKey: "wiles_showTags")
-        }
-        if defaults.object(forKey: "wiles_showFooter") != nil {
-            self.showFooter = defaults.bool(forKey: "wiles_showFooter")
-        }
-        if defaults.object(forKey: "wiles_showPreviewSidebar") != nil {
-            self.showPreviewSidebar = defaults.bool(forKey: "wiles_showPreviewSidebar")
-        }
-        if defaults.object(forKey: "wiles_showTerminalDrawer") != nil {
-            self.showTerminalDrawer = defaults.bool(forKey: "wiles_showTerminalDrawer")
-        }
-        if defaults.object(forKey: "wiles_sidebarTranslucentLevel") != nil {
-            self.sidebarTranslucentLevel = defaults.integer(forKey: "wiles_sidebarTranslucentLevel")
-        }
-        if defaults.object(forKey: "wiles_contentTranslucentLevel") != nil {
-            self.contentTranslucentLevel = defaults.integer(forKey: "wiles_contentTranslucentLevel")
-        }
-        if defaults.object(forKey: "wiles_iconSize") != nil {
-            let val = defaults.double(forKey: "wiles_iconSize")
-            if val >= 36 && val <= 128 {
-                self.iconSize = val
-            }
-        }
-        if let favPaths = defaults.stringArray(forKey: "wiles_favoriteURLs"), !favPaths.isEmpty {
-            self.favoriteURLs = favPaths
-                .map { URL(fileURLWithPath: $0).standardizedFileURL }
-                .filter { $0.path != "/Applications" }
-        } else {
-            self.favoriteURLs = [
-                home,
-                home.appendingPathComponent("Desktop"),
-                home.appendingPathComponent("Documents"),
-                home.appendingPathComponent("Downloads"),
-                home.appendingPathComponent("Music"),
-                home.appendingPathComponent("Pictures"),
-                home.appendingPathComponent("Movies")
-            ].map { $0.standardizedFileURL }
-        }
-        if let data = defaults.data(forKey: "wiles_listColumnStates"),
-           let saved = try? JSONDecoder().decode([ListColumnState].self, from: data) {
-            // Merge saved states with defaults so new columns added in future are included
-            var merged = ListColumnState.defaults()
-            for (i, state) in merged.enumerated() {
-                if let s = saved.first(where: { $0.column == state.column }) {
-                    merged[i] = s
-                }
-            }
-            self.listColumnStates = merged
-        }
+        restoreLayoutPreferences(defaults)
+        restoreSidebarPreferences(defaults, home: home)
+        restoreDisplayPreferences(defaults)
+        restoreContentPreferences(defaults, home: home)
         self.updateTrashSize()
     }
-    
+
     public func tr(_ key: L10n.Key) -> String {
         L10n.string(key, lang: appLanguage)
     }
-    
+
     public var statusText: String {
         let totalCount = items.count
         let selCount = selectedURLs.count
-        
+
         if selCount == 0 {
             let totalFilesSize = items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
             if totalFilesSize > 0 {
@@ -498,7 +289,7 @@ public final class AppState {
             }
         }
     }
-    
+
     public var freeSpaceText: String? {
         if let values = try? currentURL.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
            let capacity = values.volumeAvailableCapacity {
@@ -507,7 +298,7 @@ public final class AppState {
         }
         return nil
     }
-    
+
     public func addFavorite(_ url: URL) {
         let std = url.standardizedFileURL
         if !favoriteURLs.contains(where: { $0.standardizedFileURL == std }) {
@@ -524,7 +315,7 @@ public final class AppState {
         let std = url.standardizedFileURL
         return favoriteURLs.contains(where: { $0.standardizedFileURL == std })
     }
-    
+
     public func compressSelectedToZIP() {
         let urls = Array(selectedURLs)
         guard !urls.isEmpty else { return }
@@ -542,7 +333,7 @@ public final class AppState {
             }
         }
     }
-    
+
     public func extractArchive(url: URL) {
         let current = currentURL
         Task.detached(priority: .userInitiated) {

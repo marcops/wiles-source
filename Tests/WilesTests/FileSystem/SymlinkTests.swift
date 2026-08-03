@@ -8,7 +8,7 @@ public struct SymlinkTests {
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let targetFile = tempDir.appendingPathComponent("origin.txt")
         try? "Original Content".write(to: targetFile, atomically: true, encoding: .utf8)
-        
+
         // Positive: Absolute Symlink
         let linkURL = try? SymlinkService.createSymlink(
             targetURL: targetFile,
@@ -16,9 +16,9 @@ public struct SymlinkTests {
             symlinkName: "origin_link.txt",
             mode: .absolute
         )
-        let symlinkPos = linkURL != nil && FileManager.default.fileExists(atPath: linkURL!.path)
+        let symlinkPos = linkURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
         TestReporter.report("SymlinkService", "POS: createSymlink (.absolute)", result: symlinkPos)
-        
+
         // Negative: Empty Symlink Name Falls Back to Default
         let defaultLink = try? SymlinkService.createSymlink(
             targetURL: targetFile,
@@ -27,7 +27,7 @@ public struct SymlinkTests {
             mode: .absolute
         )
         TestReporter.report("SymlinkService", "NEG: Empty symlink name auto-generates default link name", result: defaultLink?.lastPathComponent.contains("link") == true)
-        
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 }

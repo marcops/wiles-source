@@ -4,15 +4,15 @@ import AppKit
 struct PreviewSidebarView: View {
     var appState: AppState
     @State private var detailedProps: DetailedFileProperties?
-    
+
     var body: some View {
         VStack {
             if appState.selectedURLs.isEmpty {
-                Text("No Selection").foregroundColor(.secondary)
+                Text(appState.tr(.noSelection)).foregroundColor(.secondary)
             } else if appState.selectedURLs.count == 1 {
                 singleSelectionView
             } else {
-                Text("\(appState.selectedURLs.count) items selected").foregroundColor(.secondary)
+                Text("\(appState.selectedURLs.count) \(appState.tr(.itemsSelectedSuffix))").foregroundColor(.secondary)
             }
         }
         .frame(minWidth: 200, idealWidth: 250, maxWidth: 350, maxHeight: .infinity)
@@ -32,22 +32,21 @@ struct PreviewSidebarView: View {
             }
         }
     }
-    
-    @ViewBuilder
-    private var singleSelectionView: some View {
+
+    @ViewBuilder private var singleSelectionView: some View {
         if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
             VStack(alignment: .center, spacing: 16) {
                 Image(nsImage: item.icon)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 120, height: 120)
-                
+
                 Text(item.name)
                     .font(.headline)
                     .multilineTextAlignment(.center)
-                
+
                 Divider()
-                
+
                 VStack(alignment: .leading, spacing: 10) {
                     propertyRow(label: appState.tr(.kind), value: detailedProps?.kind ?? (item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()))
                     propertyRow(label: appState.tr(.size), value: item.formattedSize)
@@ -60,13 +59,13 @@ struct PreviewSidebarView: View {
                     propertyRow(label: appState.tr(.dateModified), value: item.formattedDate)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 if !item.isDirectory, let content = try? String(contentsOf: item.url), content.count < 1_000_000 {
                     let ext = item.fileExtension.lowercased()
                     if ["swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "md", "txt"].contains(ext) {
                         Divider()
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Code Preview")
+                            Text(appState.tr(.codePreview))
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.secondary)
                             ScrollView(.vertical) {
@@ -82,9 +81,9 @@ struct PreviewSidebarView: View {
                         }
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Button(appState.tr(.moreInfo)) {
                     appState.propertiesItem = item
                 }
@@ -92,7 +91,7 @@ struct PreviewSidebarView: View {
             }
         }
     }
-    
+
     private func propertyRow(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label).font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary)

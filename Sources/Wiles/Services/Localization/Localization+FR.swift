@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let fr: [Key: String] = [
+        .undo: "Annuler",
+        .redo: "Rétablir",
+        .enclosingFolder: "Dossier Parent",
+        .wilesHelpAndShortcuts: "Aide et Raccourcis Wiles",
         .newFolder: "Nouveau dossier...",
         .paste: "Coller",
         .selectAll: "Tout sélectionner",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Copier",
         .copyContent: "Copier le contenu",
         .moveToTrash: "Placer dans la Corbeille",
+        .noSelection: "Aucune Sélection",
+        .codePreview: "Aperçu du Code",
+        .sharingActive: "Partage Actif",
+        .createSymbolicLink: "Créer un Lien Symbolique",
+        .linkType: "Type de Lien",
+        .symlinkNameLabel: "Nom du Lien",
+        .createLink: "Créer le Lien",
+        .wilesFileManager: "Gestionnaire de Fichiers Wiles",
+        .backgroundOperations: "Opérations en Arrière-Plan",
+        .noActiveOperations: "Aucune opération active",
+        .itemsSelectedSuffix: "éléments sélectionnés",
+        .activeSuffix: "actives",
         .compressToZip: "Compresser en ZIP",
         .extractHere: "Extraire l'archive ici",
         .rename: "Renommer...",
@@ -223,7 +239,8 @@ extension L10n {
         .actRefreshShortcut: "Actualiser le dossier",
         .actToggleStatusBar: "Basculer la barre d'état",
         .fullDiskAccessPromptTitle: "Accès complet au disque",
-        .fullDiskAccessPromptMessage: "Wiles a besoin d'un accès complet au disque pour parcourir tous vos dossiers sans demandes d'autorisation répétées. Accordez-le une fois dans Réglages Système.",
+        .fullDiskAccessPromptMessage: "Wiles a besoin d'un accès complet au disque pour parcourir tous vos dossiers sans " +
+            "demandes d'autorisation répétées. Accordez-le une fois dans Réglages Système.",
         .openSystemSettings: "Ouvrir Réglages Système",
         .notNow: "Plus tard"
 ,

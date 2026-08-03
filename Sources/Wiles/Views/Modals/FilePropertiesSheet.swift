@@ -4,18 +4,19 @@ import AppKit
 struct FilePropertiesSheet: View {
     let item: FileItem
     var appState: AppState
-    @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.dismiss)
+    private var dismiss
+
     @State private var detailedProps: DetailedFileProperties?
-    
+
     @State private var isGeneralExpanded = true
     @State private var isMoreInfoExpanded = true
     @State private var isExifExpanded = true
     @State private var isPermissionsExpanded = true
     @State private var permissions = POSIXPermissions(posixPermissions: 0o644)
     @State private var hasPermissions = false
-    @State private var exifData: ExifMetadata? = nil
-    
+    @State private var exifData: ExifMetadata?
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 16) {
@@ -30,9 +31,9 @@ struct FilePropertiesSheet: View {
             }
             .padding()
             .background(Color(NSColor.windowBackgroundColor))
-            
+
             Divider()
-            
+
             ScrollView {
                 VStack(spacing: 16) {
                     DisclosureGroup(isExpanded: $isGeneralExpanded) {
@@ -48,7 +49,7 @@ struct FilePropertiesSheet: View {
                     } label: {
                         Text(appState.tr(.general)).font(.headline)
                     }
-                    
+
                     if detailedProps?.dimensions != nil || detailedProps?.duration != nil {
                         Divider()
                         DisclosureGroup(isExpanded: $isMoreInfoExpanded) {
@@ -65,7 +66,7 @@ struct FilePropertiesSheet: View {
                             Text(appState.tr(.moreInfo)).font(.headline)
                         }
                     }
-                    
+
                     if let exif = exifData {
                         Divider()
                         DisclosureGroup(isExpanded: $isExifExpanded) {
@@ -83,13 +84,13 @@ struct FilePropertiesSheet: View {
                             Text("EXIF").font(.headline)
                         }
                     }
-                    
+
                     Divider()
                     DisclosureGroup(isExpanded: $isPermissionsExpanded) {
                         VStack(alignment: .leading, spacing: 8) {
                             propertyRow(label: appState.tr(.owner), value: item.ownerName)
                             propertyRow(label: appState.tr(.group), value: item.groupName)
-                            
+
                             if hasPermissions {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack {
@@ -98,11 +99,11 @@ struct FilePropertiesSheet: View {
                                             .foregroundColor(.secondary)
                                         Spacer()
                                     }
-                                    
+
                                     permissionsRow(title: appState.tr(.owner), read: $permissions.ownerRead, write: $permissions.ownerWrite, execute: $permissions.ownerExecute)
                                     permissionsRow(title: appState.tr(.group), read: $permissions.groupRead, write: $permissions.groupWrite, execute: $permissions.groupExecute)
                                     permissionsRow(title: appState.tr(.others), read: $permissions.othersRead, write: $permissions.othersWrite, execute: $permissions.othersExecute)
-                                    
+
                                     Button(appState.tr(.applyPermissions)) {
                                         do {
                                             try FilePermissionsService.setPermissions(for: item.url, permissions: permissions)
@@ -124,9 +125,9 @@ struct FilePropertiesSheet: View {
                 .padding()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
+
             Divider()
-            
+
             HStack {
                 Spacer()
                 Button(appState.tr(.close)) { dismiss() }.keyboardShortcut(.defaultAction)
@@ -138,13 +139,13 @@ struct FilePropertiesSheet: View {
         .task {
             detailedProps = await FileMetadataService.shared.fetchProperties(for: item.url)
             exifData = ExifMetadataService.extractExif(from: item.url)
-            if let p = FilePermissionsService.getPermissions(for: item.url) {
-                permissions = p
+            if let loadedPermissions = FilePermissionsService.getPermissions(for: item.url) {
+                permissions = loadedPermissions
                 hasPermissions = true
             }
         }
     }
-    
+
     private func permissionsRow(title: String, read: Binding<Bool>, write: Binding<Bool>, execute: Binding<Bool>) -> some View {
         HStack(spacing: 12) {
             Text(title + ":")
@@ -163,7 +164,7 @@ struct FilePropertiesSheet: View {
             Spacer()
         }
     }
-    
+
     private func propertyRow(label: String, value: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Text(label + ":")

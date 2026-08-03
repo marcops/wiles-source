@@ -2,8 +2,9 @@ import SwiftUI
 
 struct NewFolderSheet: View {
     var appState: AppState
-    @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.dismiss)
+    private var dismiss
+
     var body: some View {
         SingleInputSheetView(
             title: appState.tr(.createNewFolder),
@@ -19,7 +20,7 @@ struct NewFolderSheet: View {
             }
         )
     }
-    
+
     private func createFolder(name: String) {
         do {
             try FileSystemService.createDirectory(at: appState.currentURL, name: name)

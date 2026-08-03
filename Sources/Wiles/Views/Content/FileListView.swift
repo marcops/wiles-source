@@ -11,13 +11,13 @@ struct ListCellFrameKey: PreferenceKey {
 
 struct FileListView: View {
     var appState: AppState
-    
+
     @State private var cellFrames: [URL: CGRect] = [:]
-    @State private var selectionRect: CGRect? = nil
-    @State private var dragStartPoint: CGPoint? = nil
-    @State private var lastWindowWidth: CGFloat? = nil
+    @State private var selectionRect: CGRect?
+    @State private var dragStartPoint: CGPoint?
+    @State private var lastWindowWidth: CGFloat?
     @State private var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
-    @State private var hoveredURL: URL? = nil
+    @State private var hoveredURL: URL?
 
     var body: some View {
         let visibleItems = Array(appState.items.prefix(visibleLimit))
@@ -35,20 +35,18 @@ struct FileListView: View {
                                     .onChanged { gesture in
                                         let start = dragStartPoint ?? gesture.startLocation
                                         if dragStartPoint == nil { dragStartPoint = start }
-                                        
+
                                         let minX = min(start.x, gesture.location.x)
                                         let minY = min(start.y, gesture.location.y)
                                         let maxX = max(start.x, gesture.location.x)
                                         let maxY = max(start.y, gesture.location.y)
                                         let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-                                        
+
                                         self.selectionRect = rect
-                                        
+
                                         var matched = Set<URL>()
-                                        for (url, frame) in cellFrames {
-                                            if frame.intersects(rect) {
-                                                matched.insert(url)
-                                            }
+                                        for (url, frame) in cellFrames where frame.intersects(rect) {
+                                            matched.insert(url)
                                         }
                                         if NSEvent.modifierFlags.contains(.command) {
                                             appState.selectedURLs.formUnion(matched)
@@ -78,7 +76,7 @@ struct FileListView: View {
                         } else {
                             VStack(spacing: 0) {
                                 tableHeader
-                                
+
                                 LazyVStack(spacing: 2) {
                                     ForEach(visibleItems) { item in
                                         listRow(for: item)
@@ -148,10 +146,10 @@ struct FileListView: View {
             )
         }
     }
-    
+
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            ForEach(Array(visibleColumns.enumerated()), id: \.element) { index, col in
+            ForEach(Array(visibleColumns.enumerated()), id: \.element) { _, col in
                 headerCell(columnTitle(col), option: sortOption(for: col), isLeading: col == .name)
                     .frame(width: appState.columnWidth(for: col), alignment: col == .name ? .leading : .trailing)
                     .overlay(alignment: .trailing) {
@@ -201,7 +199,7 @@ struct FileListView: View {
     }
 
     private func headerCell(_ title: String, option: SortOption, isLeading: Bool) -> some View {
-        Button(action: {
+        Button {
             if appState.sortOption == option {
                 appState.sortAscending.toggle()
             } else {
@@ -209,7 +207,7 @@ struct FileListView: View {
                 appState.sortAscending = true
             }
             appState.refreshCurrentDirectory()
-        }) {
+        } label: {
             HStack(spacing: 4) {
                 Text(title)
                 if appState.sortOption == option {
@@ -235,10 +233,9 @@ struct FileListView: View {
         }
     }
 
-    @ViewBuilder
-    private var columnVisibilityMenu: some View {
+    @ViewBuilder private var columnVisibilityMenu: some View {
         ForEach(ListColumn.allCases.filter { !$0.isAlwaysVisible }, id: \.self) { col in
-            Button(action: { appState.toggleColumnVisibility(col) }) {
+            Button { appState.toggleColumnVisibility(col) } label: {
                 HStack {
                     Text(columnTitle(col))
                     Spacer()
@@ -249,7 +246,7 @@ struct FileListView: View {
             }
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Spacer().frame(height: 80)
@@ -261,61 +258,71 @@ struct FileListView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 300)
     }
-    
+
     private var listIconSize: CGFloat {
         max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.iconSize) * LayoutTokens.listIconScaleMultiplier))
     }
 
-    
+    private func dynamicColumnText(_ col: ListColumn, for item: FileItem) -> String? {
+        switch col {
+        case .size: return item.formattedSize
+        case .dateModified: return item.formattedDate
+        case .dateCreated: return item.formattedDateCreated
+        case .dateAccessed: return item.formattedDateAccessed
+        case .kind: return item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()
+        case .owner: return item.ownerName
+        case .group: return item.groupName
+        case .name: return nil
+        }
+    }
+
     @ViewBuilder
     private func dynamicColumn(_ col: ListColumn, for item: FileItem, isSel: Bool) -> some View {
-        let width = appState.columnWidth(for: col)
-        switch col {
-        case .size:
-            Text(item.formattedSize)
+        if let text = dynamicColumnText(col, for: item) {
+            Text(text)
                 .font(.system(size: 12))
                 .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
                 .padding(.trailing, 4)
-                .frame(width: width, alignment: .trailing)
-        case .dateModified:
-            Text(item.formattedDate)
-                .font(.system(size: 12))
-                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .padding(.trailing, 4)
-                .frame(width: width, alignment: .trailing)
-        case .dateCreated:
-            Text(item.formattedDateCreated)
-                .font(.system(size: 12))
-                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .padding(.trailing, 4)
-                .frame(width: width, alignment: .trailing)
-        case .dateAccessed:
-            Text(item.formattedDateAccessed)
-                .font(.system(size: 12))
-                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .padding(.trailing, 4)
-                .frame(width: width, alignment: .trailing)
-        case .kind:
-            Text(item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased())
-                .font(.system(size: 12))
-                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .padding(.trailing, 4)
-                .frame(width: width, alignment: .trailing)
-        case .owner:
-            Text(item.ownerName)
-                .font(.system(size: 12))
-                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .padding(.trailing, 4)
-                .frame(width: width, alignment: .trailing)
-        case .group:
-            Text(item.groupName)
-                .font(.system(size: 12))
-                .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
-                .padding(.trailing, 4)
-                .frame(width: width, alignment: .trailing)
-        case .name:
+                .frame(width: appState.columnWidth(for: col), alignment: .trailing)
+        } else {
             EmptyView()
         }
+    }
+
+    @ViewBuilder
+    private func nameCell(for item: FileItem, isSel: Bool) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            FileItemIconView(item: item, size: listIconSize)
+            ICloudStatusBadgeView(item: item)
+            Text(item.name)
+                .font(.system(size: 13, weight: isSel ? .semibold : .regular))
+                .lineLimit(1)
+                .foregroundColor(isSel ? .white : .primary)
+
+            if appState.showTags && !item.tags.isEmpty {
+                HStack(alignment: .center, spacing: -2) {
+                    ForEach(item.tags, id: \.self) { tag in
+                        Circle()
+                            .fill(colorForTag(tag))
+                            .frame(width: 8, height: 8)
+                            .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
+                    }
+                }
+                .offset(y: appState.isCompactMode ? 1 : 0)
+            }
+        }
+        .frame(width: appState.columnWidth(for: .name), alignment: .leading)
+    }
+
+    private func dragProvider(for item: FileItem) -> NSItemProvider {
+        if !appState.selectedURLs.contains(item.url) {
+            appState.selectedURLs = [item.url]
+        }
+        let provider = NSItemProvider()
+        for fileURL in appState.selectedURLs {
+            provider.registerObject(fileURL as NSURL, visibility: .all)
+        }
+        return provider
     }
 
     private func listRow(for item: FileItem) -> some View {
@@ -323,36 +330,14 @@ struct FileListView: View {
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
 
         return HStack(spacing: 0) {
-            // Name (always visible)
-            HStack(alignment: .center, spacing: 8) {
-                FileItemIconView(item: item, size: listIconSize)
-                ICloudStatusBadgeView(item: item)
-                Text(item.name)
-                    .font(.system(size: 13, weight: isSel ? .semibold : .regular))
-                    .lineLimit(1)
-                    .foregroundColor(isSel ? .white : .primary)
+            nameCell(for: item, isSel: isSel)
 
-                if appState.showTags && !item.tags.isEmpty {
-                    HStack(alignment: .center, spacing: -2) {
-                        ForEach(item.tags, id: \.self) { tag in
-                            Circle()
-                                .fill(colorForTag(tag))
-                                .frame(width: 8, height: 8)
-                                .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
-                        }
-                    }
-                    .offset(y: appState.isCompactMode ? 1 : 0)
-                }
-            }
-            .frame(width: appState.columnWidth(for: .name), alignment: .leading)
-
-            // Dynamic fixed-width columns
             ForEach(visibleColumns, id: \.self) { col in
                 if col != .name {
                     dynamicColumn(col, for: item, isSel: isSel)
                 }
             }
-            
+
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
@@ -367,33 +352,40 @@ struct FileListView: View {
         .contentShape(Rectangle())
         .accessibilityLabel(item.name)
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
-        .onTapGesture(count: 2) {
-            appState.navigateTo(item.url)
-        }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                appState.handleSelection(for: item)
+        .rowInteractions(item: item, appState: appState, dragProvider: { dragProvider(for: item) })
+    }
+}
+
+private struct FileRowInteractionsModifier: ViewModifier {
+    let item: FileItem
+    var appState: AppState
+    let dragProvider: () -> NSItemProvider
+
+    func body(content: Content) -> some View {
+        content
+            .onTapGesture(count: 2) {
+                appState.navigateTo(item.url)
             }
-        )
-        .onDrag {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
-            let urls = Array(appState.selectedURLs)
-            let provider = NSItemProvider()
-            for u in urls {
-                provider.registerObject(u as NSURL, visibility: .all)
-            }
-            return provider
-        }
-        .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState)
-        .overlay(
-            RightClickDetector {
-                if !appState.selectedURLs.contains(item.url) {
-                    appState.selectedURLs = [item.url]
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    appState.handleSelection(for: item)
                 }
-            }
-        )
-        .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
+            )
+            .onDrag(dragProvider)
+            .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState)
+            .overlay(
+                RightClickDetector {
+                    if !appState.selectedURLs.contains(item.url) {
+                        appState.selectedURLs = [item.url]
+                    }
+                }
+            )
+            .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
+    }
+}
+
+private extension View {
+    func rowInteractions(item: FileItem, appState: AppState, dragProvider: @escaping () -> NSItemProvider) -> some View {
+        modifier(FileRowInteractionsModifier(item: item, appState: appState, dragProvider: dragProvider))
     }
 }

@@ -19,7 +19,7 @@ public final class CopyPathService: CopyPathServiceProtocol, Sendable {
         guard !urls.isEmpty else { return }
         let formattedPaths = urls.map { format(url: $0, variant: variant, relativeTo: base) }
         let combined = formattedPaths.joined(separator: "\n")
-        
+
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(combined, forType: .string)

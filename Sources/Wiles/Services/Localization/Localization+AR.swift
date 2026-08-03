@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let arabic: [Key: String] = [
+        .undo: "تراجع",
+        .redo: "إعادة",
+        .enclosingFolder: "المجلد الأصل",
+        .wilesHelpAndShortcuts: "مساعدة Wiles واختصاراته",
         .newFolder: "مجلد جديد",
         .paste: "لصق",
         .selectAll: "تحديد الكل",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "نسخ",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "لا يوجد تحديد",
+        .codePreview: "معاينة الكود",
+        .sharingActive: "المشاركة نشطة",
+        .createSymbolicLink: "إنشاء رابط رمزي",
+        .linkType: "نوع الرابط",
+        .symlinkNameLabel: "اسم الرابط الرمزي",
+        .createLink: "إنشاء رابط",
+        .wilesFileManager: "مدير ملفات Wiles",
+        .backgroundOperations: "العمليات في الخلفية",
+        .noActiveOperations: "لا توجد عمليات نشطة",
+        .itemsSelectedSuffix: "عناصر محددة",
+        .activeSuffix: "نشطة",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "إعادة تسمية",
@@ -144,7 +160,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

@@ -4,13 +4,13 @@ import AppKit
 @main
 struct WilesApp: App {
     @State private var appState = AppState()
-    
+
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
         NSWindow.allowsAutomaticWindowTabbing = false
     }
-    
+
     var body: some Scene {
         WindowGroup(AppConstants.appName) {
             MainContentView(appState: appState)
@@ -37,10 +37,10 @@ struct WilesApp: App {
                 }
                 .onAppear {
                     NSApplication.shared.activate(ignoringOtherApps: true)
-                    let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ?? 
+                    let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ??
                                   Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png") ??
                                   Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png")
-                    
+
                     if let iconImage = NSImage(contentsOf: iconURL) {
                         NSApplication.shared.applicationIconImage = iconImage
                     }
@@ -68,8 +68,7 @@ struct WilesApp: App {
         }
     }
 
-    @CommandsBuilder
-    private var appMenuCommands: some Commands {
+    @CommandsBuilder private var appMenuCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button(appState.tr(.aboutWiles)) { appState.showAboutSheet = true }
             Divider()
@@ -85,7 +84,7 @@ struct WilesApp: App {
             Menu(appState.tr(.translucentLevel)) {
                 Menu(appState.tr(.sidebarTranslucentLevel)) {
                     ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                        Button(action: { appState.sidebarTranslucentLevel = level }) {
+                        Button { appState.sidebarTranslucentLevel = level } label: {
                             HStack {
                                 Text("\(level)%")
                                 if appState.sidebarTranslucentLevel == level { Image(systemName: "checkmark") }
@@ -95,7 +94,7 @@ struct WilesApp: App {
                 }
                 Menu(appState.tr(.contentTranslucentLevel)) {
                     ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                        Button(action: { appState.contentTranslucentLevel = level }) {
+                        Button { appState.contentTranslucentLevel = level } label: {
                             HStack {
                                 Text("\(level)%")
                                 if appState.contentTranslucentLevel == level { Image(systemName: "checkmark") }
@@ -107,55 +106,52 @@ struct WilesApp: App {
         }
     }
 
-    @CommandsBuilder
-    private var fileMenuCommands: some Commands {
+    @CommandsBuilder private var fileMenuCommands: some Commands {
         CommandGroup(after: .newItem) {
-            Button("New Folder...") { appState.showNewFolderSheet = true }
+            Button(appState.tr(.newFolder)) { appState.showNewFolderSheet = true }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
             Divider()
-            Button("Open") { appState.openSelectedItem() }
+            Button(appState.tr(.open)) { appState.openSelectedItem() }
                 .keyboardShortcut("o", modifiers: .command)
                 .disabled(appState.selectedURLs.isEmpty)
             Button(appState.tr(.properties)) { appState.openPropertiesForSelected() }
                 .keyboardShortcut("i", modifiers: .command)
                 .disabled(appState.selectedURLs.isEmpty)
-            Button("Quick Look") { appState.triggerQuickLookForSelected() }
+            Button(appState.tr(.quickLook)) { appState.triggerQuickLookForSelected() }
                 .keyboardShortcut(" ", modifiers: [])
                 .disabled(appState.selectedURLs.isEmpty)
             Divider()
-            Button("Move to Trash") { appState.deleteSelected() }
+            Button(appState.tr(.moveToTrash)) { appState.deleteSelected() }
                 .disabled(appState.selectedURLs.isEmpty)
         }
     }
 
-    @CommandsBuilder
-    private var editMenuCommands: some Commands {
+    @CommandsBuilder private var editMenuCommands: some Commands {
         CommandGroup(after: .undoRedo) {
-            Button("Undo") { appState.undoLastAction() }
+            Button(appState.tr(.undo)) { appState.undoLastAction() }
                 .keyboardShortcut("z", modifiers: .command)
-            Button("Redo") { appState.redoLastAction() }
+            Button(appState.tr(.redo)) { appState.redoLastAction() }
                 .keyboardShortcut("z", modifiers: [.command, .shift])
         }
         CommandGroup(replacing: .pasteboard) {
-            Button("Cut") { appState.cutSelected() }
+            Button(appState.tr(.cut)) { appState.cutSelected() }
                 .keyboardShortcut("x", modifiers: .command)
                 .disabled(appState.selectedURLs.isEmpty)
-            Button("Copy") { appState.copySelected() }
+            Button(appState.tr(.copy)) { appState.copySelected() }
                 .keyboardShortcut("c", modifiers: .command)
                 .disabled(appState.selectedURLs.isEmpty)
-            Button("Paste") { appState.pasteToCurrentDirectory() }
+            Button(appState.tr(.paste)) { appState.pasteToCurrentDirectory() }
                 .keyboardShortcut("v", modifiers: .command)
             Divider()
-            Button("Select All") { appState.selectAllItems() }
+            Button(appState.tr(.selectAll)) { appState.selectAllItems() }
                 .keyboardShortcut("a", modifiers: .command)
             Divider()
-            Button("Find") { appState.toggleSearching() }
+            Button(appState.tr(.find)) { appState.toggleSearching() }
                 .keyboardShortcut("f", modifiers: .command)
         }
     }
 
-    @CommandsBuilder
-    private var viewMenuCommands: some Commands {
+    @CommandsBuilder private var viewMenuCommands: some Commands {
         CommandGroup(after: .sidebar) {
             Divider()
             Button(appState.tr(.shortcutsCheatsheetTitle)) {
@@ -200,24 +196,22 @@ struct WilesApp: App {
         }
     }
 
-    @ViewBuilder
-    private var goMenuCommands: some View {
-        Button("Back") { appState.goBack() }
+    @ViewBuilder private var goMenuCommands: some View {
+        Button(appState.tr(.back)) { appState.goBack() }
             .keyboardShortcut("[", modifiers: .command)
             .disabled(appState.historyBack.isEmpty)
-        Button("Forward") { appState.goForward() }
+        Button(appState.tr(.forward)) { appState.goForward() }
             .keyboardShortcut("]", modifiers: .command)
             .disabled(appState.historyForward.isEmpty)
-        Button("Enclosing Folder") { appState.goUp() }
+        Button(appState.tr(.enclosingFolder)) { appState.goUp() }
         Divider()
-        Button("Go to Folder...") { appState.startEditingPath() }
+        Button(appState.tr(.goToFolder)) { appState.startEditingPath() }
             .keyboardShortcut("l", modifiers: .command)
-        Button("Connect to Server...") { appState.showConnectToServerSheet = true }
+        Button(appState.tr(.connectToServer) + "...") { appState.showConnectToServerSheet = true }
             .keyboardShortcut("k", modifiers: .command)
     }
 
-    @ViewBuilder
-    private var toolsMenuCommands: some View {
+    @ViewBuilder private var toolsMenuCommands: some View {
         Button(appState.tr(.actDiskVisualizer) + "...") { appState.showDiskUsageSheet = true }
             .keyboardShortcut("d", modifiers: [.command, .shift])
         Button(appState.tr(.autoOrganization) + "...") { appState.showAutoOrganizationSheet = true }
@@ -245,10 +239,9 @@ struct WilesApp: App {
         .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
     }
 
-    @CommandsBuilder
-    private var helpMenuCommands: some Commands {
+    @CommandsBuilder private var helpMenuCommands: some Commands {
         CommandGroup(replacing: .help) {
-            Button("Wiles Help & Shortcuts") { appState.showHelpSheet = true }
+            Button(appState.tr(.wilesHelpAndShortcuts)) { appState.showHelpSheet = true }
                 .keyboardShortcut("?", modifiers: .command)
         }
     }

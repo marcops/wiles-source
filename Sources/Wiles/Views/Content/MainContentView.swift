@@ -108,7 +108,7 @@ struct MainContentView: View {
         }
         }
     }
-    
+
     private var contentTranslucentBackground: some View {
         ZStack {
             TranslucentVisualEffectView(material: .sidebar)
@@ -137,8 +137,7 @@ struct MainContentView: View {
         }
     }
 
-    @ViewBuilder
-    private var contentArea: some View {
+    @ViewBuilder private var contentArea: some View {
         if appState.viewMode == .grid {
             FileGridView(appState: appState)
         } else if appState.viewMode == .list {
@@ -147,7 +146,7 @@ struct MainContentView: View {
             FileColumnView(appState: appState)
         }
     }
-    
+
     /// Shortcuts kept invisible on purpose: they're aliases for actions already discoverable
     /// elsewhere (a menu item, a toolbar button, or a mode-dependent alternate binding),
     /// so a second menu row for the same command would just be noise.
@@ -168,13 +167,13 @@ struct MainContentView: View {
             appState.deleteSelected()
         }
     }
-    
+
     private func triggerRenameForSelected() {
         if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
             appState.renameItem = item
         }
     }
-    
+
     private func toggleHiddenFiles() {
         appState.showHiddenFiles.toggle()
         appState.refreshCurrentDirectory()
@@ -264,7 +263,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
                 return event
             }
-            
+
             if event.type == .scrollWheel {
                 return handleScrollEvent(event, appState: appState)
             } else if event.type == .keyDown {
@@ -317,7 +316,67 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         }
 
         private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState) -> Bool {
-            let isShift = NSEvent.modifierFlags.contains(.shift)
+            if let arrowCode = ArrowKey(code: code) {
+                let isShift = NSEvent.modifierFlags.contains(.shift)
+                handleArrowKeyDown(arrowCode, isShift: isShift, appState: appState)
+                return true
+            }
+            return handleEditActionKeyDown(code: code, isCmd: isCmd, appState: appState)
+        }
+
+        private enum ArrowKey {
+            case up, down, left, right
+
+            init?(code: UInt16) {
+                switch code {
+                case KeyCode.arrowUp: self = .up
+                case KeyCode.arrowDown: self = .down
+                case KeyCode.arrowLeft: self = .left
+                case KeyCode.arrowRight: self = .right
+                default: return nil
+                }
+            }
+        }
+
+        private func handleArrowKeyDown(_ key: ArrowKey, isShift: Bool, appState: AppState) {
+            switch key {
+            case .up:
+                if appState.viewMode == .column {
+                    appState.columnViewVerticalDirection = -1
+                    appState.columnViewVerticalTrigger += 1
+                } else {
+                    let offset = appState.viewMode == .grid ? -appState.gridColumnCount : -1
+                    moveSelection(by: offset, isShift: isShift, appState: appState)
+                }
+            case .down:
+                if appState.viewMode == .column {
+                    appState.columnViewVerticalDirection = 1
+                    appState.columnViewVerticalTrigger += 1
+                } else {
+                    let offset = appState.viewMode == .grid ? appState.gridColumnCount : 1
+                    moveSelection(by: offset, isShift: isShift, appState: appState)
+                }
+            case .left:
+                if appState.viewMode == .grid {
+                    moveSelection(by: -1, isShift: isShift, appState: appState)
+                } else if appState.viewMode == .column {
+                    appState.columnViewMoveLeftTrigger += 1
+                } else {
+                    appState.goUp()
+                }
+            case .right:
+                if appState.viewMode == .grid {
+                    moveSelection(by: 1, isShift: isShift, appState: appState)
+                } else if appState.viewMode == .column {
+                    appState.columnViewDrillRightTrigger += 1
+                } else if let first = appState.selectedURLs.first,
+                    let item = appState.items.first(where: { $0.url == first }), item.isDirectory {
+                    appState.navigateTo(first)
+                }
+            }
+        }
+
+        private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState) -> Bool {
             if code == KeyCode.f2 {
                 if !appState.selectedURLs.isEmpty {
                     triggerRenameForSelected(appState: appState)
@@ -332,56 +391,24 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                     return true
                 }
             } else if code == KeyCode.returnKey {
-                if isCmd && !appState.selectedURLs.isEmpty {
-                    appState.deleteSelected()
+                return handleReturnKeyDown(isCmd: isCmd, appState: appState)
+            }
+            return false
+        }
+
+        private func handleReturnKeyDown(isCmd: Bool, appState: AppState) -> Bool {
+            if isCmd && !appState.selectedURLs.isEmpty {
+                appState.deleteSelected()
+                return true
+            } else if !isCmd {
+                if appState.navigationMode == .gnome, let first = appState.selectedURLs.first {
+                    appState.navigateTo(first)
                     return true
-                } else if !isCmd {
-                    if appState.navigationMode == .gnome, let first = appState.selectedURLs.first {
-                        appState.navigateTo(first)
-                        return true
-                    } else if appState.navigationMode == .macOS, let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
-                        appState.renameItem = item
-                        return true
-                    }
+                } else if appState.navigationMode == .macOS, let first = appState.selectedURLs.first,
+                    let item = appState.items.first(where: { $0.url == first }) {
+                    appState.renameItem = item
+                    return true
                 }
-            } else if code == KeyCode.arrowUp {
-                if appState.viewMode == .column {
-                    appState.columnViewVerticalDirection = -1
-                    appState.columnViewVerticalTrigger += 1
-                } else {
-                    let offset = appState.viewMode == .grid ? -appState.gridColumnCount : -1
-                    moveSelection(by: offset, isShift: isShift, appState: appState)
-                }
-                return true
-            } else if code == KeyCode.arrowDown {
-                if appState.viewMode == .column {
-                    appState.columnViewVerticalDirection = 1
-                    appState.columnViewVerticalTrigger += 1
-                } else {
-                    let offset = appState.viewMode == .grid ? appState.gridColumnCount : 1
-                    moveSelection(by: offset, isShift: isShift, appState: appState)
-                }
-                return true
-            } else if code == KeyCode.arrowLeft {
-                if appState.viewMode == .grid {
-                    moveSelection(by: -1, isShift: isShift, appState: appState)
-                } else if appState.viewMode == .column {
-                    appState.columnViewMoveLeftTrigger += 1
-                } else {
-                    appState.goUp()
-                }
-                return true
-            } else if code == KeyCode.arrowRight {
-                if appState.viewMode == .grid {
-                    moveSelection(by: 1, isShift: isShift, appState: appState)
-                } else if appState.viewMode == .column {
-                    appState.columnViewDrillRightTrigger += 1
-                } else {
-                    if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }), item.isDirectory {
-                        appState.navigateTo(first)
-                    }
-                }
-                return true
             }
             return false
         }

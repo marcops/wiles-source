@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let turkish: [Key: String] = [
+        .undo: "Geri Al",
+        .redo: "Yinele",
+        .enclosingFolder: "Üst Klasör",
+        .wilesHelpAndShortcuts: "Wiles Yardım ve Kısayollar",
         .newFolder: "Yeni Klasör",
         .paste: "Yapıştır",
         .selectAll: "Tümünü Seç",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Kopyala",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "Seçim Yok",
+        .codePreview: "Kod Önizleme",
+        .sharingActive: "Paylaşım Etkin",
+        .createSymbolicLink: "Sembolik Bağlantı Oluştur",
+        .linkType: "Bağlantı Türü",
+        .symlinkNameLabel: "Sembolik Bağlantı Adı",
+        .createLink: "Bağlantı Oluştur",
+        .wilesFileManager: "Wiles Dosya Yöneticisi",
+        .backgroundOperations: "Arka Plan İşlemleri",
+        .noActiveOperations: "Aktif işlem yok",
+        .itemsSelectedSuffix: "öğe seçildi",
+        .activeSuffix: "etkin",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "Yeniden Adlandır",
@@ -144,7 +160,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

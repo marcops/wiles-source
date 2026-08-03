@@ -4,9 +4,15 @@ import AppKit
 extension AppState {
     public func downloadFromiCloud(url: URL) {
         Task.detached(priority: .userInitiated) {
-            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
-            await MainActor.run { [weak self] in
-                self?.refreshCurrentDirectory()
+            do {
+                try FileManager.default.startDownloadingUbiquitousItem(at: url)
+                await MainActor.run { [weak self] in
+                    self?.refreshCurrentDirectory()
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.showError(error.localizedDescription)
+                }
             }
         }
     }
@@ -15,14 +21,14 @@ extension AppState {
         guard !selectedURLs.isEmpty else { return }
         clipboard = ClipboardState(urls: Array(selectedURLs), action: .cut)
     }
-    
+
     public func copySelected() {
         guard !selectedURLs.isEmpty else { return }
         let urls = Array(selectedURLs)
         clipboard = ClipboardState(urls: urls, action: .copy)
         FileSystemService.writeToPasteboard(urls: urls)
     }
-    
+
     public func pasteToCurrentDirectory() {
         guard let clip = clipboard, !clip.urls.isEmpty else {
             if let urls = FileSystemService.readFromPasteboard(), !urls.isEmpty {
@@ -35,7 +41,7 @@ extension AppState {
             clipboard = nil
         }
     }
-    
+
     private func executePaste(urls: [URL], isCut: Bool) {
         Task {
             for url in urls {
@@ -54,7 +60,7 @@ extension AppState {
             refreshCurrentDirectory()
         }
     }
-    
+
     public func deleteSelected() {
         guard !selectedURLs.isEmpty else { return }
         let urls = Array(selectedURLs)
@@ -71,7 +77,7 @@ extension AppState {
             refreshCurrentDirectory()
         }
     }
-    
+
     public func deletePermanentlySelected() {
         guard !selectedURLs.isEmpty else { return }
         let urls = Array(selectedURLs)
@@ -83,7 +89,7 @@ extension AppState {
             showError(error.localizedDescription)
         }
     }
-    
+
     public func shredSelected() {
         guard !selectedURLs.isEmpty else { return }
         let urls = Array(selectedURLs)
@@ -101,12 +107,12 @@ extension AppState {
             }
         }
     }
-    
+
     public func copyContentOfSelected() {
         guard let firstURL = selectedURLs.first else { return }
         FileSystemService.copyFileContentToClipboard(url: firstURL)
     }
-    
+
     public func undoLastAction() {
         Task {
             if let targetURL = await UndoRedoService.shared.undo() {
@@ -115,7 +121,7 @@ extension AppState {
             }
         }
     }
-    
+
     public func redoLastAction() {
         Task {
             if let targetURL = await UndoRedoService.shared.redo() {

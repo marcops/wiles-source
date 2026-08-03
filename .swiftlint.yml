@@ -16,17 +16,23 @@ opt_in_rules:
   - redundant_nil_coalescing
   - toggle_bool
   - weak_delegate
+  - prefer_self_in_static_references
+  - yoda_condition
+  - modifier_order
+  - attributes
+  - explicit_init
+  - array_init
+  - last_where
+  - contains_over_first_not_nil
+  - redundant_type_annotation
 
 analyzer_rules:
   - unused_declaration
   - unused_import
 
-disabled_rules:
-  - todo # project currently has zero TODOs; enable later if that changes
-
 line_length:
-  warning: 160
-  error: 220
+  warning: 180
+  error: 180
 
 type_body_length:
   warning: 400
@@ -41,7 +47,7 @@ function_body_length:
   error: 80
 
 cyclomatic_complexity:
-  warning: 15
+  warning: 16
   error: 25
 
 identifier_name:
@@ -51,5 +57,44 @@ identifier_name:
     - id
     - x
     - y
+    - i
+    - j
+    - di
+    - dj
     - dx
     - dy
+
+attributes:
+  always_on_same_line:
+    - "@IBAction"
+    - "@NSManaged"
+  always_on_line_above:
+    - "@available"
+
+modifier_order:
+  preferred_modifier_order:
+    - override
+    - acl
+    - setterACL
+    - dynamic
+    - mutators
+    - lazy
+    - final
+    - required
+    - convenience
+    - typeMethods
+    - owned
+
+trailing_whitespace:
+  ignores_empty_lines: true
+
+vertical_whitespace:
+  max_empty_lines: 1
+
+nesting:
+  type_level:
+    warning: 3
+    error: 3
+  function_level:
+    warning: 3
+    error: 3

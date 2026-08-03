@@ -26,9 +26,9 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         self.url = url.standardizedFileURL
         self.name = url.lastPathComponent
         self.icon = icon
-        
+
         var keys: Set<URLResourceKey> = [
-            .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, 
+            .isDirectoryKey, .fileSizeKey, .contentModificationDateKey,
             .creationDateKey, .contentAccessDateKey,
             .isHiddenKey, .isUbiquitousItemKey,
             .ubiquitousItemDownloadingStatusKey,
@@ -40,7 +40,7 @@ public struct FileItem: Identifiable, Hashable, Sendable {
             keys.insert(.labelColorKey)
         }
         let values = try? url.resourceValues(forKeys: keys)
-        
+
         self.isDirectory = values?.isDirectory ?? false
         self.size = Int64(values?.fileSize ?? 0)
         self.dateModified = values?.contentModificationDate ?? Date()
@@ -48,22 +48,16 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         self.dateAccessed = values?.contentAccessDate
         self.isHidden = values?.isHidden ?? url.lastPathComponent.hasPrefix(".")
         self.fileExtension = url.pathExtension.lowercased()
-        
+
         self.isUbiquitous = values?.isUbiquitousItem ?? false
         let status = values?.ubiquitousItemDownloadingStatus
         self.isUbiquitousNotDownloaded = (status == .notDownloaded)
         self.isUbiquitousDownloading = values?.ubiquitousItemIsDownloading ?? false
         self.isUbiquitousUploading = values?.ubiquitousItemIsUploading ?? false
-        
+
         // Fetch POSIX owner/group
-        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {
-            self.ownerName = (attrs[.ownerAccountName] as? String) ?? "--"
-            self.groupName = (attrs[.groupOwnerAccountName] as? String) ?? "--"
-        } else {
-            self.ownerName = "--"
-            self.groupName = "--"
-        }
-        
+        (self.ownerName, self.groupName) = Self.ownerAndGroup(atPath: url.path)
+
         if fetchTags {
             self.tags = values?.tagNames ?? []
             self.tagColor = values?.labelColor
@@ -71,6 +65,15 @@ public struct FileItem: Identifiable, Hashable, Sendable {
             self.tags = []
             self.tagColor = nil
         }
+    }
+
+    private static func ownerAndGroup(atPath path: String) -> (owner: String, group: String) {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: path) else {
+            return ("--", "--")
+        }
+        let owner = (attrs[.ownerAccountName] as? String) ?? "--"
+        let group = (attrs[.groupOwnerAccountName] as? String) ?? "--"
+        return (owner, group)
     }
 
     public var formattedSize: String {

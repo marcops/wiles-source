@@ -3,7 +3,7 @@ import AppKit
 
 extension AppState {
     public func navigateTo(_ url: URL, addToHistory: Bool = true) {
-        if url == AppState.recentsVirtualURL {
+        if url == Self.recentsVirtualURL {
             if addToHistory && url != currentURL {
                 historyBack.append(currentURL)
                 historyForward.removeAll()
@@ -31,24 +31,24 @@ extension AppState {
             NSWorkspace.shared.open(url)
         }
     }
-    
+
     public func goBack() {
         guard let prev = historyBack.popLast() else { return }
         historyForward.append(currentURL)
         navigateTo(prev, addToHistory: false)
     }
-    
+
     public func goForward() {
         guard let next = historyForward.popLast() else { return }
         historyBack.append(currentURL)
         navigateTo(next, addToHistory: false)
     }
-    
+
     public func goUp() {
         let parent = currentURL.deletingLastPathComponent()
         if parent != currentURL { navigateTo(parent) }
     }
-    
+
     public func refreshCurrentDirectory() {
         isLoading = true
         let target = currentURL
@@ -57,12 +57,13 @@ extension AppState {
         let query = searchQuery
         let sort = sortOption
         let asc = sortAscending
-        
+
         startDirectoryMonitoring(for: target)
-        
+
         Task {
             let loaded = await FileSystemService.loadDirectoryContents(
-                at: target, showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc
+                at: target,
+                options: DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc)
             )
             if self.currentURL == target {
                 self.items = loaded
@@ -74,10 +75,10 @@ extension AppState {
             self.updateTrashSize()
         }
     }
-    
+
     public func addToRecents(_ url: URL) {
         let std = url.standardizedFileURL
-        if std == AppState.recentsVirtualURL || std.scheme == "wiles" { return }
+        if std == Self.recentsVirtualURL || std.scheme == "wiles" { return }
         var current = recentOpenedURLs.filter { $0.standardizedFileURL != std }
         current.insert(std, at: 0)
         if current.count > 50 {

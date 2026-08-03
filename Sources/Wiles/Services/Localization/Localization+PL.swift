@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let polish: [Key: String] = [
+        .undo: "Cofnij",
+        .redo: "Ponów",
+        .enclosingFolder: "Folder Nadrzędny",
+        .wilesHelpAndShortcuts: "Pomoc i Skróty Wiles",
         .newFolder: "Nowy folder",
         .paste: "Wklej",
         .selectAll: "Zaznacz wszystko",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Kopiuj",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "Brak Zaznaczenia",
+        .codePreview: "Podgląd Kodu",
+        .sharingActive: "Udostępnianie Aktywne",
+        .createSymbolicLink: "Utwórz Dowiązanie Symboliczne",
+        .linkType: "Typ Dowiązania",
+        .symlinkNameLabel: "Nazwa Dowiązania",
+        .createLink: "Utwórz Dowiązanie",
+        .wilesFileManager: "Menedżer Plików Wiles",
+        .backgroundOperations: "Operacje w Tle",
+        .noActiveOperations: "Brak aktywnych operacji",
+        .itemsSelectedSuffix: "wybranych elementów",
+        .activeSuffix: "aktywnych",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "Zmień nazwę",
@@ -144,7 +160,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

@@ -5,7 +5,7 @@ import Foundation
 public final class PermissionTests {
     public static func run() {
         print("\n--- Running PermissionTests ---")
-        
+
         _ = PermissionService.hasFullDiskAccess()
         TestReporter.report("Permission", "hasFullDiskAccess runs safely without error", result: true)
 
@@ -17,4 +17,3 @@ public final class PermissionTests {
         TestReporter.report("Permission", "resetInitialPermissionsFlag runs safely without error", result: true)
     }
 }
-

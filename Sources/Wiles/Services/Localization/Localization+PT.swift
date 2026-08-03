@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let pt: [Key: String] = [
+        .undo: "Desfazer",
+        .redo: "Refazer",
+        .enclosingFolder: "Pasta Superior",
+        .wilesHelpAndShortcuts: "Ajuda e Atalhos do Wiles",
         .newFolder: "Nova Pasta...",
         .paste: "Colar",
         .selectAll: "Selecionar Tudo",
@@ -40,6 +44,18 @@ extension L10n {
         .copy: "Copiar",
         .copyContent: "Copiar Conteúdo",
         .moveToTrash: "Mover para a Lixeira",
+        .noSelection: "Nenhuma Seleção",
+        .codePreview: "Prévia de Código",
+        .sharingActive: "Compartilhamento Ativo",
+        .createSymbolicLink: "Criar Link Simbólico",
+        .linkType: "Tipo de Link",
+        .symlinkNameLabel: "Nome do Symlink",
+        .createLink: "Criar Link",
+        .wilesFileManager: "Gerenciador de Arquivos Wiles",
+        .backgroundOperations: "Operações em Segundo Plano",
+        .noActiveOperations: "Nenhuma operação ativa",
+        .itemsSelectedSuffix: "itens selecionados",
+        .activeSuffix: "ativa(s)",
         .compressToZip: "Compactar para ZIP",
         .extractHere: "Extrair Arquivo Aqui",
         .rename: "Renomear...",
@@ -147,10 +163,13 @@ extension L10n {
         .tabFeatures: "Recursos e Ferramentas",
         .tabSystem: "Navegação e Sistema",
         .tabShortcuts: "Atalhos",
-        .overviewDesc: "O Wiles é um gerenciador de arquivos nativo de alto desempenho para macOS construído com AppKit e SwiftUI. Ele une a eficiência do GNOME Files (Nautilus) aos recursos do macOS Finder.",
+        .overviewDesc:
+            "O Wiles é um gerenciador de arquivos nativo de alto desempenho para macOS construído com " +
+                "AppKit e SwiftUI. Ele une a eficiência do GNOME Files (Nautilus) aos recursos do macOS Finder.",
         .domainToolsTitle: "Ferramentas do Domínio e Destaques",
         .helpTagsTitle: "Etiquetas Nativas do macOS e Filtragem",
-        .helpTagsDesc: "Ative 'Mostrar Etiquetas' no menu Visualizar ou Opções. Clique com o botão direito no arquivo > Etiquetas. Clique na barra lateral ou busque 'tag:cor' para filtrar.",
+        .helpTagsDesc: "Ative 'Mostrar Etiquetas' no menu Visualizar ou Opções. Clique com o botão direito " +
+            "no arquivo > Etiquetas. Clique na barra lateral ou busque 'tag:cor' para filtrar.",
         .helpTerminalTitle: "Abrir no Terminal",
         .helpTerminalDesc: "Clique com o botão direito em qualquer pasta ou área vazia -> 'Abrir no Terminal' para abrir o Terminal nativo na pasta atual.",
         .helpZipTitle: "Compactação e Extração de Arquivos ZIP",
@@ -226,7 +245,8 @@ extension L10n {
         .actRefreshShortcut: "Atualizar Diretório",
         .actToggleStatusBar: "Alternar Barra de Status",
         .fullDiskAccessPromptTitle: "Acesso Total ao Disco",
-        .fullDiskAccessPromptMessage: "O Wiles precisa de Acesso Total ao Disco para navegar em todas as suas pastas sem pedir permissão repetidamente. Conceda uma vez nos Ajustes do Sistema.",
+        .fullDiskAccessPromptMessage: "O Wiles precisa de Acesso Total ao Disco para navegar em todas as suas pastas " +
+            "sem pedir permissão repetidamente. Conceda uma vez nos Ajustes do Sistema.",
         .openSystemSettings: "Abrir Ajustes do Sistema",
         .notNow: "Agora Não"
 ,

@@ -7,10 +7,11 @@ enum HelpTab: CaseIterable, Identifiable {
     case features
     case system
     case shortcuts
-    
+
     var id: Self { self }
-    
-    @MainActor func title(appState: AppState) -> String {
+
+    @MainActor
+    func title(appState: AppState) -> String {
         switch self {
         case .overview: return appState.tr(.tabOverview)
         case .features: return appState.tr(.tabFeatures)
@@ -21,15 +22,16 @@ enum HelpTab: CaseIterable, Identifiable {
 }
 
 struct HelpSheet: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     var appState: AppState
     @State private var selectedTab: HelpTab = .overview
-    
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
             Divider()
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     switch selectedTab {
@@ -47,14 +49,14 @@ struct HelpSheet: View {
                 }
                 .padding(20)
             }
-            
+
             Divider()
             footerView
         }
         .frame(width: 660, height: 580)
         .background(Color(NSColor.windowBackgroundColor))
     }
-    
+
     private var headerView: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
@@ -62,9 +64,9 @@ struct HelpSheet: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 36, height: 36)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Wiles File Manager")
+                    Text(appState.tr(.wilesFileManager))
                         .font(.system(size: 16, weight: .bold))
                     Text(appState.tr(.helpGuideTitle))
                         .font(.system(size: 12))
@@ -72,7 +74,7 @@ struct HelpSheet: View {
                 }
                 Spacer()
             }
-            
+
             Picker("", selection: $selectedTab) {
                 ForEach(HelpTab.allCases) { tab in
                     Text(tab.title(appState: appState)).tag(tab)
@@ -85,7 +87,7 @@ struct HelpSheet: View {
         .padding(.vertical, 14)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
-    
+
     private var overviewSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(appState.tr(.tabOverview))
@@ -100,7 +102,7 @@ struct HelpSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(appState.tr(.domainToolsTitle))
                 .font(.system(size: 14, weight: .semibold))
-            
+
             VStack(spacing: 8) {
                 featureRow(icon: "tag.fill", title: appState.tr(.helpTagsTitle), desc: appState.tr(.helpTagsDesc))
                 featureRow(icon: "terminal.fill", title: appState.tr(.helpTerminalTitle), desc: appState.tr(.helpTerminalDesc))
@@ -123,7 +125,7 @@ struct HelpSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(appState.tr(.navSystemTitle))
                 .font(.system(size: 14, weight: .semibold))
-            
+
             VStack(spacing: 8) {
                 featureRow(icon: "arrow.uturn.backward.circle.fill", title: appState.tr(.helpUndoTitle), desc: appState.tr(.helpUndoDesc))
                 featureRow(icon: "sidebar.right", title: appState.tr(.helpPreviewTitle), desc: appState.tr(.helpPreviewDesc))
@@ -135,14 +137,14 @@ struct HelpSheet: View {
             }
         }
     }
-    
+
     private func featureRow(icon: String, title: String, desc: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 14))
                 .foregroundColor(.accentColor)
                 .frame(width: 20, height: 20)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 12, weight: .bold))
@@ -157,7 +159,7 @@ struct HelpSheet: View {
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(6)
     }
-    
+
     private var sidebarAndTagsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(appState.tr(.sidebarMode))
@@ -167,12 +169,12 @@ struct HelpSheet: View {
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var navigationModesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(appState.tr(.navProfilesTitle))
                 .font(.system(size: 14, weight: .semibold))
-            
+
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -190,7 +192,7 @@ struct HelpSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(8)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "circle.fill")
@@ -210,12 +212,12 @@ struct HelpSheet: View {
             }
         }
     }
-    
+
     private var shortcutsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(appState.tr(.shortcutsCheatsheetTitle))
                 .font(.system(size: 14, weight: .semibold))
-            
+
             VStack(spacing: 4) {
                 shortcutRow(action: appState.tr(.actUndo), shortcut: "Cmd + Z")
                 shortcutRow(action: appState.tr(.actRedo), shortcut: "Cmd + Shift + Z")
@@ -241,7 +243,7 @@ struct HelpSheet: View {
             .cornerRadius(8)
         }
     }
-    
+
     private func shortcutRow(action: String, shortcut: String) -> some View {
         HStack {
             Text(action)
@@ -255,7 +257,7 @@ struct HelpSheet: View {
                 .cornerRadius(4)
         }
     }
-    
+
     private var footerView: some View {
         HStack {
             Spacer()
@@ -269,4 +271,3 @@ struct HelpSheet: View {
         .padding(.vertical, 12)
     }
 }
-

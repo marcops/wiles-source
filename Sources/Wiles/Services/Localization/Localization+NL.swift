@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let dutch: [Key: String] = [
+        .undo: "Ongedaan maken",
+        .redo: "Opnieuw",
+        .enclosingFolder: "Bovenliggende Map",
+        .wilesHelpAndShortcuts: "Wiles Help en Sneltoetsen",
         .newFolder: "Nieuwe map",
         .paste: "Plakken",
         .selectAll: "Selecteer alles",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "Kopiëren",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "Geen Selectie",
+        .codePreview: "Code Voorbeeld",
+        .sharingActive: "Delen Actief",
+        .createSymbolicLink: "Symbolische Link Maken",
+        .linkType: "Linktype",
+        .symlinkNameLabel: "Symlink Naam",
+        .createLink: "Link Maken",
+        .wilesFileManager: "Wiles Bestandsbeheer",
+        .backgroundOperations: "Achtergrondbewerkingen",
+        .noActiveOperations: "Geen actieve bewerkingen",
+        .itemsSelectedSuffix: "items geselecteerd",
+        .activeSuffix: "actief",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "Naam wijzigen",
@@ -144,7 +160,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

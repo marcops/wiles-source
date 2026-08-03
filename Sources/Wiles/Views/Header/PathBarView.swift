@@ -20,7 +20,7 @@ struct PathBarView: View {
     @FocusState private var isFocused: Bool
     @State private var isHovering = false
     @State private var breadcrumbContentWidth: CGFloat = 0
-    
+
     var pathSegments: [PathSegment] {
         var res: [(name: String, url: URL)] = []
         var cur = appState.currentURL.standardizedFileURL
@@ -34,11 +34,11 @@ struct PathBarView: View {
             cur = parent
             depth += 1
         }
-        return res.enumerated().map { i, item in
-            PathSegment(name: item.name, url: item.url, isFirst: i == 0)
+        return res.enumerated().map { index, item in
+            PathSegment(name: item.name, url: item.url, isFirst: index == 0)
         }
     }
-    
+
     var body: some View {
         HStack(spacing: 4) {
             if appState.isEditingPath {
@@ -49,7 +49,7 @@ struct PathBarView: View {
         }
         .animation(MotionTokens.quickEase, value: appState.isEditingPath)
     }
-    
+
     private var textFieldMode: some View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
@@ -81,7 +81,7 @@ struct PathBarView: View {
         })
         .onAppear { isFocused = true }
     }
-    
+
     private var breadcrumbMode: some View {
         HStack(spacing: 0) {
             GeometryReader { outerGeo in
@@ -160,7 +160,7 @@ struct PathBarView: View {
 
     private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {
         let isHome = item.url.standardizedFileURL == URL.userHome.standardizedFileURL
-        return Button(action: { appState.navigateTo(item.url) }) {
+        return Button { appState.navigateTo(item.url) } label: {
             HStack(spacing: 4) {
                 if isHome { Image(systemName: "house.fill").font(.system(size: 11)) }
                 Text(item.name).font(.system(size: 12, weight: .medium))
@@ -181,7 +181,7 @@ struct PathBarView: View {
             return true
         }
     }
-    
+
     private func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
         for provider in providers {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in

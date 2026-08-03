@@ -11,6 +11,9 @@ public struct ICloudTests {
 
         // POS: FileItem includes iCloud status properties
         TestReporter.report("iCloudStatus", "POS: FileItem parses isUbiquitous properties", result: item.isUbiquitous == false || item.isUbiquitous == true)
-        TestReporter.report("iCloudStatus", "POS: FileItem parses isUbiquitousNotDownloaded", result: item.isUbiquitousNotDownloaded == false || item.isUbiquitousNotDownloaded == true)
+        TestReporter.report(
+            "iCloudStatus", "POS: FileItem parses isUbiquitousNotDownloaded",
+            result: item.isUbiquitousNotDownloaded == false || item.isUbiquitousNotDownloaded == true
+        )
     }
 }

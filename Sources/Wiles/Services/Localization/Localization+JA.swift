@@ -2,6 +2,10 @@ import Foundation
 
 extension L10n {
     static let japanese: [Key: String] = [
+        .undo: "元に戻す",
+        .redo: "やり直す",
+        .enclosingFolder: "上位フォルダ",
+        .wilesHelpAndShortcuts: "Wiles ヘルプとショートカット",
         .newFolder: "新規フォルダ",
         .paste: "貼り付け",
         .selectAll: "すべて選択",
@@ -37,6 +41,18 @@ extension L10n {
         .copy: "コピー",
         .copyContent: "Copy Content",
         .moveToTrash: "Move to Trash",
+        .noSelection: "選択なし",
+        .codePreview: "コードプレビュー",
+        .sharingActive: "共有中",
+        .createSymbolicLink: "シンボリックリンクを作成",
+        .linkType: "リンクの種類",
+        .symlinkNameLabel: "シンボリックリンク名",
+        .createLink: "リンクを作成",
+        .wilesFileManager: "Wiles ファイルマネージャー",
+        .backgroundOperations: "バックグラウンド操作",
+        .noActiveOperations: "実行中の操作はありません",
+        .itemsSelectedSuffix: "項目を選択中",
+        .activeSuffix: "件実行中",
         .compressToZip: "Compress to ZIP",
         .extractHere: "Extract Archive Here",
         .rename: "名前を変更",
@@ -144,7 +160,9 @@ extension L10n {
         .tabFeatures: "Features & Tools",
         .tabSystem: "Navigation & System",
         .tabShortcuts: "Shortcuts",
-        .overviewDesc: "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
+        .overviewDesc:
+            "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. " +
+                "It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.",
         .domainToolsTitle: "Domain Tools & Feature Highlights",
         .helpTagsTitle: "Native macOS Tags & Filtering",
         .helpTagsDesc: "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.",

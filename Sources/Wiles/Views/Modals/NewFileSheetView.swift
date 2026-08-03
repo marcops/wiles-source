@@ -2,11 +2,11 @@ import SwiftUI
 
 public struct NewFileSheetView: View {
     var appState: AppState
-    
+
     public init(appState: AppState) {
         self.appState = appState
     }
-    
+
     public var body: some View {
         SingleInputSheetView(
             title: appState.tr(.newFileTitle),
@@ -22,7 +22,7 @@ public struct NewFileSheetView: View {
             }
         )
     }
-    
+
     private func createNewFile(name: String) {
         let folder = appState.currentURL
         do {

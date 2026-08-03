@@ -6,7 +6,7 @@ public struct ArchiveEntryItem: Identifiable, Sendable {
     public let path: String
     public let isDirectory: Bool
     public let name: String
-    
+
     public init(path: String) {
         self.path = path
         self.isDirectory = path.hasSuffix("/")
@@ -27,33 +27,33 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-Z1", archiveURL.path]
-        
+
         let pipe = Pipe()
         process.standardOutput = pipe
         try? process.run()
         process.waitUntilExit()
-        
+
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let output = String(data: data, encoding: .utf8) else { return [] }
-        
+
         let lines = output.components(separatedBy: .newlines).filter { !$0.isEmpty }
         return lines.map { ArchiveEntryItem(path: $0) }
     }
-    
+
     @MainActor
     public static func extractSingleEntry(from archiveURL: URL, entryPath: String, to destinationFolder: URL) throws -> URL {
         let entryName = (entryPath as NSString).lastPathComponent
         let destURL = destinationFolder.appendingPathComponent(entryName)
-        
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-p", archiveURL.path, entryPath]
-        
+
         let pipe = Pipe()
         process.standardOutput = pipe
         try process.run()
         process.waitUntilExit()
-        
+
         let fileData = pipe.fileHandleForReading.readDataToEndOfFile()
         try fileData.write(to: destURL)
         return destURL

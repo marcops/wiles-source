@@ -2,21 +2,22 @@ import SwiftUI
 
 public struct DuplicateCleanerSheetView: View {
     var appState: AppState
-    @Environment(\.dismiss) private var dismiss
-    
+    @Environment(\.dismiss)
+    private var dismiss
+
     @State private var isScanning = true
-    @State private var scanResult: DuplicateScanResult? = nil
+    @State private var scanResult: DuplicateScanResult?
     @State private var selectedURLsToTrash: Set<URL> = []
-    
+
     public init(appState: AppState) {
         self.appState = appState
     }
-    
+
     public var body: some View {
         VStack(spacing: 0) {
             headerBar
             Divider()
-            
+
             if isScanning {
                 scanningView
             } else if let result = scanResult, !result.groups.isEmpty {
@@ -24,7 +25,7 @@ public struct DuplicateCleanerSheetView: View {
             } else {
                 emptyView
             }
-            
+
             Divider()
             footerBar
         }
@@ -33,8 +34,8 @@ public struct DuplicateCleanerSheetView: View {
             let res = await DuplicateDetectionService.shared.findDuplicates(in: appState.currentURL)
             self.scanResult = res
             var autoSelect: Set<URL> = []
-            for g in res.groups {
-                for item in g.items.dropFirst() {
+            for group in res.groups {
+                for item in group.items.dropFirst() {
                     autoSelect.insert(item.url)
                 }
             }
@@ -42,7 +43,7 @@ public struct DuplicateCleanerSheetView: View {
             self.isScanning = false
         }
     }
-    
+
     private var headerBar: some View {
         HStack {
             Image(systemName: "doc.on.doc.fill")
@@ -51,7 +52,7 @@ public struct DuplicateCleanerSheetView: View {
             Text(appState.tr(.duplicateCleanerTitle))
                 .font(.headline)
             Spacer()
-            Button(action: { dismiss() }) {
+            Button { dismiss() } label: {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.secondary)
                     .font(.system(size: 16))
@@ -61,7 +62,7 @@ public struct DuplicateCleanerSheetView: View {
         .padding(.horizontal, 16)
         .frame(height: 44)
     }
-    
+
     private var scanningView: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -72,7 +73,7 @@ public struct DuplicateCleanerSheetView: View {
             Spacer()
         }
     }
-    
+
     private var emptyView: some View {
         VStack(spacing: 12) {
             Spacer()
@@ -85,7 +86,7 @@ public struct DuplicateCleanerSheetView: View {
             Spacer()
         }
     }
-    
+
     private func resultsView(result: DuplicateScanResult) -> some View {
         VStack(spacing: 0) {
             HStack {
@@ -99,7 +100,7 @@ public struct DuplicateCleanerSheetView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(Color(NSColor.controlBackgroundColor).opacity(0.4))
-            
+
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(result.groups) { group in
@@ -110,7 +111,7 @@ public struct DuplicateCleanerSheetView: View {
             }
         }
     }
-    
+
     private func duplicateGroupCard(group: DuplicateGroup) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -122,22 +123,21 @@ public struct DuplicateCleanerSheetView: View {
                     .cornerRadius(4)
                 Spacer()
             }
-            
+
             ForEach(group.items) { item in
                 HStack(spacing: 8) {
                     Toggle("", isOn: Binding(
                         get: { selectedURLsToTrash.contains(item.url) },
                         set: { isChecked in
-                            if isChecked { selectedURLsToTrash.insert(item.url) }
-                            else { selectedURLsToTrash.remove(item.url) }
+                            if isChecked { selectedURLsToTrash.insert(item.url) } else { selectedURLsToTrash.remove(item.url) }
                         }
                     ))
                     .labelsHidden()
-                    
+
                     Image(nsImage: item.icon)
                         .resizable()
                         .frame(width: 16, height: 16)
-                    
+
                     Text(item.url.path)
                         .font(.system(size: 11, design: .monospaced))
                         .lineLimit(1)
@@ -150,19 +150,19 @@ public struct DuplicateCleanerSheetView: View {
         .background(RoundedRectangle(cornerRadius: 8).fill(Color(NSColor.controlBackgroundColor)))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.2), lineWidth: 1))
     }
-    
+
     private var footerBar: some View {
         HStack {
             Spacer()
-            Button(action: { dismiss() }) {
+            Button { dismiss() } label: {
                 Text(appState.tr(.cancel))
             }
             .keyboardShortcut(.cancelAction)
-            
-            Button(action: {
+
+            Button {
                 trashSelected()
                 dismiss()
-            }) {
+            } label: {
                 Text(appState.tr(.trashSelectedDuplicates))
             }
             .buttonStyle(.borderedProminent)
@@ -171,14 +171,14 @@ public struct DuplicateCleanerSheetView: View {
         .padding(.horizontal, 16)
         .frame(height: 48)
     }
-    
+
     private func trashSelected() {
         let urls = Array(selectedURLsToTrash)
         Task { @MainActor in
             var failureCount = 0
-            for u in urls {
+            for fileURL in urls {
                 do {
-                    _ = try FileSystemService.moveToTrash(url: u)
+                    _ = try FileSystemService.moveToTrash(url: fileURL)
                 } catch {
                     failureCount += 1
                 }
