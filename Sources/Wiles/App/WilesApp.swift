@@ -191,7 +191,7 @@ struct WilesApp: App {
                 Text(appState.tr(.columnView)).tag(ViewMode.column)
             }
             Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
-                ForEach(SidebarMode.allCases) { mode in Text(appState.tr(mode.l10nKey)).tag(mode) }
+                ForEach(SidebarMode.allCases) { mode in Text(appState.tr(mode.menuL10nKey)).tag(mode) }
             }
             Menu(appState.tr(.sortBy)) {
                 Picker(appState.tr(.sortBy), selection: $appState.sortOption) {

@@ -12,4 +12,11 @@ public enum SidebarMode: String, CaseIterable, Identifiable, Sendable {
         case .tree: return .directoryTree
         }
     }
+    
+    public var menuL10nKey: L10n.Key {
+        switch self {
+        case .places: return .placesMenuOption
+        case .tree: return .treeMenuOption
+        }
+    }
 }

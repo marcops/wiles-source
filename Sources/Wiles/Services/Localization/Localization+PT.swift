@@ -20,6 +20,8 @@ extension L10n {
         .showRecents: "Mostrar Recentes",
         .sidebarMode: "Modo da Barra Lateral",
         .places: "LOCAIS",
+        .placesMenuOption: "Locais",
+        .treeMenuOption: "Árvore de Diretórios",
         .shortcutMode: "Modo de Atalhos",
         .refresh: "Atualizar",
         .copyPath: "Copiar Caminho",

@@ -74,6 +74,8 @@ public struct L10n {
         case sidebarMode
         case places
         case directoryTree
+        case placesMenuOption
+        case treeMenuOption
         case shortcutMode
         case refresh
         case copyPath
