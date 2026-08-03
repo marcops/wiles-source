@@ -12,7 +12,7 @@ public struct HoverItemHighlightModifier: ViewModifier {
     public init(
         isSelected: Bool,
         normalBackground: Color = .clear,
-        hoverBackground: Color = Color.primary.opacity(0.06),
+        hoverBackground: Color = Color.accentColor.opacity(0.12),
         selectedBackground: Color = Color.accentColor,
         cornerRadius: CGFloat = 4
     ) {
@@ -38,7 +38,7 @@ extension View {
     public func hoverHighlight(
         isSelected: Bool,
         normalBackground: Color = .clear,
-        hoverBackground: Color = Color.primary.opacity(0.06),
+        hoverBackground: Color = Color.accentColor.opacity(0.12),
         selectedBackground: Color = Color.accentColor,
         cornerRadius: CGFloat = 4
     ) -> some View {

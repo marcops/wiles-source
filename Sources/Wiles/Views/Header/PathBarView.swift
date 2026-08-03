@@ -167,9 +167,13 @@ struct PathBarView: View {
             }
             .padding(.horizontal, 6)
             .frame(height: 22)
-            .background(!isCollapsed && item.url == appState.currentURL ? Color.accentColor.opacity(0.2) : Color.clear)
+            .hoverHighlight(
+                isSelected: !isCollapsed && item.url == appState.currentURL,
+                hoverBackground: Color.accentColor.opacity(0.12),
+                selectedBackground: Color.accentColor.opacity(0.2),
+                cornerRadius: 4
+            )
             .foregroundColor(isCollapsed || item.url == appState.currentURL ? .primary : .secondary)
-            .cornerRadius(4)
         }
         .buttonStyle(.plain)
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in

@@ -322,7 +322,6 @@ struct FileListView: View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
 
-        let isHovered = hoveredURL == item.url
         return HStack(spacing: 0) {
             // Name (always visible)
             HStack(alignment: .center, spacing: 8) {
