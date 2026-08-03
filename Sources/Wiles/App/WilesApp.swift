@@ -169,7 +169,7 @@ struct WilesApp: App {
                     appState.showShortcutsHUD.toggle()
                 }
             }
-            .keyboardShortcut("/", modifiers: .command)
+            .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
             Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
                 .keyboardShortcut("j", modifiers: .command)
             Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
@@ -238,7 +238,7 @@ struct WilesApp: App {
                 appState.showShortcutsHUD.toggle()
             }
         }
-        .keyboardShortcut("/", modifiers: .command)
+        .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
     }
 
     @CommandsBuilder

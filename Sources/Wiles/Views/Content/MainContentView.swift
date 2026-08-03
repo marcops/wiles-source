@@ -146,7 +146,7 @@ struct MainContentView: View {
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
                     appState.showShortcutsHUD.toggle()
                 }
-            }.keyboardShortcut("/", modifiers: .command).hidden()
+            }.keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom)).hidden()
         }
         .onDeleteCommand {
             appState.deleteSelected()
