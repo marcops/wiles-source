@@ -22,6 +22,12 @@ public enum LayoutTokens {
     public static let columnSizeWidth: CGFloat = 90.0
     public static let columnDateWidth: CGFloat = 140.0
     public static let columnKindWidth: CGFloat = 90.0
+    public static let columnMinWidth: CGFloat = 60.0
+    public static let columnMaxWidth: CGFloat = 600.0
+    public static let columnHeaderExtraPadding: CGFloat = 32.0
+    public static let columnCellExtraPadding: CGFloat = 24.0
+    public static let columnNameIconSpacing: CGFloat = 8.0
+    public static let columnNameTagExtraPadding: CGFloat = 16.0
     
     // Grid Cards
     public static let cardWidthOffset: CGFloat = 20.0

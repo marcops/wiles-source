@@ -7,6 +7,7 @@ public struct ListColumnTests {
         testDefaultColumnState(appState: appState)
         testColumnVisibilityToggling(appState: appState)
         testColumnWidthResizing(appState: appState)
+        testColumnAutoFitting(appState: appState)
     }
     
     private static func testDefaultColumnState(appState: AppState) {
@@ -32,6 +33,14 @@ public struct ListColumnTests {
         
         appState.setColumnWidth(.kind, width: 30)
         report("UI/ListColumns", "POS: Column width clamped to minimum 60pt", result: appState.columnWidth(for: .kind) == 60)
+    }
+    
+    private static func testColumnAutoFitting(appState: AppState) {
+        appState.listColumnStates = ListColumnState.defaults()
+        appState.setColumnWidth(.name, width: 60)
+        appState.autoFitColumnWidth(.name)
+        let autoWidth = appState.columnWidth(for: .name)
+        report("UI/ListColumns", "POS: Auto-fitting name column adjusts width above minimum", result: autoWidth >= LayoutTokens.columnMinWidth)
     }
     
     private static func report(_ category: String, _ name: String, result: Bool) {

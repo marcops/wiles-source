@@ -29,6 +29,9 @@ struct ColumnResizeHandle: View {
             withAnimation(.easeInOut(duration: 0.12)) { isHovered = hovering }
             if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
         }
+        .onTapGesture(count: 2) {
+            appState.autoFitColumnWidth(column)
+        }
         .gesture(
             DragGesture(coordinateSpace: .global)
                 .onChanged { value in
@@ -37,7 +40,7 @@ struct ColumnResizeHandle: View {
                     }
                     let dx = value.translation.width
                     let initWidth = dragStartWidth ?? column.defaultWidth
-                    let newWidth = max(60, initWidth + dx)
+                    let newWidth = max(LayoutTokens.columnMinWidth, initWidth + dx)
                     
                     appState.setColumnWidth(column, width: newWidth)
                 }

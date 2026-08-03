@@ -203,7 +203,12 @@ public final class AppState {
 
     public func setColumnWidth(_ column: ListColumn, width: CGFloat) {
         guard let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
-        listColumnStates[idx].width = max(60, width)
+        listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
+    }
+
+    public func autoFitColumnWidth(_ column: ListColumn) {
+        let newWidth = ColumnAutoFitService.calculateAutoFitWidth(for: column, in: self)
+        setColumnWidth(column, width: newWidth)
     }
 
     public func toggleColumnVisibility(_ column: ListColumn) {
