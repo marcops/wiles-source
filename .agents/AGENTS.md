@@ -52,9 +52,8 @@
 ## 10. Communication & Commit Discipline
 - **Git Commits in English**: All `git commit` messages MUST be written in English using Conventional Commits format (e.g., `feat: ...`, `fix: ...`, `refactor: ...`).
 - **Agent Responses ALWAYS in English**: All agent responses to the user MUST be written strictly in English under all circumstances. NEVER reply in Portuguese or any other language, even when the user prompts in Portuguese.
-- **Strict Command Discipline**: DO NOT run `git commit` or `git push` or publish release binaries/archives unless the user explicitly requests it.
-- **Test Timing Discipline**: Only run automated tests (`swift run Wiles --test`) right before executing a git commit or release build. NEVER run test suites during active coding or code iterations.
-- **App Relaunch Protocol**: After building or compiling the application, ALWAYS terminate any previously running Wiles instance (`pkill -x Wiles || true`) BEFORE launching the newly compiled application (`open Wiles.app`).
+- **Single-Call Pipeline Execution**: ALWAYS use `./scripts/push_and_relaunch.sh "<commit message>"` to build, sign, relaunch, commit, and push in **1 single command invocation** to minimize tool calls and token usage.
+- **Test Timing Discipline**: Only run automated tests right before executing a release packaging build. NEVER run test suites during active coding iterations.
 
 ## 11. Repository Architecture & Public/Private Separation
 - **`marcops/wiles` (PUBLIC REPOSITORY)**: Contains public Homebrew cask formulas (`Casks/wiles.rb`), public release assets (`releases/wiles-vX.Y.Z.dmg`, `releases/wiles-vX.Y.Z.zip`), documentation, and public issue tracking. All Homebrew cask URLs MUST point exclusively to this public repository (`https://raw.githubusercontent.com/marcops/wiles/main/...`).
