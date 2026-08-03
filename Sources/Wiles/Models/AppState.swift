@@ -89,6 +89,13 @@ public final class AppState {
     public var isTagsExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isTagsExpanded, forKey: "wiles_isTagsExpanded") }
     }
+    public static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
+    public var recentOpenedURLs: [URL] = [] {
+        didSet {
+            let paths = recentOpenedURLs.map { $0.path }
+            UserDefaults.standard.set(paths, forKey: "wiles_recentOpenedURLs")
+        }
+    }
     public var showTags: Bool = false {
         didSet {
             UserDefaults.standard.set(showTags, forKey: "wiles_showTags")
@@ -340,6 +347,9 @@ public final class AppState {
             let homePath = home.standardizedFileURL.path
             self.expandedTreePaths = ["/", homePath]
         }
+        if let paths = defaults.stringArray(forKey: "wiles_recentOpenedURLs") {
+            self.recentOpenedURLs = paths.map { URL(fileURLWithPath: $0) }
+        }
         if defaults.object(forKey: "wiles_showTags") != nil {
             self.showTags = defaults.bool(forKey: "wiles_showTags")
         }
@@ -468,7 +478,31 @@ public final class AppState {
         }
     }
     
+    public func addToRecents(_ url: URL) {
+        let std = url.standardizedFileURL
+        if std == AppState.recentsVirtualURL || std.scheme == "wiles" { return }
+        var current = recentOpenedURLs.filter { $0.standardizedFileURL != std }
+        current.insert(std, at: 0)
+        if current.count > 50 {
+            current = Array(current.prefix(50))
+        }
+        self.recentOpenedURLs = current
+    }
+    
     public func navigateTo(_ url: URL, addToHistory: Bool = true) {
+        if url == AppState.recentsVirtualURL {
+            if addToHistory && url != currentURL {
+                historyBack.append(currentURL)
+                historyForward.removeAll()
+            }
+            currentURL = url
+            selectedURLs.removeAll()
+            isSearching = false
+            searchQuery = ""
+            refreshCurrentDirectory()
+            return
+        }
+        addToRecents(url)
         var isDir: ObjCBool = false
         if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
             if addToHistory && url != currentURL {

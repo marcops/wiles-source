@@ -180,17 +180,15 @@ struct WilesApp: App {
             Toggle(appState.tr(.showTags), isOn: $appState.showTags)
             Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
             Divider()
-            Toggle("Show Favorites", isOn: $appState.showFavorites)
-            Toggle("Show MAC Section", isOn: $appState.showMacSection)
-            if appState.showMacSection {
-                Toggle("Show Recents", isOn: $appState.showRecents)
-            }
-            Toggle("Show Network & Cloud", isOn: $appState.showNetworkAndCloud)
+            Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)
+            Toggle(appState.tr(.showMacSection), isOn: $appState.showMacSection)
+            Toggle(appState.tr(.showRecents), isOn: $appState.showRecents)
+            Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.showNetworkAndCloud)
             Divider()
-            Picker("View Mode", selection: $appState.viewMode) {
-                Text("Grid View").tag(ViewMode.grid)
-                Text("List View").tag(ViewMode.list)
-                Text("Column View").tag(ViewMode.column)
+            Picker(appState.tr(.viewMode), selection: $appState.viewMode) {
+                Text(appState.tr(.gridView)).tag(ViewMode.grid)
+                Text(appState.tr(.listView)).tag(ViewMode.list)
+                Text(appState.tr(.columnView)).tag(ViewMode.column)
             }
             Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
                 ForEach(SidebarMode.allCases) { mode in Text(appState.tr(mode.l10nKey)).tag(mode) }
@@ -225,9 +223,9 @@ struct WilesApp: App {
 
     @ViewBuilder
     private var toolsMenuCommands: some View {
-        Button("Disk Usage Visualizer...") { appState.showDiskUsageSheet = true }
+        Button(appState.tr(.actDiskVisualizer) + "...") { appState.showDiskUsageSheet = true }
             .keyboardShortcut("d", modifiers: [.command, .shift])
-        Button("Auto-Organization Rules...") { appState.showAutoOrganizationSheet = true }
+        Button(appState.tr(.autoOrganization) + "...") { appState.showAutoOrganizationSheet = true }
         Divider()
         Button(appState.tr(.copyPath)) {
             let pb = NSPasteboard.general

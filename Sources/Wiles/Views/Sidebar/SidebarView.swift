@@ -50,13 +50,22 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var appState = appState
         
+        let favItems: [SidebarItem] = {
+            var items = appState.favoriteURLs.map { sidebarItem(for: $0) }
+            if appState.showRecents {
+                let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
+                items.insert(recentsItem, at: 0)
+            }
+            return items
+        }()
+
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                if appState.showFavorites && !appState.favoriteURLs.isEmpty {
+                if appState.showFavorites && !favItems.isEmpty {
                     collapsibleSection(
                         title: appState.tr(.favorites),
                         isExpanded: $appState.isFavoritesExpanded,
-                        items: appState.favoriteURLs.map { sidebarItem(for: $0) },
+                        items: favItems,
                         isFavoritesSection: true
                     )
                 }
@@ -68,15 +77,6 @@ struct SidebarView: View {
                         items: macItems,
                         isFavoritesSection: false
                     )
-                    
-                    if appState.showRecents && !recentItems.isEmpty {
-                        collapsibleSection(
-                            title: appState.tr(.recents),
-                            isExpanded: $appState.isRecentsExpanded,
-                            items: recentItems,
-                            isFavoritesSection: false
-                        )
-                    }
                 }
                 
                 if appState.showNetworkAndCloud {

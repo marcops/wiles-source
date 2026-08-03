@@ -62,6 +62,7 @@ public struct L10n {
         case viewMode
         case gridView
         case listView
+        case columnView
         case showHiddenFiles
         case showHiddenFilesGnome
         case showHiddenFilesMac

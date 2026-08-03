@@ -5,6 +5,26 @@ public struct FileSystemService: Sendable {
     public static func loadDirectoryContents(
         at url: URL, showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool
     ) async -> [FileItem] {
+        if url.path == "/virtual/recents" {
+            return await Task.detached(priority: .userInitiated) {
+                let defaults = UserDefaults.standard
+                let paths = defaults.stringArray(forKey: "wiles_recentOpenedURLs") ?? []
+                let fm = FileManager.default
+                var items: [FileItem] = []
+                for path in paths {
+                    let fileURL = URL(fileURLWithPath: path)
+                    guard fm.fileExists(atPath: fileURL.path) else { continue }
+                    
+                    let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
+                    items.append(FileItem(url: fileURL, icon: icon, fetchTags: showTags))
+                }
+                if !searchQuery.isEmpty {
+                    let regex = parseSearchRegex(query: searchQuery)
+                    items = items.filter { matchesSearch(fileURL: $0.url, query: searchQuery, regex: regex) }
+                }
+                return items
+            }.value
+        }
         return await Task.detached(priority: .userInitiated) {
             let fm = FileManager.default
             var keys: [URLResourceKey] = [.isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey]

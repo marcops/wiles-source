@@ -9,6 +9,7 @@ extension L10n {
         .viewMode: "Modo de Visualização",
         .gridView: "Visualização em Grade",
         .listView: "Visualização em Lista",
+        .columnView: "Visualização em Colunas",
         .showHiddenFiles: "Mostrar Arquivos Ocultos",
         .showHiddenFilesGnome: "Mostrar Arquivos Ocultos (Ctrl+H)",
         .showHiddenFilesMac: "Mostrar Arquivos Ocultos (Cmd+Shift+.)",
