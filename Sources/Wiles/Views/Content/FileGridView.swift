@@ -11,7 +11,6 @@ struct CellFrameKey: PreferenceKey {
 
 struct FileGridView: View {
     var appState: AppState
-    @State private var isHovered = false
     
     private var iconSize: CGFloat { CGFloat(appState.iconSize) * LayoutTokens.gridIconScaleMultiplier }
     private var cardWidth: CGFloat { iconSize + LayoutTokens.cardWidthOffset }
@@ -32,6 +31,7 @@ struct FileGridView: View {
                 ScrollView {
                     ZStack(alignment: .topLeading) {
                         Color.clear.frame(height: 1).id("top")
+                        
                         Color(NSColor.controlBackgroundColor).opacity(0.001)
                         .contentShape(Rectangle())
                         .gesture(
@@ -39,30 +39,23 @@ struct FileGridView: View {
                                 .onChanged { gesture in
                                     let start = dragStartPoint ?? gesture.startLocation
                                     if dragStartPoint == nil { dragStartPoint = start }
-                                     
+                                    
                                     let minX = min(start.x, gesture.location.x)
                                     let minY = min(start.y, gesture.location.y)
                                     let maxX = max(start.x, gesture.location.x)
                                     let maxY = max(start.y, gesture.location.y)
-                                     
                                     let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-                                    selectionRect = rect
-                                     
-                                    var matched = Set<URL>()
-                                    for (url, frame) in cellFrames {
-                                        if frame.intersects(rect) {
-                                            matched.insert(url)
-                                        }
+                                    
+                                    self.selectionRect = rect
+                                    
+                                    let selected = cellFrames.compactMap { (url, frame) -> URL? in
+                                        frame.intersects(rect) ? url : nil
                                     }
-                                    if NSEvent.modifierFlags.contains(.command) {
-                                        appState.selectedURLs.formUnion(matched)
-                                    } else {
-                                        appState.selectedURLs = matched
-                                    }
+                                    appState.selectedURLs = Set(selected)
                                 }
                                 .onEnded { _ in
-                                    selectionRect = nil
-                                    dragStartPoint = nil
+                                    self.selectionRect = nil
+                                    self.dragStartPoint = nil
                                 }
                         )
                         .onTapGesture {
@@ -77,39 +70,51 @@ struct FileGridView: View {
                             SharedBackgroundContextMenu(appState: appState)
                         }
 
-                    if appState.items.isEmpty && !appState.isLoading {
-                        emptyStateView
-                    } else {
-                        LazyVGrid(columns: columns, spacing: 20) {
-                            ForEach(visibleItems) { item in
-                                gridCard(for: item)
+                        if appState.items.isEmpty && !appState.isLoading {
+                            emptyStateView
+                        } else {
+                            LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
+                                ForEach(visibleItems) { item in
+                                    FileGridCardItemView(
+                                        item: item,
+                                        appState: appState,
+                                        iconSize: iconSize,
+                                        cardWidth: cardWidth,
+                                        cardHeight: cardHeight,
+                                        onRightClick: {
+                                            if !appState.selectedURLs.contains(item.url) {
+                                                appState.selectedURLs = [item.url]
+                                            }
+                                        }
+                                    )
+                                }
+                                if visibleLimit < appState.items.count {
+                                    ProgressView()
+                                        .frame(height: 50)
+                                        .onAppear {
+                                            visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                        }
+                                }
                             }
-                            if visibleLimit < appState.items.count {
-                                ProgressView()
-                                    .frame(height: 50)
-                                    .onAppear {
-                                        visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                    }
-                            }
+                            .padding(16)
                         }
-                        .padding(20)
-                    }
 
-                    if let rect = selectionRect {
-                        Rectangle()
-                            .fill(Color.accentColor.opacity(0.15))
-                            .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
-                            .frame(width: rect.width, height: rect.height)
-                            .offset(x: rect.minX, y: rect.minY)
-                            .allowsHitTesting(false)
+                        if let rect = selectionRect {
+                            Rectangle()
+                                .fill(Color.accentColor.opacity(0.15))
+                                .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
+                                .frame(width: rect.width, height: rect.height)
+                                .offset(x: rect.minX, y: rect.minY)
+                                .allowsHitTesting(false)
+                        }
                     }
+                    .coordinateSpace(name: "gridContainer")
+                    .onPreferenceChange(CellFrameKey.self) { frames in
+                        self.cellFrames = frames
+                    }
+                    .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
+                    .background(ScrollerAutoHideSetter())
                 }
-                .coordinateSpace(name: "gridContainer")
-                .onPreferenceChange(CellFrameKey.self) { frames in
-                    self.cellFrames = frames
-                    appState.gridCellFrames = frames
-                }
-                .frame(maxWidth: .infinity, minHeight: geometry.size.height, maxHeight: .infinity, alignment: .topLeading)
                 .onChange(of: appState.items) { _, _ in
                     visibleLimit = LayoutTokens.lazyLoadingBatchSize
                 }
@@ -120,6 +125,7 @@ struct FileGridView: View {
                         }
                     }
                 }
+                .background(ScrollerAutoHideSetter())
             }
             .background(
                 Color.clear
@@ -134,7 +140,6 @@ struct FileGridView: View {
                     }
             )
             .background(ScrollerAutoHideSetter())
-            }
         }
     }
     
@@ -149,17 +154,19 @@ struct FileGridView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 300)
     }
-    
-    @ViewBuilder
-    private func gridCardImage(for item: FileItem) -> some View {
-        if !item.isDirectory {
-            ImageThumbnailView(url: item.url, size: iconSize, fallback: item.icon)
-        } else {
-            Image(nsImage: item.icon).resizable().scaledToFit()
-        }
-    }
+}
 
-    private func gridCard(for item: FileItem) -> some View {
+struct FileGridCardItemView: View {
+    let item: FileItem
+    var appState: AppState
+    let iconSize: CGFloat
+    let cardWidth: CGFloat
+    let cardHeight: CGFloat
+    let onRightClick: () -> Void
+    
+    @State private var isHovered = false
+
+    var body: some View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
         
@@ -224,11 +231,9 @@ struct FileGridView: View {
             return provider
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            if item.isDirectory {
-                appState.handleDrop(providers: providers, targetFolder: item.url)
-                return true
-            }
-            return false
+            guard item.isDirectory else { return false }
+            appState.handleDrop(providers: providers, targetFolder: item.url)
+            return true
         }
         .overlay(
             RightClickDetector {
@@ -238,5 +243,14 @@ struct FileGridView: View {
             }
         )
         .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
+    }
+    
+    @ViewBuilder
+    private func gridCardImage(for item: FileItem) -> some View {
+        if !item.isDirectory {
+            ImageThumbnailView(url: item.url, size: iconSize, fallback: item.icon)
+        } else {
+            Image(nsImage: item.icon).resizable().scaledToFit()
+        }
     }
 }
