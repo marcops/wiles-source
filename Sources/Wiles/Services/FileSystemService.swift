@@ -49,27 +49,130 @@ public struct FileSystemService: Sendable {
     }
     
     private static func matchesSearch(fileURL: URL, query: String, regex: NSRegularExpression?) -> Bool {
-        guard !query.isEmpty else { return true }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
         
-        if query.hasPrefix("tag:") {
-            let targetTag = String(query.dropFirst(4)).lowercased()
-            if let tags = try? (fileURL as NSURL).resourceValues(forKeys: [.tagNamesKey]) {
-                if let tagArray = tags[.tagNamesKey] as? [String] {
-                    return tagArray.contains { $0.lowercased() == targetTag }
-                }
+        let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        for token in tokens {
+            let lowerToken = token.lowercased()
+            if lowerToken.hasPrefix("date:") {
+                if !matchesDateFilter(fileURL: fileURL, token: String(token.dropFirst(5))) { return false }
+            } else if lowerToken.hasPrefix("size:") {
+                if !matchesSizeFilter(fileURL: fileURL, token: String(token.dropFirst(5))) { return false }
+            } else if lowerToken.hasPrefix("kind:") || lowerToken.hasPrefix("ext:") {
+                let prefix = lowerToken.hasPrefix("kind:") ? 5 : 4
+                if !matchesKindFilter(fileURL: fileURL, token: String(token.dropFirst(prefix))) { return false }
+            } else if lowerToken.hasPrefix("tag:") {
+                if !matchesTagFilter(fileURL: fileURL, tag: String(token.dropFirst(4))) { return false }
+            } else {
+                if !matchesTextOrRegex(fileURL: fileURL, token: token, regex: regex) { return false }
             }
+        }
+        return true
+    }
+
+    private static func matchesDateFilter(fileURL: URL, token: String) -> Bool {
+        guard let modified = (try? fileURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) else {
             return false
         }
+        let lower = token.lowercased()
+        if lower == "today" { return Calendar.current.isDateInToday(modified) }
+        if lower == "yesterday" { return Calendar.current.isDateInYesterday(modified) }
+
+        var valueStr = lower
+        var op = ">="
+        if valueStr.hasPrefix(">=") || valueStr.hasPrefix("<=") {
+            op = String(valueStr.prefix(2))
+            valueStr = String(valueStr.dropFirst(2))
+        } else if valueStr.hasPrefix(">") || valueStr.hasPrefix("<") || valueStr.hasPrefix("=") {
+            op = String(valueStr.prefix(1))
+            valueStr = String(valueStr.dropFirst(1))
+        }
+
+        guard let num = Int(valueStr.compactMap { $0.isNumber ? $0 : nil }.map(String.init).joined()) else { return false }
+        let unit = valueStr.filter { $0.isLetter }
+
+        var seconds: TimeInterval = Double(num) * 86400
+        if unit == "h" { seconds = Double(num) * 3600 }
+        else if unit == "w" { seconds = Double(num) * 7 * 86400 }
+        else if unit == "m" { seconds = Double(num) * 30 * 86400 }
+        else if unit == "y" { seconds = Double(num) * 365 * 86400 }
+
+        let targetDate = Date().addingTimeInterval(-seconds)
+        switch op {
+        case "<", "<=": return modified <= targetDate
+        default: return modified >= targetDate
+        }
+    }
+
+    private static func matchesSizeFilter(fileURL: URL, token: String) -> Bool {
+        guard let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) else { return false }
+        var valueStr = token.lowercased()
+        var op = ">="
+        if valueStr.hasPrefix(">=") || valueStr.hasPrefix("<=") {
+            op = String(valueStr.prefix(2))
+            valueStr = String(valueStr.dropFirst(2))
+        } else if valueStr.hasPrefix(">") || valueStr.hasPrefix("<") || valueStr.hasPrefix("=") {
+            op = String(valueStr.prefix(1))
+            valueStr = String(valueStr.dropFirst(1))
+        }
+
+        let digits = valueStr.filter { $0.isNumber }
+        guard let num = Int64(digits), !digits.isEmpty else { return false }
+        let unit = valueStr.filter { $0.isLetter }
+
+        var multiplier: Int64 = 1024 * 1024
+        if unit.hasPrefix("k") { multiplier = 1024 }
+        else if unit.hasPrefix("b") && !unit.hasPrefix("by") { multiplier = 1 }
+        else if unit.hasPrefix("g") { multiplier = 1024 * 1024 * 1024 }
+
+        let targetBytes = num * multiplier
+        switch op {
+        case "<": return size < targetBytes
+        case "<=": return size <= targetBytes
+        case "=": return size == targetBytes
+        case ">": return size > targetBytes
+        default: return size >= targetBytes
+        }
+    }
+
+    private static func matchesKindFilter(fileURL: URL, token: String) -> Bool {
+        let lower = token.lowercased()
+        let ext = fileURL.pathExtension.lowercased()
         
+        switch lower {
+        case "image", "img", "images":
+            return ["png", "jpg", "jpeg", "gif", "svg", "webp", "heic", "tiff", "icns", "bmp"].contains(ext)
+        case "doc", "document", "documents":
+            return ["doc", "docx", "pdf", "pages", "txt", "md", "rtf", "odt", "xls", "xlsx"].contains(ext)
+        case "code", "source":
+            return ["swift", "py", "js", "ts", "json", "html", "css", "cpp", "c", "h", "sh", "yml", "yaml"].contains(ext)
+        case "pdf":
+            return ext == "pdf"
+        case "folder", "dir", "directory":
+            return (try? fileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        case "archive", "zip":
+            return ["zip", "tar", "gz", "7z", "rar", "bz2"].contains(ext)
+        default:
+            return ext == lower || fileURL.lastPathComponent.lowercased().contains(lower)
+        }
+    }
+
+    private static func matchesTagFilter(fileURL: URL, tag: String) -> Bool {
+        let targetTag = tag.lowercased()
+        guard let tags = try? (fileURL as NSURL).resourceValues(forKeys: [.tagNamesKey]),
+              let tagArray = tags[.tagNamesKey] as? [String] else { return false }
+        return tagArray.contains { $0.lowercased() == targetTag }
+    }
+
+    private static func matchesTextOrRegex(fileURL: URL, token: String, regex: NSRegularExpression?) -> Bool {
         let fileName = fileURL.lastPathComponent
-        if fileName.localizedCaseInsensitiveContains(query) { return true }
-        
+        if fileName.localizedCaseInsensitiveContains(token) { return true }
         if let regex = regex {
             let range = NSRange(location: 0, length: fileName.utf16.count)
             if regex.firstMatch(in: fileName, options: [], range: range) != nil { return true }
         }
-        
-        return matchesContent(fileURL: fileURL, query: query)
+        return matchesContent(fileURL: fileURL, query: token)
     }
     
     private static func matchesContent(fileURL: URL, query: String) -> Bool {

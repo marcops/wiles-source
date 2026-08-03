@@ -1,0 +1,84 @@
+import SwiftUI
+import AppKit
+
+struct DirectoryTreeNodeView: View {
+    let node: FolderNode
+    let depth: Int
+    var appState: AppState
+    @State private var isRightClicked = false
+
+    init(node: FolderNode, depth: Int = 0, appState: AppState) {
+        self.node = node
+        self.depth = depth
+        self.appState = appState
+    }
+    
+    private var isExpandedBinding: Binding<Bool> {
+        Binding(
+            get: { appState.expandedTreePaths.contains(node.url.path) },
+            set: { newValue in
+                if newValue {
+                    appState.expandedTreePaths.insert(node.url.path)
+                } else {
+                    appState.expandedTreePaths.remove(node.url.path)
+                }
+            }
+        )
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let children = node.children, !children.isEmpty {
+                DisclosureGroup(isExpanded: isExpandedBinding) {
+                    ForEach(children) { child in
+                        DirectoryTreeNodeView(node: child, depth: depth + 1, appState: appState)
+                    }
+                } label: {
+                    rowContent
+                }
+            } else {
+                rowContent
+            }
+        }
+        .padding(.leading, CGFloat(depth) * 12)
+    }
+    
+    private var rowContent: some View {
+        let isSel = appState.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
+        return Button(action: {
+            isRightClicked = false
+            appState.navigateTo(node.url)
+        }) {
+            HStack(spacing: 6) {
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.accentColor)
+                Text(node.name)
+                    .font(.system(size: 12, weight: isSel ? .semibold : .regular))
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .padding(.horizontal, 6).padding(.vertical, 3)
+            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
+            .cornerRadius(6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(
+            RightClickDetector { isRightClicked = true }
+        )
+        .contextMenu {
+            Button(appState.tr(.open)) { appState.navigateTo(node.url) }
+            Button(appState.tr(.copyPath)) {
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(node.url.path, forType: .string)
+            }
+            Divider()
+            Button("\(appState.tr(.properties)) (Cmd+I)") {
+                let fileItem = FileItem(url: node.url, icon: NSWorkspace.shared.icon(forFile: node.url.path))
+                appState.propertiesItem = fileItem
+            }
+        }
+    }
+}

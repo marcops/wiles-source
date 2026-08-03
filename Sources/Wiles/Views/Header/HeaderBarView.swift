@@ -75,6 +75,9 @@ struct HeaderBarView: View {
                         appState.searchQuery = ""
                     }
                 }
+            
+            searchFilterMenu
+
             if !appState.searchQuery.isEmpty {
                 Button(action: { appState.searchQuery = "" }) {
                     Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
@@ -93,6 +96,60 @@ struct HeaderBarView: View {
                 }
             }
         })
+    }
+
+    private var searchFilterMenu: some View {
+        @Bindable var appState = appState
+        return Menu {
+            Button("Modified Today (date:today)") {
+                appState.searchQuery = "date:today"
+                appState.refreshCurrentDirectory()
+            }
+            Button(appState.tr(.filterModified7Days)) {
+                appState.searchQuery = "date:7d"
+                appState.refreshCurrentDirectory()
+            }
+            Button("Modified Past 30 Days (date:30d)") {
+                appState.searchQuery = "date:30d"
+                appState.refreshCurrentDirectory()
+            }
+
+            Divider()
+
+            Button(appState.tr(.filterImages)) {
+                appState.searchQuery = "kind:image"
+                appState.refreshCurrentDirectory()
+            }
+            Button(appState.tr(.filterDocuments)) {
+                appState.searchQuery = "kind:doc"
+                appState.refreshCurrentDirectory()
+            }
+            Button(appState.tr(.filterCodeFiles)) {
+                appState.searchQuery = "kind:code"
+                appState.refreshCurrentDirectory()
+            }
+            Button(appState.tr(.filterPDFs)) {
+                appState.searchQuery = "kind:pdf"
+                appState.refreshCurrentDirectory()
+            }
+            Button(appState.tr(.filterFolders)) {
+                appState.searchQuery = "kind:folder"
+                appState.refreshCurrentDirectory()
+            }
+
+            Divider()
+
+            Button(appState.tr(.filterLargeFiles)) {
+                appState.searchQuery = "size:>100m"
+                appState.refreshCurrentDirectory()
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(appState.searchQuery.contains(":") ? .accentColor : .secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .help("Search Filters (Date, Type, Size)")
     }
 
     private var searchButton: some View {

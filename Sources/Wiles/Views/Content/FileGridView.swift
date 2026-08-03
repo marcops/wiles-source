@@ -212,25 +212,3 @@ struct FileGridView: View {
         .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
     }
 }
-
-/// Shows the generic file icon immediately, then swaps in the real thumbnail once it loads.
-/// `.task(id: url)` ties the fetch to this cell's lifecycle — scrolling the cell away cancels it.
-private struct ImageThumbnailView: View {
-    let url: URL
-    let size: CGFloat
-    let fallback: NSImage
-    @State private var thumbnail: NSImage?
-
-    var body: some View {
-        Image(nsImage: thumbnail ?? fallback)
-            .resizable()
-            .scaledToFit()
-            .task(id: url) {
-                if let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size) {
-                    thumbnail = cached
-                    return
-                }
-                thumbnail = await ThumbnailService.shared.loadThumbnail(for: url, size: size)
-            }
-    }
-}
