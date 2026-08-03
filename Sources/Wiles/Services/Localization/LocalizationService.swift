@@ -71,6 +71,7 @@ public struct L10n {
         case showFavorites
         case showMacSection
         case showRecents
+        case showPlaces
         case sidebarMode
         case places
         case directoryTree

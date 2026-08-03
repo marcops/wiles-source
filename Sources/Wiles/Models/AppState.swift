@@ -56,6 +56,9 @@ public final class AppState {
     public var showRecents: Bool = true {
         didSet { UserDefaults.standard.set(showRecents, forKey: "wiles_showRecents") }
     }
+    public var showPlaces: Bool = true {
+        didSet { UserDefaults.standard.set(showPlaces, forKey: "wiles_showPlaces") }
+    }
     public var showMacSection: Bool = false {
         didSet { UserDefaults.standard.set(showMacSection, forKey: "wiles_showMacSection") }
     }
@@ -318,6 +321,9 @@ public final class AppState {
         }
         if defaults.object(forKey: "wiles_showRecents") != nil {
             self.showRecents = defaults.bool(forKey: "wiles_showRecents")
+        }
+        if defaults.object(forKey: "wiles_showPlaces") != nil {
+            self.showPlaces = defaults.bool(forKey: "wiles_showPlaces")
         }
         if defaults.object(forKey: "wiles_showMacSection") != nil {
             self.showMacSection = defaults.bool(forKey: "wiles_showMacSection")

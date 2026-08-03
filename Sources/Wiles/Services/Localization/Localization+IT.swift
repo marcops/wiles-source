@@ -17,6 +17,7 @@ extension L10n {
         .showFavorites: "Show Favorites",
         .showMacSection: "Show MAC Section",
         .showRecents: "Show Recents",
+        .showPlaces: "Mostra Posizioni",
         .sidebarMode: "Sidebar Mode",
         .places: "Places & Devices",
         .shortcutMode: "Shortcut Mode",

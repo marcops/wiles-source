@@ -181,6 +181,7 @@ struct WilesApp: App {
             Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
             Divider()
             Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)
+            Toggle(appState.tr(.showPlaces), isOn: $appState.showPlaces)
             Toggle(appState.tr(.showMacSection), isOn: $appState.showMacSection)
             Toggle(appState.tr(.showRecents), isOn: $appState.showRecents)
             Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.showNetworkAndCloud)
