@@ -1,0 +1,55 @@
+excluded:
+  - .build
+  - .swiftpm
+  - dist
+  - releases
+  - Wiles.app
+
+opt_in_rules:
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - closure_spacing
+  - empty_count
+  - fatal_error_message
+  - first_where
+  - overridden_super_call
+  - redundant_nil_coalescing
+  - toggle_bool
+  - weak_delegate
+
+analyzer_rules:
+  - unused_declaration
+  - unused_import
+
+disabled_rules:
+  - todo # project currently has zero TODOs; enable later if that changes
+
+line_length:
+  warning: 160
+  error: 220
+
+type_body_length:
+  warning: 400
+  error: 600
+
+file_length:
+  warning: 500
+  error: 800
+
+function_body_length:
+  warning: 40
+  error: 80
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+identifier_name:
+  min_length:
+    warning: 2
+  excluded:
+    - id
+    - x
+    - y
+    - dx
+    - dy

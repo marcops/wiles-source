@@ -1,0 +1,19 @@
+--swiftversion 6.0
+--exclude .build,.swiftpm,dist,releases,Wiles.app
+
+--indent 4
+--maxwidth 160
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--closingparen same-line
+
+--self remove
+--importgrouping testable-bottom
+--semicolons never
+--trimwhitespace always
+--commas always
+--elseposition same-line
+--guardelse auto
+--emptybraces spaced
+--ranges spaced
