@@ -50,17 +50,15 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var appState = appState
         
-        let favItems: [SidebarItem] = {
-            var items = appState.favoriteURLs.map { sidebarItem(for: $0) }
-            if appState.showRecents {
-                let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
-                items.insert(recentsItem, at: 0)
-            }
-            return items
-        }()
+        let favItems = appState.favoriteURLs.map { sidebarItem(for: $0) }
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if appState.showRecents {
+                    let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
+                    sidebarRow(for: recentsItem, sectionKey: "Recents")
+                }
+
                 if appState.showFavorites && !favItems.isEmpty {
                     collapsibleSection(
                         title: appState.tr(.favorites),
@@ -80,17 +78,20 @@ struct SidebarView: View {
                 }
                 
                 if appState.showNetworkAndCloud {
-                    let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
-                        SidebarItem(name: $0.name, iconName: "network", url: $0.url)
-                    }
-                    if !networkShares.isEmpty {
-                        collapsibleSection(
-                            title: appState.tr(.networkAndCloud),
-                            isExpanded: $appState.isNetworkExpanded,
-                            items: networkShares,
-                            isFavoritesSection: false
-                        )
-                    }
+                    let items: [SidebarItem] = {
+                        let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
+                            SidebarItem(name: $0.name, iconName: "network", url: $0.url)
+                        }
+                        var list = [SidebarItem(name: "Network", iconName: "network", url: URL(fileURLWithPath: "/Network"))]
+                        list.append(contentsOf: networkShares)
+                        return list
+                    }()
+                    collapsibleSection(
+                        title: appState.tr(.networkAndCloud),
+                        isExpanded: $appState.isNetworkExpanded,
+                        items: items,
+                        isFavoritesSection: false
+                    )
                 }
                 
                 if appState.sidebarMode == .places {
