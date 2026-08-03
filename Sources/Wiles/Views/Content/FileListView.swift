@@ -364,13 +364,8 @@ struct FileListView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, appState.isCompactMode ? 2 : max(4, listIconSize * 0.25))
-        .background(isSel ? Color.accentColor : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
-        .cornerRadius(6)
+        .hoverHighlight(isSelected: isSel, cornerRadius: 6)
         .opacity(isCut ? 0.5 : 1.0)
-        .animation(MotionTokens.quickEase, value: isHovered)
-        .onHover { isHovering in
-            hoveredURL = isHovering ? item.url : nil
-        }
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: ListCellFrameKey.self, value: [item.url: geo.frame(in: .named("listContainer"))])

@@ -54,7 +54,15 @@ struct FileColumnView: View {
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 1) {
                     ForEach(visibleItems) { item in
-                        columnRow(item: item, columnIndex: index, isSelected: appState.selectedURLs.contains(item.url))
+                        FileColumnRowView(
+                            item: item,
+                            columnIndex: index,
+                            isSelected: appState.selectedURLs.contains(item.url),
+                            appState: appState,
+                            onSelect: {
+                                selectItem(item: item, columnIndex: index)
+                            }
+                        )
                     }
                     if column.visibleLimit < column.items.count {
                         ProgressView()
@@ -86,7 +94,110 @@ struct FileColumnView: View {
         .background(Color(NSColor.controlBackgroundColor).opacity(0.08))
     }
     
-    private func columnRow(item: FileItem, columnIndex: Int, isSelected: Bool) -> some View {
+    private func loadInitialColumns() {
+        Task {
+            let rootItems = await FileSystemService.loadDirectoryContents(
+                at: appState.currentURL,
+                showHidden: appState.showHiddenFiles,
+                showTags: appState.showTags,
+                searchQuery: appState.searchQuery,
+                sortOption: appState.sortOption,
+                sortAscending: appState.sortAscending
+            )
+            await MainActor.run {
+                self.columns = [ColumnData(folderURL: appState.currentURL, items: rootItems, selectedURL: nil)]
+                self.activeColumnIndex = 0
+                if let first = rootItems.first {
+                    self.selectItem(item: first, columnIndex: 0, autoSelectFirst: true)
+                }
+            }
+        }
+    }
+    
+    private func drillRightFromSelection() {
+        guard activeColumnIndex < columns.count else { return }
+        let col = columns[activeColumnIndex]
+        guard let selURL = col.selectedURL,
+              let item = col.items.first(where: { $0.url == selURL }) else { return }
+        
+        if item.isDirectory {
+            selectItem(item: item, columnIndex: activeColumnIndex, autoSelectFirst: true)
+        }
+    }
+
+    private func moveVerticalSelection(by offset: Int) {
+        guard activeColumnIndex < columns.count else { return }
+        let col = columns[activeColumnIndex]
+        guard !col.items.isEmpty else { return }
+        
+        let currentIndex = col.items.firstIndex(where: { $0.url == col.selectedURL }) ?? 0
+        let targetIndex = max(0, min(col.items.count - 1, currentIndex + offset))
+        let targetItem = col.items[targetIndex]
+        
+        selectItem(item: targetItem, columnIndex: activeColumnIndex)
+    }
+
+    private func moveLeftFromSelection() {
+        guard activeColumnIndex > 0 else { return }
+        let parentColumnIndex = activeColumnIndex - 1
+        let parentCol = columns[parentColumnIndex]
+        guard let parentItem = parentCol.items.first(where: { $0.url == parentCol.selectedURL }) else { return }
+        
+        appState.selectedURLs = [parentItem.url]
+        columns[parentColumnIndex].selectedURL = parentItem.url
+        activeColumnIndex = parentColumnIndex
+    }
+
+    private func selectItem(item: FileItem, columnIndex: Int, autoSelectFirst: Bool = false) {
+        appState.selectedURLs = [item.url]
+        columns[columnIndex].selectedURL = item.url
+
+        guard item.isDirectory else {
+            truncateColumns(after: columnIndex)
+            return
+        }
+
+        Task {
+            let subItems = await FileSystemService.loadDirectoryContents(
+                at: item.url,
+                showHidden: appState.showHiddenFiles,
+                showTags: appState.showTags,
+                searchQuery: "",
+                sortOption: appState.sortOption,
+                sortAscending: appState.sortAscending
+            )
+            await MainActor.run {
+                // Verify the user hasn't changed selection while loading before
+                // clobbering the newer selection. The old preview column, if any, stays
+                // visible until here so navigating quickly doesn't flicker it away and back.
+                guard columnIndex < self.columns.count,
+                      self.columns[columnIndex].selectedURL == item.url else { return }
+                let firstURL = autoSelectFirst ? subItems.first?.url : nil
+                self.truncateColumns(after: columnIndex)
+                self.columns.append(ColumnData(folderURL: item.url, items: subItems, selectedURL: firstURL))
+                self.activeColumnIndex = columnIndex + 1
+                if let firstURL {
+                    self.appState.selectedURLs = [firstURL]
+                }
+            }
+        }
+    }
+
+    private func truncateColumns(after columnIndex: Int) {
+        if columnIndex + 1 < columns.count {
+            columns.removeSubrange((columnIndex + 1)...)
+        }
+    }
+}
+
+struct FileColumnRowView: View {
+    let item: FileItem
+    let columnIndex: Int
+    let isSelected: Bool
+    var appState: AppState
+    let onSelect: () -> Void
+
+    var body: some View {
         HStack(spacing: 8) {
             if !item.isDirectory {
                 ImageThumbnailView(url: item.url, size: 16, fallback: item.icon)
@@ -114,109 +225,14 @@ struct FileColumnView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(isSelected ? Color.accentColor : Color.clear)
-        .cornerRadius(4)
+        .hoverHighlight(isSelected: isSelected, cornerRadius: 4)
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
         .onTapGesture {
-            selectItem(item: item, columnIndex: columnIndex)
+            onSelect()
         }
         .contextMenu {
             SharedFileItemContextMenu(item: item, appState: appState)
-        }
-    }
-    
-    private func loadInitialColumns() {
-        Task {
-            let rootItems = await FileSystemService.loadDirectoryContents(
-                at: appState.currentURL,
-                showHidden: appState.showHiddenFiles,
-                showTags: appState.showTags,
-                searchQuery: appState.searchQuery,
-                sortOption: appState.sortOption,
-                sortAscending: appState.sortAscending
-            )
-            await MainActor.run {
-                self.columns = [ColumnData(folderURL: appState.currentURL, items: rootItems, selectedURL: nil)]
-                self.activeColumnIndex = 0
-            }
-        }
-    }
-    
-    /// Reacts to the right-arrow key by drilling into the selected item's column, then selecting its first item.
-    private func drillRightFromSelection() {
-        guard let selectedURL = appState.selectedURLs.first else { return }
-        for (index, column) in columns.enumerated() {
-            if let item = column.items.first(where: { $0.url == selectedURL }) {
-                selectItem(item: item, columnIndex: index, autoSelectFirst: true)
-                return
-            }
-        }
-    }
-
-    /// Reacts to up/down keys by moving selection within the column that actually contains it,
-    /// instead of the root-level `appState.items`, which is wrong once the user has drilled into a sub-column.
-    private func moveVerticalSelection(by offset: Int) {
-        guard let selectedURL = appState.selectedURLs.first,
-              let columnIndex = columns.firstIndex(where: { $0.items.contains { $0.url == selectedURL } }) else { return }
-        let items = columns[columnIndex].items
-        guard let currentIndex = items.firstIndex(where: { $0.url == selectedURL }) else { return }
-        let newIndex = max(0, min(items.count - 1, currentIndex + offset))
-        selectItem(item: items[newIndex], columnIndex: columnIndex)
-    }
-
-    /// Reacts to the left-arrow key by shifting focus back one column, keeping the drilled-in
-    /// trail intact (unlike `goUp()`, which would reset the whole browser to a new root).
-    private func moveLeftFromSelection() {
-        guard let selectedURL = appState.selectedURLs.first,
-              let columnIndex = columns.firstIndex(where: { $0.items.contains { $0.url == selectedURL } }),
-              columnIndex > 0 else { return }
-        let parentColumnIndex = columnIndex - 1
-        guard let parentItem = columns[parentColumnIndex].items.first(where: { $0.url == columns[columnIndex].folderURL }) else { return }
-        appState.selectedURLs = [parentItem.url]
-        columns[parentColumnIndex].selectedURL = parentItem.url
-        activeColumnIndex = parentColumnIndex
-    }
-
-    private func selectItem(item: FileItem, columnIndex: Int, autoSelectFirst: Bool = false) {
-        appState.selectedURLs = [item.url]
-        columns[columnIndex].selectedURL = item.url
-
-        guard item.isDirectory else {
-            truncateColumns(after: columnIndex)
-            return
-        }
-
-        Task {
-            let subItems = await FileSystemService.loadDirectoryContents(
-                at: item.url,
-                showHidden: appState.showHiddenFiles,
-                showTags: appState.showTags,
-                searchQuery: "",
-                sortOption: appState.sortOption,
-                sortAscending: appState.sortAscending
-            )
-            await MainActor.run {
-                // Guard against a stale task: if selection moved on again before this load
-                // finished, discard this result instead of appending a stray column and
-                // clobbering the newer selection. The old preview column, if any, stays
-                // visible until here so navigating quickly doesn't flicker it away and back.
-                guard columnIndex < self.columns.count,
-                      self.columns[columnIndex].selectedURL == item.url else { return }
-                let firstURL = autoSelectFirst ? subItems.first?.url : nil
-                self.truncateColumns(after: columnIndex)
-                self.columns.append(ColumnData(folderURL: item.url, items: subItems, selectedURL: firstURL))
-                self.activeColumnIndex = columnIndex + 1
-                if let firstURL {
-                    self.appState.selectedURLs = [firstURL]
-                }
-            }
-        }
-    }
-
-    private func truncateColumns(after columnIndex: Int) {
-        if columnIndex + 1 < columns.count {
-            columns.removeSubrange((columnIndex + 1)...)
         }
     }
 }

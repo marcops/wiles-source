@@ -197,14 +197,12 @@ struct FileGridCardItemView: View {
             }
         }
         .frame(width: cardWidth, height: cardHeight).padding(6)
-        .background(isSel ? Color.accentColor.opacity(0.18) : (isHovered ? Color.primary.opacity(0.05) : Color.clear)).cornerRadius(10)
+        .hoverHighlight(isSelected: isSel, selectedBackground: Color.accentColor.opacity(0.18), cornerRadius: 10)
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(isSel ? Color.accentColor : (isHovered ? Color.primary.opacity(0.15) : Color.clear), lineWidth: isSel ? 2 : 1)
+                .stroke(isSel ? Color.accentColor : Color.clear, lineWidth: 2)
         )
         .opacity(isCut ? 0.5 : 1.0)
-        .animation(MotionTokens.quickEase, value: isHovered)
-        .onHover { isHovered = $0 }
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: CellFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])
