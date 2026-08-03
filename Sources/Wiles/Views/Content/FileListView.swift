@@ -125,19 +125,13 @@ struct FileListView: View {
             }
             .background(ScrollerAutoHideSetter())
             }
-            .onChange(of: geometry.size.width) { oldWidth, newWidth in
-                if let last = lastWindowWidth {
-                    let diff = newWidth - last
-                    if diff != 0 {
-                        let currentName = appState.columnWidth(for: .name)
-                        let newName = max(100, currentName + diff)
-                        appState.setColumnWidth(.name, width: newName)
-                    }
-                }
+            .onChange(of: geometry.size.width) { _, newWidth in
+                adjustNameColumnWidth(for: newWidth)
                 lastWindowWidth = newWidth
             }
             .onAppear {
                 lastWindowWidth = geometry.size.width
+                adjustNameColumnWidth(for: geometry.size.width)
             }
             .background(
                 Color.clear
@@ -182,6 +176,14 @@ struct FileListView: View {
 
     private var totalColumnsWidth: CGFloat {
         visibleColumns.map { appState.columnWidth(for: $0) }.reduce(0, +) + 44
+    }
+
+    private func adjustNameColumnWidth(for containerWidth: CGFloat) {
+        let otherWidths = visibleColumns.filter { $0 != .name }.map { appState.columnWidth(for: $0) }.reduce(0, +) + 44
+        let targetNameWidth = max(LayoutTokens.columnMinWidth, containerWidth - otherWidths)
+        if abs(appState.columnWidth(for: .name) - targetNameWidth) > 1 {
+            appState.setColumnWidth(.name, width: targetNameWidth)
+        }
     }
 
     private func columnTitle(_ col: ListColumn) -> String {

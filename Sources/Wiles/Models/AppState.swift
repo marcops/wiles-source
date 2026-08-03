@@ -21,6 +21,17 @@ public final class AppState {
     public var columnViewMoveLeftTrigger: Int = 0
     /// Cell frames from the Grid View, updated live. Used to compute the real column count.
     public var gridCellFrames: [URL: CGRect] = [:]
+    private let directoryMonitor = DirectoryMonitor()
+    
+    private func startDirectoryMonitoring(for url: URL) {
+        guard url.isFileURL else { return }
+        directoryMonitor.start(path: url.path) { [weak self] in
+            Task { @MainActor in
+                self?.refreshCurrentDirectory()
+            }
+        }
+    }
+
     /// Actual number of columns currently rendered in Grid View — derived from real cell Y positions.
     public var gridColumnCount: Int {
         guard gridCellFrames.count > 1 else { return 1 }
@@ -555,6 +566,8 @@ public final class AppState {
         let query = searchQuery
         let sort = sortOption
         let asc = sortAscending
+        
+        startDirectoryMonitoring(for: target)
         
         Task {
             let loaded = await FileSystemService.loadDirectoryContents(

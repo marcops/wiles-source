@@ -9,7 +9,11 @@ final class DirectoryMonitor: Sendable {
         cancel()
         fd = open(path, O_EVTONLY)
         guard fd >= 0 else { return }
-        let s = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .rename], queue: .global())
+        let s = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .rename, .delete, .attrib, .extend, .link],
+            queue: .global()
+        )
         s.setEventHandler(handler: onChange)
         s.setCancelHandler { [fd] in close(fd) }
         s.resume()
