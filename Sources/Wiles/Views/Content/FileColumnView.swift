@@ -199,15 +199,7 @@ struct FileColumnRowView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            if !item.isDirectory {
-                ImageThumbnailView(url: item.url, size: 16, fallback: item.icon)
-                    .frame(width: 16, height: 16)
-            } else {
-                Image(nsImage: item.icon)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
-            }
+            FileItemIconView(item: item, size: 16)
             ICloudStatusBadgeView(item: item)
             
             Text(item.name)
@@ -231,8 +223,6 @@ struct FileColumnRowView: View {
         .onTapGesture {
             onSelect()
         }
-        .contextMenu {
-            SharedFileItemContextMenu(item: item, appState: appState)
-        }
+        .fileItemInteractions(item: item, appState: appState)
     }
 }

@@ -326,13 +326,7 @@ struct FileListView: View {
         return HStack(spacing: 0) {
             // Name (always visible)
             HStack(alignment: .center, spacing: 8) {
-                if !item.isDirectory {
-                    ImageThumbnailView(url: item.url, size: listIconSize, fallback: item.icon)
-                        .frame(width: listIconSize, height: listIconSize)
-                } else {
-                    Image(nsImage: item.icon)
-                        .resizable().scaledToFit().frame(width: listIconSize, height: listIconSize)
-                }
+                FileItemIconView(item: item, size: listIconSize)
                 ICloudStatusBadgeView(item: item)
                 Text(item.name)
                     .font(.system(size: 13, weight: isSel ? .semibold : .regular))

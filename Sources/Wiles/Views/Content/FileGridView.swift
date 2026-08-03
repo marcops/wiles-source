@@ -71,7 +71,7 @@ struct FileGridView: View {
                         }
 
                         if appState.items.isEmpty && !appState.isLoading {
-                            emptyStateView
+                            EmptyDirectoryView(appState: appState)
                         } else {
                             LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
                                 ForEach(visibleItems) { item in
@@ -142,18 +142,6 @@ struct FileGridView: View {
             .background(ScrollerAutoHideSetter())
         }
     }
-    
-    private var emptyStateView: some View {
-        VStack(spacing: 12) {
-            Spacer().frame(height: 80)
-            Image(systemName: appState.isSearching ? "magnifyingglass" : "folder")
-                .font(.system(size: 48)).foregroundColor(.secondary.opacity(0.5))
-            Text(appState.isSearching ? appState.tr(.noResultsFound) : appState.tr(.folderIsEmpty))
-                .font(.system(size: 16, weight: .medium)).foregroundColor(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, minHeight: 300)
-    }
 }
 
 struct FileGridCardItemView: View {
@@ -163,16 +151,13 @@ struct FileGridCardItemView: View {
     let cardWidth: CGFloat
     let cardHeight: CGFloat
     let onRightClick: () -> Void
-    
-    @State private var isHovered = false
 
     var body: some View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
         
         return VStack(spacing: 6) {
-            gridCardImage(for: item)
-                .frame(width: iconSize, height: iconSize)
+            FileItemIconView(item: item, size: iconSize)
                 .overlay(
                     ICloudStatusBadgeView(item: item)
                         .padding(2),
@@ -217,38 +202,11 @@ struct FileGridCardItemView: View {
                 appState.handleSelection(for: item)
             }
         )
-        .onDrag {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
-            let urls = Array(appState.selectedURLs)
-            let provider = NSItemProvider()
-            for u in urls {
-                provider.registerObject(u as NSURL, visibility: .all)
-            }
-            return provider
-        }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             guard item.isDirectory else { return false }
             appState.handleDrop(providers: providers, targetFolder: item.url)
             return true
         }
-        .overlay(
-            RightClickDetector {
-                if !appState.selectedURLs.contains(item.url) {
-                    appState.selectedURLs = [item.url]
-                }
-            }
-        )
-        .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
-    }
-    
-    @ViewBuilder
-    private func gridCardImage(for item: FileItem) -> some View {
-        if !item.isDirectory {
-            ImageThumbnailView(url: item.url, size: iconSize, fallback: item.icon)
-        } else {
-            Image(nsImage: item.icon).resizable().scaledToFit()
-        }
+        .fileItemInteractions(item: item, appState: appState, onRightClick: onRightClick)
     }
 }
