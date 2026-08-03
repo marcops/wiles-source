@@ -44,4 +44,7 @@ public enum LayoutTokens {
     public static let aboutIconSize: CGFloat = 80.0
     public static let aboutTitleFontSize: CGFloat = 24.0
     public static let aboutTextFontSize: CGFloat = 13.0
+    
+    // Lazy Loading
+    public static let lazyLoadingBatchSize: Int = 100
 }

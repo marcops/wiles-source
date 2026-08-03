@@ -163,6 +163,10 @@ public final class AppState {
     public var showDiskUsageSheet: Bool = false
     public var showNewFolderSheet: Bool = false
     public var showNewFileSheet: Bool = false
+    public var trashSizeString: String = ""
+    public var showEmptyTrashAlert: Bool = false
+    public var showShortcutsHUD: Bool = false
+    public var isTrashUpdating: Bool = false
     public var showConnectToServerSheet: Bool = false
     public var showAutoOrganizationSheet: Bool = false
     public var showHttpShareSheet: Bool = false
@@ -386,6 +390,7 @@ public final class AppState {
             }
             self.listColumnStates = merged
         }
+        self.updateTrashSize()
     }
     
     public func tr(_ key: L10n.Key) -> String {
@@ -516,6 +521,63 @@ public final class AppState {
                 if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
                     self.selectedURLs = [first.url]
                 }
+            }
+            self.updateTrashSize()
+        }
+    }
+
+    public func updateTrashSize() {
+        Task { @MainActor in
+            self.isTrashUpdating = true
+        }
+        Task.detached(priority: .background) {
+            let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
+            guard let url = trashURL else {
+                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+                return
+            }
+            var totalSize: Int64 = 0
+            let keys: [URLResourceKey] = [.fileSizeKey, .isDirectoryKey]
+            guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]) else {
+                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+                return
+            }
+            while let fileURL = enumerator.nextObject() as? URL {
+                if let res = try? fileURL.resourceValues(forKeys: Set(keys)) {
+                    if res.isDirectory == false, let size = res.fileSize {
+                        totalSize += Int64(size)
+                    }
+                }
+            }
+            let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
+            await MainActor.run { [weak self] in
+                self?.trashSizeString = sizeStr
+                self?.isTrashUpdating = false
+            }
+        }
+    }
+
+    public func performEmptyTrash() {
+        Task { @MainActor in
+            self.isTrashUpdating = true
+        }
+        Task.detached(priority: .userInitiated) {
+            let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
+            guard let url = trashURL else {
+                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+                return
+            }
+            let fm = FileManager.default
+            guard let paths = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: []) else {
+                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+                return
+            }
+            for path in paths {
+                try? fm.removeItem(at: path)
+            }
+            await MainActor.run { [weak self] in
+                self?.updateTrashSize()
+                self?.refreshCurrentDirectory()
             }
         }
     }

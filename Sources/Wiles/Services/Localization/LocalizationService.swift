@@ -320,5 +320,14 @@ public struct L10n {
         case batchRenameTitle
         case namingPattern
         case regexReplace
+        case emptyTrash
+        case emptyTrashConfirm
+        case shortcutsNav
+        case shortcutsFileActions
+        case shortcutsSystem
+        case shortcutsOpenFolder
+        case shortcutsRename
+        case shortcutsToggleHidden
+        case shortcutsToggleOverlay
     }
 }

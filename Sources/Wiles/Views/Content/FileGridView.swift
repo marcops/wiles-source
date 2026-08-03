@@ -22,27 +22,31 @@ struct FileGridView: View {
     @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect? = nil
     @State private var dragStartPoint: CGPoint? = nil
+    @State private var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
 
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                ZStack(alignment: .topLeading) {
-                    Color(NSColor.controlBackgroundColor).opacity(0.001)
+        let visibleItems = Array(appState.items.prefix(visibleLimit))
+        return GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    ZStack(alignment: .topLeading) {
+                        Color.clear.frame(height: 1).id("top")
+                        Color(NSColor.controlBackgroundColor).opacity(0.001)
                         .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 2, coordinateSpace: .named("gridContainer"))
                                 .onChanged { gesture in
                                     let start = dragStartPoint ?? gesture.startLocation
                                     if dragStartPoint == nil { dragStartPoint = start }
-                                    
+                                     
                                     let minX = min(start.x, gesture.location.x)
                                     let minY = min(start.y, gesture.location.y)
                                     let maxX = max(start.x, gesture.location.x)
                                     let maxY = max(start.y, gesture.location.y)
+                                     
                                     let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-                                    
-                                    self.selectionRect = rect
-                                    
+                                    selectionRect = rect
+                                     
                                     var matched = Set<URL>()
                                     for (url, frame) in cellFrames {
                                         if frame.intersects(rect) {
@@ -76,8 +80,15 @@ struct FileGridView: View {
                         emptyStateView
                     } else {
                         LazyVGrid(columns: columns, spacing: 20) {
-                            ForEach(appState.items) { item in
+                            ForEach(visibleItems) { item in
                                 gridCard(for: item)
+                            }
+                            if visibleLimit < appState.items.count {
+                                ProgressView()
+                                    .frame(height: 50)
+                                    .onAppear {
+                                        visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                    }
                             }
                         }
                         .padding(20)
@@ -98,6 +109,16 @@ struct FileGridView: View {
                     appState.gridCellFrames = frames
                 }
                 .frame(maxWidth: .infinity, minHeight: geometry.size.height, maxHeight: .infinity, alignment: .topLeading)
+                .onChange(of: appState.items) { _, _ in
+                    visibleLimit = LayoutTokens.lazyLoadingBatchSize
+                }
+                .onChange(of: appState.searchQuery) { _, newValue in
+                    if newValue.isEmpty {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proxy.scrollTo("top", anchor: .top)
+                        }
+                    }
+                }
             }
             .background(
                 Color.clear
@@ -112,6 +133,7 @@ struct FileGridView: View {
                     }
             )
             .background(ScrollerAutoHideSetter())
+            }
         }
     }
     

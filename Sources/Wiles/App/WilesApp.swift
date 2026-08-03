@@ -164,8 +164,12 @@ struct WilesApp: App {
     private var viewMenuCommands: some Commands {
         CommandGroup(after: .sidebar) {
             Divider()
-            Toggle(appState.showFooter ? "Hide Status Bar" : "Show Status Bar", isOn: $appState.showFooter)
-                .keyboardShortcut("/", modifiers: .command)
+            Button(appState.tr(.shortcutsCheatsheetTitle)) {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                    appState.showShortcutsHUD.toggle()
+                }
+            }
+            .keyboardShortcut("/", modifiers: .command)
             Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
                 .keyboardShortcut("j", modifiers: .command)
             Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
@@ -230,6 +234,13 @@ struct WilesApp: App {
             pb.clearContents()
             pb.setString(appState.currentURL.path, forType: .string)
         }
+        Divider()
+        Button(appState.tr(.shortcutsCheatsheetTitle)) {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                appState.showShortcutsHUD.toggle()
+            }
+        }
+        .keyboardShortcut("/", modifiers: .command)
     }
 
     @CommandsBuilder

@@ -266,6 +266,8 @@ extension L10n {
         .noDuplicatesFound: "Keine doppelten Dateien gefunden",
         .batchRenameTitle: "Stapelumbenennung von Dateien",
         .namingPattern: "Benennungsmuster",
-        .regexReplace: "Regex-Muster"
+        .regexReplace: "Regex-Muster",
+        .emptyTrash: "Papierkorb leeren",
+        .emptyTrashConfirm: "Möchten Sie wirklich alle Elemente im Papierkorb dauerhaft löschen?"
     ]
 }

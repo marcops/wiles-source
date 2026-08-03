@@ -16,13 +16,17 @@ struct FileListView: View {
     @State private var selectionRect: CGRect? = nil
     @State private var dragStartPoint: CGPoint? = nil
     @State private var lastWindowWidth: CGFloat? = nil
+    @State private var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
 
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView(.vertical) {
-                ScrollView(.horizontal) {
-                ZStack(alignment: .topLeading) {
-                        Color(NSColor.controlBackgroundColor).opacity(0.001)
+        let visibleItems = Array(appState.items.prefix(visibleLimit))
+        return GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView(.vertical) {
+                    ScrollView(.horizontal) {
+                    ZStack(alignment: .topLeading) {
+                            Color.clear.frame(height: 1).id("top")
+                            Color(NSColor.controlBackgroundColor).opacity(0.001)
                             .frame(minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness)
                             .contentShape(Rectangle())
                             .gesture(
@@ -75,8 +79,15 @@ struct FileListView: View {
                                 tableHeader
                                 
                                 LazyVStack(spacing: 2) {
-                                    ForEach(appState.items) { item in
+                                    ForEach(visibleItems) { item in
                                         listRow(for: item)
+                                    }
+                                    if visibleLimit < appState.items.count {
+                                        ProgressView()
+                                            .frame(height: 30)
+                                            .onAppear {
+                                                visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                            }
                                     }
                                 }
                                 .padding(.horizontal, 10)
@@ -102,7 +113,18 @@ struct FileListView: View {
                 .background(ScrollerAutoHideSetter())
                 }
             }
+            .onChange(of: appState.items) { _, _ in
+                visibleLimit = LayoutTokens.lazyLoadingBatchSize
+            }
+            .onChange(of: appState.searchQuery) { _, newValue in
+                if newValue.isEmpty {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        proxy.scrollTo("top", anchor: .top)
+                    }
+                }
+            }
             .background(ScrollerAutoHideSetter())
+            }
             .onChange(of: geometry.size.width) { oldWidth, newWidth in
                 if let last = lastWindowWidth {
                     let diff = newWidth - last

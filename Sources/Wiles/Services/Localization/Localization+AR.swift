@@ -264,6 +264,8 @@ extension L10n {
         .noDuplicatesFound: "لم يتم العثور على ملفات مكررة",
         .batchRenameTitle: "إعادة تسمية الملفات دفعة واحدة",
         .namingPattern: "نمط التسمية",
-        .regexReplace: "نمط التعبير العادي"
+        .regexReplace: "نمط التعبير العادي",
+        .emptyTrash: "إفراغ سلة المهملات",
+        .emptyTrashConfirm: "هل أنت متأكد من أنك تريد حذف جميع العناصر الموجودة في سلة المهملات نهائيًا؟"
     ]
 }

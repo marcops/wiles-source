@@ -263,9 +263,12 @@ private struct SidebarRowView: View {
     let onRightClick: () -> Void
     let onLeftClick: () -> Void
 
+    @State private var isDragTargeted = false
+
     var body: some View {
         let isCurrentFolder = appState.currentURL.standardizedFileURL == item.url.standardizedFileURL
         let isSel = isRightClicked || (isCurrentFolder && !isAnotherRowRightClicked)
+        let isTrash = item.url.standardizedFileURL == FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first?.standardizedFileURL
         return Button(action: {
             onLeftClick()
             appState.navigateTo(item.url)
@@ -277,6 +280,23 @@ private struct SidebarRowView: View {
                     .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                     .foregroundColor(.primary)
                 Spacer()
+                if isTrash {
+                    if appState.isTrashUpdating {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .controlSize(.mini)
+                            .scaleEffect(0.6)
+                            .frame(width: 16, height: 16)
+                    } else if !appState.trashSizeString.isEmpty && appState.trashSizeString != "Zero KB" && appState.trashSizeString != "0 KB" && appState.trashSizeString != "0 bytes" {
+                        Text(appState.trashSizeString)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.15))
+                            .cornerRadius(10)
+                    }
+                }
                 if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
                     Button(action: {
                         let target = item.url
@@ -292,13 +312,20 @@ private struct SidebarRowView: View {
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear).cornerRadius(8)
+            .background(isDragTargeted ? Color.accentColor.opacity(0.25) : (isSel ? Color.accentColor.opacity(0.15) : Color.clear))
+            .cornerRadius(8)
+            .scaleEffect(isDragTargeted ? 1.02 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragTargeted)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain).padding(.horizontal, 8)
         .overlay(
             RightClickDetector { onRightClick() }
         )
+        .onDrop(of: [.fileURL], isTargeted: $isDragTargeted) { providers in
+            handleDrop(providers: providers, targetFolder: item.url)
+            return true
+        }
         .contextMenu {
             Button(appState.tr(.open)) { appState.navigateTo(item.url) }
             Button(appState.tr(.copyPath)) {
@@ -320,6 +347,24 @@ private struct SidebarRowView: View {
             Button("\(appState.tr(.properties)) (Cmd+I)") {
                 let fileItem = FileItem(url: item.url, icon: NSWorkspace.shared.icon(forFile: item.url.path))
                 appState.propertiesItem = fileItem
+            }
+            if isTrash {
+                Divider()
+                Button("\(appState.tr(.emptyTrash))...") {
+                    appState.showEmptyTrashAlert = true
+                }
+            }
+        }
+    }
+
+    private func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
+        for provider in providers {
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url = url else { return }
+                Task { @MainActor in
+                    _ = try? FileSystemService.moveItem(at: url, toFolder: targetFolder)
+                    appState.refreshCurrentDirectory()
+                }
             }
         }
     }

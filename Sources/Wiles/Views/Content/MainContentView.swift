@@ -8,7 +8,8 @@ struct MainContentView: View {
 
     var body: some View {
         @Bindable var appState = appState
-        return HSplitView {
+        return ZStack {
+            HSplitView {
             SidebarView(appState: appState)
                 .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: CGFloat(appState.sidebarWidth), maxWidth: LayoutTokens.sidebarMaxWidth, maxHeight: .infinity)
                 .background(sidebarWidthTracker)
@@ -68,6 +69,14 @@ struct MainContentView: View {
         .sheet(item: $appState.symlinkItem) { item in
             SymlinkSheetView(item: item, appState: appState)
         }
+        .alert(appState.tr(.emptyTrash) + "?", isPresented: $appState.showEmptyTrashAlert) {
+            Button(appState.tr(.emptyTrash), role: .destructive) {
+                appState.performEmptyTrash()
+            }
+            Button(appState.tr(.cancel), role: .cancel) {}
+        } message: {
+            Text(appState.tr(.emptyTrashConfirm))
+        }
         .background(
             ZStack {
                 TranslucentVisualEffectView(material: .underWindowBackground)
@@ -77,6 +86,11 @@ struct MainContentView: View {
                 GlobalKeyMonitor(appState: appState)
             }
         )
+        if appState.showShortcutsHUD {
+            ShortcutsHUDOverlay(appState: appState)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        }
+        }
     }
     
     private var contentTranslucentBackground: some View {
@@ -128,6 +142,11 @@ struct MainContentView: View {
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
             Button("") { appState.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
+            Button("") {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                    appState.showShortcutsHUD.toggle()
+                }
+            }.keyboardShortcut("/", modifiers: .command).hidden()
         }
         .onDeleteCommand {
             appState.deleteSelected()

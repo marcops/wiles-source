@@ -266,6 +266,15 @@ extension L10n {
         .noDuplicatesFound: "No Duplicate Files Found",
         .batchRenameTitle: "Batch Rename Files",
         .namingPattern: "Naming Pattern",
-        .regexReplace: "Regex Pattern"
+        .regexReplace: "Regex Pattern",
+        .emptyTrash: "Empty Trash",
+        .emptyTrashConfirm: "Are you sure you want to permanently delete all items in the Trash?",
+        .shortcutsNav: "Navigation",
+        .shortcutsFileActions: "File Actions",
+        .shortcutsSystem: "System & Views",
+        .shortcutsOpenFolder: "Open Selected Folder",
+        .shortcutsRename: "Rename Selected Item",
+        .shortcutsToggleHidden: "Toggle Hidden Files",
+        .shortcutsToggleOverlay: "Toggle Shortcuts Overlay"
     ]
 }

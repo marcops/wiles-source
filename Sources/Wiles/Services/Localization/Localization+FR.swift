@@ -266,6 +266,8 @@ extension L10n {
         .noDuplicatesFound: "Aucun fichier en double trouvé",
         .batchRenameTitle: "Renommer les fichiers en lot",
         .namingPattern: "Modèle de nom",
-        .regexReplace: "Modèle Regex"
+        .regexReplace: "Modèle Regex",
+        .emptyTrash: "Vider la corbeille",
+        .emptyTrashConfirm: "Voulez-vous vraiment supprimer définitivement tous les éléments de la corbeille ?"
     ]
 }

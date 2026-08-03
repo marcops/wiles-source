@@ -266,6 +266,15 @@ extension L10n {
         .noDuplicatesFound: "Nenhum Arquivo Duplicado Encontrado",
         .batchRenameTitle: "Renomear Arquivos em Lote",
         .namingPattern: "Padrão de Nome",
-        .regexReplace: "Padrão Regex"
+        .regexReplace: "Padrão Regex",
+        .emptyTrash: "Esvaziar Lixeira",
+        .emptyTrashConfirm: "Tem certeza de que deseja apagar permanentemente todos os itens da Lixeira?",
+        .shortcutsNav: "Navegação",
+        .shortcutsFileActions: "Ações de Arquivo",
+        .shortcutsSystem: "Sistema e Visualizações",
+        .shortcutsOpenFolder: "Abrir Pasta Selecionada",
+        .shortcutsRename: "Renomear Item Selecionado",
+        .shortcutsToggleHidden: "Alternar Arquivos Ocultos",
+        .shortcutsToggleOverlay: "Alternar Painel de Atalhos"
     ]
 }

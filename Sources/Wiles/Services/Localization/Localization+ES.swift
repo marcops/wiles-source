@@ -266,6 +266,8 @@ extension L10n {
         .noDuplicatesFound: "No se encontraron archivos duplicados",
         .batchRenameTitle: "Renombrar archivos en lote",
         .namingPattern: "Patrón de nombre",
-        .regexReplace: "Patrón Regex"
+        .regexReplace: "Patrón Regex",
+        .emptyTrash: "Vaciar papelera",
+        .emptyTrashConfirm: "¿Está seguro de que desea eliminar permanentemente todos los elementos de la papelera?"
     ]
 }

@@ -6,6 +6,7 @@ struct ColumnData: Identifiable {
     let folderURL: URL
     var items: [FileItem]
     var selectedURL: URL?
+    var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
 }
 
 struct FileColumnView: View {
@@ -46,13 +47,23 @@ struct FileColumnView: View {
     }
     
     private func columnView(for column: ColumnData, index: Int) -> some View {
-        VStack(spacing: 0) {
+        let visibleItems = Array(column.items.prefix(column.visibleLimit))
+        return VStack(spacing: 0) {
             columnHeader(title: column.folderURL.lastPathComponent.isEmpty ? "/" : column.folderURL.lastPathComponent)
             
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 1) {
-                    ForEach(column.items) { item in
+                    ForEach(visibleItems) { item in
                         columnRow(item: item, columnIndex: index, isSelected: appState.selectedURLs.contains(item.url))
+                    }
+                    if column.visibleLimit < column.items.count {
+                        ProgressView()
+                            .frame(height: 25)
+                            .onAppear {
+                                var col = column
+                                col.visibleLimit = min(col.items.count, col.visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                columns[index] = col
+                            }
                     }
                 }
                 .padding(.vertical, 4)
