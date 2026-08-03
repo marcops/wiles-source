@@ -220,9 +220,12 @@ struct FileColumnRowView: View {
         .hoverHighlight(isSelected: isSelected, cornerRadius: 4)
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
+        .accessibilityLabel(item.name)
+        .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
         .onTapGesture {
             onSelect()
         }
+        .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState)
         .fileItemInteractions(item: item, appState: appState)
     }
 }

@@ -386,13 +386,7 @@ struct FileListView: View {
             }
             return provider
         }
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
-            if item.isDirectory {
-                appState.handleDrop(providers: providers, targetFolder: item.url)
-                return true
-            }
-            return false
-        }
+        .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState)
         .overlay(
             RightClickDetector {
                 if !appState.selectedURLs.contains(item.url) {

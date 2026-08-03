@@ -159,6 +159,9 @@ struct FileGridCardItemView: View {
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
         
         return mainContent(isSel: isSel, isCut: isCut)
+            .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState) { targeted in
+                withAnimation(MotionTokens.quickEase) { isDropTargeted = targeted }
+            }
             .fileItemInteractions(item: item, appState: appState, onRightClick: onRightClick)
     }
 

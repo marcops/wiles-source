@@ -367,9 +367,8 @@ private struct SidebarRowView: View {
         .overlay(
             RightClickDetector { onRightClick() }
         )
-        .onDrop(of: [.fileURL], isTargeted: $isDragTargeted) { providers in
-            handleDrop(providers: providers, targetFolder: item.url)
-            return true
+        .springLoadedFolder(folderURL: item.url, isDirectory: true, appState: appState) { targeted in
+            withAnimation(MotionTokens.quickEase) { isDragTargeted = targeted }
         }
         .contextMenu {
             Button(appState.tr(.open)) { appState.navigateTo(item.url) }
