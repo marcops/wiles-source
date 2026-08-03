@@ -38,7 +38,11 @@ struct ArchiveInspectionSheetView: View {
                         Spacer()
                         if !entry.isDirectory {
                             Button(appState.tr(.extractArchive)) {
-                                try? ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.currentURL)
+                                do {
+                                    _ = try ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.currentURL)
+                                } catch {
+                                    appState.showError(error.localizedDescription)
+                                }
                                 appState.refreshCurrentDirectory()
                             }
                             .buttonStyle(.bordered)
