@@ -1,5 +1,4 @@
 import Foundation
-import WilesCore
 
 @MainActor
 public struct DiskSpaceVisualizerTests {

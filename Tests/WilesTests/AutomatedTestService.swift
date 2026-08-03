@@ -1,5 +1,4 @@
 import Foundation
-import WilesCore
 
 @MainActor
 public final class AutomatedTestService {
@@ -11,9 +10,20 @@ public final class AutomatedTestService {
         TestReporter.reset()
         
         NavigationTests.run()
+        ArrowKeyNavigationTests.run()
+        ListColumnTests.run()
+        await UISearchTests.run()
         UITests.run()
         LocalizationTests.run()
         FileSystemTests.run()
+        CopyPathTests.run()
+        OpenWithTests.run()
+        ICloudTests.run()
+        FilePermissionsTests.run()
+        SmartFolderTests.run()
+        PDFMergeTests.run()
+        ExifMetadataTests.run()
+        ArchiveInspectionTests.run()
         ArchiveTests.run()
         BatchRenameTests.run()
         await FileShredderTests.run()
@@ -25,6 +35,7 @@ public final class AutomatedTestService {
         await DiskSpaceVisualizerTests.run()
         ImageConverterTests.run()
         NetworkDiscoveryTests.run()
+        PermissionTests.run()
         
         let passed = TestReporter.passed
         let failed = TestReporter.failed

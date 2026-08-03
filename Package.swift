@@ -22,6 +22,11 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]
+        ),
+        .testTarget(
+            name: "WilesTests",
+            dependencies: ["Wiles"],
+            path: "Tests/WilesTests"
         )
     ]
 )
