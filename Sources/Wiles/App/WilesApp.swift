@@ -49,17 +49,11 @@ struct WilesApp: App {
                         window.isMovableByWindowBackground = false
                         window.setFrameAutosaveName("WilesMainWindow")
                     }
-                    if !CommandLine.arguments.contains("--ui-testing") && !CommandLine.arguments.contains("--test") && !CommandLine.arguments.contains("--run-tests") {
+                    if !CommandLine.arguments.contains("--ui-testing") {
                         PermissionService.requestInitialPermissions(language: appState.appLanguage)
                     }
-                    if CommandLine.arguments.contains("--test") || CommandLine.arguments.contains("--run-tests") {
-                        Task {
-                            await AutomatedTestService.runAllTests()
-                        }
-                    } else {
-                        appState.refreshCurrentDirectory()
-                        AutoOrganizationService.shared.startMonitoring()
-                    }
+                    appState.refreshCurrentDirectory()
+                    AutoOrganizationService.shared.startMonitoring()
                 }
         }
         .windowStyle(.hiddenTitleBar)

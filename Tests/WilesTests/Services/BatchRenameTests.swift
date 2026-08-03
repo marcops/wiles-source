@@ -1,3 +1,4 @@
+@testable import Wiles
 import Foundation
 import AppKit
 

@@ -69,7 +69,7 @@ struct HeaderBarView: View {
                     NSApp.keyWindow?.makeFirstResponder(nil)
                 }
                 .onExitCommand {
-                    withAnimation(.easeInOut(duration: 0.15)) {
+                    withAnimation(MotionTokens.quickEase) {
                         appState.isSearching = false
                         appState.searchQuery = ""
                     }
@@ -97,7 +97,7 @@ struct HeaderBarView: View {
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.6), lineWidth: 1.5))
         .background(ClickOutsideDetector {
             if appState.isSearching && appState.searchQuery.isEmpty {
-                withAnimation(.easeInOut(duration: 0.15)) {
+                withAnimation(MotionTokens.quickEase) {
                     appState.isSearching = false
                 }
             }
@@ -188,7 +188,7 @@ struct HeaderBarView: View {
             if viewSwitcherExpanded {
                 ForEach(ViewMode.allCases) { mode in
                     Button(action: {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                        withAnimation(MotionTokens.snappySpring) {
                             appState.viewMode = mode
                             viewSwitcherExpanded = false
                         }
@@ -205,7 +205,7 @@ struct HeaderBarView: View {
                 }
             } else {
                 Button(action: {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) {
+                    withAnimation(MotionTokens.snappySpring) {
                         viewSwitcherExpanded = true
                     }
                 }) {

@@ -92,7 +92,7 @@ struct FooterBarView: View {
         .cornerRadius(6)
         .contentShape(Rectangle())
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) { isIconSizeControlExpanded = hovering }
+            withAnimation(MotionTokens.quickEase) { isIconSizeControlExpanded = hovering }
         }
         .help("Ajustar tamanho dos ícones (Cmd/Ctrl + Wheel ou Cmd/Ctrl + +/-)")
     }

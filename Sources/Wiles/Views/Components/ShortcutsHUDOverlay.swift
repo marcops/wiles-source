@@ -8,7 +8,7 @@ struct ShortcutsHUDOverlay: View {
         ZStack {
             Color.black.opacity(0.3)
                 .onTapGesture {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                    withAnimation(MotionTokens.snappySpring) {
                         appState.showShortcutsHUD = false
                     }
                 }
@@ -22,7 +22,7 @@ struct ShortcutsHUDOverlay: View {
                         .font(.system(size: 16, weight: .bold))
                     Spacer()
                     Button(action: {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                        withAnimation(MotionTokens.snappySpring) {
                             appState.showShortcutsHUD = false
                         }
                     }) {

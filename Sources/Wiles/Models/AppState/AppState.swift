@@ -530,7 +530,13 @@ public final class AppState {
         guard !urls.isEmpty else { return }
         let current = currentURL
         Task.detached(priority: .userInitiated) {
-            try? FileSystemService.compressToZIP(urls: urls, in: current)
+            do {
+                try FileSystemService.compressToZIP(urls: urls, in: current)
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.showError(error.localizedDescription)
+                }
+            }
             await MainActor.run { [weak self] in
                 self?.refreshCurrentDirectory()
             }
@@ -540,7 +546,13 @@ public final class AppState {
     public func extractArchive(url: URL) {
         let current = currentURL
         Task.detached(priority: .userInitiated) {
-            try? FileSystemService.extractZIP(archiveURL: url, to: current)
+            do {
+                try FileSystemService.extractZIP(archiveURL: url, to: current)
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.showError(error.localizedDescription)
+                }
+            }
             await MainActor.run { [weak self] in
                 self?.refreshCurrentDirectory()
             }

@@ -187,7 +187,11 @@ struct PathBarView: View {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 guard let url = url else { return }
                 Task { @MainActor in
-                    _ = try? FileSystemService.moveItem(at: url, toFolder: targetFolder)
+                    do {
+                        _ = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
+                    } catch {
+                        appState.showError(error.localizedDescription)
+                    }
                     appState.refreshCurrentDirectory()
                 }
             }
