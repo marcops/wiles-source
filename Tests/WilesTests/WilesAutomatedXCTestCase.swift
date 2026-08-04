@@ -30,6 +30,10 @@ final class WilesAutomatedTests: XCTestCase {
         await FullUIActionCoverageTests.run()
     }
 
+    @MainActor func testFullModelCoverageTests() {
+        FullModelCoverageTests.run()
+    }
+
     @MainActor func testLocalizationTests() {
         LocalizationTests.run()
     }
