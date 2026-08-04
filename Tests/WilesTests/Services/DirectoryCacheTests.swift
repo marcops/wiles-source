@@ -53,20 +53,29 @@ public struct DirectoryCacheTests {
     private static func testThumbnailPrefetchPositiveAndNegative() {
         let tempDir = NSTemporaryDirectory()
         let pngURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("test-sample.png"))
-        let txtURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("test-sample.txt"))
+        let pdfURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("document.pdf"))
+        let txtURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("readme.txt"))
+        let mdURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("notes.md"))
+        let dirURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("Subfolder"))
 
         let pngItem = FileItem(url: pngURL, icon: NSImage())
+        let pdfItem = FileItem(url: pdfURL, icon: NSImage())
         let txtItem = FileItem(url: txtURL, icon: NSImage())
+        let mdItem = FileItem(url: mdURL, icon: NSImage())
+        let dirItem = FileItem(url: dirURL, icon: NSImage())
 
-        // Positive check: isImage correctly identifies .png vs .txt
-        let isPngImage = ThumbnailService.isImage(fileExtension: pngItem.fileExtension)
-        let isTxtImage = ThumbnailService.isImage(fileExtension: txtItem.fileExtension)
-        report("ThumbnailService", "POS: isImage correctly returns true for .png", result: isPngImage)
-        report("ThumbnailService", "NEG: isImage correctly returns false for .txt", result: !isTxtImage)
+        // Positive check: supportsThumbnail identifies images, PDFs, TXT, MD
+        report("ThumbnailService", "POS: supportsThumbnail returns true for .png", result: ThumbnailService.supportsThumbnail(item: pngItem))
+        report("ThumbnailService", "POS: supportsThumbnail returns true for .pdf", result: ThumbnailService.supportsThumbnail(item: pdfItem))
+        report("ThumbnailService", "POS: supportsThumbnail returns true for .txt", result: ThumbnailService.supportsThumbnail(item: txtItem))
+        report("ThumbnailService", "POS: supportsThumbnail returns true for .md", result: ThumbnailService.supportsThumbnail(item: mdItem))
 
-        // Positive/Negative prefetch execution safely accepts items without throwing or crashing
-        ThumbnailService.shared.prefetchThumbnails(for: [pngItem, txtItem], size: 48)
-        report("ThumbnailService", "POS: prefetchThumbnails handles array containing both image and non-image items gracefully", result: true)
+        // Negative check: supportsThumbnail returns false for directories
+        report("ThumbnailService", "NEG: supportsThumbnail returns false for directories", result: !ThumbnailService.supportsThumbnail(item: dirItem))
+
+        // Positive/Negative prefetch execution safely accepts all item types without throwing or crashing
+        ThumbnailService.shared.prefetchThumbnails(for: [pngItem, pdfItem, txtItem, mdItem, dirItem], size: 48)
+        report("ThumbnailService", "POS: prefetchThumbnails handles array containing images, PDFs, text, and directories gracefully", result: true)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

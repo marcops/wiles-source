@@ -17,6 +17,12 @@ public final class ThumbnailService {
         return type.conforms(to: .image)
     }
 
+    public static func supportsThumbnail(item: FileItem) -> Bool {
+        guard !item.isDirectory else { return false }
+        guard let type = UTType(filenameExtension: item.fileExtension) else { return true }
+        return !type.conforms(to: .archive) && !type.conforms(to: .folder)
+    }
+
     public func cachedThumbnail(for url: URL, size: CGFloat) -> NSImage? {
         cache.object(forKey: cacheKey(url: url, size: size))
     }
@@ -40,10 +46,10 @@ public final class ThumbnailService {
     }
 
     public func prefetchThumbnails(for items: [FileItem], size: CGFloat) {
-        let imageItems = items.filter { Self.isImage(fileExtension: $0.fileExtension) }
-        guard !imageItems.isEmpty else { return }
+        let eligibleItems = items.filter { Self.supportsThumbnail(item: $0) }
+        guard !eligibleItems.isEmpty else { return }
         Task.detached(priority: .utility) {
-            for item in imageItems {
+            for item in eligibleItems {
                 _ = await self.loadThumbnail(for: item.url, size: size)
             }
         }

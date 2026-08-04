@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct ArchiveInspectionTests {
     public static func run() {
-        let tempDir = FileManager.default.temporaryDirectory
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
         let fileToZip = tempDir.appendingPathComponent("inspect_test_file.txt")
         try? "test data for zip".write(to: fileToZip, atomically: true, encoding: .utf8)
 

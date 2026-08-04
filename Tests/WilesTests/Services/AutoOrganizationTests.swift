@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct AutoOrganizationTests {
     public static func run() async {
-        let baseTemp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let baseTemp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let inputDir = baseTemp.appendingPathComponent("Input")
         let targetDir = baseTemp.appendingPathComponent("Target")
 

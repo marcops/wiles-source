@@ -26,7 +26,7 @@ public struct ArrowKeyNavigationTests {
     }
 
     private static func tempDir() -> URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
     }
 
     private static func simulateMoveSelection(by offset: Int, isShift: Bool, appState: AppState) {

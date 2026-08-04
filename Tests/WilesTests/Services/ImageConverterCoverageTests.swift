@@ -26,7 +26,7 @@ public struct ImageConverterCoverageTests {
     // MARK: - Fixtures
 
     private static func makeTestImage(width: Int, height: Int) -> URL {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appendingPathComponent("source.png")
 

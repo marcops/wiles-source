@@ -50,7 +50,7 @@ public struct AppStateOperationsTests {
     }
 
     private static func testSelectAllItems() {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -64,7 +64,7 @@ public struct AppStateOperationsTests {
     }
 
     private static func testOpenSelectedItemNavigatesIn() {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let subfolder = dir.appendingPathComponent("subfolder")
         try? FileManager.default.createDirectory(at: subfolder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -89,7 +89,7 @@ public struct AppStateOperationsTests {
     }
 
     private static func testOpenPropertiesForSelected() {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

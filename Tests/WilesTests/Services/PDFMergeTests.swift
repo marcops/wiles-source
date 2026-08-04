@@ -1,11 +1,12 @@
 @testable import Wiles
 import Foundation
 import AppKit
+import PDFKit
 
 @MainActor
 public struct PDFMergeTests {
     public static func run() {
-        let tempDir = FileManager.default.temporaryDirectory
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
         let imgFile = tempDir.appendingPathComponent("merge_sample.png")
 
         let image = NSImage(size: NSSize(width: 100, height: 100))

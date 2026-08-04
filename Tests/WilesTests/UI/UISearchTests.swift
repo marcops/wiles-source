@@ -24,7 +24,7 @@ public struct UISearchTests {
     }
 
     private static func testSearchFiltering(appState: AppState) async {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let fileA = tempDir.appendingPathComponent("AlphaDocument.txt")

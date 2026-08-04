@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct FileShredderTests {
     public static func run() async {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let secretFile = tempDir.appendingPathComponent("secret.txt")
         try? "Super Secret Bytes".write(to: secretFile, atomically: true, encoding: .utf8)

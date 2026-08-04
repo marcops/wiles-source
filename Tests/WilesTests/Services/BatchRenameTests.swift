@@ -5,7 +5,7 @@ import AppKit
 @MainActor
 public struct BatchRenameTests {
     public static func run() {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let item1 = tempDir.appendingPathComponent("file_alpha.txt")

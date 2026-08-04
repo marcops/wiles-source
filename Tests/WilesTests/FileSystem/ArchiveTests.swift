@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct ArchiveTests {
     public static func run() {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let file1 = tempDir.appendingPathComponent("doc1.txt")

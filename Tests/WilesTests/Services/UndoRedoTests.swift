@@ -14,7 +14,7 @@ public struct UndoRedoTests {
         TestReporter.report("UndoRedo", "NEG: redo() on empty stack returns nil", result: emptyRedo == nil)
 
         // Positive: Record & Undo Action
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let fileA = tempDir.appendingPathComponent("fileA.txt")
         let fileB = tempDir.appendingPathComponent("fileB.txt")

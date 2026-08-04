@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct FilePermissionsTests {
     public static func run() {
-        let tempFile = FileManager.default.temporaryDirectory.appendingPathComponent("perms_test.txt")
+        let tempFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("perms_test.txt")
         try? "test data".write(to: tempFile, atomically: true, encoding: .utf8)
 
         // POS: getPermissions returns valid POSIXPermissions
@@ -22,7 +22,7 @@ public struct FilePermissionsTests {
         }
 
         // NEG: non-existent file returns nil
-        let missing = FileManager.default.temporaryDirectory.appendingPathComponent("missing-\(UUID().uuidString).txt")
+        let missing = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("missing-\(UUID().uuidString).txt")
         TestReporter.report("Permissions", "NEG: getPermissions for a non-existent file returns nil", result: FilePermissionsService.getPermissions(for: missing) == nil)
 
         // POS: octalString reflects a known bit pattern (rwxr-xr--  = 0754)

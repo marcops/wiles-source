@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct HttpServerTests {
     public static func run() async {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let sampleFile = tempDir.appendingPathComponent("public_share.txt")
         try? "Public Data".write(to: sampleFile, atomically: true, encoding: .utf8)

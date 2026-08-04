@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct OpenWithTests {
     public static func run() {
-        let sampleFile = FileManager.default.temporaryDirectory.appendingPathComponent("sample_test.txt")
+        let sampleFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sample_test.txt")
         try? "test data".write(to: sampleFile, atomically: true, encoding: .utf8)
 
         // POS: Discover applications for .txt file

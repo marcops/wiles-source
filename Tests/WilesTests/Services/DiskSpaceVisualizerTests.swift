@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct DiskSpaceVisualizerTests {
     public static func run() async {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let fileA = tempDir.appendingPathComponent("fileA.bin")
@@ -27,7 +27,7 @@ public struct DiskSpaceVisualizerTests {
         try? FileManager.default.removeItem(at: tempDir)
 
         // POS: more than 10 items groups the smallest ones under "Others"
-        let manyDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let manyDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: manyDir, withIntermediateDirectories: true)
         for i in 0..<13 {
             let f = manyDir.appendingPathComponent("item\(i).bin")
@@ -38,7 +38,7 @@ public struct DiskSpaceVisualizerTests {
         try? FileManager.default.removeItem(at: manyDir)
 
         // POS: nested subdirectory size is aggregated recursively
-        let nestedDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let nestedDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let subDir = nestedDir.appendingPathComponent("sub")
         try? FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
         try? Data(repeating: 0, count: 4096).write(to: subDir.appendingPathComponent("nested.bin"))

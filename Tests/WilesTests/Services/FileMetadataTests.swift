@@ -9,7 +9,7 @@ public struct FileMetadataTests {
     }
 
     private static func testFetchPropertiesForRealFile() async {
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -22,7 +22,7 @@ public struct FileMetadataTests {
     }
 
     private static func testFetchPropertiesForNonExistentFileDoesNotCrash() async {
-        let missing = FileManager.default.temporaryDirectory.appendingPathComponent("does-not-exist-\(UUID().uuidString).txt")
+        let missing = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).txt")
         let props = await FileMetadataService.shared.fetchProperties(for: missing)
         report("FileMetadata", "NEG: non-existent file returns nil owner/permissions instead of crashing", result: props.ownerName == nil && props.posixPermissions == nil)
     }

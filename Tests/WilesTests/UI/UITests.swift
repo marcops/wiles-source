@@ -33,7 +33,7 @@ public struct UITests {
     }
 
     private static func testPathBarNavigation(appState: AppState) {
-        let parentURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let parentURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let sampleURL = parentURL.appendingPathComponent("Projects")
         try? FileManager.default.createDirectory(at: sampleURL, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: parentURL) }
@@ -54,7 +54,7 @@ public struct UITests {
     }
 
     private static func testSelectionAndContextMenu(appState: AppState) {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
