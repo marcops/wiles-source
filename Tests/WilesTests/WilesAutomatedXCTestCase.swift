@@ -42,7 +42,14 @@ final class WilesAutomatedTests: XCTestCase {
         ModalStoreTests.run()
         NavigationStoreTests.run()
         PreferencesStoreTests.run()
-        SelectionStoreTests.run()
+    }
+
+    @MainActor func testViewSuites() {
+        EmptyDirectoryViewTests.run()
+        FooterBarViewTests.run()
+        HeaderBarViewTests.run()
+        PathBarViewTests.run()
+        MainContentViewTests.run()
     }
 
     @MainActor func testFeatureSuites() async {

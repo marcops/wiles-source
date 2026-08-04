@@ -7,7 +7,8 @@ final class WilesViewModeUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        app = XCUIApplication()
+        let appURL = URL(fileURLWithPath: "Wiles.app")
+        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
         app.launchArguments = ["--ui-testing"]
         app.launch()
     }
@@ -17,36 +18,31 @@ final class WilesViewModeUITests: XCTestCase {
     }
 
     func testSwitchViewModes() throws {
-        // Toggle view switcher button in toolbar (which initially displays current view mode icon)
         let window = app.windows.firstMatch
-        XCTAssertTrue(window.waitForExistence(timeout: 2.0))
+        XCTAssertTrue(window.waitForExistence(timeout: 2.0), "Main window should exist")
 
-        // Find switcher button (which is styled plain in header)
-        // Since toolbar items have system systemNames, we can find it via image systemNames or button queries
         let switcherButton = app.buttons.matching(identifier: "View Mode").firstMatch
         if switcherButton.exists {
             switcherButton.click()
         }
 
-        // Switch using main menu bar View Mode commands
         let menuBar = app.menuBars
         let viewMenu = menuBar.menuItems["View"]
-        if viewMenu.exists {
-            viewMenu.click()
-            let gridViewItem = menuBar.menuItems["Grid View"]
-            if gridViewItem.exists {
-                gridViewItem.click()
-            }
-        }
+        XCTAssertTrue(viewMenu.waitForExistence(timeout: 2.0), "View menu should exist in menu bar")
+        viewMenu.click()
+
+        let gridViewItem = menuBar.menuItems["Grid View"]
+        XCTAssertTrue(gridViewItem.waitForExistence(timeout: 2.0), "Grid View menu item should exist")
+        gridViewItem.click()
     }
 
     func testToggleStatusBar() throws {
-        // Cmd+/ toggles status bar
         let footer = app.staticTexts.matching(identifier: "Status Bar").firstMatch
+        let initialExists = footer.exists
+
         app.typeKey("/", modifierFlags: .command)
 
-        // Toggling status bar should hide or show the footer
-        // We verify that keyboard shortcuts trigger status bar toggling successfully
-        XCTAssertNotNil(footer)
+        let postToggleExists = footer.waitForExistence(timeout: 1.0)
+        XCTAssertNotEqual(initialExists, postToggleExists, "Status bar visibility should toggle state after Cmd+/ shortcut")
     }
 }

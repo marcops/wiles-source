@@ -1,8 +1,9 @@
 import XCTest
 
 // MARK: - Robot (Page Object) Pattern for Wiles macOS UI Tests
+@MainActor
 final class WilesAppRobot {
-    private let app: XCUIApplication
+    private var app: XCUIApplication
 
     init(_ app: XCUIApplication) {
         self.app = app
@@ -10,6 +11,8 @@ final class WilesAppRobot {
 
     @discardableResult
     func launch() -> Self {
+        let appURL = URL(fileURLWithPath: "Wiles.app")
+        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
         app.launchArguments = ["--ui-testing"]
         app.launch()
         return self
@@ -65,6 +68,7 @@ final class WilesAppRobot {
 }
 
 // MARK: - Gold Standard Test Case
+@MainActor
 final class WilesGoldStandardUITests: XCTestCase {
 
     // swiftlint:disable:next implicitly_unwrapped_optional - standard XCTest lifecycle property, set in setUp/tearDown

@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class WilesFullSheetsAndMenusUITests: XCTestCase {
 
     // swiftlint:disable:next implicitly_unwrapped_optional - standard XCTest lifecycle property, set in setUp/tearDown
@@ -7,7 +8,8 @@ final class WilesFullSheetsAndMenusUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        app = XCUIApplication()
+        let appURL = URL(fileURLWithPath: "Wiles.app")
+        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
         app.launchArguments = ["--ui-testing"]
         app.launch()
     }
@@ -25,56 +27,52 @@ final class WilesFullSheetsAndMenusUITests: XCTestCase {
 
     func testSystemMenuNavigationAndToolbars() throws {
         let menuBar = app.menuBars
-
-        // View Menu Interaction
         let viewMenu = menuBar.menuItems["View"]
-        if viewMenu.exists {
-            viewMenu.click()
-            let reloadItem = menuBar.menuItems["Reload"]
-            if reloadItem.exists { reloadItem.click() }
-        }
+        XCTAssertTrue(viewMenu.waitForExistence(timeout: 2.0), "View menu should exist")
+        viewMenu.click()
 
-        // Window Menu Interaction
+        let reloadItem = menuBar.menuItems["Reload"]
+        XCTAssertTrue(reloadItem.waitForExistence(timeout: 2.0), "Reload item should exist in View menu")
+        reloadItem.click()
+
         let windowMenu = menuBar.menuItems["Window"]
-        if windowMenu.exists {
-            windowMenu.click()
-        }
+        XCTAssertTrue(windowMenu.waitForExistence(timeout: 2.0), "Window menu should exist")
+        windowMenu.click()
     }
 
     func testShortcutNavigationKeyBindings() throws {
-        // Command + 1: Grid Mode
         app.typeKey("1", modifierFlags: .command)
-
-        // Command + 2: List Mode
         app.typeKey("2", modifierFlags: .command)
-
-        // Command + 3: Column Mode
         app.typeKey("3", modifierFlags: .command)
-
-        // Command + F: Search Field Focus
         app.typeKey("f", modifierFlags: .command)
-
-        // Command + L: Path Bar Focus
         app.typeKey("l", modifierFlags: .command)
-
-        // Escape: Clear Focus / Dismiss Search
         app.typeKey(.escape, modifierFlags: [])
     }
 
     func testViewModeToolbarButtons() throws {
-        let buttons = app.buttons
-        if buttons["ViewModeGrid"].exists { buttons["ViewModeGrid"].click() }
-        if buttons["ViewModeList"].exists { buttons["ViewModeList"].click() }
-        if buttons["ViewModeColumn"].exists { buttons["ViewModeColumn"].click() }
+        let gridBtn = app.buttons["ViewModeGrid"]
+        let listBtn = app.buttons["ViewModeList"]
+        let columnBtn = app.buttons["ViewModeColumn"]
+
+        XCTAssertTrue(gridBtn.waitForExistence(timeout: 2.0), "ViewModeGrid button should exist")
+        gridBtn.click()
+
+        XCTAssertTrue(listBtn.waitForExistence(timeout: 2.0), "ViewModeList button should exist")
+        listBtn.click()
+
+        XCTAssertTrue(columnBtn.waitForExistence(timeout: 2.0), "ViewModeColumn button should exist")
+        columnBtn.click()
     }
 
     func testSidebarSectionCollapseExpand() throws {
-        let sidebarButtons = app.buttons
-        if sidebarButtons["Section_FAVORITES"].exists {
-            sidebarButtons["Section_FAVORITES"].click()
+        let favoritesBtn = app.buttons["Section_FAVORITES"]
+        let recentsBtn = app.buttons["Section_RECENTS"]
+
+        if favoritesBtn.exists {
+            favoritesBtn.click()
         }
-        if sidebarButtons["Section_RECENTS"].exists {
-            sidebarButtons["Section_RECENTS"].click()
+        if recentsBtn.exists {
+            recentsBtn.click()
         }
     }
 

@@ -28,6 +28,11 @@ let package = Package(
             name: "WilesTests",
             dependencies: ["Wiles"],
             path: "Tests/WilesTests"
+        ),
+        .testTarget(
+            name: "WilesUITests",
+            dependencies: ["Wiles"],
+            path: "Tests/WilesUITests"
         )
     ]
 )

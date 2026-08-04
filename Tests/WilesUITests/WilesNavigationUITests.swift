@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class WilesNavigationUITests: XCTestCase {
 
     // swiftlint:disable:next implicitly_unwrapped_optional - standard XCTest lifecycle property, set in setUp/tearDown
@@ -16,7 +17,8 @@ final class WilesNavigationUITests: XCTestCase {
         try fm.createDirectory(atPath: navTestPath, withIntermediateDirectories: true)
         try fm.createDirectory(atPath: navTestPath + "/SubFolderA", withIntermediateDirectories: true)
 
-        app = XCUIApplication()
+        let appURL = URL(fileURLWithPath: "Wiles.app")
+        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
         app.launchArguments = ["--ui-testing"]
         app.launch()
     }

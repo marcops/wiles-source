@@ -105,5 +105,11 @@
 - **No Shared State Assumptions**: Tests must never assume a shared singleton (e.g., `LocalHttpServerService.shared`) is in a specific initial state. Always query current state or restore initial state defensively in a `defer` block.
 - **Zero Real Config Contamination**: Tests must never mutate real user persistence (`UserDefaults.standard`, saved smart folders list, rule lists) directly without isolating keys or restoring original state inside a guaranteed `defer` block.
 
+## 18. Strict UI Test Verification Standards
+- **No Silent Optional Clicks**: Never hide interaction checks behind unasserted `if element.exists { element.click() }` blocks. Always assert or explicitly verify element presence.
+- **No Meaningless `XCTAssertNotNil` on XCUIElement Queries**: XCUIElement queries (`app.buttons["id"]`) always return non-nil query proxies. Never assert `XCTAssertNotNil(element)` to check visibility — ALWAYS evaluate `element.exists` or `element.waitForExistence(timeout:)`.
+- **Target Registration Guarantee**: All UI test files in `Tests/WilesUITests/` MUST be registered in `Package.swift` and executed during automated test runs.
+
+
 
 

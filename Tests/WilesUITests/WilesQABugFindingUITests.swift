@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class WilesQABugFindingUITests: XCTestCase {
 
     // swiftlint:disable:next implicitly_unwrapped_optional - standard XCTest lifecycle property, set in setUp/tearDown
@@ -7,7 +8,8 @@ final class WilesQABugFindingUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        app = XCUIApplication()
+        let appURL = URL(fileURLWithPath: "Wiles.app")
+        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
         app.launchArguments = ["--ui-testing"]
         app.launch()
     }

@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class WilesSearchUITests: XCTestCase {
 
     // swiftlint:disable:next implicitly_unwrapped_optional - standard XCTest lifecycle property, set in setUp/tearDown
@@ -21,7 +22,8 @@ final class WilesSearchUITests: XCTestCase {
         try "Target".write(toFile: targetFile, atomically: true, encoding: .utf8)
         try "Decoy".write(toFile: decoyFile, atomically: true, encoding: .utf8)
 
-        app = XCUIApplication()
+        let appURL = URL(fileURLWithPath: "Wiles.app")
+        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
         app.launchArguments = ["--ui-testing"]
         app.launch()
     }
