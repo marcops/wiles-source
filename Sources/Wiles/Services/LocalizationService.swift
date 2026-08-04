@@ -135,6 +135,8 @@ public struct L10n {
         case pictures
         case movies
         case trash
+        case sidebarTrash
+        case sidebarDocuments
         case applications
         case airDrop
         case iCloudDrive

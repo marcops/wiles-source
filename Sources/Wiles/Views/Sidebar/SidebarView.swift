@@ -16,7 +16,7 @@ struct SidebarView: View {
             SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: airDrop),
             SidebarItem(name: appState.tr(.iCloudDrive), iconName: "icloud.fill", url: cloudDocs),
             SidebarItem(name: "Macintosh HD", iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/")),
-            SidebarItem(name: appState.tr(.trash), iconName: "trash.fill", url: trashURL)
+            SidebarItem(name: appState.tr(.sidebarTrash), iconName: "trash.fill", url: trashURL)
         ]
     }
 
@@ -224,7 +224,7 @@ struct SidebarView: View {
         } else if path == home.appendingPathComponent("Desktop").path {
             name = appState.tr(.desktop); icon = "desktopcomputer"
         } else if path == home.appendingPathComponent("Documents").path {
-            name = appState.tr(.documents); icon = "doc.fill"
+            name = appState.tr(.sidebarDocuments); icon = "doc.fill"
         } else if path == home.appendingPathComponent("Downloads").path {
             name = appState.tr(.downloads); icon = "arrow.down.circle.fill"
         } else if path == "/Applications" {
@@ -236,7 +236,7 @@ struct SidebarView: View {
         } else if path == home.appendingPathComponent("Movies").path {
             name = appState.tr(.movies); icon = "film.fill"
         } else if path == home.appendingPathComponent(".Trash").path {
-            name = appState.tr(.trash); icon = "trash.fill"
+            name = appState.tr(.sidebarTrash); icon = "trash.fill"
         } else if path == "/" {
             name = "Macintosh HD"; icon = "internaldrive.fill"
         } else {

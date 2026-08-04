@@ -79,8 +79,9 @@ public struct UITests {
     }
 
     private static func testPerFolderViewModes(appState: AppState) {
-        let folderA = URL(fileURLWithPath: "/tmp/FolderA")
-        let folderB = URL(fileURLWithPath: "/tmp/FolderB")
+        let tempBase = URL(fileURLWithPath: NSTemporaryDirectory())
+        let folderA = tempBase.appendingPathComponent("FolderA")
+        let folderB = tempBase.appendingPathComponent("FolderB")
 
         appState.viewMode = .grid
         appState.perFolderViewModes.removeAll()

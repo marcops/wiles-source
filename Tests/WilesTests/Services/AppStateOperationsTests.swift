@@ -31,7 +31,7 @@ public struct AppStateOperationsTests {
         appState.cutSelected()
         report("AppState+Operations", "NEG: cutSelected() with empty selection leaves clipboard nil", result: appState.clipboard == nil)
 
-        let url = URL(fileURLWithPath: "/tmp/cut-\(UUID().uuidString).txt")
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("cut-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.cutSelected()
         report("AppState+Operations", "POS: cutSelected() stores selection in clipboard with .cut action", result: appState.clipboard?.action == .cut && appState.clipboard?.isCut(url: url) == true)
@@ -43,7 +43,7 @@ public struct AppStateOperationsTests {
         appState.copySelected()
         report("AppState+Operations", "NEG: copySelected() with empty selection leaves clipboard nil", result: appState.clipboard == nil)
 
-        let url = URL(fileURLWithPath: "/tmp/copy-\(UUID().uuidString).txt")
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("copy-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.copySelected()
         report("AppState+Operations", "POS: copySelected() stores selection in clipboard with .copy action", result: appState.clipboard?.action == .copy)
@@ -82,7 +82,7 @@ public struct AppStateOperationsTests {
         appState.triggerQuickLookForSelected()
         report("AppState+Operations", "NEG: triggerQuickLookForSelected() with no selection leaves quickLookURL nil", result: appState.quickLookURL == nil)
 
-        let url = URL(fileURLWithPath: "/tmp/ql-\(UUID().uuidString).txt")
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ql-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.triggerQuickLookForSelected()
         report("AppState+Operations", "POS: triggerQuickLookForSelected() sets quickLookURL to the selected item", result: appState.quickLookURL == url)
@@ -102,7 +102,7 @@ public struct AppStateOperationsTests {
 
         let appState2 = AppState()
         appState2.items = []
-        appState2.selectedURLs = [URL(fileURLWithPath: "/tmp/unknown-\(UUID().uuidString).txt")]
+        appState2.selectedURLs = [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("unknown-\(UUID().uuidString).txt")]
         appState2.openPropertiesForSelected()
         report("AppState+Operations", "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item", result: appState2.propertiesItem == nil)
     }

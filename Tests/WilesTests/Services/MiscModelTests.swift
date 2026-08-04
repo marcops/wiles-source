@@ -11,11 +11,13 @@ public struct MiscModelTests {
     }
 
     private static func testWilesErrorDescriptions() {
-        let permissionDenied = WilesError.permissionDenied(path: "/tmp/secret")
-        report("WilesError", "POS: permissionDenied includes the offending path", result: (permissionDenied.errorDescription ?? "").contains("/tmp/secret"))
+        let secretPath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("secret").path
+        let permissionDenied = WilesError.permissionDenied(path: secretPath)
+        report("WilesError", "POS: permissionDenied includes the offending path", result: (permissionDenied.errorDescription ?? "").contains(secretPath))
 
-        let diskFull = WilesError.diskFull(path: "/tmp/full")
-        report("WilesError", "POS: diskFull includes the offending path", result: (diskFull.errorDescription ?? "").contains("/tmp/full"))
+        let fullPath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("full").path
+        let diskFull = WilesError.diskFull(path: fullPath)
+        report("WilesError", "POS: diskFull includes the offending path", result: (diskFull.errorDescription ?? "").contains(fullPath))
 
         let operationFailed = WilesError.operationFailed(reason: "network unreachable")
         report("WilesError", "POS: operationFailed includes the given reason", result: (operationFailed.errorDescription ?? "").contains("network unreachable"))
@@ -26,11 +28,12 @@ public struct MiscModelTests {
     }
 
     private static func testClipboardStateIsCut() {
-        let url = URL(fileURLWithPath: "/tmp/clip-test-\(UUID().uuidString).txt")
+        let tempBase = URL(fileURLWithPath: NSTemporaryDirectory())
+        let url = tempBase.appendingPathComponent("clip-test-\(UUID().uuidString).txt")
         let cutState = ClipboardState(urls: [url], action: .cut)
         report("ClipboardState", "POS: isCut(url:) is true for a URL that was cut", result: cutState.isCut(url: url))
 
-        let otherURL = URL(fileURLWithPath: "/tmp/other-\(UUID().uuidString).txt")
+        let otherURL = tempBase.appendingPathComponent("other-\(UUID().uuidString).txt")
         report("ClipboardState", "NEG: isCut(url:) is false for a URL not in the clipboard", result: !cutState.isCut(url: otherURL))
 
         let copyState = ClipboardState(urls: [url], action: .copy)

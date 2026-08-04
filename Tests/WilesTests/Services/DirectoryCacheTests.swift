@@ -56,7 +56,9 @@ public struct DirectoryCacheTests {
         let pdfURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("document.pdf"))
         let txtURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("readme.txt"))
         let mdURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("notes.md"))
-        let dirURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("Subfolder"))
+        let dirURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("Subfolder-\(UUID().uuidString)"))
+        try? FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dirURL) }
 
         let pngItem = FileItem(url: pngURL, icon: NSImage())
         let pdfItem = FileItem(url: pdfURL, icon: NSImage())
