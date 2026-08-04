@@ -161,4 +161,44 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor func testFileSystemSearchAndSortTests() async {
         await FileSystemSearchAndSortTests.run()
     }
+
+    @MainActor func testAppStatePreferencesTests() {
+        AppStatePreferencesTests.run()
+    }
+
+    @MainActor func testAppStateColumnsAndSelectionTests() {
+        AppStateColumnsAndSelectionTests.run()
+    }
+
+    @MainActor func testAppStateCoreTests() {
+        AppStateCoreTests.run()
+    }
+
+    @MainActor func testAppStateNavigationExtraTests() {
+        AppStateNavigationExtraTests.run()
+    }
+
+    @MainActor func testAppStateOperationsExtraTests() async {
+        await AppStateOperationsExtraTests.run()
+    }
+
+    @MainActor func testAutoOrganizationRuleAndListColumnTests() {
+        AutoOrganizationRuleAndListColumnTests.run()
+    }
+
+    @MainActor func testSmallModelEnumsTests() {
+        SmallModelEnumsTests.run()
+    }
+
+    @MainActor func testStateAndTaskModelsTests() {
+        StateAndTaskModelsTests.run()
+    }
+
+    @MainActor func testDirectoryMonitorTests() async {
+        await DirectoryMonitorTests.run()
+    }
+
+    @MainActor func testFileItemFormattingTests() {
+        FileItemFormattingTests.run()
+    }
 }

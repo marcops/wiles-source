@@ -21,6 +21,12 @@ public struct ImageConverterCoverageTests {
         testNoCropKeepsFullDimensions()
         testDestinationURLCollisionIncrementsCounter()
         testAllFormatsProduceReadableOutput()
+        testNonexistentFileThrowsError()
+        testJPEGQualityAffectsFileSize()
+        testPNGIgnoresQualityParameter()
+        testScalePresetTruncatesFractionalDimensions()
+        testOutOfRangeQualityDoesNotThrow()
+        testDestinationFileIsWrittenInSameDirectoryAsSource()
     }
 
     // MARK: - Fixtures
@@ -270,6 +276,120 @@ public struct ImageConverterCoverageTests {
             let correctExtension = dest.pathExtension == format.fileExtension
             report("ImageConverter", "POS: converting to \(format.rawValue) produces a readable output file with the right extension", result: readable && correctExtension)
         }
+    }
+
+    // MARK: - Error handling
+
+    private static func testNonexistentFileThrowsError() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let missing = dir.appendingPathComponent("does_not_exist.png")
+        var threw = false
+        do {
+            _ = try ImageConverterService.convertImage(at: missing, targetFormat: .jpeg, preset: .original)
+        } catch {
+            threw = true
+        }
+        report("ImageConverter", "NEG: converting a nonexistent source file throws an error", result: threw)
+    }
+
+    // MARK: - Quality parameter
+
+    private static func testJPEGQualityAffectsFileSize() {
+        let source = makeTestImage(width: 800, height: 800)
+        defer { try? FileManager.default.removeItem(at: source.deletingLastPathComponent()) }
+
+        guard let lowQ = try? ImageConverterService.convertImage(at: source, targetFormat: .jpeg, preset: .original, quality: 0.05) else {
+            report("ImageConverter", "POS: low JPEG quality produces a smaller file than high JPEG quality", result: false)
+            return
+        }
+        // Give the low-quality file a distinct destination name pass by converting from a copy for high quality.
+        guard let highQ = try? ImageConverterService.convertImage(at: source, targetFormat: .jpeg, preset: .original, quality: 1.0) else {
+            report("ImageConverter", "POS: low JPEG quality produces a smaller file than high JPEG quality", result: false)
+            return
+        }
+
+        let lowAttrs = try? FileManager.default.attributesOfItem(atPath: lowQ.path)
+        let highAttrs = try? FileManager.default.attributesOfItem(atPath: highQ.path)
+
+        guard let lowSizeVal = lowAttrs?[.size] as? Int, let highSizeVal = highAttrs?[.size] as? Int else {
+            report("ImageConverter", "POS: low JPEG quality produces a smaller file than high JPEG quality", result: false)
+            return
+        }
+        report("ImageConverter", "POS: low JPEG quality produces a smaller file than high JPEG quality", result: lowSizeVal < highSizeVal)
+    }
+
+    private static func testPNGIgnoresQualityParameter() {
+        let source = makeTestImage(width: 200, height: 200)
+        defer { try? FileManager.default.removeItem(at: source.deletingLastPathComponent()) }
+
+        guard let lowQ = try? ImageConverterService.convertImage(at: source, targetFormat: .png, preset: .original, quality: 0.01),
+              let lowDims = dimensions(at: lowQ) else {
+            report("ImageConverter", "NEG: PNG output ignores lossy quality parameter and stays fully readable", result: false)
+            return
+        }
+        guard let highQ = try? ImageConverterService.convertImage(at: source, targetFormat: .png, preset: .original, quality: 1.0),
+              let highDims = dimensions(at: highQ) else {
+            report("ImageConverter", "NEG: PNG output ignores lossy quality parameter and stays fully readable", result: false)
+            return
+        }
+        report(
+            "ImageConverter",
+            "NEG: PNG output ignores lossy quality parameter and stays fully readable",
+            result: lowDims.width == highDims.width && lowDims.height == highDims.height && lowDims.width == 200
+        )
+    }
+
+    private static func testOutOfRangeQualityDoesNotThrow() {
+        let source = makeTestImage(width: 100, height: 100)
+        defer { try? FileManager.default.removeItem(at: source.deletingLastPathComponent()) }
+
+        var succeeded = true
+        do {
+            _ = try ImageConverterService.convertImage(at: source, targetFormat: .jpeg, preset: .original, quality: -1.0)
+        } catch {
+            succeeded = false
+        }
+        do {
+            _ = try ImageConverterService.convertImage(at: source, targetFormat: .jpeg, preset: .original, quality: 5.0)
+        } catch {
+            succeeded = false
+        }
+        report("ImageConverter", "POS: out-of-range quality values (negative / >1) do not throw", result: succeeded)
+    }
+
+    // MARK: - Resize truncation
+
+    private static func testScalePresetTruncatesFractionalDimensions() {
+        // 401 * 0.75 = 300.75 -> Int(CGFloat) truncates toward zero to 300.
+        let source = makeTestImage(width: 401, height: 401)
+        defer { try? FileManager.default.removeItem(at: source.deletingLastPathComponent()) }
+
+        guard let dest = try? ImageConverterService.convertImage(at: source, targetFormat: .png, preset: .scale75),
+              let dims = dimensions(at: dest) else {
+            report("ImageConverter", "POS: fractional scaled dimensions are truncated rather than rounded", result: false)
+            return
+        }
+        report("ImageConverter", "POS: fractional scaled dimensions are truncated rather than rounded", result: dims.width == 300 && dims.height == 300)
+    }
+
+    // MARK: - Output location
+
+    private static func testDestinationFileIsWrittenInSameDirectoryAsSource() {
+        let source = makeTestImage(width: 50, height: 50)
+        defer { try? FileManager.default.removeItem(at: source.deletingLastPathComponent()) }
+
+        guard let dest = try? ImageConverterService.convertImage(at: source, targetFormat: .tiff, preset: .original) else {
+            report("ImageConverter", "POS: converted file is written into the same directory as the source file", result: false)
+            return
+        }
+        report(
+            "ImageConverter",
+            "POS: converted file is written into the same directory as the source file",
+            result: dest.deletingLastPathComponent().path == source.deletingLastPathComponent().path
+        )
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

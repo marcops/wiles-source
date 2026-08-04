@@ -11,127 +11,257 @@ public enum SearchScope: String, CaseIterable, Identifiable, Codable, Sendable {
 @Observable
 @MainActor
 public final class AppState {
+    // MARK: - Domain Stores
+    public let navigationStore: NavigationStore
+    public let preferencesStore: PreferencesStore
+    public let modalStore: ModalStore
+    public let selectionStore: SelectionStore
+    public let fileSystemStore: FileSystemStore
+
+    // MARK: - Forwarded Navigation Properties
     public var currentURL: URL {
-        didSet {
-            pathText = currentURL.path
-            UserDefaults.standard.set(currentURL.path, forKey: DefaultsKey.lastOpenedFolder.rawValue)
-        }
+        get { navigationStore.currentURL }
+        set { navigationStore.currentURL = newValue }
+    }
+    public var historyBack: [URL] {
+        get { navigationStore.historyBack }
+        set { navigationStore.historyBack = newValue }
+    }
+    public var historyForward: [URL] {
+        get { navigationStore.historyForward }
+        set { navigationStore.historyForward = newValue }
+    }
+    public var recentOpenedURLs: [URL] {
+        get { navigationStore.recentOpenedURLs }
+        set { navigationStore.recentOpenedURLs = newValue }
+    }
+    public var pathText: String {
+        get { navigationStore.pathText }
+        set { navigationStore.pathText = newValue }
     }
 
-    public var historyBack: [URL] = []
-    public var historyForward: [URL] = []
-    public var items: [FileItem] = []
-    public var isLoading: Bool = false
-    /// Bumped by the right-arrow key handler so Column View can drill into the selected item's column, same as a click.
-    public var columnViewDrillRightTrigger: Int = 0
-    /// Set alongside `columnViewVerticalTrigger` so Column View moves selection within its own active column instead of the root `items` list.
-    public var columnViewVerticalDirection: Int = 0
-    public var columnViewVerticalTrigger: Int = 0
-    /// Bumped by the left-arrow key handler so Column View shifts focus back one column instead of resetting via `goUp()`.
-    public var columnViewMoveLeftTrigger: Int = 0
-    /// Cell frames from the Grid View, updated live. Used to compute the real column count.
-    public var gridCellFrames: [URL: CGRect] = [:]
-    private let directoryMonitor = DirectoryMonitor()
+    // MARK: - Forwarded FileSystem Properties
+    public var items: [FileItem] {
+        get { fileSystemStore.items }
+        set { fileSystemStore.items = newValue }
+    }
+    public var isLoading: Bool {
+        get { fileSystemStore.isLoading }
+        set { fileSystemStore.isLoading = newValue }
+    }
 
     func startDirectoryMonitoring(for url: URL) {
-        guard url.isFileURL else { return }
-        directoryMonitor.start(path: url.path) { [weak self] in
+        fileSystemStore.startDirectoryMonitoring(for: url) { [weak self] in
             Task { @MainActor in
                 self?.refreshCurrentDirectory()
             }
         }
     }
 
-    /// Actual number of columns currently rendered in Grid View — derived from real cell Y positions.
+    // MARK: - Forwarded Selection Properties
+    public var columnViewDrillRightTrigger: Int {
+        get { selectionStore.columnViewDrillRightTrigger }
+        set { selectionStore.columnViewDrillRightTrigger = newValue }
+    }
+    public var columnViewVerticalDirection: Int {
+        get { selectionStore.columnViewVerticalDirection }
+        set { selectionStore.columnViewVerticalDirection = newValue }
+    }
+    public var columnViewVerticalTrigger: Int {
+        get { selectionStore.columnViewVerticalTrigger }
+        set { selectionStore.columnViewVerticalTrigger = newValue }
+    }
+    public var columnViewMoveLeftTrigger: Int {
+        get { selectionStore.columnViewMoveLeftTrigger }
+        set { selectionStore.columnViewMoveLeftTrigger = newValue }
+    }
+    public var gridCellFrames: [URL: CGRect] {
+        get { selectionStore.gridCellFrames }
+        set { selectionStore.gridCellFrames = newValue }
+    }
     public var gridColumnCount: Int {
-        guard gridCellFrames.count > 1 else { return 1 }
-        let ys = gridCellFrames.values.map { $0.origin.y }
-        guard let firstY = ys.min() else { return 1 }
-        return ys.filter { abs($0 - firstY) < 5 }.count
+        selectionStore.gridColumnCount
     }
 
-    public var viewMode: ViewMode = .grid {
-        didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: DefaultsKey.viewMode.rawValue) }
+    // MARK: - Forwarded Preferences Properties
+    public var viewMode: ViewMode {
+        get { preferencesStore.viewMode }
+        set { preferencesStore.viewMode = newValue }
     }
-    public var appAppearance: AppAppearance = .system {
-        didSet { UserDefaults.standard.set(appAppearance.rawValue, forKey: DefaultsKey.appAppearance.rawValue) }
+    public var appAppearance: AppAppearance {
+        get { preferencesStore.appAppearance }
+        set { preferencesStore.appAppearance = newValue }
     }
-    public var sidebarMode: SidebarMode = .places {
-        didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: DefaultsKey.sidebarMode.rawValue) }
+    public var sidebarMode: SidebarMode {
+        get { preferencesStore.sidebarMode }
+        set { preferencesStore.sidebarMode = newValue }
     }
-    public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
-        didSet { UserDefaults.standard.set(sidebarWidth, forKey: DefaultsKey.sidebarWidth.rawValue) }
+    public var sidebarWidth: Double {
+        get { preferencesStore.sidebarWidth }
+        set { preferencesStore.sidebarWidth = newValue }
     }
-    public var sortOption: SortOption = .name {
-        didSet { UserDefaults.standard.set(sortOption.rawValue, forKey: DefaultsKey.sortOption.rawValue) }
+    public var sortOption: SortOption {
+        get { preferencesStore.sortOption }
+        set { preferencesStore.sortOption = newValue }
     }
-    public var sortAscending: Bool = true {
-        didSet { UserDefaults.standard.set(sortAscending, forKey: DefaultsKey.sortAscending.rawValue) }
+    public var sortAscending: Bool {
+        get { preferencesStore.sortAscending }
+        set { preferencesStore.sortAscending = newValue }
     }
-    public var showHiddenFiles: Bool = false {
-        didSet { UserDefaults.standard.set(showHiddenFiles, forKey: DefaultsKey.showHiddenFiles.rawValue) }
+    public var showHiddenFiles: Bool {
+        get { preferencesStore.showHiddenFiles }
+        set { preferencesStore.showHiddenFiles = newValue }
     }
-    public var showFavorites: Bool = true {
-        didSet { UserDefaults.standard.set(showFavorites, forKey: DefaultsKey.showFavorites.rawValue) }
+    public var showFavorites: Bool {
+        get { preferencesStore.showFavorites }
+        set { preferencesStore.showFavorites = newValue }
     }
-    public var showRecents: Bool = true {
-        didSet { UserDefaults.standard.set(showRecents, forKey: DefaultsKey.showRecents.rawValue) }
+    public var showRecents: Bool {
+        get { preferencesStore.showRecents }
+        set { preferencesStore.showRecents = newValue }
     }
-    public var showPlaces: Bool = true {
-        didSet { UserDefaults.standard.set(showPlaces, forKey: DefaultsKey.showPlaces.rawValue) }
+    public var showPlaces: Bool {
+        get { preferencesStore.showPlaces }
+        set { preferencesStore.showPlaces = newValue }
     }
-    public var showNetworkAndCloud: Bool = false {
-        didSet { UserDefaults.standard.set(showNetworkAndCloud, forKey: DefaultsKey.showNetworkAndCloud.rawValue) }
+    public var showNetworkAndCloud: Bool {
+        get { preferencesStore.showNetworkAndCloud }
+        set { preferencesStore.showNetworkAndCloud = newValue }
     }
-    public var showSidebarSectionTitles: Bool = true {
-        didSet { UserDefaults.standard.set(showSidebarSectionTitles, forKey: DefaultsKey.showSidebarSectionTitles.rawValue) }
+    public var showSidebarSectionTitles: Bool {
+        get { preferencesStore.showSidebarSectionTitles }
+        set { preferencesStore.showSidebarSectionTitles = newValue }
     }
-    public var appLanguage: AppLanguage = .system {
-        didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: DefaultsKey.appLanguage.rawValue) }
+    public var appLanguage: AppLanguage {
+        get { preferencesStore.appLanguage }
+        set { preferencesStore.appLanguage = newValue }
     }
-    public var isFavoritesExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isFavoritesExpanded, forKey: DefaultsKey.isFavoritesExpanded.rawValue) }
+    public var isFavoritesExpanded: Bool {
+        get { preferencesStore.isFavoritesExpanded }
+        set { preferencesStore.isFavoritesExpanded = newValue }
     }
-    public var isMacExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isMacExpanded, forKey: DefaultsKey.isMacExpanded.rawValue) }
+    public var isMacExpanded: Bool {
+        get { preferencesStore.isMacExpanded }
+        set { preferencesStore.isMacExpanded = newValue }
     }
-    public var isNetworkExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isNetworkExpanded, forKey: DefaultsKey.isNetworkExpanded.rawValue) }
+    public var isNetworkExpanded: Bool {
+        get { preferencesStore.isNetworkExpanded }
+        set { preferencesStore.isNetworkExpanded = newValue }
     }
-    public var isRecentsExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isRecentsExpanded, forKey: DefaultsKey.isRecentsExpanded.rawValue) }
+    public var isRecentsExpanded: Bool {
+        get { preferencesStore.isRecentsExpanded }
+        set { preferencesStore.isRecentsExpanded = newValue }
     }
-    public var isDevicesExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isDevicesExpanded, forKey: DefaultsKey.isDevicesExpanded.rawValue) }
+    public var isDevicesExpanded: Bool {
+        get { preferencesStore.isDevicesExpanded }
+        set { preferencesStore.isDevicesExpanded = newValue }
     }
-    public var isTreeExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isTreeExpanded, forKey: DefaultsKey.isTreeExpanded.rawValue) }
+    public var isTreeExpanded: Bool {
+        get { preferencesStore.isTreeExpanded }
+        set { preferencesStore.isTreeExpanded = newValue }
     }
-    public var expandedTreePaths: Set<String> = [] {
-        didSet { UserDefaults.standard.set(Array(expandedTreePaths), forKey: DefaultsKey.expandedTreePaths.rawValue) }
+    public var expandedTreePaths: Set<String> {
+        get { preferencesStore.expandedTreePaths }
+        set { preferencesStore.expandedTreePaths = newValue }
     }
-    public var isTagsExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isTagsExpanded, forKey: DefaultsKey.isTagsExpanded.rawValue) }
+    public var isTagsExpanded: Bool {
+        get { preferencesStore.isTagsExpanded }
+        set { preferencesStore.isTagsExpanded = newValue }
     }
-    public var isSmartFoldersExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isSmartFoldersExpanded, forKey: DefaultsKey.isSmartFoldersExpanded.rawValue) }
+    public var isSmartFoldersExpanded: Bool {
+        get { preferencesStore.isSmartFoldersExpanded }
+        set { preferencesStore.isSmartFoldersExpanded = newValue }
     }
-    public var searchScope: SearchScope = .name {
-        didSet { UserDefaults.standard.set(searchScope.rawValue, forKey: DefaultsKey.searchScope.rawValue) }
+    public var searchScope: SearchScope {
+        get { preferencesStore.searchScope }
+        set { preferencesStore.searchScope = newValue }
     }
-    public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
-    public var showSaveSmartFolderSheet: Bool = false
-    public var showPasswordCompressSheet: Bool = false
-    public var passwordCompressURLs: [URL]?
-    public var inspectArchiveURL: URL?
-    public var showArchiveInspectionSheet: Bool = false
-    public var errorMessage: String?
-    public var showErrorAlert: Bool = false
+    public var showTags: Bool {
+        get { preferencesStore.showTags }
+        set { preferencesStore.showTags = newValue }
+    }
+    public var showFooter: Bool {
+        get { preferencesStore.showFooter }
+        set { preferencesStore.showFooter = newValue }
+    }
+    public var showTerminalDrawer: Bool {
+        get { preferencesStore.showTerminalDrawer }
+        set { preferencesStore.showTerminalDrawer = newValue }
+    }
+    public var showPreviewSidebar: Bool {
+        get { preferencesStore.showPreviewSidebar }
+        set { preferencesStore.showPreviewSidebar = newValue }
+    }
+    public var sidebarTranslucentLevel: Int {
+        get { preferencesStore.sidebarTranslucentLevel }
+        set { preferencesStore.sidebarTranslucentLevel = newValue }
+    }
+    public var contentTranslucentLevel: Int {
+        get { preferencesStore.contentTranslucentLevel }
+        set { preferencesStore.contentTranslucentLevel = newValue }
+    }
+    public var translucentLevel: Int {
+        get { preferencesStore.sidebarTranslucentLevel }
+        set {
+            preferencesStore.sidebarTranslucentLevel = newValue
+            preferencesStore.contentTranslucentLevel = newValue
+        }
+    }
+    public var sidebarOverlayOpacity: Double { preferencesStore.sidebarOverlayOpacity }
+    public var contentOverlayOpacity: Double { preferencesStore.contentOverlayOpacity }
+    public var iconSize: Double {
+        get { preferencesStore.iconSize }
+        set { preferencesStore.iconSize = newValue }
+    }
+    public var favoriteURLs: [URL] {
+        get { preferencesStore.favoriteURLs }
+        set { preferencesStore.favoriteURLs = newValue }
+    }
+
+    // MARK: - Forwarded Modal Properties
+    public var showSaveSmartFolderSheet: Bool {
+        get { modalStore.showSaveSmartFolderSheet }
+        set { modalStore.showSaveSmartFolderSheet = newValue }
+    }
+    public var showPasswordCompressSheet: Bool {
+        get { modalStore.showPasswordCompressSheet }
+        set { modalStore.showPasswordCompressSheet = newValue }
+    }
+    public var passwordCompressURLs: [URL]? {
+        get { modalStore.passwordCompressURLs }
+        set { modalStore.passwordCompressURLs = newValue }
+    }
+    public var inspectArchiveURL: URL? {
+        get { modalStore.inspectArchiveURL }
+        set { modalStore.inspectArchiveURL = newValue }
+    }
+    public var showArchiveInspectionSheet: Bool {
+        get { modalStore.showArchiveInspectionSheet }
+        set { modalStore.showArchiveInspectionSheet = newValue }
+    }
+    public var errorMessage: String? {
+        get { modalStore.errorMessage }
+        set { modalStore.errorMessage = newValue }
+    }
+    public var showErrorAlert: Bool {
+        get { modalStore.showErrorAlert }
+        set { modalStore.showErrorAlert = newValue }
+    }
+    public var showHelpSheet: Bool {
+        get { modalStore.showHelpSheet }
+        set { modalStore.showHelpSheet = newValue }
+    }
+    public var showAboutSheet: Bool {
+        get { modalStore.showAboutSheet }
+        set { modalStore.showAboutSheet = newValue }
+    }
 
     public func showError(_ message: String) {
-        self.errorMessage = message
-        self.showErrorAlert = true
+        modalStore.showError(message)
     }
+
+    // MARK: - Operational State
+    public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
 
     public func addSmartFolder(_ folder: SmartFolder) {
         smartFolders.append(folder)
@@ -142,65 +272,10 @@ public final class AppState {
         smartFolders.removeAll { $0.id == folder.id }
         SmartFolderService.saveSmartFolders(smartFolders)
     }
+
     public static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
-    public var recentOpenedURLs: [URL] = [] {
-        didSet {
-            let paths = recentOpenedURLs.map { $0.path }
-            UserDefaults.standard.set(paths, forKey: DefaultsKey.recentOpenedURLs.rawValue)
-        }
-    }
-    public var showTags: Bool = false {
-        didSet {
-            UserDefaults.standard.set(showTags, forKey: DefaultsKey.showTags.rawValue)
-            refreshCurrentDirectory()
-        }
-    }
-    public var showFooter: Bool = true {
-        didSet { UserDefaults.standard.set(showFooter, forKey: DefaultsKey.showFooter.rawValue) }
-    }
-    public var showTerminalDrawer: Bool = false {
-        didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: DefaultsKey.showTerminalDrawer.rawValue) }
-    }
-    public var showPreviewSidebar: Bool = false {
-        didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue) }
-    }
-    public var sidebarTranslucentLevel: Int = 80 {
-        didSet { UserDefaults.standard.set(sidebarTranslucentLevel, forKey: DefaultsKey.sidebarTranslucentLevel.rawValue) }
-    }
-    public var contentTranslucentLevel: Int = 40 {
-        didSet { UserDefaults.standard.set(contentTranslucentLevel, forKey: DefaultsKey.contentTranslucentLevel.rawValue) }
-    }
-    public var translucentLevel: Int {
-        get { sidebarTranslucentLevel }
-        set {
-            sidebarTranslucentLevel = newValue
-            contentTranslucentLevel = newValue
-        }
-    }
-    /// Single source of truth for translucency math — every translucent surface in the app
-    /// (sidebar, content, footer controls, etc.) reads its opacity from here.
-    public var sidebarOverlayOpacity: Double {
-        let base = 1.0 - Double(sidebarTranslucentLevel) / 100.0
-        return appAppearance == .light ? base * 0.5 : base
-    }
-    public var contentOverlayOpacity: Double {
-        let base = 1.0 - Double(contentTranslucentLevel) / 100.0
-        return appAppearance == .light ? base * 0.5 : base
-    }
-    public var iconSize: Double = 54.0 {
-        didSet { UserDefaults.standard.set(iconSize, forKey: DefaultsKey.iconSize.rawValue) }
-    }
-    public var favoriteURLs: [URL] = [] {
-        didSet {
-            let paths = favoriteURLs.map { $0.path }
-            UserDefaults.standard.set(paths, forKey: DefaultsKey.favoriteURLs.rawValue)
-        }
-    }
-    public var showHelpSheet: Bool = false
-    public var showAboutSheet: Bool = false
 
     public var isEditingPath: Bool = false
-    public var pathText: String = ""
     public var searchQuery: String = "" {
         didSet {
             refreshCurrentDirectory()
@@ -245,21 +320,18 @@ public final class AppState {
     }
 
     public init() {
-        let defaults = UserDefaults.standard
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        if let lastFolder = defaults.string(forKey: DefaultsKey.lastOpenedFolder.rawValue),
-           FileManager.default.fileExists(atPath: lastFolder) {
-            let lastURL = URL(fileURLWithPath: lastFolder)
-            self.currentURL = lastURL
-            self.pathText = lastURL.path
-        } else {
-            self.currentURL = home
-            self.pathText = home.path
-        }
-        restoreLayoutPreferences(defaults)
-        restoreSidebarPreferences(defaults, home: home)
-        restoreDisplayPreferences(defaults)
-        restoreContentPreferences(defaults, home: home)
+        let navStore = NavigationStore()
+        let prefStore = PreferencesStore()
+        let modStore = ModalStore()
+        let selStore = SelectionStore()
+        let fsStore = FileSystemStore()
+
+        self.navigationStore = navStore
+        self.preferencesStore = prefStore
+        self.modalStore = modStore
+        self.selectionStore = selStore
+        self.fileSystemStore = fsStore
+
         self.updateTrashSize()
     }
 
@@ -300,6 +372,7 @@ public final class AppState {
     }
 
     public func addFavorite(_ url: URL) {
+        preferencesStore.favoriteURLs = preferencesStore.favoriteURLs
         let std = url.standardizedFileURL
         if !favoriteURLs.contains(where: { $0.standardizedFileURL == std }) {
             favoriteURLs.append(std)

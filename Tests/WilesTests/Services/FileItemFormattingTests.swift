@@ -1,0 +1,124 @@
+@testable import Wiles
+import Foundation
+import AppKit
+
+@MainActor
+public struct FileItemFormattingTests {
+    public static func run() {
+        testFormattedSizeForZeroByteFile()
+        testFormattedSizeGrowsWithFileSize()
+        testFormattedSizeForDirectory()
+        testFormattedDatesForFreshFile()
+        testFormattedDateAccessedHandlesNil()
+        testOwnerAndGroupNameResolution()
+    }
+
+    private static func makeFileItem(at url: URL) -> FileItem {
+        FileItem(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
+    }
+
+    private static func testFormattedSizeForZeroByteFile() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("empty.txt")
+        FileManager.default.createFile(atPath: file.path, contents: Data())
+        let item = makeFileItem(at: file)
+
+        report("FileItem.formattedSize", "POS: a 0-byte regular file produces a non-empty formatted size string", result: !item.formattedSize.isEmpty)
+        report("FileItem.formattedSize", "NEG: a 0-byte regular file is not rendered as the directory placeholder \"--\"", result: item.formattedSize != "--")
+    }
+
+    private static func testFormattedSizeGrowsWithFileSize() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let smallFile = dir.appendingPathComponent("small.bin")
+        FileManager.default.createFile(atPath: smallFile.path, contents: Data(repeating: 0x41, count: 500))
+        let smallItem = makeFileItem(at: smallFile)
+
+        let largeFile = dir.appendingPathComponent("large.bin")
+        FileManager.default.createFile(atPath: largeFile.path, contents: Data(repeating: 0x42, count: 5_000_000))
+        let largeItem = makeFileItem(at: largeFile)
+
+        report("FileItem.formattedSize", "POS: a 500-byte file produces a non-empty formatted size string", result: !smallItem.formattedSize.isEmpty)
+        report("FileItem.formattedSize", "POS: a 5,000,000-byte file produces a non-empty formatted size string", result: !largeItem.formattedSize.isEmpty)
+        report("FileItem.formattedSize", "POS: a several-megabyte file's formatted size differs from a 500-byte file's formatted size", result: smallItem.formattedSize != largeItem.formattedSize)
+        report("FileItem.formattedSize", "POS: a several-megabyte file's formatted size reports it in MB (larger unit than bytes)", result: largeItem.formattedSize.contains("MB"))
+        report("FileItem.formattedSize", "NEG: a 500-byte file's formatted size is not reported in MB", result: !smallItem.formattedSize.contains("MB"))
+    }
+
+    private static func testFormattedSizeForDirectory() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let subdir = dir.appendingPathComponent("sub")
+        try? FileManager.default.createDirectory(at: subdir, withIntermediateDirectories: true)
+        let item = makeFileItem(at: subdir)
+
+        report("FileItem.formattedSize", "POS: a directory's formattedSize is the \"--\" placeholder, not a byte count", result: item.formattedSize == "--")
+        report("FileItem", "POS: a directory FileItem reports isDirectory true", result: item.isDirectory)
+    }
+
+    private static func testFormattedDatesForFreshFile() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("fresh.txt")
+        try? "hello".write(to: file, atomically: true, encoding: .utf8)
+        let item = makeFileItem(at: file)
+
+        report("FileItem.formattedDate", "POS: formattedDate is non-empty for a freshly created file", result: !item.formattedDate.isEmpty)
+        report("FileItem.formattedDateCreated", "POS: formattedDateCreated is non-empty for a freshly created file", result: !item.formattedDateCreated.isEmpty)
+
+        let expectedYear = "\(Calendar.current.component(.year, from: Date()))"
+        report("FileItem.formattedDate", "POS: formattedDate for a file just created now includes the current year", result: item.formattedDate.contains(expectedYear))
+        report("FileItem.formattedDateCreated", "POS: formattedDateCreated for a file just created now includes the current year", result: item.formattedDateCreated.contains(expectedYear))
+        report("FileItem.formattedDate", "NEG: formattedDate is not the raw placeholder \"--\" for a real file with a modification date", result: item.formattedDate != "--")
+    }
+
+    private static func testFormattedDateAccessedHandlesNil() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("accessed.txt")
+        try? "hello".write(to: file, atomically: true, encoding: .utf8)
+        let item = makeFileItem(at: file)
+
+        // dateAccessed is an Optional<Date> on FileItem; formattedDateAccessed must not
+        // crash whether or not the filesystem actually supplies a content access date.
+        report("FileItem.formattedDateAccessed", "POS: formattedDateAccessed does not crash and produces a non-empty string either way", result: !item.formattedDateAccessed.isEmpty)
+        if item.dateAccessed == nil {
+            report("FileItem.formattedDateAccessed", "POS: formattedDateAccessed falls back to \"--\" when dateAccessed is nil", result: item.formattedDateAccessed == "--")
+        } else {
+            report("FileItem.formattedDateAccessed", "POS: formattedDateAccessed is not the \"--\" placeholder when dateAccessed is present", result: item.formattedDateAccessed != "--")
+        }
+    }
+
+    private static func testOwnerAndGroupNameResolution() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("owned.txt")
+        try? "hello".write(to: file, atomically: true, encoding: .utf8)
+        let item = makeFileItem(at: file)
+
+        report("FileItem.ownerName", "POS: ownerName is resolved to a non-empty string for a real temp file", result: !item.ownerName.isEmpty)
+        report("FileItem.groupName", "POS: groupName is resolved to a non-empty string for a real temp file", result: !item.groupName.isEmpty)
+        report("FileItem.ownerName", "NEG: ownerName is not the unresolved-owner placeholder \"--\" for a file we just created ourselves", result: item.ownerName != "--")
+        report("FileItem.groupName", "NEG: groupName is not the unresolved-owner placeholder \"--\" for a file we just created ourselves", result: item.groupName != "--")
+
+        let currentUser = NSUserName()
+        report("FileItem.ownerName", "POS: ownerName matches the current process's account name for a file created by this process", result: item.ownerName == currentUser)
+    }
+
+    private static func report(_ category: String, _ name: String, result: Bool) {
+        TestReporter.report(category, name, result: result)
+    }
+}

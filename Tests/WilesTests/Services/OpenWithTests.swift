@@ -24,5 +24,65 @@ public struct OpenWithTests {
         TestReporter.report("OpenWith", "NEG: setDefaultApplication with empty extension string is a safe no-op", result: true)
 
         try? FileManager.default.removeItem(at: sampleFile)
+
+        testChooseOtherApplicationWithEmptyURLsIsNoOp()
+        testAvailableApplicationsForFileWithNoExtension()
+        testAvailableApplicationsForNonexistentFileURL()
+        testSetDefaultApplicationWithValidExtensionAndBogusAppURL()
+        testApplicationsAreDeduplicatedByBundleID()
+    }
+
+    // NEG: chooseOtherApplication(toOpen:) with an empty URL array hits the guard and safely no-ops
+    // (must not present an NSOpenPanel, which would hang/disrupt a non-interactive test run)
+    private static func testChooseOtherApplicationWithEmptyURLsIsNoOp() {
+        OpenWithService.chooseOtherApplication(toOpen: [])
+        TestReporter.report("OpenWith", "NEG: chooseOtherApplication(toOpen:) with empty array is a safe no-op", result: true)
+    }
+
+    // NEG: a file with no extension at all still returns without crashing (may be empty or may fall back
+    // to generic apps depending on system state, so we only assert it doesn't throw/crash and returns an array)
+    private static func testAvailableApplicationsForFileWithNoExtension() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let noExtensionFile = dir.appendingPathComponent("no_extension_file")
+        try? "data".write(to: noExtensionFile, atomically: true, encoding: .utf8)
+
+        let apps = OpenWithService.availableApplications(for: noExtensionFile)
+        let validApps = apps.allSatisfy { !$0.name.isEmpty && $0.url.isFileURL }
+        TestReporter.report("OpenWith", "NEG: availableApplications for extensionless file returns a valid (possibly empty) list without crashing", result: validApps)
+    }
+
+    // NEG: a well-formed file URL that does not actually exist on disk should not crash the lookup;
+    // NSWorkspace resolves candidate apps from the URL's UTI/extension, not from file existence
+    private static func testAvailableApplicationsForNonexistentFileURL() {
+        let ghostFile = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("txt")
+        let apps = OpenWithService.availableApplications(for: ghostFile)
+        let validApps = apps.allSatisfy { !$0.name.isEmpty && $0.url.isFileURL }
+        TestReporter.report("OpenWith", "NEG: availableApplications for a nonexistent-on-disk .txt URL returns a valid list without crashing", result: validApps)
+    }
+
+    // NEG: setDefaultApplication with a syntactically valid extension but an application URL that
+    // doesn't point at a real app should not crash; NSWorkspace's completion handler simply reports failure
+    private static func testSetDefaultApplicationWithValidExtensionAndBogusAppURL() {
+        let bogusAppURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathExtension("app")
+        OpenWithService.setDefaultApplication(for: "txt", applicationURL: bogusAppURL)
+        TestReporter.report("OpenWith", "NEG: setDefaultApplication with valid extension but bogus (nonexistent) app URL does not crash", result: true)
+    }
+
+    // POS: availableApplications de-duplicates by bundle identifier — verify the returned list never
+    // contains two entries with the same id, which would otherwise show duplicate rows in the Open With menu
+    private static func testApplicationsAreDeduplicatedByBundleID() {
+        let sampleFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathExtension("txt")
+        try? "test data".write(to: sampleFile, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: sampleFile) }
+
+        let apps = OpenWithService.availableApplications(for: sampleFile)
+        let ids = apps.map { $0.id }
+        let uniqueIDs = Set(ids)
+        TestReporter.report("OpenWith", "POS: availableApplications returns no duplicate bundle ids", result: ids.count == uniqueIDs.count)
     }
 }

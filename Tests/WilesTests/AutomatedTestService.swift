@@ -49,6 +49,16 @@ public final class AutomatedTestService {
         LocalizationCoverageTests.run()
         await ThumbnailServiceCoverageTests.run()
         await FileSystemSearchAndSortTests.run()
+        AppStatePreferencesTests.run()
+        AppStateColumnsAndSelectionTests.run()
+        AppStateCoreTests.run()
+        AppStateNavigationExtraTests.run()
+        await AppStateOperationsExtraTests.run()
+        AutoOrganizationRuleAndListColumnTests.run()
+        SmallModelEnumsTests.run()
+        StateAndTaskModelsTests.run()
+        await DirectoryMonitorTests.run()
+        FileItemFormattingTests.run()
 
         let passed = TestReporter.passed
         let failed = TestReporter.failed
