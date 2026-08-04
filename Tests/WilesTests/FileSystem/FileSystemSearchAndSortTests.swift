@@ -1,5 +1,6 @@
 @testable import Wiles
 import Foundation
+import AppKit
 
 @MainActor
 public struct FileSystemSearchAndSortTests {

@@ -34,8 +34,11 @@ public struct ArchiveInspectionTests {
             try ArchiveService.compressToZIP(urls: [subDir], in: nestedRoot)
             let nestedZip = nestedRoot.appendingPathComponent("subfolder.zip")
             let nestedEntries = ArchiveInspectionService.listEntries(in: nestedZip)
-            nestedListPassed = nestedEntries.contains(where: { $0.isDirectory && $0.name == "subfolder" })
-                && nestedEntries.contains(where: { !$0.isDirectory && $0.name == "nested.txt" })
+            // Note: ArchiveService.compressToZIP uses `ditto -c -k --sequesterRsrc`, which zips the
+            // CONTENTS of a source directory rather than the directory itself (same quirk documented
+            // in AGENTS.md rule 12 for release packaging) — so "subfolder/" is never a real entry here,
+            // only its contents are. This asserts the file inside is listed correctly instead.
+            nestedListPassed = nestedEntries.contains(where: { !$0.isDirectory && $0.name == "nested.txt" })
 
             if let entry = nestedEntries.first(where: { !$0.isDirectory && $0.name == "nested.txt" }) {
                 extractedNestedEntryPath = entry.path
