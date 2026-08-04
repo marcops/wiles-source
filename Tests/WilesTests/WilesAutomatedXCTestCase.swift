@@ -45,11 +45,19 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor func testViewSuites() {
+        ClickOutsideDetectorTests.run()
+        DoubleClickZoomDetectorTests.run()
         EmptyDirectoryViewTests.run()
+        FileContextMenuModifierTests.run()
+        FileItemIconViewTests.run()
         FooterBarViewTests.run()
         HeaderBarViewTests.run()
         PathBarViewTests.run()
         MainContentViewTests.run()
+        OperationsPopoverViewTests.run()
+        RenameSheetViewTests.run()
+        ShortcutsHUDOverlayTests.run()
+        SingleInputSheetViewTests.run()
     }
 
     @MainActor func testFeatureSuites() async {
