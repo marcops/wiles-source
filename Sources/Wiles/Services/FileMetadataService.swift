@@ -60,6 +60,18 @@ public actor FileMetadataService {
         )
     }
 
+    public func streamBatchProperties(for urls: [URL]) -> AsyncStream<DetailedFileProperties> {
+        AsyncStream { continuation in
+            Task {
+                for url in urls {
+                    let props = fetchProperties(for: url)
+                    continuation.yield(props)
+                }
+                continuation.finish()
+            }
+        }
+    }
+
     private func formatPermissions(_ posix: Int) -> String {
         let roles = [
             (posix >> 6) & 0x7,
