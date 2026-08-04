@@ -25,5 +25,28 @@ public struct DiskSpaceVisualizerTests {
         TestReporter.report("DiskSpaceVisualizer", "NEG: Non-existent directory returns zero size report without crashing", result: emptyReport.totalSize == 0)
 
         try? FileManager.default.removeItem(at: tempDir)
+
+        // POS: more than 10 items groups the smallest ones under "Others"
+        let manyDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: manyDir, withIntermediateDirectories: true)
+        for i in 0..<13 {
+            let f = manyDir.appendingPathComponent("item\(i).bin")
+            try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: f)
+        }
+        let manyReport = await DiskSpaceVisualizerService.calculateDiskUsage(for: manyDir)
+        TestReporter.report("DiskSpaceVisualizer", "POS: more than 10 items caps topItems at 10 and groups the rest into othersItem", result: manyReport.topItems.count == 10 && manyReport.othersItem != nil)
+        try? FileManager.default.removeItem(at: manyDir)
+
+        // POS: nested subdirectory size is aggregated recursively
+        let nestedDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let subDir = nestedDir.appendingPathComponent("sub")
+        try? FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
+        try? Data(repeating: 0, count: 4096).write(to: subDir.appendingPathComponent("nested.bin"))
+        let nestedReport = await DiskSpaceVisualizerService.calculateDiskUsage(for: nestedDir)
+        TestReporter.report(
+            "DiskSpaceVisualizer", "POS: a subdirectory's size is computed recursively from its contents",
+            result: nestedReport.topItems.first(where: { $0.name == "sub" })?.size == 4096
+        )
+        try? FileManager.default.removeItem(at: nestedDir)
     }
 }
