@@ -40,6 +40,7 @@ public final class NavigationStore {
 
     public func navigateTo(_ url: URL) {
         guard url != currentURL else { return }
+        HapticService.shared.play(.alignment)
         historyBack.append(currentURL)
         historyForward.removeAll()
         currentURL = url
@@ -48,12 +49,14 @@ public final class NavigationStore {
 
     public func goBack() {
         guard let previous = historyBack.popLast() else { return }
+        HapticService.shared.play(.alignment)
         historyForward.append(currentURL)
         currentURL = previous
     }
 
     public func goForward() {
         guard let next = historyForward.popLast() else { return }
+        HapticService.shared.play(.alignment)
         historyBack.append(currentURL)
         currentURL = next
     }

@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 /// icon `NSWorkspace.icon(forFile:)` otherwise returns for every file regardless of its contents.
 /// Results are cached per (path, size) so re-scrolling never re-requests the same thumbnail.
 @MainActor
-public final class ThumbnailService {
+public final class ThumbnailService: ThumbnailServiceProtocol {
     public static let shared = ThumbnailService()
     private let cache = NSCache<NSString, NSImage>()
 

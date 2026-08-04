@@ -22,7 +22,7 @@ public struct DirectoryLoadOptions: Sendable {
     }
 }
 
-public struct FileSystemService: Sendable {
+public struct FileSystemService: FileSystemServiceProtocol, Sendable {
     public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
         if url.path == "/virtual/recents" {
             return await loadRecentsVirtualDirectory(options: options)
