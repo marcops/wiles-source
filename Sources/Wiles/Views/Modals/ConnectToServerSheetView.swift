@@ -6,7 +6,7 @@ public struct ConnectToServerSheetView: View {
     @Environment(\.dismiss)
     private var dismiss
     @State private var serverAddress: String = "smb://"
-    @State private var recentServers: [String] = (UserDefaults.standard.stringArray(forKey: "wiles_recentConnectServers")) ?? []
+    @State private var recentServers: [String] = (UserDefaults.standard.stringArray(forKey: DefaultsKey.recentConnectServers.rawValue)) ?? []
 
     public init(appState: AppState) {
         self.appState = appState
@@ -81,7 +81,7 @@ public struct ConnectToServerSheetView: View {
         history.removeAll { $0 == address }
         history.insert(address, at: 0)
         if history.count > 10 { history = Array(history.prefix(10)) }
-        UserDefaults.standard.set(history, forKey: "wiles_recentConnectServers")
+        UserDefaults.standard.set(history, forKey: DefaultsKey.recentConnectServers.rawValue)
 
         do {
             try NetworkServerService.connectToServer(urlAddress: address)

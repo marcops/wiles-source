@@ -110,7 +110,7 @@ public struct ArrowKeyNavigationTests {
         let icon = NSWorkspace.shared.icon(forFile: childDir.path)
         let dirItem = FileItem(url: childDir, icon: icon)
         appState.items = [dirItem]
-        appState.selectedURLs = [childDir]
+        appState.selectedURLs = [dirItem.url]
         // Simulate → on a directory in List View
         if let first = appState.selectedURLs.first,
            let item = appState.items.first(where: { $0.url == first }),

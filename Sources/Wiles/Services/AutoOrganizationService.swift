@@ -5,7 +5,7 @@ import AppKit
 public class AutoOrganizationService {
     public static let shared = AutoOrganizationService()
 
-    private let rulesKey = "wiles_autoOrganizationRules"
+    private let rulesKey = DefaultsKey.autoOrganizationRules.rawValue
 
     public var rules: [AutoOrganizationRule] = [] {
         didSet {

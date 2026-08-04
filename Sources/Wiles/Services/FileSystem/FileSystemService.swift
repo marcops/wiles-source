@@ -33,7 +33,7 @@ public struct FileSystemService: Sendable {
     private static func loadRecentsVirtualDirectory(options: DirectoryLoadOptions) async -> [FileItem] {
         await Task.detached(priority: .userInitiated) {
             let defaults = UserDefaults.standard
-            let paths = defaults.stringArray(forKey: "wiles_recentOpenedURLs") ?? []
+            let paths = defaults.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) ?? []
             let fm = FileManager.default
             var items: [FileItem] = []
             for path in paths {
@@ -76,7 +76,11 @@ public struct FileSystemService: Sendable {
                 let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
                 items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags))
             }
-            return sortItems(items, by: options.sortOption, ascending: options.sortAscending)
+            let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
+            if options.searchQuery.isEmpty {
+                DirectoryCacheService.shared.cacheDirectory(DirectoryLoadResult(items: sortedItems), for: url)
+            }
+            return sortedItems
         }.value
     }
 

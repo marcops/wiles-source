@@ -10,7 +10,7 @@ public struct PermissionService: Sendable {
         }
     }
 
-    private static let hasShownFullDiskAccessPromptKey = "wiles_hasShownFullDiskAccessPrompt"
+    private static let hasShownFullDiskAccessPromptKey = DefaultsKey.hasShownFullDiskAccessPrompt.rawValue
 
     /// Checks Full Disk Access by testing readability of TCC.db, the standard heuristic for this permission.
     public static func hasFullDiskAccess() -> Bool {

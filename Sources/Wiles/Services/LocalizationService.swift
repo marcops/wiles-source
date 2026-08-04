@@ -1,12 +1,22 @@
 import Foundation
 
 public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
-    case system = "system"
+    case system
     case english = "en"
     case portuguese = "pt"
     case spanish = "es"
     case french = "fr"
     case german = "de"
+    case italian = "it"
+    case japanese = "ja"
+    case korean = "ko"
+    case dutch = "nl"
+    case polish = "pl"
+    case russian = "ru"
+    case swedish = "sv"
+    case turkish = "tr"
+    case chinese = "zh-Hans"
+    case arabic = "ar"
 
     public var id: String { rawValue }
 
@@ -18,6 +28,16 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
         case .spanish: return "Español"
         case .french: return "Français"
         case .german: return "Deutsch"
+        case .italian: return "Italiano"
+        case .japanese: return "日本語"
+        case .korean: return "한국어"
+        case .dutch: return "Nederlands"
+        case .polish: return "Polski"
+        case .russian: return "Русский"
+        case .swedish: return "Svenska"
+        case .turkish: return "Türkçe"
+        case .chinese: return "中文"
+        case .arabic: return "العربية"
         }
     }
 }
@@ -25,33 +45,19 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
 public struct L10n {
     public static func activeCode(_ preferred: AppLanguage) -> String {
         if preferred != .system { return preferred.rawValue }
-        let sys = Locale.preferredLanguages.first?.lowercased() ?? "en"
-        if sys.hasPrefix("pt") { return "pt" }
-        if sys.hasPrefix("es") { return "es" }
-        if sys.hasPrefix("fr") { return "fr" }
-        if sys.hasPrefix("de") { return "de" }
+        let supportedCodes = AppLanguage.allCases.map { $0.rawValue }
+        for preference in Locale.preferredLanguages {
+            let lower = preference.lowercased()
+            if let match = supportedCodes.first(where: { lower.hasPrefix($0.lowercased()) }) {
+                return match
+            }
+        }
         return "en"
     }
 
     public static func string(_ key: Key, lang: AppLanguage) -> String {
-        let code = activeCode(lang)
-                switch code {
-        case "pt": return pt[key] ?? english[key] ?? key.rawValue
-        case "es": return es[key] ?? english[key] ?? key.rawValue
-        case "fr": return fr[key] ?? english[key] ?? key.rawValue
-        case "de": return de[key] ?? english[key] ?? key.rawValue
-        case "zh": return chinese[key] ?? english[key] ?? key.rawValue
-        case "ja": return japanese[key] ?? english[key] ?? key.rawValue
-        case "ru": return russian[key] ?? english[key] ?? key.rawValue
-        case "it": return italian[key] ?? english[key] ?? key.rawValue
-        case "ko": return korean[key] ?? english[key] ?? key.rawValue
-        case "nl": return dutch[key] ?? english[key] ?? key.rawValue
-        case "tr": return turkish[key] ?? english[key] ?? key.rawValue
-        case "pl": return polish[key] ?? english[key] ?? key.rawValue
-        case "sv": return swedish[key] ?? english[key] ?? key.rawValue
-        case "ar": return arabic[key] ?? english[key] ?? key.rawValue
-        default: return english[key] ?? key.rawValue
-        }
+        let locale = Locale(identifier: activeCode(lang))
+        return String(localized: String.LocalizationValue(key.rawValue), bundle: .module, locale: locale)
     }
 
     public enum Key: String, Sendable {
@@ -98,18 +104,13 @@ public struct L10n {
         case copy
         case copyContent
         case moveToTrash
-        case noSelection
-        case codePreview
-        case sharingActive
         case createSymbolicLink
-        case linkType
         case symlinkNameLabel
         case createLink
         case wilesFileManager
-        case backgroundOperations
-        case noActiveOperations
         case itemsSelectedSuffix
         case activeSuffix
+        case backgroundTasksSuffix
         case compressToZip
         case extractHere
         case rename
@@ -185,6 +186,8 @@ public struct L10n {
         case fileNameLabel
         case extractArchive
         case connectToServer
+        case goMenuTitle
+        case toolsMenuTitle
         case connect
         case aboutDescription
         case createdBy

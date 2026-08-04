@@ -11,6 +11,7 @@
 - **DRY (Don't Repeat Yourself)**: Never duplicate context menus, selection handlers, drag & drop handlers (`.fileItemInteractions`), hover highlighting (`.hoverHighlight`), icon rendering (`FileItemIconView`), or empty state indicators (`EmptyDirectoryView`) across `FileGridView`, `FileListView`, `FileColumnView`, and `SidebarView`. Always use shared SwiftUI ViewModifiers and View Composition components.
 - **Single Responsibility Principle (SRP)**: Keep Views focused on layout declaration, Services (`FileSystemService`, `LocalizationService`, `ZipArchiveService`) focused on system logic, and `AppState` focused on application state.
 - **Dedicated Feature Service Classes**: Each domain feature or system subsystem MUST reside in its own dedicated, isolated Swift service class file (e.g. `Sources/Wiles/Services/ZipArchiveService.swift`). Never bloat existing service files with unrelated feature logic.
+- **No Inline Helper Types**: Never declare a standalone `enum`/`struct` (constants, status codes, options, etc.) inside the same file as an unrelated class/service just because it's used there. It gets its own file in the proper folder (`Constants/`, or a dedicated `Type/Type+Extra.swift` group) — same rule as `AppState/AppState+Navigation.swift`, `Services/FileSystem/FileSystemService.swift`, etc.
 - **Composition over Inheritance**: Prefer SwiftUI View Composition, struct values, extensions, and protocol conformance over deep class hierarchies.
 
 ## 2. 100% Native macOS & Proactive Performance Guardrails

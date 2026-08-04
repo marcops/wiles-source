@@ -60,6 +60,16 @@ extension AppState {
 
         startDirectoryMonitoring(for: target)
 
+        if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: target) {
+            self.items = cached.items
+            self.isLoading = false
+            if self.viewMode == .list, self.selectedURLs.isEmpty, let first = cached.items.first {
+                self.selectedURLs = [first.url]
+            }
+        } else {
+            isLoading = true
+        }
+
         Task {
             let loaded = await FileSystemService.loadDirectoryContents(
                 at: target,

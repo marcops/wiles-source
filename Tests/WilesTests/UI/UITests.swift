@@ -33,13 +33,16 @@ public struct UITests {
     }
 
     private static func testPathBarNavigation(appState: AppState) {
-        let sampleURL = URL(fileURLWithPath: "/Users/marco/Documents/Projects")
+        let parentURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let sampleURL = parentURL.appendingPathComponent("Projects")
+        try? FileManager.default.createDirectory(at: sampleURL, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parentURL) }
+
         appState.navigateTo(sampleURL)
 
-        let pathComponents = sampleURL.pathComponents.filter { $0 != "/" }
-        report("UI/PathBar", "POS: Path components decomposed correctly", result: pathComponents == ["Users", "marco", "Documents", "Projects"])
+        let pathComponents = sampleURL.standardizedFileURL.pathComponents.filter { $0 != "/" }
+        report("UI/PathBar", "POS: Path components decomposed correctly", result: pathComponents.last == "Projects")
 
-        let parentURL = URL(fileURLWithPath: "/Users/marco")
         appState.navigateTo(parentURL)
         report("UI/PathBar", "POS: Clicking path bar segment navigates to exact parent directory", result: appState.currentURL.standardizedFileURL == parentURL.standardizedFileURL)
 

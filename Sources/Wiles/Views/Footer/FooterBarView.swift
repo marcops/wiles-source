@@ -43,7 +43,7 @@ struct FooterBarView: View {
             }
 
             if !BackgroundOperationsService.shared.activeTasks.isEmpty {
-                OperationsButtonView()
+                OperationsButtonView(appState: appState)
             }
 
             iconSizeControl(appState: appState)
@@ -99,6 +99,7 @@ struct FooterBarView: View {
 }
 
 struct OperationsButtonView: View {
+    var appState: AppState
     @State private var showPopover = false
 
     var body: some View {
@@ -106,7 +107,7 @@ struct OperationsButtonView: View {
             HStack(spacing: 4) {
                 ProgressView()
                     .controlSize(.mini)
-                Text("\(BackgroundOperationsService.shared.activeTasks.count) background tasks")
+                Text("\(BackgroundOperationsService.shared.activeTasks.count) \(appState.tr(.backgroundTasksSuffix))")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.accentColor)
             }
@@ -117,7 +118,7 @@ struct OperationsButtonView: View {
         }
         .buttonStyle(.plain)
         .popover(isPresented: $showPopover) {
-            OperationsPopoverView()
+            OperationsPopoverView(appState: appState)
         }
     }
 }

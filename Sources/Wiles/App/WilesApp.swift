@@ -62,8 +62,8 @@ struct WilesApp: App {
             fileMenuCommands
             editMenuCommands
             viewMenuCommands
-            CommandMenu("Go") { goMenuCommands }
-            CommandMenu("Tools") { toolsMenuCommands }
+            CommandMenu(appState.tr(.goMenuTitle)) { goMenuCommands }
+            CommandMenu(appState.tr(.toolsMenuTitle)) { toolsMenuCommands }
             helpMenuCommands
         }
     }

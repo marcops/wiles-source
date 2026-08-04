@@ -93,6 +93,8 @@ struct FileGridView: View {
                                         .frame(height: 50)
                                         .onAppear {
                                             visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                            let nextBatch = Array(appState.items.prefix(min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)))
+                                            ThumbnailService.shared.prefetchThumbnails(for: nextBatch, size: iconSize)
                                         }
                                 }
                             }

@@ -37,6 +37,14 @@ public final class AutomatedTestService {
         ImageConverterTests.run()
         NetworkDiscoveryTests.run()
         PermissionTests.run()
+        SyntaxHighlighterTests.run()
+        await DuplicateDetectionTests.run()
+        await FileMetadataTests.run()
+        DirectoryCacheTests.run()
+        BackgroundOperationsTests.run()
+        MiscModelTests.run()
+        AppStateOperationsTests.run()
+        ImageConverterCoverageTests.run()
 
         let passed = TestReporter.passed
         let failed = TestReporter.failed

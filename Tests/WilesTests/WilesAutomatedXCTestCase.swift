@@ -1,0 +1,148 @@
+import XCTest
+@testable import Wiles
+
+// Wires every existing hand-rolled test suite (Navigation/, FileSystem/, Services/, UI/)
+// into real XCTest test methods so `swift test`, code coverage, and Xcode's Test
+// navigator all see and run them. Each suite's own positive/negative assertions
+// are untouched — TestReporter.report now calls XCTFail on failure.
+final class WilesAutomatedTests: XCTestCase {
+    @MainActor func testNavigationTests() {
+        NavigationTests.run()
+    }
+
+    @MainActor func testArrowKeyNavigationTests() {
+        ArrowKeyNavigationTests.run()
+    }
+
+    @MainActor func testListColumnTests() {
+        ListColumnTests.run()
+    }
+
+    @MainActor func testUISearchTests() async {
+        await UISearchTests.run()
+    }
+
+    @MainActor func testUITests() {
+        UITests.run()
+    }
+
+    @MainActor func testLocalizationTests() {
+        LocalizationTests.run()
+    }
+
+    @MainActor func testFileSystemTests() {
+        FileSystemTests.run()
+    }
+
+    @MainActor func testCopyPathTests() {
+        CopyPathTests.run()
+    }
+
+    @MainActor func testOpenWithTests() {
+        OpenWithTests.run()
+    }
+
+    @MainActor func testICloudTests() {
+        ICloudTests.run()
+    }
+
+    @MainActor func testFilePermissionsTests() {
+        FilePermissionsTests.run()
+    }
+
+    @MainActor func testSmartFolderTests() {
+        SmartFolderTests.run()
+    }
+
+    @MainActor func testPDFMergeTests() {
+        PDFMergeTests.run()
+    }
+
+    @MainActor func testExifMetadataTests() {
+        ExifMetadataTests.run()
+    }
+
+    @MainActor func testArchiveInspectionTests() {
+        ArchiveInspectionTests.run()
+    }
+
+    @MainActor func testArchiveTests() {
+        ArchiveTests.run()
+    }
+
+    @MainActor func testBatchRenameTests() {
+        BatchRenameTests.run()
+    }
+
+    @MainActor func testFileShredderTests() async {
+        await FileShredderTests.run()
+    }
+
+    @MainActor func testSymlinkTests() {
+        SymlinkTests.run()
+    }
+
+    @MainActor func testUndoRedoTests() async {
+        await UndoRedoTests.run()
+    }
+
+    @MainActor func testHttpServerTests() async {
+        await HttpServerTests.run()
+    }
+
+    @MainActor func testAutoOrganizationTests() async {
+        await AutoOrganizationTests.run()
+    }
+
+    @MainActor func testNewFileTemplateTests() {
+        NewFileTemplateTests.run()
+    }
+
+    @MainActor func testDiskSpaceVisualizerTests() async {
+        await DiskSpaceVisualizerTests.run()
+    }
+
+    @MainActor func testImageConverterTests() {
+        ImageConverterTests.run()
+    }
+
+    @MainActor func testNetworkDiscoveryTests() {
+        NetworkDiscoveryTests.run()
+    }
+
+    @MainActor func testPermissionTests() {
+        PermissionTests.run()
+    }
+
+    @MainActor func testSyntaxHighlighterTests() {
+        SyntaxHighlighterTests.run()
+    }
+
+    @MainActor func testDuplicateDetectionTests() async {
+        await DuplicateDetectionTests.run()
+    }
+
+    @MainActor func testFileMetadataTests() async {
+        await FileMetadataTests.run()
+    }
+
+    @MainActor func testDirectoryCacheTests() {
+        DirectoryCacheTests.run()
+    }
+
+    @MainActor func testBackgroundOperationsTests() {
+        BackgroundOperationsTests.run()
+    }
+
+    @MainActor func testMiscModelTests() {
+        MiscModelTests.run()
+    }
+
+    @MainActor func testAppStateOperationsTests() {
+        AppStateOperationsTests.run()
+    }
+
+    @MainActor func testImageConverterCoverageTests() {
+        ImageConverterCoverageTests.run()
+    }
+}

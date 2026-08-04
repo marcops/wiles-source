@@ -1,5 +1,6 @@
 @testable import Wiles
 import Foundation
+import XCTest
 
 @MainActor
 public final class TestReporter {
@@ -18,6 +19,7 @@ public final class TestReporter {
         } else {
             failed += 1
             print("❌ [FAIL] [\(category)] \(name) \(detail)")
+            XCTFail("[\(category)] \(name) \(detail)")
         }
     }
 }

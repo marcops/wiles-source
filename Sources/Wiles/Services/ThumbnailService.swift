@@ -39,6 +39,16 @@ public final class ThumbnailService {
         return representation.nsImage
     }
 
+    public func prefetchThumbnails(for items: [FileItem], size: CGFloat) {
+        let imageItems = items.filter { Self.isImage(fileExtension: $0.fileExtension) }
+        guard !imageItems.isEmpty else { return }
+        Task.detached(priority: .utility) {
+            for item in imageItems {
+                _ = await self.loadThumbnail(for: item.url, size: size)
+            }
+        }
+    }
+
     private func cacheKey(url: URL, size: CGFloat) -> NSString {
         "\(url.path)_\(Int(size))" as NSString
     }

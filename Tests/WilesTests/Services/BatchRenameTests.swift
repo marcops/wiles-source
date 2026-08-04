@@ -34,6 +34,40 @@ public struct BatchRenameTests {
         )
         TestReporter.report("BatchRename", "NEG: performBatchRename with empty pattern returns unchanged URLs", result: negBatchResult?.first?.lastPathComponent == "doc_alpha.txt")
 
+        // POS: addPrefixSuffix mode
+        let prefixSuffixPreview = BatchRenameService.previewNewNames(items: [fileItem1], mode: .addPrefixSuffix(prefix: "PRE_", suffix: "_POST"))
+        TestReporter.report("BatchRename", "POS: previewNewNames(.addPrefixSuffix) wraps the base name", result: prefixSuffixPreview.first?.newName == "PRE_file_alpha_POST.txt")
+
+        // POS: sequenceNumber mode increments per item with zero-padding
+        let seqPreview = BatchRenameService.previewNewNames(items: [fileItem1, fileItem2], mode: .sequenceNumber(prefix: "img", startNumber: 1, paddingDigits: 3))
+        TestReporter.report(
+            "BatchRename", "POS: previewNewNames(.sequenceNumber) increments and zero-pads across items",
+            result: seqPreview.map { $0.newName } == ["img_001.txt", "img_002.txt"]
+        )
+
+        // POS: sequenceNumber mode with empty prefix omits the leading underscore
+        let seqNoPrefixPreview = BatchRenameService.previewNewNames(items: [fileItem1], mode: .sequenceNumber(prefix: "", startNumber: 5, paddingDigits: 2))
+        TestReporter.report("BatchRename", "POS: previewNewNames(.sequenceNumber) with empty prefix has no leading underscore", result: seqNoPrefixPreview.first?.newName == "05.txt")
+
+        // POS: regex mode with a valid pattern
+        let regexPreview = BatchRenameService.previewNewNames(items: [fileItem1], mode: .regex(pattern: "alpha", template: "ALPHA"))
+        TestReporter.report("BatchRename", "POS: previewNewNames(.regex) applies a valid pattern substitution", result: regexPreview.first?.newName == "file_ALPHA.txt")
+
+        // NEG: regex mode with an empty pattern leaves the name unchanged
+        let regexEmptyPreview = BatchRenameService.previewNewNames(items: [fileItem1], mode: .regex(pattern: "", template: "X"))
+        TestReporter.report("BatchRename", "NEG: previewNewNames(.regex) with an empty pattern leaves the base name unchanged", result: regexEmptyPreview.first?.newName == "file_alpha.txt")
+
+        // NEG: regex mode with an invalid pattern falls back to the original base name instead of crashing
+        let regexInvalidPreview = BatchRenameService.previewNewNames(items: [fileItem1], mode: .regex(pattern: "[", template: "X"))
+        TestReporter.report("BatchRename", "NEG: previewNewNames(.regex) with an invalid pattern falls back to the original name", result: regexInvalidPreview.first?.newName == "file_alpha.txt")
+
+        // POS: directory items are renamed without an extension being appended
+        let dirURL = tempDir.appendingPathComponent("a_folder")
+        try? FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
+        let dirItem = FileItem(url: dirURL, icon: NSWorkspace.shared.icon(forFile: dirURL.path))
+        let dirPreview = BatchRenameService.previewNewNames(items: [dirItem], mode: .addPrefixSuffix(prefix: "new_", suffix: ""))
+        TestReporter.report("BatchRename", "POS: previewNewNames on a directory item does not append a file extension", result: dirPreview.first?.newName == "new_a_folder")
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 }

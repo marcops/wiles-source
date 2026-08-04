@@ -1,9 +1,12 @@
 import SwiftUI
 
 public struct OperationsPopoverView: View {
+    var appState: AppState
     var service = BackgroundOperationsService.shared
 
-    public init() {}
+    public init(appState: AppState) {
+        self.appState = appState
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {

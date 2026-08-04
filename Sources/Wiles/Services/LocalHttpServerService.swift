@@ -123,20 +123,20 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private func processRequest(_ request: String, connection: NWConnection) {
         let lines = request.components(separatedBy: "\r\n")
         guard let firstLine = lines.first else {
-            sendResponse(connection: connection, statusCode: 400, body: Data("Bad Request".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.badRequest, body: Data("Bad Request".utf8))
             return
         }
 
         let parts = firstLine.components(separatedBy: " ")
         guard parts.count >= 2, parts[0] == "GET" else {
-            sendResponse(connection: connection, statusCode: 405, body: Data("Method Not Allowed".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.methodNotAllowed, body: Data("Method Not Allowed".utf8))
             return
         }
 
         let path = parts[1]
 
         guard let folder = sharedFolder else {
-            sendResponse(connection: connection, statusCode: 500, body: Data("Internal Server Error".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Internal Server Error".utf8))
             return
         }
 
@@ -161,15 +161,15 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 html += "<li style='margin-bottom: 8px;'><a href=\"/\(encoded)\" style='text-decoration: none; color: #0066cc;'>\(name)</a></li>"
             }
             html += "</ul></body></html>"
-            sendResponse(connection: connection, statusCode: 200, body: Data(html.utf8), contentType: "text/html")
+            sendResponse(connection: connection, statusCode: HTTPStatus.ok, body: Data(html.utf8), contentType: "text/html")
         } catch {
-            sendResponse(connection: connection, statusCode: 500, body: Data("Error reading directory".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading directory".utf8))
         }
     }
 
     private func serveFile(path: String, folder: URL, connection: NWConnection) {
         guard let decodedPath = path.removingPercentEncoding else {
-            sendResponse(connection: connection, statusCode: 400, body: Data("Bad Request".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.badRequest, body: Data("Bad Request".utf8))
             return
         }
 
@@ -179,25 +179,25 @@ public final class LocalHttpServerService: @unchecked Sendable {
         let stdFolder = folder.standardizedFileURL.path
         let stdFile = fileURL.standardizedFileURL.path
         guard stdFile.hasPrefix(stdFolder) else {
-            sendResponse(connection: connection, statusCode: 403, body: Data("Forbidden".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.forbidden, body: Data("Forbidden".utf8))
             return
         }
 
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            sendResponse(connection: connection, statusCode: 404, body: Data("Not Found".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.notFound, body: Data("Not Found".utf8))
             return
         }
 
         do {
             let data = try Data(contentsOf: fileURL)
-            sendResponse(connection: connection, statusCode: 200, body: data, contentType: "application/octet-stream")
+            sendResponse(connection: connection, statusCode: HTTPStatus.ok, body: data, contentType: "application/octet-stream")
         } catch {
-            sendResponse(connection: connection, statusCode: 500, body: Data("Error reading file".utf8))
+            sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading file".utf8))
         }
     }
 
     private func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain") {
-        let statusText = statusCode == 200 ? "OK" : (statusCode == 404 ? "Not Found" : "Error")
+        let statusText = HTTPURLResponse.localizedString(forStatusCode: statusCode)
         let headerStr = """
         HTTP/1.1 \(statusCode) \(statusText)\r
         Content-Length: \(body.count)\r

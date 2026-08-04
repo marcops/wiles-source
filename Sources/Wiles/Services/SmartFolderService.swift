@@ -31,14 +31,14 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     private var query: NSMetadataQuery?
 
     public static func loadSavedSmartFolders() -> [SmartFolder] {
-        guard let data = UserDefaults.standard.data(forKey: "wiles_smartFolders"),
+        guard let data = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue),
               let folders = try? JSONDecoder().decode([SmartFolder].self, from: data) else { return [] }
         return folders
     }
 
     public static func saveSmartFolders(_ folders: [SmartFolder]) {
         if let data = try? JSONEncoder().encode(folders) {
-            UserDefaults.standard.set(data, forKey: "wiles_smartFolders")
+            UserDefaults.standard.set(data, forKey: DefaultsKey.smartFolders.rawValue)
         }
     }
 

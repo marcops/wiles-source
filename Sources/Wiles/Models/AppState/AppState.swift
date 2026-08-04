@@ -14,7 +14,7 @@ public final class AppState {
     public var currentURL: URL {
         didSet {
             pathText = currentURL.path
-            UserDefaults.standard.set(currentURL.path, forKey: "wiles_lastOpenedFolder")
+            UserDefaults.standard.set(currentURL.path, forKey: DefaultsKey.lastOpenedFolder.rawValue)
         }
     }
 
@@ -51,73 +51,73 @@ public final class AppState {
     }
 
     public var viewMode: ViewMode = .grid {
-        didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "wiles_viewMode") }
+        didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: DefaultsKey.viewMode.rawValue) }
     }
     public var appAppearance: AppAppearance = .system {
-        didSet { UserDefaults.standard.set(appAppearance.rawValue, forKey: "wiles_appAppearance") }
+        didSet { UserDefaults.standard.set(appAppearance.rawValue, forKey: DefaultsKey.appAppearance.rawValue) }
     }
     public var sidebarMode: SidebarMode = .places {
-        didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: "wiles_sidebarMode") }
+        didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: DefaultsKey.sidebarMode.rawValue) }
     }
     public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
-        didSet { UserDefaults.standard.set(sidebarWidth, forKey: "wiles_sidebarWidth") }
+        didSet { UserDefaults.standard.set(sidebarWidth, forKey: DefaultsKey.sidebarWidth.rawValue) }
     }
     public var sortOption: SortOption = .name {
-        didSet { UserDefaults.standard.set(sortOption.rawValue, forKey: "wiles_sortOption") }
+        didSet { UserDefaults.standard.set(sortOption.rawValue, forKey: DefaultsKey.sortOption.rawValue) }
     }
     public var sortAscending: Bool = true {
-        didSet { UserDefaults.standard.set(sortAscending, forKey: "wiles_sortAscending") }
+        didSet { UserDefaults.standard.set(sortAscending, forKey: DefaultsKey.sortAscending.rawValue) }
     }
     public var showHiddenFiles: Bool = false {
-        didSet { UserDefaults.standard.set(showHiddenFiles, forKey: "wiles_showHiddenFiles") }
+        didSet { UserDefaults.standard.set(showHiddenFiles, forKey: DefaultsKey.showHiddenFiles.rawValue) }
     }
     public var showFavorites: Bool = true {
-        didSet { UserDefaults.standard.set(showFavorites, forKey: "wiles_showFavorites") }
+        didSet { UserDefaults.standard.set(showFavorites, forKey: DefaultsKey.showFavorites.rawValue) }
     }
     public var showRecents: Bool = true {
-        didSet { UserDefaults.standard.set(showRecents, forKey: "wiles_showRecents") }
+        didSet { UserDefaults.standard.set(showRecents, forKey: DefaultsKey.showRecents.rawValue) }
     }
     public var showPlaces: Bool = true {
-        didSet { UserDefaults.standard.set(showPlaces, forKey: "wiles_showPlaces") }
+        didSet { UserDefaults.standard.set(showPlaces, forKey: DefaultsKey.showPlaces.rawValue) }
     }
     public var showNetworkAndCloud: Bool = false {
-        didSet { UserDefaults.standard.set(showNetworkAndCloud, forKey: "wiles_showNetworkAndCloud") }
+        didSet { UserDefaults.standard.set(showNetworkAndCloud, forKey: DefaultsKey.showNetworkAndCloud.rawValue) }
     }
     public var showSidebarSectionTitles: Bool = true {
-        didSet { UserDefaults.standard.set(showSidebarSectionTitles, forKey: "wiles_showSidebarSectionTitles") }
+        didSet { UserDefaults.standard.set(showSidebarSectionTitles, forKey: DefaultsKey.showSidebarSectionTitles.rawValue) }
     }
     public var appLanguage: AppLanguage = .system {
-        didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: "wiles_appLanguage") }
+        didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: DefaultsKey.appLanguage.rawValue) }
     }
     public var isFavoritesExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isFavoritesExpanded, forKey: "wiles_isFavoritesExpanded") }
+        didSet { UserDefaults.standard.set(isFavoritesExpanded, forKey: DefaultsKey.isFavoritesExpanded.rawValue) }
     }
     public var isMacExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isMacExpanded, forKey: "wiles_isMacExpanded") }
+        didSet { UserDefaults.standard.set(isMacExpanded, forKey: DefaultsKey.isMacExpanded.rawValue) }
     }
     public var isNetworkExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isNetworkExpanded, forKey: "wiles_isNetworkExpanded") }
+        didSet { UserDefaults.standard.set(isNetworkExpanded, forKey: DefaultsKey.isNetworkExpanded.rawValue) }
     }
     public var isRecentsExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isRecentsExpanded, forKey: "wiles_isRecentsExpanded") }
+        didSet { UserDefaults.standard.set(isRecentsExpanded, forKey: DefaultsKey.isRecentsExpanded.rawValue) }
     }
     public var isDevicesExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isDevicesExpanded, forKey: "wiles_isDevicesExpanded") }
+        didSet { UserDefaults.standard.set(isDevicesExpanded, forKey: DefaultsKey.isDevicesExpanded.rawValue) }
     }
     public var isTreeExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isTreeExpanded, forKey: "wiles_isTreeExpanded") }
+        didSet { UserDefaults.standard.set(isTreeExpanded, forKey: DefaultsKey.isTreeExpanded.rawValue) }
     }
     public var expandedTreePaths: Set<String> = [] {
-        didSet { UserDefaults.standard.set(Array(expandedTreePaths), forKey: "wiles_expandedTreePaths") }
+        didSet { UserDefaults.standard.set(Array(expandedTreePaths), forKey: DefaultsKey.expandedTreePaths.rawValue) }
     }
     public var isTagsExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isTagsExpanded, forKey: "wiles_isTagsExpanded") }
+        didSet { UserDefaults.standard.set(isTagsExpanded, forKey: DefaultsKey.isTagsExpanded.rawValue) }
     }
     public var isSmartFoldersExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isSmartFoldersExpanded, forKey: "wiles_isSmartFoldersExpanded") }
+        didSet { UserDefaults.standard.set(isSmartFoldersExpanded, forKey: DefaultsKey.isSmartFoldersExpanded.rawValue) }
     }
     public var searchScope: SearchScope = .name {
-        didSet { UserDefaults.standard.set(searchScope.rawValue, forKey: "wiles_searchScope") }
+        didSet { UserDefaults.standard.set(searchScope.rawValue, forKey: DefaultsKey.searchScope.rawValue) }
     }
     public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
     public var showSaveSmartFolderSheet: Bool = false
@@ -146,29 +146,29 @@ public final class AppState {
     public var recentOpenedURLs: [URL] = [] {
         didSet {
             let paths = recentOpenedURLs.map { $0.path }
-            UserDefaults.standard.set(paths, forKey: "wiles_recentOpenedURLs")
+            UserDefaults.standard.set(paths, forKey: DefaultsKey.recentOpenedURLs.rawValue)
         }
     }
     public var showTags: Bool = false {
         didSet {
-            UserDefaults.standard.set(showTags, forKey: "wiles_showTags")
+            UserDefaults.standard.set(showTags, forKey: DefaultsKey.showTags.rawValue)
             refreshCurrentDirectory()
         }
     }
     public var showFooter: Bool = true {
-        didSet { UserDefaults.standard.set(showFooter, forKey: "wiles_showFooter") }
+        didSet { UserDefaults.standard.set(showFooter, forKey: DefaultsKey.showFooter.rawValue) }
     }
     public var showTerminalDrawer: Bool = false {
-        didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: "wiles_showTerminalDrawer") }
+        didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: DefaultsKey.showTerminalDrawer.rawValue) }
     }
     public var showPreviewSidebar: Bool = false {
-        didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: "wiles_showPreviewSidebar") }
+        didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue) }
     }
     public var sidebarTranslucentLevel: Int = 80 {
-        didSet { UserDefaults.standard.set(sidebarTranslucentLevel, forKey: "wiles_sidebarTranslucentLevel") }
+        didSet { UserDefaults.standard.set(sidebarTranslucentLevel, forKey: DefaultsKey.sidebarTranslucentLevel.rawValue) }
     }
     public var contentTranslucentLevel: Int = 40 {
-        didSet { UserDefaults.standard.set(contentTranslucentLevel, forKey: "wiles_contentTranslucentLevel") }
+        didSet { UserDefaults.standard.set(contentTranslucentLevel, forKey: DefaultsKey.contentTranslucentLevel.rawValue) }
     }
     public var translucentLevel: Int {
         get { sidebarTranslucentLevel }
@@ -188,12 +188,12 @@ public final class AppState {
         return appAppearance == .light ? base * 0.5 : base
     }
     public var iconSize: Double = 54.0 {
-        didSet { UserDefaults.standard.set(iconSize, forKey: "wiles_iconSize") }
+        didSet { UserDefaults.standard.set(iconSize, forKey: DefaultsKey.iconSize.rawValue) }
     }
     public var favoriteURLs: [URL] = [] {
         didSet {
             let paths = favoriteURLs.map { $0.path }
-            UserDefaults.standard.set(paths, forKey: "wiles_favoriteURLs")
+            UserDefaults.standard.set(paths, forKey: DefaultsKey.favoriteURLs.rawValue)
         }
     }
     public var showHelpSheet: Bool = false
@@ -212,7 +212,7 @@ public final class AppState {
     public var quickLookURL: URL?
     public var clipboard: ClipboardState?
     public var navigationMode: NavigationMode = .gnome {
-        didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: "wiles_navigationMode") }
+        didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
     }
 
     public var propertiesItem: FileItem?
@@ -232,22 +232,22 @@ public final class AppState {
     public var showHttpShareSheet: Bool = false
     public var httpShareFolderURL: URL?
 
-    public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: "wiles_isCompactMode") {
-        didSet { UserDefaults.standard.set(isCompactMode, forKey: "wiles_isCompactMode") }
+    public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: DefaultsKey.isCompactMode.rawValue) {
+        didSet { UserDefaults.standard.set(isCompactMode, forKey: DefaultsKey.isCompactMode.rawValue) }
     }
 
     public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
         didSet { saveListColumnStates() }
     }
 
-    public var perFolderViewModes: [String: String] = (UserDefaults.standard.dictionary(forKey: "wiles_perFolderViewModes") as? [String: String]) ?? [:] {
-        didSet { UserDefaults.standard.set(perFolderViewModes, forKey: "wiles_perFolderViewModes") }
+    public var perFolderViewModes: [String: String] = (UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ?? [:] {
+        didSet { UserDefaults.standard.set(perFolderViewModes, forKey: DefaultsKey.perFolderViewModes.rawValue) }
     }
 
     public init() {
         let defaults = UserDefaults.standard
         let home = FileManager.default.homeDirectoryForCurrentUser
-        if let lastFolder = defaults.string(forKey: "wiles_lastOpenedFolder"),
+        if let lastFolder = defaults.string(forKey: DefaultsKey.lastOpenedFolder.rawValue),
            FileManager.default.fileExists(atPath: lastFolder) {
             let lastURL = URL(fileURLWithPath: lastFolder)
             self.currentURL = lastURL

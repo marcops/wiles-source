@@ -3,7 +3,7 @@ import Foundation
 extension AppState {
     func saveListColumnStates() {
         if let data = try? JSONEncoder().encode(listColumnStates) {
-            UserDefaults.standard.set(data, forKey: "wiles_listColumnStates")
+            UserDefaults.standard.set(data, forKey: DefaultsKey.listColumnStates.rawValue)
         }
     }
 
