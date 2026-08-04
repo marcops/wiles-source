@@ -28,21 +28,24 @@ public final class ArchiveService: Sendable {
 
         let process = Process()
         if let pwd = password, !pwd.isEmpty {
+            // Use absolute source paths with -j (junk/flatten paths) rather than relying on
+            // currentDirectoryURL + relative filenames — the source files aren't guaranteed to
+            // live inside destinationFolder, so a cwd-relative approach silently fails to find
+            // them when they don't.
             process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-            process.currentDirectoryURL = destinationFolder
-            var args = ["-r", "-P", pwd, destURL.path]
-            args.append(contentsOf: urls.map { $0.lastPathComponent })
+            var args = ["-j", "-P", pwd, destURL.path]
+            args.append(contentsOf: urls.map { $0.path })
             process.arguments = args
         } else if urls.count == 1 {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
             process.arguments = ["-c", "-k", "--sequesterRsrc", urls[0].path, destURL.path]
         } else {
             // `ditto -c` rejects multiple sources ("Can't archive multiple sources"),
-            // so multi-file archives are built with `zip` instead.
+            // so multi-file archives are built with `zip` instead, using absolute paths + -j
+            // for the same reason as the password branch above.
             process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
-            process.currentDirectoryURL = destinationFolder
-            var args = ["-r", destURL.path]
-            args.append(contentsOf: urls.map { $0.lastPathComponent })
+            var args = ["-j", destURL.path]
+            args.append(contentsOf: urls.map { $0.path })
             process.arguments = args
         }
         try process.run()

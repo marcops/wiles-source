@@ -96,3 +96,8 @@
 - **Minimal Code Changes**: When modifying text, labels, or UI elements (e.g., sidebar names), change ONLY the specific component or translation key requested by the user. NEVER refactor unrelated helper functions, path bar logic, or system path matching unless explicitly requested.
 - **Dedicated UI Keys**: Create dedicated translation keys (e.g., `sidebarTrash`, `sidebarDocuments`) when custom localized text is required for specific UI components, preserving underlying path matching logic intact.
 
+## 16. Strict 1-to-1 Test File Organization Protocol
+- **Strict 1-to-1 File Matching**: Every model file in `Sources/Wiles/Models/` MUST have its own dedicated test file in `Tests/WilesTests/Models/<ModelName>Tests.swift`. Every feature in `Sources/Wiles/Features/` MUST have its own dedicated test file in `Tests/WilesTests/Features/<FeatureName>Tests.swift`.
+- **Zero Monolithic Coverage Files**: NEVER bundle tests for multiple models, features, or UI sheets into a single aggregated coverage file. Always create individual, isolated test files matching each domain source file.
+
+

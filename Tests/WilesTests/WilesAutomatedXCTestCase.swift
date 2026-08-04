@@ -30,8 +30,25 @@ final class WilesAutomatedTests: XCTestCase {
         await FullUIActionCoverageTests.run()
     }
 
-    @MainActor func testFullModelCoverageTests() {
-        FullModelCoverageTests.run()
+    @MainActor func testModelSuites() {
+        FileItemTests.run()
+        FolderNodeTests.run()
+        SidebarItemTests.run()
+        FileOperationTaskTests.run()
+        ClipboardStateTests.run()
+        DirectoryCacheEntryTests.run()
+        DirectoryLoadResultTests.run()
+    }
+
+    @MainActor func testFeatureSuites() async {
+        ArchiveInspectorFeatureTests.run()
+        BatchRenameFeatureTests.run()
+        await DiskSpaceVisualizerFeatureTests.run()
+        await DuplicateCleanerFeatureTests.run()
+        await FileShredderFeatureTests.run()
+        HttpSharingFeatureTests.run()
+        ImageConverterFeatureTests.run()
+        SmartFoldersFeatureTests.run()
     }
 
     @MainActor func testLocalizationTests() {

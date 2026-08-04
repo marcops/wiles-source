@@ -98,17 +98,19 @@ public struct UndoRedoTests {
 
         // POS: redo() on a trash action re-trashes the restored file (executeForwardAction .trash case)
         let trashable2 = tempDir.appendingPathComponent("trashable2.txt")
-        try? "trash me again".write(to: trashable2, atomically: true, encoding: .utf8)
-        if let trashedURL2 = try? FileSystemService.moveToTrash(url: trashable2) {
-            service.recordAction(.trash(originalURL: trashable2, trashedURL: trashedURL2))
-            let undoTrash2 = await service.undo()
-            let undoTrash2Pos = undoTrash2 != nil && FileManager.default.fileExists(atPath: trashable2.path)
-            TestReporter.report("UndoRedo", "POS: undo() on a trash action restores the file (setup for redo)", result: undoTrash2Pos)
+        let trashFolder = tempDir.appendingPathComponent("trash_dir")
+        try? FileManager.default.createDirectory(at: trashFolder, withIntermediateDirectories: true)
+        let simulatedTrash2 = trashFolder.appendingPathComponent("trashable2.txt")
+        try? "trash me again".write(to: simulatedTrash2, atomically: true, encoding: .utf8)
+        service.recordAction(.trash(originalURL: trashable2, trashedURL: simulatedTrash2))
 
-            let redoTrash2 = await service.redo()
-            let redoTrash2Pos = redoTrash2 != nil && !FileManager.default.fileExists(atPath: trashable2.path)
-            TestReporter.report("UndoRedo", "POS: redo() on a trash action re-trashes the restored file", result: redoTrash2Pos)
-        }
+        let undoTrash2 = await service.undo()
+        let undoTrash2Pos = undoTrash2 != nil && FileManager.default.fileExists(atPath: trashable2.path)
+        TestReporter.report("UndoRedo", "POS: undo() on a trash action restores the file (setup for redo)", result: undoTrash2Pos)
+
+        let redoTrash2 = await service.redo()
+        let redoTrash2Pos = redoTrash2 != nil && !FileManager.default.fileExists(atPath: trashable2.path)
+        TestReporter.report("UndoRedo", "POS: redo() on a trash action re-trashes the restored file", result: redoTrash2Pos)
 
         // NEG: redo() returns nil when the underlying forward file operation throws
         // (record a rename action, undo it back onto the undo stack via redo pending state,
