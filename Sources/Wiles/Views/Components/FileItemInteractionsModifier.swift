@@ -34,9 +34,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
                     }
                 }
             )
-            .contextMenu {
-                SharedFileItemContextMenu(item: item, appState: appState)
-            }
+            .fileItemContextMenu(for: item, appState: appState)
     }
 }
 

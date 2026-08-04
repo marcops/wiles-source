@@ -386,7 +386,7 @@ private struct FileRowInteractionsModifier: ViewModifier {
                     }
                 }
             )
-            .contextMenu { SharedFileItemContextMenu(item: item, appState: appState) }
+            .fileItemContextMenu(for: item, appState: appState)
     }
 }
 
