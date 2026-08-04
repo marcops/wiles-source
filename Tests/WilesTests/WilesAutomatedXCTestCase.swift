@@ -38,6 +38,11 @@ final class WilesAutomatedTests: XCTestCase {
         ClipboardStateTests.run()
         DirectoryCacheEntryTests.run()
         DirectoryLoadResultTests.run()
+        FileSystemStoreTests.run()
+        ModalStoreTests.run()
+        NavigationStoreTests.run()
+        PreferencesStoreTests.run()
+        SelectionStoreTests.run()
     }
 
     @MainActor func testFeatureSuites() async {

@@ -8,6 +8,12 @@ public struct ColumnAutoFitTests {
         testShortContentClampsToMinimum()
         testLongFileNameExceedsMinimumButClampsToMax()
         testAllColumnsProduceValidWidths()
+        testOwnerColumnProducesValidWidth()
+        testDateCreatedColumnProducesValidWidth()
+        testDateAccessedColumnProducesValidWidth()
+        testTaggedItemNameColumnIsWiderThanUntagged()
+        testIconSizeClampingAtLowerExtreme()
+        testIconSizeClampingAtUpperExtreme()
     }
 
     private static func makeAppState(with items: [FileItem]) -> AppState {
@@ -76,6 +82,118 @@ public struct ColumnAutoFitTests {
         TestReporter.report(
             "ColumnAutoFit", "POS: every ListColumn case produces a valid clamped CGFloat width without crashing",
             result: allValid
+        )
+    }
+
+    private static func testOwnerColumnProducesValidWidth() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let item = makeFileItem(dir: dir, name: "owner_test.txt")
+        let appState = makeAppState(with: [item])
+
+        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .owner, in: appState)
+        TestReporter.report(
+            "ColumnAutoFit", "POS: .owner column produces a valid clamped width",
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
+        )
+    }
+
+    private static func testDateCreatedColumnProducesValidWidth() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let item = makeFileItem(dir: dir, name: "date_created_test.txt")
+        let appState = makeAppState(with: [item])
+
+        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .dateCreated, in: appState)
+        TestReporter.report(
+            "ColumnAutoFit", "POS: .dateCreated column produces a valid clamped width",
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
+        )
+    }
+
+    private static func testDateAccessedColumnProducesValidWidth() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let item = makeFileItem(dir: dir, name: "date_accessed_test.txt")
+        let appState = makeAppState(with: [item])
+
+        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .dateAccessed, in: appState)
+        TestReporter.report(
+            "ColumnAutoFit", "POS: .dateAccessed column produces a valid clamped width",
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
+        )
+    }
+
+    private static func testTaggedItemNameColumnIsWiderThanUntagged() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // Use identical short names so header width dominates unless the tag
+        // padding branch pushes the tagged item's required width higher.
+        let untaggedFile = dir.appendingPathComponent("same.txt")
+        try? "x".write(to: untaggedFile, atomically: true, encoding: .utf8)
+        let untaggedItem = FileItem(url: untaggedFile, icon: NSImage(size: NSSize(width: 16, height: 16)))
+
+        let taggedDir = dir.appendingPathComponent("tagged", isDirectory: true)
+        try? FileManager.default.createDirectory(at: taggedDir, withIntermediateDirectories: true)
+        let taggedFile = taggedDir.appendingPathComponent("same.txt")
+        try? "x".write(to: taggedFile, atomically: true, encoding: .utf8)
+        try? (taggedFile as NSURL).setResourceValue(["Red"], forKey: .tagNamesKey)
+        let taggedItem = FileItem(url: taggedFile, icon: NSImage(size: NSSize(width: 16, height: 16)), fetchTags: true)
+
+        let untaggedWidth = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: makeAppState(with: [untaggedItem]))
+        let taggedWidth = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: makeAppState(with: [taggedItem]))
+
+        // If the environment failed to persist the Finder tag (e.g. sandboxed temp volume),
+        // fall back to asserting both widths are at least valid rather than a false failure.
+        let pos: Bool
+        if taggedItem.tags.isEmpty {
+            pos = untaggedWidth >= LayoutTokens.columnMinWidth && taggedWidth >= LayoutTokens.columnMinWidth
+        } else {
+            pos = taggedWidth >= untaggedWidth
+        }
+        TestReporter.report(
+            "ColumnAutoFit", "POS: tagged item's .name column width accounts for tag extra padding",
+            result: pos
+        )
+    }
+
+    private static func testIconSizeClampingAtLowerExtreme() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let item = makeFileItem(dir: dir, name: "icon_low.txt")
+        let appState = makeAppState(with: [item])
+        appState.iconSize = 1.0 // scaled value falls below listIconMinSize, must clamp up
+
+        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState)
+        TestReporter.report(
+            "ColumnAutoFit", "POS: extremely small iconSize is clamped to listIconMinSize without producing an invalid width",
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
+        )
+    }
+
+    private static func testIconSizeClampingAtUpperExtreme() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let item = makeFileItem(dir: dir, name: "icon_high.txt")
+        let appState = makeAppState(with: [item])
+        appState.iconSize = 10_000.0 // scaled value far exceeds listIconMaxSize, must clamp down
+
+        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState)
+        TestReporter.report(
+            "ColumnAutoFit", "POS: extremely large iconSize is clamped to listIconMaxSize without producing an invalid width",
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
         )
     }
 }

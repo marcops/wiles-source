@@ -46,6 +46,7 @@ public struct FileSystemTests {
         try? FileManager.default.removeItem(at: tempDir)
 
         runActionsCoverageExtras()
+        runMoveAndZipCoverageExtras()
         await runSearchAndSortCoverageExtras()
         await runAdditionalCoverageExtras()
     }
@@ -353,6 +354,67 @@ public struct FileSystemTests {
             negSetTagsPassed = true
         }
         await TestReporter.report("FileSystem", "NEG: setTags on a non-existent file throws an error", result: negSetTagsPassed)
+    }
+
+    // Covers moveItem's success path and its "remove existing destination before moving" branch,
+    // and compressToZIP/extractZIP, none of which are exercised elsewhere.
+    private static func runMoveAndZipCoverageExtras() {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // POS: moveItem moves a file into the target folder and removes it from the source location
+        let moveTargetFolder = tempDir.appendingPathComponent("MoveTarget")
+        try? FileManager.default.createDirectory(at: moveTargetFolder, withIntermediateDirectories: true)
+        let moveSource = tempDir.appendingPathComponent("move_source.txt")
+        try? "move me".write(to: moveSource, atomically: true, encoding: .utf8)
+        var movePassed = false
+        do {
+            let moved = try FileSystemService.moveItem(at: moveSource, toFolder: moveTargetFolder)
+            movePassed = FileManager.default.fileExists(atPath: moved.path) && !FileManager.default.fileExists(atPath: moveSource.path)
+        } catch {
+            print("moveItem error: \(error)")
+        }
+        TestReporter.report("FileSystem", "POS: moveItem moves file into target folder and removes it from the source location", result: movePassed)
+
+        // POS: moveItem overwrites a pre-existing item at the destination rather than throwing
+        let overwriteSource = tempDir.appendingPathComponent("overwrite_source.txt")
+        let newContent = "new content \(UUID().uuidString)"
+        try? newContent.write(to: overwriteSource, atomically: true, encoding: .utf8)
+        let existingDest = moveTargetFolder.appendingPathComponent("overwrite_source.txt")
+        try? "stale content".write(to: existingDest, atomically: true, encoding: .utf8)
+        var overwritePassed = false
+        do {
+            let moved = try FileSystemService.moveItem(at: overwriteSource, toFolder: moveTargetFolder)
+            let readBack = try? String(contentsOf: moved)
+            overwritePassed = readBack == newContent
+        } catch {
+            print("moveItem overwrite error: \(error)")
+        }
+        TestReporter.report("FileSystem", "POS: moveItem overwrites a pre-existing item at the destination", result: overwritePassed)
+
+        // POS: compressToZIP/extractZIP round-trips a file's contents
+        let zipSourceFolder = tempDir.appendingPathComponent("ZipSource")
+        try? FileManager.default.createDirectory(at: zipSourceFolder, withIntermediateDirectories: true)
+        let zipSourceFile = zipSourceFolder.appendingPathComponent("zipped.txt")
+        let zipContent = "zip content \(UUID().uuidString)"
+        try? zipContent.write(to: zipSourceFile, atomically: true, encoding: .utf8)
+        let zipDestFolder = tempDir.appendingPathComponent("ZipDest")
+        try? FileManager.default.createDirectory(at: zipDestFolder, withIntermediateDirectories: true)
+        var zipRoundTripPassed = false
+        do {
+            try FileSystemService.compressToZIP(urls: [zipSourceFile], in: zipDestFolder)
+            let archiveURL = zipDestFolder.appendingPathComponent("zipped.zip")
+            let extractFolder = tempDir.appendingPathComponent("ZipExtract")
+            try FileManager.default.createDirectory(at: extractFolder, withIntermediateDirectories: true)
+            try FileSystemService.extractZIP(archiveURL: archiveURL, to: extractFolder)
+            let extractedFile = extractFolder.appendingPathComponent("zipped.txt")
+            let extractedContent = try? String(contentsOf: extractedFile)
+            zipRoundTripPassed = extractedContent == zipContent
+        } catch {
+            print("compressToZIP/extractZIP error: \(error)")
+        }
+        TestReporter.report("FileSystem", "POS: compressToZIP/extractZIP round-trips a file's contents", result: zipRoundTripPassed)
     }
 
     private static func runActionsCoverageExtras() {

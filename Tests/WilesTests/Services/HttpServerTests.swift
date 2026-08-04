@@ -51,6 +51,8 @@ public struct HttpServerTests {
         await checkNestedPathTraversalBlocked()
         await checkDirectoryListingSortedOrder()
         await checkContentLengthMatchesBodySize()
+        await checkSiblingDirectoryTraversalBlocked(tempDir: tempDir)
+        await checkTrailingSlashDirectoryReturns500()
         await checkEmptyDirectoryListing()
 
         server.stop()
@@ -263,6 +265,44 @@ public struct HttpServerTests {
             }
         }
         TestReporter.report("LocalHttpServer", "POS: Content-Length header matches actual response body byte count", result: passed)
+    }
+
+    private static func checkSiblingDirectoryTraversalBlocked(tempDir: URL) async {
+        // Regression test for the path-separator-boundary hardening in serveFile: a plain
+        // hasPrefix(stdFolder) check would wrongly let this through, since a sibling directory
+        // whose name starts with the shared folder's name (e.g. "<uuid>EVIL") also has
+        // stdFolder as a string prefix. Requiring the "/" boundary must block it.
+        var blocked = false
+        let siblingDir = tempDir.deletingLastPathComponent()
+            .appendingPathComponent(tempDir.lastPathComponent + "EVIL")
+        try? FileManager.default.createDirectory(at: siblingDir, withIntermediateDirectories: true)
+        let secretFile = siblingDir.appendingPathComponent("secret.txt")
+        try? "Top Secret".write(to: secretFile, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: siblingDir) }
+
+        let path = "/../\(tempDir.lastPathComponent)EVIL/secret.txt"
+        if let url = URL(string: "http://localhost:8080\(path)") {
+            if let (_, resp) = try? await Self.requestSession.data(from: url),
+               let httpResp = resp as? HTTPURLResponse {
+                blocked = httpResp.statusCode == 403 || httpResp.statusCode == 400
+            }
+        }
+        TestReporter.report("LocalHttpServer", "NEG: Path traversal into a sibling directory sharing the shared folder's name prefix (e.g. \"<uuid>EVIL\") is blocked", result: blocked)
+    }
+
+    private static func checkTrailingSlashDirectoryReturns500() async {
+        // A path with a trailing slash (e.g. /subdir/) does not equal "/" and is not empty, so
+        // it goes through serveFile (not serveDirectoryListing). It resolves to a directory,
+        // passes fileExists(), then fails Data(contentsOf:), exercising the same 500 branch as
+        // the no-trailing-slash case but via a distinct path-parsing route.
+        var passed = false
+        if let url = URL(string: "http://localhost:8080/subdir/") {
+            if let (_, resp) = try? await Self.requestSession.data(from: url),
+               let httpResp = resp as? HTTPURLResponse {
+                passed = httpResp.statusCode == 500
+            }
+        }
+        TestReporter.report("LocalHttpServer", "NEG: Requesting a directory path with a trailing slash (/subdir/) returns 500 Internal Server Error", result: passed)
     }
 
     private static func checkEmptyDirectoryListing() async {

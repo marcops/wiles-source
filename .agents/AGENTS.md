@@ -3,6 +3,7 @@
 ## 0. ABSOLUTE COMPLIANCE (READ THIS FIRST)
 - **YOU MUST ALWAYS RESPECT AND FOLLOW THESE RULES EXACTLY.** 
 - **NUNCA ENTREGAR CÓDIGO SEM SEGUIR AS REGRAS.** (NEVER DELIVER CODE WITHOUT FOLLOWING THE RULES).
+- **ALWAYS DISTRUST ASSUMPTIONS & INSPECT AUTHORITATIVE SOURCE DEFINITIONS**: Never guess property names, method signatures, or initializers. Always inspect source files directly with `view_file` or `grep_search` to catch implementation gaps and edge cases.
 - These are not suggestions; they are strict constraints. Before writing any code or making any architectural decisions, you must cross-check your plan against these rules (especially regarding Zero Hardcoded Strings, No Magic Numbers, and Native APIs). Failure to comply is a critical error.
 
 ## 1. Core Architectural Principles (KISS, YAGNI, DRY, SOLID)

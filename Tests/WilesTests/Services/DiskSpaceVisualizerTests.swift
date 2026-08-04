@@ -55,6 +55,49 @@ public struct DiskSpaceVisualizerTests {
         await testExactlyTenItemsNoOthers()
         await testSymlinkHandling()
         await testPercentagesSumToTotal()
+        await testPermissionDeniedSubdirectory()
+        await testSingleLargeFileDominatesPercentage()
+    }
+
+    // NEG: a subdirectory whose contents can't be enumerated (permission denied) doesn't crash the scan
+    private static func testPermissionDeniedSubdirectory() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.appendingPathComponent("locked").path)
+            try? FileManager.default.removeItem(at: dir)
+        }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let lockedDir = dir.appendingPathComponent("locked")
+        try? FileManager.default.createDirectory(at: lockedDir, withIntermediateDirectories: true)
+        try? Data(repeating: 0, count: 4096).write(to: lockedDir.appendingPathComponent("secret.bin"))
+        try? FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: lockedDir.path)
+
+        try? Data(repeating: 0, count: 1024).write(to: dir.appendingPathComponent("readable.bin"))
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let lockedItem = report.topItems.first { $0.name == "locked" }
+        TestReporter.report(
+            "DiskSpaceVisualizer", "NEG: a permission-denied subdirectory is scanned as zero-size instead of crashing",
+            result: lockedItem != nil && lockedItem?.size == 0 && report.totalSize == 1024
+        )
+    }
+
+    // POS: a single very large file dominates the percentage breakdown near 100%
+    private static func testSingleLargeFileDominatesPercentage() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        try? Data(repeating: 0, count: 1_000_000).write(to: dir.appendingPathComponent("huge.bin"))
+        try? Data(repeating: 0, count: 1).write(to: dir.appendingPathComponent("tiny.bin"))
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let hugeItem = report.topItems.first { $0.name == "huge.bin" }
+        TestReporter.report(
+            "DiskSpaceVisualizer", "POS: a single very large file dominates the percentage breakdown near 100%",
+            result: (hugeItem?.percentage ?? 0) > 99.9
+        )
     }
 
     // NEG: an existing but empty directory yields zero size and no items (grandTotal guard)

@@ -13,6 +13,114 @@ public struct ExifMetadataTests {
         testNonexistentFileReturnsNil()
         testPartialExifDataExtractsLensAndGPSOnly()
         testEmptyISOArrayYieldsNilISO()
+        testIncompleteGPSDataYieldsNilGPSCoordinates()
+        testDateTimeOnlyExtractsSuccessfully()
+    }
+
+    private static func testIncompleteGPSDataYieldsNilGPSCoordinates() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let tempFile = dir.appendingPathComponent("incomplete_gps.jpg")
+
+        // GPS dictionary present but missing longitude/longitudeRef; formattedGPS requires all four.
+        let exifDict: [CFString: Any] = [
+            kCGImagePropertyExifFocalLength: 35.0
+        ]
+        let gpsDict: [CFString: Any] = [
+            kCGImagePropertyGPSLatitude: 51.5074,
+            kCGImagePropertyGPSLatitudeRef: "N"
+        ]
+        let properties: [CFString: Any] = [
+            kCGImagePropertyExifDictionary: exifDict,
+            kCGImagePropertyGPSDictionary: gpsDict
+        ]
+
+        guard let dest = CGImageDestinationCreateWithURL(tempFile as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            TestReporter.report("ExifMetadata", "NEG: GPS dictionary missing longitude fields yields nil gpsCoordinates", result: false)
+            return
+        }
+
+        let baseImage = NSImage(size: NSSize(width: 20, height: 20))
+        baseImage.lockFocus()
+        NSColor.orange.setFill()
+        NSRect(x: 0, y: 0, width: 20, height: 20).fill()
+        baseImage.unlockFocus()
+        guard let cgImage = baseImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            TestReporter.report("ExifMetadata", "NEG: GPS dictionary missing longitude fields yields nil gpsCoordinates", result: false)
+            return
+        }
+
+        CGImageDestinationAddImage(dest, cgImage, properties as CFDictionary)
+        let finalized = CGImageDestinationFinalize(dest)
+
+        guard finalized else {
+            TestReporter.report("ExifMetadata", "NEG: GPS dictionary missing longitude fields yields nil gpsCoordinates", result: false)
+            return
+        }
+
+        let result = ExifMetadataService.extractExif(from: tempFile)
+
+        let neg = result != nil
+            && result?.gpsCoordinates == nil
+            && result?.focalLength == "35.0 mm"
+
+        TestReporter.report("ExifMetadata", "NEG: GPS dictionary missing longitude fields yields nil gpsCoordinates", result: neg)
+    }
+
+    private static func testDateTimeOnlyExtractsSuccessfully() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let tempFile = dir.appendingPathComponent("datetime_only.jpg")
+
+        // Only dateTimeOriginal present; verifies date alone prevents the all-nil short-circuit
+        // and every other field resolves to nil.
+        let exifDict: [CFString: Any] = [
+            kCGImagePropertyExifDateTimeOriginal: "2023:06:01 08:00:00"
+        ]
+        let properties: [CFString: Any] = [
+            kCGImagePropertyExifDictionary: exifDict
+        ]
+
+        guard let dest = CGImageDestinationCreateWithURL(tempFile as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            TestReporter.report("ExifMetadata", "POS: dateTimeOriginal alone yields non-nil result with all other fields nil", result: false)
+            return
+        }
+
+        let baseImage = NSImage(size: NSSize(width: 20, height: 20))
+        baseImage.lockFocus()
+        NSColor.purple.setFill()
+        NSRect(x: 0, y: 0, width: 20, height: 20).fill()
+        baseImage.unlockFocus()
+        guard let cgImage = baseImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            TestReporter.report("ExifMetadata", "POS: dateTimeOriginal alone yields non-nil result with all other fields nil", result: false)
+            return
+        }
+
+        CGImageDestinationAddImage(dest, cgImage, properties as CFDictionary)
+        let finalized = CGImageDestinationFinalize(dest)
+
+        guard finalized else {
+            TestReporter.report("ExifMetadata", "POS: dateTimeOriginal alone yields non-nil result with all other fields nil", result: false)
+            return
+        }
+
+        let result = ExifMetadataService.extractExif(from: tempFile)
+
+        let pos = result != nil
+            && result?.dateTimeOriginal == "2023:06:01 08:00:00"
+            && result?.cameraMake == nil
+            && result?.cameraModel == nil
+            && result?.lensModel == nil
+            && result?.iso == nil
+            && result?.aperture == nil
+            && result?.focalLength == nil
+            && result?.gpsCoordinates == nil
+
+        TestReporter.report("ExifMetadata", "POS: dateTimeOriginal alone yields non-nil result with all other fields nil", result: pos)
     }
 
     private static func testNonImageFileReturnsNil() {

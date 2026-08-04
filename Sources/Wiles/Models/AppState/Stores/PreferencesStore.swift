@@ -203,7 +203,9 @@ public final class PreferencesStore {
         let cLevel = defaults.integer(forKey: DefaultsKey.contentTranslucentLevel.rawValue)
         if cLevel > 0 { self.contentTranslucentLevel = cLevel }
         let iSize = defaults.double(forKey: DefaultsKey.iconSize.rawValue)
-        if iSize > 0 { self.iconSize = iSize }
+        if iSize >= IconSizeToken.minSize && iSize <= IconSizeToken.maxSize {
+            self.iconSize = iSize
+        }
 
         if let savedFavs = defaults.stringArray(forKey: DefaultsKey.favoriteURLs.rawValue) {
             self.favoriteURLs = savedFavs.compactMap { path in

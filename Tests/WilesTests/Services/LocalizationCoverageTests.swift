@@ -14,6 +14,23 @@ public struct LocalizationCoverageTests {
         testInvalidRawValueInitReturnsNil()
         testDisplayNamesAreUnique()
         testAppLanguageCodableRoundTrip()
+        testChineseMixedCaseLprojFallbackResolvesRealTranslation()
+    }
+
+    private static func testChineseMixedCaseLprojFallbackResolvesRealTranslation() {
+        // POS: AppLanguage.chinese has rawValue "zh-Hans" (mixed case), but the compiled resource
+        // bundle's folder is "zh-hans.lproj" (all-lowercase). L10n.string's first path lookup
+        // (Bundle.module.path(forResource: "zh-Hans", ofType: "lproj")) must fail, forcing the
+        // `code.lowercased()` fallback branch to find "zh-hans.lproj". A weaker "non-empty" check
+        // would pass even if this fallback were broken, since the final generic bundle lookup also
+        // returns a non-empty string (the raw key itself) as its default. Assert the actual
+        // translated value to prove the lowercased-path branch truly resolved the Chinese bundle.
+        let translated = L10n.string(.cancel, lang: .chinese)
+        TestReporter.report(
+            "Localization",
+            "POS: L10n.string(.cancel, lang: .chinese) resolves via the code.lowercased() lproj-path fallback to the real Chinese translation, not the raw key or English",
+            result: translated == "取消" && translated != L10n.Key.cancel.rawValue && translated != "Cancel"
+        )
     }
 
     private static func testActiveCodeForAllNonSystemLanguages() {
