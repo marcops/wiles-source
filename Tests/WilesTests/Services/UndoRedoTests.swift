@@ -96,6 +96,42 @@ public struct UndoRedoTests {
         for _ in 0..<50 { _ = await service.undo() }
         TestReporter.report("UndoRedo", "POS: history is capped at maxHistoryLimit(50) - only 50 of 51 recorded actions remain undoable", result: !service.canUndo())
 
+        // POS: redo() on a trash action re-trashes the restored file (executeForwardAction .trash case)
+        let trashable2 = tempDir.appendingPathComponent("trashable2.txt")
+        try? "trash me again".write(to: trashable2, atomically: true, encoding: .utf8)
+        if let trashedURL2 = try? FileSystemService.moveToTrash(url: trashable2) {
+            service.recordAction(.trash(originalURL: trashable2, trashedURL: trashedURL2))
+            let undoTrash2 = await service.undo()
+            let undoTrash2Pos = undoTrash2 != nil && FileManager.default.fileExists(atPath: trashable2.path)
+            TestReporter.report("UndoRedo", "POS: undo() on a trash action restores the file (setup for redo)", result: undoTrash2Pos)
+
+            let redoTrash2 = await service.redo()
+            let redoTrash2Pos = redoTrash2 != nil && !FileManager.default.fileExists(atPath: trashable2.path)
+            TestReporter.report("UndoRedo", "POS: redo() on a trash action re-trashes the restored file", result: redoTrash2Pos)
+        }
+
+        // NEG: redo() returns nil when the underlying forward file operation throws
+        // (record a rename action, undo it back onto the undo stack via redo pending state,
+        // then externally delete the file the redo would try to rename)
+        let ghostSource2 = tempDir.appendingPathComponent("ghostSource2.txt")
+        let ghostRenamed2 = tempDir.appendingPathComponent("ghostRenamed2.txt")
+        // undo() reverses a rename by renaming the file found at newURL back to oldURL's name, so
+        // the fixture file must exist at newURL (ghostRenamed2), not oldURL.
+        try? "ghost2".write(to: ghostRenamed2, atomically: true, encoding: .utf8)
+        service.recordAction(.rename(oldURL: ghostSource2, newURL: ghostRenamed2))
+        let ghostUndo2 = await service.undo()
+        let ghostUndo2Pos = ghostUndo2 != nil && FileManager.default.fileExists(atPath: ghostSource2.path)
+        TestReporter.report("UndoRedo", "POS: undo() reverses rename action (setup for redo failure test)", result: ghostUndo2Pos)
+        try? FileManager.default.removeItem(at: ghostSource2) // remove the file the redo would try to rename
+        let ghostRedo2 = await service.redo()
+        TestReporter.report("UndoRedo", "NEG: redo() returns nil when the underlying file operation throws (source file externally deleted)", result: ghostRedo2 == nil)
+
+        // NEG: undo() on a create action whose folder was already externally removed returns nil
+        let ghostCreatedURL = tempDir.appendingPathComponent("ghost_created_dir")
+        service.recordAction(.create(url: ghostCreatedURL)) // never actually created on disk
+        let ghostCreateUndo = await service.undo()
+        TestReporter.report("UndoRedo", "NEG: undo() on a create action for a non-existent path returns nil", result: ghostCreateUndo == nil)
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 }

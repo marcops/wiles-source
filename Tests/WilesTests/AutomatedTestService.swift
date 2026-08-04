@@ -16,7 +16,7 @@ public final class AutomatedTestService {
         await UISearchTests.run()
         UITests.run()
         LocalizationTests.run()
-        FileSystemTests.run()
+        await FileSystemTests.run()
         CopyPathTests.run()
         OpenWithTests.run()
         ICloudTests.run()

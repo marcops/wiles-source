@@ -156,10 +156,14 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         default: break
         }
 
+        // "date:>=Nd" means "at least N days old" (age >= N), which is modified-time <= targetDate
+        // (further in the past); "date:<Nd" means more recent than N days ago, i.e. modified > targetDate.
+        // The previous version had these two branches swapped, so >= matched recent files and
+        // < matched old ones — exactly backwards from what the query syntax implies.
         let targetDate = Date().addingTimeInterval(-seconds)
         switch op {
-        case "<", "<=": return modified <= targetDate
-        default: return modified >= targetDate
+        case "<", "<=": return modified > targetDate
+        default: return modified <= targetDate
         }
     }
 

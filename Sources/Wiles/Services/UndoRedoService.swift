@@ -80,9 +80,12 @@ public final class UndoRedoService {
                 let folder = url.deletingLastPathComponent()
                 let name = url.lastPathComponent
                 return try FileSystemService.createDirectory(at: folder, name: name)
-            case .trash(_, let trashedURL):
-                _ = try FileSystemService.moveToTrash(url: trashedURL)
-                return trashedURL.deletingLastPathComponent()
+            case .trash(let originalURL, _):
+                // originalURL, not the stale trashedURL: undo() already moved the file back to
+                // originalURL, so the old trashedURL path no longer exists on disk by the time
+                // redo runs (moveToTrash on it would throw, incorrectly failing every trash redo).
+                _ = try FileSystemService.moveToTrash(url: originalURL)
+                return originalURL.deletingLastPathComponent()
             }
         } catch {
             return nil

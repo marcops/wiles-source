@@ -175,10 +175,13 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
         let fileURL = folder.appendingPathComponent(String(decodedPath.dropFirst()))
 
-        // Prevent Path Traversal
+        // Prevent Path Traversal. A plain hasPrefix(stdFolder) is not enough: it would also let a
+        // sibling directory through (e.g. shared folder "/tmp/abc" would wrongly permit
+        // "/tmp/abcDEF/secret.txt", since that string also starts with "/tmp/abc"). Requiring the
+        // path separator boundary closes that gap.
         let stdFolder = folder.standardizedFileURL.path
         let stdFile = fileURL.standardizedFileURL.path
-        guard stdFile.hasPrefix(stdFolder) else {
+        guard stdFile == stdFolder || stdFile.hasPrefix(stdFolder + "/") else {
             sendResponse(connection: connection, statusCode: HTTPStatus.forbidden, body: Data("Forbidden".utf8))
             return
         }

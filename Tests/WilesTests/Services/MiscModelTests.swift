@@ -8,6 +8,8 @@ public struct MiscModelTests {
         testClipboardStateIsCut()
         testNetworkServerServiceEmptyAddressIsANoOp()
         testFolderNodeBuildRootTree()
+        testFolderNodeRootChildrenSortedAndHiddenExcluded()
+        testFolderNodeAutoExpandsOnlyHomeAncestors()
     }
 
     private static func testWilesErrorDescriptions() {
@@ -54,6 +56,51 @@ public struct MiscModelTests {
         let root = FolderNode.buildRootTree()
         report("FolderNode", "POS: buildRootTree() root id/url points at the filesystem root", result: root.url == URL(fileURLWithPath: "/"))
         report("FolderNode", "POS: buildRootTree() finds at least one visible top-level folder", result: (root.children?.isEmpty ?? true) == false)
+    }
+
+    private static func testFolderNodeRootChildrenSortedAndHiddenExcluded() {
+        let root = FolderNode.buildRootTree()
+        let children = root.children ?? []
+        report("FolderNode", "POS: root has at least one visible top-level folder to inspect", result: !children.isEmpty)
+
+        let names = children.map { $0.name }
+        let sortedNames = names.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        report("FolderNode", "POS: root children are sorted by localizedStandardCompare ascending", result: names == sortedNames)
+
+        report("FolderNode", "NEG: no root child name starts with a dot (hidden folders are skipped)", result: !names.contains { $0.hasPrefix(".") })
+
+        // Note: an earlier version of this test assumed "/tmp" (a symlink into /private/tmp) would
+        // appear as a resolved directory entry. Verified directly against this macOS version: /tmp
+        // reports BOTH isHidden == true AND isDirectory == false for the symlink itself (Foundation
+        // does not resolve isDirectoryKey through it here) — so FolderNode correctly excludes it,
+        // for two independent reasons the original assumption got backwards. No real test value in
+        // asserting a specific well-known path's presence; the hidden-name check above already
+        // covers the general exclusion behavior.
+    }
+
+    private static func testFolderNodeAutoExpandsOnlyHomeAncestors() {
+        let root = FolderNode.buildRootTree()
+        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+        let homeComponents = home.pathComponents.filter { $0 != "/" }
+        report("FolderNode", "POS: home directory has at least one path component to walk", result: !homeComponents.isEmpty)
+        guard !homeComponents.isEmpty else { return }
+
+        var current = root
+        var walkedFullPath = true
+        for component in homeComponents {
+            guard let match = current.children?.first(where: { $0.name == component }) else {
+                walkedFullPath = false
+                break
+            }
+            current = match
+        }
+        report("FolderNode", "POS: every ancestor directory of the home folder is auto-expanded down to the home folder itself", result: walkedFullPath)
+
+        // A root-level sibling that is NOT an ancestor of home should never have been recursed into.
+        let firstHomeComponent = homeComponents[0]
+        if let nonAncestorSibling = root.children?.first(where: { $0.name != firstHomeComponent }) {
+            report("FolderNode", "NEG: a root child unrelated to the home directory path is not auto-expanded (children stays nil)", result: nonAncestorSibling.children == nil)
+        }
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

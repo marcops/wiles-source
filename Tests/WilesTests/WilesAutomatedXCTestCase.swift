@@ -26,12 +26,16 @@ final class WilesAutomatedTests: XCTestCase {
         UITests.run()
     }
 
+    @MainActor func testFullUIActionCoverageTests() async {
+        await FullUIActionCoverageTests.run()
+    }
+
     @MainActor func testLocalizationTests() {
         LocalizationTests.run()
     }
 
-    @MainActor func testFileSystemTests() {
-        FileSystemTests.run()
+    @MainActor func testFileSystemTests() async {
+        await FileSystemTests.run()
     }
 
     @MainActor func testCopyPathTests() {

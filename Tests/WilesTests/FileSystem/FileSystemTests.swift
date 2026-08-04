@@ -4,7 +4,7 @@ import AppKit
 
 @MainActor
 public struct FileSystemTests {
-    public static func run() {
+    public static func run() async {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
@@ -46,7 +46,8 @@ public struct FileSystemTests {
         try? FileManager.default.removeItem(at: tempDir)
 
         runActionsCoverageExtras()
-        runSearchAndSortCoverageExtras()
+        await runSearchAndSortCoverageExtras()
+        await runAdditionalCoverageExtras()
     }
 
     nonisolated private static func loadItems(at url: URL, query: String = "", sort: SortOption = .name, ascending: Bool = true, showHidden: Bool = false, showTags: Bool = false) async -> [FileItem] {
@@ -56,20 +57,15 @@ public struct FileSystemTests {
         )
     }
 
-    private static func runSearchAndSortCoverageExtras() {
-        let semaphore = DispatchSemaphore(value: 0)
-        Task.detached {
-            await tagFilterCoverage()
-            await contentSearchCoverage()
-            await dateFilterCoverage()
-            await sizeFilterUnitAndOperatorCoverage()
-            await kindFilterVariantsCoverage()
-            await multiTokenAndCoverage()
-            await sortOptionVariantsCoverage()
-            await recentsVirtualDirectoryCoverage()
-            semaphore.signal()
-        }
-        semaphore.wait()
+    private static func runSearchAndSortCoverageExtras() async {
+        await tagFilterCoverage()
+        await contentSearchCoverage()
+        await dateFilterCoverage()
+        await sizeFilterUnitAndOperatorCoverage()
+        await kindFilterVariantsCoverage()
+        await multiTokenAndCoverage()
+        await sortOptionVariantsCoverage()
+        await recentsVirtualDirectoryCoverage()
     }
 
     nonisolated private static func tagFilterCoverage() async {
@@ -104,7 +100,10 @@ public struct FileSystemTests {
         await TestReporter.report("FileSystem/SearchAndSort", "POS: token >=3 chars falls back to matching file content for text extensions", result: byContent.contains { $0.name == "unrelated_name.txt" })
         await TestReporter.report("FileSystem/SearchAndSort", "NEG: content search does not match non-text extensions", result: !byContent.contains { $0.name == "unrelated_name.bin" })
 
-        let tooShort = await loadItems(at: dir, query: "un")
+        // Note: querying "un" against files literally named "unrelated_name.*" would match via the
+        // plain filename-substring check before content search's 3-char guard is ever reached — use
+        // a short token that appears only in the content, not the filename, to isolate the guard.
+        let tooShort = await loadItems(at: dir, query: "ic")
         await TestReporter.report("FileSystem/SearchAndSort", "NEG: content search is skipped for tokens shorter than 3 characters", result: tooShort.isEmpty)
     }
 
@@ -261,6 +260,99 @@ public struct FileSystemTests {
 
         let filteredOut = await loadItems(at: recentsURL, query: "no_such_match_token")
         await TestReporter.report("FileSystem/SearchAndSort", "NEG: virtual recents directory excludes entries that don't match the search query", result: filteredOut.isEmpty)
+    }
+
+    private static func runAdditionalCoverageExtras() async {
+        await resourceFlagHiddenFileCoverage()
+        await sizeFilterLessOrEqualAndGigabyteUnitCoverage()
+        await nonAsteriskRegexTriggerCoverage()
+        await nonExistentDirectoryCoverage()
+        await setTagsNegativeCoverage()
+    }
+
+    // Covers isFileHidden's fallback branch: a file hidden via the .isHiddenKey resource flag
+    // (e.g. `chflags hidden`) rather than via a leading-dot filename.
+    nonisolated private static func resourceFlagHiddenFileCoverage() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        var flaggedHiddenFile = dir.appendingPathComponent("flagged_hidden.txt")
+        try? "x".write(to: flaggedHiddenFile, atomically: true, encoding: .utf8)
+        var resourceValues = URLResourceValues()
+        resourceValues.isHidden = true
+        try? flaggedHiddenFile.setResourceValues(resourceValues)
+
+        let plainFile = dir.appendingPathComponent("plain_visible.txt")
+        try? "x".write(to: plainFile, atomically: true, encoding: .utf8)
+
+        let withoutHidden = await loadItems(at: dir, showHidden: false)
+        await TestReporter.report("FileSystem", "NEG: a file hidden via the isHidden resource flag (no leading dot) is excluded when showHidden is false", result: !withoutHidden.contains { $0.name == "flagged_hidden.txt" } && withoutHidden.contains { $0.name == "plain_visible.txt" })
+
+        let withHidden = await loadItems(at: dir, showHidden: true)
+        await TestReporter.report("FileSystem", "POS: a file hidden via the isHidden resource flag is included when showHidden is true", result: withHidden.contains { $0.name == "flagged_hidden.txt" })
+    }
+
+    // Covers the "<=" operator branch and the gigabyte ("g") unit branch of matchesSizeFilter,
+    // neither of which is exercised by the existing size-filter tests (which use "=", ">", "<", and "k"/"b" units).
+    nonisolated private static func sizeFilterLessOrEqualAndGigabyteUnitCoverage() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file1k = dir.appendingPathComponent("exactly_1k.bin")
+        try? Data(repeating: 0, count: 1024).write(to: file1k)
+        let file2k = dir.appendingPathComponent("two_k.bin")
+        try? Data(repeating: 0, count: 2048).write(to: file2k)
+
+        let lessOrEqual = await loadItems(at: dir, query: "size:<=1k")
+        await TestReporter.report("FileSystem", "POS: \"size:<=Nk\" includes a file exactly at the threshold and excludes larger ones", result: lessOrEqual.count == 1 && lessOrEqual.first?.name == "exactly_1k.bin")
+
+        let underOneGig = await loadItems(at: dir, query: "size:<1g")
+        await TestReporter.report("FileSystem", "POS: \"size:<Ng\" applies the gigabyte unit, matching small files under the threshold", result: underOneGig.count == 2)
+
+        let overOneGig = await loadItems(at: dir, query: "size:>1g")
+        await TestReporter.report("FileSystem", "NEG: \"size:>Ng\" excludes small files well under a gigabyte", result: overOneGig.isEmpty)
+    }
+
+    // Covers the regex-trigger branch of parseSearchRegex reached via "^" or "$" without a "*",
+    // distinct from the wildcard-triggered path already tested elsewhere.
+    nonisolated private static func nonAsteriskRegexTriggerCoverage() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        try? "x".write(to: dir.appendingPathComponent("draft_final.txt"), atomically: true, encoding: .utf8)
+        try? "x".write(to: dir.appendingPathComponent("other.txt"), atomically: true, encoding: .utf8)
+
+        // "$" anchors to the end of string, so the query must match what the filename actually
+        // ends with ("...final.txt" ends in "txt", not "final") — use a pattern anchored to the
+        // real suffix instead of assuming "$" matches anywhere in the name.
+        let results = await loadItems(at: dir, query: "final\\.txt$")
+        await TestReporter.report("FileSystem", "POS: a query containing \"$\" (without \"*\") is treated as a regex pattern", result: results.count == 1 && results.first?.name == "draft_final.txt")
+    }
+
+    // Covers the early-return [] branch of loadRealDirectoryContents when contentsOfDirectory fails.
+    nonisolated private static func nonExistentDirectoryCoverage() async {
+        let missingDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathComponent("does_not_exist")
+        let results = await loadItems(at: missingDir)
+        await TestReporter.report("FileSystem", "NEG: loadDirectoryContents on a non-existent directory returns an empty array instead of crashing", result: results.isEmpty)
+    }
+
+    // Covers the throwing path of setTags when given a URL that does not exist on disk.
+    nonisolated private static func setTagsNegativeCoverage() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let missingFile = dir.appendingPathComponent("no_such_file.txt")
+        var negSetTagsPassed = false
+        do {
+            try FileSystemService.setTags(for: missingFile, tags: ["Work"])
+        } catch {
+            negSetTagsPassed = true
+        }
+        await TestReporter.report("FileSystem", "NEG: setTags on a non-existent file throws an error", result: negSetTagsPassed)
     }
 
     private static func runActionsCoverageExtras() {

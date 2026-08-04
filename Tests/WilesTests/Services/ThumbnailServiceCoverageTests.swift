@@ -9,6 +9,93 @@ public struct ThumbnailServiceCoverageTests {
         testCachedThumbnailMiss()
         testPrefetchEmptyArrayIsNoOp()
         await testLoadThumbnailForRealPNG()
+        testSupportsThumbnailForVariousKinds()
+        testCacheKeyDoesNotCollideBetweenSizes()
+        await testPrefetchThumbnailsWithMixedEligibility()
+    }
+
+    private static func makeFakeIcon() -> NSImage {
+        NSImage(size: NSSize(width: 16, height: 16))
+    }
+
+    private static func testSupportsThumbnailForVariousKinds() {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // NEG: directories never support thumbnails, regardless of extension.
+        let subDir = tempDir.appendingPathComponent("a-folder")
+        try? FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
+        let dirItem = FileItem(url: subDir, icon: makeFakeIcon())
+        TestReporter.report("ThumbnailService", "NEG: supportsThumbnail(item:) returns false for a directory", result: !ThumbnailService.supportsThumbnail(item: dirItem))
+
+        // NEG: a real file whose extension conforms to UTType.archive (zip) is excluded.
+        let zipURL = tempDir.appendingPathComponent("archive.zip")
+        FileManager.default.createFile(atPath: zipURL.path, contents: Data())
+        let zipItem = FileItem(url: zipURL, icon: makeFakeIcon())
+        TestReporter.report("ThumbnailService", "NEG: supportsThumbnail(item:) returns false for a .zip file (archive type)", result: !ThumbnailService.supportsThumbnail(item: zipItem))
+
+        // POS: a real file with a plain image extension is eligible.
+        let pngURL = tempDir.appendingPathComponent("photo.png")
+        FileManager.default.createFile(atPath: pngURL.path, contents: Data())
+        let pngItem = FileItem(url: pngURL, icon: makeFakeIcon())
+        TestReporter.report("ThumbnailService", "POS: supportsThumbnail(item:) returns true for a .png file", result: ThumbnailService.supportsThumbnail(item: pngItem))
+
+        // POS: an unrecognized/nonsense extension falls through the UTType lookup guard (UTType(filenameExtension:)
+        // returns nil) and is treated as eligible by default.
+        let weirdURL = tempDir.appendingPathComponent("mystery.qzxnotarealext")
+        FileManager.default.createFile(atPath: weirdURL.path, contents: Data())
+        let weirdItem = FileItem(url: weirdURL, icon: makeFakeIcon())
+        TestReporter.report("ThumbnailService", "POS: supportsThumbnail(item:) returns true for an unrecognized extension", result: ThumbnailService.supportsThumbnail(item: weirdItem))
+
+        // POS: a file with no extension at all is also eligible (UTType lookup fails the same way).
+        let noExtURL = tempDir.appendingPathComponent("README")
+        FileManager.default.createFile(atPath: noExtURL.path, contents: Data())
+        let noExtItem = FileItem(url: noExtURL, icon: makeFakeIcon())
+        TestReporter.report("ThumbnailService", "POS: supportsThumbnail(item:) returns true for a file with no extension", result: ThumbnailService.supportsThumbnail(item: noExtItem))
+    }
+
+    private static func testCacheKeyDoesNotCollideBetweenSizes() {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let url = tempDir.appendingPathComponent("same-url-\(UUID().uuidString).png")
+
+        // NEG: nothing has been cached yet at either size for this fresh URL.
+        let missAtSmall = ThumbnailService.shared.cachedThumbnail(for: url, size: 32)
+        let missAtLarge = ThumbnailService.shared.cachedThumbnail(for: url, size: 128)
+        TestReporter.report("ThumbnailService", "NEG: cachedThumbnail(for:size:) is nil at size 32 for a never-loaded URL", result: missAtSmall == nil)
+        TestReporter.report("ThumbnailService", "NEG: cachedThumbnail(for:size:) is nil at size 128 for a never-loaded URL", result: missAtLarge == nil)
+    }
+
+    private static func testPrefetchThumbnailsWithMixedEligibility() async {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // Build a mix: one eligible png, one ineligible directory, one ineligible zip.
+        let pngURL = tempDir.appendingPathComponent("eligible.png")
+        FileManager.default.createFile(atPath: pngURL.path, contents: Data())
+        let pngItem = FileItem(url: pngURL, icon: makeFakeIcon())
+
+        let folderURL = tempDir.appendingPathComponent("ineligible-folder")
+        try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+        let folderItem = FileItem(url: folderURL, icon: makeFakeIcon())
+
+        let zipURL = tempDir.appendingPathComponent("ineligible.zip")
+        FileManager.default.createFile(atPath: zipURL.path, contents: Data())
+        let zipItem = FileItem(url: zipURL, icon: makeFakeIcon())
+
+        // POS: prefetchThumbnails with a mix of eligible/ineligible items filters via supportsThumbnail
+        // and returns immediately (fire-and-forget Task.detached), never crashing or hanging on ineligible entries.
+        ThumbnailService.shared.prefetchThumbnails(for: [pngItem, folderItem, zipItem], size: 32)
+        TestReporter.report("ThumbnailService", "POS: prefetchThumbnails(for:size:) with mixed eligible/ineligible items returns without crashing", result: true)
+
+        // NEG: directories and archives are never dispatched to loadThumbnail by prefetch, so their cache
+        // entries remain empty even after giving the detached task a brief window to run.
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        let folderCached = ThumbnailService.shared.cachedThumbnail(for: folderURL, size: 32)
+        let zipCached = ThumbnailService.shared.cachedThumbnail(for: zipURL, size: 32)
+        TestReporter.report("ThumbnailService", "NEG: prefetchThumbnails never populates the cache for an ineligible directory", result: folderCached == nil)
+        TestReporter.report("ThumbnailService", "NEG: prefetchThumbnails never populates the cache for an ineligible zip archive", result: zipCached == nil)
     }
 
     private static func testIsImage() {

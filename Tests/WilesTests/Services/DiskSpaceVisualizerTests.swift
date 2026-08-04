@@ -48,5 +48,117 @@ public struct DiskSpaceVisualizerTests {
             result: nestedReport.topItems.first(where: { $0.name == "sub" })?.size == 4096
         )
         try? FileManager.default.removeItem(at: nestedDir)
+
+        await testEmptyDirectory()
+        await testHiddenFilesSkipped()
+        await testSortedDescendingBySize()
+        await testExactlyTenItemsNoOthers()
+        await testSymlinkHandling()
+        await testPercentagesSumToTotal()
+    }
+
+    // NEG: an existing but empty directory yields zero size and no items (grandTotal guard)
+    private static func testEmptyDirectory() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        TestReporter.report(
+            "DiskSpaceVisualizer", "NEG: an existing empty directory returns zero total size and no top items",
+            result: report.totalSize == 0 && report.topItems.isEmpty && report.othersItem == nil
+        )
+    }
+
+    // NEG: dotfiles/hidden files are excluded from the scan (skipsHiddenFiles option)
+    private static func testHiddenFilesSkipped() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        try? Data(repeating: 0, count: 1024).write(to: dir.appendingPathComponent("visible.bin"))
+        try? Data(repeating: 0, count: 1024 * 1024).write(to: dir.appendingPathComponent(".hidden.bin"))
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let hasHidden = report.topItems.contains { $0.name == ".hidden.bin" }
+        TestReporter.report(
+            "DiskSpaceVisualizer", "NEG: hidden dotfiles are excluded from disk usage scan and total size",
+            result: !hasHidden && report.totalSize == 1024
+        )
+    }
+
+    // POS: topItems are sorted strictly descending by size
+    private static func testSortedDescendingBySize() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        try? Data(repeating: 0, count: 512).write(to: dir.appendingPathComponent("small.bin"))
+        try? Data(repeating: 0, count: 8192).write(to: dir.appendingPathComponent("large.bin"))
+        try? Data(repeating: 0, count: 2048).write(to: dir.appendingPathComponent("medium.bin"))
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let sizes = report.topItems.map { $0.size }
+        let isDescending = sizes == sizes.sorted(by: >)
+        TestReporter.report(
+            "DiskSpaceVisualizer", "POS: topItems are sorted in strictly descending order by size",
+            result: isDescending && sizes.first == 8192 && sizes.last == 512
+        )
+    }
+
+    // POS: exactly 10 items produces no "Others" grouping (boundary condition, dropFirst(10) is empty)
+    private static func testExactlyTenItemsNoOthers() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        for i in 0..<10 {
+            try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: dir.appendingPathComponent("f\(i).bin"))
+        }
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        TestReporter.report(
+            "DiskSpaceVisualizer", "POS: exactly 10 items produces a full topItems list with no othersItem",
+            result: report.topItems.count == 10 && report.othersItem == nil
+        )
+    }
+
+    // POS: a symlink to a file is treated as a file entry using fileExists' resolved size
+    private static func testSymlinkHandling() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let target = dir.appendingPathComponent("target.bin")
+        try? Data(repeating: 0, count: 4096).write(to: target)
+        let link = dir.appendingPathComponent("link.bin")
+        try? FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let linkItem = report.topItems.first { $0.name == "link.bin" }
+        TestReporter.report(
+            "DiskSpaceVisualizer", "POS: a symlink entry appears in the report without crashing the scan",
+            result: linkItem != nil
+        )
+    }
+
+    // POS: percentages for top items plus others sum to ~100% of grand total
+    private static func testPercentagesSumToTotal() async {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        try? Data(repeating: 0, count: 1024).write(to: dir.appendingPathComponent("a.bin"))
+        try? Data(repeating: 0, count: 3072).write(to: dir.appendingPathComponent("b.bin"))
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let totalPct = report.topItems.reduce(0.0) { $0 + $1.percentage } + (report.othersItem?.percentage ?? 0.0)
+        let aItem = report.topItems.first { $0.name == "a.bin" }
+        let withinTolerance = abs(totalPct - 100.0) < 0.001
+        let quarterPct = aItem.map { abs($0.percentage - 25.0) < 0.001 } ?? false
+        TestReporter.report(
+            "DiskSpaceVisualizer", "POS: item percentages are computed correctly and sum to 100% of grand total",
+            result: withinTolerance && quarterPct
+        )
     }
 }

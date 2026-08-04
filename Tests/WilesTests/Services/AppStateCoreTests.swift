@@ -14,6 +14,9 @@ public struct AppStateCoreTests {
         testGridColumnCount()
         testStatusText()
         testShowError()
+        testAddSmartFolder()
+        testRemoveSmartFolder()
+        testFreeSpaceText()
     }
 
     private static func makeItem(named name: String, in dir: URL, contents: String = "content", isDirectory: Bool = false) -> FileItem {
@@ -164,6 +167,65 @@ public struct AppStateCoreTests {
         report("AppState", "POS: showError() sets errorMessage and flips showErrorAlert to true", result: appState.errorMessage == "Something failed" && appState.showErrorAlert == true)
 
         report("AppState", "NEG: showError() does not leave showErrorAlert false", result: appState.showErrorAlert != false)
+    }
+
+    private static func testAddSmartFolder() {
+        let priorDefaultsData = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue)
+        defer {
+            if let priorDefaultsData {
+                UserDefaults.standard.set(priorDefaultsData, forKey: DefaultsKey.smartFolders.rawValue)
+            } else {
+                UserDefaults.standard.removeObject(forKey: DefaultsKey.smartFolders.rawValue)
+            }
+        }
+
+        let appState = AppState()
+        appState.smartFolders = []
+        let folder = SmartFolder(name: "My Folder", searchQuery: "report", scopePath: "/tmp")
+
+        appState.addSmartFolder(folder)
+        report("AppState", "POS: addSmartFolder() appends the folder to smartFolders", result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == folder.id)
+
+        let persisted = SmartFolderService.loadSavedSmartFolders()
+        report("AppState", "POS: addSmartFolder() persists the folder via SmartFolderService", result: persisted.contains { $0.id == folder.id })
+
+        let other = SmartFolder(name: "Other", searchQuery: "x", scopePath: "/tmp")
+        report("AppState", "NEG: addSmartFolder() does not add an unrelated folder that was never added", result: appState.smartFolders.contains { $0.id == other.id } == false)
+    }
+
+    private static func testRemoveSmartFolder() {
+        let priorDefaultsData = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue)
+        defer {
+            if let priorDefaultsData {
+                UserDefaults.standard.set(priorDefaultsData, forKey: DefaultsKey.smartFolders.rawValue)
+            } else {
+                UserDefaults.standard.removeObject(forKey: DefaultsKey.smartFolders.rawValue)
+            }
+        }
+
+        let appState = AppState()
+        let keep = SmartFolder(name: "Keep", searchQuery: "a", scopePath: "/tmp")
+        let removeTarget = SmartFolder(name: "Remove", searchQuery: "b", scopePath: "/tmp")
+        appState.smartFolders = [keep, removeTarget]
+
+        appState.removeSmartFolder(removeTarget)
+        report("AppState", "POS: removeSmartFolder() removes only the matching folder by id", result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id)
+
+        let persisted = SmartFolderService.loadSavedSmartFolders()
+        report("AppState", "POS: removeSmartFolder() persists the updated list without the removed folder", result: persisted.contains { $0.id == removeTarget.id } == false)
+
+        appState.removeSmartFolder(removeTarget)
+        report("AppState", "NEG: removeSmartFolder() is a no-op when the folder is already absent", result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id)
+    }
+
+    private static func testFreeSpaceText() {
+        let appState = AppState()
+        appState.currentURL = FileManager.default.homeDirectoryForCurrentUser
+        report("AppState", "POS: freeSpaceText returns a non-nil formatted string for a valid, resolvable directory", result: appState.freeSpaceText != nil)
+
+        let bogus = URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)/deeper/path")
+        appState.currentURL = bogus
+        report("AppState", "NEG: freeSpaceText is nil when volumeAvailableCapacity can't be resolved for the URL", result: appState.freeSpaceText == nil)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

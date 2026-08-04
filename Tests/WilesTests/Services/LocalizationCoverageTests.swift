@@ -9,6 +9,71 @@ public struct LocalizationCoverageTests {
         testOrphanKeys()
         testAllCasesDisplayNames()
         testMissingKeysCheck()
+        testActiveCodeForAllNonSystemLanguages()
+        testLanguageIdMatchesRawValue()
+        testInvalidRawValueInitReturnsNil()
+        testDisplayNamesAreUnique()
+        testAppLanguageCodableRoundTrip()
+    }
+
+    private static func testActiveCodeForAllNonSystemLanguages() {
+        // POS: every non-system AppLanguage must resolve activeCode to exactly its own rawValue,
+        // independent of host locale, since the `preferred != .system` early-return should always win.
+        let nonSystemLanguages = AppLanguage.allCases.filter { $0 != .system }
+        let allMatch = nonSystemLanguages.allSatisfy { L10n.activeCode($0) == $0.rawValue }
+        TestReporter.report(
+            "Localization", "POS: activeCode(_:) returns the exact rawValue for every non-system AppLanguage case",
+            result: allMatch && nonSystemLanguages.count == 15
+        )
+    }
+
+    private static func testLanguageIdMatchesRawValue() {
+        // POS: Identifiable conformance must expose id == rawValue for every case (used by SwiftUI ForEach/Picker).
+        let allCases = AppLanguage.allCases
+        let idsMatchRawValues = allCases.allSatisfy { $0.id == $0.rawValue }
+        TestReporter.report(
+            "Localization", "POS: AppLanguage.id equals rawValue for every case",
+            result: idsMatchRawValues
+        )
+    }
+
+    private static func testInvalidRawValueInitReturnsNil() {
+        // NEG: constructing AppLanguage from an unsupported/garbage code must fail gracefully (nil), not crash.
+        let bogus = AppLanguage(rawValue: "xx-not-a-real-language")
+        let empty = AppLanguage(rawValue: "")
+        let almostValidButWrongCase = AppLanguage(rawValue: "EN")
+        TestReporter.report(
+            "Localization", "NEG: AppLanguage(rawValue:) returns nil for unsupported/empty/wrong-case codes",
+            result: bogus == nil && empty == nil && almostValidButWrongCase == nil
+        )
+    }
+
+    private static func testDisplayNamesAreUnique() {
+        // POS: no two AppLanguage cases should collide on displayName (would be a picker UX bug).
+        let allDisplayNames = AppLanguage.allCases.map { $0.displayName }
+        let uniqueCount = Set(allDisplayNames).count
+        TestReporter.report(
+            "Localization", "POS: AppLanguage.displayName is unique across all 16 cases",
+            result: uniqueCount == allDisplayNames.count
+        )
+    }
+
+    private static func testAppLanguageCodableRoundTrip() {
+        // POS: AppLanguage is Codable; every case must survive an encode/decode round-trip unchanged.
+        var allRoundTripped = true
+        for lang in AppLanguage.allCases {
+            do {
+                let data = try JSONEncoder().encode(lang)
+                let decoded = try JSONDecoder().decode(AppLanguage.self, from: data)
+                if decoded != lang { allRoundTripped = false }
+            } catch {
+                allRoundTripped = false
+            }
+        }
+        TestReporter.report(
+            "Localization", "POS: AppLanguage Codable round-trip (encode/decode) preserves value for every case",
+            result: allRoundTripped
+        )
     }
 
     private static func testActiveCode() {
