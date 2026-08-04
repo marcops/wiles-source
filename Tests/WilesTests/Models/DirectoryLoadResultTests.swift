@@ -5,7 +5,8 @@ import AppKit
 @MainActor
 public struct DirectoryLoadResultTests {
     public static func run() {
-        let items = [FileItem(url: URL(fileURLWithPath: "/tmp/b.txt"), icon: NSImage())]
+        let tempFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("b.txt")
+        let items = [FileItem(url: tempFile, icon: NSImage())]
         let result = DirectoryLoadResult(items: items, isPermissionDenied: false)
 
         report("Model/DirectoryLoadResult", "POS: DirectoryLoadResult items count matches", result: result.items.count == 1)

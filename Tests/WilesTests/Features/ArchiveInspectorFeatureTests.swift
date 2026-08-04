@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct ArchiveInspectorFeatureTests {
     public static func run() {
-        let nonExistentArchive = URL(fileURLWithPath: "/tmp/nonexistent_\(UUID().uuidString).zip")
+        let nonExistentArchive = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("nonexistent_\(UUID().uuidString).zip")
         let entries = ArchiveInspectionService.listEntries(in: nonExistentArchive)
         report("Feature/ArchiveInspector", "NEG: Nonexistent zip returns empty entries", result: entries.isEmpty)
     }

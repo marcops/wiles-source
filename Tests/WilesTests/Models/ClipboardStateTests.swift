@@ -4,7 +4,8 @@ import Foundation
 @MainActor
 public struct ClipboardStateTests {
     public static func run() {
-        let fileURL = URL(fileURLWithPath: "/tmp/test.txt")
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let fileURL = tempDir.appendingPathComponent("test.txt")
         let cutState = ClipboardState(urls: [fileURL], action: .cut)
         let copyState = ClipboardState(urls: [fileURL], action: .copy)
 

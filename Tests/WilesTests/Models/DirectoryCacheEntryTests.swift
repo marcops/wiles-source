@@ -5,7 +5,8 @@ import AppKit
 @MainActor
 public struct DirectoryCacheEntryTests {
     public static func run() {
-        let items = [FileItem(url: URL(fileURLWithPath: "/tmp/a.txt"), icon: NSImage())]
+        let tempFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("a.txt")
+        let items = [FileItem(url: tempFile, icon: NSImage())]
         let loadResult = DirectoryLoadResult(items: items, isPermissionDenied: false)
         let entry = DirectoryCacheEntry(result: loadResult)
 

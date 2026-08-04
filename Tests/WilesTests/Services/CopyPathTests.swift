@@ -48,5 +48,37 @@ public struct CopyPathTests {
         // POS: copy() with real URLs writes the formatted path(s) to the pasteboard
         CopyPathService.copy(urls: [targetFile], variant: .absolute)
         TestReporter.report("CopyPath", "POS: copy() writes the formatted path to the system pasteboard", result: pasteboard.string(forType: .string) == targetFile.standardizedFileURL.path)
+
+        // POS: copy() with multiple URLs joins the formatted paths with newlines
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let secondFile = tempDir.appendingPathComponent("second file.txt")
+        CopyPathService.copy(urls: [targetFile, secondFile], variant: .absolute)
+        let expectedMulti = [targetFile.standardizedFileURL.path, secondFile.standardizedFileURL.path].joined(separator: "\n")
+        TestReporter.report("CopyPath", "POS: copy() with multiple URLs joins paths with newlines", result: pasteboard.string(forType: .string) == expectedMulti)
+
+        // POS: fileURL formatting percent-encodes spaces and parentheses
+        let fileURLEncoded = CopyPathService.format(url: targetFile, variant: .fileURL, relativeTo: baseDir)
+        TestReporter.report("CopyPath", "POS: fileURL formatting percent-encodes spaces and parentheses", result: fileURLEncoded == "file:///Users/test/Documents/My%20Folder/file%20(1).txt")
+
+        // POS: terminalEscaped escapes a broad set of shell-special characters
+        let shellSpecial = URL(fileURLWithPath: "/tmp/a&b;c|d$e*f?g<h>i#j!k`l'm\"n.txt")
+        let shellEscaped = CopyPathService.escapeForTerminal(shellSpecial.standardizedFileURL.path)
+        let allEscaped = ["&", ";", "|", "$", "*", "?", "<", ">", "#", "!", "`", "'", "\""].allSatisfy { shellEscaped.contains("\\" + $0) }
+        TestReporter.report("CopyPath", "POS: terminalEscaped escapes shell-special characters", result: allEscaped)
+
+        // POS: terminalEscaped escapes literal backslashes without double-escaping subsequent chars
+        let backslashEscaped = CopyPathService.escapeForTerminal("a\\b c")
+        TestReporter.report("CopyPath", "POS: terminalEscaped escapes literal backslashes", result: backslashEscaped == "a\\\\b\\ c")
+
+        // POS: relativePath does not false-positive match on a base that is a string-prefix but not a path-prefix
+        let similarBase = URL(fileURLWithPath: "/Users/test/Doc")
+        let similarTarget = URL(fileURLWithPath: "/Users/test/Documents/file.txt")
+        let similarResult = CopyPathService.relativePath(of: similarTarget, relativeTo: similarBase)
+        TestReporter.report("CopyPath", "NEG: relativePath does not match a base that is only a string-prefix", result: similarResult == similarTarget.standardizedFileURL.path)
+
+        // POS: relativePath handles a base URL with a trailing slash the same as without
+        let baseWithSlash = URL(fileURLWithPath: "/Users/test/Documents/")
+        let relativeWithSlashBase = CopyPathService.relativePath(of: targetFile, relativeTo: baseWithSlash)
+        TestReporter.report("CopyPath", "POS: relativePath handles a trailing-slash base directory", result: relativeWithSlashBase == "My Folder/file (1).txt")
     }
 }

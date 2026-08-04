@@ -136,6 +136,73 @@ public struct ArchiveTests {
         runIsArchiveEdgeCaseTests()
         runExtractZIPWrapperTests()
         runCorruptArchiveErrorPathTests()
+        runSourcesOutsideDestinationTests()
+    }
+
+    /// Regression coverage for the -j/absolute-path fix: source files that do NOT live inside
+    /// the destination folder must still be found and packed correctly (both the plain
+    /// multi-file `zip` branch and the password `zip -P` branch use absolute source paths).
+    private static func runSourcesOutsideDestinationTests() {
+        let sourceDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let destDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: sourceDir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: sourceDir)
+            try? FileManager.default.removeItem(at: destDir)
+        }
+
+        let outsideA = sourceDir.appendingPathComponent("outsideA.txt")
+        let outsideB = sourceDir.appendingPathComponent("outsideB.txt")
+        try? "Outside A".write(to: outsideA, atomically: true, encoding: .utf8)
+        try? "Outside B".write(to: outsideB, atomically: true, encoding: .utf8)
+
+        // POS: multi-file compressToZIP with sources outside the destination folder
+        // (exercises the plain `zip -j <dest> <abs paths...>` branch).
+        var multiOutsidePassed = false
+        do {
+            try ArchiveService.compressToZIP(urls: [outsideA, outsideB], in: destDir)
+            let zipURL = destDir.appendingPathComponent("Archive.zip")
+            let out = destDir.appendingPathComponent("MultiOutsideOut")
+            try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+            try ArchiveService.extractArchive(archiveURL: zipURL, to: out)
+            let contentA = try? String(contentsOf: out.appendingPathComponent("outsideA.txt"), encoding: .utf8)
+            let contentB = try? String(contentsOf: out.appendingPathComponent("outsideB.txt"), encoding: .utf8)
+            multiOutsidePassed = contentA == "Outside A" && contentB == "Outside B"
+        } catch {
+            print("Multi outside-destination compress error: \(error)")
+        }
+        TestReporter.report("ZipArchive", "POS: compressToZIP with multiple sources outside destination folder packs and extracts both files (-j absolute path fix)", result: multiOutsidePassed)
+
+        // POS: password-protected compressToZIP with sources outside the destination folder
+        // (exercises the `zip -j -P <pwd> <dest> <abs paths...>` branch).
+        let pwdSourceDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: pwdSourceDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: pwdSourceDir) }
+        let pwdOutsideFile = pwdSourceDir.appendingPathComponent("pwdOutside.txt")
+        try? "Outside secret".write(to: pwdOutsideFile, atomically: true, encoding: .utf8)
+
+        var pwdOutsidePassed = false
+        do {
+            try ArchiveService.compressToZIP(urls: [pwdOutsideFile], in: destDir, password: "hunter2outside")
+            let zipURL = destDir.appendingPathComponent("pwdOutside.zip")
+            let out = destDir.appendingPathComponent("PwdOutsideOut")
+            try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+            process.arguments = ["-P", "hunter2outside", "-o", zipURL.path, "-d", out.path]
+            process.standardOutput = Pipe()
+            process.standardError = Pipe()
+            try process.run()
+            process.waitUntilExit()
+            if process.terminationStatus == 0 {
+                let content = try? String(contentsOf: out.appendingPathComponent("pwdOutside.txt"), encoding: .utf8)
+                pwdOutsidePassed = content == "Outside secret"
+            }
+        } catch {
+            print("Password outside-destination compress error: \(error)")
+        }
+        TestReporter.report("ZipArchive", "POS: compressToZIP with password and source outside destination folder packs and decrypts correctly (-j absolute path fix)", result: pwdOutsidePassed)
     }
 
     private static func runPasswordExtractionTests() {

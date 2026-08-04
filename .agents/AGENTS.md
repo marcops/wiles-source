@@ -89,8 +89,8 @@
 - **Never Hardcode Versions in README**: The public `README.md` must remain completely generic across versions. Never hardcode version numbers (e.g. `v0.0.5`) in download links, titles, or release notes links. Always use terms like "Latest Release" and point to `releases/latest` or `RELEASE_NOTES.md`.
 
 ## 14. Zero Hardcoded Paths & Always Use Temporary Directory
-- **Never Hardcode User-Specific Absolute Paths**: Never hardcode absolute user-specific directory paths (e.g., `/Users/marco/...`) in any codebase files, test targets, or scripts.
-- **Default to System Temporary Directory (`NSTemporaryDirectory()`)**: Folders, mocked files, and code output generated during testing MUST always reside within the system's temporary directory (`NSTemporaryDirectory()`) to keep host systems clean and avoid clutter. Only use other directories if a highly specific test layout requires it.
+- **Never Hardcode User-Specific Absolute Paths or Raw `/tmp` Strings**: Never hardcode absolute user-specific directory paths (e.g., `/Users/marco/...`) or raw string literals like `"/tmp"` in test files.
+- **Always Use `NSTemporaryDirectory()`**: Every temporary folder, dummy URL, or mocked file path MUST be created dynamically using `URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(...)`.
 
 ## 15. Minimal Scope & Minimal Diff Discipline
 - **Minimal Code Changes**: When modifying text, labels, or UI elements (e.g., sidebar names), change ONLY the specific component or translation key requested by the user. NEVER refactor unrelated helper functions, path bar logic, or system path matching unless explicitly requested.
@@ -99,5 +99,10 @@
 ## 16. Strict 1-to-1 Test File Organization Protocol
 - **Strict 1-to-1 File Matching**: Every model file in `Sources/Wiles/Models/` MUST have its own dedicated test file in `Tests/WilesTests/Models/<ModelName>Tests.swift`. Every feature in `Sources/Wiles/Features/` MUST have its own dedicated test file in `Tests/WilesTests/Features/<FeatureName>Tests.swift`.
 - **Zero Monolithic Coverage Files**: NEVER bundle tests for multiple models, features, or UI sheets into a single aggregated coverage file. Always create individual, isolated test files matching each domain source file.
+
+## 17. Strict Test Isolation & Zero Side-Effects
+- **No Shared State Assumptions**: Tests must never assume a shared singleton (e.g., `LocalHttpServerService.shared`) is in a specific initial state. Always query current state or restore initial state defensively in a `defer` block.
+- **Zero Real Config Contamination**: Tests must never mutate real user persistence (`UserDefaults.standard`, saved smart folders list, rule lists) directly without isolating keys or restoring original state inside a guaranteed `defer` block.
+
 
 

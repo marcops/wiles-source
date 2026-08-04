@@ -10,6 +10,44 @@ public struct SyntaxHighlighterTests {
         testKeywordSplitsRunsForSupportedExtension()
         testKeywordDoesNotSplitRunsForUnsupportedExtension()
         testStringLiteralSplitsRuns()
+        testEmptyContentReturnsEmpty()
+        testCommentSplitsRuns()
+        testUppercaseExtensionIsTreatedAsSupported()
+        testPythonExtensionIsHighlighted()
+        testYmlExtensionWithNoMatchingTokensStaysSingleRun()
+    }
+
+    private static func testEmptyContentReturnsEmpty() {
+        let result = SyntaxHighlighterService.highlightCode(content: "", fileExtension: "swift")
+        report("SyntaxHighlighter", "EDGE: empty content returns empty attributed string", result: String(result.characters).isEmpty)
+    }
+
+    private static func testCommentSplitsRuns() {
+        let content = "// a comment\nlet x = 1"
+        let result = SyntaxHighlighterService.highlightCode(content: content, fileExtension: "swift")
+        let runCount = result.runs.count
+        report("SyntaxHighlighter", "POS: line comment highlighting splits the string into multiple color runs", result: runCount > 1)
+    }
+
+    private static func testUppercaseExtensionIsTreatedAsSupported() {
+        let content = "func doSomething() {}"
+        let result = SyntaxHighlighterService.highlightCode(content: content, fileExtension: "SWIFT")
+        let runCount = result.runs.count
+        report("SyntaxHighlighter", "POS: uppercase file extension is lowercased and still highlighted", result: runCount > 1)
+    }
+
+    private static func testPythonExtensionIsHighlighted() {
+        let content = "def foo():\n    return True"
+        let result = SyntaxHighlighterService.highlightCode(content: content, fileExtension: "py")
+        let runCount = result.runs.count
+        report("SyntaxHighlighter", "POS: .py extension highlights keywords across multiple runs", result: runCount > 1)
+    }
+
+    private static func testYmlExtensionWithNoMatchingTokensStaysSingleRun() {
+        let content = "no keywords or strings here"
+        let result = SyntaxHighlighterService.highlightCode(content: content, fileExtension: "yml")
+        let runCount = result.runs.count
+        report("SyntaxHighlighter", "EDGE: supported extension with no matching tokens keeps a single uniform run", result: runCount == 1)
     }
 
     private static func testShortContentNotTruncated() {

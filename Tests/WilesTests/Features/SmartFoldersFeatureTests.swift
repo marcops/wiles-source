@@ -5,20 +5,24 @@ import Foundation
 public struct SmartFoldersFeatureTests {
     public static func run() {
         let savedFolders = SmartFolderService.loadSavedSmartFolders()
-        report("Feature/SmartFolders", "POS: SmartFolderService loads saved smart folders array", result: savedFolders.count >= 0)
+        defer {
+            SmartFolderService.saveSmartFolders(savedFolders)
+        }
 
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let dummyFolder = SmartFolder(
             id: UUID(),
             name: "Test Smart Folder",
             searchQuery: "kind:pdf",
-            scopePath: "/tmp"
+            scopePath: tempDir.path
         )
+
         var currentFolders = savedFolders
         currentFolders.append(dummyFolder)
         SmartFolderService.saveSmartFolders(currentFolders)
-        report("Feature/SmartFolders", "POS: SmartFolderService saves updated smart folder list", result: true)
 
-        SmartFolderService.saveSmartFolders(savedFolders)
+        let reloaded = SmartFolderService.loadSavedSmartFolders()
+        report("Feature/SmartFolders", "POS: SmartFolderService persists and reloads new smart folder", result: reloaded.contains(where: { $0.id == dummyFolder.id }))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {
