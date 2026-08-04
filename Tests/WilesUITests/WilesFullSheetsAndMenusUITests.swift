@@ -60,4 +60,28 @@ final class WilesFullSheetsAndMenusUITests: XCTestCase {
         // Escape: Clear Focus / Dismiss Search
         app.typeKey(.escape, modifierFlags: [])
     }
+
+    func testViewModeToolbarButtons() throws {
+        let buttons = app.buttons
+        if buttons["ViewModeGrid"].exists { buttons["ViewModeGrid"].click() }
+        if buttons["ViewModeList"].exists { buttons["ViewModeList"].click() }
+        if buttons["ViewModeColumn"].exists { buttons["ViewModeColumn"].click() }
+    }
+
+    func testSidebarSectionCollapseExpand() throws {
+        let sidebarButtons = app.buttons
+        if sidebarButtons["Section_FAVORITES"].exists {
+            sidebarButtons["Section_FAVORITES"].click()
+        }
+        if sidebarButtons["Section_RECENTS"].exists {
+            sidebarButtons["Section_RECENTS"].click()
+        }
+    }
+
+    func testOperationsPopoverToggle() throws {
+        let popoverButton = app.buttons["OperationsProgressButton"]
+        if popoverButton.exists {
+            popoverButton.click()
+        }
+    }
 }
