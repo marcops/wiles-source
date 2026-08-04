@@ -56,11 +56,15 @@ public struct L10n {
     }
 
     public static func string(_ key: Key, lang: AppLanguage) -> String {
-        let locale = Locale(identifier: activeCode(lang))
-        return String(localized: String.LocalizationValue(key.rawValue), bundle: .module, locale: locale)
+        let code = activeCode(lang)
+        if let path = Bundle.module.path(forResource: code, ofType: "lproj") ?? Bundle.module.path(forResource: code.lowercased(), ofType: "lproj"),
+           let langBundle = Bundle(path: path) {
+            return langBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
+        }
+        return Bundle.module.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
     }
 
-    public enum Key: String, Sendable {
+    public enum Key: String, Sendable, CaseIterable {
         case newFolder
         case paste
         case selectAll

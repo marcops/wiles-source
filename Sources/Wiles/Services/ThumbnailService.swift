@@ -28,6 +28,7 @@ public final class ThumbnailService {
     }
 
     public func loadThumbnail(for url: URL, size: CGFloat) async -> NSImage? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let key = cacheKey(url: url, size: size)
         if let cached = cache.object(forKey: key) { return cached }
 

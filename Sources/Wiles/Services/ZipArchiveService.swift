@@ -33,11 +33,16 @@ public final class ArchiveService: Sendable {
             var args = ["-r", "-P", pwd, destURL.path]
             args.append(contentsOf: urls.map { $0.lastPathComponent })
             process.arguments = args
-        } else {
+        } else if urls.count == 1 {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-            var args = ["-c", "-k", "--sequesterRsrc"]
-            args.append(contentsOf: urls.map { $0.path })
-            args.append(destURL.path)
+            process.arguments = ["-c", "-k", "--sequesterRsrc", urls[0].path, destURL.path]
+        } else {
+            // `ditto -c` rejects multiple sources ("Can't archive multiple sources"),
+            // so multi-file archives are built with `zip` instead.
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+            process.currentDirectoryURL = destinationFolder
+            var args = ["-r", destURL.path]
+            args.append(contentsOf: urls.map { $0.lastPathComponent })
             process.arguments = args
         }
         try process.run()

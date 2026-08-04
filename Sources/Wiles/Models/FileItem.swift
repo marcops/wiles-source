@@ -27,7 +27,7 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         self.name = url.lastPathComponent
         self.icon = icon
 
-        var keys: Set<URLResourceKey> = [
+        let keys: Set<URLResourceKey> = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey,
             .creationDateKey, .contentAccessDateKey,
             .isHiddenKey, .isUbiquitousItemKey,
@@ -35,11 +35,12 @@ public struct FileItem: Identifiable, Hashable, Sendable {
             .ubiquitousItemIsDownloadingKey,
             .ubiquitousItemIsUploadingKey
         ]
-        if fetchTags {
-            keys.insert(.tagNamesKey)
-            keys.insert(.labelColorKey)
-        }
         let values = try? url.resourceValues(forKeys: keys)
+
+        // Fetched in a separate call: requesting .tagNamesKey together with the
+        // .isUbiquitousItemKey/.ubiquitousItem* keys in one resourceValues batch
+        // silently returns an empty tag list for local (non-iCloud) files.
+        let tagValues = fetchTags ? try? url.resourceValues(forKeys: [.tagNamesKey, .labelColorKey]) : nil
 
         self.isDirectory = values?.isDirectory ?? false
         self.size = Int64(values?.fileSize ?? 0)
@@ -59,8 +60,8 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         (self.ownerName, self.groupName) = Self.ownerAndGroup(atPath: url.path)
 
         if fetchTags {
-            self.tags = values?.tagNames ?? []
-            self.tagColor = values?.labelColor
+            self.tags = tagValues?.tagNames ?? []
+            self.tagColor = tagValues?.labelColor
         } else {
             self.tags = []
             self.tagColor = nil

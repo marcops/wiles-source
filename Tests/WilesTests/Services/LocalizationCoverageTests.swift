@@ -8,6 +8,7 @@ public struct LocalizationCoverageTests {
         testStringLookupAcrossLanguages()
         testOrphanKeys()
         testAllCasesDisplayNames()
+        testMissingKeysCheck()
     }
 
     private static func testActiveCode() {
@@ -56,6 +57,35 @@ public struct LocalizationCoverageTests {
         TestReporter.report(
             "Localization", "POS: AppLanguage has exactly 16 cases and every case has a non-empty displayName",
             result: allCases.count == 16 && allHaveDisplayNames
+        )
+    }
+
+    private static func testMissingKeysCheck() {
+        var missingKeys: [String] = []
+        let languagesToTest = AppLanguage.allCases.filter { $0 != .system }
+        // These keys are intentionally left without catalog entries (see the orphan-key NEG test
+        // above) and fall back to their raw camelCase name by design, not by translation gap.
+        let knownOrphanKeys: Set<L10n.Key> = [.itemsCount, .itemsCountWithSize, .selectedItemsCount, .selectedItemsCountWithSize]
+
+        for lang in languagesToTest {
+            for key in L10n.Key.allCases where !knownOrphanKeys.contains(key) {
+                let translation = L10n.string(key, lang: lang)
+                // If translation matches camelCase key.rawValue exactly (e.g. "sidebarTrash"), it's an unlocalized key
+                let isCamelCaseKey = key.rawValue.contains { $0.isUppercase }
+                if isCamelCaseKey && translation == key.rawValue {
+                    missingKeys.append("\(lang.rawValue):\(key.rawValue)")
+                }
+            }
+        }
+        
+        let success = missingKeys.isEmpty
+        if !success {
+            print("Missing translation keys (\(missingKeys.count)): \(missingKeys.joined(separator: ", "))")
+        }
+        TestReporter.report(
+            "Localization",
+            "POS: Automated lint check - All L10n.Key cases are localized across all supported languages (Missing: \(missingKeys.count))",
+            result: success
         )
     }
 }
