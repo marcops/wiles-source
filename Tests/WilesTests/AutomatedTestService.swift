@@ -45,6 +45,10 @@ public final class AutomatedTestService {
         MiscModelTests.run()
         AppStateOperationsTests.run()
         ImageConverterCoverageTests.run()
+        ColumnAutoFitTests.run()
+        LocalizationCoverageTests.run()
+        await ThumbnailServiceCoverageTests.run()
+        await FileSystemSearchAndSortTests.run()
 
         let passed = TestReporter.passed
         let failed = TestReporter.failed

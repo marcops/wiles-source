@@ -37,7 +37,7 @@ public struct SymlinkTests {
         )
         var relativeResolvesCorrectly = false
         if let link = relativeLinkURL, let resolved = try? FileManager.default.destinationOfSymbolicLink(atPath: link.path) {
-            let resolvedURL = URL(fileURLWithPath: resolved, relativeTo: tempDir.standardizedFileURL).standardizedFileURL
+            let resolvedURL = tempDir.standardizedFileURL.appendingPathComponent(resolved).standardizedFileURL
             relativeResolvesCorrectly = resolvedURL.path == targetFile.standardizedFileURL.path
         }
         TestReporter.report("SymlinkService", "POS: createSymlink (.relative) resolves back to the original target", result: relativeResolvesCorrectly)

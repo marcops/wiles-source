@@ -17,8 +17,16 @@ public struct HttpServerTests {
         await checkFileDownload()
         await checkPathTraversalBlocked()
         await checkMissingFile404()
+        checkServerURLPopulatedWhileRunning(server)
+        checkIsRunningTrueWhileRunning(server)
+        await checkMethodNotAllowed()
 
         server.stop()
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        checkIsRunningFalseAfterStop(server)
+        checkServerURLNilAfterStop(server)
+        await checkRequestFailsAfterStop()
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 
@@ -66,5 +74,47 @@ public struct HttpServerTests {
             }
         }
         TestReporter.report("LocalHttpServer", "NEG: Requesting non-existent file returns 404 Not Found", result: passed)
+    }
+
+    private static func checkServerURLPopulatedWhileRunning(_ server: LocalHttpServerService) {
+        TestReporter.report("LocalHttpServer", "POS: serverURL is populated (non-nil) while the server is running", result: server.serverURL != nil)
+    }
+
+    private static func checkIsRunningTrueWhileRunning(_ server: LocalHttpServerService) {
+        TestReporter.report("LocalHttpServer", "POS: isRunning is true after start()", result: server.isRunning)
+    }
+
+    private static func checkMethodNotAllowed() async {
+        var passed = false
+        if let url = URL(string: "http://localhost:8080/") {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            if let (_, resp) = try? await URLSession.shared.data(for: request),
+               let httpResp = resp as? HTTPURLResponse {
+                passed = httpResp.statusCode == 405
+            }
+        }
+        TestReporter.report("LocalHttpServer", "NEG: Non-GET request (POST) returns 405 Method Not Allowed", result: passed)
+    }
+
+    private static func checkIsRunningFalseAfterStop(_ server: LocalHttpServerService) {
+        TestReporter.report("LocalHttpServer", "POS: isRunning becomes false after stop()", result: !server.isRunning)
+    }
+
+    private static func checkServerURLNilAfterStop(_ server: LocalHttpServerService) {
+        TestReporter.report("LocalHttpServer", "POS: serverURL becomes nil after stop()", result: server.serverURL == nil)
+    }
+
+    private static func checkRequestFailsAfterStop() async {
+        var requestFailed = false
+        if let rootURL = URL(string: "http://localhost:8080") {
+            do {
+                _ = try await URLSession.shared.data(from: rootURL)
+                requestFailed = false
+            } catch {
+                requestFailed = true
+            }
+        }
+        TestReporter.report("LocalHttpServer", "NEG: Requests fail after stop() has been called", result: requestFailed)
     }
 }

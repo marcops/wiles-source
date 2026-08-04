@@ -77,6 +77,25 @@ public struct UndoRedoTests {
         service.recordAction(.rename(oldURL: fileA, newURL: fileA))
         TestReporter.report("UndoRedo", "NEG: recording a new action clears the redo stack", result: !service.canRedo())
 
+        // NEG: undo() returns nil when the underlying file operation throws
+        // (record a rename action, then externally delete the renamed file before calling undo)
+        let ghostSource = tempDir.appendingPathComponent("ghostSource.txt")
+        let ghostRenamed = tempDir.appendingPathComponent("ghostRenamed.txt")
+        try? "ghost".write(to: ghostRenamed, atomically: true, encoding: .utf8)
+        service.recordAction(.rename(oldURL: ghostSource, newURL: ghostRenamed))
+        try? FileManager.default.removeItem(at: ghostRenamed) // remove the file the undo would try to rename
+        let ghostUndo = await service.undo()
+        TestReporter.report("UndoRedo", "NEG: undo() returns nil when the underlying file operation throws (renamed file externally deleted)", result: ghostUndo == nil)
+
+        // POS/NEG: history is capped at maxHistoryLimit (50) - oldest actions are evicted
+        while service.canUndo() { _ = await service.undo() }
+        for i in 0..<51 {
+            let dummyURL = tempDir.appendingPathComponent("cap_dummy_\(i).txt")
+            service.recordAction(.rename(oldURL: dummyURL, newURL: dummyURL))
+        }
+        for _ in 0..<50 { _ = await service.undo() }
+        TestReporter.report("UndoRedo", "POS: history is capped at maxHistoryLimit(50) - only 50 of 51 recorded actions remain undoable", result: !service.canUndo())
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 }

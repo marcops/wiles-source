@@ -145,4 +145,20 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor func testImageConverterCoverageTests() {
         ImageConverterCoverageTests.run()
     }
+
+    @MainActor func testColumnAutoFitTests() {
+        ColumnAutoFitTests.run()
+    }
+
+    @MainActor func testLocalizationCoverageTests() {
+        LocalizationCoverageTests.run()
+    }
+
+    @MainActor func testThumbnailServiceCoverageTests() async {
+        await ThumbnailServiceCoverageTests.run()
+    }
+
+    @MainActor func testFileSystemSearchAndSortTests() async {
+        await FileSystemSearchAndSortTests.run()
+    }
 }

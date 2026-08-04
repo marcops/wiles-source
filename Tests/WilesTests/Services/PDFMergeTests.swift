@@ -6,7 +6,10 @@ import PDFKit
 @MainActor
 public struct PDFMergeTests {
     public static func run() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
         let imgFile = tempDir.appendingPathComponent("merge_sample.png")
 
         let image = NSImage(size: NSSize(width: 100, height: 100))
@@ -47,7 +50,8 @@ public struct PDFMergeTests {
         let second = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName)
         TestReporter.report(
             "PDFMerge", "POS: mergeFiles avoids overwriting an existing output file by appending a counter",
-            result: first != nil && second != nil && first?.lastPathComponent != second?.lastPathComponent && second?.lastPathComponent.contains("2") == true
+            result: first != nil && second != nil && first?.lastPathComponent != second?.lastPathComponent
+                && first?.lastPathComponent == "DupeMerged.pdf" && second?.lastPathComponent == "DupeMerged 2.pdf"
         )
 
         // POS: merging multiple PDFs concatenates their pages into one document

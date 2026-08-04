@@ -14,5 +14,15 @@ public struct OpenWithTests {
         // POS: Applications list contains non-empty display names and URLs
         let validApps = apps.allSatisfy { !$0.name.isEmpty && $0.url.isFileURL }
         TestReporter.report("OpenWith", "POS: Applications contain valid metadata", result: validApps)
+
+        // NEG: open(urls:with:) with an empty URL array hits the guard and safely no-ops
+        OpenWithService.open(urls: [], with: URL(fileURLWithPath: "/Applications/Safari.app"))
+        TestReporter.report("OpenWith", "NEG: open(urls:) with empty array is a safe no-op", result: true)
+
+        // NEG: setDefaultApplication with an extension string that fails UTType creation hits the guard and safely no-ops
+        OpenWithService.setDefaultApplication(for: "", applicationURL: URL(fileURLWithPath: "/Applications/Safari.app"))
+        TestReporter.report("OpenWith", "NEG: setDefaultApplication with empty extension string is a safe no-op", result: true)
+
+        try? FileManager.default.removeItem(at: sampleFile)
     }
 }

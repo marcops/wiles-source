@@ -71,31 +71,35 @@ struct FileListView: View {
                                 SharedBackgroundContextMenu(appState: appState)
                             }
 
-                        if appState.items.isEmpty && !appState.isLoading {
-                            emptyStateView
-                        } else {
-                            VStack(spacing: 0) {
-                                tableHeader
-
-                                LazyVStack(spacing: 2) {
-                                    ForEach(visibleItems) { item in
-                                        listRow(for: item)
+                        Group {
+                            if appState.items.isEmpty && !appState.isLoading {
+                                emptyStateView
+                            } else {
+                                VStack(spacing: 0) {
+                                    tableHeader
+    
+                                    LazyVStack(spacing: 2) {
+                                        ForEach(visibleItems) { item in
+                                            listRow(for: item)
+                                        }
+                                        if visibleLimit < appState.items.count {
+                                            ProgressView()
+                                                .frame(height: 30)
+                                                .onAppear {
+                                                    visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                                    let nextBatch = Array(appState.items.prefix(min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)))
+                                                    ThumbnailService.shared.prefetchThumbnails(for: nextBatch, size: 36)
+                                                }
+                                        }
                                     }
-                                    if visibleLimit < appState.items.count {
-                                        ProgressView()
-                                            .frame(height: 30)
-                                            .onAppear {
-                                                visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                                let nextBatch = Array(appState.items.prefix(min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)))
-                                                ThumbnailService.shared.prefetchThumbnails(for: nextBatch, size: 36)
-                                            }
-                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.bottom, 10)
                                 }
-                                .padding(.horizontal, 10)
-                                .padding(.bottom, 10)
+                                .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
                             }
-                            .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
                         }
+                        .id(appState.currentURL)
+                        .transition(.opacity)
 
                         if let rect = selectionRect {
                             Rectangle()

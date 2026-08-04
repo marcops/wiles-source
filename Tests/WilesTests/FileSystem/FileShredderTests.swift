@@ -25,6 +25,53 @@ public struct FileShredderTests {
         }
         TestReporter.report("FileShredder", "NEG: shredFiles on non-existent path handles gracefully without crash", result: negShredPassed)
 
+        // Positive: deletePermanently deletes a real file immediately (no overwrite)
+        let deleteMeFile = tempDir.appendingPathComponent("delete_me.txt")
+        try? "Delete me now".write(to: deleteMeFile, atomically: true, encoding: .utf8)
+        var deletePermPassed = false
+        do {
+            try FileShredderService.deletePermanently(urls: [deleteMeFile])
+            deletePermPassed = !FileManager.default.fileExists(atPath: deleteMeFile.path)
+        } catch {
+            deletePermPassed = false
+        }
+        TestReporter.report("FileShredder", "POS: deletePermanently immediately deletes a real file", result: deletePermPassed)
+
+        // Negative: deletePermanently on non-existent path is a no-op, does not throw
+        var deletePermMissingPassed = false
+        do {
+            let fakePath = tempDir.appendingPathComponent("also_non_existent.txt")
+            try FileShredderService.deletePermanently(urls: [fakePath])
+            deletePermMissingPassed = true
+        } catch {
+            deletePermMissingPassed = false
+        }
+        TestReporter.report("FileShredder", "NEG: deletePermanently on non-existent path handles gracefully without crash", result: deletePermMissingPassed)
+
+        // Positive: shredFiles on a zero-byte file skips overwrite loop but still deletes successfully
+        let zeroByteFile = tempDir.appendingPathComponent("zero_byte.txt")
+        FileManager.default.createFile(atPath: zeroByteFile.path, contents: Data())
+        var zeroBytePassed = false
+        do {
+            try await FileShredderService.shredFiles(urls: [zeroByteFile])
+            zeroBytePassed = !FileManager.default.fileExists(atPath: zeroByteFile.path)
+        } catch {
+            zeroBytePassed = false
+        }
+        TestReporter.report("FileShredder", "POS: shredFiles on a zero-byte file deletes without crashing", result: zeroBytePassed)
+
+        // Positive: shredFiles on an empty directory skips overwrite branch and removes the directory
+        let emptyDir = tempDir.appendingPathComponent("empty_subdir")
+        try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
+        var emptyDirPassed = false
+        do {
+            try await FileShredderService.shredFiles(urls: [emptyDir])
+            emptyDirPassed = !FileManager.default.fileExists(atPath: emptyDir.path)
+        } catch {
+            emptyDirPassed = false
+        }
+        TestReporter.report("FileShredder", "POS: shredFiles on an empty directory removes it without attempting overwrite", result: emptyDirPassed)
+
         try? FileManager.default.removeItem(at: tempDir)
     }
 }

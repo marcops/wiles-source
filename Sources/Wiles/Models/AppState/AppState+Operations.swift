@@ -30,6 +30,7 @@ extension AppState {
     }
 
     public func pasteToCurrentDirectory() {
+        HapticService.shared.play(.generic)
         guard let clip = clipboard, !clip.urls.isEmpty else {
             if let urls = FileSystemService.readFromPasteboard(), !urls.isEmpty {
                 executePaste(urls: urls, isCut: false)
@@ -63,6 +64,7 @@ extension AppState {
 
     public func deleteSelected() {
         guard !selectedURLs.isEmpty else { return }
+        HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
         Task {
             for url in urls {
@@ -80,6 +82,7 @@ extension AppState {
 
     public func deletePermanentlySelected() {
         guard !selectedURLs.isEmpty else { return }
+        HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
         do {
             try FileShredderService.deletePermanently(urls: urls)
@@ -92,6 +95,7 @@ extension AppState {
 
     public func shredSelected() {
         guard !selectedURLs.isEmpty else { return }
+        HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
         Task.detached(priority: .utility) {
             do {

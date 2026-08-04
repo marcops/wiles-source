@@ -70,36 +70,40 @@ struct FileGridView: View {
                             SharedBackgroundContextMenu(appState: appState)
                         }
 
-                        if appState.items.isEmpty && !appState.isLoading {
-                            EmptyDirectoryView(appState: appState)
-                        } else {
-                            LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
-                                ForEach(visibleItems) { item in
-                                    FileGridCardItemView(
-                                        item: item,
-                                        appState: appState,
-                                        iconSize: iconSize,
-                                        cardWidth: cardWidth,
-                                        cardHeight: cardHeight,
-                                        onRightClick: {
-                                            if !appState.selectedURLs.contains(item.url) {
-                                                appState.selectedURLs = [item.url]
+                        Group {
+                            if appState.items.isEmpty && !appState.isLoading {
+                                EmptyDirectoryView(appState: appState)
+                            } else {
+                                LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
+                                    ForEach(visibleItems) { item in
+                                        FileGridCardItemView(
+                                            item: item,
+                                            appState: appState,
+                                            iconSize: iconSize,
+                                            cardWidth: cardWidth,
+                                            cardHeight: cardHeight,
+                                            onRightClick: {
+                                                if !appState.selectedURLs.contains(item.url) {
+                                                    appState.selectedURLs = [item.url]
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
+                                    if visibleLimit < appState.items.count {
+                                        ProgressView()
+                                            .frame(height: 50)
+                                            .onAppear {
+                                                visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                                let nextBatch = Array(appState.items.prefix(min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)))
+                                                ThumbnailService.shared.prefetchThumbnails(for: nextBatch, size: iconSize)
+                                            }
+                                    }
                                 }
-                                if visibleLimit < appState.items.count {
-                                    ProgressView()
-                                        .frame(height: 50)
-                                        .onAppear {
-                                            visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                            let nextBatch = Array(appState.items.prefix(min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)))
-                                            ThumbnailService.shared.prefetchThumbnails(for: nextBatch, size: iconSize)
-                                        }
-                                }
+                                .padding(16)
                             }
-                            .padding(16)
                         }
+                        .id(appState.currentURL)
+                        .transition(.opacity)
 
                         if let rect = selectionRect {
                             Rectangle()

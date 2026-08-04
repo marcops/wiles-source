@@ -29,6 +29,7 @@ public struct HoverItemHighlightModifier: ViewModifier {
                 isSelected ? selectedBackground : (isHovered ? hoverBackground : normalBackground)
             )
             .cornerRadius(cornerRadius)
+            .scaleEffect(isHovered ? 1.01 : 1.0)
             .animation(MotionTokens.quickEase, value: isHovered)
             .onHover { isHovered = $0 }
     }

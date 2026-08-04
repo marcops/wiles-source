@@ -129,7 +129,7 @@ public struct ArrowKeyNavigationTests {
 
         appState.navigateTo(childDir)
         appState.goUp()
-        report("Navigation/ArrowKeys", "POS: ← (goUp) navigates to parent directory", result: appState.currentURL.standardizedFileURL == parentDir.standardizedFileURL)
+        report("Navigation/ArrowKeys", "POS: ← (goUp) navigates to parent directory", result: appState.currentURL.path == parentDir.standardizedFileURL.path)
     }
 
     private static func testDefaultColumns() {

@@ -1,8 +1,10 @@
 import Foundation
 import AppKit
+import SwiftUI
 
 extension AppState {
     public func navigateTo(_ url: URL, addToHistory: Bool = true) {
+        HapticService.shared.play(.alignment)
         if url == Self.recentsVirtualURL {
             if addToHistory && url != currentURL {
                 historyBack.append(currentURL)
@@ -61,7 +63,9 @@ extension AppState {
         startDirectoryMonitoring(for: target)
 
         if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: target) {
-            self.items = cached.items
+            withAnimation(MotionTokens.snappySpring) {
+                self.items = cached.items
+            }
             self.isLoading = false
             if self.viewMode == .list, self.selectedURLs.isEmpty, let first = cached.items.first {
                 self.selectedURLs = [first.url]
@@ -76,10 +80,14 @@ extension AppState {
                 options: DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc)
             )
             if self.currentURL == target {
-                self.items = loaded
-                self.isLoading = false
-                if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
-                    self.selectedURLs = [first.url]
+                await MainActor.run {
+                    withAnimation(MotionTokens.snappySpring) {
+                        self.items = loaded
+                    }
+                    self.isLoading = false
+                    if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
+                        self.selectedURLs = [first.url]
+                    }
                 }
             }
             self.updateTrashSize()
