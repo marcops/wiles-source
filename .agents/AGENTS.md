@@ -91,3 +91,8 @@
 ## 14. Zero Hardcoded Paths & Always Use Temporary Directory
 - **Never Hardcode User-Specific Absolute Paths**: Never hardcode absolute user-specific directory paths (e.g., `/Users/marco/...`) in any codebase files, test targets, or scripts.
 - **Default to System Temporary Directory (`NSTemporaryDirectory()`)**: Folders, mocked files, and code output generated during testing MUST always reside within the system's temporary directory (`NSTemporaryDirectory()`) to keep host systems clean and avoid clutter. Only use other directories if a highly specific test layout requires it.
+
+## 15. Minimal Scope & Minimal Diff Discipline
+- **Minimal Code Changes**: When modifying text, labels, or UI elements (e.g., sidebar names), change ONLY the specific component or translation key requested by the user. NEVER refactor unrelated helper functions, path bar logic, or system path matching unless explicitly requested.
+- **Dedicated UI Keys**: Create dedicated translation keys (e.g., `sidebarTrash`, `sidebarDocuments`) when custom localized text is required for specific UI components, preserving underlying path matching logic intact.
+

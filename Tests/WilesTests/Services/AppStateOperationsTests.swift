@@ -73,6 +73,7 @@ public struct AppStateOperationsTests {
         let item = makeItem(named: "subfolder", in: dir, isDirectory: true)
         appState.selectedURLs = [item.url]
         appState.openSelectedItem()
+        print("DEBUG item.url=\(item.url.path) currentURL=\(appState.currentURL.path) subfolder=\(subfolder.standardizedFileURL.path) exists=\(FileManager.default.fileExists(atPath: subfolder.path))")
         report("AppState+Operations", "POS: openSelectedItem() navigates into the selected directory", result: appState.currentURL.standardizedFileURL == subfolder.standardizedFileURL)
     }
 
