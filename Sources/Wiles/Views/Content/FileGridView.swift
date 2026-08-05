@@ -111,6 +111,7 @@ struct FileGridView: View {
                     .coordinateSpace(name: "gridContainer")
                     .onPreferenceChange(CellFrameKey.self) { frames in
                         self.cellFrames = frames
+                        appState.gridCellFrames = frames
                     }
                     .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
                     .background(ScrollerAutoHideSetter())
@@ -177,6 +178,11 @@ struct FileGridCardItemView: View {
             .hoverHighlight(isSelected: isSel, selectedBackground: Color.accentColor.opacity(0.18), cornerRadius: 10)
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderStroke, lineWidth: strokeWidth))
             .opacity(isCut ? 0.5 : 1.0)
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(key: CellFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])
+                }
+            )
             .contentShape(Rectangle())
             .accessibilityLabel(item.name)
             .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
@@ -209,6 +215,7 @@ struct FileGridCardItemView: View {
             .padding(.vertical, 2)
             .background(isSel ? Color.accentColor : Color.clear)
             .cornerRadius(4)
+            .help(item.name)
     }
 
     private var tagsView: some View {

@@ -20,18 +20,30 @@ extension AppState {
         addToRecents(url)
         var isDir: ObjCBool = false
         if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
+            let leavingChildURL = childToRestore(whenLeaving: currentURL, movingTo: url.standardizedFileURL)
             if addToHistory && url != currentURL {
                 historyBack.append(currentURL)
                 historyForward.removeAll()
             }
             currentURL = url.standardizedFileURL
             selectedURLs.removeAll()
+            pendingSelectionURL = leavingChildURL
             isSearching = false
             searchQuery = ""
             refreshCurrentDirectory()
         } else {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    /// If `newURL` is an ancestor of `oldURL`, returns the direct child of `newURL` on the path to `oldURL` —
+    /// this is the folder being "left" and should be reselected once `newURL`'s contents load.
+    private func childToRestore(whenLeaving oldURL: URL, movingTo newURL: URL) -> URL? {
+        let oldComponents = oldURL.standardizedFileURL.pathComponents
+        let newComponents = newURL.pathComponents
+        guard newComponents.count < oldComponents.count,
+              Array(oldComponents.prefix(newComponents.count)) == newComponents else { return nil }
+        return newURL.appendingPathComponent(oldComponents[newComponents.count])
     }
 
     public func goBack() {
@@ -73,7 +85,12 @@ extension AppState {
                 await MainActor.run {
                     self.items = loaded
                     self.isLoading = false
-                    if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
+                    if let pending = self.pendingSelectionURL {
+                        self.pendingSelectionURL = nil
+                        if loaded.contains(where: { $0.url == pending }) {
+                            self.selectedURLs = [pending]
+                        }
+                    } else if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
                         self.selectedURLs = [first.url]
                     }
                 }

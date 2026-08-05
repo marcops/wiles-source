@@ -82,6 +82,10 @@ public final class AppState {
     public var gridColumnCount: Int {
         selectionStore.gridColumnCount
     }
+    public var pendingSelectionURL: URL? {
+        get { selectionStore.pendingSelectionURL }
+        set { selectionStore.pendingSelectionURL = newValue }
+    }
 
     // MARK: - Forwarded Preferences Properties
     public var viewMode: ViewMode {

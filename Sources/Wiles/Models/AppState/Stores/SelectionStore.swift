@@ -15,6 +15,9 @@ public final class SelectionStore {
     /// Cell frames from the Grid View, updated live. Used to compute the real column count.
     public var gridCellFrames: [URL: CGRect] = [:]
 
+    /// Set when navigating up/back to a parent directory, so the child folder just left gets reselected instead of the first item.
+    public var pendingSelectionURL: URL?
+
     /// Actual number of columns currently rendered in Grid View — derived from real cell Y positions.
     public var gridColumnCount: Int {
         guard gridCellFrames.count > 1 else { return 1 }

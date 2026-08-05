@@ -200,6 +200,7 @@ struct FileColumnRowView: View {
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                 .lineLimit(1)
                 .foregroundColor(isSelected ? .white : .primary)
+                .help(item.name)
 
             Spacer()
 

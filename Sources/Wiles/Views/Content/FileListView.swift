@@ -300,6 +300,7 @@ struct FileListView: View {
                 .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                 .lineLimit(1)
                 .foregroundColor(isSel ? .white : .primary)
+                .help(item.name)
 
             if appState.showTags && !item.tags.isEmpty {
                 HStack(alignment: .center, spacing: -2) {
