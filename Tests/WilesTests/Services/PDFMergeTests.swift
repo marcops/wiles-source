@@ -22,6 +22,10 @@ public struct PDFMergeTests {
             try? png.write(to: imgFile)
         }
 
+        runScenarios(tempDir: tempDir, imgFile: imgFile)
+    }
+
+    private static func runScenarios(tempDir: URL, imgFile: URL) {
         if let merged = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "TestMerged.pdf") {
             TestReporter.report("PDFMerge", "POS: mergeFiles creates valid PDF file", result: FileManager.default.fileExists(atPath: merged.path))
         } else {
@@ -39,7 +43,11 @@ public struct PDFMergeTests {
 
         // POS: default output name (nil) generates a "Merged_<timestamp>.pdf" file
         if let defaultNamed = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: nil) {
-            TestReporter.report("PDFMerge", "POS: mergeFiles with no outputName generates a default \"Merged_...\" name", result: defaultNamed.lastPathComponent.hasPrefix("Merged_"))
+            TestReporter.report(
+                "PDFMerge",
+                "POS: mergeFiles with no outputName generates a default \"Merged_...\" name",
+                result: defaultNamed.lastPathComponent.hasPrefix("Merged_")
+            )
         } else {
             TestReporter.report("PDFMerge", "POS: mergeFiles with no outputName generates a default \"Merged_...\" name", result: false)
         }

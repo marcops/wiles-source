@@ -37,15 +37,21 @@ public struct ImageConverterCoverageTests {
         let url = dir.appendingPathComponent("source.png")
 
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let context = CGContext(
+        guard let context = CGContext(
             data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
             space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )!
+        ) else {
+            fatalError("Failed to create CGContext for test fixture")
+        }
         context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-        let cgImage = context.makeImage()!
+        guard let cgImage = context.makeImage() else {
+            fatalError("Failed to create CGImage for test fixture")
+        }
 
-        let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)!
+        guard let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
+            fatalError("Failed to create CGImageDestination for test fixture")
+        }
         CGImageDestinationAddImage(destination, cgImage, nil)
         CGImageDestinationFinalize(destination)
         return url
@@ -54,11 +60,11 @@ public struct ImageConverterCoverageTests {
     private static func dimensions(at url: URL) -> (width: Int, height: Int)? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let w = props[kCGImagePropertyPixelWidth] as? Int,
-              let h = props[kCGImagePropertyPixelHeight] as? Int else {
+              let width = props[kCGImagePropertyPixelWidth] as? Int,
+              let height = props[kCGImagePropertyPixelHeight] as? Int else {
             return nil
         }
-        return (w, h)
+        return (width, height)
     }
 
     // MARK: - Resize presets
@@ -103,7 +109,11 @@ public struct ImageConverterCoverageTests {
             report("ImageConverter", "POS: .max1080p downsizes an oversized image to fit within 1920x1080", result: false)
             return
         }
-        report("ImageConverter", "POS: .max1080p downsizes an oversized image to fit within 1920x1080", result: dims.width <= 1920 && dims.height <= 1080 && (dims.width == 1920 || dims.height == 1080))
+        report(
+            "ImageConverter",
+            "POS: .max1080p downsizes an oversized image to fit within 1920x1080",
+            result: dims.width <= 1920 && dims.height <= 1080 && (dims.width == 1920 || dims.height == 1080)
+        )
     }
 
     private static func testMax1080pLeavesSmallImageUntouched() {
@@ -127,7 +137,11 @@ public struct ImageConverterCoverageTests {
             report("ImageConverter", "POS: .max4K downsizes an oversized image to fit within 3840x2160", result: false)
             return
         }
-        report("ImageConverter", "POS: .max4K downsizes an oversized image to fit within 3840x2160", result: dims.width <= 3840 && dims.height <= 2160 && (dims.width == 3840 || dims.height == 2160))
+        report(
+            "ImageConverter",
+            "POS: .max4K downsizes an oversized image to fit within 3840x2160",
+            result: dims.width <= 3840 && dims.height <= 2160 && (dims.width == 3840 || dims.height == 2160)
+        )
     }
 
     private static func testMax4KLeavesSmallImageUntouched() {
@@ -174,7 +188,11 @@ public struct ImageConverterCoverageTests {
         defer { try? FileManager.default.removeItem(at: wideSource.deletingLastPathComponent()) }
         if let dest = try? ImageConverterService.convertImage(at: wideSource, targetFormat: .png, preset: .original, cropPreset: .landscape16x9),
            let dims = dimensions(at: dest) {
-            report("ImageConverter", "POS: .landscape16x9 crop on an ultra-wide image is height-limited", result: dims.height == 500 && abs(dims.width - Int(500.0 * 16.0 / 9.0)) <= 2)
+            report(
+                "ImageConverter",
+                "POS: .landscape16x9 crop on an ultra-wide image is height-limited",
+                result: dims.height == 500 && abs(dims.width - Int(500.0 * 16.0 / 9.0)) <= 2
+            )
         } else {
             report("ImageConverter", "POS: .landscape16x9 crop on an ultra-wide image is height-limited", result: false)
         }
@@ -184,7 +202,11 @@ public struct ImageConverterCoverageTests {
         defer { try? FileManager.default.removeItem(at: narrowSource.deletingLastPathComponent()) }
         if let dest = try? ImageConverterService.convertImage(at: narrowSource, targetFormat: .png, preset: .original, cropPreset: .landscape16x9),
            let dims = dimensions(at: dest) {
-            report("ImageConverter", "POS: .landscape16x9 crop on a square-ish image is width-limited", result: dims.width == 900 && abs(dims.height - Int(900.0 / (16.0 / 9.0))) <= 2)
+            report(
+                "ImageConverter",
+                "POS: .landscape16x9 crop on a square-ish image is width-limited",
+                result: dims.width == 900 && abs(dims.height - Int(900.0 / (16.0 / 9.0))) <= 2
+            )
         } else {
             report("ImageConverter", "POS: .landscape16x9 crop on a square-ish image is width-limited", result: false)
         }
@@ -195,7 +217,11 @@ public struct ImageConverterCoverageTests {
         defer { try? FileManager.default.removeItem(at: source1.deletingLastPathComponent()) }
         if let dest = try? ImageConverterService.convertImage(at: source1, targetFormat: .png, preset: .original, cropPreset: .portrait9x16),
            let dims = dimensions(at: dest) {
-            report("ImageConverter", "POS: .portrait9x16 crop on a square-ish image is height-limited", result: dims.height == 900 && abs(dims.width - Int(900.0 * 9.0 / 16.0)) <= 2)
+            report(
+                "ImageConverter",
+                "POS: .portrait9x16 crop on a square-ish image is height-limited",
+                result: dims.height == 900 && abs(dims.width - Int(900.0 * 9.0 / 16.0)) <= 2
+            )
         } else {
             report("ImageConverter", "POS: .portrait9x16 crop on a square-ish image is height-limited", result: false)
         }
@@ -204,7 +230,11 @@ public struct ImageConverterCoverageTests {
         defer { try? FileManager.default.removeItem(at: source2.deletingLastPathComponent()) }
         if let dest = try? ImageConverterService.convertImage(at: source2, targetFormat: .png, preset: .original, cropPreset: .portrait9x16),
            let dims = dimensions(at: dest) {
-            report("ImageConverter", "POS: .portrait9x16 crop on a very tall image is width-limited", result: dims.width == 300 && abs(dims.height - Int(300.0 / (9.0 / 16.0))) <= 2)
+            report(
+                "ImageConverter",
+                "POS: .portrait9x16 crop on a very tall image is width-limited",
+                result: dims.width == 300 && abs(dims.height - Int(300.0 / (9.0 / 16.0))) <= 2
+            )
         } else {
             report("ImageConverter", "POS: .portrait9x16 crop on a very tall image is width-limited", result: false)
         }

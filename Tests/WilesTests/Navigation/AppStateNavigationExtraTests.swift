@@ -35,16 +35,24 @@ public struct AppStateNavigationExtraTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         appState.recentOpenedURLs = []
-        let a = dir.appendingPathComponent("a.txt")
-        let b = dir.appendingPathComponent("b.txt")
-        appState.addToRecents(a)
-        appState.addToRecents(b)
-        report("Navigation/Recents", "POS: addToRecents() inserts new URL at front", result: appState.recentOpenedURLs.first?.path == b.standardizedFileURL.path)
+        let urlA = dir.appendingPathComponent("a.txt")
+        let urlB = dir.appendingPathComponent("b.txt")
+        appState.addToRecents(urlA)
+        appState.addToRecents(urlB)
+        report(
+            "Navigation/Recents",
+            "POS: addToRecents() inserts new URL at front",
+            result: appState.recentOpenedURLs.first?.path == urlB.standardizedFileURL.path
+        )
 
         // Re-adding 'a' should move it to front, not duplicate it.
-        appState.addToRecents(a)
+        appState.addToRecents(urlA)
         let paths = appState.recentOpenedURLs.map { $0.path }
-        report("Navigation/Recents", "POS: addToRecents() moves re-added URL to front without duplicating", result: paths.first == a.standardizedFileURL.path && paths.filter { $0 == a.standardizedFileURL.path }.count == 1)
+        report(
+            "Navigation/Recents",
+            "POS: addToRecents() moves re-added URL to front without duplicating",
+            result: paths.first == urlA.standardizedFileURL.path && paths.filter { $0 == urlA.standardizedFileURL.path }.count == 1
+        )
     }
 
     private static func testAddToRecentsCapsAt50() {
@@ -54,7 +62,11 @@ public struct AppStateNavigationExtraTests {
         let overflow = dir.appendingPathComponent("overflow.txt")
         appState.addToRecents(overflow)
         report("Navigation/Recents", "POS: addToRecents() caps the list at 50 entries", result: appState.recentOpenedURLs.count == 50)
-        report("Navigation/Recents", "POS: addToRecents() keeps newest entry after capping at 50", result: appState.recentOpenedURLs.first?.path == overflow.standardizedFileURL.path)
+        report(
+            "Navigation/Recents",
+            "POS: addToRecents() keeps newest entry after capping at 50",
+            result: appState.recentOpenedURLs.first?.path == overflow.standardizedFileURL.path
+        )
     }
 
     private static func testAddToRecentsIgnoresRecentsVirtualURL() {
@@ -128,7 +140,11 @@ public struct AppStateNavigationExtraTests {
         appState.navigateTo(dirA)
         let backCountBefore = appState.historyBack.count
         appState.navigateTo(dirB, addToHistory: false)
-        report("Navigation/History", "NEG: navigateTo(addToHistory: false) does not push history", result: appState.historyBack.count == backCountBefore && appState.currentURL.path == dirB.standardizedFileURL.path)
+        report(
+            "Navigation/History",
+            "NEG: navigateTo(addToHistory: false) does not push history",
+            result: appState.historyBack.count == backCountBefore && appState.currentURL.path == dirB.standardizedFileURL.path
+        )
     }
 
     private static func testGoBackDoesNotDropForwardOnRepeatedCalls() {

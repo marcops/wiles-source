@@ -108,7 +108,11 @@ public struct StateAndTaskModelsTests {
         let entryBefore = Date()
         let entry = DirectoryCacheEntry(result: populated)
         let entryAfter = Date()
-        report("DirectoryCacheEntry", "POS: timestamp is stamped at construction time (between before/after)", result: entry.timestamp >= entryBefore && entry.timestamp <= entryAfter)
+        report(
+            "DirectoryCacheEntry",
+            "POS: timestamp is stamped at construction time (between before/after)",
+            result: entry.timestamp >= entryBefore && entry.timestamp <= entryAfter
+        )
         report("DirectoryCacheEntry", "POS: stored result is the one passed to init", result: entry.result.items.count == 1)
 
         // Constructing a second entry slightly later should have a timestamp >= the first,
@@ -143,7 +147,11 @@ public struct StateAndTaskModelsTests {
         report("DuplicateGroup", "POS: id is derived from hash", result: threeItemGroup.id == "ghi")
 
         let scanResult = DuplicateScanResult(groups: [singleItemGroup, threeItemGroup], totalReclaimableBytes: threeItemGroup.reclaimableBytes)
-        report("DuplicateScanResult", "POS: totalReclaimableBytes reflects sum passed in, ignoring the zero-reclaim single-item group", result: scanResult.totalReclaimableBytes == 1000)
+        report(
+            "DuplicateScanResult",
+            "POS: totalReclaimableBytes reflects sum passed in, ignoring the zero-reclaim single-item group",
+            result: scanResult.totalReclaimableBytes == 1000
+        )
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

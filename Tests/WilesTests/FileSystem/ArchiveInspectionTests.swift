@@ -4,18 +4,7 @@ import Foundation
 @MainActor
 public struct ArchiveInspectionTests {
     public static func run() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
-        let fileToZip = tempDir.appendingPathComponent("inspect_test_file.txt")
-        try? "test data for zip".write(to: fileToZip, atomically: true, encoding: .utf8)
-
-        let zipURL = tempDir.appendingPathComponent("inspect_test_file.zip")
-        try? ZipArchiveService.compressToZIP(urls: [fileToZip], in: tempDir)
-
-        let entries = ArchiveInspectionService.listEntries(in: zipURL)
-        TestReporter.report("ArchiveInspection", "POS: listEntries lists files in zip", result: entries.contains(where: { $0.name.contains("inspect_test_file.txt") }))
-
-        try? FileManager.default.removeItem(at: fileToZip)
-        try? FileManager.default.removeItem(at: zipURL)
+        runBasicListEntriesTest()
 
         // POS: listEntries reflects nested folder structure (directory entries end with "/")
         let nestedRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
@@ -55,6 +44,28 @@ public struct ArchiveInspectionTests {
         TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts a single entry by path with correct content", result: extractSingleEntryPassed)
         _ = extractedNestedEntryPath
 
+        runCorruptAndMissingEntryTests(nestedRoot: nestedRoot, nestedFile: nestedFile)
+
+        runMultiEntryAndSpecialCharTests()
+        runDeepNestingAndMissingArchiveTests()
+    }
+
+    private static func runBasicListEntriesTest() {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+        let fileToZip = tempDir.appendingPathComponent("inspect_test_file.txt")
+        try? "test data for zip".write(to: fileToZip, atomically: true, encoding: .utf8)
+
+        let zipURL = tempDir.appendingPathComponent("inspect_test_file.zip")
+        try? ZipArchiveService.compressToZIP(urls: [fileToZip], in: tempDir)
+
+        let entries = ArchiveInspectionService.listEntries(in: zipURL)
+        TestReporter.report("ArchiveInspection", "POS: listEntries lists files in zip", result: entries.contains(where: { $0.name.contains("inspect_test_file.txt") }))
+
+        try? FileManager.default.removeItem(at: fileToZip)
+        try? FileManager.default.removeItem(at: zipURL)
+    }
+
+    private static func runCorruptAndMissingEntryTests(nestedRoot: URL, nestedFile: URL) {
         // NEG: listEntries on a non-existent / corrupt archive returns empty results, not a crash
         let corruptArchive = nestedRoot.appendingPathComponent("corrupt.zip")
         try? "this is not a real zip file".write(to: corruptArchive, atomically: true, encoding: .utf8)
@@ -81,9 +92,6 @@ public struct ArchiveInspectionTests {
             }
         }
         TestReporter.report("ArchiveInspection", "NEG: extractSingleEntry for a missing entry path does not produce the wrong content", result: negExtractPassed)
-
-        runMultiEntryAndSpecialCharTests()
-        runDeepNestingAndMissingArchiveTests()
     }
 
     // POS: listEntries lists every entry when the archive contains multiple files,
@@ -164,9 +172,14 @@ public struct ArchiveInspectionTests {
         } catch {
             print("Deep nesting archive error: \(error)")
         }
-        TestReporter.report("ArchiveInspection", "POS: listEntries reports nested entry path while ArchiveEntryItem.name keeps only the last component", result: deepNameParsedPassed)
+        TestReporter.report("ArchiveInspection", "POS: listEntries reports nested entry path while ArchiveEntryItem.name keeps only the last component",
+            result: deepNameParsedPassed)
         TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts an entry nested more than one directory deep", result: deepExtractPassed)
 
+        runMissingArchiveTests(root: root)
+    }
+
+    private static func runMissingArchiveTests(root: URL) {
         // NEG: archive file does not exist at all (unzip should fail cleanly, not crash).
         let missingArchive = root.appendingPathComponent("does_not_exist.zip")
         let missingEntries = ArchiveInspectionService.listEntries(in: missingArchive)

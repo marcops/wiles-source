@@ -40,7 +40,11 @@ public struct AppStateCoreTests {
         try? "x".write(to: target, atomically: true, encoding: .utf8)
 
         appState.addFavorite(target)
-        report("AppState", "POS: addFavorite() appends a new URL to favoriteURLs", result: appState.favoriteURLs.contains { $0.path == target.standardizedFileURL.path } && appState.favoriteURLs.count == 1)
+        report(
+            "AppState",
+            "POS: addFavorite() appends a new URL to favoriteURLs",
+            result: appState.favoriteURLs.contains { $0.path == target.standardizedFileURL.path } && appState.favoriteURLs.count == 1
+        )
 
         appState.addFavorite(target)
         report("AppState", "NEG: addFavorite() does not add a duplicate for an already-favorited URL", result: appState.favoriteURLs.count == 1)
@@ -90,7 +94,11 @@ public struct AppStateCoreTests {
         report("AppState", "POS: translucentLevel getter reflects sidebarTranslucentLevel", result: appState.translucentLevel == 10)
 
         appState.translucentLevel = 55
-        report("AppState", "POS: translucentLevel setter updates both sidebarTranslucentLevel and contentTranslucentLevel", result: appState.sidebarTranslucentLevel == 55 && appState.contentTranslucentLevel == 55)
+        report(
+            "AppState",
+            "POS: translucentLevel setter updates both sidebarTranslucentLevel and contentTranslucentLevel",
+            result: appState.sidebarTranslucentLevel == 55 && appState.contentTranslucentLevel == 55
+        )
 
         report("AppState", "NEG: translucentLevel setter does not leave contentTranslucentLevel at its old distinct value", result: appState.contentTranslucentLevel != 90)
     }
@@ -118,7 +126,11 @@ public struct AppStateCoreTests {
 
         appState.appAppearance = .light
         appState.contentTranslucentLevel = 40
-        report("AppState", "NEG: contentOverlayOpacity in light mode is not equal to the unhalved dark-mode value", result: abs(appState.contentOverlayOpacity - 0.6) > 0.0001 && abs(appState.contentOverlayOpacity - 0.3) < 0.0001)
+        report(
+            "AppState",
+            "NEG: contentOverlayOpacity in light mode is not equal to the unhalved dark-mode value",
+            result: abs(appState.contentOverlayOpacity - 0.6) > 0.0001 && abs(appState.contentOverlayOpacity - 0.3) < 0.0001
+        )
     }
 
     private static func testGridColumnCount() {
@@ -147,7 +159,11 @@ public struct AppStateCoreTests {
         let itemB = makeItem(named: "b.txt", in: dir, contents: "world!!")
         appState.items = [itemA, itemB]
         appState.selectedURLs = []
-        report("AppState", "POS: statusText with no selection shows total item count and formatted size", result: appState.statusText.hasPrefix("2 ") && appState.statusText.contains("("))
+        report(
+            "AppState",
+            "POS: statusText with no selection shows total item count and formatted size",
+            result: appState.statusText.hasPrefix("2 ") && appState.statusText.contains("(")
+        )
 
         appState.selectedURLs = [itemA.url]
         report("AppState", "POS: statusText with a selection shows 'selected / total'", result: appState.statusText.hasPrefix("1 / 2"))
@@ -164,7 +180,11 @@ public struct AppStateCoreTests {
         appState.showErrorAlert = false
 
         appState.showError("Something failed")
-        report("AppState", "POS: showError() sets errorMessage and flips showErrorAlert to true", result: appState.errorMessage == "Something failed" && appState.showErrorAlert == true)
+        report(
+            "AppState",
+            "POS: showError() sets errorMessage and flips showErrorAlert to true",
+            result: appState.errorMessage == "Something failed" && appState.showErrorAlert == true
+        )
 
         report("AppState", "NEG: showError() does not leave showErrorAlert false", result: appState.showErrorAlert != false)
     }
@@ -209,13 +229,21 @@ public struct AppStateCoreTests {
         appState.smartFolders = [keep, removeTarget]
 
         appState.removeSmartFolder(removeTarget)
-        report("AppState", "POS: removeSmartFolder() removes only the matching folder by id", result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id)
+        report(
+            "AppState",
+            "POS: removeSmartFolder() removes only the matching folder by id",
+            result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id
+        )
 
         let persisted = SmartFolderService.loadSavedSmartFolders()
         report("AppState", "POS: removeSmartFolder() persists the updated list without the removed folder", result: persisted.contains { $0.id == removeTarget.id } == false)
 
         appState.removeSmartFolder(removeTarget)
-        report("AppState", "NEG: removeSmartFolder() is a no-op when the folder is already absent", result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id)
+        report(
+            "AppState",
+            "NEG: removeSmartFolder() is a no-op when the folder is already absent",
+            result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id
+        )
     }
 
     private static func testFreeSpaceText() {

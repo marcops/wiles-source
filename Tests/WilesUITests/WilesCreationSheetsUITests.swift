@@ -41,7 +41,8 @@ final class WilesCreationSheetsUITests: XCTestCase {
 
     // MARK: - New Folder (Cmd+Shift+N, always available regardless of selection)
 
-    @MainActor func testNewFolderSheetCreateAndDismiss() throws {
+    @MainActor
+    func testNewFolderSheetCreateAndDismiss() throws {
         app.typeKey("n", modifierFlags: [.command, .shift])
 
         let sheet = app.sheets.firstMatch
@@ -76,7 +77,8 @@ final class WilesCreationSheetsUITests: XCTestCase {
 
     // MARK: - New File (right-click background context menu -> "New File...")
 
-    @MainActor func testNewFileSheetCreateAndDismiss() throws {
+    @MainActor
+    func testNewFileSheetCreateAndDismiss() throws {
         let contentArea = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.7))
         contentArea.rightClick()
 
@@ -111,8 +113,11 @@ final class WilesCreationSheetsUITests: XCTestCase {
 
     // MARK: - Rename (select the file just created, press F2 in default GNOME navigation mode)
 
-    @MainActor func testRenameSheetSubmitAndDismiss() throws {
-        // Create a file to rename, reusing the New File flow so we have a known, selected item.
+    /// Creates a file to rename, reusing the New File flow so we have a known, selected item.
+    /// Split out of testRenameSheetSubmitAndDismiss to keep that test under the function body
+    /// length limit; behavior is unchanged.
+    @MainActor
+    private func createFileForRenameTest(named originalName: String) throws {
         let contentArea = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.7))
         contentArea.rightClick()
         let newFileMenuItem = app.menuItems["New File..."]
@@ -128,12 +133,17 @@ final class WilesCreationSheetsUITests: XCTestCase {
             let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: currentValue.count)
             creationTextField.typeText(deleteString)
         }
-        let originalName = "WilesUITestRenameMe.txt"
         creationTextField.typeText(originalName)
         let creationCreateButton = creationSheet.buttons["Create"]
         XCTAssertTrue(creationCreateButton.waitForExistence(timeout: 2.0), "Create button should exist in New File sheet")
         creationCreateButton.click()
         XCTAssertFalse(creationSheet.waitForExistence(timeout: 2.0), "New File sheet should dismiss before renaming")
+    }
+
+    @MainActor
+    func testRenameSheetSubmitAndDismiss() throws {
+        let originalName = "WilesUITestRenameMe.txt"
+        try createFileForRenameTest(named: originalName)
 
         // The created file is auto-selected by NewFileSheetView. Default navigation mode is
         // GNOME, where F2 (not Return) triggers rename for the current selection.

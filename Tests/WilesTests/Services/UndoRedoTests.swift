@@ -17,8 +17,17 @@ public struct UndoRedoTests {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let fileA = tempDir.appendingPathComponent("fileA.txt")
-        let fileB = tempDir.appendingPathComponent("fileB.txt")
         try? "Data".write(to: fileA, atomically: true, encoding: .utf8)
+
+        await testRenameAndMoveRoundTrip(service: service, tempDir: tempDir, fileA: fileA)
+        await testCreateTrashAndHistoryCap(service: service, tempDir: tempDir, fileA: fileA)
+        await testTrashRedoAndGhostFailures(service: service, tempDir: tempDir)
+
+        try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    private static func testRenameAndMoveRoundTrip(service: UndoRedoService, tempDir: URL, fileA: URL) async {
+        let fileB = tempDir.appendingPathComponent("fileB.txt")
 
         let renamed = try? FileSystemService.renameItem(at: fileA, newName: "fileB.txt")
         if let newURL = renamed {
@@ -49,7 +58,9 @@ public struct UndoRedoTests {
             let redoMovePos = redoMove != nil && FileManager.default.fileExists(atPath: movedURL.path) && !FileManager.default.fileExists(atPath: movable.path)
             TestReporter.report("UndoRedo", "POS: redo() re-applies the move operation", result: redoMovePos)
         }
+    }
 
+    private static func testCreateTrashAndHistoryCap(service: UndoRedoService, tempDir: URL, fileA: URL) async {
         // POS: create undo/redo round trip (undoing a "create" trashes it, redoing recreates the folder)
         let createdFolderName = "created_by_test"
         if let createdURL = try? FileSystemService.createDirectory(at: tempDir, name: createdFolderName) {
@@ -95,7 +106,9 @@ public struct UndoRedoTests {
         }
         for _ in 0..<50 { _ = await service.undo() }
         TestReporter.report("UndoRedo", "POS: history is capped at maxHistoryLimit(50) - only 50 of 51 recorded actions remain undoable", result: !service.canUndo())
+    }
 
+    private static func testTrashRedoAndGhostFailures(service: UndoRedoService, tempDir: URL) async {
         // POS: redo() on a trash action re-trashes the restored file (executeForwardAction .trash case)
         let trashable2 = tempDir.appendingPathComponent("trashable2.txt")
         let trashFolder = tempDir.appendingPathComponent("trash_dir")
@@ -133,7 +146,5 @@ public struct UndoRedoTests {
         service.recordAction(.create(url: ghostCreatedURL)) // never actually created on disk
         let ghostCreateUndo = await service.undo()
         TestReporter.report("UndoRedo", "NEG: undo() on a create action for a non-existent path returns nil", result: ghostCreateUndo == nil)
-
-        try? FileManager.default.removeItem(at: tempDir)
     }
 }

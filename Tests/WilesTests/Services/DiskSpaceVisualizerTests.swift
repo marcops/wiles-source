@@ -4,6 +4,21 @@ import Foundation
 @MainActor
 public struct DiskSpaceVisualizerTests {
     public static func run() async {
+        await testBasicUsageAndNonExistentFolder()
+        await testManyItemsGroupedUnderOthers()
+        await testNestedSubdirectoryAggregation()
+
+        await testEmptyDirectory()
+        await testHiddenFilesSkipped()
+        await testSortedDescendingBySize()
+        await testExactlyTenItemsNoOthers()
+        await testSymlinkHandling()
+        await testPercentagesSumToTotal()
+        await testPermissionDeniedSubdirectory()
+        await testSingleLargeFileDominatesPercentage()
+    }
+
+    private static func testBasicUsageAndNonExistentFolder() async {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
@@ -25,18 +40,26 @@ public struct DiskSpaceVisualizerTests {
         TestReporter.report("DiskSpaceVisualizer", "NEG: Non-existent directory returns zero size report without crashing", result: emptyReport.totalSize == 0)
 
         try? FileManager.default.removeItem(at: tempDir)
+    }
 
+    private static func testManyItemsGroupedUnderOthers() async {
         // POS: more than 10 items groups the smallest ones under "Others"
         let manyDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: manyDir, withIntermediateDirectories: true)
         for i in 0..<13 {
-            let f = manyDir.appendingPathComponent("item\(i).bin")
-            try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: f)
+            let itemFile = manyDir.appendingPathComponent("item\(i).bin")
+            try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: itemFile)
         }
         let manyReport = await DiskSpaceVisualizerService.calculateDiskUsage(for: manyDir)
-        TestReporter.report("DiskSpaceVisualizer", "POS: more than 10 items caps topItems at 10 and groups the rest into othersItem", result: manyReport.topItems.count == 10 && manyReport.othersItem != nil)
+        TestReporter.report(
+            "DiskSpaceVisualizer",
+            "POS: more than 10 items caps topItems at 10 and groups the rest into othersItem",
+            result: manyReport.topItems.count == 10 && manyReport.othersItem != nil
+        )
         try? FileManager.default.removeItem(at: manyDir)
+    }
 
+    private static func testNestedSubdirectoryAggregation() async {
         // POS: nested subdirectory size is aggregated recursively
         let nestedDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let subDir = nestedDir.appendingPathComponent("sub")
@@ -48,15 +71,6 @@ public struct DiskSpaceVisualizerTests {
             result: nestedReport.topItems.first(where: { $0.name == "sub" })?.size == 4096
         )
         try? FileManager.default.removeItem(at: nestedDir)
-
-        await testEmptyDirectory()
-        await testHiddenFilesSkipped()
-        await testSortedDescendingBySize()
-        await testExactlyTenItemsNoOthers()
-        await testSymlinkHandling()
-        await testPercentagesSumToTotal()
-        await testPermissionDeniedSubdirectory()
-        await testSingleLargeFileDominatesPercentage()
     }
 
     // NEG: a subdirectory whose contents can't be enumerated (permission denied) doesn't crash the scan

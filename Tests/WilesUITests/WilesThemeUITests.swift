@@ -3,6 +3,7 @@ import XCTest
 @MainActor
 final class WilesThemeUITests: XCTestCase {
 
+    // swiftlint:disable:next implicitly_unwrapped_optional - standard XCTest lifecycle property, set in setUp/tearDown
     var app: XCUIApplication!
 
     override func setUpWithError() throws {

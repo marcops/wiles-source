@@ -47,7 +47,8 @@ final class WilesFileActionSheetsUITests: XCTestCase {
     /// WilesCreationSheetsUITests.testNewFileSheetCreateAndDismiss. The created file ends up
     /// selected in appState (NewFileSheetView sets selectedURLs to it), so callers can act on it
     /// immediately (e.g. Cmd+I) or look it up by name in the file list for a right-click.
-    @MainActor private func createKnownFile(named fileName: String) {
+    @MainActor
+    private func createKnownFile(named fileName: String) {
         let contentArea = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.7))
         contentArea.rightClick()
 
@@ -77,7 +78,8 @@ final class WilesFileActionSheetsUITests: XCTestCase {
 
     /// Deletes the file at the given row (found by its visible name) by selecting it and sending
     /// Delete, matching the cleanup pattern used elsewhere in this test suite.
-    @MainActor private func deleteKnownFile(named fileName: String) {
+    @MainActor
+    private func deleteKnownFile(named fileName: String) {
         let row = app.staticTexts[fileName]
         if row.waitForExistence(timeout: 2.0) {
             row.click()
@@ -87,7 +89,8 @@ final class WilesFileActionSheetsUITests: XCTestCase {
 
     // MARK: - FilePropertiesSheet (Cmd+I "Get Info")
 
-    @MainActor func testFilePropertiesSheetShowsRealContentAndDismisses() throws {
+    @MainActor
+    func testFilePropertiesSheetShowsRealContentAndDismisses() throws {
         let fileName = "WilesUITestProperties.txt"
         createKnownFile(named: fileName)
 
@@ -118,7 +121,8 @@ final class WilesFileActionSheetsUITests: XCTestCase {
 
     // MARK: - PasswordCompressSheetView (right-click a file -> "Compress with Password...")
 
-    @MainActor func testPasswordCompressSheetShowsAndCancels() throws {
+    @MainActor
+    func testPasswordCompressSheetShowsAndCancels() throws {
         let fileName = "WilesUITestPasswordCompress.txt"
         createKnownFile(named: fileName)
 
@@ -150,7 +154,8 @@ final class WilesFileActionSheetsUITests: XCTestCase {
 
     // MARK: - SymlinkSheetView (right-click a file -> "Create Symlink...")
 
-    @MainActor func testSymlinkSheetShowsPrefilledNameAndCancels() throws {
+    @MainActor
+    func testSymlinkSheetShowsPrefilledNameAndCancels() throws {
         let fileName = "WilesUITestSymlinkSource.txt"
         createKnownFile(named: fileName)
 

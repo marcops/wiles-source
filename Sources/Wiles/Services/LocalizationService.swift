@@ -55,23 +55,7 @@ public struct L10n {
         return "en"
     }
 
-    private static let resourceBundle: Bundle = {
-        if let resourceURL = Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle"),
-           let bundle = Bundle(url: resourceURL) {
-            return bundle
-        }
-        let mainURL = Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle")
-        if let bundle = Bundle(url: mainURL) {
-            return bundle
-        }
-        #if SWIFT_PACKAGE
-        if let buildPath = Bundle.main.path(forResource: "Wiles_Wiles", ofType: "bundle"),
-           let bundle = Bundle(path: buildPath) {
-            return bundle
-        }
-        #endif
-        return Bundle.main
-    }()
+    private static let resourceBundle: Bundle = .module
 
     public static func string(_ key: Key, lang: AppLanguage) -> String {
         let code = activeCode(lang)

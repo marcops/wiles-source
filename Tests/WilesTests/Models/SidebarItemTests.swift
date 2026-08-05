@@ -7,7 +7,7 @@ public struct SidebarItemTests {
         let item = SidebarItem(
             name: "Documents",
             iconName: "doc.fill",
-            url: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            url: FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory
         )
         report("Model/SidebarItem", "POS: SidebarItem name matches 'Documents'", result: item.name == "Documents")
         report("Model/SidebarItem", "POS: SidebarItem iconName matches 'doc.fill'", result: item.iconName == "doc.fill")

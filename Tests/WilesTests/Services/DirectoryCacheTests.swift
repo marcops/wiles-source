@@ -140,7 +140,11 @@ public struct DirectoryCacheTests {
         report("DirectoryCache", "POS: entry cached under a canonical path is found via an equivalent non-canonical path", result: service.cachedResult(for: messyURL) != nil)
 
         service.invalidate(url: messyURL)
-        report("DirectoryCache", "POS: invalidating via the non-canonical path removes the entry cached under the canonical path", result: service.cachedResult(for: plainURL) == nil)
+        report(
+            "DirectoryCache",
+            "POS: invalidating via the non-canonical path removes the entry cached under the canonical path",
+            result: service.cachedResult(for: plainURL) == nil
+        )
     }
 
     private static func testInvalidateNonExistentURLIsNoOp() {

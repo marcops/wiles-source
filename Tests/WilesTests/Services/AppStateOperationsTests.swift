@@ -34,7 +34,11 @@ public struct AppStateOperationsTests {
         let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("cut-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.cutSelected()
-        report("AppState+Operations", "POS: cutSelected() stores selection in clipboard with .cut action", result: appState.clipboard?.action == .cut && appState.clipboard?.isCut(url: url) == true)
+        report(
+            "AppState+Operations",
+            "POS: cutSelected() stores selection in clipboard with .cut action",
+            result: appState.clipboard?.action == .cut && appState.clipboard?.isCut(url: url) == true
+        )
     }
 
     private static func testCopySelected() {
@@ -98,7 +102,11 @@ public struct AppStateOperationsTests {
         appState.items = [item]
         appState.selectedURLs = [item.url]
         appState.openPropertiesForSelected()
-        report("AppState+Operations", "POS: openPropertiesForSelected() sets propertiesItem when the selected URL matches a listed item", result: appState.propertiesItem?.url == item.url)
+        report(
+            "AppState+Operations",
+            "POS: openPropertiesForSelected() sets propertiesItem when the selected URL matches a listed item",
+            result: appState.propertiesItem?.url == item.url
+        )
 
         let appState2 = AppState()
         appState2.items = []
@@ -110,7 +118,11 @@ public struct AppStateOperationsTests {
     private static func testStartEditingPath() {
         let appState = AppState()
         appState.startEditingPath()
-        report("AppState+Operations", "POS: startEditingPath() copies currentURL.path into pathText and enables editing", result: appState.pathText == appState.currentURL.path && appState.isEditingPath == true)
+        report(
+            "AppState+Operations",
+            "POS: startEditingPath() copies currentURL.path into pathText and enables editing",
+            result: appState.pathText == appState.currentURL.path && appState.isEditingPath == true
+        )
     }
 
     private static func testToggleSearching() {

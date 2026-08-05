@@ -129,7 +129,7 @@ public struct ExifMetadataTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let tempFile = dir.appendingPathComponent("not_an_image.txt")
-        try? "this is plain text, not image data".data(using: .utf8)?.write(to: tempFile)
+        try? Data("this is plain text, not image data".utf8).write(to: tempFile)
 
         let result = ExifMetadataService.extractExif(from: tempFile)
         TestReporter.report("ExifMetadata", "NEG: non-image file (plain text) returns nil without crashing", result: result == nil)
@@ -141,6 +141,24 @@ public struct ExifMetadataTests {
 
         let result = ExifMetadataService.extractExif(from: missingFile)
         TestReporter.report("ExifMetadata", "NEG: nonexistent file URL returns nil without crashing", result: result == nil)
+    }
+
+    private static func writeExifJPEG(to url: URL, properties: [CFString: Any], color: NSColor) -> Bool {
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
+            return false
+        }
+
+        let baseImage = NSImage(size: NSSize(width: 20, height: 20))
+        baseImage.lockFocus()
+        color.setFill()
+        NSRect(x: 0, y: 0, width: 20, height: 20).fill()
+        baseImage.unlockFocus()
+        guard let cgImage = baseImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return false
+        }
+
+        CGImageDestinationAddImage(dest, cgImage, properties as CFDictionary)
+        return CGImageDestinationFinalize(dest)
     }
 
     private static func testPartialExifDataExtractsLensAndGPSOnly() {
@@ -165,25 +183,7 @@ public struct ExifMetadataTests {
             kCGImagePropertyGPSDictionary: gpsDict
         ]
 
-        guard let dest = CGImageDestinationCreateWithURL(tempFile as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
-            TestReporter.report("ExifMetadata", "POS: partial EXIF (lens + GPS only) extracts lens/GPS and leaves rest nil", result: false)
-            return
-        }
-
-        let baseImage = NSImage(size: NSSize(width: 20, height: 20))
-        baseImage.lockFocus()
-        NSColor.blue.setFill()
-        NSRect(x: 0, y: 0, width: 20, height: 20).fill()
-        baseImage.unlockFocus()
-        guard let cgImage = baseImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            TestReporter.report("ExifMetadata", "POS: partial EXIF (lens + GPS only) extracts lens/GPS and leaves rest nil", result: false)
-            return
-        }
-
-        CGImageDestinationAddImage(dest, cgImage, properties as CFDictionary)
-        let finalized = CGImageDestinationFinalize(dest)
-
-        guard finalized else {
+        guard writeExifJPEG(to: tempFile, properties: properties, color: .blue) else {
             TestReporter.report("ExifMetadata", "POS: partial EXIF (lens + GPS only) extracts lens/GPS and leaves rest nil", result: false)
             return
         }
@@ -266,13 +266,7 @@ public struct ExifMetadataTests {
         TestReporter.report("ExifMetadata", "NEG: image with no EXIF/TIFF/GPS metadata returns nil", result: result == nil)
     }
 
-    private static func testRealExifDataIsExtracted() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-
-        let tempFile = dir.appendingPathComponent("with_exif.jpg")
-
+    private static func realExifProperties() -> [CFString: Any] {
         let exifDict: [CFString: Any] = [
             kCGImagePropertyExifISOSpeedRatings: [200],
             kCGImagePropertyExifFNumber: 2.8,
@@ -289,31 +283,22 @@ public struct ExifMetadataTests {
             kCGImagePropertyGPSLongitude: 122.4194,
             kCGImagePropertyGPSLongitudeRef: "W"
         ]
-        let properties: [CFString: Any] = [
+        return [
             kCGImagePropertyExifDictionary: exifDict,
             kCGImagePropertyTIFFDictionary: tiffDict,
             kCGImagePropertyGPSDictionary: gpsDict
         ]
+    }
 
-        guard let dest = CGImageDestinationCreateWithURL(tempFile as CFURL, UTType.jpeg.identifier as CFString, 1, nil) else {
-            TestReporter.report("ExifMetadata", "POS: real JPEG with embedded EXIF is parsed correctly", result: false)
-            return
-        }
+    private static func testRealExifDataIsExtracted() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
 
-        let baseImage = NSImage(size: NSSize(width: 20, height: 20))
-        baseImage.lockFocus()
-        NSColor.red.setFill()
-        NSRect(x: 0, y: 0, width: 20, height: 20).fill()
-        baseImage.unlockFocus()
-        guard let cgImage = baseImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            TestReporter.report("ExifMetadata", "POS: real JPEG with embedded EXIF is parsed correctly", result: false)
-            return
-        }
+        let tempFile = dir.appendingPathComponent("with_exif.jpg")
+        let properties = realExifProperties()
 
-        CGImageDestinationAddImage(dest, cgImage, properties as CFDictionary)
-        let finalized = CGImageDestinationFinalize(dest)
-
-        guard finalized else {
+        guard writeExifJPEG(to: tempFile, properties: properties, color: .red) else {
             TestReporter.report("ExifMetadata", "POS: real JPEG with embedded EXIF is parsed correctly", result: false)
             return
         }

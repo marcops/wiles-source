@@ -12,12 +12,22 @@ public struct AppStatePreferencesTests {
 
     private static func makeDefaults() -> UserDefaults {
         let suiteName = "test.\(UUID().uuidString)"
-        return UserDefaults(suiteName: suiteName)!
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            fatalError("Failed to create UserDefaults suite \(suiteName)")
+        }
+        return defaults
     }
 
     // MARK: - restoreLayoutPreferences
 
     private static func testRestoreLayoutPreferences() {
+        testRestoreLayoutPreferencesBasic()
+        testRestoreLayoutPreferencesClamping()
+        testRestoreLayoutPreferencesEmptyDefaults()
+        testRestoreLayoutPreferencesInvalidValue()
+    }
+
+    private static func testRestoreLayoutPreferencesBasic() {
         let appState = AppState()
         let defaults = makeDefaults()
 
@@ -38,20 +48,32 @@ public struct AppStatePreferencesTests {
             appState.sortOption == .size &&
             appState.sortAscending == false)
         report("AppState+Preferences", "POS: restoreLayoutPreferences() restores an in-range sidebarWidth as-is", result: appState.sidebarWidth == 200.0)
+    }
 
+    private static func testRestoreLayoutPreferencesClamping() {
         // Clamping
         let appStateClampHigh = AppState()
         let defaultsHigh = makeDefaults()
         defaultsHigh.set(9999.0, forKey: DefaultsKey.sidebarWidth.rawValue)
         appStateClampHigh.restoreLayoutPreferences(defaultsHigh)
-        report("AppState+Preferences", "POS: restoreLayoutPreferences() clamps an oversized sidebarWidth to LayoutTokens.sidebarMaxWidth", result: appStateClampHigh.sidebarWidth == Double(LayoutTokens.sidebarMaxWidth))
+        report(
+            "AppState+Preferences",
+            "POS: restoreLayoutPreferences() clamps an oversized sidebarWidth to LayoutTokens.sidebarMaxWidth",
+            result: appStateClampHigh.sidebarWidth == Double(LayoutTokens.sidebarMaxWidth)
+        )
 
         let appStateClampLow = AppState()
         let defaultsLow = makeDefaults()
         defaultsLow.set(1.0, forKey: DefaultsKey.sidebarWidth.rawValue)
         appStateClampLow.restoreLayoutPreferences(defaultsLow)
-        report("AppState+Preferences", "POS: restoreLayoutPreferences() clamps an undersized sidebarWidth to LayoutTokens.sidebarMinWidth", result: appStateClampLow.sidebarWidth == Double(LayoutTokens.sidebarMinWidth))
+        report(
+            "AppState+Preferences",
+            "POS: restoreLayoutPreferences() clamps an undersized sidebarWidth to LayoutTokens.sidebarMinWidth",
+            result: appStateClampLow.sidebarWidth == Double(LayoutTokens.sidebarMinWidth)
+        )
+    }
 
+    private static func testRestoreLayoutPreferencesEmptyDefaults() {
         // Negative: nothing set, values remain at AppState() defaults
         let freshState = AppState()
         let emptyDefaults = makeDefaults()
@@ -72,14 +94,20 @@ public struct AppStatePreferencesTests {
             freshState.appAppearance == defaultAppearance &&
             freshState.sortOption == defaultSortOption &&
             freshState.sortAscending == defaultSortAscending)
+    }
 
+    private static func testRestoreLayoutPreferencesInvalidValue() {
         // Negative: invalid raw value strings are ignored
         let invalidState = AppState()
         let invalidDefaults = makeDefaults()
         let priorSidebarMode = invalidState.sidebarMode
         invalidDefaults.set("NotARealMode", forKey: DefaultsKey.sidebarMode.rawValue)
         invalidState.restoreLayoutPreferences(invalidDefaults)
-        report("AppState+Preferences", "NEG: restoreLayoutPreferences() ignores an unrecognized sidebarMode raw value", result: invalidState.sidebarMode == priorSidebarMode)
+        report(
+            "AppState+Preferences",
+            "NEG: restoreLayoutPreferences() ignores an unrecognized sidebarMode raw value",
+            result: invalidState.sidebarMode == priorSidebarMode
+        )
     }
 
     // MARK: - restoreSidebarPreferences
@@ -89,6 +117,12 @@ public struct AppStatePreferencesTests {
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: home) }
 
+        let fallbackDefaults = testRestoreSidebarPreferencesBasic(home: home)
+        testRestoreSidebarPreferencesFallback(home: home, fallbackDefaults: fallbackDefaults)
+        testRestoreSidebarPreferencesUntouched(home: home, fallbackDefaults: fallbackDefaults)
+    }
+
+    private static func testRestoreSidebarPreferencesBasic(home: URL) -> UserDefaults {
         let appState = AppState()
         let defaults = makeDefaults()
         defaults.set(false, forKey: DefaultsKey.showFavorites.rawValue)
@@ -117,15 +151,27 @@ public struct AppStatePreferencesTests {
             appState.isRecentsExpanded == true &&
             appState.isDevicesExpanded == true &&
             appState.isTreeExpanded == true)
-        report("AppState+Preferences", "POS: restoreSidebarPreferences() restores expandedTreePaths from a saved string array", result: appState.expandedTreePaths == Set(["/foo", "/bar"]))
+        report(
+            "AppState+Preferences",
+            "POS: restoreSidebarPreferences() restores expandedTreePaths from a saved string array",
+            result: appState.expandedTreePaths == Set(["/foo", "/bar"])
+        )
+        return makeDefaults()
+    }
 
+    private static func testRestoreSidebarPreferencesFallback(home: URL, fallbackDefaults: UserDefaults) {
         // Negative: expandedTreePaths key absent falls back to ["/", home]
         let fallbackState = AppState()
-        let fallbackDefaults = makeDefaults()
         fallbackState.restoreSidebarPreferences(fallbackDefaults, home: home)
         let expectedFallback = Set(["/", home.standardizedFileURL.path])
-        report("AppState+Preferences", "NEG: restoreSidebarPreferences() falls back to [\"/\", home path] when expandedTreePaths key is absent", result: fallbackState.expandedTreePaths == expectedFallback)
+        report(
+            "AppState+Preferences",
+            "NEG: restoreSidebarPreferences() falls back to [\"/\", home path] when expandedTreePaths key is absent",
+            result: fallbackState.expandedTreePaths == expectedFallback
+        )
+    }
 
+    private static func testRestoreSidebarPreferencesUntouched(home: URL, fallbackDefaults: UserDefaults) {
         // Negative: booleans untouched when keys absent
         let untouchedState = AppState()
         let priorShowFavorites = untouchedState.showFavorites
@@ -138,6 +184,12 @@ public struct AppStatePreferencesTests {
     // MARK: - restoreDisplayPreferences
 
     private static func testRestoreDisplayPreferences() {
+        testRestoreDisplayPreferencesBasic()
+        testRestoreDisplayPreferencesIconSizeClamping()
+        testRestoreDisplayPreferencesEmptyDefaults()
+    }
+
+    private static func testRestoreDisplayPreferencesBasic() {
         let appState = AppState()
         let defaults = makeDefaults()
         defaults.set(true, forKey: DefaultsKey.showHiddenFiles.rawValue)
@@ -151,7 +203,10 @@ public struct AppStatePreferencesTests {
         defaults.set(64.0, forKey: DefaultsKey.iconSize.rawValue)
 
         appState.restoreDisplayPreferences(defaults)
-        report("AppState+Preferences", "POS: restoreDisplayPreferences() restores showHiddenFiles/appLanguage/showTags/showFooter/showPreviewSidebar/showTerminalDrawer/translucency levels", result:
+        report(
+            "AppState+Preferences",
+            "POS: restoreDisplayPreferences() restores showHiddenFiles/appLanguage/showTags/showFooter/showPreviewSidebar/showTerminalDrawer/translucency levels",
+            result:
             appState.showHiddenFiles == true &&
             appState.appLanguage == .french &&
             appState.showTags == true &&
@@ -160,23 +215,39 @@ public struct AppStatePreferencesTests {
             appState.showTerminalDrawer == true &&
             appState.sidebarTranslucentLevel == 2 &&
             appState.contentTranslucentLevel == 3)
-        report("AppState+Preferences", "POS: restoreDisplayPreferences() applies an in-range iconSize (64, within 36...128)", result: appState.iconSize == 64.0)
+        report(
+            "AppState+Preferences",
+            "POS: restoreDisplayPreferences() applies an in-range iconSize (64, within 36...128)",
+            result: appState.iconSize == 64.0
+        )
+    }
 
+    private static func testRestoreDisplayPreferencesIconSizeClamping() {
         // Negative: out-of-range iconSize values are rejected, prior value retained
         let lowState = AppState()
         let priorLowIconSize = lowState.iconSize
         let lowDefaults = makeDefaults()
         lowDefaults.set(10.0, forKey: DefaultsKey.iconSize.rawValue)
         lowState.restoreDisplayPreferences(lowDefaults)
-        report("AppState+Preferences", "NEG: restoreDisplayPreferences() rejects an out-of-range low iconSize (10), leaving prior value unchanged", result: lowState.iconSize == priorLowIconSize)
+        report(
+            "AppState+Preferences",
+            "NEG: restoreDisplayPreferences() rejects an out-of-range low iconSize (10), leaving prior value unchanged",
+            result: lowState.iconSize == priorLowIconSize
+        )
 
         let highState = AppState()
         let priorHighIconSize = highState.iconSize
         let highDefaults = makeDefaults()
         highDefaults.set(200.0, forKey: DefaultsKey.iconSize.rawValue)
         highState.restoreDisplayPreferences(highDefaults)
-        report("AppState+Preferences", "NEG: restoreDisplayPreferences() rejects an out-of-range high iconSize (200), leaving prior value unchanged", result: highState.iconSize == priorHighIconSize)
+        report(
+            "AppState+Preferences",
+            "NEG: restoreDisplayPreferences() rejects an out-of-range high iconSize (200), leaving prior value unchanged",
+            result: highState.iconSize == priorHighIconSize
+        )
+    }
 
+    private static func testRestoreDisplayPreferencesEmptyDefaults() {
         // Negative: empty defaults leave all display properties at prior/default values
         let freshState = AppState()
         let priorShowHiddenFiles = freshState.showHiddenFiles
@@ -194,6 +265,12 @@ public struct AppStatePreferencesTests {
         try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: home) }
 
+        testRestoreContentPreferencesRecents(home: home)
+        testRestoreContentPreferencesFavorites(home: home)
+        testRestoreContentPreferencesListColumnStates(home: home)
+    }
+
+    private static func testRestoreContentPreferencesRecents(home: URL) {
         // recentOpenedURLs
         let appState = AppState()
         let defaults = makeDefaults()
@@ -202,7 +279,9 @@ public struct AppStatePreferencesTests {
         appState.restoreContentPreferences(defaults, home: home)
         report("AppState+Preferences", "POS: restoreContentPreferences() restores recentOpenedURLs from a saved string array", result:
             appState.recentOpenedURLs.map { $0.path } == recentPaths.map { URL(fileURLWithPath: $0).path })
+    }
 
+    private static func testRestoreContentPreferencesFavorites(home: URL) {
         // favoriteURLs: /Applications filtered out
         let favState = AppState()
         let favDefaults = makeDefaults()
@@ -231,7 +310,9 @@ public struct AppStatePreferencesTests {
         report("AppState+Preferences", "NEG: restoreContentPreferences() falls back to the 7 default well-known folders when favoriteURLs key is absent", result:
             fallbackFavState.favoriteURLs.count == 7 &&
             fallbackFavState.favoriteURLs.map { $0.path } == expectedFallbackFavorites)
+    }
 
+    private static func testRestoreContentPreferencesListColumnStates(home: URL) {
         // listColumnStates: merge saved subset onto defaults
         let colState = AppState()
         let colDefaults = makeDefaults()
@@ -260,7 +341,11 @@ public struct AppStatePreferencesTests {
         report("AppState+Preferences", "POS: restoreContentPreferences() keeps ListColumnState.defaults() values for columns absent from the saved array", result:
             mergedName?.width == defaultName?.width && mergedName?.isVisible == defaultName?.isVisible &&
             mergedOwner?.width == defaultOwner?.width && mergedOwner?.isVisible == defaultOwner?.isVisible)
-        report("AppState+Preferences", "POS: restoreContentPreferences() produces a listColumnStates array covering all ListColumn cases", result: colState.listColumnStates.count == ListColumn.allCases.count)
+        report(
+            "AppState+Preferences",
+            "POS: restoreContentPreferences() produces a listColumnStates array covering all ListColumn cases",
+            result: colState.listColumnStates.count == ListColumn.allCases.count
+        )
 
         // Negative: no listColumnStates key present, listColumnStates untouched (stays at AppState() default)
         let untouchedColState = AppState()

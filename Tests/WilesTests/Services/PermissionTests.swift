@@ -80,6 +80,10 @@ public final class PermissionTests {
 
         PermissionService.resetInitialPermissionsFlag()
         PermissionService.resetInitialPermissionsFlag()
-        TestReporter.report("Permission", "NEG: calling resetInitialPermissionsFlag twice on an already-absent key stays absent without crashing", result: defaults.object(forKey: key) == nil)
+        TestReporter.report(
+            "Permission",
+            "NEG: calling resetInitialPermissionsFlag twice on an already-absent key stays absent without crashing",
+            result: defaults.object(forKey: key) == nil
+        )
     }
 }

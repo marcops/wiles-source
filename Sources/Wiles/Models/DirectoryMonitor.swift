@@ -18,14 +18,7 @@ final class DirectoryMonitor: @unchecked Sendable {
             copyDescription: nil
         )
 
-        let callbackImpl: FSEventStreamCallback = { (
-            streamRef: ConstFSEventStreamRef,
-            clientCallBackInfo: UnsafeMutableRawPointer?,
-            numEvents: Int,
-            eventPaths: UnsafeMutableRawPointer,
-            eventFlags: UnsafePointer<FSEventStreamEventFlags>,
-            eventIds: UnsafePointer<FSEventStreamEventId>
-        ) in
+        let callbackImpl: FSEventStreamCallback = { _, clientCallBackInfo, _, _, _, _ in
             guard let clientCallBackInfo else { return }
             let monitor = Unmanaged<DirectoryMonitor>.fromOpaque(clientCallBackInfo).takeUnretainedValue()
             monitor.callback?()

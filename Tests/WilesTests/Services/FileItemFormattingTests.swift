@@ -45,7 +45,11 @@ public struct FileItemFormattingTests {
 
         report("FileItem.formattedSize", "POS: a 500-byte file produces a non-empty formatted size string", result: !smallItem.formattedSize.isEmpty)
         report("FileItem.formattedSize", "POS: a 5,000,000-byte file produces a non-empty formatted size string", result: !largeItem.formattedSize.isEmpty)
-        report("FileItem.formattedSize", "POS: a several-megabyte file's formatted size differs from a 500-byte file's formatted size", result: smallItem.formattedSize != largeItem.formattedSize)
+        report(
+            "FileItem.formattedSize",
+            "POS: a several-megabyte file's formatted size differs from a 500-byte file's formatted size",
+            result: smallItem.formattedSize != largeItem.formattedSize
+        )
         report("FileItem.formattedSize", "POS: a several-megabyte file's formatted size reports it in MB (larger unit than bytes)", result: largeItem.formattedSize.contains("MB"))
         report("FileItem.formattedSize", "NEG: a 500-byte file's formatted size is not reported in MB", result: !smallItem.formattedSize.contains("MB"))
     }
@@ -83,8 +87,16 @@ public struct FileItemFormattingTests {
         shortFormatter.dateStyle = .short
         shortFormatter.timeStyle = .none
         let expectedYearToken = String(shortFormatter.string(from: Date()).suffix(2))
-        report("FileItem.formattedDate", "POS: formattedDate for a file just created now includes the current (short-style) year", result: item.formattedDate.contains(expectedYearToken))
-        report("FileItem.formattedDateCreated", "POS: formattedDateCreated for a file just created now includes the current (short-style) year", result: item.formattedDateCreated.contains(expectedYearToken))
+        report(
+            "FileItem.formattedDate",
+            "POS: formattedDate for a file just created now includes the current (short-style) year",
+            result: item.formattedDate.contains(expectedYearToken)
+        )
+        report(
+            "FileItem.formattedDateCreated",
+            "POS: formattedDateCreated for a file just created now includes the current (short-style) year",
+            result: item.formattedDateCreated.contains(expectedYearToken)
+        )
         report("FileItem.formattedDate", "NEG: formattedDate is not the raw placeholder \"--\" for a real file with a modification date", result: item.formattedDate != "--")
     }
 
@@ -99,11 +111,23 @@ public struct FileItemFormattingTests {
 
         // dateAccessed is an Optional<Date> on FileItem; formattedDateAccessed must not
         // crash whether or not the filesystem actually supplies a content access date.
-        report("FileItem.formattedDateAccessed", "POS: formattedDateAccessed does not crash and produces a non-empty string either way", result: !item.formattedDateAccessed.isEmpty)
+        report(
+            "FileItem.formattedDateAccessed",
+            "POS: formattedDateAccessed does not crash and produces a non-empty string either way",
+            result: !item.formattedDateAccessed.isEmpty
+        )
         if item.dateAccessed == nil {
-            report("FileItem.formattedDateAccessed", "POS: formattedDateAccessed falls back to \"--\" when dateAccessed is nil", result: item.formattedDateAccessed == "--")
+            report(
+                "FileItem.formattedDateAccessed",
+                "POS: formattedDateAccessed falls back to \"--\" when dateAccessed is nil",
+                result: item.formattedDateAccessed == "--"
+            )
         } else {
-            report("FileItem.formattedDateAccessed", "POS: formattedDateAccessed is not the \"--\" placeholder when dateAccessed is present", result: item.formattedDateAccessed != "--")
+            report(
+                "FileItem.formattedDateAccessed",
+                "POS: formattedDateAccessed is not the \"--\" placeholder when dateAccessed is present",
+                result: item.formattedDateAccessed != "--"
+            )
         }
     }
 

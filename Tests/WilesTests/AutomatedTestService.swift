@@ -10,6 +10,21 @@ public final class AutomatedTestService {
 
         TestReporter.reset()
 
+        await runCoreAndFileSystemTests()
+        await runOrganizationAndUtilityTests()
+        await runModelAndStateTests()
+
+        let passed = TestReporter.passed
+        let failed = TestReporter.failed
+
+        print("=======================================================")
+        print("🏁 COMPREHENSIVE SUITE COMPLETE: \(passed) Passed, \(failed) Failed")
+        print("=======================================================\n")
+
+        exit(failed == 0 ? 0 : 1)
+    }
+
+    private static func runCoreAndFileSystemTests() async {
         NavigationTests.run()
         ArrowKeyNavigationTests.run()
         ListColumnTests.run()
@@ -29,6 +44,9 @@ public final class AutomatedTestService {
         BatchRenameTests.run()
         await FileShredderTests.run()
         SymlinkTests.run()
+    }
+
+    private static func runOrganizationAndUtilityTests() async {
         await UndoRedoTests.run()
         await HttpServerTests.run()
         await AutoOrganizationTests.run()
@@ -48,6 +66,9 @@ public final class AutomatedTestService {
         ColumnAutoFitTests.run()
         LocalizationCoverageTests.run()
         await ThumbnailServiceCoverageTests.run()
+    }
+
+    private static func runModelAndStateTests() async {
         await FileSystemSearchAndSortTests.run()
         AppStatePreferencesTests.run()
         AppStateColumnsAndSelectionTests.run()
@@ -59,14 +80,5 @@ public final class AutomatedTestService {
         StateAndTaskModelsTests.run()
         await DirectoryMonitorTests.run()
         FileItemFormattingTests.run()
-
-        let passed = TestReporter.passed
-        let failed = TestReporter.failed
-
-        print("=======================================================")
-        print("🏁 COMPREHENSIVE SUITE COMPLETE: \(passed) Passed, \(failed) Failed")
-        print("=======================================================\n")
-
-        exit(failed == 0 ? 0 : 1)
     }
 }

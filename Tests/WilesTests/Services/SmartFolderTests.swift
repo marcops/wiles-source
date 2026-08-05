@@ -65,7 +65,7 @@ public struct SmartFolderTests {
 
     private static func testCorruptedDefaultsDataReturnsEmptyArray() {
         // NEG: if the persisted bytes aren't valid JSON for [SmartFolder], loading fails gracefully to []
-        let garbage = "not valid json".data(using: .utf8)!
+        let garbage = Data("not valid json".utf8)
         UserDefaults.standard.set(garbage, forKey: DefaultsKey.smartFolders.rawValue)
 
         let loaded = SmartFolderService.loadSavedSmartFolders()

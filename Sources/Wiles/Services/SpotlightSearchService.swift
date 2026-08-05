@@ -54,7 +54,8 @@ public final class SpotlightSearchService {
         completionHandler = nil
     }
 
-    @objc private func queryDidFinishGathering(_ notification: Notification) {
+    @objc
+    private func queryDidFinishGathering(_ notification: Notification) {
         guard let query = metadataQuery else { return }
         query.stop()
 

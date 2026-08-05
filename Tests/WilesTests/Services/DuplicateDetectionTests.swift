@@ -114,7 +114,11 @@ public struct DuplicateDetectionTests {
         try? contentB.write(to: fileB, atomically: true, encoding: .utf8)
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
-        report("DuplicateDetection", "POS: files >4096 bytes with identical prefix but differing tail are still grouped (partial-hash limitation)", result: result.groups.contains { $0.items.count == 2 })
+        report(
+            "DuplicateDetection",
+            "POS: files >4096 bytes with identical prefix but differing tail are still grouped (partial-hash limitation)",
+            result: result.groups.contains { $0.items.count == 2 }
+        )
     }
 
     private static func testEmptyFilesAreNotGrouped() async {
@@ -126,7 +130,11 @@ public struct DuplicateDetectionTests {
         try? "".write(to: dir.appendingPathComponent("empty_b.txt"), atomically: true, encoding: .utf8)
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
-        report("DuplicateDetection", "NEG: zero-byte files are excluded from scanning and never grouped as duplicates", result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
+        report(
+            "DuplicateDetection",
+            "NEG: zero-byte files are excluded from scanning and never grouped as duplicates",
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
+        )
     }
 
     private static func testHiddenFilesAreSkipped() async {
@@ -139,7 +147,11 @@ public struct DuplicateDetectionTests {
         try? content.write(to: dir.appendingPathComponent(".hidden_b.txt"), atomically: true, encoding: .utf8)
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
-        report("DuplicateDetection", "NEG: hidden dotfiles are skipped during enumeration and not grouped as duplicates", result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
+        report(
+            "DuplicateDetection",
+            "NEG: hidden dotfiles are skipped during enumeration and not grouped as duplicates",
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
+        )
     }
 
     private static func testThreeIdenticalFilesFormOneGroupOfThree() async {

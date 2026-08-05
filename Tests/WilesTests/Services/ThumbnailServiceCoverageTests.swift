@@ -33,7 +33,11 @@ public struct ThumbnailServiceCoverageTests {
         let zipURL = tempDir.appendingPathComponent("archive.zip")
         FileManager.default.createFile(atPath: zipURL.path, contents: Data())
         let zipItem = FileItem(url: zipURL, icon: makeFakeIcon())
-        TestReporter.report("ThumbnailService", "NEG: supportsThumbnail(item:) returns false for a .zip file (archive type)", result: !ThumbnailService.supportsThumbnail(item: zipItem))
+        TestReporter.report(
+            "ThumbnailService",
+            "NEG: supportsThumbnail(item:) returns false for a .zip file (archive type)",
+            result: !ThumbnailService.supportsThumbnail(item: zipItem)
+        )
 
         // POS: a real file with a plain image extension is eligible.
         let pngURL = tempDir.appendingPathComponent("photo.png")
@@ -45,13 +49,21 @@ public struct ThumbnailServiceCoverageTests {
         let weirdURL = tempDir.appendingPathComponent("mystery.qzxnotarealext")
         FileManager.default.createFile(atPath: weirdURL.path, contents: Data())
         let weirdItem = FileItem(url: weirdURL, icon: makeFakeIcon())
-        TestReporter.report("ThumbnailService", "NEG: supportsThumbnail(item:) returns false for an unrecognized extension", result: !ThumbnailService.supportsThumbnail(item: weirdItem))
+        TestReporter.report(
+            "ThumbnailService",
+            "NEG: supportsThumbnail(item:) returns false for an unrecognized extension",
+            result: !ThumbnailService.supportsThumbnail(item: weirdItem)
+        )
 
         // NEG: a file with no extension at all returns false so native icons remain stable.
         let noExtURL = tempDir.appendingPathComponent("README")
         FileManager.default.createFile(atPath: noExtURL.path, contents: Data())
         let noExtItem = FileItem(url: noExtURL, icon: makeFakeIcon())
-        TestReporter.report("ThumbnailService", "NEG: supportsThumbnail(item:) returns false for a file with no extension", result: !ThumbnailService.supportsThumbnail(item: noExtItem))
+        TestReporter.report(
+            "ThumbnailService",
+            "NEG: supportsThumbnail(item:) returns false for a file with no extension",
+            result: !ThumbnailService.supportsThumbnail(item: noExtItem)
+        )
     }
 
     private static func testCacheKeyDoesNotCollideBetweenSizes() {

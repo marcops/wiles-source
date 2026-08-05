@@ -132,7 +132,11 @@ public struct AppStateOperationsExtraTests {
         let destFile = destDir.appendingPathComponent("paste-me.txt")
         let copiedExists = FileManager.default.fileExists(atPath: destFile.path)
         let sourceStillExists = FileManager.default.fileExists(atPath: sourceFile.path)
-        report("AppState+Operations", "POS: pasteToCurrentDirectory() with a .copy clipboard duplicates the file into the current directory and preserves the source", result: copiedExists && sourceStillExists && appState.clipboard != nil)
+        report(
+            "AppState+Operations",
+            "POS: pasteToCurrentDirectory() with a .copy clipboard duplicates the file into the current directory and preserves the source",
+            result: copiedExists && sourceStillExists && appState.clipboard != nil
+        )
 
         // NEG: cut-clipboard paste clears the clipboard synchronously (before the async move even completes).
         let cutFile = makeFile(named: "cut-me.txt", in: sourceDir, content: "cut content")
@@ -141,12 +145,20 @@ public struct AppStateOperationsExtraTests {
         appState2.clipboard = ClipboardState(urls: [cutFile], action: .cut)
         appState2.pasteToCurrentDirectory()
         let clipboardClearedImmediately = appState2.clipboard == nil
-        report("AppState+Operations", "NEG: pasteToCurrentDirectory() with a .cut clipboard clears the clipboard immediately, not waiting for the move to finish", result: clipboardClearedImmediately)
+        report(
+            "AppState+Operations",
+            "NEG: pasteToCurrentDirectory() with a .cut clipboard clears the clipboard immediately, not waiting for the move to finish",
+            result: clipboardClearedImmediately
+        )
 
         try? await Task.sleep(nanoseconds: 400_000_000)
         let movedExists = FileManager.default.fileExists(atPath: destDir.appendingPathComponent("cut-me.txt").path)
         let originalGone = !FileManager.default.fileExists(atPath: cutFile.path)
-        report("AppState+Operations", "POS: pasteToCurrentDirectory() with a .cut clipboard eventually moves the file into the current directory", result: movedExists && originalGone)
+        report(
+            "AppState+Operations",
+            "POS: pasteToCurrentDirectory() with a .cut clipboard eventually moves the file into the current directory",
+            result: movedExists && originalGone
+        )
     }
 
     private static func testUndoRedoLastAction() async {
@@ -183,7 +195,11 @@ public struct AppStateOperationsExtraTests {
         appState2.selectedURLs = [sentinel]
         appState2.redoLastAction()
         try? await Task.sleep(nanoseconds: 300_000_000)
-        report("AppState+Operations", "NEG: redoLastAction() with an empty redo stack leaves the current selection untouched", result: appState2.selectedURLs.first?.path == sentinel.path)
+        report(
+            "AppState+Operations",
+            "NEG: redoLastAction() with an empty redo stack leaves the current selection untouched",
+            result: appState2.selectedURLs.first?.path == sentinel.path
+        )
     }
 
     private static func testDownloadFromiCloudFailure() async {
@@ -192,7 +208,11 @@ public struct AppStateOperationsExtraTests {
         appState.errorMessage = nil
         appState.downloadFromiCloud(url: missingURL)
         try? await Task.sleep(nanoseconds: 500_000_000)
-        report("AppState+Operations", "NEG: downloadFromiCloud() with a URL that isn't a ubiquitous item reports an error instead of crashing", result: appState.errorMessage != nil)
+        report(
+            "AppState+Operations",
+            "NEG: downloadFromiCloud() with a URL that isn't a ubiquitous item reports an error instead of crashing",
+            result: appState.errorMessage != nil
+        )
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

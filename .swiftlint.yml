@@ -4,6 +4,7 @@ excluded:
   - dist
   - releases
   - Wiles.app
+  - .claude
 
 opt_in_rules:
   - force_unwrapping

@@ -28,7 +28,8 @@ final class WilesSidebarInteractionUITests: XCTestCase {
     /// silently pass even if the button never existed and even if the click had no effect.
     /// Here we require the button to exist, and we require the visible row count to actually
     /// change after the click (collapse hides child rows, expand reveals them again).
-    @MainActor func testFavoritesSectionCollapseChangesVisibleRowCount() throws {
+    @MainActor
+    func testFavoritesSectionCollapseChangesVisibleRowCount() throws {
         let favoritesBtn = app.buttons["Section_FAVORITES"]
         XCTAssertTrue(
             favoritesBtn.waitForExistence(timeout: 2.0),
@@ -60,7 +61,8 @@ final class WilesSidebarInteractionUITests: XCTestCase {
     }
 
     /// Same fix applied to the Recents section header.
-    @MainActor func testRecentsSectionCollapseChangesVisibleRowCount() throws {
+    @MainActor
+    func testRecentsSectionCollapseChangesVisibleRowCount() throws {
         let recentsBtn = app.buttons["Section_RECENTS"]
         XCTAssertTrue(
             recentsBtn.waitForExistence(timeout: 2.0),
@@ -82,7 +84,8 @@ final class WilesSidebarInteractionUITests: XCTestCase {
     /// which is surfaced in the UI via the window title (Wiles sets the window title to the
     /// current folder name) and via the toolbar path/breadcrumb. We assert the window title
     /// actually changes across the click rather than merely asserting the click didn't crash.
-    @MainActor func testClickingFavoriteItemChangesWindowTitle() throws {
+    @MainActor
+    func testClickingFavoriteItemChangesWindowTitle() throws {
         let favoritesBtn = app.buttons["Section_FAVORITES"]
         XCTAssertTrue(
             favoritesBtn.waitForExistence(timeout: 2.0),
@@ -119,7 +122,8 @@ final class WilesSidebarInteractionUITests: XCTestCase {
     /// the sidebar, the row's `isSelected` trait is inspected, but we do not hard-fail the test
     /// system-wide on this since the button role does not guarantee the trait is honored — this
     /// assertion is intentionally soft and documented as such per the task's honesty requirement.
-    @MainActor func testSelectedSidebarRowExposesSelectedState() throws {
+    @MainActor
+    func testSelectedSidebarRowExposesSelectedState() throws {
         let homeRow = app.buttons["Home"]
         XCTAssertTrue(
             homeRow.waitForExistence(timeout: 2.0),
@@ -144,7 +148,8 @@ final class WilesSidebarInteractionUITests: XCTestCase {
     /// of any accessibilityIdentifier. We switch the sidebar to tree mode via Cmd+3 (per the
     /// existing shortcut test in WilesFullSheetsAndMenusUITests) then interact with the first
     /// disclosure triangle found and assert the row count changes.
-    @MainActor func testDirectoryTreeDisclosureTriangleTogglesChildRows() throws {
+    @MainActor
+    func testDirectoryTreeDisclosureTriangleTogglesChildRows() throws {
         // Cmd+3 switches sidebar mode to tree, matching testShortcutNavigationKeyBindings in
         // WilesFullSheetsAndMenusUITests.swift.
         app.typeKey("3", modifierFlags: .command)

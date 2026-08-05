@@ -64,13 +64,21 @@ public struct AutoOrganizationRuleAndListColumnTests {
         let fixedID = UUID()
         let ruleC = AutoOrganizationRule(id: fixedID, sourceURL: source, destinationURL: destination, conditionType: .namePrefix, conditionValue: "IMG")
         let ruleD = AutoOrganizationRule(id: fixedID, sourceURL: source, destinationURL: destination, conditionType: .namePrefix, conditionValue: "IMG")
-        report("AutoOrganizationRule", "POS: rules constructed with the same explicit id compare equal (Hashable/Equatable via memberwise synthesis)", result: ruleC == ruleD && ruleC.id == ruleD.id)
+        report(
+            "AutoOrganizationRule",
+            "POS: rules constructed with the same explicit id compare equal (Hashable/Equatable via memberwise synthesis)",
+            result: ruleC == ruleD && ruleC.id == ruleD.id
+        )
     }
 
     private static func testRuleConditionTypeCases() {
         let allCases = RuleConditionType.allCases
         let uniqueIDs = Set(allCases.map { $0.id })
-        report("AutoOrganizationRule", "POS: RuleConditionType.allCases has 3 cases with unique ids matching their raw values", result: allCases.count == 3 && uniqueIDs.count == 3 && allCases.allSatisfy { $0.id == $0.rawValue })
+        report(
+            "AutoOrganizationRule",
+            "POS: RuleConditionType.allCases has 3 cases with unique ids matching their raw values",
+            result: allCases.count == 3 && uniqueIDs.count == 3 && allCases.allSatisfy { $0.id == $0.rawValue }
+        )
 
         do {
             let data = try JSONEncoder().encode(RuleConditionType.extensionEquals)
@@ -81,7 +89,7 @@ public struct AutoOrganizationRuleAndListColumnTests {
         }
 
         do {
-            let data = "\"Not A Real Condition\"".data(using: .utf8)!
+            let data = Data("\"Not A Real Condition\"".utf8)
             _ = try JSONDecoder().decode(RuleConditionType.self, from: data)
             report("AutoOrganizationRule", "NEG: RuleConditionType fails to decode an unrecognized raw value", result: false)
         } catch {
@@ -95,7 +103,11 @@ public struct AutoOrganizationRuleAndListColumnTests {
         let defaults = ListColumnState.defaults()
         let allColumns = Set(ListColumn.allCases)
         let defaultColumns = Set(defaults.map { $0.column })
-        report("ListColumnSettings", "POS: defaults() returns exactly one entry per ListColumn case", result: defaults.count == ListColumn.allCases.count && defaultColumns == allColumns)
+        report(
+            "ListColumnSettings",
+            "POS: defaults() returns exactly one entry per ListColumn case",
+            result: defaults.count == ListColumn.allCases.count && defaultColumns == allColumns
+        )
 
         let initiallyVisible: Set<ListColumn> = [.name, .size, .dateModified]
         let actualVisible = Set(defaults.filter { $0.isVisible }.map { $0.column })
@@ -107,7 +119,11 @@ public struct AutoOrganizationRuleAndListColumnTests {
         report("ListColumnSettings", "NEG: defaults() leaves the remaining columns hidden", result: hiddenSet == expectedHidden)
 
         report("ListColumnSettings", "POS: Name column is always visible per isAlwaysVisible", result: ListColumn.name.isAlwaysVisible == true)
-        report("ListColumnSettings", "NEG: non-name columns report isAlwaysVisible == false", result: ListColumn.allCases.filter { $0 != .name }.allSatisfy { $0.isAlwaysVisible == false })
+        report(
+            "ListColumnSettings",
+            "NEG: non-name columns report isAlwaysVisible == false",
+            result: ListColumn.allCases.filter { $0 != .name }.allSatisfy { $0.isAlwaysVisible == false }
+        )
     }
 
     private static func testListColumnDefaultWidths() {
@@ -120,7 +136,11 @@ public struct AutoOrganizationRuleAndListColumnTests {
         let widthsMatch = defaults.allSatisfy { $0.width == $0.column.defaultWidth }
         report("ListColumnSettings", "POS: each default state's width matches its column's defaultWidth", result: widthsMatch)
 
-        report("ListColumnSettings", "NEG: name column's defaultWidth (280) is not clamped to columnMinWidth like other small values would be", result: ListColumn.name.defaultWidth == 280 && ListColumn.name.defaultWidth != LayoutTokens.columnMinWidth)
+        report(
+            "ListColumnSettings",
+            "NEG: name column's defaultWidth (280) is not clamped to columnMinWidth like other small values would be",
+            result: ListColumn.name.defaultWidth == 280 && ListColumn.name.defaultWidth != LayoutTokens.columnMinWidth
+        )
     }
 
     private static func testListColumnStateCodableRoundTrip() {
@@ -138,13 +158,17 @@ public struct AutoOrganizationRuleAndListColumnTests {
             let array = ListColumnState.defaults()
             let data = try JSONEncoder().encode(array)
             let decodedArray = try JSONDecoder().decode([ListColumnState].self, from: data)
-            report("ListColumnSettings", "POS: full defaults() array survives JSON round-trip with matching count and order", result: decodedArray.map { $0.column } == array.map { $0.column })
+            report(
+                "ListColumnSettings",
+                "POS: full defaults() array survives JSON round-trip with matching count and order",
+                result: decodedArray.map { $0.column } == array.map { $0.column }
+            )
         } catch {
             report("ListColumnSettings", "POS: full defaults() array survives JSON round-trip with matching count and order", result: false)
         }
 
         do {
-            let data = "{\"column\":\"Not A Column\",\"width\":50,\"isVisible\":true}".data(using: .utf8)!
+            let data = Data("{\"column\":\"Not A Column\",\"width\":50,\"isVisible\":true}".utf8)
             _ = try JSONDecoder().decode(ListColumnState.self, from: data)
             report("ListColumnSettings", "NEG: ListColumnState fails to decode when column raw value is unrecognized", result: false)
         } catch {

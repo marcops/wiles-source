@@ -128,7 +128,9 @@ public struct LocalizationCoverageTests {
             if value.isEmpty { allReturnedSomething = false }
         }
         TestReporter.report(
-            "Localization", "NEG: L10n.string on orphan keys (itemsCount, itemsCountWithSize, selectedItemsCount, selectedItemsCountWithSize) does not crash and returns a non-empty fallback string",
+            "Localization",
+            "NEG: L10n.string on orphan keys (itemsCount, itemsCountWithSize, selectedItemsCount, selectedItemsCountWithSize) "
+                + "does not crash and returns a non-empty fallback string",
             result: allReturnedSomething
         )
     }

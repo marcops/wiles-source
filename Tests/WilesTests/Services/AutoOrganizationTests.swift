@@ -11,6 +11,10 @@ public struct AutoOrganizationTests {
         try? FileManager.default.createDirectory(at: inputDir, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: targetDir, withIntermediateDirectories: true)
 
+        // Files must exist before `service.rules` is assigned: the assignment's didSet calls
+        // restartMonitoring(), which starts a DispatchSource watcher on inputDir. Creating the
+        // files afterward races that watcher's own async handling against this test's explicit
+        // processFolder() call below (this order matches the original, verified-working test).
         let matchingFile = inputDir.appendingPathComponent("invoice.pdf")
         let nonMatchingFile = inputDir.appendingPathComponent("notes.txt")
         try? "PDF".write(to: matchingFile, atomically: true, encoding: .utf8)
@@ -28,6 +32,17 @@ public struct AutoOrganizationTests {
         let oldRules = service.rules
         service.rules = [rule]
 
+        await testActiveRuleExecution(service: service, matchingFile: matchingFile, nonMatchingFile: nonMatchingFile, inputDir: inputDir, targetDir: targetDir)
+        await testDisabledRuleExecution(service: service, inputDir: inputDir, baseRule: rule)
+        await testNameContainsCondition(service: service, inputDir: inputDir, targetDir: targetDir)
+        await testNamePrefixCondition(service: service, inputDir: inputDir, targetDir: targetDir)
+        testRuleMutationMethods(service: service, rule: rule)
+
+        service.rules = oldRules
+        try? FileManager.default.removeItem(at: baseTemp)
+    }
+
+    private static func testActiveRuleExecution(service: AutoOrganizationService, matchingFile: URL, nonMatchingFile: URL, inputDir: URL, targetDir: URL) async {
         // Positive: Active Rule Execution
         service.processFolder(inputDir)
         try? await Task.sleep(nanoseconds: 300_000_000)
@@ -39,11 +54,13 @@ public struct AutoOrganizationTests {
         // Negative: Non-Matching File Remains Intact
         let nonMatchIntact = FileManager.default.fileExists(atPath: nonMatchingFile.path)
         TestReporter.report("AutoOrganization", "NEG: Non-matching .txt file remains untouched in source directory", result: nonMatchIntact)
+    }
 
+    private static func testDisabledRuleExecution(service: AutoOrganizationService, inputDir: URL, baseRule: AutoOrganizationRule) async {
         // Negative: Disabled Rule Execution
         let matchingFile2 = inputDir.appendingPathComponent("contract.pdf")
         try? "PDF 2".write(to: matchingFile2, atomically: true, encoding: .utf8)
-        var disabledRule = rule
+        var disabledRule = baseRule
         disabledRule.isEnabled = false
         service.rules = [disabledRule]
 
@@ -52,7 +69,9 @@ public struct AutoOrganizationTests {
 
         let disabledIntact = FileManager.default.fileExists(atPath: matchingFile2.path)
         TestReporter.report("AutoOrganization", "NEG: Disabled rule ignores matching file", result: disabledIntact)
+    }
 
+    private static func testNameContainsCondition(service: AutoOrganizationService, inputDir: URL, targetDir: URL) async {
         // POS: nameContains condition type
         let containsFile = inputDir.appendingPathComponent("draft_report.txt")
         try? "x".write(to: containsFile, atomically: true, encoding: .utf8)
@@ -62,8 +81,14 @@ public struct AutoOrganizationTests {
         service.rules = [containsRule]
         service.processFolder(inputDir)
         try? await Task.sleep(nanoseconds: 300_000_000)
-        TestReporter.report("AutoOrganization", "POS: .nameContains rule matches a substring anywhere in the filename", result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("draft_report.txt").path))
+        TestReporter.report(
+            "AutoOrganization",
+            "POS: .nameContains rule matches a substring anywhere in the filename",
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("draft_report.txt").path)
+        )
+    }
 
+    private static func testNamePrefixCondition(service: AutoOrganizationService, inputDir: URL, targetDir: URL) async {
         // POS: namePrefix condition type
         let prefixFile = inputDir.appendingPathComponent("IMG_1234.jpg")
         try? "x".write(to: prefixFile, atomically: true, encoding: .utf8)
@@ -73,8 +98,14 @@ public struct AutoOrganizationTests {
         service.rules = [prefixRule]
         service.processFolder(inputDir)
         try? await Task.sleep(nanoseconds: 300_000_000)
-        TestReporter.report("AutoOrganization", "POS: .namePrefix rule matches case-insensitively", result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("IMG_1234.jpg").path))
+        TestReporter.report(
+            "AutoOrganization",
+            "POS: .namePrefix rule matches case-insensitively",
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("IMG_1234.jpg").path)
+        )
+    }
 
+    private static func testRuleMutationMethods(service: AutoOrganizationService, rule: AutoOrganizationRule) {
         // POS: addRule / updateRule / deleteRule mutate the rules array directly
         service.rules = []
         service.addRule(rule)
@@ -87,8 +118,5 @@ public struct AutoOrganizationTests {
 
         service.deleteRule(id: rule.id)
         TestReporter.report("AutoOrganization", "POS: deleteRule() removes the rule with matching id", result: !service.rules.contains(where: { $0.id == rule.id }))
-
-        service.rules = oldRules
-        try? FileManager.default.removeItem(at: baseTemp)
     }
 }

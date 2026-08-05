@@ -104,7 +104,7 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         return Self.shortDateFormatter.string(from: date)
     }
 
-    public static func == (lhs: FileItem, rhs: FileItem) -> Bool {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.url == rhs.url &&
         lhs.isDirectory == rhs.isDirectory &&
         lhs.size == rhs.size &&

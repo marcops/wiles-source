@@ -287,7 +287,11 @@ public struct HttpServerTests {
                 blocked = httpResp.statusCode == 403 || httpResp.statusCode == 400
             }
         }
-        TestReporter.report("LocalHttpServer", "NEG: Path traversal into a sibling directory sharing the shared folder's name prefix (e.g. \"<uuid>EVIL\") is blocked", result: blocked)
+        TestReporter.report(
+            "LocalHttpServer",
+            "NEG: Path traversal into a sibling directory sharing the shared folder's name prefix (e.g. \"<uuid>EVIL\") is blocked",
+            result: blocked
+        )
     }
 
     private static func checkTrailingSlashDirectoryReturns500() async {

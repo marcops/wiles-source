@@ -57,6 +57,19 @@ public struct ArchiveTests {
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
+        runIsArchiveAndMultiFileCoverage(tempDir: tempDir)
+        runCollisionAndPasswordCoverage()
+        runRoundTripCoverage(tempDir: tempDir)
+
+        runPasswordExtractionTests()
+        runTarExtractionTests()
+        runIsArchiveEdgeCaseTests()
+        runExtractZIPWrapperTests()
+        runCorruptArchiveErrorPathTests()
+        runSourcesOutsideDestinationTests()
+    }
+
+    private static func runIsArchiveAndMultiFileCoverage(tempDir: URL) {
         // POS: isArchive recognizes supported extensions
         let names = ["a.zip", "a.tar", "a.tgz", "a.tar.gz", "a.tar.bz2", "a.tar.xz"]
         let allTrue = names.allSatisfy { ArchiveService.isArchive(url: tempDir.appendingPathComponent($0)) }
@@ -79,7 +92,9 @@ public struct ArchiveTests {
             print("Multi compress error: \(error)")
         }
         TestReporter.report("ZipArchive", "POS: compressToZIP with multiple files creates Archive.zip", result: multiPassed)
+    }
 
+    private static func runCollisionAndPasswordCoverage() {
         // POS: name collision appends " 2.zip" counter
         let collideDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: collideDir, withIntermediateDirectories: true)
@@ -113,7 +128,9 @@ public struct ArchiveTests {
             print("Password compress error: \(error)")
         }
         TestReporter.report("ZipArchive", "POS: compressToZIP with password creates a valid encrypted .zip", result: pwdPassed)
+    }
 
+    private static func runRoundTripCoverage(tempDir: URL) {
         // POS: extract round-trips the original file content back out
         var roundTripPassed = false
         let roundTripFile = tempDir.appendingPathComponent("roundtrip.txt")
@@ -130,18 +147,10 @@ public struct ArchiveTests {
             print("Round trip error: \(error)")
         }
         TestReporter.report("ZipArchive", "POS: extractArchive round-trips original file content correctly", result: roundTripPassed)
-
-        runPasswordExtractionTests()
-        runTarExtractionTests()
-        runIsArchiveEdgeCaseTests()
-        runExtractZIPWrapperTests()
-        runCorruptArchiveErrorPathTests()
-        runSourcesOutsideDestinationTests()
     }
 
-    /// Regression coverage for the -j/absolute-path fix: source files that do NOT live inside
-    /// the destination folder must still be found and packed correctly (both the plain
-    /// multi-file `zip` branch and the password `zip -P` branch use absolute source paths).
+    /// Regression coverage for the -j/absolute-path fix: source files outside the destination folder must still be found and packed correctly.
+    /// Covers both the plain multi-file `zip` branch and the password `zip -P` branch, which use absolute source paths.
     private static func runSourcesOutsideDestinationTests() {
         let sourceDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let destDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
@@ -157,8 +166,7 @@ public struct ArchiveTests {
         try? "Outside A".write(to: outsideA, atomically: true, encoding: .utf8)
         try? "Outside B".write(to: outsideB, atomically: true, encoding: .utf8)
 
-        // POS: multi-file compressToZIP with sources outside the destination folder
-        // (exercises the plain `zip -j <dest> <abs paths...>` branch).
+        // POS: multi-file compressToZIP with sources outside the destination folder (exercises the plain `zip -j <dest> <abs paths...>` branch).
         var multiOutsidePassed = false
         do {
             try ArchiveService.compressToZIP(urls: [outsideA, outsideB], in: destDir)
@@ -172,8 +180,13 @@ public struct ArchiveTests {
         } catch {
             print("Multi outside-destination compress error: \(error)")
         }
-        TestReporter.report("ZipArchive", "POS: compressToZIP with multiple sources outside destination folder packs and extracts both files (-j absolute path fix)", result: multiOutsidePassed)
+        TestReporter.report("ZipArchive", "POS: compressToZIP with multiple sources outside destination folder packs and extracts both files (-j absolute path fix)",
+            result: multiOutsidePassed)
 
+        runPasswordOutsideDestinationTest(destDir: destDir)
+    }
+
+    private static func runPasswordOutsideDestinationTest(destDir: URL) {
         // POS: password-protected compressToZIP with sources outside the destination folder
         // (exercises the `zip -j -P <pwd> <dest> <abs paths...>` branch).
         let pwdSourceDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
@@ -202,7 +215,8 @@ public struct ArchiveTests {
         } catch {
             print("Password outside-destination compress error: \(error)")
         }
-        TestReporter.report("ZipArchive", "POS: compressToZIP with password and source outside destination folder packs and decrypts correctly (-j absolute path fix)", result: pwdOutsidePassed)
+        TestReporter.report("ZipArchive", "POS: compressToZIP with password and source outside destination folder packs and decrypts correctly (-j absolute path fix)",
+            result: pwdOutsidePassed)
     }
 
     private static func runPasswordExtractionTests() {
@@ -240,6 +254,10 @@ public struct ArchiveTests {
         }
         TestReporter.report("ZipArchive", "NEG: unzip -P with wrong password fails to extract password-protected zip", result: createdPasswordZip && wrongPasswordFailed)
 
+        runCorrectPasswordAndDittoCoverage(dir: dir, pwdZip: pwdZip)
+    }
+
+    private static func runCorrectPasswordAndDittoCoverage(dir: URL, pwdZip: URL) {
         // POS: unzip with correct password succeeds and yields original content
         var correctPasswordPassed = false
         let correctPassOut = dir.appendingPathComponent("CorrectPassOut")
@@ -272,7 +290,9 @@ public struct ArchiveTests {
         }
         TestReporter.report("ZipArchive", "NEG: extractArchive (ditto-based, no password param) fails to extract a password-protected zip", result: dittoOnPasswordZipFailed)
     }
+}
 
+extension ArchiveTests {
     private static func runTarExtractionTests() {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -310,6 +330,10 @@ public struct ArchiveTests {
         }
         TestReporter.report("ZipArchive", "POS: extractArchive extracts a plain .tar via /usr/bin/tar", result: tarCreated && tarExtractPassed)
 
+        runTgzExtractionTest(dir: dir)
+    }
+
+    private static func runTgzExtractionTest(dir: URL) {
         // Build a .tgz via /usr/bin/tar
         let tgzURL = dir.appendingPathComponent("archive.tgz")
         var tgzCreated = false
@@ -339,6 +363,10 @@ public struct ArchiveTests {
         }
         TestReporter.report("ZipArchive", "POS: extractArchive extracts a .tgz via /usr/bin/tar", result: tgzCreated && tgzExtractPassed)
 
+        runTarGzExtractionTest(dir: dir)
+    }
+
+    private static func runTarGzExtractionTest(dir: URL) {
         // Build a .tar.gz (name-based suffix match, not .tgz extension) via /usr/bin/tar
         let tarGzURL = dir.appendingPathComponent("archive.tar.gz")
         var tarGzCreated = false

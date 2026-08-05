@@ -6,31 +6,38 @@ import XCTest
 // navigator all see and run them. Each suite's own positive/negative assertions
 // are untouched — TestReporter.report now calls XCTFail on failure.
 final class WilesAutomatedTests: XCTestCase {
-    @MainActor func testNavigationTests() {
+    @MainActor
+    func testNavigationTests() {
         NavigationTests.run()
     }
 
-    @MainActor func testArrowKeyNavigationTests() {
+    @MainActor
+    func testArrowKeyNavigationTests() {
         ArrowKeyNavigationTests.run()
     }
 
-    @MainActor func testListColumnTests() {
+    @MainActor
+    func testListColumnTests() {
         ListColumnTests.run()
     }
 
-    @MainActor func testUISearchTests() async {
+    @MainActor
+    func testUISearchTests() async {
         await UISearchTests.run()
     }
 
-    @MainActor func testUITests() {
+    @MainActor
+    func testUITests() {
         UITests.run()
     }
 
-    @MainActor func testFullUIActionCoverageTests() async {
+    @MainActor
+    func testFullUIActionCoverageTests() async {
         await FullUIActionCoverageTests.run()
     }
 
-    @MainActor func testModelSuites() {
+    @MainActor
+    func testModelSuites() {
         FileItemTests.run()
         FolderNodeTests.run()
         SidebarItemTests.run()
@@ -44,7 +51,8 @@ final class WilesAutomatedTests: XCTestCase {
         PreferencesStoreTests.run()
     }
 
-    @MainActor func testViewSuites() {
+    @MainActor
+    func testViewSuites() {
         ClickOutsideDetectorTests.run()
         DoubleClickZoomDetectorTests.run()
         EmptyDirectoryViewTests.run()
@@ -60,7 +68,8 @@ final class WilesAutomatedTests: XCTestCase {
         SingleInputSheetViewTests.run()
     }
 
-    @MainActor func testFeatureSuites() async {
+    @MainActor
+    func testFeatureSuites() async {
         ArchiveInspectorFeatureTests.run()
         BatchRenameFeatureTests.run()
         await DiskSpaceVisualizerFeatureTests.run()
@@ -71,179 +80,223 @@ final class WilesAutomatedTests: XCTestCase {
         SmartFoldersFeatureTests.run()
     }
 
-    @MainActor func testLocalizationTests() {
+    @MainActor
+    func testLocalizationTests() {
         LocalizationTests.run()
     }
 
-    @MainActor func testFileSystemTests() async {
+    @MainActor
+    func testFileSystemTests() async {
         await FileSystemTests.run()
     }
 
-    @MainActor func testCopyPathTests() {
+    @MainActor
+    func testCopyPathTests() {
         CopyPathTests.run()
     }
 
-    @MainActor func testOpenWithTests() {
+    @MainActor
+    func testOpenWithTests() {
         OpenWithTests.run()
     }
 
-    @MainActor func testICloudTests() {
+    @MainActor
+    func testICloudTests() {
         ICloudTests.run()
     }
 
-    @MainActor func testFilePermissionsTests() {
+    @MainActor
+    func testFilePermissionsTests() {
         FilePermissionsTests.run()
     }
 
-    @MainActor func testSmartFolderTests() {
+    @MainActor
+    func testSmartFolderTests() {
         SmartFolderTests.run()
     }
 
-    @MainActor func testPDFMergeTests() {
+    @MainActor
+    func testPDFMergeTests() {
         PDFMergeTests.run()
     }
 
-    @MainActor func testExifMetadataTests() {
+    @MainActor
+    func testExifMetadataTests() {
         ExifMetadataTests.run()
     }
 
-    @MainActor func testArchiveInspectionTests() {
+    @MainActor
+    func testArchiveInspectionTests() {
         ArchiveInspectionTests.run()
     }
 
-    @MainActor func testArchiveTests() {
+    @MainActor
+    func testArchiveTests() {
         ArchiveTests.run()
     }
 
-    @MainActor func testBatchRenameTests() {
+    @MainActor
+    func testBatchRenameTests() {
         BatchRenameTests.run()
     }
 
-    @MainActor func testFileShredderTests() async {
+    @MainActor
+    func testFileShredderTests() async {
         await FileShredderTests.run()
     }
 
-    @MainActor func testSymlinkTests() {
+    @MainActor
+    func testSymlinkTests() {
         SymlinkTests.run()
     }
 
-    @MainActor func testUndoRedoTests() async {
+    @MainActor
+    func testUndoRedoTests() async {
         await UndoRedoTests.run()
     }
 
-    @MainActor func testHttpServerTests() async {
+    @MainActor
+    func testHttpServerTests() async {
         await HttpServerTests.run()
     }
 
-    @MainActor func testAutoOrganizationTests() async {
+    @MainActor
+    func testAutoOrganizationTests() async {
         await AutoOrganizationTests.run()
     }
 
-    @MainActor func testNewFileTemplateTests() {
+    @MainActor
+    func testNewFileTemplateTests() {
         NewFileTemplateTests.run()
     }
 
-    @MainActor func testDiskSpaceVisualizerTests() async {
+    @MainActor
+    func testDiskSpaceVisualizerTests() async {
         await DiskSpaceVisualizerTests.run()
     }
 
-    @MainActor func testImageConverterTests() {
+    @MainActor
+    func testImageConverterTests() {
         ImageConverterTests.run()
     }
 
-    @MainActor func testNetworkDiscoveryTests() {
+    @MainActor
+    func testNetworkDiscoveryTests() {
         NetworkDiscoveryTests.run()
     }
 
-    @MainActor func testPermissionTests() {
+    @MainActor
+    func testPermissionTests() {
         PermissionTests.run()
     }
 
-    @MainActor func testSyntaxHighlighterTests() {
+    @MainActor
+    func testSyntaxHighlighterTests() {
         SyntaxHighlighterTests.run()
     }
 
-    @MainActor func testDuplicateDetectionTests() async {
+    @MainActor
+    func testDuplicateDetectionTests() async {
         await DuplicateDetectionTests.run()
     }
 
-    @MainActor func testFileMetadataTests() async {
+    @MainActor
+    func testFileMetadataTests() async {
         await FileMetadataTests.run()
     }
 
-    @MainActor func testDirectoryCacheTests() {
+    @MainActor
+    func testDirectoryCacheTests() {
         DirectoryCacheTests.run()
     }
 
-    @MainActor func testBackgroundOperationsTests() {
+    @MainActor
+    func testBackgroundOperationsTests() {
         BackgroundOperationsTests.run()
     }
 
-    @MainActor func testMiscModelTests() {
+    @MainActor
+    func testMiscModelTests() {
         MiscModelTests.run()
     }
 
-    @MainActor func testAppStateOperationsTests() {
+    @MainActor
+    func testAppStateOperationsTests() {
         AppStateOperationsTests.run()
     }
 
-    @MainActor func testImageConverterCoverageTests() {
+    @MainActor
+    func testImageConverterCoverageTests() {
         ImageConverterCoverageTests.run()
     }
 
-    @MainActor func testColumnAutoFitTests() {
+    @MainActor
+    func testColumnAutoFitTests() {
         ColumnAutoFitTests.run()
     }
 
-    @MainActor func testLocalizationCoverageTests() {
+    @MainActor
+    func testLocalizationCoverageTests() {
         LocalizationCoverageTests.run()
     }
 
-    @MainActor func testThumbnailServiceCoverageTests() async {
+    @MainActor
+    func testThumbnailServiceCoverageTests() async {
         await ThumbnailServiceCoverageTests.run()
     }
 
-    @MainActor func testFileSystemSearchAndSortTests() async {
+    @MainActor
+    func testFileSystemSearchAndSortTests() async {
         await FileSystemSearchAndSortTests.run()
     }
 
-    @MainActor func testAppStatePreferencesTests() {
+    @MainActor
+    func testAppStatePreferencesTests() {
         AppStatePreferencesTests.run()
     }
 
-    @MainActor func testAppStateColumnsAndSelectionTests() {
+    @MainActor
+    func testAppStateColumnsAndSelectionTests() {
         AppStateColumnsAndSelectionTests.run()
     }
 
-    @MainActor func testAppStateCoreTests() {
+    @MainActor
+    func testAppStateCoreTests() {
         AppStateCoreTests.run()
     }
 
-    @MainActor func testAppStateNavigationExtraTests() {
+    @MainActor
+    func testAppStateNavigationExtraTests() {
         AppStateNavigationExtraTests.run()
     }
 
-    @MainActor func testAppStateOperationsExtraTests() async {
+    @MainActor
+    func testAppStateOperationsExtraTests() async {
         await AppStateOperationsExtraTests.run()
     }
 
-    @MainActor func testAutoOrganizationRuleAndListColumnTests() {
+    @MainActor
+    func testAutoOrganizationRuleAndListColumnTests() {
         AutoOrganizationRuleAndListColumnTests.run()
     }
 
-    @MainActor func testSmallModelEnumsTests() {
+    @MainActor
+    func testSmallModelEnumsTests() {
         SmallModelEnumsTests.run()
     }
 
-    @MainActor func testStateAndTaskModelsTests() {
+    @MainActor
+    func testStateAndTaskModelsTests() {
         StateAndTaskModelsTests.run()
     }
 
-    @MainActor func testDirectoryMonitorTests() async {
+    @MainActor
+    func testDirectoryMonitorTests() async {
         await DirectoryMonitorTests.run()
     }
 
-    @MainActor func testFileItemFormattingTests() {
+    @MainActor
+    func testFileItemFormattingTests() {
         FileItemFormattingTests.run()
     }
 }

@@ -1,7 +1,7 @@
 import AppKit
 
 public struct HapticService: Sendable {
-    public static let shared = HapticService()
+    public static let shared = Self()
     
     private init() {}
     
