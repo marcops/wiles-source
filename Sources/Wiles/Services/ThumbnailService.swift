@@ -19,8 +19,20 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
 
     public static func supportsThumbnail(item: FileItem) -> Bool {
         guard !item.isDirectory else { return false }
-        guard let type = UTType(filenameExtension: item.fileExtension) else { return true }
-        return !type.conforms(to: .archive) && !type.conforms(to: .folder)
+        guard !item.fileExtension.isEmpty else { return false }
+        guard let type = UTType(filenameExtension: item.fileExtension) else { return false }
+        if type.conforms(to: .sourceCode) ||
+           type.conforms(to: .script) ||
+           type.conforms(to: .archive) ||
+           type.conforms(to: .folder) ||
+           type.conforms(to: .executable) {
+            return false
+        }
+        return type.conforms(to: .image) ||
+               type.conforms(to: .movie) ||
+               type.conforms(to: .audiovisualContent) ||
+               type.conforms(to: .pdf) ||
+               type.conforms(to: .presentation)
     }
 
     public func cachedThumbnail(for url: URL, size: CGFloat) -> NSImage? {

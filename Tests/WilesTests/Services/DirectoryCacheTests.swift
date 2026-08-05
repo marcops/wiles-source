@@ -70,11 +70,11 @@ public struct DirectoryCacheTests {
         let mdItem = FileItem(url: mdURL, icon: NSImage())
         let dirItem = FileItem(url: dirURL, icon: NSImage())
 
-        // Positive check: supportsThumbnail identifies images, PDFs, TXT, MD
+        // Positive check: supportsThumbnail identifies images and PDFs
         report("ThumbnailService", "POS: supportsThumbnail returns true for .png", result: ThumbnailService.supportsThumbnail(item: pngItem))
         report("ThumbnailService", "POS: supportsThumbnail returns true for .pdf", result: ThumbnailService.supportsThumbnail(item: pdfItem))
-        report("ThumbnailService", "POS: supportsThumbnail returns true for .txt", result: ThumbnailService.supportsThumbnail(item: txtItem))
-        report("ThumbnailService", "POS: supportsThumbnail returns true for .md", result: ThumbnailService.supportsThumbnail(item: mdItem))
+        report("ThumbnailService", "NEG: supportsThumbnail returns false for .txt (native file icon preserved)", result: !ThumbnailService.supportsThumbnail(item: txtItem))
+        report("ThumbnailService", "NEG: supportsThumbnail returns false for .md (native file icon preserved)", result: !ThumbnailService.supportsThumbnail(item: mdItem))
 
         // Negative check: supportsThumbnail returns false for directories
         report("ThumbnailService", "NEG: supportsThumbnail returns false for directories", result: !ThumbnailService.supportsThumbnail(item: dirItem))
