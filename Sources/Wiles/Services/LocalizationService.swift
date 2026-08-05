@@ -55,14 +55,23 @@ public struct L10n {
         return "en"
     }
 
-    // Bundle.module is synthesized by SwiftPM for resource-bundled targets and doesn't exist when
-    // this same source is compiled as a plain Xcode target (e.g. Wiles.xcodeproj's UI-testing host
-    // app) rather than through `swift build`/`swift test`.
-    #if SWIFT_PACKAGE
-    private static let resourceBundle = Bundle.module
-    #else
-    private static let resourceBundle = Bundle.main
-    #endif
+    private static let resourceBundle: Bundle = {
+        if let resourceURL = Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle"),
+           let bundle = Bundle(url: resourceURL) {
+            return bundle
+        }
+        let mainURL = Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle")
+        if let bundle = Bundle(url: mainURL) {
+            return bundle
+        }
+        #if SWIFT_PACKAGE
+        if let buildPath = Bundle.main.path(forResource: "Wiles_Wiles", ofType: "bundle"),
+           let bundle = Bundle(path: buildPath) {
+            return bundle
+        }
+        #endif
+        return Bundle.main
+    }()
 
     public static func string(_ key: Key, lang: AppLanguage) -> String {
         let code = activeCode(lang)
