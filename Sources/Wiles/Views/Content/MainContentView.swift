@@ -5,6 +5,12 @@ import AppKit
 struct MainContentView: View {
     var appState: AppState
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
+    // Once created, the terminal's NSView/PTY process stays alive for the window's lifetime —
+    // only its height toggles. Destroying and recreating it on every show/hide (as `if
+    // appState.showTerminalDrawer { IntegratedTerminalView(...) }` used to) tears down SwiftTerm's
+    // NSView while its background PTY-read thread can still be running, which crashes on a fast
+    // open/close.
+    @State private var hasTerminalBeenShown = false
 
     var body: some View {
         @Bindable var appState = appState
@@ -29,12 +35,24 @@ struct MainContentView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    if appState.showTerminalDrawer {
+                    if hasTerminalBeenShown {
                         IntegratedTerminalView(appState: appState)
-                            .frame(minHeight: 100, idealHeight: 200, maxHeight: .infinity)
+                            .frame(
+                                minHeight: appState.showTerminalDrawer ? 100 : 0,
+                                idealHeight: appState.showTerminalDrawer ? 200 : 0,
+                                maxHeight: appState.showTerminalDrawer ? .infinity : 0
+                            )
+                            .opacity(appState.showTerminalDrawer ? 1 : 0)
+                            .allowsHitTesting(appState.showTerminalDrawer)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onChange(of: appState.showTerminalDrawer) { _, showing in
+                    if showing { hasTerminalBeenShown = true }
+                }
+                .onAppear {
+                    if appState.showTerminalDrawer { hasTerminalBeenShown = true }
+                }
                 if appState.showFooter {
                     FooterBarView(appState: appState)
                 }
