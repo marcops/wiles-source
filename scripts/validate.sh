@@ -48,9 +48,10 @@ else
 fi
 scripts/test_timing.sh "$TEST_LOG"
 
-section "SwiftLint"
+section "SwiftLint (required — never releases with lint non-zero)"
 if ! command -v swiftlint >/dev/null 2>&1; then
-  echo "SKIP: swiftlint not installed (brew install swiftlint)"
+  echo "FAIL: swiftlint not installed (brew install swiftlint) — lint is mandatory, not optional, for a release"
+  FAILED=1
 else
   if ! swiftlint lint --strict; then
     echo "FAIL: swiftlint found issues"
