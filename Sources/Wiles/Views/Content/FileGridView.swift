@@ -184,6 +184,8 @@ struct FileGridCardItemView: View {
             .contentShape(Rectangle())
             .accessibilityLabel(item.name)
             .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
+            .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
+            .accessibilityValue(item.formattedSize)
             .onTapGesture(count: 2) { appState.navigateTo(item.url) }
             .simultaneousGesture(TapGesture().onEnded { appState.handleSelection(for: item) })
     }

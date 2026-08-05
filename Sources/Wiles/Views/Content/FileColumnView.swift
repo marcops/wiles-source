@@ -226,6 +226,8 @@ struct FileColumnRowView: View {
         .contentShape(Rectangle())
         .accessibilityLabel(item.name)
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
+        .accessibilityValue(item.formattedSize)
         .onTapGesture {
             onSelect()
         }

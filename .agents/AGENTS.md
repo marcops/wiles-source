@@ -110,6 +110,11 @@
 - **No Meaningless `XCTAssertNotNil` on XCUIElement Queries**: XCUIElement queries (`app.buttons["id"]`) always return non-nil query proxies. Never assert `XCTAssertNotNil(element)` to check visibility — ALWAYS evaluate `element.exists` or `element.waitForExistence(timeout:)`.
 - **Target Registration Guarantee**: All UI test files in `Tests/WilesUITests/` MUST be registered in `Package.swift` and executed during automated test runs.
 
+## 19. Mandatory 100% Centralized Localization & VoiceOver Accessibility Standard
+- **Zero Hardcoded User-Facing Text**: NEVER hardcode string literals for UI titles, button labels, tooltips (`.help`), status indicators, accessibility labels (`.accessibilityLabel`), hints (`.accessibilityHint`), or VoiceOver values (`.accessibilityValue`).
+- **Strict Centralized Localization (`appState.tr(.key)`)**: Every single user-facing string MUST be retrieved via `appState.tr(.key)` backed by `LocalizationService`.
+- **Mandatory VoiceOver Accessibility**: Every interactive UI element (buttons, table rows, grid cards, toolbar controls, list items) MUST be decorated with `.accessibilityLabel(...)`, `.accessibilityHint(...)`, `.accessibilityAddTraits(...)`, and `.accessibilityValue(...)` using localized `appState.tr(...)` strings.
+
 
 
 

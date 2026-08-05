@@ -358,6 +358,8 @@ struct FileListView: View {
         .contentShape(Rectangle())
         .accessibilityLabel(item.name)
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
+        .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
+        .accessibilityValue(item.formattedSize)
         .rowInteractions(item: item, appState: appState, dragProvider: { dragProvider(for: item) })
     }
 }
