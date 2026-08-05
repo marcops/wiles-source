@@ -75,9 +75,16 @@ public struct FileItemFormattingTests {
         report("FileItem.formattedDate", "POS: formattedDate is non-empty for a freshly created file", result: !item.formattedDate.isEmpty)
         report("FileItem.formattedDateCreated", "POS: formattedDateCreated is non-empty for a freshly created file", result: !item.formattedDateCreated.isEmpty)
 
-        let expectedYear = "\(Calendar.current.component(.year, from: Date()))"
-        report("FileItem.formattedDate", "POS: formattedDate for a file just created now includes the current year", result: item.formattedDate.contains(expectedYear))
-        report("FileItem.formattedDateCreated", "POS: formattedDateCreated for a file just created now includes the current year", result: item.formattedDateCreated.contains(expectedYear))
+        // FileItem formats dates with DateFormatter's .short/.short style (system-standard short
+        // date+time, e.g. "8/5/26, 6:01 PM"), which renders a 2-digit year — not the 4-digit year
+        // a .medium style would produce. Derive the expected token the same way rather than
+        // hardcoding either digit count, so this stays correct regardless of locale.
+        let shortFormatter = DateFormatter()
+        shortFormatter.dateStyle = .short
+        shortFormatter.timeStyle = .none
+        let expectedYearToken = String(shortFormatter.string(from: Date()).suffix(2))
+        report("FileItem.formattedDate", "POS: formattedDate for a file just created now includes the current (short-style) year", result: item.formattedDate.contains(expectedYearToken))
+        report("FileItem.formattedDateCreated", "POS: formattedDateCreated for a file just created now includes the current (short-style) year", result: item.formattedDateCreated.contains(expectedYearToken))
         report("FileItem.formattedDate", "NEG: formattedDate is not the raw placeholder \"--\" for a real file with a modification date", result: item.formattedDate != "--")
     }
 

@@ -8,6 +8,30 @@ public struct UISearchTests {
         testSearchToggle(appState: appState)
         await testSearchFiltering(appState: appState)
         testSearchClear(appState: appState)
+        testToggleSearchingIsDeterministic(appState: appState)
+    }
+
+    /// Regression coverage for `toggleSearching()` flipping state deterministically on repeated
+    /// calls — open/close/open/close should never "stick" open. The actual bug this guards
+    /// against (HeaderBarView's outside-click detector racing the search button's own tap,
+    /// which only covered the search field and not the toggle button, so clicking the button
+    /// could silently re-open the search it had just closed) lived in the AppKit event-timing
+    /// layer and isn't reachable from a state-only test — this only proves the underlying model
+    /// toggle itself is sound.
+    private static func testToggleSearchingIsDeterministic(appState: AppState) {
+        appState.isSearching = false
+        appState.searchQuery = ""
+
+        appState.toggleSearching()
+        report("UI/Search", "POS: toggleSearching() opens search from closed", result: appState.isSearching)
+
+        appState.toggleSearching()
+        report("UI/Search", "POS: toggleSearching() closes search from open", result: !appState.isSearching)
+        report("UI/Search", "POS: toggleSearching() clears the query when closing", result: appState.searchQuery.isEmpty)
+
+        appState.toggleSearching()
+        appState.toggleSearching()
+        report("UI/Search", "POS: toggleSearching() is stable across repeated open/close cycles", result: !appState.isSearching)
     }
 
     private static func testSearchToggle(appState: AppState) {
