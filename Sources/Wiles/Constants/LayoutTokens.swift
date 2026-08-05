@@ -53,5 +53,5 @@ public enum LayoutTokens {
 
     // Lazy Loading
     public static let lazyLoadingBatchSize: Int = 100
-    public static let paginationThreshold: Int = 5
+    public static let paginationThreshold: Int = 500
 }

@@ -76,6 +76,10 @@ extension AppState {
 
         startDirectoryMonitoring(for: target)
 
+        if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: target) {
+            applyLoadedItems(cached.items, target: target)
+        }
+
         Task {
             let loaded = await FileSystemService.loadDirectoryContents(
                 at: target,
@@ -83,19 +87,28 @@ extension AppState {
             )
             if self.currentURL == target {
                 await MainActor.run {
-                    self.items = loaded
-                    self.isLoading = false
-                    if let pending = self.pendingSelectionURL {
-                        self.pendingSelectionURL = nil
-                        if loaded.contains(where: { $0.url == pending }) {
-                            self.selectedURLs = [pending]
-                        }
-                    } else if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
-                        self.selectedURLs = [first.url]
-                    }
+                    self.applyLoadedItems(loaded, target: target)
                 }
             }
             self.updateTrashSize()
+        }
+    }
+
+    /// Applies a freshly-loaded (or cached) item list — used by both the instant cache render and the
+    /// real async load, so revisiting a folder shows cached contents immediately while the real load
+    /// still runs and reconciles afterward. The `Equatable` on `FileItem` (which ignores `icon`) means
+    /// this is a no-op re-render when the cache already matched reality.
+    private func applyLoadedItems(_ loaded: [FileItem], target: URL) {
+        guard self.currentURL == target else { return }
+        if self.items != loaded {
+            self.items = loaded
+        }
+        self.isLoading = false
+        if let pending = self.pendingSelectionURL {
+            self.pendingSelectionURL = nil
+            if loaded.contains(where: { $0.url == pending }) {
+                self.selectedURLs = [pending]
+            }
         }
     }
 

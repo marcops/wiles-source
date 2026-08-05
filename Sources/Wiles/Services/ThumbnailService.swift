@@ -4,10 +4,12 @@ import UniformTypeIdentifiers
 
 /// Generates real image previews via QuickLookThumbnailing, replacing the generic file-type
 /// icon `NSWorkspace.icon(forFile:)` otherwise returns for every file regardless of its contents.
-/// Results are cached per (path, size) so re-scrolling never re-requests the same thumbnail.
+/// Always generated once at `maxDimension`, cached per path — SwiftUI's `.resizable()` scales the
+/// same bitmap down for whatever icon size is on screen, so zooming never re-triggers QuickLook I/O.
 @MainActor
 public final class ThumbnailService: ThumbnailServiceProtocol {
     public static let shared = ThumbnailService()
+    private static let maxDimension: CGFloat = 512
     private let cache = NSCache<NSString, NSImage>()
 
     private init() {}
@@ -36,19 +38,18 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
     }
 
     public func cachedThumbnail(for url: URL, size: CGFloat) -> NSImage? {
-        cache.object(forKey: cacheKey(url: url, size: size))
+        cache.object(forKey: cacheKey(url: url))
     }
 
     public func loadThumbnail(for url: URL, size: CGFloat) async -> NSImage? {
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        let key = cacheKey(url: url, size: size)
+        let key = cacheKey(url: url)
         if let cached = cache.object(forKey: key) { return cached }
 
         let scale = NSScreen.main?.backingScaleFactor ?? 2.0
-        let targetDimension = max(size * 2, 512)
         let request = QLThumbnailGenerator.Request(
             fileAt: url,
-            size: CGSize(width: targetDimension, height: targetDimension),
+            size: CGSize(width: Self.maxDimension, height: Self.maxDimension),
             scale: scale,
             representationTypes: .thumbnail
         )
@@ -69,7 +70,7 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
         }
     }
 
-    private func cacheKey(url: URL, size: CGFloat) -> NSString {
-        "\(url.standardizedFileURL.path)_\(Int(size))" as NSString
+    private func cacheKey(url: URL) -> NSString {
+        url.standardizedFileURL.path as NSString
     }
 }

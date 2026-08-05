@@ -111,9 +111,7 @@ struct FileColumnView: View {
             await MainActor.run {
                 self.columns = [ColumnData(folderURL: appState.currentURL, items: rootItems, selectedURL: nil)]
                 self.activeColumnIndex = 0
-                if let first = rootItems.first {
-                    self.selectItem(item: first, columnIndex: 0, autoSelectFirst: true)
-                }
+                self.appState.selectedURLs.removeAll()
             }
         }
     }
@@ -134,7 +132,11 @@ struct FileColumnView: View {
         let col = columns[activeColumnIndex]
         guard !col.items.isEmpty else { return }
 
-        let currentIndex = col.items.firstIndex(where: { $0.url == col.selectedURL }) ?? 0
+        guard let currentIndex = col.items.firstIndex(where: { $0.url == col.selectedURL }) else {
+            let startIndex = offset >= 0 ? 0 : col.items.count - 1
+            selectItem(item: col.items[startIndex], columnIndex: activeColumnIndex)
+            return
+        }
         let targetIndex = max(0, min(col.items.count - 1, currentIndex + offset))
         let targetItem = col.items[targetIndex]
 
