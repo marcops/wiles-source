@@ -21,6 +21,23 @@ struct HeaderBarView: View {
         .padding(.top, 6)
         .padding(.bottom, 6)
         .background(TrafficLightRepositioner(offsetX: 6, offsetY: 6))
+        .background(
+            // Spans the whole header row (search field + the search toggle button included) so
+            // clicking the search button itself never counts as an "outside" click — it used to,
+            // since this only wrapped the search field, racing the button's own toggle and making
+            // a second click on the button re-open the search instead of closing it.
+            Group {
+                if appState.isSearching {
+                    ClickOutsideDetector {
+                        if appState.searchQuery.isEmpty {
+                            withAnimation(MotionTokens.quickEase) {
+                                appState.isSearching = false
+                            }
+                        }
+                    }
+                }
+            }
+        )
         .doubleClickToZoom()
     }
 
@@ -98,13 +115,6 @@ struct HeaderBarView: View {
         .frame(height: 28)
         .background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.6), lineWidth: 1.5))
-        .background(ClickOutsideDetector {
-            if appState.isSearching && appState.searchQuery.isEmpty {
-                withAnimation(MotionTokens.quickEase) {
-                    appState.isSearching = false
-                }
-            }
-        })
     }
 
     private var searchFilterMenu: some View {
