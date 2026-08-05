@@ -53,7 +53,7 @@ public final class AppState {
     func startDirectoryMonitoring(for url: URL) {
         fileSystemStore.startDirectoryMonitoring(for: url) { [weak self] in
             Task { @MainActor in
-                self?.refreshCurrentDirectory()
+                self?.refreshCurrentDirectory(isUserInitiated: false)
             }
         }
     }

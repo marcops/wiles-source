@@ -105,4 +105,23 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
+
+    public static func == (lhs: FileItem, rhs: FileItem) -> Bool {
+        lhs.url == rhs.url &&
+        lhs.isDirectory == rhs.isDirectory &&
+        lhs.size == rhs.size &&
+        lhs.dateModified == rhs.dateModified &&
+        lhs.isHidden == rhs.isHidden &&
+        lhs.tags == rhs.tags &&
+        lhs.isUbiquitousNotDownloaded == rhs.isUbiquitousNotDownloaded
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(url)
+        hasher.combine(isDirectory)
+        hasher.combine(size)
+        hasher.combine(dateModified)
+        hasher.combine(isHidden)
+        hasher.combine(tags)
+    }
 }

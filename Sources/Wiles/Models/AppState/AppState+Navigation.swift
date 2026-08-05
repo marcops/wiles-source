@@ -51,8 +51,10 @@ extension AppState {
         if parent != currentURL { navigateTo(parent) }
     }
 
-    public func refreshCurrentDirectory() {
-        isLoading = true
+    public func refreshCurrentDirectory(isUserInitiated: Bool = false) {
+        if isUserInitiated && self.items.isEmpty {
+            isLoading = true
+        }
         let target = currentURL
         let hidden = showHiddenFiles
         let tags = showTags
@@ -63,15 +65,13 @@ extension AppState {
         startDirectoryMonitoring(for: target)
 
         if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: target) {
-            withAnimation(MotionTokens.snappySpring) {
+            if self.items != cached.items {
                 self.items = cached.items
             }
             self.isLoading = false
             if self.viewMode == .list, self.selectedURLs.isEmpty, let first = cached.items.first {
                 self.selectedURLs = [first.url]
             }
-        } else {
-            isLoading = true
         }
 
         Task {
@@ -81,7 +81,7 @@ extension AppState {
             )
             if self.currentURL == target {
                 await MainActor.run {
-                    withAnimation(MotionTokens.snappySpring) {
+                    if self.items != loaded {
                         self.items = loaded
                     }
                     self.isLoading = false
