@@ -115,90 +115,76 @@ public final class PreferencesStore {
         loadSavedPreferences()
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    /// Restores a `RawRepresentable<String>`-backed preference (enum settings) if a saved value
+    /// exists and is still a recognized case.
+    private func loadEnum<T: RawRepresentable>(
+        _ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<PreferencesStore, T>, from defaults: UserDefaults
+    ) where T.RawValue == String {
+        if let raw = defaults.string(forKey: key.rawValue), let value = T(rawValue: raw) {
+            self[keyPath: keyPath] = value
+        }
+    }
+
+    /// Restores a `Bool` preference, distinguishing "never saved" (leave the property's default)
+    /// from an explicitly saved `false` (UserDefaults.bool(forKey:) returns false for both cases).
+    private func loadBool(_ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<PreferencesStore, Bool>, from defaults: UserDefaults) {
+        if defaults.object(forKey: key.rawValue) != nil {
+            self[keyPath: keyPath] = defaults.bool(forKey: key.rawValue)
+        }
+    }
+
     private func loadSavedPreferences() {
         let defaults = UserDefaults.standard
-        if let raw = defaults.string(forKey: DefaultsKey.viewMode.rawValue), let mode = ViewMode(rawValue: raw) {
-            self.viewMode = mode
-        }
-        if let raw = defaults.string(forKey: DefaultsKey.appAppearance.rawValue), let appearance = AppAppearance(rawValue: raw) {
-            self.appAppearance = appearance
-        }
-        if let raw = defaults.string(forKey: DefaultsKey.sidebarMode.rawValue), let mode = SidebarMode(rawValue: raw) {
-            self.sidebarMode = mode
-        }
+        loadViewPreferences(defaults)
+        loadSidebarVisibilityPreferences(defaults)
+        loadSidebarExpansionPreferences(defaults)
+        loadSearchAndDisplayPreferences(defaults)
+        loadFavoriteURLs(defaults)
+    }
+
+    private func loadViewPreferences(_ defaults: UserDefaults) {
+        loadEnum(.viewMode, into: \.viewMode, from: defaults)
+        loadEnum(.appAppearance, into: \.appAppearance, from: defaults)
+        loadEnum(.sidebarMode, into: \.sidebarMode, from: defaults)
+        loadEnum(.sortOption, into: \.sortOption, from: defaults)
+        loadBool(.sortAscending, into: \.sortAscending, from: defaults)
+
         let width = defaults.double(forKey: DefaultsKey.sidebarWidth.rawValue)
         if width > 0 { self.sidebarWidth = width }
+    }
 
-        if let raw = defaults.string(forKey: DefaultsKey.sortOption.rawValue), let opt = SortOption(rawValue: raw) {
-            self.sortOption = opt
-        }
-        if defaults.object(forKey: DefaultsKey.sortAscending.rawValue) != nil {
-            self.sortAscending = defaults.bool(forKey: DefaultsKey.sortAscending.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showHiddenFiles.rawValue) != nil {
-            self.showHiddenFiles = defaults.bool(forKey: DefaultsKey.showHiddenFiles.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showFavorites.rawValue) != nil {
-            self.showFavorites = defaults.bool(forKey: DefaultsKey.showFavorites.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showRecents.rawValue) != nil {
-            self.showRecents = defaults.bool(forKey: DefaultsKey.showRecents.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showPlaces.rawValue) != nil {
-            self.showPlaces = defaults.bool(forKey: DefaultsKey.showPlaces.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showNetworkAndCloud.rawValue) != nil {
-            self.showNetworkAndCloud = defaults.bool(forKey: DefaultsKey.showNetworkAndCloud.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showSidebarSectionTitles.rawValue) != nil {
-            self.showSidebarSectionTitles = defaults.bool(forKey: DefaultsKey.showSidebarSectionTitles.rawValue)
-        }
-        if let raw = defaults.string(forKey: DefaultsKey.appLanguage.rawValue), let lang = AppLanguage(rawValue: raw) {
-            self.appLanguage = lang
-        }
-        if defaults.object(forKey: DefaultsKey.isFavoritesExpanded.rawValue) != nil {
-            self.isFavoritesExpanded = defaults.bool(forKey: DefaultsKey.isFavoritesExpanded.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.isMacExpanded.rawValue) != nil {
-            self.isMacExpanded = defaults.bool(forKey: DefaultsKey.isMacExpanded.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.isNetworkExpanded.rawValue) != nil {
-            self.isNetworkExpanded = defaults.bool(forKey: DefaultsKey.isNetworkExpanded.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.isRecentsExpanded.rawValue) != nil {
-            self.isRecentsExpanded = defaults.bool(forKey: DefaultsKey.isRecentsExpanded.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.isDevicesExpanded.rawValue) != nil {
-            self.isDevicesExpanded = defaults.bool(forKey: DefaultsKey.isDevicesExpanded.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.isTreeExpanded.rawValue) != nil {
-            self.isTreeExpanded = defaults.bool(forKey: DefaultsKey.isTreeExpanded.rawValue)
-        }
+    private func loadSidebarVisibilityPreferences(_ defaults: UserDefaults) {
+        loadBool(.showHiddenFiles, into: \.showHiddenFiles, from: defaults)
+        loadBool(.showFavorites, into: \.showFavorites, from: defaults)
+        loadBool(.showRecents, into: \.showRecents, from: defaults)
+        loadBool(.showPlaces, into: \.showPlaces, from: defaults)
+        loadBool(.showNetworkAndCloud, into: \.showNetworkAndCloud, from: defaults)
+        loadBool(.showSidebarSectionTitles, into: \.showSidebarSectionTitles, from: defaults)
+        loadEnum(.appLanguage, into: \.appLanguage, from: defaults)
+    }
+
+    private func loadSidebarExpansionPreferences(_ defaults: UserDefaults) {
+        loadBool(.isFavoritesExpanded, into: \.isFavoritesExpanded, from: defaults)
+        loadBool(.isMacExpanded, into: \.isMacExpanded, from: defaults)
+        loadBool(.isNetworkExpanded, into: \.isNetworkExpanded, from: defaults)
+        loadBool(.isRecentsExpanded, into: \.isRecentsExpanded, from: defaults)
+        loadBool(.isDevicesExpanded, into: \.isDevicesExpanded, from: defaults)
+        loadBool(.isTreeExpanded, into: \.isTreeExpanded, from: defaults)
+        loadBool(.isTagsExpanded, into: \.isTagsExpanded, from: defaults)
+        loadBool(.isSmartFoldersExpanded, into: \.isSmartFoldersExpanded, from: defaults)
+
         if let treePaths = defaults.stringArray(forKey: DefaultsKey.expandedTreePaths.rawValue) {
             self.expandedTreePaths = Set(treePaths)
         }
-        if defaults.object(forKey: DefaultsKey.isTagsExpanded.rawValue) != nil {
-            self.isTagsExpanded = defaults.bool(forKey: DefaultsKey.isTagsExpanded.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.isSmartFoldersExpanded.rawValue) != nil {
-            self.isSmartFoldersExpanded = defaults.bool(forKey: DefaultsKey.isSmartFoldersExpanded.rawValue)
-        }
-        if let raw = defaults.string(forKey: DefaultsKey.searchScope.rawValue), let scope = SearchScope(rawValue: raw) {
-            self.searchScope = scope
-        }
-        if defaults.object(forKey: DefaultsKey.showTags.rawValue) != nil {
-            self.showTags = defaults.bool(forKey: DefaultsKey.showTags.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showFooter.rawValue) != nil {
-            self.showFooter = defaults.bool(forKey: DefaultsKey.showFooter.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showTerminalDrawer.rawValue) != nil {
-            self.showTerminalDrawer = defaults.bool(forKey: DefaultsKey.showTerminalDrawer.rawValue)
-        }
-        if defaults.object(forKey: DefaultsKey.showPreviewSidebar.rawValue) != nil {
-            self.showPreviewSidebar = defaults.bool(forKey: DefaultsKey.showPreviewSidebar.rawValue)
-        }
+    }
+
+    private func loadSearchAndDisplayPreferences(_ defaults: UserDefaults) {
+        loadEnum(.searchScope, into: \.searchScope, from: defaults)
+        loadBool(.showTags, into: \.showTags, from: defaults)
+        loadBool(.showFooter, into: \.showFooter, from: defaults)
+        loadBool(.showTerminalDrawer, into: \.showTerminalDrawer, from: defaults)
+        loadBool(.showPreviewSidebar, into: \.showPreviewSidebar, from: defaults)
+
         let sLevel = defaults.integer(forKey: DefaultsKey.sidebarTranslucentLevel.rawValue)
         if sLevel > 0 { self.sidebarTranslucentLevel = sLevel }
         let cLevel = defaults.integer(forKey: DefaultsKey.contentTranslucentLevel.rawValue)
@@ -207,7 +193,9 @@ public final class PreferencesStore {
         if iSize >= IconSizeToken.minSize && iSize <= IconSizeToken.maxSize {
             self.iconSize = iSize
         }
+    }
 
+    private func loadFavoriteURLs(_ defaults: UserDefaults) {
         if let savedFavs = defaults.stringArray(forKey: DefaultsKey.favoriteURLs.rawValue) {
             self.favoriteURLs = savedFavs.compactMap { path in
                 FileManager.default.fileExists(atPath: path) ? URL(fileURLWithPath: path) : nil
