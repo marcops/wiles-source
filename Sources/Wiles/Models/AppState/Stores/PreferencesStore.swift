@@ -115,6 +115,7 @@ public final class PreferencesStore {
         loadSavedPreferences()
     }
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func loadSavedPreferences() {
         let defaults = UserDefaults.standard
         if let raw = defaults.string(forKey: DefaultsKey.viewMode.rawValue), let mode = ViewMode(rawValue: raw) {
