@@ -184,6 +184,7 @@ struct FileGridCardItemView: View {
                 }
             )
             .contentShape(Rectangle())
+            .help(item.name)
             .accessibilityLabel(item.name)
             .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
             .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
@@ -215,7 +216,6 @@ struct FileGridCardItemView: View {
             .padding(.vertical, 2)
             .background(isSel ? Color.accentColor : Color.clear)
             .cornerRadius(4)
-            .help(item.name)
     }
 
     private var tagsView: some View {
