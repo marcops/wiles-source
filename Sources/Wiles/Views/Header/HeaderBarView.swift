@@ -15,6 +15,7 @@ struct HeaderBarView: View {
                 PathBarView(appState: appState).frame(maxWidth: .infinity)
             }
             rightControls
+                .padding(.trailing, -2)
         }
         .padding(.horizontal, 12)
         .padding(.top, 6)

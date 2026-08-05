@@ -5,12 +5,6 @@ import AppKit
 struct MainContentView: View {
     var appState: AppState
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
-    // Once created, the terminal's NSView/PTY process stays alive for the window's lifetime —
-    // only its height toggles. Destroying and recreating it on every show/hide (as `if
-    // appState.showTerminalDrawer { IntegratedTerminalView(...) }` used to) tears down SwiftTerm's
-    // NSView while its background PTY-read thread can still be running, which crashes on a fast
-    // open/close.
-    @State private var hasTerminalBeenShown = false
 
     var body: some View {
         @Bindable var appState = appState
@@ -23,35 +17,28 @@ struct MainContentView: View {
                 .layoutPriority(0)
             VStack(spacing: 0) {
                 HeaderBarView(appState: appState)
-                VSplitView {
-                    HSplitView {
-                        contentArea
-                            .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
-                            .background(contentTranslucentBackground)
-                        if appState.showPreviewSidebar {
-                            PreviewSidebarView(appState: appState)
-                                .frame(maxHeight: .infinity)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    if hasTerminalBeenShown {
-                        IntegratedTerminalView(appState: appState)
-                            .frame(
-                                minHeight: appState.showTerminalDrawer ? 100 : 0,
-                                idealHeight: appState.showTerminalDrawer ? 200 : 0,
-                                maxHeight: appState.showTerminalDrawer ? .infinity : 0
-                            )
-                            .opacity(appState.showTerminalDrawer ? 1 : 0)
-                            .allowsHitTesting(appState.showTerminalDrawer)
+                HSplitView {
+                    contentArea
+                        .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
+                        .background(contentTranslucentBackground)
+                    if appState.showPreviewSidebar {
+                        PreviewSidebarView(appState: appState)
+                            .frame(maxHeight: .infinity)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onChange(of: appState.showTerminalDrawer) { _, showing in
-                    if showing { hasTerminalBeenShown = true }
-                }
-                .onAppear {
-                    if appState.showTerminalDrawer { hasTerminalBeenShown = true }
+
+                // Plain SwiftUI VStack, not VSplitView/NSSplitView: the latter animates a pane
+                // *resizing* smoothly but not adding/removing an arranged subview, which made the
+                // terminal's close animation snap instead of collapse. A real VStack properly
+                // animates insertion/removal with `.transition`, sliding down instead of shrinking
+                // toward center. The PTY process itself survives unmount via TerminalViewCache, so
+                // removing the view here doesn't crash or leave anything running orphaned.
+                if appState.showTerminalDrawer {
+                    Divider()
+                    IntegratedTerminalView(appState: appState)
+                        .frame(height: 200)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
                 if appState.showFooter {
                     FooterBarView(appState: appState)

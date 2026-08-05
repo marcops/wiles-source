@@ -53,7 +53,7 @@ struct FooterBarView: View {
 
             // Terminal toggle button
             Button {
-                withAnimation { appState.showTerminalDrawer.toggle() }
+                withAnimation(.easeInOut(duration: 0.25)) { appState.showTerminalDrawer.toggle() }
             } label: {
                 Image(systemName: "terminal")
                     .font(.system(size: 11, weight: .medium))
