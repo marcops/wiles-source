@@ -127,7 +127,7 @@ struct WilesApp: App {
     }
 
     @CommandsBuilder private var editMenuCommands: some Commands {
-        CommandGroup(after: .undoRedo) {
+        CommandGroup(replacing: .undoRedo) {
             Button(appState.tr(.undo)) { appState.undoLastAction() }
                 .keyboardShortcut("z", modifiers: .command)
             Button(appState.tr(.redo)) { appState.redoLastAction() }
