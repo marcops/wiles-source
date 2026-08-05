@@ -26,13 +26,23 @@ else
   echo "OK"
 fi
 
-section "swift test"
-if ! swift test; then
+section "swift test (with code coverage)"
+TEST_LOG="$(mktemp)"
+if ! swift test --enable-code-coverage 2>&1 | tee "$TEST_LOG"; then
   echo "FAIL: tests did not pass"
   FAILED=1
 else
   echo "OK"
+  BIN=".build/debug/WilesPackageTests.xctest/Contents/MacOS/WilesPackageTests"
+  PROFDATA=".build/debug/codecov/default.profdata"
+  if [[ -f "$BIN" && -f "$PROFDATA" ]]; then
+    echo
+    echo "-- Code coverage summary --"
+    xcrun llvm-cov report "$BIN" -instr-profile="$PROFDATA" -ignore-filename-regex=".build|Tests/" | tail -1
+    echo "(full report: xcrun llvm-cov report \"$BIN\" -instr-profile=\"$PROFDATA\" -ignore-filename-regex=\".build|Tests/\")"
+  fi
 fi
+scripts/test_timing.sh "$TEST_LOG"
 
 section "SwiftLint"
 if ! command -v swiftlint >/dev/null 2>&1; then

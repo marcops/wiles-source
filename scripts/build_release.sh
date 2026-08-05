@@ -38,11 +38,16 @@ fi
 
 cp "$BIN_PATH" "$APP_DIR/Contents/MacOS/Wiles"
 
-# Copy SPM Resource Bundle if exists
+# Copy SPM Resource Bundle if exists into Contents/Resources
 if [[ -d ".build/arm64-apple-macosx/release/Wiles_Wiles.bundle" ]]; then
   cp -r ".build/arm64-apple-macosx/release/Wiles_Wiles.bundle" "$APP_DIR/Contents/Resources/"
 elif [[ -d ".build/release/Wiles_Wiles.bundle" ]]; then
   cp -r ".build/release/Wiles_Wiles.bundle" "$APP_DIR/Contents/Resources/"
+fi
+
+if [[ ! -d "$APP_DIR/Contents/Resources/Wiles_Wiles.bundle" ]]; then
+  echo "error: Wiles_Wiles.bundle missing from Contents/Resources" >&2
+  exit 1
 fi
 
 # Copy App Icon

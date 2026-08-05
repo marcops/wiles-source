@@ -9,6 +9,7 @@ echo "==> 1. Building Wiles..."
 swift build -c debug
 
 echo "==> 2. Updating bundle & signing..."
+rm -rf Wiles.app/Wiles_Wiles.bundle 2>/dev/null || true
 cp .build/arm64-apple-macosx/debug/Wiles Wiles.app/Contents/MacOS/
 cp -r .build/arm64-apple-macosx/debug/Wiles_Wiles.bundle Wiles.app/Contents/Resources/ 2>/dev/null || true
 codesign -f -s - Wiles.app
@@ -19,7 +20,7 @@ sleep 0.5
 open Wiles.app
 
 echo "==> 4. Committing and pushing..."
-git add Sources/Wiles Tests .agents Package.swift
+git add Sources/Wiles Tests .agents Package.swift scripts
 git commit -m "$MSG" --no-verify
 git push
 
