@@ -47,13 +47,12 @@ struct FileColumnView: View {
     }
 
     private func columnView(for column: ColumnData, index: Int) -> some View {
-        let visibleItems = Array(column.items.prefix(column.visibleLimit))
         return VStack(spacing: 0) {
             columnHeader(title: column.folderURL.lastPathComponent.isEmpty ? "/" : column.folderURL.lastPathComponent)
 
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 1) {
-                    ForEach(visibleItems) { item in
+                    ForEach(column.items) { item in
                         FileColumnRowView(
                             item: item,
                             columnIndex: index,
@@ -63,15 +62,6 @@ struct FileColumnView: View {
                                 selectItem(item: item, columnIndex: index)
                             }
                         )
-                    }
-                    if column.visibleLimit < column.items.count {
-                        ProgressView()
-                            .frame(height: 25)
-                            .onAppear {
-                                var col = column
-                                col.visibleLimit = min(col.items.count, col.visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                columns[index] = col
-                            }
                     }
                 }
                 .padding(.vertical, 4)

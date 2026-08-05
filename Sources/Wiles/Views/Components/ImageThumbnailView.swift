@@ -7,16 +7,24 @@ struct ImageThumbnailView: View {
     let fallback: NSImage
     @State private var thumbnail: NSImage?
 
+    init(url: URL, size: CGFloat, fallback: NSImage) {
+        self.url = url
+        self.size = size
+        self.fallback = fallback
+        let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size)
+        self._thumbnail = State(initialValue: cached)
+    }
+
     var body: some View {
         Image(nsImage: thumbnail ?? fallback)
             .resizable()
             .scaledToFit()
             .task(id: url) {
-                if let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size) {
-                    thumbnail = cached
-                    return
+                if thumbnail == nil {
+                    if let loaded = await ThumbnailService.shared.loadThumbnail(for: url, size: size) {
+                        thumbnail = loaded
+                    }
                 }
-                thumbnail = await ThumbnailService.shared.loadThumbnail(for: url, size: size)
             }
     }
 }

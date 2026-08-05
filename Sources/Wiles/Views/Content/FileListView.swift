@@ -16,12 +16,10 @@ struct FileListView: View {
     @State private var selectionRect: CGRect?
     @State private var dragStartPoint: CGPoint?
     @State private var lastWindowWidth: CGFloat?
-    @State private var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
     @State private var hoveredURL: URL?
 
     var body: some View {
-        let visibleItems = Array(appState.items.prefix(visibleLimit))
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             ScrollViewReader { proxy in
                 ScrollView(.vertical) {
                     ScrollView(.horizontal) {
@@ -79,21 +77,15 @@ struct FileListView: View {
                                     tableHeader
     
                                     LazyVStack(spacing: 2) {
-                                        ForEach(visibleItems) { item in
+                                        ForEach(appState.items) { item in
                                             listRow(for: item)
-                                        }
-                                        if visibleLimit < appState.items.count {
-                                            ProgressView()
-                                                .frame(height: 30)
-                                                .onAppear {
-                                                    visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                                    let nextBatch = Array(appState.items.prefix(min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)))
-                                                    ThumbnailService.shared.prefetchThumbnails(for: nextBatch, size: 36)
-                                                }
                                         }
                                     }
                                     .padding(.horizontal, 10)
                                     .padding(.bottom, 10)
+                                    .onAppear {
+                                        ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: 36)
+                                    }
                                 }
                                 .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
                             }
@@ -118,8 +110,8 @@ struct FileListView: View {
                 .background(ScrollerAutoHideSetter())
                 }
             }
-            .onChange(of: appState.items) { _, _ in
-                visibleLimit = LayoutTokens.lazyLoadingBatchSize
+            .onChange(of: appState.items) { _, newItems in
+                ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
             }
             .onChange(of: appState.searchQuery) { _, newValue in
                 if newValue.isEmpty {

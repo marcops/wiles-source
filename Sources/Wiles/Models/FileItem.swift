@@ -25,7 +25,9 @@ public struct FileItem: Identifiable, Hashable, Sendable {
     public init(url: URL, icon: NSImage, fetchTags: Bool = false) {
         self.url = url.standardizedFileURL
         self.name = url.lastPathComponent
-        self.icon = icon
+        let highResIcon = (icon.copy() as? NSImage) ?? icon
+        highResIcon.size = NSSize(width: 512, height: 512)
+        self.icon = highResIcon
 
         let keys: Set<URLResourceKey> = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey,

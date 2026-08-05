@@ -37,7 +37,7 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
             fileAt: url,
             size: CGSize(width: size, height: size),
             scale: scale,
-            representationTypes: .all
+            representationTypes: .thumbnail
         )
         guard let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
             return nil
@@ -49,7 +49,7 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
     public func prefetchThumbnails(for items: [FileItem], size: CGFloat) {
         let eligibleItems = items.filter { Self.supportsThumbnail(item: $0) }
         guard !eligibleItems.isEmpty else { return }
-        Task.detached(priority: .utility) {
+        Task.detached(priority: .userInitiated) {
             for item in eligibleItems {
                 _ = await self.loadThumbnail(for: item.url, size: size)
             }

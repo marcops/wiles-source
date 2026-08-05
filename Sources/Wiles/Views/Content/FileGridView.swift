@@ -22,11 +22,9 @@ struct FileGridView: View {
     @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect?
     @State private var dragStartPoint: CGPoint?
-    @State private var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
 
     var body: some View {
-        let visibleItems = Array(appState.items.prefix(visibleLimit))
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             ScrollViewReader { proxy in
                 ScrollView {
                     ZStack(alignment: .topLeading) {
@@ -75,7 +73,7 @@ struct FileGridView: View {
                                 EmptyDirectoryView(appState: appState)
                             } else {
                                 LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
-                                    ForEach(visibleItems) { item in
+                                    ForEach(appState.items) { item in
                                         FileGridCardItemView(
                                             item: item,
                                             appState: appState,
@@ -89,17 +87,11 @@ struct FileGridView: View {
                                             }
                                         )
                                     }
-                                    if visibleLimit < appState.items.count {
-                                        ProgressView()
-                                            .frame(height: 50)
-                                            .onAppear {
-                                                visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                                let nextBatch = Array(appState.items.prefix(min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)))
-                                                ThumbnailService.shared.prefetchThumbnails(for: nextBatch, size: iconSize)
-                                            }
-                                    }
                                 }
                                 .padding(16)
+                                .onAppear {
+                                    ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: iconSize)
+                                }
                             }
                         }
                         .id(appState.currentURL)
@@ -121,8 +113,8 @@ struct FileGridView: View {
                     .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
                     .background(ScrollerAutoHideSetter())
                 }
-                .onChange(of: appState.items) { _, _ in
-                    visibleLimit = LayoutTokens.lazyLoadingBatchSize
+                .onChange(of: appState.items) { _, newItems in
+                    ThumbnailService.shared.prefetchThumbnails(for: newItems, size: iconSize)
                 }
                 .onChange(of: appState.searchQuery) { _, newValue in
                     if newValue.isEmpty {
