@@ -64,16 +64,6 @@ extension AppState {
 
         startDirectoryMonitoring(for: target)
 
-        if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: target) {
-            if self.items != cached.items {
-                self.items = cached.items
-            }
-            self.isLoading = false
-            if self.viewMode == .list, self.selectedURLs.isEmpty, let first = cached.items.first {
-                self.selectedURLs = [first.url]
-            }
-        }
-
         Task {
             let loaded = await FileSystemService.loadDirectoryContents(
                 at: target,
@@ -81,9 +71,7 @@ extension AppState {
             )
             if self.currentURL == target {
                 await MainActor.run {
-                    if self.items != loaded {
-                        self.items = loaded
-                    }
+                    self.items = loaded
                     self.isLoading = false
                     if self.viewMode == .list, self.selectedURLs.isEmpty, let first = loaded.first {
                         self.selectedURLs = [first.url]

@@ -90,7 +90,9 @@ struct FileGridView: View {
                                 }
                                 .padding(16)
                                 .onAppear {
-                                    ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: iconSize)
+                                    if appState.items.count > 500 {
+                                        ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: iconSize)
+                                    }
                                 }
                             }
                         }
@@ -114,7 +116,9 @@ struct FileGridView: View {
                     .background(ScrollerAutoHideSetter())
                 }
                 .onChange(of: appState.items) { _, newItems in
-                    ThumbnailService.shared.prefetchThumbnails(for: newItems, size: iconSize)
+                    if newItems.count > 500 {
+                        ThumbnailService.shared.prefetchThumbnails(for: newItems, size: iconSize)
+                    }
                 }
                 .onChange(of: appState.searchQuery) { _, newValue in
                     if newValue.isEmpty {

@@ -84,7 +84,9 @@ struct FileListView: View {
                                     .padding(.horizontal, 10)
                                     .padding(.bottom, 10)
                                     .onAppear {
-                                        ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: 36)
+                                        if appState.items.count > 500 {
+                                            ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: 36)
+                                        }
                                     }
                                 }
                                 .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
@@ -111,7 +113,9 @@ struct FileListView: View {
                 }
             }
             .onChange(of: appState.items) { _, newItems in
-                ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
+                if newItems.count > 500 {
+                    ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
+                }
             }
             .onChange(of: appState.searchQuery) { _, newValue in
                 if newValue.isEmpty {
