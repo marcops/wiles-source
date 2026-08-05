@@ -28,6 +28,7 @@ public struct EmptyDirectoryView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+                .accessibilityLabel(appState.tr(.clearSearch))
             } else {
                 Image(systemName: "folder")
                     .font(.system(size: 48))

@@ -176,6 +176,9 @@ struct PathBarView: View {
             .foregroundColor(isCollapsed || item.url == appState.currentURL ? .primary : .secondary)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(item.name)
+        .accessibilityHint(appState.tr(.folder))
+        .accessibilityAddTraits(item.url == appState.currentURL ? [.isButton, .isSelected] : [.isButton])
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers: providers, targetFolder: item.url)
             return true

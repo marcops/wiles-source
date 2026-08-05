@@ -45,6 +45,7 @@ struct SingleInputSheetView: View {
             TextField("", text: $textValue)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
+                .accessibilityLabel(title)
                 .onSubmit { submit() }
 
             HStack(spacing: 12) {
@@ -53,11 +54,13 @@ struct SingleInputSheetView: View {
                     onCancel()
                 }
                 .keyboardShortcut(.escape, modifiers: [])
+                .accessibilityLabel(cancelTitle)
 
                 Button(actionButtonTitle) {
                     submit()
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityLabel(actionButtonTitle)
                 .keyboardShortcut(.return, modifiers: [])
                 .disabled(textValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
