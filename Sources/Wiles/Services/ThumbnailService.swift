@@ -57,6 +57,6 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
     }
 
     private func cacheKey(url: URL, size: CGFloat) -> NSString {
-        "\(url.path)_\(Int(size))" as NSString
+        "\(url.standardizedFileURL.path)_\(Int(size))" as NSString
     }
 }

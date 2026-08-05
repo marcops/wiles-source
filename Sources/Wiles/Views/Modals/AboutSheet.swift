@@ -49,6 +49,7 @@ struct AboutSheet: View {
                         .foregroundColor(.accentColor)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(AppConstants.githubDisplayString)
                     .onHover { isHovered in
                         if isHovered {
                             NSCursor.pointingHand.push()
@@ -87,6 +88,7 @@ struct AboutSheet: View {
             }
             .keyboardShortcut(.defaultAction)
             .controlSize(.large)
+            .accessibilityLabel(appState.tr(.done))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
