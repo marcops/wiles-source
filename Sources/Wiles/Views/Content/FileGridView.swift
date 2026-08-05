@@ -22,6 +22,7 @@ struct FileGridView: View {
     @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect?
     @State private var dragStartPoint: CGPoint?
+    @State private var visibleLimit: Int = LayoutTokens.paginationThreshold
 
     var body: some View {
         GeometryReader { geometry in
@@ -72,8 +73,11 @@ struct FileGridView: View {
                             if appState.items.isEmpty && !appState.isLoading {
                                 EmptyDirectoryView(appState: appState)
                             } else {
+                                let paginate = appState.items.count > LayoutTokens.paginationThreshold
+                                let visibleItems = paginate ? Array(appState.items.prefix(visibleLimit)) : appState.items
+
                                 LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
-                                    ForEach(appState.items) { item in
+                                    ForEach(visibleItems) { item in
                                         FileGridCardItemView(
                                             item: item,
                                             appState: appState,
@@ -86,6 +90,13 @@ struct FileGridView: View {
                                                 }
                                             }
                                         )
+                                    }
+                                    if paginate && visibleLimit < appState.items.count {
+                                        ProgressView()
+                                            .frame(height: 50)
+                                            .onAppear {
+                                                visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                            }
                                     }
                                 }
                                 .padding(16)
@@ -115,6 +126,9 @@ struct FileGridView: View {
                     }
                     .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
                     .background(ScrollerAutoHideSetter())
+                }
+                .onChange(of: appState.currentURL) { _, _ in
+                    visibleLimit = LayoutTokens.paginationThreshold
                 }
                 .onChange(of: appState.items) { _, newItems in
                     if newItems.count > 500 {

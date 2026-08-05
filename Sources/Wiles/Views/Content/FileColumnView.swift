@@ -6,7 +6,7 @@ struct ColumnData: Identifiable {
     let folderURL: URL
     var items: [FileItem]
     var selectedURL: URL?
-    var visibleLimit: Int = LayoutTokens.lazyLoadingBatchSize
+    var visibleLimit: Int = LayoutTokens.paginationThreshold
 }
 
 struct FileColumnView: View {
@@ -52,7 +52,10 @@ struct FileColumnView: View {
 
             ScrollView(.vertical, showsIndicators: true) {
                 LazyVStack(spacing: 1) {
-                    ForEach(column.items) { item in
+                    let paginate = column.items.count > LayoutTokens.paginationThreshold
+                    let visibleItems = paginate ? Array(column.items.prefix(column.visibleLimit)) : column.items
+
+                    ForEach(visibleItems) { item in
                         FileColumnRowView(
                             item: item,
                             columnIndex: index,
@@ -62,6 +65,15 @@ struct FileColumnView: View {
                                 selectItem(item: item, columnIndex: index)
                             }
                         )
+                    }
+                    if paginate && column.visibleLimit < column.items.count {
+                        ProgressView()
+                            .frame(height: 25)
+                            .onAppear {
+                                var col = column
+                                col.visibleLimit = min(col.items.count, col.visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                columns[index] = col
+                            }
                     }
                 }
                 .padding(.vertical, 4)

@@ -17,6 +17,7 @@ struct FileListView: View {
     @State private var dragStartPoint: CGPoint?
     @State private var lastWindowWidth: CGFloat?
     @State private var hoveredURL: URL?
+    @State private var visibleLimit: Int = LayoutTokens.paginationThreshold
 
     var body: some View {
         GeometryReader { geometry in
@@ -75,10 +76,20 @@ struct FileListView: View {
                             } else {
                                 VStack(spacing: 0) {
                                     tableHeader
-    
+
                                     LazyVStack(spacing: 2) {
-                                        ForEach(appState.items) { item in
+                                        let paginate = appState.items.count > LayoutTokens.paginationThreshold
+                                        let visibleItems = paginate ? Array(appState.items.prefix(visibleLimit)) : appState.items
+
+                                        ForEach(visibleItems) { item in
                                             listRow(for: item)
+                                        }
+                                        if paginate && visibleLimit < appState.items.count {
+                                            ProgressView()
+                                                .frame(height: 30)
+                                                .onAppear {
+                                                    visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                                }
                                         }
                                     }
                                     .padding(.horizontal, 10)
@@ -111,6 +122,9 @@ struct FileListView: View {
                 .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
                 .background(ScrollerAutoHideSetter())
                 }
+            }
+            .onChange(of: appState.currentURL) { _, _ in
+                visibleLimit = LayoutTokens.paginationThreshold
             }
             .onChange(of: appState.items) { _, newItems in
                 if newItems.count > 500 {
