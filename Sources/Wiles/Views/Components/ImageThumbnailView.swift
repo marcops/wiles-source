@@ -18,6 +18,7 @@ struct ImageThumbnailView: View {
     var body: some View {
         Image(nsImage: thumbnail ?? fallback)
             .resizable()
+            .interpolation(.high)
             .scaledToFit()
             .task(id: url) {
                 if thumbnail == nil {

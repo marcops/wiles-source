@@ -33,9 +33,10 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
         if let cached = cache.object(forKey: key) { return cached }
 
         let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+        let targetDimension = max(size * 2, 512)
         let request = QLThumbnailGenerator.Request(
             fileAt: url,
-            size: CGSize(width: size, height: size),
+            size: CGSize(width: targetDimension, height: targetDimension),
             scale: scale,
             representationTypes: .thumbnail
         )
