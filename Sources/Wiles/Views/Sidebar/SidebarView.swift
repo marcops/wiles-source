@@ -168,6 +168,9 @@ struct SidebarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("Section_\(title.uppercased())")
+        .accessibilityLabel(title)
+        .accessibilityHint(appState.tr(.folder))
     }
 
     private func tagRow(tag: String, colorKey: L10n.Key) -> some View {
@@ -368,6 +371,10 @@ private struct SidebarRowView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain).padding(.horizontal, 8)
+        .accessibilityIdentifier(item.name)
+        .accessibilityLabel(item.name)
+        .accessibilityHint(appState.tr(.folder))
+        .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .onHover { isHovered = $0 }
         .overlay(
             RightClickDetector { onRightClick() }

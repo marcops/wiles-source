@@ -8,8 +8,7 @@ final class WilesFullSheetsAndMenusUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        let appURL = URL(fileURLWithPath: "Wiles.app")
-        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
+        app = XCUIApplication()
         app.launchArguments = ["--ui-testing"]
         app.launch()
     }

@@ -14,6 +14,7 @@ struct FooterBarView: View {
                 Text(appState.statusText)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundColor(.secondary)
+                    .accessibilityIdentifier("Status Bar")
 
                 if let freeSpace = appState.freeSpaceText {
                     Text("•")
@@ -59,7 +60,9 @@ struct FooterBarView: View {
                     .foregroundColor(appState.showTerminalDrawer ? .accentColor : .secondary)
             }
             .buttonStyle(.plain)
-            .help("Toggle Terminal (Cmd+J)")
+            .accessibilityLabel(appState.tr(.actToggleTerminal))
+            .accessibilityHint(appState.tr(.actToggleTerminal))
+            .help(appState.tr(.actToggleTerminal))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 4)
@@ -117,6 +120,7 @@ struct OperationsButtonView: View {
             .cornerRadius(4)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("OperationsProgressButton")
         .popover(isPresented: $showPopover) {
             OperationsPopoverView(appState: appState)
         }

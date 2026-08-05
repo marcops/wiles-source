@@ -32,7 +32,9 @@ struct HeaderBarView: View {
             }
             .buttonStyle(.plain).disabled(appState.historyBack.isEmpty)
             .opacity(appState.historyBack.isEmpty ? 0.4 : 1.0)
-            .help("Back (Cmd+[)")
+            .help(appState.tr(.back))
+            .accessibilityLabel(appState.tr(.back))
+            .accessibilityHint(appState.tr(.back))
 
             Button { appState.goForward() } label: {
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
@@ -41,7 +43,9 @@ struct HeaderBarView: View {
             }
             .buttonStyle(.plain).disabled(appState.historyForward.isEmpty)
             .opacity(appState.historyForward.isEmpty ? 0.4 : 1.0)
-            .help("Forward (Cmd+])")
+            .help(appState.tr(.forward))
+            .accessibilityLabel(appState.tr(.forward))
+            .accessibilityHint(appState.tr(.forward))
         }
     }
 
@@ -181,6 +185,14 @@ struct HeaderBarView: View {
         }
     }
 
+    private func accessibilityID(for mode: ViewMode) -> String {
+        switch mode {
+        case .grid:   return "ViewModeGrid"
+        case .list:   return "ViewModeList"
+        case .column: return "ViewModeColumn"
+        }
+    }
+
     private var viewSwitcher: some View {
         HStack(spacing: 2) {
             if viewSwitcherExpanded {
@@ -199,6 +211,7 @@ struct HeaderBarView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(accessibilityID(for: mode))
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
                 }
             } else {
@@ -215,6 +228,7 @@ struct HeaderBarView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("View Mode")
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
         }

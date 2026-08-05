@@ -55,13 +55,22 @@ public struct L10n {
         return "en"
     }
 
+    // Bundle.module is synthesized by SwiftPM for resource-bundled targets and doesn't exist when
+    // this same source is compiled as a plain Xcode target (e.g. Wiles.xcodeproj's UI-testing host
+    // app) rather than through `swift build`/`swift test`.
+    #if SWIFT_PACKAGE
+    private static let resourceBundle = Bundle.module
+    #else
+    private static let resourceBundle = Bundle.main
+    #endif
+
     public static func string(_ key: Key, lang: AppLanguage) -> String {
         let code = activeCode(lang)
-        if let path = Bundle.module.path(forResource: code, ofType: "lproj") ?? Bundle.module.path(forResource: code.lowercased(), ofType: "lproj"),
+        if let path = resourceBundle.path(forResource: code, ofType: "lproj") ?? resourceBundle.path(forResource: code.lowercased(), ofType: "lproj"),
            let langBundle = Bundle(path: path) {
             return langBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
         }
-        return Bundle.module.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
+        return resourceBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
     }
 
     public enum Key: String, Sendable, CaseIterable {

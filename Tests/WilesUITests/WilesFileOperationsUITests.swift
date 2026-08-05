@@ -16,8 +16,7 @@ final class WilesFileOperationsUITests: XCTestCase {
         }
         try fm.createDirectory(atPath: opPath, withIntermediateDirectories: true)
 
-        let appURL = URL(fileURLWithPath: "Wiles.app")
-        app = FileManager.default.fileExists(atPath: appURL.path) ? XCUIApplication(url: appURL) : XCUIApplication(bundleIdentifier: "com.marco.wiles")
+        app = XCUIApplication()
         app.launchArguments = ["--ui-testing"]
         app.launch()
 
