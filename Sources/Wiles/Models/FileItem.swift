@@ -84,26 +84,24 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
 
-    public var formattedDate: String {
+    private static let shortDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
+        formatter.dateStyle = .short
         formatter.timeStyle = .short
-        return formatter.string(from: dateModified)
+        return formatter
+    }()
+
+    public var formattedDate: String {
+        Self.shortDateFormatter.string(from: dateModified)
     }
 
     public var formattedDateCreated: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: dateCreated)
+        Self.shortDateFormatter.string(from: dateCreated)
     }
 
     public var formattedDateAccessed: String {
         guard let date = dateAccessed else { return "--" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        return Self.shortDateFormatter.string(from: date)
     }
 
     public static func == (lhs: FileItem, rhs: FileItem) -> Bool {

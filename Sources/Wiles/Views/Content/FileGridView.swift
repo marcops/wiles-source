@@ -187,7 +187,7 @@ struct FileGridCardItemView: View {
         let strokeWidth: CGFloat = isDropTargeted ? 3 : 2
 
         return cardVStack(isSel: isSel)
-            .frame(width: cardWidth, height: cardHeight)
+            .frame(width: cardWidth, height: cardHeight, alignment: .top)
             .padding(6)
             .hoverHighlight(isSelected: isSel, selectedBackground: Color.accentColor.opacity(0.18), cornerRadius: 10)
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderStroke, lineWidth: strokeWidth))
@@ -197,8 +197,9 @@ struct FileGridCardItemView: View {
                     Color.clear.preference(key: CellFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])
                 }
             )
+            .zIndex(isSel ? 1 : 0)
             .contentShape(Rectangle())
-            .help(item.name)
+            .fileMetadataTooltip(item)
             .accessibilityLabel(item.name)
             .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
             .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
@@ -209,7 +210,7 @@ struct FileGridCardItemView: View {
 
     private func cardVStack(isSel: Bool) -> some View {
         VStack(spacing: 6) {
-            FileItemIconView(item: item, size: iconSize)
+            FileItemIconView(item: item, size: iconSize, isOpenTargeted: isDropTargeted)
                 .overlay(ICloudStatusBadgeView(item: item).padding(2), alignment: .topTrailing)
             cardLabel(isSel: isSel)
             if appState.showTags && !item.tags.isEmpty {
@@ -219,13 +220,16 @@ struct FileGridCardItemView: View {
     }
 
     private func cardLabel(isSel: Bool) -> some View {
-        let fontSize = max(10.0, min(14.0, Double(iconSize) * 0.22))
+        let fontSize = max(8.0, min(12.0, Double(iconSize) * 0.22))
         let fontWeight: Font.Weight = isSel ? .semibold : .regular
-        return Text(item.name)
-            .font(.system(size: fontSize, weight: fontWeight))
-            .lineLimit(2)
-            .multilineTextAlignment(.center)
-            .foregroundColor(isSel ? .white : .primary)
+        return SelectionAwareNameText(
+            name: item.name,
+            isSelected: isSel,
+            font: .system(size: fontSize, weight: fontWeight),
+            color: isSel ? .white : .primary,
+            collapsedLineLimit: 2,
+            alignment: .center
+        )
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(isSel ? Color.accentColor : Color.clear)

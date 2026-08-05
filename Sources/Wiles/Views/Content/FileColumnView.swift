@@ -205,16 +205,21 @@ struct FileColumnRowView: View {
     var appState: AppState
     let onSelect: () -> Void
 
+    @State private var isDropTargeted = false
+
     var body: some View {
         HStack(spacing: 8) {
-            FileItemIconView(item: item, size: 16)
+            FileItemIconView(item: item, size: 16, isOpenTargeted: isDropTargeted)
             ICloudStatusBadgeView(item: item)
 
-            Text(item.name)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                .lineLimit(1)
-                .foregroundColor(isSelected ? .white : .primary)
-                .help(item.name)
+            SelectionAwareNameText(
+                name: item.name,
+                isSelected: isSelected,
+                font: .system(size: 12, weight: isSelected ? .semibold : .regular),
+                color: isSelected ? .white : .primary,
+                collapsedLineLimit: 1
+            )
+            .fileMetadataTooltip(item)
 
             Spacer()
 
@@ -236,7 +241,9 @@ struct FileColumnRowView: View {
         .onTapGesture {
             onSelect()
         }
-        .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState)
+        .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState) { targeted in
+            isDropTargeted = targeted
+        }
         .fileItemInteractions(item: item, appState: appState)
     }
 }

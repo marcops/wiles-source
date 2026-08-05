@@ -17,6 +17,7 @@ struct FileListView: View {
     @State private var dragStartPoint: CGPoint?
     @State private var lastWindowWidth: CGFloat?
     @State private var hoveredURL: URL?
+    @State private var dropTargetedURL: URL?
     @State private var visibleLimit: Int = LayoutTokens.paginationThreshold
 
     var body: some View {
@@ -308,13 +309,15 @@ struct FileListView: View {
     @ViewBuilder
     private func nameCell(for item: FileItem, isSel: Bool) -> some View {
         HStack(alignment: .center, spacing: 8) {
-            FileItemIconView(item: item, size: listIconSize)
+            FileItemIconView(item: item, size: listIconSize, isOpenTargeted: dropTargetedURL == item.url)
             ICloudStatusBadgeView(item: item)
-            Text(item.name)
-                .font(.system(size: 13, weight: isSel ? .semibold : .regular))
-                .lineLimit(1)
-                .foregroundColor(isSel ? .white : .primary)
-                .help(item.name)
+            SelectionAwareNameText(
+                name: item.name,
+                isSelected: isSel,
+                font: .system(size: 13, weight: isSel ? .semibold : .regular),
+                color: isSel ? .white : .primary,
+                collapsedLineLimit: 1
+            )
 
             if appState.showTags && !item.tags.isEmpty {
                 HStack(alignment: .center, spacing: -2) {
@@ -371,7 +374,9 @@ struct FileListView: View {
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
         .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .accessibilityValue(item.formattedSize)
-        .rowInteractions(item: item, appState: appState, dragProvider: { dragProvider(for: item) })
+        .rowInteractions(item: item, appState: appState, dragProvider: { dragProvider(for: item) }, onTargetedChanged: { targeted in
+            dropTargetedURL = targeted ? item.url : nil
+        })
     }
 }
 
@@ -379,6 +384,7 @@ private struct FileRowInteractionsModifier: ViewModifier {
     let item: FileItem
     var appState: AppState
     let dragProvider: () -> NSItemProvider
+    var onTargetedChanged: (Bool) -> Void = { _ in }
 
     func body(content: Content) -> some View {
         content
@@ -391,7 +397,7 @@ private struct FileRowInteractionsModifier: ViewModifier {
                 }
             )
             .onDrag(dragProvider)
-            .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState)
+            .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState, onTargetedChanged: onTargetedChanged)
             .overlay(
                 RightClickDetector {
                     if !appState.selectedURLs.contains(item.url) {
@@ -404,7 +410,12 @@ private struct FileRowInteractionsModifier: ViewModifier {
 }
 
 private extension View {
-    func rowInteractions(item: FileItem, appState: AppState, dragProvider: @escaping () -> NSItemProvider) -> some View {
-        modifier(FileRowInteractionsModifier(item: item, appState: appState, dragProvider: dragProvider))
+    func rowInteractions(
+        item: FileItem,
+        appState: AppState,
+        dragProvider: @escaping () -> NSItemProvider,
+        onTargetedChanged: @escaping (Bool) -> Void = { _ in }
+    ) -> some View {
+        modifier(FileRowInteractionsModifier(item: item, appState: appState, dragProvider: dragProvider, onTargetedChanged: onTargetedChanged))
     }
 }
