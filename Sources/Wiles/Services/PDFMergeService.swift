@@ -2,22 +2,40 @@ import Foundation
 import AppKit
 import PDFKit
 
-@MainActor
 public protocol PDFMergeServiceProtocol: Sendable {
-    static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String?) throws -> URL
+    static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String?) async throws -> URL
 }
 
 public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
-    @MainActor
-    public static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String? = nil) throws -> URL {
+    /// Not @MainActor, and the heavy work runs inside Task.detached: looping over files calling
+    /// NSImage(contentsOf:) synchronously decompresses each image's full bitmap into RAM — for
+    /// several large photos this alone can take seconds, and doing it on @MainActor (as this used
+    /// to be declared) froze the entire UI for that whole duration.
+    public static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String? = nil) async throws -> URL {
         guard !urls.isEmpty else {
             throw NSError(domain: "PDFMergeService", code: 1, userInfo: [NSLocalizedDescriptionKey: "No files provided."])
         }
 
-        let outputPDF = PDFDocument()
-        var pageIndex = 0
+        return try await Task.detached(priority: .userInitiated) {
+            let outputPDF = PDFDocument()
+            var pageIndex = 0
 
-        for url in urls {
+            for url in urls {
+                pageIndex = appendPages(from: url, into: outputPDF, startingAt: pageIndex)
+            }
+
+            let destURL = uniqueDestination(for: outputName, in: destinationFolder)
+            outputPDF.write(to: destURL)
+            return destURL
+        }.value
+    }
+
+    /// autoreleasepool ensures each image's uncompressed bitmap (which can be tens of MB for a
+    /// single large photo) is freed immediately after its page is inserted, instead of all of
+    /// them accumulating until the whole merge loop finishes.
+    private static func appendPages(from url: URL, into outputPDF: PDFDocument, startingAt pageIndex: Int) -> Int {
+        var pageIndex = pageIndex
+        autoreleasepool {
             let ext = url.pathExtension.lowercased()
             if ext == "pdf" {
                 if let doc = PDFDocument(url: url) {
@@ -33,7 +51,10 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
                 pageIndex += 1
             }
         }
+        return pageIndex
+    }
 
+    private static func uniqueDestination(for outputName: String?, in destinationFolder: URL) -> URL {
         let fileName = outputName ?? "Merged_\(Int(Date().timeIntervalSince1970)).pdf"
         var destURL = destinationFolder.appendingPathComponent(fileName)
         var counter = 2
@@ -42,8 +63,6 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
             destURL = destinationFolder.appendingPathComponent("\(baseName) \(counter).pdf")
             counter += 1
         }
-
-        outputPDF.write(to: destURL)
         return destURL
     }
 }

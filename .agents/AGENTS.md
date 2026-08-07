@@ -149,21 +149,29 @@
 - **When something genuinely isn't unit-testable today** (needs real gesture simulation, a stalled network mount, or SwiftUI render-timing infrastructure this project doesn't have), it MUST be logged in `UI_TEST_BACKLOG.md` at the repo root with what's missing and why — not silently skipped. Pull an item off that list and write the real test the moment the missing infrastructure exists.
 
 ## 29. Pre-Commit Architectural Anti-Pattern Validation (The "Deep Audit" Protocol)
-Before finalizing any code or creating a commit, you MUST perform a self-audit against these exact structural patterns to prevent introducing the critical anti-patterns previously found in this project. You must explicitly verify in your thought process that the new code does not violate these:
+Before finalizing any code or creating a commit, you MUST perform a generic self-audit against core architectural boundaries. You must explicitly verify in your thought process that the new code does not violate these constraints:
 
-1. **SwiftUI Scroll Render Loops**: Are you modifying a `@State` on a parent list/grid view from a `PreferenceKey` triggered during scrolling? (e.g., marquee selection frames).
-   - *Validation*: If yes, extract the state to an isolated `@Observable` or `@Binding` leaf view so the main list does not re-render 60 times a second on scroll.
-2. **Unbounded Caches (OOM Bloat)**: Are you instantiating an `NSCache` or in-memory dictionary for heavy assets (like `NSImage` thumbnails)?
-   - *Validation*: If yes, you MUST configure explicit `countLimit` and `totalCostLimit` upon initialization. Never allow unbounded memory growth.
-3. **Zombie Tasks (Concurrency Leaks)**: Are you creating a `Task.detached` or `AsyncStream` that iterates over a large collection (e.g., thousands of files)?
-   - *Validation*: If yes, you MUST include `if Task.isCancelled { break }` inside the loop. Background work must die instantly when the user navigates away or cancels the operation.
-4. **Predicate Injection (Fatal Crashes)**: Are you using string interpolation `\(query)` to build an `NSPredicate` for `NSMetadataQuery` or CoreData?
-   - *Validation*: If yes, rewrite it immediately using `%@` arguments. Unescaped quotes in string interpolation will instantly crash the application.
-5. **I/O Busy-Wait Locks (CPU Spin)**: Are you reacting to `.write` events from `DispatchSourceFileSystemObject` and immediately attempting mutating disk operations (`moveItem`)?
-   - *Validation*: If yes, you MUST verify if the file is locked (e.g., still downloading via a browser) using `FileHandle(forReadingFrom:)` and implement a debounce cache to prevent 100% CPU infinite spin loops.
-6. **The N+1 Disk I/O Bottleneck**: Are you fetching properties sequentially inside a loop (e.g., `FileManager.attributesOfItem` or `NSWorkspace.icon`) while iterating a directory?
-   - *Validation*: If yes, you MUST extract those calls and move the required keys to the `URLResourceKey` array of the initial `contentsOfDirectory` bulk prefetch. Collapse 10,000 I/O calls into 1.
-7. **Destructive Heuristic Assumptions (Data Loss)**: Are you identifying files for deletion (e.g., duplicates) based on partial heuristics like "file size + first 4KB hash"?
-   - *Validation*: If yes, you MUST implement a fallback to a full byte-for-byte or full SHA-256 hash before presenting destructive options to the user. Many file formats share fixed headers.
-8. **Main Thread Memory Bombs (Anti-Beachball)**: Are you decompressing large images (`NSImage(contentsOf:)`) or creating `PDFDocument` pages in a loop on the `@MainActor`?
-   - *Validation*: If yes, you MUST move the logic to a `Task.detached` and wrap the heavy allocation inside an `autoreleasepool { }` block to prevent blocking the UI and exhausting RAM.
+1. **Memory Bounds & OOM Bloat**: Are you caching or accumulating large payloads (images, files, models) in memory? 
+   - *Validation*: Ensure all in-memory caches, arrays, or dictionaries have explicit and strict hardware-bound limits (count limits, cost limits, or eviction policies). Never allow unbounded memory growth.
+2. **Concurrency Leaks (Zombie Tasks)**: Are you spinning up asynchronous tasks or streams that iterate over large datasets?
+   - *Validation*: Ensure every background loop explicitly checks for cancellation (`Task.isCancelled` or equivalent). Background work must die instantly when the user navigates away or cancels the operation.
+3. **CPU Spin Locks & Busy-Waits**: Are you monitoring system events (I/O, network) and reacting with mutating operations?
+   - *Validation*: Ensure you are not creating a tight retry loop when resources are locked. Implement explicit locking checks and aggressive debounce mechanisms to prevent 100% CPU utilization.
+4. **I/O & Network Bottlenecks (The N+1 Problem)**: Are you fetching data or metadata sequentially inside a loop over a large collection?
+   - *Validation*: Never execute synchronous I/O, disk stats, or IPC calls inside a loop. You must extract and collapse these into a single bulk-prefetch system call before the loop begins.
+5. **UI Thread Blocking (Anti-Beachball)**: Are you performing heavy data transformations, decoding, or disk writing on the main UI thread?
+   - *Validation*: Ensure all heavy allocations and processing are moved to background threads, and wrap massive memory allocations in `autoreleasepool` boundaries to prevent main thread starvation and beachballing.
+6. **Data Loss via Heuristic Assumptions**: Are you executing destructive actions (delete, overwrite, move) based on partial data matching or heuristics?
+   - *Validation*: Never rely on partial hashes, file sizes, or name similarities for destructive operations. Always implement a full, cryptographically secure validation fallback (e.g., full byte-for-byte or SHA-256) before destroying user data.
+7. **Render Loop Thrashing**: Are you updating parent state structures from high-frequency events (like scroll or mouse tracking)?
+   - *Validation*: Ensure high-frequency data is isolated to leaf-node observables or bindings to prevent cascading re-renders of large parent view hierarchies.
+8. **State Desynchronization (Single Source of Truth)**: Are you copying or duplicating state across multiple stores or `@State` variables?
+   - *Validation*: Never mirror state. Always derive dependent data dynamically via computed properties or pass it via bindings to guarantee a single source of truth.
+9. **Retain Cycles (Memory Leaks)**: Are you using escaping closures, timers, or event monitors that reference class instances?
+   - *Validation*: Always explicitly capture `[weak self]` in long-lived closures or AppKit monitors to prevent permanent memory leaks.
+10. **Concurrency Race Conditions**: Are you mutating a shared dictionary, array, or cache from multiple concurrent background tasks?
+    - *Validation*: Ensure all mutable shared state is strictly protected by an `actor`, a `@MainActor` wrapper, or a serial queue to prevent fatal `EXC_BAD_ACCESS` memory corruption crashes.
+11. **Security & Shell Injection**: Are you passing user input, file names, or paths directly into shell commands (`Process`)?
+    - *Validation*: Never use string interpolation to build shell commands. Always strictly pass user data into the `arguments` array of `Process`, bypassing shell evaluation entirely, to prevent command injection.
+12. **UI/UX Silent Failures**: Are you catching errors in a user-initiated action without updating the UI?
+    - *Validation*: Never swallow errors silently (e.g. `try?`) unless it's an expected background debounce. All user-initiated failures MUST bubble up to a visible UI alert or status indicator so the user knows what went wrong.

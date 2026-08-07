@@ -195,12 +195,14 @@ struct SharedFileItemContextMenu: View {
         }
         if canMergePDF && pdfMergeTargets.count >= 1 {
             Button(appState.tr(.mergeIntoPDF)) {
-                do {
-                    _ = try PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
-                } catch {
-                    appState.showError(error.localizedDescription)
+                Task {
+                    do {
+                        _ = try await PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
+                    } catch {
+                        appState.showError(error.localizedDescription)
+                    }
+                    appState.refreshCurrentDirectory()
                 }
-                appState.refreshCurrentDirectory()
             }
         }
         Divider()

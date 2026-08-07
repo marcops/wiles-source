@@ -9,7 +9,8 @@ public struct DuplicateDetectionTests {
         await testEmptyFolderReturnsNoGroups()
         await testSameSizeDifferentContentNotGrouped()
         await testSkipsSubdirectoriesWhenBuildingSizeMap()
-        await testFilesLargerThan4096WithIdenticalPrefixAreGroupedDespiteDifferingTail()
+        await testFilesWithIdenticalPrefixButDifferingTailAreNotGrouped()
+        await testLargeTrulyIdenticalFilesAreStillGrouped()
         await testEmptyFilesAreNotGrouped()
         await testHiddenFilesAreSkipped()
         await testThreeIdenticalFilesFormOneGroupOfThree()
@@ -96,14 +97,16 @@ public struct DuplicateDetectionTests {
         report("DuplicateDetection", "POS: scan recurses into subdirectories and finds duplicates without erroring on the directory entry itself", result: foundGroup != nil)
     }
 
-    private static func testFilesLargerThan4096WithIdenticalPrefixAreGroupedDespiteDifferingTail() async {
+    /// Regression coverage for the false-duplicate data-loss fix: files that share an identical
+    /// 4096-byte prefix (and same size) but differ afterward — as many real formats with fixed
+    /// headers do (MP4, ISO, DMG, VM disk images) — must NOT be grouped as duplicates. The partial
+    /// hash alone used to be trusted directly; now a full-content hash is required to confirm any
+    /// partial-hash match before it's presented to the user as a real duplicate.
+    private static func testFilesWithIdenticalPrefixButDifferingTailAreNotGrouped() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        // Hashing only reads the first 4096 bytes, so two files that share an identical
-        // 4096-byte prefix but differ afterward (with equal total size) are still grouped
-        // as "duplicates" by this implementation. This test documents that real behavior.
         let prefix = String(repeating: "X", count: 4096)
         let contentA = prefix + "TAIL_ONE_DIFFERS_HERE"
         let contentB = prefix + "TAIL_TWO_DIFFERS_HERE"
@@ -116,7 +119,32 @@ public struct DuplicateDetectionTests {
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
-            "POS: files >4096 bytes with identical prefix but differing tail are still grouped (partial-hash limitation)",
+            "NEG: files with identical 4096-byte prefix but differing tail are not grouped (full-hash confirmation)",
+            result: !result.groups.contains { $0.items.count == 2 }
+        )
+    }
+
+    /// POS half of the same fix: files large enough to exercise the multi-chunk full-hash read
+    /// (>1MB, so computeFullHash's chunked FileHandle loop runs more than once) that are truly
+    /// byte-for-byte identical must still be correctly grouped — the full-hash pass shouldn't
+    /// introduce false negatives for genuine duplicates.
+    private static func testLargeTrulyIdenticalFilesAreStillGrouped() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let chunk = Data(repeating: 0x42, count: 1024 * 1024) // 1 MB
+        var content = Data()
+        for _ in 0..<2 { content.append(chunk) } // 2 MB, spans multiple 1MB read chunks
+        let fileA = dir.appendingPathComponent("large_a.bin")
+        let fileB = dir.appendingPathComponent("large_b.bin")
+        try? content.write(to: fileA)
+        try? content.write(to: fileB)
+
+        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        report(
+            "DuplicateDetection",
+            "POS: large (multi-chunk) truly identical files are still correctly grouped as duplicates",
             result: result.groups.contains { $0.items.count == 2 }
         )
     }

@@ -71,6 +71,17 @@ pull items off this list and write the real test before removing the entry.
   this project has. Manually verify: open a folder with thousands of files (e.g. `~/Library/Caches`)
   and compare perceived load time/responsiveness against `git stash` on this change.
 
+- **`PDFMergeService.mergeFiles()` no longer blocks the main thread.** Removed `@MainActor`, moved
+  the loop (which calls `NSImage(contentsOf:)`, a synchronous full-bitmap decompression) into
+  `Task.detached`, and wrapped each iteration in `autoreleasepool` so large images don't accumulate
+  in memory across the whole merge. The functional tests (does it produce a correct merged PDF)
+  are covered in `PDFMergeTests`, but "does the UI stay responsive / does memory stay flat while
+  merging 50 large images" is a real-world perf/responsiveness claim, not something an XCTest
+  assertion can observe (would need an actual UI hang detector or memory-sampling harness this
+  project doesn't have). Manually verify: select ~20 large photos (e.g. 50MP RAW/HEIC), "Merge into
+  PDF", and confirm the app's UI (spinner, other windows) stays interactive throughout instead of
+  beachballing.
+
 ## Resolved (moved out of this list once tested)
 
 - `AppState.moveSelectedFavorite()` — was on this list, turned out to be plain synchronous state

@@ -5,7 +5,7 @@ import PDFKit
 
 @MainActor
 public struct PDFMergeTests {
-    public static func run() {
+    public static func run() async {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
@@ -22,11 +22,11 @@ public struct PDFMergeTests {
             try? png.write(to: imgFile)
         }
 
-        runScenarios(tempDir: tempDir, imgFile: imgFile)
+        await runScenarios(tempDir: tempDir, imgFile: imgFile)
     }
 
-    private static func runScenarios(tempDir: URL, imgFile: URL) {
-        if let merged = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "TestMerged.pdf") {
+    private static func runScenarios(tempDir: URL, imgFile: URL) async {
+        if let merged = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "TestMerged.pdf") {
             TestReporter.report("PDFMerge", "POS: mergeFiles creates valid PDF file", result: FileManager.default.fileExists(atPath: merged.path))
         } else {
             TestReporter.report("PDFMerge", "POS: mergeFiles creates valid PDF file", result: false)
@@ -35,14 +35,14 @@ public struct PDFMergeTests {
         // NEG: empty URL list throws instead of producing an empty PDF
         var threw = false
         do {
-            _ = try PDFMergeService.mergeFiles(urls: [], in: tempDir, outputName: "Empty.pdf")
+            _ = try await PDFMergeService.mergeFiles(urls: [], in: tempDir, outputName: "Empty.pdf")
         } catch {
             threw = true
         }
         TestReporter.report("PDFMerge", "NEG: mergeFiles with an empty URL list throws", result: threw)
 
         // POS: default output name (nil) generates a "Merged_<timestamp>.pdf" file
-        if let defaultNamed = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: nil) {
+        if let defaultNamed = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: nil) {
             TestReporter.report(
                 "PDFMerge",
                 "POS: mergeFiles with no outputName generates a default \"Merged_...\" name",
@@ -54,8 +54,8 @@ public struct PDFMergeTests {
 
         // POS: merging the same output name twice avoids overwriting via a numeric suffix
         let dupeName = "DupeMerged.pdf"
-        let first = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName)
-        let second = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName)
+        let first = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName)
+        let second = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName)
         TestReporter.report(
             "PDFMerge", "POS: mergeFiles avoids overwriting an existing output file by appending a counter",
             result: first != nil && second != nil && first?.lastPathComponent != second?.lastPathComponent
@@ -63,9 +63,9 @@ public struct PDFMergeTests {
         )
 
         // POS: merging multiple PDFs concatenates their pages into one document
-        if let pdfA = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageA.pdf"),
-           let pdfB = try? PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageB.pdf"),
-           let combined = try? PDFMergeService.mergeFiles(urls: [pdfA, pdfB], in: tempDir, outputName: "Combined.pdf"),
+        if let pdfA = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageA.pdf"),
+           let pdfB = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageB.pdf"),
+           let combined = try? await PDFMergeService.mergeFiles(urls: [pdfA, pdfB], in: tempDir, outputName: "Combined.pdf"),
            let combinedDoc = PDFDocument(url: combined) {
             TestReporter.report("PDFMerge", "POS: merging two single-page PDFs produces a 2-page combined document", result: combinedDoc.pageCount == 2)
         } else {

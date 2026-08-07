@@ -121,8 +121,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testPDFMergeTests() {
-        PDFMergeTests.run()
+    func testPDFMergeTests() async {
+        await PDFMergeTests.run()
     }
 
     @MainActor

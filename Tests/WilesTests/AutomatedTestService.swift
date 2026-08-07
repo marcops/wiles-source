@@ -38,7 +38,7 @@ public final class AutomatedTestService {
         ICloudTests.run()
         FilePermissionsTests.run()
         SmartFolderTests.run()
-        PDFMergeTests.run()
+        await PDFMergeTests.run()
         ExifMetadataTests.run()
         ArchiveInspectionTests.run()
         ArchiveTests.run()
