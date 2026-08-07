@@ -6,34 +6,58 @@ extension AppState {
     public func navigateTo(_ url: URL, addToHistory: Bool = true) {
         HapticService.shared.play(.alignment)
         if url == Self.recentsVirtualURL {
-            if addToHistory && url != navigation.currentURL {
-                navigation.historyBack.append(navigation.currentURL)
-                navigation.historyForward.removeAll()
-            }
-            navigation.currentURL = url
-            selectedURLs.removeAll()
-            isSearching = false
-            searchQuery = ""
-            refreshCurrentDirectory()
+            navigateToRecentsVirtual(addToHistory: addToHistory)
             return
         }
         addToRecents(url)
-        var isDir: ObjCBool = false
-        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-            let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: url.standardizedFileURL)
-            if addToHistory && url != navigation.currentURL {
-                navigation.historyBack.append(navigation.currentURL)
-                navigation.historyForward.removeAll()
+        // fileExists(atPath:) is a synchronous disk call. For a local path it resolves in
+        // microseconds, so we check it inline to keep navigation instant. But for anything under
+        // /Volumes — an SMB/FTP/SFTP share or external drive — the same call can block for many
+        // seconds if the mount has stalled or gone unreachable, freezing the whole UI. Only that
+        // case hops off @MainActor.
+        if url.path.hasPrefix("/Volumes/") {
+            Task.detached(priority: .userInitiated) { [weak self] in
+                var isDir: ObjCBool = false
+                let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+                await MainActor.run {
+                    self?.completeNavigation(to: url, isDirectory: exists && isDir.boolValue, addToHistory: addToHistory)
+                }
             }
-            navigation.currentURL = url.standardizedFileURL
-            selectedURLs.removeAll()
-            selection.pendingSelectionURL = leavingChildURL
-            isSearching = false
-            searchQuery = ""
-            refreshCurrentDirectory()
-        } else {
-            NSWorkspace.shared.open(url)
+            return
         }
+        var isDir: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+        completeNavigation(to: url, isDirectory: exists && isDir.boolValue, addToHistory: addToHistory)
+    }
+
+    private func navigateToRecentsVirtual(addToHistory: Bool) {
+        if addToHistory && Self.recentsVirtualURL != navigation.currentURL {
+            navigation.historyBack.append(navigation.currentURL)
+            navigation.historyForward.removeAll()
+        }
+        navigation.currentURL = Self.recentsVirtualURL
+        selectedURLs.removeAll()
+        isSearching = false
+        searchQuery = ""
+        refreshCurrentDirectory()
+    }
+
+    private func completeNavigation(to url: URL, isDirectory: Bool, addToHistory: Bool) {
+        guard isDirectory else {
+            NSWorkspace.shared.open(url)
+            return
+        }
+        let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: url.standardizedFileURL)
+        if addToHistory && url != navigation.currentURL {
+            navigation.historyBack.append(navigation.currentURL)
+            navigation.historyForward.removeAll()
+        }
+        navigation.currentURL = url.standardizedFileURL
+        selectedURLs.removeAll()
+        selection.pendingSelectionURL = leavingChildURL
+        isSearching = false
+        searchQuery = ""
+        refreshCurrentDirectory()
     }
 
     /// If `newURL` is an ancestor of `oldURL`, returns the direct child of `newURL` on the path to `oldURL` —

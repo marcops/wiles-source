@@ -21,7 +21,6 @@ struct FileGridView: View {
 
     @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect?
-    @State private var dragStartPoint: CGPoint?
     @State private var visibleLimit: Int = LayoutTokens.paginationThreshold
 
     var body: some View {
@@ -31,43 +30,12 @@ struct FileGridView: View {
                     ZStack(alignment: .topLeading) {
                         Color.clear.frame(height: 1).id("top")
 
-                        Color(NSColor.controlBackgroundColor).opacity(0.001)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 2, coordinateSpace: .named("gridContainer"))
-                                .onChanged { gesture in
-                                    let start = dragStartPoint ?? gesture.startLocation
-                                    if dragStartPoint == nil { dragStartPoint = start }
-
-                                    let minX = min(start.x, gesture.location.x)
-                                    let minY = min(start.y, gesture.location.y)
-                                    let maxX = max(start.x, gesture.location.x)
-                                    let maxY = max(start.y, gesture.location.y)
-                                    let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-
-                                    self.selectionRect = rect
-
-                                    let selected = cellFrames.compactMap { (url, frame) -> URL? in
-                                        frame.intersects(rect) ? url : nil
-                                    }
-                                    appState.selectedURLs = Set(selected)
-                                }
-                                .onEnded { _ in
-                                    self.selectionRect = nil
-                                    self.dragStartPoint = nil
-                                }
+                        SelectionRectangleOverlay(
+                            appState: appState,
+                            cellFrames: cellFrames,
+                            coordinateSpaceName: "gridContainer",
+                            selectionRect: $selectionRect
                         )
-                        .onTapGesture {
-                            appState.selectedURLs.removeAll()
-                        }
-                        .overlay(
-                            RightClickDetector {
-                                appState.selectedURLs.removeAll()
-                            }
-                        )
-                        .contextMenu {
-                            SharedBackgroundContextMenu(appState: appState)
-                        }
 
                         Group {
                             if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
@@ -110,14 +78,7 @@ struct FileGridView: View {
                         .id(appState.navigation.currentURL)
                         .transition(.opacity)
 
-                        if let rect = selectionRect {
-                            Rectangle()
-                                .fill(Color.accentColor.opacity(0.15))
-                                .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
-                                .frame(width: rect.width, height: rect.height)
-                                .offset(x: rect.minX, y: rect.minY)
-                                .allowsHitTesting(false)
-                        }
+                        SelectionRectangleOverlay.rectangleOverlay(selectionRect)
                     }
                     .coordinateSpace(name: "gridContainer")
                     .onPreferenceChange(CellFrameKey.self) { frames in

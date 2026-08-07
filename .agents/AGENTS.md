@@ -116,6 +116,20 @@
 - **Strict Centralized Localization (`appState.tr(.key)`)**: Every single user-facing string MUST be retrieved via `appState.tr(.key)` backed by `LocalizationService`.
 - **Mandatory VoiceOver Accessibility**: Every interactive UI element (buttons, table rows, grid cards, toolbar controls, list items) MUST be decorated with `.accessibilityLabel(...)`, `.accessibilityHint(...)`, `.accessibilityAddTraits(...)`, and `.accessibilityValue(...)` using localized `appState.tr(...)` strings.
 
+## 20. Strict File URL Normalization
+- **Never compare raw URL or `String` paths directly using `==`** when either side may originate from user input, `UserDefaults`, or a different code path than the other side. Always resolve both sides via `.standardizedFileURL` first. macOS paths can have trailing slashes, APFS volume prefixing, or symlink variations that point to the exact same physical directory. (Comparing two `FileItem.url` values that both came from the same `contentsOfDirectory` call is fine as-is — they're already canonical.)
 
+## 21. No Synchronous Disk I/O on @MainActor for Non-Local Paths (Anti-Beachball Rule)
+- **Local paths may check `FileManager` synchronously** (e.g. `fileExists(atPath:)` on a path under the user's home/boot volume resolves in microseconds — dispatching this to a background task adds latency and complexity for zero real benefit).
+- **Anything under `/Volumes/` (SMB/FTP/SFTP shares, external drives) MUST run its `FileManager` calls off `@MainActor`** — hop to `Task.detached`, then apply the result back on `@MainActor`. A stalled or unreachable network mount can block a synchronous call for many seconds, freezing the whole UI. Real example fixed: `AppState.navigateTo()` used to call `fileExists(atPath:)` synchronously for every navigation, including into network shares — see `AppState+Navigation.swift`.
+
+## 22. Explicit Animation Boundaries
+- **Never attach `.animation(_:value:)` or wrap `withAnimation` around a high-level container view** (a root `ZStack`, the outer `ScrollView`, or anything that re-renders when a large folder loads). Attach animation only to the specific leaf element changing (an icon, a selection border, a single scroll target) so a big directory load can't accidentally trigger an animated full-tree layout recalculation.
+
+## 23. Prohibit AnyView
+- **No `AnyView`, ever.** It erases SwiftUI's structural identity and forces aggressive re-rendering. Use `@ViewBuilder` with `if`/`else` or `switch` to resolve dynamic view types while preserving `some View`.
+
+## 24. UserDefaults Payload Limits
+- **`UserDefaults.standard` is for lightweight toggles, enums, numbers, and small bounded arrays/JSON only** (e.g. `listColumnStates`, `AutoOrganizationRule` list) — never for large collections or a full directory listing. `UserDefaults` reads/writes are synchronous and can block the main thread if the payload is heavy. Directory-scale caching belongs in an in-memory service (see `DirectoryCacheService`), not `UserDefaults`.
 
 

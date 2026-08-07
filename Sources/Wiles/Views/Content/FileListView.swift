@@ -29,6 +29,7 @@ struct FileListView: View {
                             SelectionRectangleOverlay(
                                 appState: appState,
                                 cellFrames: cellFrames,
+                                coordinateSpaceName: "listContainer",
                                 minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness,
                                 selectionRect: $selectionRect
                             )

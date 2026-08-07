@@ -5,12 +5,13 @@ import AppKit
 /// marquee (reporting its current rect via `selectionRect` so the caller can draw it *above* the row
 /// content — this view must stay *below* the rows in z-order so row gestures still win), plus
 /// background tap-to-deselect, right-click-to-deselect, and the shared empty-area context menu.
-/// Matches selection against `cellFrames` (populated by row-level `ListCellFrameKey` preferences).
-/// Expects an ancestor `.coordinateSpace(name: "listContainer")`.
+/// Matches selection against `cellFrames` (populated by row-level preference-key frames).
+/// Expects an ancestor `.coordinateSpace(name: coordinateSpaceName)`.
 struct SelectionRectangleOverlay: View {
     var appState: AppState
     var cellFrames: [URL: CGRect]
-    var minWidth: CGFloat
+    var coordinateSpaceName: String
+    var minWidth: CGFloat?
     @Binding var selectionRect: CGRect?
 
     @State private var dragStartPoint: CGPoint?
@@ -41,7 +42,7 @@ struct SelectionRectangleOverlay: View {
     }
 
     private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
+        DragGesture(minimumDistance: 2, coordinateSpace: .named(coordinateSpaceName))
             .onChanged(handleDragChanged)
             .onEnded { _ in
                 selectionRect = nil
