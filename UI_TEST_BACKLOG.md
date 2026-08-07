@@ -55,6 +55,22 @@ pull items off this list and write the real test before removing the entry.
   by any caller in the app (dead code), so there's no live UI path to manually verify yet either —
   re-check this once something actually calls it.
 
+- **`FileSystemService` N+1 I/O fix — fewer syscalls, not just correct output.** Added
+  `.creationDateKey`/`.contentAccessDateKey`/`.effectiveIconKey` to the bulk `contentsOfDirectory`
+  prefetch so `FileItem.init`'s own `resourceValues(forKeys:)` call hits a warm cache for them
+  instead of a per-file stat/IPC — and dropped the per-file `NSWorkspace.icon(forFile:)` call
+  entirely in favor of the same bulk-prefetched icon. Tried to write this red-green: a test
+  asserting `dateCreated`/icon come back populated turned out to **pass identically whether the
+  prefetch keys are present or not** — `FileItem` already fetched those keys itself as a
+  (slower) fallback, so functional output was never wrong, only the number of syscalls behind it.
+  Confirmed this by disabling the fix and re-running the test — it still passed, proving it
+  can't distinguish fixed from unfixed. Kept the test anyway (renamed honestly in its doc comment)
+  since it's still valid *correctness* regression coverage for the refactor, but the actual
+  performance claim (fewer syscalls, faster load on a 5,000+ file folder) needs syscall-count
+  instrumentation (e.g. `fs_usage`/`dtrace`) or a wall-clock benchmark to verify, neither of which
+  this project has. Manually verify: open a folder with thousands of files (e.g. `~/Library/Caches`)
+  and compare perceived load time/responsiveness against `git stash` on this change.
+
 ## Resolved (moved out of this list once tested)
 
 - `AppState.moveSelectedFavorite()` — was on this list, turned out to be plain synchronous state

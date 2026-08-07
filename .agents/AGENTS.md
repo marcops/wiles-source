@@ -148,4 +148,22 @@
 - This applies to Claude/agent-driven changes just as much as human-written ones — no exception for "it's just a small fix."
 - **When something genuinely isn't unit-testable today** (needs real gesture simulation, a stalled network mount, or SwiftUI render-timing infrastructure this project doesn't have), it MUST be logged in `UI_TEST_BACKLOG.md` at the repo root with what's missing and why — not silently skipped. Pull an item off that list and write the real test the moment the missing infrastructure exists.
 
+## 29. Pre-Commit Architectural Anti-Pattern Validation (The "Deep Audit" Protocol)
+Before finalizing any code or creating a commit, you MUST perform a self-audit against these exact structural patterns to prevent introducing the critical anti-patterns previously found in this project. You must explicitly verify in your thought process that the new code does not violate these:
 
+1. **SwiftUI Scroll Render Loops**: Are you modifying a `@State` on a parent list/grid view from a `PreferenceKey` triggered during scrolling? (e.g., marquee selection frames).
+   - *Validation*: If yes, extract the state to an isolated `@Observable` or `@Binding` leaf view so the main list does not re-render 60 times a second on scroll.
+2. **Unbounded Caches (OOM Bloat)**: Are you instantiating an `NSCache` or in-memory dictionary for heavy assets (like `NSImage` thumbnails)?
+   - *Validation*: If yes, you MUST configure explicit `countLimit` and `totalCostLimit` upon initialization. Never allow unbounded memory growth.
+3. **Zombie Tasks (Concurrency Leaks)**: Are you creating a `Task.detached` or `AsyncStream` that iterates over a large collection (e.g., thousands of files)?
+   - *Validation*: If yes, you MUST include `if Task.isCancelled { break }` inside the loop. Background work must die instantly when the user navigates away or cancels the operation.
+4. **Predicate Injection (Fatal Crashes)**: Are you using string interpolation `\(query)` to build an `NSPredicate` for `NSMetadataQuery` or CoreData?
+   - *Validation*: If yes, rewrite it immediately using `%@` arguments. Unescaped quotes in string interpolation will instantly crash the application.
+5. **I/O Busy-Wait Locks (CPU Spin)**: Are you reacting to `.write` events from `DispatchSourceFileSystemObject` and immediately attempting mutating disk operations (`moveItem`)?
+   - *Validation*: If yes, you MUST verify if the file is locked (e.g., still downloading via a browser) using `FileHandle(forReadingFrom:)` and implement a debounce cache to prevent 100% CPU infinite spin loops.
+6. **The N+1 Disk I/O Bottleneck**: Are you fetching properties sequentially inside a loop (e.g., `FileManager.attributesOfItem` or `NSWorkspace.icon`) while iterating a directory?
+   - *Validation*: If yes, you MUST extract those calls and move the required keys to the `URLResourceKey` array of the initial `contentsOfDirectory` bulk prefetch. Collapse 10,000 I/O calls into 1.
+7. **Destructive Heuristic Assumptions (Data Loss)**: Are you identifying files for deletion (e.g., duplicates) based on partial heuristics like "file size + first 4KB hash"?
+   - *Validation*: If yes, you MUST implement a fallback to a full byte-for-byte or full SHA-256 hash before presenting destructive options to the user. Many file formats share fixed headers.
+8. **Main Thread Memory Bombs (Anti-Beachball)**: Are you decompressing large images (`NSImage(contentsOf:)`) or creating `PDFDocument` pages in a loop on the `@MainActor`?
+   - *Validation*: If yes, you MUST move the logic to a `Task.detached` and wrap the heavy allocation inside an `autoreleasepool { }` block to prevent blocking the UI and exhausting RAM.

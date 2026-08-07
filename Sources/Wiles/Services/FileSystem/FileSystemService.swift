@@ -54,8 +54,15 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
     private static func loadRealDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
         await Task.detached(priority: .userInitiated) {
             let fm = FileManager.default
+            // Prefetching creationDateKey/contentAccessDateKey/effectiveIconKey here — not just the
+            // keys FileItem strictly needs for its primary fields — means FileItem's own
+            // resourceValues(forKeys:) call below hits URL's warm resource cache for all of them
+            // instead of triggering a fresh per-file stat/IPC call for whichever ones were missing.
+            // effectiveIconKey in particular replaces a blocking NSWorkspace.icon(forFile:) call per
+            // file (a LaunchServices IPC round trip) with one bulk-fetched alongside everything else.
             var keys: [URLResourceKey] = [
                 .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
+                .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
                 .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
                 .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
             ]
@@ -73,8 +80,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
                 if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) { continue }
                 if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
 
-                let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
-                items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags))
+                items.append(FileItem(url: fileURL, fetchTags: options.showTags))
             }
             let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
             if options.searchQuery.isEmpty {

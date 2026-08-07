@@ -32,6 +32,7 @@ public final class AutomatedTestService {
         UITests.run()
         LocalizationTests.run()
         await FileSystemTests.run()
+        await FileItemBulkPrefetchTests.run()
         CopyPathTests.run()
         OpenWithTests.run()
         ICloudTests.run()

@@ -91,6 +91,11 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
+    func testFileItemBulkPrefetchTests() async {
+        await FileItemBulkPrefetchTests.run()
+    }
+
+    @MainActor
     func testCopyPathTests() {
         CopyPathTests.run()
     }

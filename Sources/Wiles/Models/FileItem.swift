@@ -22,12 +22,15 @@ public struct FileItem: Identifiable, Hashable, Sendable {
     public let isUbiquitousDownloading: Bool
     public let isUbiquitousUploading: Bool
 
-    public init(url: URL, icon: NSImage, fetchTags: Bool = false) {
+    /// `icon` is only needed when the caller already has one at hand (e.g. a bulk-prefetched
+    /// `.effectiveIconKey` from the same `contentsOfDirectory` pass, or a spot-check on a single
+    /// file elsewhere). Passing `nil` falls back to the resource-value read below (still cheap,
+    /// since it's part of the same batch as the other keys) and finally to `NSWorkspace`, but the
+    /// hot path — loading a whole directory — should always supply the prefetched icon directly to
+    /// avoid a blocking LaunchServices IPC call per file.
+    public init(url: URL, icon: NSImage? = nil, fetchTags: Bool = false) {
         self.url = url.standardizedFileURL
         self.name = url.lastPathComponent
-        let highResIcon = (icon.copy() as? NSImage) ?? icon
-        highResIcon.size = NSSize(width: 512, height: 512)
-        self.icon = highResIcon
 
         let keys: Set<URLResourceKey> = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey,
@@ -35,9 +38,15 @@ public struct FileItem: Identifiable, Hashable, Sendable {
             .isHiddenKey, .isUbiquitousItemKey,
             .ubiquitousItemDownloadingStatusKey,
             .ubiquitousItemIsDownloadingKey,
-            .ubiquitousItemIsUploadingKey
+            .ubiquitousItemIsUploadingKey,
+            .effectiveIconKey
         ]
         let values = try? url.resourceValues(forKeys: keys)
+
+        let resolvedIcon = icon ?? (values?.effectiveIcon as? NSImage) ?? NSWorkspace.shared.icon(forFile: url.path)
+        let highResIcon = (resolvedIcon.copy() as? NSImage) ?? resolvedIcon
+        highResIcon.size = NSSize(width: 512, height: 512)
+        self.icon = highResIcon
 
         // Fetched in a separate call: requesting .tagNamesKey together with the
         // .isUbiquitousItemKey/.ubiquitousItem* keys in one resourceValues batch
