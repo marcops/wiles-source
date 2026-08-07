@@ -12,6 +12,7 @@ public struct AppStateOperationsExtraTests {
         await testPasteToCurrentDirectory()
         await testUndoRedoLastAction()
         await testDownloadFromiCloudFailure()
+        await testCompressSelectedToZIPWithPassword()
     }
 
     private static func makeFile(named name: String, in dir: URL, content: String = "content") -> URL {
@@ -218,6 +219,49 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations",
             "NEG: downloadFromiCloud() with a URL that isn't a ubiquitous item reports an error instead of crashing",
             result: appState.modal.errorMessage != nil
+        )
+    }
+
+    /// Regression coverage for the beachball fix: PasswordCompressSheetView's "OK" button used to
+    /// call ArchiveService.compressToZIP synchronously on @MainActor, blocking the whole UI for as
+    /// long as `zip` took to run. compressSelectedToZIPWithPassword() mirrors the already-async
+    /// compressSelectedToZIP()/extractArchive() pattern: fire-and-forget from the caller's
+    /// perspective, actual work happens in a detached Task.
+    private static func testCompressSelectedToZIPWithPassword() async {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let fileURL = makeFile(named: "secret.txt", in: dir, content: "classified")
+        let appState = AppState()
+        appState.navigation.currentURL = dir
+        appState.modal.passwordCompressURLs = [fileURL]
+
+        appState.compressSelectedToZIPWithPassword("hunter2")
+
+        let zipURL = dir.appendingPathComponent("secret.zip")
+        var zipCreated = false
+        for _ in 0..<20 {
+            zipCreated = FileManager.default.fileExists(atPath: zipURL.path)
+            if zipCreated { break }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        report(
+            "AppState+Operations", "POS: compressSelectedToZIPWithPassword() creates the encrypted archive without the caller blocking",
+            result: zipCreated
+        )
+
+        // NEG: no source URLs set — should be a safe no-op, no crash, nothing created.
+        let emptyDir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: emptyDir) }
+        let emptyAppState = AppState()
+        emptyAppState.navigation.currentURL = emptyDir
+        emptyAppState.modal.passwordCompressURLs = nil
+        emptyAppState.compressSelectedToZIPWithPassword("irrelevant")
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        let emptyDirContents = (try? FileManager.default.contentsOfDirectory(atPath: emptyDir.path)) ?? ["unexpected-error"]
+        report(
+            "AppState+Operations", "NEG: compressSelectedToZIPWithPassword() with no passwordCompressURLs set is a safe no-op",
+            result: emptyDirContents.isEmpty
         )
     }
 

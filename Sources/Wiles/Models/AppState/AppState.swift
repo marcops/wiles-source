@@ -181,6 +181,23 @@ public final class AppState {
         }
     }
 
+    public func compressSelectedToZIPWithPassword(_ password: String) {
+        guard let urls = modal.passwordCompressURLs, !urls.isEmpty else { return }
+        let current = navigation.currentURL
+        Task.detached(priority: .userInitiated) {
+            do {
+                try ArchiveService.compressToZIP(urls: urls, in: current, password: password)
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.showError(error.localizedDescription)
+                }
+            }
+            await MainActor.run { [weak self] in
+                self?.refreshCurrentDirectory()
+            }
+        }
+    }
+
     public func extractArchive(url: URL) {
         let current = navigation.currentURL
         Task.detached(priority: .userInitiated) {

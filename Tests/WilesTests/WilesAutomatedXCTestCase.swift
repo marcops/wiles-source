@@ -131,8 +131,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testArchiveInspectionTests() {
-        ArchiveInspectionTests.run()
+    func testArchiveInspectionTests() async {
+        await ArchiveInspectionTests.run()
     }
 
     @MainActor
