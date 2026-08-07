@@ -21,8 +21,7 @@ struct FileListView: View {
     var body: some View {
         GeometryReader { geometry in
             ScrollViewReader { proxy in
-                ScrollView(.vertical) {
-                    ScrollView(.horizontal) {
+                ScrollView([.horizontal, .vertical]) {
                     ZStack(alignment: .topLeading) {
                             Color.clear.frame(height: 1).id("top")
                             SelectionRectangleOverlay(
@@ -77,7 +76,6 @@ struct FileListView: View {
                 .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
                 .background(ScrollerAutoHideSetter())
                 }
-            }
             .onChange(of: appState.navigation.currentURL) { _, _ in
                 visibleLimit = LayoutTokens.paginationThreshold
             }

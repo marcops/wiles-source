@@ -35,6 +35,7 @@ enum DefaultsKey: String {
     case showSidebarSectionTitles = "wiles_showSidebarSectionTitles"
     case showTags = "wiles_showTags"
     case showTerminalDrawer = "wiles_showTerminalDrawer"
+    case skipDeleteConfirmation = "wiles_skipDeleteConfirmation"
     case sidebarMode = "wiles_sidebarMode"
     case sidebarTranslucentLevel = "wiles_sidebarTranslucentLevel"
     case sidebarWidth = "wiles_sidebarWidth"

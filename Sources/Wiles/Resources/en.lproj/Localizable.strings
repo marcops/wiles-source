@@ -29,6 +29,7 @@
 "applyPermissions" = "Apply Permissions";
 "ascending" = "Ascending";
 "autoOrganization" = "Auto-Organization Rules...";
+"autoOrganizationSubtitle" = "Automatically move files between folders based on rules you define";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "background tasks";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Sharing & Permissions";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "Quick reference for keyboard shortcuts";
+"shortcutsCurrentModeBadge" = "Current";
 "shortcutsFileActions" = "File Actions";
 "shortcutsNav" = "Navigation";
 "shortcutsOpenFolder" = "Open Selected Folder";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "New Window";
+"theme" = "Theme";
+"skipDeleteConfirmation" = "Skip delete confirmation";
+"skipDeleteConfirmationHint" = "Move items to the Trash immediately without asking for confirmation.";
+"settingsWindowTitle" = "Wiles Settings";
+"settingsMenuItem" = "Settings…";
+"settingsGeneralTab" = "General";
+"settingsAppearanceTab" = "Appearance";
+"settingsSidebarTab" = "Sidebar";
+"settingsAdvancedTab" = "Advanced";
+"settingsLanguageSection" = "Language";
+"settingsBehaviorSection" = "Behavior";
+"settingsThemeSection" = "Theme";
+"settingsTranslucencySection" = "Translucency";
+"settingsSidebarSectionsSection" = "Sidebar Sections";
+"settingsSidebarDisplaySection" = "Sidebar Display";
+"settingsViewSection" = "View";
+"settingsFooterHint" = "These settings apply immediately and are saved automatically.";
+"appearanceSystemOption" = "System";
+"appearanceLightOption" = "Light";
+"appearanceDarkOption" = "Dark";
+"settingsDefaultAppSection" = "Default App";
+"defaultAppRegisterButton" = "Register Wiles for Folders";
+"defaultAppExplanation" = "macOS reserves double-clicking a folder for Finder — no app can change that system-wide. This adds Wiles to a folder's right-click \"Open With\" menu in Finder instead.";
+"defaultAppRegisteredConfirmation" = "Wiles was added to the \"Open With\" menu for folders.";
+"defaultAppRegistrationFailed" = "Couldn't register Wiles. Try again, or check System Settings > General > Login Items & Extensions.";

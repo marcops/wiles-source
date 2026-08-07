@@ -219,6 +219,7 @@ struct HelpSheet: View {
                 .font(.system(size: 14, weight: .semibold))
 
             VStack(spacing: 4) {
+                shortcutRow(action: appState.tr(.settingsMenuItem), shortcut: "Cmd + ,")
                 shortcutRow(action: appState.tr(.actUndo), shortcut: "Cmd + Z")
                 shortcutRow(action: appState.tr(.actRedo), shortcut: "Cmd + Shift + Z")
                 shortcutRow(action: appState.tr(.actQuickLook), shortcut: "Space")

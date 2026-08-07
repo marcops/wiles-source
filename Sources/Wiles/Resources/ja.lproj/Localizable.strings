@@ -28,7 +28,8 @@
 "apply" = "適用";
 "applyPermissions" = "アクセス権を適用";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "自動整理ルール...";
+"autoOrganizationSubtitle" = "定義したルールに基づいてファイルをフォルダ間で自動的に移動します";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "バックグラウンドタスク";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "共有とアクセス権";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "キーボードショートカットのクイックリファレンス";
+"shortcutsCurrentModeBadge" = "現在";
 "shortcutsFileActions" = "ファイル操作";
 "shortcutsNav" = "ナビゲーション";
 "shortcutsOpenFolder" = "選択したフォルダを開く";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "新規ウインドウ";
+"theme" = "テーマ";
+"skipDeleteConfirmation" = "削除確認をスキップ";
+"skipDeleteConfirmationHint" = "確認を求めずに項目をすぐにゴミ箱に移動します。";
+"settingsWindowTitle" = "Wilesの設定";
+"settingsMenuItem" = "設定…";
+"settingsGeneralTab" = "一般";
+"settingsAppearanceTab" = "外観";
+"settingsSidebarTab" = "サイドバー";
+"settingsAdvancedTab" = "詳細";
+"settingsLanguageSection" = "言語";
+"settingsBehaviorSection" = "動作";
+"settingsThemeSection" = "テーマ";
+"settingsTranslucencySection" = "透明度";
+"settingsSidebarSectionsSection" = "サイドバーのセクション";
+"settingsSidebarDisplaySection" = "サイドバー表示";
+"settingsViewSection" = "表示";
+"settingsFooterHint" = "これらの設定はすぐに適用され、自動的に保存されます。";
+"appearanceSystemOption" = "システム";
+"appearanceLightOption" = "ライト";
+"appearanceDarkOption" = "ダーク";
+"settingsDefaultAppSection" = "デフォルトアプリ";
+"defaultAppRegisterButton" = "フォルダ用にWilesを登録";
+"defaultAppExplanation" = "macOSはフォルダのダブルクリックをFinder専用に予約しており、システム全体でこれを変更できるアプリはありません。代わりに、Finderでフォルダを右クリックした際の「このアプリケーションで開く」メニューにWilesを追加します。";
+"defaultAppRegisteredConfirmation" = "Wilesがフォルダの「このアプリケーションで開く」メニューに追加されました。";
+"defaultAppRegistrationFailed" = "Wilesを登録できませんでした。もう一度お試しいただくか、システム設定 > 一般 > ログイン項目と機能拡張を確認してください。";

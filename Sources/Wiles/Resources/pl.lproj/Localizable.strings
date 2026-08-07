@@ -28,7 +28,8 @@
 "apply" = "Zastosuj";
 "applyPermissions" = "Zastosuj uprawnienia";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "Reguły Automatycznej Organizacji...";
+"autoOrganizationSubtitle" = "Automatycznie przenosi pliki między folderami na podstawie zdefiniowanych reguł";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "zadań w tle";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Udostępnianie i uprawnienia";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "Szybkie odniesienie do skrótów klawiszowych";
+"shortcutsCurrentModeBadge" = "Bieżący";
 "shortcutsFileActions" = "Akcje Plików";
 "shortcutsNav" = "Nawigacja";
 "shortcutsOpenFolder" = "Otwórz Wybrany Folder";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Nowe Okno";
+"theme" = "Motyw";
+"skipDeleteConfirmation" = "Pomiń potwierdzenie usunięcia";
+"skipDeleteConfirmationHint" = "Przenosi elementy do Kosza natychmiast, bez pytania o potwierdzenie.";
+"settingsWindowTitle" = "Ustawienia Wiles";
+"settingsMenuItem" = "Ustawienia…";
+"settingsGeneralTab" = "Ogólne";
+"settingsAppearanceTab" = "Wygląd";
+"settingsSidebarTab" = "Pasek boczny";
+"settingsAdvancedTab" = "Zaawansowane";
+"settingsLanguageSection" = "Język";
+"settingsBehaviorSection" = "Zachowanie";
+"settingsThemeSection" = "Motyw";
+"settingsTranslucencySection" = "Przezroczystość";
+"settingsSidebarSectionsSection" = "Sekcje paska bocznego";
+"settingsSidebarDisplaySection" = "Wyświetlanie paska bocznego";
+"settingsViewSection" = "Widok";
+"settingsFooterHint" = "Te ustawienia są stosowane natychmiast i zapisywane automatycznie.";
+"appearanceSystemOption" = "System";
+"appearanceLightOption" = "Jasny";
+"appearanceDarkOption" = "Ciemny";
+"settingsDefaultAppSection" = "Domyślna Aplikacja";
+"defaultAppRegisterButton" = "Zarejestruj Wiles dla Folderów";
+"defaultAppExplanation" = "macOS rezerwuje dwuklik na folderze wyłącznie dla Findera — żadna aplikacja nie może tego zmienić w całym systemie. To dodaje Wiles do menu „Otwórz za pomocą” (prawy klik) folderów w Finderze.";
+"defaultAppRegisteredConfirmation" = "Wiles został dodany do menu „Otwórz za pomocą” dla folderów.";
+"defaultAppRegistrationFailed" = "Nie udało się zarejestrować Wiles. Spróbuj ponownie lub sprawdź Ustawienia systemowe > Ogólne > Elementy logowania i rozszerzenia.";

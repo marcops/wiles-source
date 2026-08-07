@@ -28,7 +28,8 @@
 "apply" = "Applica";
 "applyPermissions" = "Applica permessi";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "Regole di Organizzazione Automatica...";
+"autoOrganizationSubtitle" = "Sposta automaticamente i file tra le cartelle in base alle regole che definisci";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "attività in background";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Condivisione e permessi";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "Riferimento rapido alle scorciatoie da tastiera";
+"shortcutsCurrentModeBadge" = "Attuale";
 "shortcutsFileActions" = "Azioni sui File";
 "shortcutsNav" = "Navigazione";
 "shortcutsOpenFolder" = "Apri Cartella Selezionata";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Nuova Finestra";
+"theme" = "Tema";
+"skipDeleteConfirmation" = "Salta conferma di eliminazione";
+"skipDeleteConfirmationHint" = "Sposta gli elementi nel Cestino immediatamente, senza chiedere conferma.";
+"settingsWindowTitle" = "Impostazioni di Wiles";
+"settingsMenuItem" = "Impostazioni…";
+"settingsGeneralTab" = "Generali";
+"settingsAppearanceTab" = "Aspetto";
+"settingsSidebarTab" = "Barra laterale";
+"settingsAdvancedTab" = "Avanzate";
+"settingsLanguageSection" = "Lingua";
+"settingsBehaviorSection" = "Comportamento";
+"settingsThemeSection" = "Tema";
+"settingsTranslucencySection" = "Trasparenza";
+"settingsSidebarSectionsSection" = "Sezioni della barra laterale";
+"settingsSidebarDisplaySection" = "Visualizzazione della barra laterale";
+"settingsViewSection" = "Vista";
+"settingsFooterHint" = "Queste impostazioni vengono applicate immediatamente e salvate automaticamente.";
+"appearanceSystemOption" = "Sistema";
+"appearanceLightOption" = "Chiaro";
+"appearanceDarkOption" = "Scuro";
+"settingsDefaultAppSection" = "App Predefinita";
+"defaultAppRegisterButton" = "Registra Wiles per le Cartelle";
+"defaultAppExplanation" = "macOS riserva il doppio clic su una cartella esclusivamente al Finder: nessuna app può cambiarlo a livello di sistema. Questo aggiunge Wiles al menu \"Apri con\" (clic destro) delle cartelle nel Finder.";
+"defaultAppRegisteredConfirmation" = "Wiles è stato aggiunto al menu \"Apri con\" delle cartelle.";
+"defaultAppRegistrationFailed" = "Impossibile registrare Wiles. Riprova oppure controlla Impostazioni di Sistema > Generali > Elementi di login ed estensioni.";

@@ -13,6 +13,7 @@ struct AutoOrganizationSheet: View {
     @State private var destinationURL: URL? = URL.userHome.appendingPathComponent("Documents")
     @State private var conditionType: RuleConditionType = .extensionEquals
     @State private var conditionValue: String = "pdf"
+    @State private var folderPickerTarget: FolderPickerTarget?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,6 +56,14 @@ struct AutoOrganizationSheet: View {
         .onAppear {
             rules = AutoOrganizationService.shared.rules
         }
+        .sheet(item: $folderPickerTarget) { target in
+            FolderPickerSheet(appState: appState, initialURL: target == .source ? sourceURL : destinationURL) { url in
+                switch target {
+                case .source: sourceURL = url
+                case .destination: destinationURL = url
+                }
+            }
+        }
     }
 
     private var headerView: some View {
@@ -62,8 +71,13 @@ struct AutoOrganizationSheet: View {
             Image(systemName: "folder.badge.gearshape")
                 .font(.system(size: 20))
                 .foregroundColor(.accentColor)
-            Text(appState.tr(.autoOrganization))
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(appState.tr(.autoOrganization))
+                    .font(.headline)
+                Text(appState.tr(.autoOrganizationSubtitle))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
             Spacer()
         }
         .padding(20)
@@ -125,7 +139,7 @@ struct AutoOrganizationSheet: View {
                     .frame(width: 100, alignment: .trailing)
 
                 Button(sourceURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
-                    sourceURL = selectFolder()
+                    folderPickerTarget = .source
                 }
                 .frame(width: 120)
 
@@ -144,7 +158,7 @@ struct AutoOrganizationSheet: View {
                 Text(appState.tr(.moveTo))
                     .frame(width: 100, alignment: .trailing)
                 Button(destinationURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
-                    destinationURL = selectFolder()
+                    folderPickerTarget = .destination
                 }
                 .frame(width: 120)
 
@@ -178,15 +192,11 @@ struct AutoOrganizationSheet: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
     }
+}
 
-    private func selectFolder() -> URL? {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK {
-            return panel.url
-        }
-        return nil
-    }
+private enum FolderPickerTarget: Identifiable {
+    case source
+    case destination
+
+    var id: Self { self }
 }

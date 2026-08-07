@@ -91,6 +91,9 @@ public final class PreferencesStore {
     public var showPreviewSidebar: Bool = false {
         didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue) }
     }
+    public var skipDeleteConfirmation: Bool = false {
+        didSet { UserDefaults.standard.set(skipDeleteConfirmation, forKey: DefaultsKey.skipDeleteConfirmation.rawValue) }
+    }
     public var sidebarTranslucentLevel: Int = 80 {
         didSet { UserDefaults.standard.set(sidebarTranslucentLevel, forKey: DefaultsKey.sidebarTranslucentLevel.rawValue) }
     }
@@ -217,6 +220,7 @@ public final class PreferencesStore {
         loadBool(.showFooter, into: \.showFooter, from: defaults)
         loadBool(.showTerminalDrawer, into: \.showTerminalDrawer, from: defaults)
         loadBool(.showPreviewSidebar, into: \.showPreviewSidebar, from: defaults)
+        loadBool(.skipDeleteConfirmation, into: \.skipDeleteConfirmation, from: defaults)
 
         let sLevel = defaults.integer(forKey: DefaultsKey.sidebarTranslucentLevel.rawValue)
         if sLevel > 0 { self.sidebarTranslucentLevel = sLevel }

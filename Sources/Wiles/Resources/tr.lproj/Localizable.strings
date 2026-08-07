@@ -28,7 +28,8 @@
 "apply" = "Uygula";
 "applyPermissions" = "İzinleri Uygula";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "Otomatik Düzenleme Kuralları...";
+"autoOrganizationSubtitle" = "Tanımladığınız kurallara göre dosyaları klasörler arasında otomatik olarak taşır";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "arka plan görevi";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Paylaşım ve İzinler";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "Klavye kısayolları için hızlı referans";
+"shortcutsCurrentModeBadge" = "Geçerli";
 "shortcutsFileActions" = "Dosya İşlemleri";
 "shortcutsNav" = "Gezinme";
 "shortcutsOpenFolder" = "Seçili Klasörü Aç";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Yeni Pencere";
+"theme" = "Tema";
+"skipDeleteConfirmation" = "Silme onayını atla";
+"skipDeleteConfirmationHint" = "Onay istemeden öğeleri hemen Çöp Kutusuna taşır.";
+"settingsWindowTitle" = "Wiles Ayarları";
+"settingsMenuItem" = "Ayarlar…";
+"settingsGeneralTab" = "Genel";
+"settingsAppearanceTab" = "Görünüm";
+"settingsSidebarTab" = "Kenar Çubuğu";
+"settingsAdvancedTab" = "Gelişmiş";
+"settingsLanguageSection" = "Dil";
+"settingsBehaviorSection" = "Davranış";
+"settingsThemeSection" = "Tema";
+"settingsTranslucencySection" = "Saydamlık";
+"settingsSidebarSectionsSection" = "Kenar Çubuğu Bölümleri";
+"settingsSidebarDisplaySection" = "Kenar Çubuğu Görünümü";
+"settingsViewSection" = "Görünüm";
+"settingsFooterHint" = "Bu ayarlar hemen uygulanır ve otomatik olarak kaydedilir.";
+"appearanceSystemOption" = "Sistem";
+"appearanceLightOption" = "Açık";
+"appearanceDarkOption" = "Koyu";
+"settingsDefaultAppSection" = "Varsayılan Uygulama";
+"defaultAppRegisterButton" = "Wiles'ı Klasörler için Kaydet";
+"defaultAppExplanation" = "macOS, bir klasöre çift tıklamayı yalnızca Finder için ayırır — hiçbir uygulama bunu sistem genelinde değiştiremez. Bu, Wiles'ı Finder'da klasörlerin sağ tık \"Birlikte Aç\" menüsüne ekler.";
+"defaultAppRegisteredConfirmation" = "Wiles, klasörlerin \"Birlikte Aç\" menüsüne eklendi.";
+"defaultAppRegistrationFailed" = "Wiles kaydedilemedi. Tekrar deneyin veya Sistem Ayarları > Genel > Oturum Açma Öğeleri ve Uzantılar kısmını kontrol edin.";

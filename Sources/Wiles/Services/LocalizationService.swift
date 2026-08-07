@@ -301,6 +301,8 @@ public struct L10n {
         case macModeTitle
         case macModeDesc
         case shortcutsCheatsheetTitle
+        case shortcutsCheatsheetSubtitle
+        case shortcutsCurrentModeBadge
         case actUndo
         case actRedo
         case actQuickLook
@@ -314,6 +316,7 @@ public struct L10n {
         case helpAutoOrgTitle
         case helpAutoOrgDesc
         case autoOrganization
+        case autoOrganizationSubtitle
         case noAutoOrgRules
         case noAutoOrgRulesDesc
         case addNewRule
@@ -416,5 +419,33 @@ public struct L10n {
         case shortcutsRename
         case shortcutsToggleHidden
         case shortcutsToggleOverlay
+
+        // MARK: - Settings window & remaining menu-bar cleanup (task: Settings redesign + i18n audit)
+        case newWindow
+        case theme
+        case skipDeleteConfirmation
+        case skipDeleteConfirmationHint
+        case settingsWindowTitle
+        case settingsMenuItem
+        case settingsGeneralTab
+        case settingsAppearanceTab
+        case settingsSidebarTab
+        case settingsAdvancedTab
+        case settingsLanguageSection
+        case settingsBehaviorSection
+        case settingsThemeSection
+        case settingsTranslucencySection
+        case settingsSidebarSectionsSection
+        case settingsSidebarDisplaySection
+        case settingsViewSection
+        case settingsFooterHint
+        case appearanceSystemOption
+        case appearanceLightOption
+        case appearanceDarkOption
+        case settingsDefaultAppSection
+        case defaultAppRegisterButton
+        case defaultAppExplanation
+        case defaultAppRegisteredConfirmation
+        case defaultAppRegistrationFailed
     }
 }

@@ -28,7 +28,8 @@
 "apply" = "적용";
 "applyPermissions" = "권한 적용";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "자동 정리 규칙...";
+"autoOrganizationSubtitle" = "사용자가 정의한 규칙에 따라 폴더 간에 파일을 자동으로 이동합니다";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "백그라운드 작업";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "공유 및 권한";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "키보드 단축키 빠른 참조";
+"shortcutsCurrentModeBadge" = "현재";
 "shortcutsFileActions" = "파일 작업";
 "shortcutsNav" = "탐색";
 "shortcutsOpenFolder" = "선택한 폴더 열기";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "새 윈도우";
+"theme" = "테마";
+"skipDeleteConfirmation" = "삭제 확인 건너뛰기";
+"skipDeleteConfirmationHint" = "확인을 요청하지 않고 항목을 즉시 휴지통으로 이동합니다.";
+"settingsWindowTitle" = "Wiles 설정";
+"settingsMenuItem" = "설정…";
+"settingsGeneralTab" = "일반";
+"settingsAppearanceTab" = "모양";
+"settingsSidebarTab" = "사이드바";
+"settingsAdvancedTab" = "고급";
+"settingsLanguageSection" = "언어";
+"settingsBehaviorSection" = "동작";
+"settingsThemeSection" = "테마";
+"settingsTranslucencySection" = "투명도";
+"settingsSidebarSectionsSection" = "사이드바 섹션";
+"settingsSidebarDisplaySection" = "사이드바 표시";
+"settingsViewSection" = "보기";
+"settingsFooterHint" = "이 설정은 즉시 적용되며 자동으로 저장됩니다.";
+"appearanceSystemOption" = "시스템";
+"appearanceLightOption" = "라이트";
+"appearanceDarkOption" = "다크";
+"settingsDefaultAppSection" = "기본 앱";
+"defaultAppRegisterButton" = "폴더용으로 Wiles 등록";
+"defaultAppExplanation" = "macOS는 폴더 더블 클릭을 Finder 전용으로 예약해 두어, 어떤 앱도 시스템 전체에서 이를 변경할 수 없습니다. 대신 Finder에서 폴더를 우클릭했을 때 나오는 \"다음으로 열기\" 메뉴에 Wiles를 추가합니다.";
+"defaultAppRegisteredConfirmation" = "Wiles가 폴더의 \"다음으로 열기\" 메뉴에 추가되었습니다.";
+"defaultAppRegistrationFailed" = "Wiles를 등록하지 못했습니다. 다시 시도하거나 시스템 설정 > 일반 > 로그인 항목 및 확장 프로그램을 확인하세요.";

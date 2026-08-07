@@ -29,6 +29,7 @@
 "applyPermissions" = "Aplicar Permisos";
 "ascending" = "Ascendente";
 "autoOrganization" = "Reglas de Organización Automática...";
+"autoOrganizationSubtitle" = "Mueve archivos automáticamente entre carpetas según las reglas que definas";
 "back" = "Atrás";
 "backgroundOperations" = "Operaciones en Segundo Plano";
 "backgroundTasksSuffix" = "tareas en segundo plano";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Compartir y Permisos";
 "shortcutMode" = "Modo de Atajos";
 "shortcutsCheatsheetTitle" = "Lista de Atajos de Teclado";
+"shortcutsCheatsheetSubtitle" = "Referencia rápida de atajos de teclado";
+"shortcutsCurrentModeBadge" = "Actual";
 "shortcutsFileActions" = "Acciones de Archivo";
 "shortcutsNav" = "Navegación";
 "shortcutsOpenFolder" = "Abrir Carpeta Seleccionada";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Nueva Ventana";
+"theme" = "Tema";
+"skipDeleteConfirmation" = "Omitir confirmación de eliminación";
+"skipDeleteConfirmationHint" = "Mueve los elementos a la Papelera de inmediato, sin pedir confirmación.";
+"settingsWindowTitle" = "Ajustes de Wiles";
+"settingsMenuItem" = "Ajustes…";
+"settingsGeneralTab" = "General";
+"settingsAppearanceTab" = "Apariencia";
+"settingsSidebarTab" = "Barra Lateral";
+"settingsAdvancedTab" = "Avanzado";
+"settingsLanguageSection" = "Idioma";
+"settingsBehaviorSection" = "Comportamiento";
+"settingsThemeSection" = "Tema";
+"settingsTranslucencySection" = "Transparencia";
+"settingsSidebarSectionsSection" = "Secciones de la Barra Lateral";
+"settingsSidebarDisplaySection" = "Visualización de la Barra Lateral";
+"settingsViewSection" = "Vista";
+"settingsFooterHint" = "Estos ajustes se aplican de inmediato y se guardan automáticamente.";
+"appearanceSystemOption" = "Sistema";
+"appearanceLightOption" = "Claro";
+"appearanceDarkOption" = "Oscuro";
+"settingsDefaultAppSection" = "Aplicación Predeterminada";
+"defaultAppRegisterButton" = "Registrar Wiles para Carpetas";
+"defaultAppExplanation" = "macOS reserva el doble clic en una carpeta exclusivamente para Finder; ninguna app puede cambiar eso en todo el sistema. Esto añade Wiles al menú \"Abrir con\" (clic derecho) de las carpetas en Finder.";
+"defaultAppRegisteredConfirmation" = "Wiles se añadió al menú \"Abrir con\" de las carpetas.";
+"defaultAppRegistrationFailed" = "No se pudo registrar Wiles. Inténtalo de nuevo o revisa Ajustes del Sistema > General > Elementos de inicio y extensiones.";

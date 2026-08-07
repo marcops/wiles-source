@@ -195,3 +195,77 @@ Before finalizing any code or creating a commit, you MUST perform a generic self
     - *Validation*: The block-based observer form always returns an opaque token that **must be stored and explicitly removed** via `NotificationCenter.default.removeObserver(_:)`. Discarding the return value registers a persistent, anonymous observer that can never be removed. Every subsequent call to the same registration site stacks a new ghost observer. After N registrations, every matching notification fires all N closures simultaneously, causing duplicated work, corrupted results, and a permanent memory leak for the session. Always store the token in a property (`private var observer: NSObjectProtocol?`), remove the previous one before re-registering, and remove it again inside the handler immediately after it fires once.
 22. **Missing Cancellation Check in Long-Running Async Loops**: Are you iterating over a large collection inside an `async` function or `Task.detached` without checking for task cancellation?
     - *Validation*: An `async` function that loops over a large dataset (files, URLs, chunks) continues running even after its parent `Task` is cancelled — it becomes a zombie consuming CPU, disk I/O, or battery with no way to abort. Always call `try Task.checkCancellation()` (or check `Task.isCancelled`) at the top of each loop iteration. This guarantees the operation exits the moment the user cancels or navigates away, without requiring any external coordination.
+
+## 30. Standard Modal/Sheet Screen Pattern (MANDATORY for every new sheet/modal)
+Every modal in this app (`AutoOrganizationSheet`, `HelpSheet`, `AboutSheet`, `FilePropertiesSheet`,
+`SymlinkSheetView`, `DiskSpaceVisualizerSheetView`, `FolderPickerSheet`, `BatchRenameSheetView`,
+`ImageConverterSheetView`, `ArchiveInspectionSheetView`, `DuplicateCleanerSheetView`,
+`HttpShareSheet`, etc.) already follows the exact same skeleton. When adding or editing a modal, do
+not improvise a new layout, a new close mechanism, or new spacing convention — copy this pattern:
+
+- **Structure**: `VStack { headerView; Divider(); contentArea; Divider(); footerView }`. Content
+  between the two `Divider()`s is the only part that scrolls or grows; header and footer stay fixed.
+- **Header**: a leading icon + a `VStack(alignment: .leading, spacing: 2)` holding a bold title and,
+  directly beneath it, a one-line secondary subtitle (`.font(.system(size: 11))`,
+  `.foregroundColor(.secondary)`) describing what the screen is for — never ship a header with just a
+  bare title and no subtitle. Give the header its own subtle background tint,
+  `.background(Color(NSColor.controlBackgroundColor).opacity(0.5))`, when the sheet has enough visual
+  weight to need one (skip it only for the simplest single-field dialogs). **Never put a close/X
+  button in the header** — every existing sheet in this app closes exclusively through the footer,
+  never through a header button. Adding one is an inconsistency bug, not a feature.
+- **Footer**: `HStack { Spacer(); primaryButton }` — right-aligned, never centered, never left-aligned.
+  The primary action (`Done`/`Close`/`Create`/etc.) carries `.keyboardShortcut(.defaultAction)`. For a
+  two-button Cancel/Confirm flow, place `Cancel` immediately before the primary button inside the same
+  right-aligned `HStack` (still after `Spacer()`), and give `Cancel` `.keyboardShortcut(.escape,
+  modifiers: [])` explicitly.
+- **Closing on Escape**: real `.sheet(...)`-presented views get Escape-to-close for free from
+  AppKit/SwiftUI — do not add anything for those. The one exception is a view NOT presented via
+  `.sheet(...)` (e.g. `ShortcutsHUDOverlay`, a manual full-window `ZStack` overlay) — those get no
+  native Escape handling and must wire it explicitly. **Do not use `.onExitCommand` for this** — it
+  only fires when something inside that view subtree actually holds keyboard focus, which a manual
+  overlay with no focusable field never establishes, so it silently never fires. Instead add an
+  invisible `Button("") { ... }.keyboardShortcut(.escape, modifiers: []).hidden()` inside the overlay,
+  the same technique `MainContentView`'s own hidden shortcut buttons use — and make sure no other
+  view in the hierarchy (e.g. `MainContentView`'s global hidden `.keyboardShortcut(.escape)` deselect
+  button) is still capturing Escape first; `.disabled(...)` it while the overlay is showing if so.
+- **Container chrome**: fixed `.frame(width:, height:)` (or width-only when height should hug
+  content) declared once on the outermost `VStack`, plus `.background(Color(NSColor
+  .windowBackgroundColor))`. Never leave a modal without this background — it's what makes the sheet
+  look like every other sheet in the app instead of a visually distinct one-off.
+- **Padding**: apply padding per-section (header, footer, and the content area's own inner
+  container), not as one blanket `.padding(20)` around the whole `VStack`. A scrollable content area
+  should extend its `ScrollView` close to the container's true edges (so the scrollbar sits near the
+  edge, not inset by the header's padding) while its own inner content still carries the same
+  horizontal padding as the header/footer for visual alignment.
+
+## 31. Apple HIG Alignment & Control Conventions (MANDATORY — check against the real macOS equivalent)
+Before shipping any new control cluster, compare it directly to the closest native macOS System
+Settings / Safari Preferences / Finder equivalent and match *its* alignment and control choice —
+don't improvise a layout that merely "looks plausible." General rules:
+
+- **A mutually-exclusive mode/view switcher (tabs, segmented control) is horizontally centered in
+  its row**, never left- or right-aligned — this is how System Settings tab bars and Safari
+  Preferences' segmented groups are laid out.
+- **A settings/data row (label ... value) is the opposite**: leading-aligned label, trailing-aligned
+  value/control, connected by a `Spacer()` in between. This is the correct pattern for rows *inside*
+  a list or form, not for a standalone control cluster that isn't part of a list.
+- **Prefer a native control over a hand-rolled one** when the requirement fits: e.g.
+  `Picker(selection:).pickerStyle(.segmented)` over custom `Button` rows for simple mutually-exclusive
+  selection. Only hand-roll a custom control when the native one genuinely can't express a
+  requirement — and even then, the hand-rolled version must still follow the alignment convention the
+  native control would have used.
+- **Footer action buttons are right-aligned** (see rule 30) — never centered, never left-aligned,
+  regardless of how few buttons there are; a single lonely action button is still right-aligned, not
+  centered.
+- When genuinely unsure which alignment applies, open the closest matching native macOS panel
+  (System Settings, Safari Preferences, Finder Get Info) and copy what it does, rather than guessing.
+- **Trailing accessories (a value, a keycap badge, a status label, a chevron) sit close to the row's
+  true trailing edge**, not symmetrically inset to match the leading padding. Native macOS list/table
+  rows (Finder list view, System Settings rows) give trailing content a small, tight margin — if the
+  row container needs asymmetric padding (smaller trailing than leading) to achieve that, use it;
+  don't default to a single uniform `.padding(.horizontal:)` value out of habit.
+- **Don't stack two horizontal dividers back-to-back**, or draw a divider immediately before another
+  structural divider already provides the same separation (e.g. rule 30's header/content/footer
+  dividers). A `Divider()` should mark one genuine structural boundary; separate items or sub-groups
+  *within* a content region using `VStack`/`HStack` `spacing` instead of literal drawn lines, and only
+  reach for an extra divider when spacing alone doesn't communicate the grouping.

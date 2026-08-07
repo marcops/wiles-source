@@ -28,7 +28,8 @@
 "apply" = "Применить";
 "applyPermissions" = "Применить права";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "Правила автоматической организации...";
+"autoOrganizationSubtitle" = "Автоматически перемещает файлы между папками на основе заданных вами правил";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "фоновых задач";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Общий доступ и права";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "Краткий справочник по сочетаниям клавиш";
+"shortcutsCurrentModeBadge" = "Текущий";
 "shortcutsFileActions" = "Действия с файлами";
 "shortcutsNav" = "Навигация";
 "shortcutsOpenFolder" = "Открыть выбранную папку";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Новое Окно";
+"theme" = "Тема";
+"skipDeleteConfirmation" = "Не запрашивать подтверждение удаления";
+"skipDeleteConfirmationHint" = "Немедленно перемещает элементы в Корзину, не запрашивая подтверждение.";
+"settingsWindowTitle" = "Настройки Wiles";
+"settingsMenuItem" = "Настройки…";
+"settingsGeneralTab" = "Основные";
+"settingsAppearanceTab" = "Внешний вид";
+"settingsSidebarTab" = "Боковая панель";
+"settingsAdvancedTab" = "Дополнительно";
+"settingsLanguageSection" = "Язык";
+"settingsBehaviorSection" = "Поведение";
+"settingsThemeSection" = "Тема";
+"settingsTranslucencySection" = "Прозрачность";
+"settingsSidebarSectionsSection" = "Разделы боковой панели";
+"settingsSidebarDisplaySection" = "Отображение боковой панели";
+"settingsViewSection" = "Вид";
+"settingsFooterHint" = "Эти настройки применяются немедленно и сохраняются автоматически.";
+"appearanceSystemOption" = "Системная";
+"appearanceLightOption" = "Светлая";
+"appearanceDarkOption" = "Тёмная";
+"settingsDefaultAppSection" = "Приложение по умолчанию";
+"defaultAppRegisterButton" = "Зарегистрировать Wiles для папок";
+"defaultAppExplanation" = "macOS резервирует двойной щелчок по папке исключительно для Finder — ни одно приложение не может изменить это на уровне системы. Это добавляет Wiles в меню «Открыть с помощью» (по правому клику) для папок в Finder.";
+"defaultAppRegisteredConfirmation" = "Wiles добавлен в меню «Открыть с помощью» для папок.";
+"defaultAppRegistrationFailed" = "Не удалось зарегистрировать Wiles. Повторите попытку или проверьте Системные настройки > Основные > Элементы входа и расширения.";

@@ -28,7 +28,8 @@
 "apply" = "应用";
 "applyPermissions" = "应用权限";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "自动整理规则…";
+"autoOrganizationSubtitle" = "根据您定义的规则在文件夹之间自动移动文件";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "个后台任务";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "共享与权限";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "键盘快捷键快速参考";
+"shortcutsCurrentModeBadge" = "当前";
 "shortcutsFileActions" = "文件操作";
 "shortcutsNav" = "导航";
 "shortcutsOpenFolder" = "打开所选文件夹";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "新建窗口";
+"theme" = "外观";
+"skipDeleteConfirmation" = "跳过删除确认";
+"skipDeleteConfirmationHint" = "无需确认即可立即将项目移到废纸篓。";
+"settingsWindowTitle" = "Wiles 设置";
+"settingsMenuItem" = "设置…";
+"settingsGeneralTab" = "通用";
+"settingsAppearanceTab" = "外观";
+"settingsSidebarTab" = "侧边栏";
+"settingsAdvancedTab" = "高级";
+"settingsLanguageSection" = "语言";
+"settingsBehaviorSection" = "行为";
+"settingsThemeSection" = "主题";
+"settingsTranslucencySection" = "透明度";
+"settingsSidebarSectionsSection" = "侧边栏部分";
+"settingsSidebarDisplaySection" = "侧边栏显示";
+"settingsViewSection" = "显示";
+"settingsFooterHint" = "这些设置会立即生效并自动保存。";
+"appearanceSystemOption" = "系统";
+"appearanceLightOption" = "浅色";
+"appearanceDarkOption" = "深色";
+"settingsDefaultAppSection" = "默认应用";
+"defaultAppRegisterButton" = "将 Wiles 注册为文件夹应用";
+"defaultAppExplanation" = "macOS 将双击文件夹的行为专门保留给访达（Finder）——没有任何应用可以在系统层面更改这一点。此操作会将 Wiles 添加到访达中文件夹右键菜单的“打开方式”列表中。";
+"defaultAppRegisteredConfirmation" = "Wiles 已添加到文件夹的“打开方式”菜单中。";
+"defaultAppRegistrationFailed" = "无法注册 Wiles。请重试，或检查系统设置 > 通用 > 登录项与扩展。";

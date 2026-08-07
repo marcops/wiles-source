@@ -29,6 +29,7 @@
 "applyPermissions" = "Aplicar Permissões";
 "ascending" = "Crescente";
 "autoOrganization" = "Regras de Organização Automática...";
+"autoOrganizationSubtitle" = "Mova arquivos automaticamente entre pastas com base em regras que você define";
 "back" = "Voltar";
 "backgroundOperations" = "Operações em Segundo Plano";
 "backgroundTasksSuffix" = "tarefas em segundo plano";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Compartilhamento e Permissões";
 "shortcutMode" = "Modo de Atalhos";
 "shortcutsCheatsheetTitle" = "Lista de Atalhos de Teclado";
+"shortcutsCheatsheetSubtitle" = "Referência rápida dos atalhos de teclado";
+"shortcutsCurrentModeBadge" = "Atual";
 "shortcutsFileActions" = "Ações de Arquivo";
 "shortcutsNav" = "Navegação";
 "shortcutsOpenFolder" = "Abrir Pasta Selecionada";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Nova Janela";
+"theme" = "Tema";
+"skipDeleteConfirmation" = "Ignorar confirmação de exclusão";
+"skipDeleteConfirmationHint" = "Move itens para o Lixo imediatamente, sem pedir confirmação.";
+"settingsWindowTitle" = "Ajustes do Wiles";
+"settingsMenuItem" = "Ajustes…";
+"settingsGeneralTab" = "Geral";
+"settingsAppearanceTab" = "Aparência";
+"settingsSidebarTab" = "Barra Lateral";
+"settingsAdvancedTab" = "Avançado";
+"settingsLanguageSection" = "Idioma";
+"settingsBehaviorSection" = "Comportamento";
+"settingsThemeSection" = "Tema";
+"settingsTranslucencySection" = "Transparência";
+"settingsSidebarSectionsSection" = "Seções da Barra Lateral";
+"settingsSidebarDisplaySection" = "Exibição da Barra Lateral";
+"settingsViewSection" = "Visualização";
+"settingsFooterHint" = "Essas configurações são aplicadas imediatamente e salvas automaticamente.";
+"appearanceSystemOption" = "Sistema";
+"appearanceLightOption" = "Claro";
+"appearanceDarkOption" = "Escuro";
+"settingsDefaultAppSection" = "App Padrão";
+"defaultAppRegisterButton" = "Registrar Wiles para Pastas";
+"defaultAppExplanation" = "O macOS reserva o duplo clique em uma pasta exclusivamente para o Finder — nenhum app pode mudar isso no sistema todo. Isso adiciona o Wiles ao menu \"Abrir Com\" (clique direito) das pastas no Finder.";
+"defaultAppRegisteredConfirmation" = "O Wiles foi adicionado ao menu \"Abrir Com\" das pastas.";
+"defaultAppRegistrationFailed" = "Não foi possível registrar o Wiles. Tente novamente ou verifique Ajustes do Sistema > Geral > Itens de Login e Extensões.";

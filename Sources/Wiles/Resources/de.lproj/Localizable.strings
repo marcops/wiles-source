@@ -29,6 +29,7 @@
 "applyPermissions" = "Rechte anwenden";
 "ascending" = "Aufsteigend";
 "autoOrganization" = "Regeln für automatische Organisation...";
+"autoOrganizationSubtitle" = "Verschiebt Dateien automatisch zwischen Ordnern basierend auf von dir definierten Regeln";
 "back" = "Zurück";
 "backgroundOperations" = "Hintergrundoperationen";
 "backgroundTasksSuffix" = "Hintergrundaufgaben";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Freigabe & Rechte";
 "shortcutMode" = "Tastenkürzel-Modus";
 "shortcutsCheatsheetTitle" = "Tastaturkurzbefehle Übersicht";
+"shortcutsCheatsheetSubtitle" = "Kurzübersicht der Tastaturkürzel";
+"shortcutsCurrentModeBadge" = "Aktuell";
 "shortcutsFileActions" = "Dateiaktionen";
 "shortcutsNav" = "Navigation";
 "shortcutsOpenFolder" = "Ausgewählten Ordner Öffnen";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Neues Fenster";
+"theme" = "Erscheinungsbild";
+"skipDeleteConfirmation" = "Löschbestätigung überspringen";
+"skipDeleteConfirmationHint" = "Verschiebt Objekte sofort in den Papierkorb, ohne um Bestätigung zu bitten.";
+"settingsWindowTitle" = "Wiles-Einstellungen";
+"settingsMenuItem" = "Einstellungen …";
+"settingsGeneralTab" = "Allgemein";
+"settingsAppearanceTab" = "Erscheinungsbild";
+"settingsSidebarTab" = "Seitenleiste";
+"settingsAdvancedTab" = "Erweitert";
+"settingsLanguageSection" = "Sprache";
+"settingsBehaviorSection" = "Verhalten";
+"settingsThemeSection" = "Thema";
+"settingsTranslucencySection" = "Transparenz";
+"settingsSidebarSectionsSection" = "Seitenleistenbereiche";
+"settingsSidebarDisplaySection" = "Seitenleistenanzeige";
+"settingsViewSection" = "Ansicht";
+"settingsFooterHint" = "Diese Einstellungen werden sofort angewendet und automatisch gespeichert.";
+"appearanceSystemOption" = "System";
+"appearanceLightOption" = "Hell";
+"appearanceDarkOption" = "Dunkel";
+"settingsDefaultAppSection" = "Standard-App";
+"defaultAppRegisterButton" = "Wiles für Ordner registrieren";
+"defaultAppExplanation" = "macOS reserviert das Doppelklicken auf einen Ordner ausschließlich für den Finder — keine App kann das systemweit ändern. Dies fügt Wiles dem Rechtsklick-Menü „Öffnen mit“ für Ordner im Finder hinzu.";
+"defaultAppRegisteredConfirmation" = "Wiles wurde dem Menü „Öffnen mit“ für Ordner hinzugefügt.";
+"defaultAppRegistrationFailed" = "Wiles konnte nicht registriert werden. Versuche es erneut oder prüfe Systemeinstellungen > Allgemein > Anmeldeobjekte & Erweiterungen.";

@@ -69,7 +69,11 @@ extension AppState {
 
     public func deleteSelected() {
         guard !selectedURLs.isEmpty else { return }
-        showDeleteConfirmAlert = true
+        if preferences.skipDeleteConfirmation {
+            performDeleteSelected()
+        } else {
+            showDeleteConfirmAlert = true
+        }
     }
 
     public func performDeleteSelected() {

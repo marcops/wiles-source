@@ -28,7 +28,8 @@
 "apply" = "Pas toe";
 "applyPermissions" = "Bevoegdheden toepassen";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "Regels voor Automatische Organisatie...";
+"autoOrganizationSubtitle" = "Verplaatst bestanden automatisch tussen mappen op basis van de regels die je instelt";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "achtergrondtaken";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "Delen en bevoegdheden";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "Snelle referentie voor sneltoetsen";
+"shortcutsCurrentModeBadge" = "Huidig";
 "shortcutsFileActions" = "Bestandsacties";
 "shortcutsNav" = "Navigatie";
 "shortcutsOpenFolder" = "Geselecteerde Map Openen";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "Nieuw Venster";
+"theme" = "Thema";
+"skipDeleteConfirmation" = "Verwijderbevestiging overslaan";
+"skipDeleteConfirmationHint" = "Verplaatst items direct naar de Prullenbak, zonder om bevestiging te vragen.";
+"settingsWindowTitle" = "Wiles-instellingen";
+"settingsMenuItem" = "Instellingen…";
+"settingsGeneralTab" = "Algemeen";
+"settingsAppearanceTab" = "Weergave";
+"settingsSidebarTab" = "Zijbalk";
+"settingsAdvancedTab" = "Geavanceerd";
+"settingsLanguageSection" = "Taal";
+"settingsBehaviorSection" = "Gedrag";
+"settingsThemeSection" = "Thema";
+"settingsTranslucencySection" = "Doorschijnendheid";
+"settingsSidebarSectionsSection" = "Zijbalksecties";
+"settingsSidebarDisplaySection" = "Zijbalkweergave";
+"settingsViewSection" = "Beeld";
+"settingsFooterHint" = "Deze instellingen worden direct toegepast en automatisch opgeslagen.";
+"appearanceSystemOption" = "Systeem";
+"appearanceLightOption" = "Licht";
+"appearanceDarkOption" = "Donker";
+"settingsDefaultAppSection" = "Standaard-app";
+"defaultAppRegisterButton" = "Wiles registreren voor mappen";
+"defaultAppExplanation" = "macOS reserveert dubbelklikken op een map uitsluitend voor Finder — geen enkele app kan dit systeembreed wijzigen. Dit voegt Wiles toe aan het rechtermuisknop-menu \"Open met\" voor mappen in Finder.";
+"defaultAppRegisteredConfirmation" = "Wiles is toegevoegd aan het \"Open met\"-menu voor mappen.";
+"defaultAppRegistrationFailed" = "Wiles registreren is mislukt. Probeer het opnieuw of controleer Systeeminstellingen > Algemeen > Aanmeldingsitems en extensies.";

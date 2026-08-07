@@ -116,7 +116,7 @@ struct MainContentView: View {
             }
         )
         if appState.showShortcutsHUD {
-            ShortcutsHUDOverlay(appState: appState)
+            ShortcutsHUDOverlay(appState: appState, isPresented: $appState.showShortcutsHUD)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
         }
         }
@@ -165,7 +165,10 @@ struct MainContentView: View {
     /// so a second menu row for the same command would just be noise.
     private var keyboardShortcutsHandler: some View {
         HStack {
-            Button("") { appState.selectedURLs.removeAll() }.keyboardShortcut(.escape, modifiers: []).hidden()
+            Button("") { appState.selectedURLs.removeAll() }
+                .keyboardShortcut(.escape, modifiers: [])
+                .hidden()
+                .disabled(appState.showShortcutsHUD)
             Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()

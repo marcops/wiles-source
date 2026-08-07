@@ -12,4 +12,13 @@ public enum NavigationMode: String, CaseIterable, Identifiable, Sendable {
         case .macOS: return "macOS Mode"
         }
     }
+
+    /// Localized, compact label for menu/Settings pickers (the raw values above stay in English
+    /// since they're persisted verbatim to `UserDefaults` via `DefaultsKey.navigationMode`).
+    public var l10nKey: L10n.Key {
+        switch self {
+        case .gnome: return .gnomeModeTitle
+        case .macOS: return .macModeTitle
+        }
+    }
 }

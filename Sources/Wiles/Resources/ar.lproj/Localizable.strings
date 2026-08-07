@@ -28,7 +28,8 @@
 "apply" = "تطبيق";
 "applyPermissions" = "تطبيق الأذونات";
 "ascending" = "Ascending";
-"autoOrganization" = "Auto-Organization Rules...";
+"autoOrganization" = "قواعد التنظيم التلقائي...";
+"autoOrganizationSubtitle" = "ينقل الملفات تلقائيًا بين المجلدات استنادًا إلى القواعد التي تحددها";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "مهام في الخلفية";
@@ -265,6 +266,8 @@
 "sharingAndPermissions" = "المشاركة والأذونات";
 "shortcutMode" = "Shortcut Mode";
 "shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsCheatsheetSubtitle" = "مرجع سريع لاختصارات لوحة المفاتيح";
+"shortcutsCurrentModeBadge" = "الحالي";
 "shortcutsFileActions" = "إجراءات الملفات";
 "shortcutsNav" = "التنقل";
 "shortcutsOpenFolder" = "فتح المجلد المحدد";
@@ -323,3 +326,31 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
+
+// MARK: - Settings window & menu-bar cleanup (added)
+"newWindow" = "نافذة جديدة";
+"theme" = "المظهر";
+"skipDeleteConfirmation" = "تخطي تأكيد الحذف";
+"skipDeleteConfirmationHint" = "ينقل العناصر إلى المهملات فورًا دون طلب التأكيد.";
+"settingsWindowTitle" = "إعدادات Wiles";
+"settingsMenuItem" = "إعدادات…";
+"settingsGeneralTab" = "عام";
+"settingsAppearanceTab" = "المظهر";
+"settingsSidebarTab" = "الشريط الجانبي";
+"settingsAdvancedTab" = "متقدم";
+"settingsLanguageSection" = "اللغة";
+"settingsBehaviorSection" = "السلوك";
+"settingsThemeSection" = "السمة";
+"settingsTranslucencySection" = "الشفافية";
+"settingsSidebarSectionsSection" = "أقسام الشريط الجانبي";
+"settingsSidebarDisplaySection" = "عرض الشريط الجانبي";
+"settingsViewSection" = "العرض";
+"settingsFooterHint" = "يتم تطبيق هذه الإعدادات فورًا وحفظها تلقائيًا.";
+"appearanceSystemOption" = "النظام";
+"appearanceLightOption" = "فاتح";
+"appearanceDarkOption" = "داكن";
+"settingsDefaultAppSection" = "التطبيق الافتراضي";
+"defaultAppRegisterButton" = "تسجيل Wiles للمجلدات";
+"defaultAppExplanation" = "يحجز macOS النقر المزدوج على مجلد حصريًا لتطبيق Finder — لا يمكن لأي تطبيق تغيير ذلك على مستوى النظام بأكمله. يضيف هذا Wiles إلى قائمة \"فتح باستخدام\" التي تظهر بالنقر بزر الماوس الأيمن على المجلدات في Finder.";
+"defaultAppRegisteredConfirmation" = "تمت إضافة Wiles إلى قائمة \"فتح باستخدام\" للمجلدات.";
+"defaultAppRegistrationFailed" = "تعذر تسجيل Wiles. حاول مرة أخرى أو تحقق من إعدادات النظام > عام > عناصر تسجيل الدخول والامتدادات.";
