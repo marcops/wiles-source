@@ -25,7 +25,9 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
             }
 
             let destURL = uniqueDestination(for: outputName, in: destinationFolder)
-            outputPDF.write(to: destURL)
+            guard outputPDF.write(to: destURL) else {
+                throw NSError(domain: "PDFMergeService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not write the merged PDF to disk."])
+            }
             return destURL
         }.value
     }
