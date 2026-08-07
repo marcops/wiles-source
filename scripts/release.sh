@@ -82,12 +82,33 @@ rm -f "$PUBLIC_DIR"/releases/wiles-v*.zip "$PUBLIC_DIR"/releases/wiles-v*.dmg
 cp "$ZIP_PATH" "$PUBLIC_DIR/releases/"
 cp "$DMG_PATH" "$PUBLIC_DIR/releases/"
 
+cd "$PUBLIC_DIR"
+
+# Push the binaries + release notes FIRST, in their own commit, so we can pin the Cask's
+# download URL to the exact commit SHA they landed on (see below) instead of `main` — GitHub's
+# Fastly CDN caches raw.githubusercontent.com content per-path, and a `main`-pinned URL can keep
+# serving a stale cached binary after a new release, causing a Homebrew SHA256 mismatch error
+# for users. This is a known, previously-hit failure mode — never revert to a `main` URL.
+git add releases/ RELEASE_NOTES.md
+if git diff --cached --quiet; then
+  echo "Nothing changed in releases/ or RELEASE_NOTES.md — skipping binary commit/push."
+else
+  git commit -m "release: add v${VERSION} binaries
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+  git push origin main
+  echo "Pushed binaries."
+fi
+
+COMMIT_SHA=$(git rev-parse HEAD)
+echo "Binaries live at commit $COMMIT_SHA"
+
 cat > "$PUBLIC_DIR/Casks/wiles.rb" <<CASK
 cask "wiles" do
   version "${VERSION}"
   sha256 "${SHA256}"
 
-  url "https://raw.githubusercontent.com/marcops/wiles/main/releases/wiles-v#{version}.zip"
+  url "https://raw.githubusercontent.com/marcops/wiles/${COMMIT_SHA}/releases/wiles-v#{version}.zip"
   name "Wiles"
   desc "Ultra-fast modern macOS File Manager"
   homepage "https://github.com/marcops/wiles"
@@ -110,22 +131,15 @@ cask "wiles" do
 end
 CASK
 
-cd "$PUBLIC_DIR"
-git add releases/ Casks/wiles.rb
-
+git add Casks/wiles.rb
 if git diff --cached --quiet; then
-  echo "Nothing changed in wiles-public — skipping commit/push."
+  echo "Nothing changed in Casks/wiles.rb — skipping cask commit/push."
 else
-  git commit -m "release: v${VERSION}
+  git commit -m "cask(wiles): update to v${VERSION}
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
-  read -r -p "Push wiles-public to origin main now? [y/N] " CONFIRM
-  if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
-    git push origin main
-    echo "Pushed."
-  else
-    echo "Not pushed. Run 'git push origin main' in $PUBLIC_DIR when ready."
-  fi
+  git push origin main
+  echo "Pushed cask update."
 fi
 
 echo
