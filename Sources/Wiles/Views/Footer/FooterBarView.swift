@@ -29,7 +29,7 @@ struct FooterBarView: View {
 
             Spacer()
 
-            if appState.isLoading {
+            if appState.fileSystem.isLoading {
                 HStack(spacing: 4) {
                     ProgressView()
                         .controlSize(.mini)
@@ -53,11 +53,11 @@ struct FooterBarView: View {
 
             // Terminal toggle button
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) { appState.showTerminalDrawer.toggle() }
+                withAnimation(.easeInOut(duration: 0.25)) { appState.preferences.showTerminalDrawer.toggle() }
             } label: {
                 Image(systemName: "terminal")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(appState.showTerminalDrawer ? .accentColor : .secondary)
+                    .foregroundColor(appState.preferences.showTerminalDrawer ? .accentColor : .secondary)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(appState.tr(.actToggleTerminal))
@@ -78,7 +78,7 @@ struct FooterBarView: View {
                 .foregroundColor(.secondary)
 
             if isIconSizeControlExpanded {
-                Slider(value: $appState.iconSize, in: 36...128, step: 2)
+                Slider(value: $appState.preferences.iconSize, in: 36...128, step: 2)
                     .frame(width: 100)
                     .controlSize(.mini)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))

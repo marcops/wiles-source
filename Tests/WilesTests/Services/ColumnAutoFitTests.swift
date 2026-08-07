@@ -18,7 +18,7 @@ public struct ColumnAutoFitTests {
 
     private static func makeAppState(with items: [FileItem]) -> AppState {
         let appState = AppState()
-        appState.items = items
+        appState.fileSystem.items = items
         return appState
     }
 
@@ -172,7 +172,7 @@ public struct ColumnAutoFitTests {
 
         let item = makeFileItem(dir: dir, name: "icon_low.txt")
         let appState = makeAppState(with: [item])
-        appState.iconSize = 1.0 // scaled value falls below listIconMinSize, must clamp up
+        appState.preferences.iconSize = 1.0 // scaled value falls below listIconMinSize, must clamp up
 
         let width = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState)
         TestReporter.report(
@@ -188,7 +188,7 @@ public struct ColumnAutoFitTests {
 
         let item = makeFileItem(dir: dir, name: "icon_high.txt")
         let appState = makeAppState(with: [item])
-        appState.iconSize = 10_000.0 // scaled value far exceeds listIconMaxSize, must clamp down
+        appState.preferences.iconSize = 10_000.0 // scaled value far exceeds listIconMaxSize, must clamp down
 
         let width = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState)
         TestReporter.report(

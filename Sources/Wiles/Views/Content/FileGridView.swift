@@ -12,7 +12,7 @@ struct CellFrameKey: PreferenceKey {
 struct FileGridView: View {
     var appState: AppState
 
-    private var iconSize: CGFloat { CGFloat(appState.iconSize) * LayoutTokens.gridIconScaleMultiplier }
+    private var iconSize: CGFloat { CGFloat(appState.preferences.iconSize) * LayoutTokens.gridIconScaleMultiplier }
     private var cardWidth: CGFloat { iconSize + LayoutTokens.cardWidthOffset }
     private var cardHeight: CGFloat { iconSize + LayoutTokens.cardHeightOffset }
     private var columns: [GridItem] {
@@ -70,11 +70,11 @@ struct FileGridView: View {
                         }
 
                         Group {
-                            if appState.items.isEmpty && !appState.isLoading {
+                            if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
                                 EmptyDirectoryView(appState: appState)
                             } else {
-                                let paginate = appState.items.count > LayoutTokens.paginationThreshold
-                                let visibleItems = paginate ? Array(appState.items.prefix(visibleLimit)) : appState.items
+                                let paginate = appState.fileSystem.items.count > LayoutTokens.paginationThreshold
+                                let visibleItems = paginate ? Array(appState.fileSystem.items.prefix(visibleLimit)) : appState.fileSystem.items
 
                                 LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
                                     ForEach(visibleItems) { item in
@@ -91,23 +91,23 @@ struct FileGridView: View {
                                             }
                                         )
                                     }
-                                    if paginate && visibleLimit < appState.items.count {
+                                    if paginate && visibleLimit < appState.fileSystem.items.count {
                                         ProgressView()
                                             .frame(height: 50)
                                             .onAppear {
-                                                visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                                visibleLimit = min(appState.fileSystem.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
                                             }
                                     }
                                 }
                                 .padding(16)
                                 .onAppear {
-                                    if appState.items.count > 500 {
-                                        ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: iconSize)
+                                    if appState.fileSystem.items.count > 500 {
+                                        ThumbnailService.shared.prefetchThumbnails(for: appState.fileSystem.items, size: iconSize)
                                     }
                                 }
                             }
                         }
-                        .id(appState.currentURL)
+                        .id(appState.navigation.currentURL)
                         .transition(.opacity)
 
                         if let rect = selectionRect {
@@ -122,15 +122,15 @@ struct FileGridView: View {
                     .coordinateSpace(name: "gridContainer")
                     .onPreferenceChange(CellFrameKey.self) { frames in
                         self.cellFrames = frames
-                        appState.gridCellFrames = frames
+                        appState.selection.gridCellFrames = frames
                     }
                     .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
                     .background(ScrollerAutoHideSetter())
                 }
-                .onChange(of: appState.currentURL) { _, _ in
+                .onChange(of: appState.navigation.currentURL) { _, _ in
                     visibleLimit = LayoutTokens.paginationThreshold
                 }
-                .onChange(of: appState.items) { _, newItems in
+                .onChange(of: appState.fileSystem.items) { _, newItems in
                     if newItems.count > 500 {
                         ThumbnailService.shared.prefetchThumbnails(for: newItems, size: iconSize)
                     }
@@ -213,7 +213,7 @@ struct FileGridCardItemView: View {
             FileItemIconView(item: item, size: iconSize, isOpenTargeted: isDropTargeted)
                 .overlay(ICloudStatusBadgeView(item: item).padding(2), alignment: .topTrailing)
             cardLabel(isSel: isSel)
-            if appState.showTags && !item.tags.isEmpty {
+            if appState.preferences.showTags && !item.tags.isEmpty {
                 tagsView
             }
         }

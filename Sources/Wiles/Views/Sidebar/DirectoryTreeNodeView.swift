@@ -15,12 +15,12 @@ struct DirectoryTreeNodeView: View {
 
     private var isExpandedBinding: Binding<Bool> {
         Binding(
-            get: { appState.expandedTreePaths.contains(node.url.path) },
+            get: { appState.preferences.expandedTreePaths.contains(node.url.path) },
             set: { newValue in
                 if newValue {
-                    appState.expandedTreePaths.insert(node.url.path)
+                    appState.preferences.expandedTreePaths.insert(node.url.path)
                 } else {
-                    appState.expandedTreePaths.remove(node.url.path)
+                    appState.preferences.expandedTreePaths.remove(node.url.path)
                 }
             }
         )
@@ -44,7 +44,7 @@ struct DirectoryTreeNodeView: View {
     }
 
     private var rowContent: some View {
-        let isSel = appState.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
+        let isSel = appState.navigation.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
         return Button {
             isRightClicked = false
             appState.navigateTo(node.url)
@@ -74,7 +74,7 @@ struct DirectoryTreeNodeView: View {
                     CopyPathService.copy(urls: [node.url], variant: .absolute)
                 }
                 Button(appState.tr(.copyPathRelative)) {
-                    CopyPathService.copy(urls: [node.url], variant: .relative, relativeTo: appState.currentURL)
+                    CopyPathService.copy(urls: [node.url], variant: .relative, relativeTo: appState.navigation.currentURL)
                 }
                 Button(appState.tr(.copyPathURL)) {
                     CopyPathService.copy(urls: [node.url], variant: .fileURL)

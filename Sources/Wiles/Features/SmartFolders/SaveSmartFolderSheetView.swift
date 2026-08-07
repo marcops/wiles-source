@@ -27,7 +27,7 @@ struct SaveSmartFolderSheetView: View {
                         name: folderName,
                         icon: "folder.badge.gearshape",
                         searchQuery: appState.searchQuery,
-                        scopePath: appState.currentURL.path
+                        scopePath: appState.navigation.currentURL.path
                     )
                     appState.addSmartFolder(folder)
                     dismiss()

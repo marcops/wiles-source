@@ -58,25 +58,25 @@ struct SharedBackgroundContextMenu: View {
             Button("\(appState.tr(.paste)) (Cmd+V)") {}.disabled(true)
         }
         Button("\(appState.tr(.selectAll)) (Cmd+A)") {
-            appState.selectedURLs = Set(appState.items.map { $0.url })
+            appState.selectedURLs = Set(appState.fileSystem.items.map { $0.url })
         }
         Divider()
         Menu(appState.tr(.copyPath)) {
             Button(appState.tr(.copyPathAbsolute)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .absolute)
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
             }
             Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .relative, relativeTo: appState.currentURL.deletingLastPathComponent())
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .relative, relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
             }
             Button(appState.tr(.copyPathURL)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .fileURL)
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)
             }
             Button(appState.tr(.copyPathTerminal)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .terminalEscaped)
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .terminalEscaped)
             }
         }
         Button(appState.tr(.shareFolderWifi)) {
-            appState.httpShareFolderURL = appState.currentURL
+            appState.httpShareFolderURL = appState.navigation.currentURL
             appState.showHttpShareSheet = true
         }
         Button("\(appState.tr(.diskUsageVisualizer))... (Shift+Cmd+D)") {
@@ -84,7 +84,7 @@ struct SharedBackgroundContextMenu: View {
         }
         Divider()
         Button(appState.tr(.folderProperties)) {
-            let fileItem = FileItem(url: appState.currentURL, icon: NSWorkspace.shared.icon(forFile: appState.currentURL.path))
+            let fileItem = FileItem(url: appState.navigation.currentURL, icon: NSWorkspace.shared.icon(forFile: appState.navigation.currentURL.path))
             appState.propertiesItem = fileItem
         }
     }
@@ -163,7 +163,7 @@ struct SharedFileItemContextMenu: View {
             }
             Button(appState.tr(.copyPathRelative)) {
                 let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-                CopyPathService.copy(urls: target, variant: .relative, relativeTo: appState.currentURL)
+                CopyPathService.copy(urls: target, variant: .relative, relativeTo: appState.navigation.currentURL)
             }
             Button(appState.tr(.copyPathURL)) {
                 let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
@@ -196,7 +196,7 @@ struct SharedFileItemContextMenu: View {
         if canMergePDF && pdfMergeTargets.count >= 1 {
             Button(appState.tr(.mergeIntoPDF)) {
                 do {
-                    _ = try PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.currentURL)
+                    _ = try PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
                 } catch {
                     appState.showError(error.localizedDescription)
                 }
@@ -206,8 +206,8 @@ struct SharedFileItemContextMenu: View {
         Divider()
         if ArchiveService.isArchive(url: item.url) {
             Button(appState.tr(.inspectArchive)) {
-                appState.inspectArchiveURL = item.url
-                appState.showArchiveInspectionSheet = true
+                appState.modal.inspectArchiveURL = item.url
+                appState.modal.showArchiveInspectionSheet = true
             }
             Button(appState.tr(.extractArchive)) {
                 appState.extractArchive(url: item.url)
@@ -219,8 +219,8 @@ struct SharedFileItemContextMenu: View {
         }
         Button(appState.tr(.compressWithPassword)) {
             let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
-            appState.passwordCompressURLs = targetURLs
-            appState.showPasswordCompressSheet = true
+            appState.modal.passwordCompressURLs = targetURLs
+            appState.modal.showPasswordCompressSheet = true
         }
         Divider()
         let renameHint = appState.navigationMode == .gnome ? "(F2)" : "(Return)"
@@ -257,7 +257,7 @@ struct SharedFileItemContextMenu: View {
         ShareLink(item: item.url) {
             Text(appState.tr(.services))
         }
-        if appState.showTags {
+        if appState.preferences.showTags {
             Menu(appState.tr(.tags)) {
                 let predefinedTags = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Gray"]
                 let tagKeys: [String: L10n.Key] = [
@@ -268,7 +268,7 @@ struct SharedFileItemContextMenu: View {
                     Button {
                         for url in targetURLs {
                             let fallbackItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
-                            let currentItem = appState.items.first(where: { $0.url == url }) ?? fallbackItem
+                            let currentItem = appState.fileSystem.items.first(where: { $0.url == url }) ?? fallbackItem
                             var newTags = currentItem.tags
                             if newTags.contains(tag) {
                                 newTags.removeAll { $0 == tag }
@@ -328,10 +328,10 @@ extension AppState {
             }
         } else if flags.contains(.shift),
             let last = selectedURLs.first,
-            let lastIdx = items.firstIndex(where: { $0.url == last }),
-            let curIdx = items.firstIndex(where: { $0.url == item.url }) {
+            let lastIdx = fileSystem.items.firstIndex(where: { $0.url == last }),
+            let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) {
             let range = min(lastIdx, curIdx)...max(lastIdx, curIdx)
-            let rangeURLs = items[range].map { $0.url }
+            let rangeURLs = fileSystem.items[range].map { $0.url }
             selectedURLs.formUnion(rangeURLs)
         } else {
             selectedURLs = [item.url]

@@ -24,7 +24,7 @@ public struct NewFileSheetView: View {
     }
 
     private func createNewFile(name: String) {
-        let folder = appState.currentURL
+        let folder = appState.navigation.currentURL
         do {
             let createdURL = try NewFileTemplateService.createTemplateFile(
                 in: folder,

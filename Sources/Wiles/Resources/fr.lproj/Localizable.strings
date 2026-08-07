@@ -190,6 +190,7 @@
 "moreInfo" = "Plus d'infos...";
 "moveTo" = "Déplacer vers:";
 "moveToTrash" = "Placer dans la Corbeille";
+"moveToTrashConfirm" = "Êtes-vous sûr de vouloir déplacer les éléments sélectionnés vers la Corbeille?";
 "movies" = "Films";
 "music" = "Musique";
 "name" = "Nom";

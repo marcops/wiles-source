@@ -12,256 +12,22 @@ public enum SearchScope: String, CaseIterable, Identifiable, Codable, Sendable {
 @MainActor
 public final class AppState {
     // MARK: - Domain Stores
-    public let navigationStore: NavigationStore
-    public let preferencesStore: PreferencesStore
-    public let modalStore: ModalStore
-    public let selectionStore: SelectionStore
-    public let fileSystemStore: FileSystemStore
-
-    // MARK: - Forwarded Navigation Properties
-    public var currentURL: URL {
-        get { navigationStore.currentURL }
-        set { navigationStore.currentURL = newValue }
-    }
-    public var historyBack: [URL] {
-        get { navigationStore.historyBack }
-        set { navigationStore.historyBack = newValue }
-    }
-    public var historyForward: [URL] {
-        get { navigationStore.historyForward }
-        set { navigationStore.historyForward = newValue }
-    }
-    public var recentOpenedURLs: [URL] {
-        get { navigationStore.recentOpenedURLs }
-        set { navigationStore.recentOpenedURLs = newValue }
-    }
-    public var pathText: String {
-        get { navigationStore.pathText }
-        set { navigationStore.pathText = newValue }
-    }
-
-    // MARK: - Forwarded FileSystem Properties
-    public var items: [FileItem] {
-        get { fileSystemStore.items }
-        set { fileSystemStore.items = newValue }
-    }
-    public var isLoading: Bool {
-        get { fileSystemStore.isLoading }
-        set { fileSystemStore.isLoading = newValue }
-    }
+    public var navigation: NavigationStore
+    public var preferences: PreferencesStore
+    public var modal: ModalStore
+    public var selection: SelectionStore
+    public var fileSystem: FileSystemStore
 
     func startDirectoryMonitoring(for url: URL) {
-        fileSystemStore.startDirectoryMonitoring(for: url) { [weak self] in
+        fileSystem.startDirectoryMonitoring(for: url) { [weak self] in
             Task { @MainActor in
                 self?.refreshCurrentDirectory(isUserInitiated: false)
             }
         }
     }
 
-    // MARK: - Forwarded Selection Properties
-    public var columnViewDrillRightTrigger: Int {
-        get { selectionStore.columnViewDrillRightTrigger }
-        set { selectionStore.columnViewDrillRightTrigger = newValue }
-    }
-    public var columnViewVerticalDirection: Int {
-        get { selectionStore.columnViewVerticalDirection }
-        set { selectionStore.columnViewVerticalDirection = newValue }
-    }
-    public var columnViewVerticalTrigger: Int {
-        get { selectionStore.columnViewVerticalTrigger }
-        set { selectionStore.columnViewVerticalTrigger = newValue }
-    }
-    public var columnViewMoveLeftTrigger: Int {
-        get { selectionStore.columnViewMoveLeftTrigger }
-        set { selectionStore.columnViewMoveLeftTrigger = newValue }
-    }
-    public var gridCellFrames: [URL: CGRect] {
-        get { selectionStore.gridCellFrames }
-        set { selectionStore.gridCellFrames = newValue }
-    }
-    public var gridColumnCount: Int {
-        selectionStore.gridColumnCount
-    }
-    public var pendingSelectionURL: URL? {
-        get { selectionStore.pendingSelectionURL }
-        set { selectionStore.pendingSelectionURL = newValue }
-    }
-
-    // MARK: - Forwarded Preferences Properties
-    public var viewMode: ViewMode {
-        get { preferencesStore.viewMode }
-        set { preferencesStore.viewMode = newValue }
-    }
-    public var appAppearance: AppAppearance {
-        get { preferencesStore.appAppearance }
-        set { preferencesStore.appAppearance = newValue }
-    }
-    public var sidebarMode: SidebarMode {
-        get { preferencesStore.sidebarMode }
-        set { preferencesStore.sidebarMode = newValue }
-    }
-    public var sidebarWidth: Double {
-        get { preferencesStore.sidebarWidth }
-        set { preferencesStore.sidebarWidth = newValue }
-    }
-    public var sortOption: SortOption {
-        get { preferencesStore.sortOption }
-        set { preferencesStore.sortOption = newValue }
-    }
-    public var sortAscending: Bool {
-        get { preferencesStore.sortAscending }
-        set { preferencesStore.sortAscending = newValue }
-    }
-    public var showHiddenFiles: Bool {
-        get { preferencesStore.showHiddenFiles }
-        set { preferencesStore.showHiddenFiles = newValue }
-    }
-    public var showFavorites: Bool {
-        get { preferencesStore.showFavorites }
-        set { preferencesStore.showFavorites = newValue }
-    }
-    public var showRecents: Bool {
-        get { preferencesStore.showRecents }
-        set { preferencesStore.showRecents = newValue }
-    }
-    public var showPlaces: Bool {
-        get { preferencesStore.showPlaces }
-        set { preferencesStore.showPlaces = newValue }
-    }
-    public var showNetworkAndCloud: Bool {
-        get { preferencesStore.showNetworkAndCloud }
-        set { preferencesStore.showNetworkAndCloud = newValue }
-    }
-    public var showSidebarSectionTitles: Bool {
-        get { preferencesStore.showSidebarSectionTitles }
-        set { preferencesStore.showSidebarSectionTitles = newValue }
-    }
-    public var appLanguage: AppLanguage {
-        get { preferencesStore.appLanguage }
-        set { preferencesStore.appLanguage = newValue }
-    }
-    public var isFavoritesExpanded: Bool {
-        get { preferencesStore.isFavoritesExpanded }
-        set { preferencesStore.isFavoritesExpanded = newValue }
-    }
-    public var isMacExpanded: Bool {
-        get { preferencesStore.isMacExpanded }
-        set { preferencesStore.isMacExpanded = newValue }
-    }
-    public var isNetworkExpanded: Bool {
-        get { preferencesStore.isNetworkExpanded }
-        set { preferencesStore.isNetworkExpanded = newValue }
-    }
-    public var isRecentsExpanded: Bool {
-        get { preferencesStore.isRecentsExpanded }
-        set { preferencesStore.isRecentsExpanded = newValue }
-    }
-    public var isDevicesExpanded: Bool {
-        get { preferencesStore.isDevicesExpanded }
-        set { preferencesStore.isDevicesExpanded = newValue }
-    }
-    public var isTreeExpanded: Bool {
-        get { preferencesStore.isTreeExpanded }
-        set { preferencesStore.isTreeExpanded = newValue }
-    }
-    public var expandedTreePaths: Set<String> {
-        get { preferencesStore.expandedTreePaths }
-        set { preferencesStore.expandedTreePaths = newValue }
-    }
-    public var isTagsExpanded: Bool {
-        get { preferencesStore.isTagsExpanded }
-        set { preferencesStore.isTagsExpanded = newValue }
-    }
-    public var isSmartFoldersExpanded: Bool {
-        get { preferencesStore.isSmartFoldersExpanded }
-        set { preferencesStore.isSmartFoldersExpanded = newValue }
-    }
-    public var searchScope: SearchScope {
-        get { preferencesStore.searchScope }
-        set { preferencesStore.searchScope = newValue }
-    }
-    public var showTags: Bool {
-        get { preferencesStore.showTags }
-        set { preferencesStore.showTags = newValue }
-    }
-    public var showFooter: Bool {
-        get { preferencesStore.showFooter }
-        set { preferencesStore.showFooter = newValue }
-    }
-    public var showTerminalDrawer: Bool {
-        get { preferencesStore.showTerminalDrawer }
-        set { preferencesStore.showTerminalDrawer = newValue }
-    }
-    public var showPreviewSidebar: Bool {
-        get { preferencesStore.showPreviewSidebar }
-        set { preferencesStore.showPreviewSidebar = newValue }
-    }
-    public var sidebarTranslucentLevel: Int {
-        get { preferencesStore.sidebarTranslucentLevel }
-        set { preferencesStore.sidebarTranslucentLevel = newValue }
-    }
-    public var contentTranslucentLevel: Int {
-        get { preferencesStore.contentTranslucentLevel }
-        set { preferencesStore.contentTranslucentLevel = newValue }
-    }
-    public var translucentLevel: Int {
-        get { preferencesStore.sidebarTranslucentLevel }
-        set {
-            preferencesStore.sidebarTranslucentLevel = newValue
-            preferencesStore.contentTranslucentLevel = newValue
-        }
-    }
-    public var sidebarOverlayOpacity: Double { preferencesStore.sidebarOverlayOpacity }
-    public var contentOverlayOpacity: Double { preferencesStore.contentOverlayOpacity }
-    public var iconSize: Double {
-        get { preferencesStore.iconSize }
-        set { preferencesStore.iconSize = newValue }
-    }
-    public var favoriteURLs: [URL] {
-        get { preferencesStore.favoriteURLs }
-        set { preferencesStore.favoriteURLs = newValue }
-    }
-
-    // MARK: - Forwarded Modal Properties
-    public var showSaveSmartFolderSheet: Bool {
-        get { modalStore.showSaveSmartFolderSheet }
-        set { modalStore.showSaveSmartFolderSheet = newValue }
-    }
-    public var showPasswordCompressSheet: Bool {
-        get { modalStore.showPasswordCompressSheet }
-        set { modalStore.showPasswordCompressSheet = newValue }
-    }
-    public var passwordCompressURLs: [URL]? {
-        get { modalStore.passwordCompressURLs }
-        set { modalStore.passwordCompressURLs = newValue }
-    }
-    public var inspectArchiveURL: URL? {
-        get { modalStore.inspectArchiveURL }
-        set { modalStore.inspectArchiveURL = newValue }
-    }
-    public var showArchiveInspectionSheet: Bool {
-        get { modalStore.showArchiveInspectionSheet }
-        set { modalStore.showArchiveInspectionSheet = newValue }
-    }
-    public var errorMessage: String? {
-        get { modalStore.errorMessage }
-        set { modalStore.errorMessage = newValue }
-    }
-    public var showErrorAlert: Bool {
-        get { modalStore.showErrorAlert }
-        set { modalStore.showErrorAlert = newValue }
-    }
-    public var showHelpSheet: Bool {
-        get { modalStore.showHelpSheet }
-        set { modalStore.showHelpSheet = newValue }
-    }
-    public var showAboutSheet: Bool {
-        get { modalStore.showAboutSheet }
-        set { modalStore.showAboutSheet = newValue }
-    }
-
     public func showError(_ message: String) {
-        modalStore.showError(message)
+        modal.showError(message)
     }
 
     // MARK: - Operational State
@@ -304,6 +70,8 @@ public final class AppState {
     public var showNewFileSheet: Bool = false
     public var trashSizeString: String = ""
     public var showEmptyTrashAlert: Bool = false
+    public var showDeleteConfirmAlert: Bool = false
+    public var selectedFavoriteURL: URL?
     public var showShortcutsHUD: Bool = false
     public var isTrashUpdating: Bool = false
     public var showConnectToServerSheet: Bool = false
@@ -324,38 +92,32 @@ public final class AppState {
     }
 
     public init() {
-        let navStore = NavigationStore()
-        let prefStore = PreferencesStore()
-        let modStore = ModalStore()
-        let selStore = SelectionStore()
-        let fsStore = FileSystemStore()
-
-        self.navigationStore = navStore
-        self.preferencesStore = prefStore
-        self.modalStore = modStore
-        self.selectionStore = selStore
-        self.fileSystemStore = fsStore
+        self.navigation = NavigationStore()
+        self.preferences = PreferencesStore()
+        self.modal = ModalStore()
+        self.selection = SelectionStore()
+        self.fileSystem = FileSystemStore()
 
         self.updateTrashSize()
     }
 
     public func tr(_ key: L10n.Key) -> String {
-        L10n.string(key, lang: appLanguage)
+        L10n.string(key, lang: preferences.appLanguage)
     }
 
     public var statusText: String {
-        let totalCount = items.count
+        let totalCount = fileSystem.items.count
         let selCount = selectedURLs.count
 
         if selCount == 0 {
-            let totalFilesSize = items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
+            let totalFilesSize = fileSystem.items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
             if totalFilesSize > 0 {
                 let formattedSize = ByteCountFormatter.string(fromByteCount: totalFilesSize, countStyle: .file)
                 return "\(totalCount) \(totalCount == 1 ? "item" : "itens") (\(formattedSize))"
             }
             return "\(totalCount) \(totalCount == 1 ? "item" : "itens")"
         } else {
-            let selItems = items.filter { selectedURLs.contains($0.url) }
+            let selItems = fileSystem.items.filter { selectedURLs.contains($0.url) }
             let selFilesSize = selItems.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
             if selFilesSize > 0 {
                 let formattedSize = ByteCountFormatter.string(fromByteCount: selFilesSize, countStyle: .file)
@@ -367,7 +129,7 @@ public final class AppState {
     }
 
     public var freeSpaceText: String? {
-        if let values = try? currentURL.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
+        if let values = try? navigation.currentURL.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
            let capacity = values.volumeAvailableCapacity {
             let formatted = ByteCountFormatter.string(fromByteCount: Int64(capacity), countStyle: .file)
             return "\(formatted) \(tr(.freeSpace))"
@@ -376,27 +138,35 @@ public final class AppState {
     }
 
     public func addFavorite(_ url: URL) {
-        preferencesStore.favoriteURLs = preferencesStore.favoriteURLs
         let std = url.standardizedFileURL
-        if !favoriteURLs.contains(where: { $0.standardizedFileURL == std }) {
-            favoriteURLs.append(std)
+        if !preferences.favoriteURLs.contains(where: { $0.standardizedFileURL == std }) {
+            preferences.favoriteURLs.append(std)
         }
     }
 
     public func removeFavorite(_ url: URL) {
         let std = url.standardizedFileURL
-        favoriteURLs.removeAll { $0.standardizedFileURL == std }
+        preferences.favoriteURLs.removeAll { $0.standardizedFileURL == std }
     }
 
     public func isFavorite(_ url: URL) -> Bool {
         let std = url.standardizedFileURL
-        return favoriteURLs.contains(where: { $0.standardizedFileURL == std })
+        return preferences.favoriteURLs.contains(where: { $0.standardizedFileURL == std })
+    }
+
+    public func moveSelectedFavorite(offset: Int) {
+        guard let selected = selectedFavoriteURL?.standardizedFileURL,
+              selected == navigation.currentURL.standardizedFileURL,
+              let index = preferences.favoriteURLs.firstIndex(where: { $0.standardizedFileURL == selected }) else { return }
+        let newIndex = index + offset
+        guard preferences.favoriteURLs.indices.contains(newIndex) else { return }
+        preferences.favoriteURLs.swapAt(index, newIndex)
     }
 
     public func compressSelectedToZIP() {
         let urls = Array(selectedURLs)
         guard !urls.isEmpty else { return }
-        let current = currentURL
+        let current = navigation.currentURL
         Task.detached(priority: .userInitiated) {
             do {
                 try FileSystemService.compressToZIP(urls: urls, in: current)
@@ -412,7 +182,7 @@ public final class AppState {
     }
 
     public func extractArchive(url: URL) {
-        let current = currentURL
+        let current = navigation.currentURL
         Task.detached(priority: .userInitiated) {
             do {
                 try FileSystemService.extractZIP(archiveURL: url, to: current)

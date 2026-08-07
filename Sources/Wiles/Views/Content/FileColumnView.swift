@@ -28,19 +28,19 @@ struct FileColumnView: View {
             }
             .background(ScrollerAutoHideSetter())
             .onAppear { loadInitialColumns() }
-            .onChange(of: appState.currentURL) { _, _ in loadInitialColumns() }
+            .onChange(of: appState.navigation.currentURL) { _, _ in loadInitialColumns() }
             .onChange(of: columns.count) { _, newCount in
                 if newCount > 0 {
                     proxy.scrollTo(newCount - 1, anchor: .trailing)
                 }
             }
-            .onChange(of: appState.columnViewDrillRightTrigger) { _, _ in
+            .onChange(of: appState.selection.columnViewDrillRightTrigger) { _, _ in
                 drillRightFromSelection()
             }
-            .onChange(of: appState.columnViewVerticalTrigger) { _, _ in
-                moveVerticalSelection(by: appState.columnViewVerticalDirection)
+            .onChange(of: appState.selection.columnViewVerticalTrigger) { _, _ in
+                moveVerticalSelection(by: appState.selection.columnViewVerticalDirection)
             }
-            .onChange(of: appState.columnViewMoveLeftTrigger) { _, _ in
+            .onChange(of: appState.selection.columnViewMoveLeftTrigger) { _, _ in
                 moveLeftFromSelection()
             }
         }
@@ -99,17 +99,17 @@ struct FileColumnView: View {
     private func loadInitialColumns() {
         Task {
             let rootItems = await FileSystemService.loadDirectoryContents(
-                at: appState.currentURL,
+                at: appState.navigation.currentURL,
                 options: DirectoryLoadOptions(
-                    showHidden: appState.showHiddenFiles,
-                    showTags: appState.showTags,
+                    showHidden: appState.preferences.showHiddenFiles,
+                    showTags: appState.preferences.showTags,
                     searchQuery: appState.searchQuery,
-                    sortOption: appState.sortOption,
-                    sortAscending: appState.sortAscending
+                    sortOption: appState.preferences.sortOption,
+                    sortAscending: appState.preferences.sortAscending
                 )
             )
             await MainActor.run {
-                self.columns = [ColumnData(folderURL: appState.currentURL, items: rootItems, selectedURL: nil)]
+                self.columns = [ColumnData(folderURL: appState.navigation.currentURL, items: rootItems, selectedURL: nil)]
                 self.activeColumnIndex = 0
                 self.appState.selectedURLs.removeAll()
             }
@@ -167,11 +167,11 @@ struct FileColumnView: View {
             let subItems = await FileSystemService.loadDirectoryContents(
                 at: item.url,
                 options: DirectoryLoadOptions(
-                    showHidden: appState.showHiddenFiles,
-                    showTags: appState.showTags,
+                    showHidden: appState.preferences.showHiddenFiles,
+                    showTags: appState.preferences.showTags,
                     searchQuery: "",
-                    sortOption: appState.sortOption,
-                    sortAscending: appState.sortAscending
+                    sortOption: appState.preferences.sortOption,
+                    sortAscending: appState.preferences.sortAscending
                 )
             )
             await MainActor.run {

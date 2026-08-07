@@ -44,13 +44,16 @@ public struct UITests {
         report("UI/PathBar", "POS: Path components decomposed correctly", result: pathComponents.last == "Projects")
 
         appState.navigateTo(parentURL)
-        report("UI/PathBar", "POS: Clicking path bar segment navigates to exact parent directory", result: appState.currentURL.standardizedFileURL == parentURL.standardizedFileURL)
+        report(
+            "UI/PathBar", "POS: Clicking path bar segment navigates to exact parent directory",
+            result: appState.navigation.currentURL.standardizedFileURL == parentURL.standardizedFileURL
+        )
 
         appState.isEditingPath = true
-        appState.pathText = "/Applications"
-        appState.navigateTo(URL(fileURLWithPath: appState.pathText))
+        appState.navigation.pathText = "/Applications"
+        appState.navigateTo(URL(fileURLWithPath: appState.navigation.pathText))
         appState.isEditingPath = false
-        report("UI/PathBar", "POS: Direct path text editing submission updates currentURL to /Applications", result: appState.currentURL.path == "/Applications")
+        report("UI/PathBar", "POS: Direct path text editing submission updates currentURL to /Applications", result: appState.navigation.currentURL.path == "/Applications")
     }
 
     private static func testSelectionAndContextMenu(appState: AppState) {
@@ -67,7 +70,7 @@ public struct UITests {
         let item1 = FileItem(url: url1, icon: icon)
         let item2 = FileItem(url: url2, icon: icon)
 
-        appState.items = [item1, item2]
+        appState.fileSystem.items = [item1, item2]
         appState.selectedURLs = []
 
         appState.handleSelection(for: item1)
@@ -83,7 +86,7 @@ public struct UITests {
         let folderA = tempBase.appendingPathComponent("FolderA")
         let folderB = tempBase.appendingPathComponent("FolderB")
 
-        appState.viewMode = .grid
+        appState.preferences.viewMode = .grid
         appState.perFolderViewModes.removeAll()
         appState.setViewModeForFolder(.list, for: folderA)
 

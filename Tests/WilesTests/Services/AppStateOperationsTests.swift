@@ -60,7 +60,7 @@ public struct AppStateOperationsTests {
 
         let appState = AppState()
         let items = [makeItem(named: "a.txt", in: dir), makeItem(named: "b.txt", in: dir)]
-        appState.items = items
+        appState.fileSystem.items = items
         appState.selectedURLs = []
 
         appState.selectAllItems()
@@ -77,7 +77,10 @@ public struct AppStateOperationsTests {
         let item = makeItem(named: "subfolder", in: dir, isDirectory: true)
         appState.selectedURLs = [item.url]
         appState.openSelectedItem()
-        report("AppState+Operations", "POS: openSelectedItem() navigates into the selected directory", result: appState.currentURL.path == subfolder.standardizedFileURL.path)
+        report(
+            "AppState+Operations", "POS: openSelectedItem() navigates into the selected directory",
+            result: appState.navigation.currentURL.path == subfolder.standardizedFileURL.path
+        )
     }
 
     private static func testTriggerQuickLookForSelected() {
@@ -99,7 +102,7 @@ public struct AppStateOperationsTests {
 
         let appState = AppState()
         let item = makeItem(named: "props.txt", in: dir)
-        appState.items = [item]
+        appState.fileSystem.items = [item]
         appState.selectedURLs = [item.url]
         appState.openPropertiesForSelected()
         report(
@@ -109,7 +112,7 @@ public struct AppStateOperationsTests {
         )
 
         let appState2 = AppState()
-        appState2.items = []
+        appState2.fileSystem.items = []
         appState2.selectedURLs = [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("unknown-\(UUID().uuidString).txt")]
         appState2.openPropertiesForSelected()
         report("AppState+Operations", "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item", result: appState2.propertiesItem == nil)
@@ -121,7 +124,7 @@ public struct AppStateOperationsTests {
         report(
             "AppState+Operations",
             "POS: startEditingPath() copies currentURL.path into pathText and enables editing",
-            result: appState.pathText == appState.currentURL.path && appState.isEditingPath == true
+            result: appState.navigation.pathText == appState.navigation.currentURL.path && appState.isEditingPath == true
         )
     }
 

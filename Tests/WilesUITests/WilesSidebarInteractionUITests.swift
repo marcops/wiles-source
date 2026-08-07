@@ -80,7 +80,7 @@ final class WilesSidebarInteractionUITests: XCTestCase {
         )
     }
 
-    /// Favorites click-to-navigate: clicking a favorite row should change appState.currentURL,
+    /// Favorites click-to-navigate: clicking a favorite row should change appState.navigation.currentURL,
     /// which is surfaced in the UI via the window title (Wiles sets the window title to the
     /// current folder name) and via the toolbar path/breadcrumb. We assert the window title
     /// actually changes across the click rather than merely asserting the click didn't crash.

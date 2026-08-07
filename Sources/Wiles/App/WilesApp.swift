@@ -14,17 +14,17 @@ struct WilesApp: App {
     var body: some Scene {
         WindowGroup(AppConstants.appName) {
             MainContentView(appState: appState)
-                .preferredColorScheme(appState.appAppearance.colorScheme)
+                .preferredColorScheme(appState.preferences.appAppearance.colorScheme)
                 .sheet(item: $appState.propertiesItem) { item in
                     FilePropertiesSheet(item: item, appState: appState)
                 }
                 .sheet(isPresented: $appState.showNewFolderSheet) {
                     NewFolderSheet(appState: appState)
                 }
-                .sheet(isPresented: $appState.showHelpSheet) {
+                .sheet(isPresented: $appState.modal.showHelpSheet) {
                     HelpSheet(appState: appState)
                 }
-                .sheet(isPresented: $appState.showAboutSheet) {
+                .sheet(isPresented: $appState.modal.showAboutSheet) {
                     AboutSheet(appState: appState)
                 }
                 .sheet(isPresented: $appState.showAutoOrganizationSheet) {
@@ -50,7 +50,7 @@ struct WilesApp: App {
                         window.setFrameAutosaveName("WilesMainWindow")
                     }
                     if !CommandLine.arguments.contains("--ui-testing") {
-                        PermissionService.requestInitialPermissions(language: appState.appLanguage)
+                        PermissionService.requestInitialPermissions(language: appState.preferences.appLanguage)
                     }
                     appState.refreshCurrentDirectory()
                     AutoOrganizationService.shared.startMonitoring()
@@ -70,12 +70,12 @@ struct WilesApp: App {
 
     @CommandsBuilder private var appMenuCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button(appState.tr(.aboutWiles)) { appState.showAboutSheet = true }
+            Button(appState.tr(.aboutWiles)) { appState.modal.showAboutSheet = true }
             Divider()
-            Picker(appState.tr(.language), selection: $appState.appLanguage) {
+            Picker(appState.tr(.language), selection: $appState.preferences.appLanguage) {
                 ForEach(AppLanguage.allCases) { lang in Text(lang.displayName).tag(lang) }
             }
-            Picker("Theme", selection: $appState.appAppearance) {
+            Picker("Theme", selection: $appState.preferences.appAppearance) {
                 ForEach(AppAppearance.allCases) { appearance in Text(appearance.rawValue).tag(appearance) }
             }
             Picker("Shortcut Mode", selection: $appState.navigationMode) {
@@ -84,20 +84,20 @@ struct WilesApp: App {
             Menu(appState.tr(.translucentLevel)) {
                 Menu(appState.tr(.sidebarTranslucentLevel)) {
                     ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                        Button { appState.sidebarTranslucentLevel = level } label: {
+                        Button { appState.preferences.sidebarTranslucentLevel = level } label: {
                             HStack {
                                 Text("\(level)%")
-                                if appState.sidebarTranslucentLevel == level { Image(systemName: "checkmark") }
+                                if appState.preferences.sidebarTranslucentLevel == level { Image(systemName: "checkmark") }
                             }
                         }
                     }
                 }
                 Menu(appState.tr(.contentTranslucentLevel)) {
                     ForEach([0, 20, 40, 50, 60, 80, 100], id: \.self) { level in
-                        Button { appState.contentTranslucentLevel = level } label: {
+                        Button { appState.preferences.contentTranslucentLevel = level } label: {
                             HStack {
                                 Text("\(level)%")
-                                if appState.contentTranslucentLevel == level { Image(systemName: "checkmark") }
+                                if appState.preferences.contentTranslucentLevel == level { Image(systemName: "checkmark") }
                             }
                         }
                     }
@@ -160,38 +160,38 @@ struct WilesApp: App {
                 }
             }
             .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
-            Toggle(appState.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.showTerminalDrawer)
+            Toggle(appState.preferences.showTerminalDrawer ? "Hide Terminal" : "Show Terminal", isOn: $appState.preferences.showTerminalDrawer)
                 .keyboardShortcut("j", modifiers: .command)
-            Toggle(appState.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.showPreviewSidebar)
+            Toggle(appState.preferences.showPreviewSidebar ? "Hide Preview" : appState.tr(.showPreviewSidebar), isOn: $appState.preferences.showPreviewSidebar)
                 .keyboardShortcut("p", modifiers: [.command, .shift])
             Divider()
-            Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.showHiddenFiles)
-                .onChange(of: appState.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
-            Toggle(appState.tr(.showTags), isOn: $appState.showTags)
+            Toggle(appState.navigationMode == .gnome ? "Show Hidden Files (Ctrl+H)" : "Show Hidden Files (Cmd+Shift+.)", isOn: $appState.preferences.showHiddenFiles)
+                .onChange(of: appState.preferences.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
+            Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
             Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
             Divider()
-            Toggle(appState.tr(.showFavorites), isOn: $appState.showFavorites)
-            Toggle(appState.tr(.showPlaces), isOn: $appState.showPlaces)
-            Toggle(appState.tr(.showRecents), isOn: $appState.showRecents)
-            Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.showNetworkAndCloud)
-            Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.showSidebarSectionTitles)
+            Toggle(appState.tr(.showFavorites), isOn: $appState.preferences.showFavorites)
+            Toggle(appState.tr(.showPlaces), isOn: $appState.preferences.showPlaces)
+            Toggle(appState.tr(.showRecents), isOn: $appState.preferences.showRecents)
+            Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
+            Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
             Divider()
-            Picker(appState.tr(.viewMode), selection: $appState.viewMode) {
+            Picker(appState.tr(.viewMode), selection: $appState.preferences.viewMode) {
                 Text(appState.tr(.gridView)).tag(ViewMode.grid)
                 Text(appState.tr(.listView)).tag(ViewMode.list)
                 Text(appState.tr(.columnView)).tag(ViewMode.column)
             }
-            Picker(appState.tr(.sidebarMode), selection: $appState.sidebarMode) {
+            Picker(appState.tr(.sidebarMode), selection: $appState.preferences.sidebarMode) {
                 ForEach(SidebarMode.allCases) { mode in Text(appState.tr(mode.menuL10nKey)).tag(mode) }
             }
             Menu(appState.tr(.sortBy)) {
-                Picker(appState.tr(.sortBy), selection: $appState.sortOption) {
+                Picker(appState.tr(.sortBy), selection: $appState.preferences.sortOption) {
                     ForEach(SortOption.allCases) { opt in Text(opt.rawValue).tag(opt) }
                 }
-                .onChange(of: appState.sortOption) { _, _ in appState.refreshCurrentDirectory() }
+                .onChange(of: appState.preferences.sortOption) { _, _ in appState.refreshCurrentDirectory() }
                 Divider()
-                Toggle(appState.tr(.ascending), isOn: $appState.sortAscending)
-                    .onChange(of: appState.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
+                Toggle(appState.tr(.ascending), isOn: $appState.preferences.sortAscending)
+                    .onChange(of: appState.preferences.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
             }
         }
     }
@@ -199,10 +199,10 @@ struct WilesApp: App {
     @ViewBuilder private var goMenuCommands: some View {
         Button(appState.tr(.back)) { appState.goBack() }
             .keyboardShortcut("[", modifiers: .command)
-            .disabled(appState.historyBack.isEmpty)
+            .disabled(appState.navigation.historyBack.isEmpty)
         Button(appState.tr(.forward)) { appState.goForward() }
             .keyboardShortcut("]", modifiers: .command)
-            .disabled(appState.historyForward.isEmpty)
+            .disabled(appState.navigation.historyForward.isEmpty)
         Button(appState.tr(.enclosingFolder)) { appState.goUp() }
         Divider()
         Button(appState.tr(.goToFolder)) { appState.startEditingPath() }
@@ -218,16 +218,16 @@ struct WilesApp: App {
         Divider()
         Menu(appState.tr(.copyPath)) {
             Button(appState.tr(.copyPathAbsolute)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .absolute)
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
             }
             Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .relative, relativeTo: appState.currentURL.deletingLastPathComponent())
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .relative, relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
             }
             Button(appState.tr(.copyPathURL)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .fileURL)
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)
             }
             Button(appState.tr(.copyPathTerminal)) {
-                CopyPathService.copy(urls: [appState.currentURL], variant: .terminalEscaped)
+                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .terminalEscaped)
             }
         }
         Divider()
@@ -241,7 +241,7 @@ struct WilesApp: App {
 
     @CommandsBuilder private var helpMenuCommands: some Commands {
         CommandGroup(replacing: .help) {
-            Button(appState.tr(.wilesHelpAndShortcuts)) { appState.showHelpSheet = true }
+            Button(appState.tr(.wilesHelpAndShortcuts)) { appState.modal.showHelpSheet = true }
                 .keyboardShortcut("?", modifiers: .command)
         }
     }

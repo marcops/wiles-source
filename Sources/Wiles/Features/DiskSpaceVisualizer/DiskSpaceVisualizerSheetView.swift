@@ -13,7 +13,7 @@ struct DiskSpaceVisualizerSheetView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(appState.tr(.diskUsageVisualizer))
                         .font(.system(size: 15, weight: .bold))
-                    Text(appState.currentURL.path)
+                    Text(appState.navigation.currentURL.path)
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -100,7 +100,7 @@ struct DiskSpaceVisualizerSheetView: View {
 
     private func loadUsage() {
         isLoading = true
-        let current = appState.currentURL
+        let current = appState.navigation.currentURL
         Task {
             let res = await DiskSpaceVisualizerService.calculateDiskUsage(for: current)
             await MainActor.run {

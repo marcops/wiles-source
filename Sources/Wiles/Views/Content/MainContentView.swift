@@ -11,9 +11,9 @@ struct MainContentView: View {
         return ZStack {
             HSplitView {
             SidebarView(appState: appState)
-                .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: CGFloat(appState.sidebarWidth), maxWidth: LayoutTokens.sidebarMaxWidth, maxHeight: .infinity)
+                .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: CGFloat(appState.preferences.sidebarWidth), maxWidth: LayoutTokens.sidebarMaxWidth, maxHeight: .infinity)
                 .background(sidebarWidthTracker)
-                .background(SplitViewDividerSetter(position: CGFloat(appState.sidebarWidth)))
+                .background(SplitViewDividerSetter(position: CGFloat(appState.preferences.sidebarWidth)))
                 .layoutPriority(0)
             VStack(spacing: 0) {
                 HeaderBarView(appState: appState)
@@ -21,7 +21,7 @@ struct MainContentView: View {
                     contentArea
                         .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
                         .background(contentTranslucentBackground)
-                    if appState.showPreviewSidebar {
+                    if appState.preferences.showPreviewSidebar {
                         PreviewSidebarView(appState: appState)
                             .frame(maxHeight: .infinity)
                     }
@@ -34,13 +34,13 @@ struct MainContentView: View {
                 // animates insertion/removal with `.transition`, sliding down instead of shrinking
                 // toward center. The PTY process itself survives unmount via TerminalViewCache, so
                 // removing the view here doesn't crash or leave anything running orphaned.
-                if appState.showTerminalDrawer {
+                if appState.preferences.showTerminalDrawer {
                     Divider()
                     IntegratedTerminalView(appState: appState)
                         .frame(height: 200)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                if appState.showFooter {
+                if appState.preferences.showFooter {
                     FooterBarView(appState: appState)
                 }
             }
@@ -59,7 +59,7 @@ struct MainContentView: View {
             ImageConverterSheetView(item: item, appState: appState)
         }
         .sheet(isPresented: $appState.showBatchRenameSheet) {
-            let selectedItems = appState.items.filter { appState.selectedURLs.contains($0.url) }
+            let selectedItems = appState.fileSystem.items.filter { appState.selectedURLs.contains($0.url) }
             BatchRenameSheetView(items: selectedItems, appState: appState)
         }
         .sheet(isPresented: $appState.showDiskUsageSheet) {
@@ -74,14 +74,14 @@ struct MainContentView: View {
         .sheet(item: $appState.symlinkItem) { item in
             SymlinkSheetView(item: item, appState: appState)
         }
-        .sheet(isPresented: $appState.showSaveSmartFolderSheet) {
+        .sheet(isPresented: $appState.modal.showSaveSmartFolderSheet) {
             SaveSmartFolderSheetView(appState: appState)
         }
-        .sheet(isPresented: $appState.showPasswordCompressSheet) {
+        .sheet(isPresented: $appState.modal.showPasswordCompressSheet) {
             PasswordCompressSheetView(appState: appState)
         }
-        .sheet(isPresented: $appState.showArchiveInspectionSheet) {
-            if let url = appState.inspectArchiveURL {
+        .sheet(isPresented: $appState.modal.showArchiveInspectionSheet) {
+            if let url = appState.modal.inspectArchiveURL {
                 ArchiveInspectionSheetView(archiveURL: url, appState: appState)
             }
         }
@@ -93,16 +93,24 @@ struct MainContentView: View {
         } message: {
             Text(appState.tr(.emptyTrashConfirm))
         }
-        .alert("Error", isPresented: $appState.showErrorAlert) {
+        .alert(appState.tr(.moveToTrash) + "?", isPresented: $appState.showDeleteConfirmAlert) {
+            Button(appState.tr(.moveToTrash), role: .destructive) {
+                appState.performDeleteSelected()
+            }
+            Button(appState.tr(.cancel), role: .cancel) {}
+        } message: {
+            Text(appState.tr(.moveToTrashConfirm))
+        }
+        .alert("Error", isPresented: $appState.modal.showErrorAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text(appState.errorMessage ?? "An error occurred.")
+            Text(appState.modal.errorMessage ?? "An error occurred.")
         }
         .background(
             ZStack {
                 TranslucentVisualEffectView(material: .underWindowBackground)
                 Color(NSColor.windowBackgroundColor)
-                    .opacity(appState.sidebarOverlayOpacity)
+                    .opacity(appState.preferences.sidebarOverlayOpacity)
                 keyboardShortcutsHandler
                 GlobalKeyMonitor(appState: appState)
             }
@@ -118,7 +126,7 @@ struct MainContentView: View {
         ZStack {
             TranslucentVisualEffectView(material: .sidebar)
             Color(NSColor.windowBackgroundColor)
-                .opacity(appState.contentOverlayOpacity)
+                .opacity(appState.preferences.contentOverlayOpacity)
         }
         .ignoresSafeArea()
     }
@@ -138,14 +146,14 @@ struct MainContentView: View {
         sidebarWidthSaveTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(LayoutTokens.sidebarWidthSaveDebounceMs))
             guard !Task.isCancelled else { return }
-            appState.sidebarWidth = Double(newWidth)
+            appState.preferences.sidebarWidth = Double(newWidth)
         }
     }
 
     @ViewBuilder private var contentArea: some View {
-        if appState.viewMode == .grid {
+        if appState.preferences.viewMode == .grid {
             FileGridView(appState: appState)
-        } else if appState.viewMode == .list {
+        } else if appState.preferences.viewMode == .list {
             FileListView(appState: appState)
         } else {
             FileColumnView(appState: appState)
@@ -161,7 +169,7 @@ struct MainContentView: View {
             Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
-            Button("") { appState.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
+            Button("") { appState.modal.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
             Button("") {
                 withAnimation(MotionTokens.snappySpring) {
                     appState.showShortcutsHUD.toggle()
@@ -174,13 +182,13 @@ struct MainContentView: View {
     }
 
     private func triggerRenameForSelected() {
-        if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
+        if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
             appState.renameItem = item
         }
     }
 
     private func toggleHiddenFiles() {
-        appState.showHiddenFiles.toggle()
+        appState.preferences.showHiddenFiles.toggle()
         appState.refreshCurrentDirectory()
     }
 
@@ -286,7 +294,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             guard delta != 0 else { return event }
 
             let step = delta > 0 ? 4.0 : -4.0
-            appState.iconSize = min(IconSizeToken.maxSize, max(IconSizeToken.minSize, appState.iconSize + step))
+            appState.preferences.iconSize = min(IconSizeToken.maxSize, max(IconSizeToken.minSize, appState.preferences.iconSize + step))
             return nil
         }
 
@@ -307,13 +315,13 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         private func handleZoomKeyDown(code: UInt16, appState: AppState) -> Bool {
             switch code {
             case KeyCode.equals, KeyCode.keypadPlus, KeyCode.bracketRight:
-                appState.iconSize = min(IconSizeToken.maxSize, appState.iconSize + IconSizeToken.step)
+                appState.preferences.iconSize = min(IconSizeToken.maxSize, appState.preferences.iconSize + IconSizeToken.step)
                 return true
             case KeyCode.minus, KeyCode.keypadMinus:
-                appState.iconSize = max(IconSizeToken.minSize, appState.iconSize - IconSizeToken.step)
+                appState.preferences.iconSize = max(IconSizeToken.minSize, appState.preferences.iconSize - IconSizeToken.step)
                 return true
             case KeyCode.zero:
-                appState.iconSize = IconSizeToken.defaultSize
+                appState.preferences.iconSize = IconSizeToken.defaultSize
                 return true
             default:
                 return false
@@ -322,6 +330,12 @@ struct GlobalKeyMonitor: NSViewRepresentable {
 
         private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState) -> Bool {
             if let arrowCode = ArrowKey(code: code) {
+                if isCmd, let fav = appState.selectedFavoriteURL,
+                    fav.standardizedFileURL == appState.navigation.currentURL.standardizedFileURL,
+                    arrowCode == .up || arrowCode == .down {
+                    appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1)
+                    return true
+                }
                 let isShift = NSEvent.modifierFlags.contains(.shift)
                 handleArrowKeyDown(arrowCode, isShift: isShift, appState: appState)
                 return true
@@ -329,7 +343,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             return handleEditActionKeyDown(code: code, isCmd: isCmd, appState: appState)
         }
 
-        private enum ArrowKey {
+        private enum ArrowKey: Equatable {
             case up, down, left, right
 
             init?(code: UInt16) {
@@ -346,36 +360,36 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         private func handleArrowKeyDown(_ key: ArrowKey, isShift: Bool, appState: AppState) {
             switch key {
             case .up:
-                if appState.viewMode == .column {
-                    appState.columnViewVerticalDirection = -1
-                    appState.columnViewVerticalTrigger += 1
+                if appState.preferences.viewMode == .column {
+                    appState.selection.columnViewVerticalDirection = -1
+                    appState.selection.columnViewVerticalTrigger += 1
                 } else {
-                    let offset = appState.viewMode == .grid ? -appState.gridColumnCount : -1
+                    let offset = appState.preferences.viewMode == .grid ? -appState.selection.gridColumnCount : -1
                     moveSelection(by: offset, isShift: isShift, appState: appState)
                 }
             case .down:
-                if appState.viewMode == .column {
-                    appState.columnViewVerticalDirection = 1
-                    appState.columnViewVerticalTrigger += 1
+                if appState.preferences.viewMode == .column {
+                    appState.selection.columnViewVerticalDirection = 1
+                    appState.selection.columnViewVerticalTrigger += 1
                 } else {
-                    let offset = appState.viewMode == .grid ? appState.gridColumnCount : 1
+                    let offset = appState.preferences.viewMode == .grid ? appState.selection.gridColumnCount : 1
                     moveSelection(by: offset, isShift: isShift, appState: appState)
                 }
             case .left:
-                if appState.viewMode == .grid {
+                if appState.preferences.viewMode == .grid {
                     moveSelection(by: -1, isShift: isShift, appState: appState)
-                } else if appState.viewMode == .column {
-                    appState.columnViewMoveLeftTrigger += 1
+                } else if appState.preferences.viewMode == .column {
+                    appState.selection.columnViewMoveLeftTrigger += 1
                 } else {
                     appState.goUp()
                 }
             case .right:
-                if appState.viewMode == .grid {
+                if appState.preferences.viewMode == .grid {
                     moveSelection(by: 1, isShift: isShift, appState: appState)
-                } else if appState.viewMode == .column {
-                    appState.columnViewDrillRightTrigger += 1
+                } else if appState.preferences.viewMode == .column {
+                    appState.selection.columnViewDrillRightTrigger += 1
                 } else if let first = appState.selectedURLs.first,
-                    let item = appState.items.first(where: { $0.url == first }), item.isDirectory {
+                    let item = appState.fileSystem.items.first(where: { $0.url == first }), item.isDirectory {
                     appState.navigateTo(first)
                 }
             }
@@ -410,7 +424,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                     appState.navigateTo(first)
                     return true
                 } else if appState.navigationMode == .macOS, let first = appState.selectedURLs.first,
-                    let item = appState.items.first(where: { $0.url == first }) {
+                    let item = appState.fileSystem.items.first(where: { $0.url == first }) {
                     appState.renameItem = item
                     return true
                 }
@@ -419,7 +433,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         }
 
         private func moveSelection(by offset: Int, isShift: Bool, appState: AppState) {
-            let items = appState.items
+            let items = appState.fileSystem.items
             guard !items.isEmpty else { return }
             let anchorURL = appState.selectedURLs.first
             let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? -1
@@ -437,7 +451,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         private func triggerRenameForSelected(appState: AppState) {
             if appState.selectedURLs.count > 1 {
                 appState.showBatchRenameSheet = true
-            } else if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
+            } else if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
                 appState.renameItem = item
             }
         }

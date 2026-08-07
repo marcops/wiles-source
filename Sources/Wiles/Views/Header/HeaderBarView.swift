@@ -48,8 +48,8 @@ struct HeaderBarView: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain).disabled(appState.historyBack.isEmpty)
-            .opacity(appState.historyBack.isEmpty ? 0.4 : 1.0)
+            .buttonStyle(.plain).disabled(appState.navigation.historyBack.isEmpty)
+            .opacity(appState.navigation.historyBack.isEmpty ? 0.4 : 1.0)
             .help(appState.tr(.back))
             .accessibilityLabel(appState.tr(.back))
             .accessibilityHint(appState.tr(.back))
@@ -59,8 +59,8 @@ struct HeaderBarView: View {
                     .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain).disabled(appState.historyForward.isEmpty)
-            .opacity(appState.historyForward.isEmpty ? 0.4 : 1.0)
+            .buttonStyle(.plain).disabled(appState.navigation.historyForward.isEmpty)
+            .opacity(appState.navigation.historyForward.isEmpty ? 0.4 : 1.0)
             .help(appState.tr(.forward))
             .accessibilityLabel(appState.tr(.forward))
             .accessibilityHint(appState.tr(.forward))
@@ -77,7 +77,7 @@ struct HeaderBarView: View {
     private var searchField: some View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
-            TextField("\(appState.tr(.searchPlaceholder)) \(appState.currentURL.lastPathComponent)...", text: $appState.searchQuery)
+            TextField("\(appState.tr(.searchPlaceholder)) \(appState.navigation.currentURL.lastPathComponent)...", text: $appState.searchQuery)
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
                 .onAppear {
@@ -98,7 +98,7 @@ struct HeaderBarView: View {
             searchFilterMenu
 
             if !appState.searchQuery.isEmpty {
-                Button { appState.showSaveSmartFolderSheet = true } label: {
+                Button { appState.modal.showSaveSmartFolderSheet = true } label: {
                     Image(systemName: "folder.badge.plus")
                         .foregroundColor(.accentColor)
                 }
@@ -120,7 +120,7 @@ struct HeaderBarView: View {
     private var searchFilterMenu: some View {
         @Bindable var appState = appState
         return Menu {
-            Picker(appState.tr(.searchScope), selection: $appState.searchScope) {
+            Picker(appState.tr(.searchScope), selection: $appState.preferences.searchScope) {
                 Text(appState.tr(.searchByName)).tag(SearchScope.name)
                 Text(appState.tr(.searchByContent)).tag(SearchScope.content)
             }
@@ -210,14 +210,14 @@ struct HeaderBarView: View {
                 ForEach(ViewMode.allCases) { mode in
                     Button {
                         withAnimation(MotionTokens.snappySpring) {
-                            appState.viewMode = mode
+                            appState.preferences.viewMode = mode
                             viewSwitcherExpanded = false
                         }
                     } label: {
                         Image(systemName: iconName(for: mode)).font(.system(size: 12))
                             .frame(width: 26, height: 24)
-                            .background(appState.viewMode == mode ? Color.accentColor : Color.clear)
-                            .foregroundColor(appState.viewMode == mode ? .white : .primary)
+                            .background(appState.preferences.viewMode == mode ? Color.accentColor : Color.clear)
+                            .foregroundColor(appState.preferences.viewMode == mode ? .white : .primary)
                             .cornerRadius(4)
                             .contentShape(Rectangle())
                     }
@@ -231,7 +231,7 @@ struct HeaderBarView: View {
                         viewSwitcherExpanded = true
                     }
                 } label: {
-                    Image(systemName: iconName(for: appState.viewMode)).font(.system(size: 12))
+                    Image(systemName: iconName(for: appState.preferences.viewMode)).font(.system(size: 12))
                         .frame(width: 26, height: 24)
                         .background(Color.clear)
                         .foregroundColor(.primary)

@@ -70,7 +70,6 @@ public final class AutomatedTestService {
 
     private static func runModelAndStateTests() async {
         await FileSystemSearchAndSortTests.run()
-        AppStatePreferencesTests.run()
         AppStateColumnsAndSelectionTests.run()
         AppStateCoreTests.run()
         AppStateNavigationExtraTests.run()

@@ -21,7 +21,7 @@ struct PreviewSidebarView: View {
             ZStack {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
-                    .opacity(1.0 - Double(appState.translucentLevel) / 100.0)
+                    .opacity(1.0 - Double(appState.preferences.translucentLevel) / 100.0)
             }
         )
         .task(id: appState.selectedURLs) {
@@ -34,7 +34,7 @@ struct PreviewSidebarView: View {
     }
 
     @ViewBuilder private var singleSelectionView: some View {
-        if let first = appState.selectedURLs.first, let item = appState.items.first(where: { $0.url == first }) {
+        if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
             VStack(alignment: .center, spacing: 16) {
                 Image(nsImage: item.icon)
                     .resizable()

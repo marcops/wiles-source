@@ -56,12 +56,12 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testTerminalDrawerFlows(appState: AppState) {
-        let initialDrawerState = appState.showTerminalDrawer
-        appState.showTerminalDrawer.toggle()
-        report("UI/TerminalDrawer", "POS: Toggling terminal drawer flips state", result: appState.showTerminalDrawer != initialDrawerState)
+        let initialDrawerState = appState.preferences.showTerminalDrawer
+        appState.preferences.showTerminalDrawer.toggle()
+        report("UI/TerminalDrawer", "POS: Toggling terminal drawer flips state", result: appState.preferences.showTerminalDrawer != initialDrawerState)
 
-        appState.showTerminalDrawer = initialDrawerState
-        report("UI/TerminalDrawer", "POS: Terminal drawer state restored", result: appState.showTerminalDrawer == initialDrawerState)
+        appState.preferences.showTerminalDrawer = initialDrawerState
+        report("UI/TerminalDrawer", "POS: Terminal drawer state restored", result: appState.preferences.showTerminalDrawer == initialDrawerState)
     }
 
     private static func testPropertiesSheetFlows(appState: AppState) {
@@ -109,25 +109,25 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testModalSheetsCoverage(appState: AppState) {
-        appState.showSaveSmartFolderSheet = true
-        report("UI/Modals", "POS: showSaveSmartFolderSheet sets flag", result: appState.showSaveSmartFolderSheet)
-        appState.showSaveSmartFolderSheet = false
+        appState.modal.showSaveSmartFolderSheet = true
+        report("UI/Modals", "POS: showSaveSmartFolderSheet sets flag", result: appState.modal.showSaveSmartFolderSheet)
+        appState.modal.showSaveSmartFolderSheet = false
 
-        appState.showPasswordCompressSheet = true
-        report("UI/Modals", "POS: showPasswordCompressSheet sets flag", result: appState.showPasswordCompressSheet)
-        appState.showPasswordCompressSheet = false
+        appState.modal.showPasswordCompressSheet = true
+        report("UI/Modals", "POS: showPasswordCompressSheet sets flag", result: appState.modal.showPasswordCompressSheet)
+        appState.modal.showPasswordCompressSheet = false
 
-        appState.showArchiveInspectionSheet = true
-        report("UI/Modals", "POS: showArchiveInspectionSheet sets flag", result: appState.showArchiveInspectionSheet)
-        appState.showArchiveInspectionSheet = false
+        appState.modal.showArchiveInspectionSheet = true
+        report("UI/Modals", "POS: showArchiveInspectionSheet sets flag", result: appState.modal.showArchiveInspectionSheet)
+        appState.modal.showArchiveInspectionSheet = false
 
-        appState.showHelpSheet = true
-        report("UI/Modals", "POS: showHelpSheet sets flag", result: appState.showHelpSheet)
-        appState.showHelpSheet = false
+        appState.modal.showHelpSheet = true
+        report("UI/Modals", "POS: showHelpSheet sets flag", result: appState.modal.showHelpSheet)
+        appState.modal.showHelpSheet = false
 
-        appState.showAboutSheet = true
-        report("UI/Modals", "POS: showAboutSheet sets flag", result: appState.showAboutSheet)
-        appState.showAboutSheet = false
+        appState.modal.showAboutSheet = true
+        report("UI/Modals", "POS: showAboutSheet sets flag", result: appState.modal.showAboutSheet)
+        appState.modal.showAboutSheet = false
     }
 
     private static func testConnectToServerSheetFlows(appState: AppState) {

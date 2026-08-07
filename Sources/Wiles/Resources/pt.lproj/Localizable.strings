@@ -190,6 +190,7 @@
 "moreInfo" = "Mais Informações...";
 "moveTo" = "Mover para:";
 "moveToTrash" = "Mover para a Lixeira";
+"moveToTrashConfirm" = "Tem certeza de que deseja mover os itens selecionados para a Lixeira?";
 "movies" = "Filmes";
 "music" = "Música";
 "name" = "Nome";

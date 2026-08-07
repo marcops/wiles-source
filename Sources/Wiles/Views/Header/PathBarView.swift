@@ -23,7 +23,7 @@ struct PathBarView: View {
 
     var pathSegments: [PathSegment] {
         var res: [(name: String, url: URL)] = []
-        var cur = appState.currentURL.standardizedFileURL
+        var cur = appState.navigation.currentURL.standardizedFileURL
         var depth = 0
         while depth < 50 {
             let name = cur.path == "/" ? appState.tr(.root) : cur.lastPathComponent
@@ -54,16 +54,16 @@ struct PathBarView: View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
             Image(systemName: "folder").foregroundColor(.secondary)
-            TextField(appState.tr(.enterPathPlaceholder), text: $appState.pathText)
+            TextField(appState.tr(.enterPathPlaceholder), text: $appState.navigation.pathText)
                 .textFieldStyle(.plain)
                 .focused($isFocused)
                 .onSubmit {
-                    let url = URL(fileURLWithPath: (appState.pathText as NSString).expandingTildeInPath)
+                    let url = URL(fileURLWithPath: (appState.navigation.pathText as NSString).expandingTildeInPath)
                     appState.navigateTo(url)
                     appState.isEditingPath = false
                 }
                 .onExitCommand {
-                    appState.pathText = appState.currentURL.path
+                    appState.navigation.pathText = appState.navigation.currentURL.path
                     appState.isEditingPath = false
                 }
                 .onChange(of: isFocused) { _, focused in
@@ -92,7 +92,7 @@ struct PathBarView: View {
                                 ForEach(pathSegments) { item in
                                     breadcrumbPill(for: item)
                                         .id(item.id)
-                                    if item.url != appState.currentURL.standardizedFileURL {
+                                    if item.url != appState.navigation.currentURL.standardizedFileURL {
                                         Image(systemName: "chevron.right")
                                             .font(.system(size: 10, weight: .semibold))
                                             .foregroundColor(.secondary.opacity(0.6))
@@ -127,7 +127,7 @@ struct PathBarView: View {
             withAnimation(MotionTokens.quickEase) { isHovering = hovering }
         }
         .onTapGesture(count: 2) {
-            appState.pathText = appState.currentURL.path
+            appState.navigation.pathText = appState.navigation.currentURL.path
             appState.isEditingPath = true
         }
     }
@@ -139,7 +139,7 @@ struct PathBarView: View {
         HStack(spacing: 2) {
             ForEach(pathSegments) { item in
                 breadcrumbPill(for: item)
-                if item.url != appState.currentURL.standardizedFileURL {
+                if item.url != appState.navigation.currentURL.standardizedFileURL {
                     Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
                 }
             }
@@ -168,17 +168,17 @@ struct PathBarView: View {
             .padding(.horizontal, 6)
             .frame(height: 22)
             .hoverHighlight(
-                isSelected: !isCollapsed && item.url == appState.currentURL,
+                isSelected: !isCollapsed && item.url == appState.navigation.currentURL,
                 hoverBackground: Color.accentColor.opacity(0.12),
                 selectedBackground: Color.accentColor.opacity(0.2),
                 cornerRadius: 4
             )
-            .foregroundColor(isCollapsed || item.url == appState.currentURL ? .primary : .secondary)
+            .foregroundColor(isCollapsed || item.url == appState.navigation.currentURL ? .primary : .secondary)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(item.name)
         .accessibilityHint(appState.tr(.folder))
-        .accessibilityAddTraits(item.url == appState.currentURL ? [.isButton, .isSelected] : [.isButton])
+        .accessibilityAddTraits(item.url == appState.navigation.currentURL ? [.isButton, .isSelected] : [.isButton])
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             handleDrop(providers: providers, targetFolder: item.url)
             return true

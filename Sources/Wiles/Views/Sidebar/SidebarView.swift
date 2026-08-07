@@ -23,9 +23,9 @@ struct SidebarView: View {
     var recentItems: [SidebarItem] {
         var seen = Set<URL>()
         var items: [SidebarItem] = []
-        for url in appState.historyBack.reversed() {
+        for url in appState.navigation.historyBack.reversed() {
             let std = url.standardizedFileURL
-            if !seen.contains(std) && std != appState.currentURL.standardizedFileURL {
+            if !seen.contains(std) && std != appState.navigation.currentURL.standardizedFileURL {
                 seen.insert(std)
                 items.append(sidebarItem(for: std))
                 if items.count >= LayoutTokens.maxRecentItemsCount { break }
@@ -41,25 +41,25 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var appState = appState
 
-        let favItems = appState.favoriteURLs.map { sidebarItem(for: $0) }
+        let favItems = appState.preferences.favoriteURLs.map { sidebarItem(for: $0) }
 
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                if appState.showRecents {
+                if appState.preferences.showRecents {
                     let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
                     sidebarRow(for: recentsItem, sectionKey: "Recents")
                 }
 
-                if appState.showFavorites && !favItems.isEmpty {
+                if appState.preferences.showFavorites && !favItems.isEmpty {
                     collapsibleSection(
                         title: appState.tr(.favorites),
-                        isExpanded: $appState.isFavoritesExpanded,
+                        isExpanded: $appState.preferences.isFavoritesExpanded,
                         items: favItems,
                         isFavoritesSection: true
                     )
                 }
 
-                if appState.showNetworkAndCloud {
+                if appState.preferences.showNetworkAndCloud {
                     let items: [SidebarItem] = {
                         let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
                             SidebarItem(name: $0.name, iconName: "network", url: $0.url)
@@ -70,36 +70,36 @@ struct SidebarView: View {
                     }()
                     collapsibleSection(
                         title: appState.tr(.networkAndCloud),
-                        isExpanded: $appState.isNetworkExpanded,
+                        isExpanded: $appState.preferences.isNetworkExpanded,
                         items: items,
                         isFavoritesSection: false
                     )
                 }
 
-                if appState.showPlaces && appState.sidebarMode == .places {
+                if appState.preferences.showPlaces && appState.preferences.sidebarMode == .places {
                     collapsibleSection(
                         title: appState.tr(.places),
-                        isExpanded: $appState.isDevicesExpanded,
+                        isExpanded: $appState.preferences.isDevicesExpanded,
                         items: devices,
                         isFavoritesSection: false
                     )
-                } else if appState.sidebarMode == .tree {
+                } else if appState.preferences.sidebarMode == .tree {
                     VStack(alignment: .leading, spacing: 4) {
-                        if appState.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.isTreeExpanded)
+                        if appState.preferences.showSidebarSectionTitles {
+                            sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.preferences.isTreeExpanded)
                         }
-                        if !appState.showSidebarSectionTitles || appState.isTreeExpanded {
+                        if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTreeExpanded {
                             DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
                         }
                     }
                 }
 
-                if appState.showTags {
+                if appState.preferences.showTags {
                     VStack(alignment: .leading, spacing: 4) {
-                        if appState.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.tags), isExpanded: $appState.isTagsExpanded)
+                        if appState.preferences.showSidebarSectionTitles {
+                            sectionHeader(title: appState.tr(.tags), isExpanded: $appState.preferences.isTagsExpanded)
                         }
-                        if !appState.showSidebarSectionTitles || appState.isTagsExpanded {
+                        if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTagsExpanded {
                             tagRow(tag: "Red", colorKey: .red)
                             tagRow(tag: "Orange", colorKey: .orange)
                             tagRow(tag: "Yellow", colorKey: .yellow)
@@ -113,10 +113,10 @@ struct SidebarView: View {
 
                 if !appState.smartFolders.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
-                        if appState.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.smartFolders), isExpanded: $appState.isSmartFoldersExpanded)
+                        if appState.preferences.showSidebarSectionTitles {
+                            sectionHeader(title: appState.tr(.smartFolders), isExpanded: $appState.preferences.isSmartFoldersExpanded)
                         }
-                        if !appState.showSidebarSectionTitles || appState.isSmartFoldersExpanded {
+                        if !appState.preferences.showSidebarSectionTitles || appState.preferences.isSmartFoldersExpanded {
                             ForEach(appState.smartFolders) { folder in
                                 smartFolderRow(folder: folder)
                             }
@@ -132,7 +132,7 @@ struct SidebarView: View {
             ZStack {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
-                    .opacity(appState.sidebarOverlayOpacity)
+                    .opacity(appState.preferences.sidebarOverlayOpacity)
             }
             .ignoresSafeArea()
         )
@@ -159,7 +159,7 @@ struct SidebarView: View {
                     .foregroundColor(.secondary)
                     .frame(width: 12)
                 Text(title)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
                 Spacer()
             }
@@ -186,7 +186,7 @@ struct SidebarView: View {
             HStack(spacing: 6) {
                 Circle().fill(colorForTag(tag)).frame(width: 10, height: 10)
                 Text(appState.tr(colorKey))
-                    .font(.system(size: 12, weight: isSel ? .semibold : .regular))
+                    .font(.system(size: 12, weight: isSel ? .semibold : .regular, design: .rounded))
                     .foregroundColor(.primary)
                 Spacer()
             }
@@ -201,10 +201,10 @@ struct SidebarView: View {
 
     private func collapsibleSection(title: String, isExpanded: Binding<Bool>, items: [SidebarItem], isFavoritesSection: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            if appState.showSidebarSectionTitles {
+            if appState.preferences.showSidebarSectionTitles {
                 sectionHeader(title: title, isExpanded: isExpanded)
             }
-            if !appState.showSidebarSectionTitles || isExpanded.wrappedValue {
+            if !appState.preferences.showSidebarSectionTitles || isExpanded.wrappedValue {
                 ForEach(items) { item in
                     sidebarRow(for: item, sectionKey: title, isFavoritesSection: isFavoritesSection)
                 }
@@ -255,7 +255,7 @@ struct SidebarView: View {
             appState.isSearching = true
             SmartFolderService.shared.executeQuery(for: folder) { items in
                 Task { @MainActor in
-                    appState.items = items
+                    appState.fileSystem.items = items
                 }
             }
         } label: {
@@ -308,12 +308,13 @@ private struct SidebarRowView: View {
     @State private var isHovered = false
 
     var body: some View {
-        let isCurrentFolder = appState.currentURL.standardizedFileURL == item.url.standardizedFileURL
+        let isCurrentFolder = appState.navigation.currentURL.standardizedFileURL == item.url.standardizedFileURL
         let isSel = isRightClicked || (isCurrentFolder && !isAnotherRowRightClicked)
         let isTrash = item.url.standardizedFileURL == URL.userTrash.standardizedFileURL
         return Button {
             onLeftClick()
             appState.navigateTo(item.url)
+            appState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: item.iconName)
@@ -389,7 +390,7 @@ private struct SidebarRowView: View {
                     CopyPathService.copy(urls: [item.url], variant: .absolute)
                 }
                 Button(appState.tr(.copyPathRelative)) {
-                    CopyPathService.copy(urls: [item.url], variant: .relative, relativeTo: appState.currentURL)
+                    CopyPathService.copy(urls: [item.url], variant: .relative, relativeTo: appState.navigation.currentURL)
                 }
                 Button(appState.tr(.copyPathURL)) {
                     CopyPathService.copy(urls: [item.url], variant: .fileURL)

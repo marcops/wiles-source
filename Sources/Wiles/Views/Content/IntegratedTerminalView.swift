@@ -29,7 +29,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
         terminalView.processDelegate = context.coordinator
         TerminalViewCache.shared.view = terminalView
 
-        let path = appState.currentURL.path
+        let path = appState.navigation.currentURL.path
         terminalView.startProcess(
             executable: "/bin/zsh",
             args: ["-l"],
@@ -47,7 +47,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
-        let currentPath = appState.currentURL.path
+        let currentPath = appState.navigation.currentURL.path
         if context.coordinator.lastPath != currentPath {
             context.coordinator.lastPath = currentPath
             // Send cd command to the terminal
@@ -60,7 +60,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
             cached.parent = self
             return cached
         }
-        let coordinator = Coordinator(self, initialPath: appState.currentURL.path)
+        let coordinator = Coordinator(self, initialPath: appState.navigation.currentURL.path)
         TerminalViewCache.shared.coordinator = coordinator
         return coordinator
     }

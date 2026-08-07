@@ -6,11 +6,11 @@ extension AppState {
     public func navigateTo(_ url: URL, addToHistory: Bool = true) {
         HapticService.shared.play(.alignment)
         if url == Self.recentsVirtualURL {
-            if addToHistory && url != currentURL {
-                historyBack.append(currentURL)
-                historyForward.removeAll()
+            if addToHistory && url != navigation.currentURL {
+                navigation.historyBack.append(navigation.currentURL)
+                navigation.historyForward.removeAll()
             }
-            currentURL = url
+            navigation.currentURL = url
             selectedURLs.removeAll()
             isSearching = false
             searchQuery = ""
@@ -20,14 +20,14 @@ extension AppState {
         addToRecents(url)
         var isDir: ObjCBool = false
         if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-            let leavingChildURL = childToRestore(whenLeaving: currentURL, movingTo: url.standardizedFileURL)
-            if addToHistory && url != currentURL {
-                historyBack.append(currentURL)
-                historyForward.removeAll()
+            let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: url.standardizedFileURL)
+            if addToHistory && url != navigation.currentURL {
+                navigation.historyBack.append(navigation.currentURL)
+                navigation.historyForward.removeAll()
             }
-            currentURL = url.standardizedFileURL
+            navigation.currentURL = url.standardizedFileURL
             selectedURLs.removeAll()
-            pendingSelectionURL = leavingChildURL
+            selection.pendingSelectionURL = leavingChildURL
             isSearching = false
             searchQuery = ""
             refreshCurrentDirectory()
@@ -47,32 +47,32 @@ extension AppState {
     }
 
     public func goBack() {
-        guard let prev = historyBack.popLast() else { return }
-        historyForward.append(currentURL)
+        guard let prev = navigation.historyBack.popLast() else { return }
+        navigation.historyForward.append(navigation.currentURL)
         navigateTo(prev, addToHistory: false)
     }
 
     public func goForward() {
-        guard let next = historyForward.popLast() else { return }
-        historyBack.append(currentURL)
+        guard let next = navigation.historyForward.popLast() else { return }
+        navigation.historyBack.append(navigation.currentURL)
         navigateTo(next, addToHistory: false)
     }
 
     public func goUp() {
-        let parent = currentURL.deletingLastPathComponent()
-        if parent != currentURL { navigateTo(parent) }
+        let parent = navigation.currentURL.deletingLastPathComponent()
+        if parent != navigation.currentURL { navigateTo(parent) }
     }
 
     public func refreshCurrentDirectory(isUserInitiated: Bool = false) {
-        if isUserInitiated && self.items.isEmpty {
-            isLoading = true
+        if isUserInitiated && self.fileSystem.items.isEmpty {
+            fileSystem.isLoading = true
         }
-        let target = currentURL
-        let hidden = showHiddenFiles
-        let tags = showTags
+        let target = navigation.currentURL
+        let hidden = preferences.showHiddenFiles
+        let tags = preferences.showTags
         let query = searchQuery
-        let sort = sortOption
-        let asc = sortAscending
+        let sort = preferences.sortOption
+        let asc = preferences.sortAscending
 
         startDirectoryMonitoring(for: target)
 
@@ -85,7 +85,7 @@ extension AppState {
                 at: target,
                 options: DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc)
             )
-            if self.currentURL == target {
+            if self.navigation.currentURL == target {
                 await MainActor.run {
                     self.applyLoadedItems(loaded, target: target)
                 }
@@ -99,13 +99,13 @@ extension AppState {
     /// still runs and reconciles afterward. The `Equatable` on `FileItem` (which ignores `icon`) means
     /// this is a no-op re-render when the cache already matched reality.
     private func applyLoadedItems(_ loaded: [FileItem], target: URL) {
-        guard self.currentURL == target else { return }
-        if self.items != loaded {
-            self.items = loaded
+        guard self.navigation.currentURL == target else { return }
+        if self.fileSystem.items != loaded {
+            self.fileSystem.items = loaded
         }
-        self.isLoading = false
-        if let pending = self.pendingSelectionURL {
-            self.pendingSelectionURL = nil
+        self.fileSystem.isLoading = false
+        if let pending = self.selection.pendingSelectionURL {
+            self.selection.pendingSelectionURL = nil
             if loaded.contains(where: { $0.url == pending }) {
                 self.selectedURLs = [pending]
             }
@@ -115,11 +115,11 @@ extension AppState {
     public func addToRecents(_ url: URL) {
         let std = url.standardizedFileURL
         if std == Self.recentsVirtualURL || std.scheme == "wiles" { return }
-        var current = recentOpenedURLs.filter { $0.standardizedFileURL != std }
+        var current = navigation.recentOpenedURLs.filter { $0.standardizedFileURL != std }
         current.insert(std, at: 0)
         if current.count > 50 {
             current = Array(current.prefix(50))
         }
-        self.recentOpenedURLs = current
+        self.navigation.recentOpenedURLs = current
     }
 }

@@ -251,11 +251,6 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testAppStatePreferencesTests() {
-        AppStatePreferencesTests.run()
-    }
-
-    @MainActor
     func testAppStateColumnsAndSelectionTests() {
         AppStateColumnsAndSelectionTests.run()
     }

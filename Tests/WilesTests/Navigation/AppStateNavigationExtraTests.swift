@@ -34,7 +34,7 @@ public struct AppStateNavigationExtraTests {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        appState.recentOpenedURLs = []
+        appState.navigation.recentOpenedURLs = []
         let urlA = dir.appendingPathComponent("a.txt")
         let urlB = dir.appendingPathComponent("b.txt")
         appState.addToRecents(urlA)
@@ -42,12 +42,12 @@ public struct AppStateNavigationExtraTests {
         report(
             "Navigation/Recents",
             "POS: addToRecents() inserts new URL at front",
-            result: appState.recentOpenedURLs.first?.path == urlB.standardizedFileURL.path
+            result: appState.navigation.recentOpenedURLs.first?.path == urlB.standardizedFileURL.path
         )
 
         // Re-adding 'a' should move it to front, not duplicate it.
         appState.addToRecents(urlA)
-        let paths = appState.recentOpenedURLs.map { $0.path }
+        let paths = appState.navigation.recentOpenedURLs.map { $0.path }
         report(
             "Navigation/Recents",
             "POS: addToRecents() moves re-added URL to front without duplicating",
@@ -58,33 +58,33 @@ public struct AppStateNavigationExtraTests {
     private static func testAddToRecentsCapsAt50() {
         let appState = AppState()
         let dir = tempDir()
-        appState.recentOpenedURLs = (0..<50).map { dir.appendingPathComponent("f\($0).txt").standardizedFileURL }
+        appState.navigation.recentOpenedURLs = (0..<50).map { dir.appendingPathComponent("f\($0).txt").standardizedFileURL }
         let overflow = dir.appendingPathComponent("overflow.txt")
         appState.addToRecents(overflow)
-        report("Navigation/Recents", "POS: addToRecents() caps the list at 50 entries", result: appState.recentOpenedURLs.count == 50)
+        report("Navigation/Recents", "POS: addToRecents() caps the list at 50 entries", result: appState.navigation.recentOpenedURLs.count == 50)
         report(
             "Navigation/Recents",
             "POS: addToRecents() keeps newest entry after capping at 50",
-            result: appState.recentOpenedURLs.first?.path == overflow.standardizedFileURL.path
+            result: appState.navigation.recentOpenedURLs.first?.path == overflow.standardizedFileURL.path
         )
     }
 
     private static func testAddToRecentsIgnoresRecentsVirtualURL() {
         let appState = AppState()
-        appState.recentOpenedURLs = []
+        appState.navigation.recentOpenedURLs = []
         appState.addToRecents(AppState.recentsVirtualURL)
-        report("Navigation/Recents", "NEG: addToRecents() ignores the recents virtual URL", result: appState.recentOpenedURLs.isEmpty)
+        report("Navigation/Recents", "NEG: addToRecents() ignores the recents virtual URL", result: appState.navigation.recentOpenedURLs.isEmpty)
     }
 
     private static func testAddToRecentsIgnoresWilesScheme() {
         let appState = AppState()
-        appState.recentOpenedURLs = []
+        appState.navigation.recentOpenedURLs = []
         guard let wilesURL = URL(string: "wiles://some/path") else {
             report("Navigation/Recents", "NEG: addToRecents() ignores wiles:// scheme URLs", result: false)
             return
         }
         appState.addToRecents(wilesURL)
-        report("Navigation/Recents", "NEG: addToRecents() ignores wiles:// scheme URLs", result: appState.recentOpenedURLs.isEmpty)
+        report("Navigation/Recents", "NEG: addToRecents() ignores wiles:// scheme URLs", result: appState.navigation.recentOpenedURLs.isEmpty)
     }
 
     // MARK: - navigateTo / recentsVirtualURL
@@ -101,13 +101,19 @@ public struct AppStateNavigationExtraTests {
         appState.searchQuery = "abc"
 
         appState.navigateTo(AppState.recentsVirtualURL)
-        report("Navigation/RecentsVirtual", "POS: navigateTo(recentsVirtualURL) sets currentURL to the virtual URL", result: appState.currentURL == AppState.recentsVirtualURL)
+        report(
+            "Navigation/RecentsVirtual", "POS: navigateTo(recentsVirtualURL) sets currentURL to the virtual URL",
+            result: appState.navigation.currentURL == AppState.recentsVirtualURL
+        )
         report("Navigation/RecentsVirtual", "POS: navigateTo(recentsVirtualURL) clears selection", result: appState.selectedURLs.isEmpty)
         report("Navigation/RecentsVirtual", "POS: navigateTo(recentsVirtualURL) clears search state", result: appState.isSearching == false && appState.searchQuery.isEmpty)
 
         // goBack should return to the real directory we came from.
         appState.goBack()
-        report("Navigation/RecentsVirtual", "POS: goBack() from recentsVirtualURL restores prior real directory", result: appState.currentURL.path == dir.standardizedFileURL.path)
+        report(
+            "Navigation/RecentsVirtual", "POS: goBack() from recentsVirtualURL restores prior real directory",
+            result: appState.navigation.currentURL.path == dir.standardizedFileURL.path
+        )
     }
 
     // MARK: - history push suppression
@@ -119,11 +125,14 @@ public struct AppStateNavigationExtraTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         appState.navigateTo(dir)
-        let backCountAfterFirstNav = appState.historyBack.count
+        let backCountAfterFirstNav = appState.navigation.historyBack.count
 
         // Navigating to the same URL again should not push a duplicate history entry.
         appState.navigateTo(dir)
-        report("Navigation/History", "NEG: navigateTo() with the same URL does not push a duplicate history entry", result: appState.historyBack.count == backCountAfterFirstNav)
+        report(
+            "Navigation/History", "NEG: navigateTo() with the same URL does not push a duplicate history entry",
+            result: appState.navigation.historyBack.count == backCountAfterFirstNav
+        )
     }
 
     private static func testNavigateToWithAddToHistoryFalseDoesNotPushHistory() {
@@ -138,12 +147,12 @@ public struct AppStateNavigationExtraTests {
         }
 
         appState.navigateTo(dirA)
-        let backCountBefore = appState.historyBack.count
+        let backCountBefore = appState.navigation.historyBack.count
         appState.navigateTo(dirB, addToHistory: false)
         report(
             "Navigation/History",
             "NEG: navigateTo(addToHistory: false) does not push history",
-            result: appState.historyBack.count == backCountBefore && appState.currentURL.path == dirB.standardizedFileURL.path
+            result: appState.navigation.historyBack.count == backCountBefore && appState.navigation.currentURL.path == dirB.standardizedFileURL.path
         )
     }
 
@@ -157,16 +166,19 @@ public struct AppStateNavigationExtraTests {
             try? FileManager.default.removeItem(at: dirA)
             try? FileManager.default.removeItem(at: dirB)
         }
-        let initial = appState.currentURL
+        let initial = appState.navigation.currentURL
 
         appState.navigateTo(dirA)
         appState.navigateTo(dirB)
         appState.goBack()
-        report("Navigation/History", "POS: goBack() after two navigations returns to the previous stop", result: appState.currentURL.path == dirA.standardizedFileURL.path)
+        report(
+            "Navigation/History", "POS: goBack() after two navigations returns to the previous stop",
+            result: appState.navigation.currentURL.path == dirA.standardizedFileURL.path
+        )
 
         // A fresh navigation should clear the forward stack.
         appState.navigateTo(initial)
-        report("Navigation/History", "NEG: navigateTo() after goBack() clears the forward stack", result: appState.historyForward.isEmpty)
+        report("Navigation/History", "NEG: navigateTo() after goBack() clears the forward stack", result: appState.navigation.historyForward.isEmpty)
     }
 
     // MARK: - goUp
@@ -174,8 +186,8 @@ public struct AppStateNavigationExtraTests {
     private static func testGoUpAtRootDoesNotNavigate() {
         let appState = AppState()
         let root = URL(fileURLWithPath: "/")
-        appState.currentURL = root
+        appState.navigation.currentURL = root
         appState.goUp()
-        report("Navigation/GoUp", "NEG: goUp() at the filesystem root does not navigate (parent == self)", result: appState.currentURL.path == root.path)
+        report("Navigation/GoUp", "NEG: goUp() at the filesystem root does not navigate (parent == self)", result: appState.navigation.currentURL.path == root.path)
     }
 }

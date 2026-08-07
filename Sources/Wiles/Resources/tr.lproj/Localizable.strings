@@ -190,6 +190,7 @@
 "moreInfo" = "More Info...";
 "moveTo" = "Move to:";
 "moveToTrash" = "Move to Trash";
+"moveToTrashConfirm" = "Are you sure you want to move the selected item(s) to the Trash?";
 "movies" = "Filmler";
 "music" = "Müzik";
 "name" = "Name";

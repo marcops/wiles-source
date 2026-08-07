@@ -48,10 +48,10 @@ extension AppState {
             for url in urls {
                 do {
                     if isCut {
-                        let destURL = try FileSystemService.moveItem(at: url, toFolder: currentURL)
+                        let destURL = try FileSystemService.moveItem(at: url, toFolder: navigation.currentURL)
                         UndoRedoService.shared.recordAction(.move(sourceURL: url, destinationURL: destURL))
                     } else {
-                        let destURL = try FileSystemService.copyItem(at: url, toFolder: currentURL)
+                        let destURL = try FileSystemService.copyItem(at: url, toFolder: navigation.currentURL)
                         UndoRedoService.shared.recordAction(.create(url: destURL))
                     }
                 } catch {
@@ -63,6 +63,11 @@ extension AppState {
     }
 
     public func deleteSelected() {
+        guard !selectedURLs.isEmpty else { return }
+        showDeleteConfirmAlert = true
+    }
+
+    public func performDeleteSelected() {
         guard !selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
@@ -136,7 +141,7 @@ extension AppState {
     }
 
     public func selectAllItems() {
-        selectedURLs = Set(items.map { $0.url })
+        selectedURLs = Set(fileSystem.items.map { $0.url })
     }
 
     public func openSelectedItem() {
@@ -152,13 +157,13 @@ extension AppState {
     }
 
     public func openPropertiesForSelected() {
-        if let first = selectedURLs.first, let item = items.first(where: { $0.url == first }) {
+        if let first = selectedURLs.first, let item = fileSystem.items.first(where: { $0.url == first }) {
             propertiesItem = item
         }
     }
 
     public func startEditingPath() {
-        pathText = currentURL.path
+        navigation.pathText = navigation.currentURL.path
         isEditingPath = true
     }
 

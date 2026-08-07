@@ -73,22 +73,28 @@ public struct AppStateOperationsExtraTests {
         report("AppState+Operations", "NEG: deleteSelected() with empty selection leaves selection empty", result: appState.selectedURLs.isEmpty)
 
         // deleteSelected() internally calls refreshCurrentDirectory(), which reloads
-        // appState.currentURL — without pointing it at our isolated temp dir, it defaults to
+        // appState.navigation.currentURL — without pointing it at our isolated temp dir, it defaults to
         // the real home directory, and list-view's "auto-select first item when selection is
         // empty" behavior then picks up some unrelated real file, breaking the assertion below.
-        appState.currentURL = dir
-        appState.viewMode = .grid
+        appState.navigation.currentURL = dir
+        appState.preferences.viewMode = .grid
 
         let fileURL = makeFile(named: "to-trash.txt", in: dir)
         appState.selectedURLs = [fileURL]
         appState.deleteSelected()
+        report(
+            "AppState+Operations", "POS: deleteSelected() raises the confirmation alert without deleting yet",
+            result: appState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: fileURL.path)
+        )
+
+        appState.performDeleteSelected()
         var stillExists = true
         for _ in 0..<20 {
             stillExists = FileManager.default.fileExists(atPath: fileURL.path)
             if !stillExists { break }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
-        report("AppState+Operations", "POS: deleteSelected() moves the file to Trash and clears the selection", result: !stillExists && appState.selectedURLs.isEmpty)
+        report("AppState+Operations", "POS: performDeleteSelected() moves the file to Trash and clears the selection", result: !stillExists && appState.selectedURLs.isEmpty)
     }
 
     private static func testShredSelected() async {
@@ -100,8 +106,8 @@ public struct AppStateOperationsExtraTests {
         appState.shredSelected()
         report("AppState+Operations", "NEG: shredSelected() with empty selection does nothing and does not crash", result: appState.selectedURLs.isEmpty)
 
-        appState.currentURL = dir
-        appState.viewMode = .grid
+        appState.navigation.currentURL = dir
+        appState.preferences.viewMode = .grid
         let fileURL = makeFile(named: "to-shred.txt", in: dir, content: "secret data")
         appState.selectedURLs = [fileURL]
         appState.shredSelected()
@@ -205,13 +211,13 @@ public struct AppStateOperationsExtraTests {
     private static func testDownloadFromiCloudFailure() async {
         let missingURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).icloud")
         let appState = AppState()
-        appState.errorMessage = nil
+        appState.modal.errorMessage = nil
         appState.downloadFromiCloud(url: missingURL)
         try? await Task.sleep(nanoseconds: 500_000_000)
         report(
             "AppState+Operations",
             "NEG: downloadFromiCloud() with a URL that isn't a ubiquitous item reports an error instead of crashing",
-            result: appState.errorMessage != nil
+            result: appState.modal.errorMessage != nil
         )
     }
 

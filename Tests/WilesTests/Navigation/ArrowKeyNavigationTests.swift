@@ -30,7 +30,7 @@ public struct ArrowKeyNavigationTests {
     }
 
     private static func simulateMoveSelection(by offset: Int, isShift: Bool, appState: AppState) {
-        let items = appState.items
+        let items = appState.fileSystem.items
         guard !items.isEmpty else { return }
         let anchorURL = appState.selectedURLs.first
         let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? -1
@@ -51,7 +51,7 @@ public struct ArrowKeyNavigationTests {
         let appState = AppState()
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt", "c.txt"])
-        appState.items = items
+        appState.fileSystem.items = items
         appState.selectedURLs = [items[0].url]
         simulateMoveSelection(by: 1, isShift: false, appState: appState)
         report("Navigation/ArrowKeys", "POS: ↓ moves selection to next item", result: appState.selectedURLs == [items[1].url])
@@ -61,7 +61,7 @@ public struct ArrowKeyNavigationTests {
         let appState = AppState()
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt", "c.txt"])
-        appState.items = items
+        appState.fileSystem.items = items
         appState.selectedURLs = [items[2].url]
         simulateMoveSelection(by: -1, isShift: false, appState: appState)
         report("Navigation/ArrowKeys", "POS: ↑ moves selection to previous item", result: appState.selectedURLs == [items[1].url])
@@ -71,7 +71,7 @@ public struct ArrowKeyNavigationTests {
         let appState = AppState()
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["only.txt"])
-        appState.items = items
+        appState.fileSystem.items = items
         appState.selectedURLs = [items[0].url]
         simulateMoveSelection(by: 1, isShift: false, appState: appState)
         report("Navigation/ArrowKeys", "NEG: ↓ at last item stays on last item", result: appState.selectedURLs == [items[0].url])
@@ -83,7 +83,7 @@ public struct ArrowKeyNavigationTests {
         let appState = AppState()
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt"])
-        appState.items = items
+        appState.fileSystem.items = items
         appState.selectedURLs = []
         simulateMoveSelection(by: 1, isShift: false, appState: appState)
         report("Navigation/ArrowKeys", "POS: ↓ with no selection selects first item", result: appState.selectedURLs == [items[0].url])
@@ -93,7 +93,7 @@ public struct ArrowKeyNavigationTests {
         let appState = AppState()
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt", "c.txt"])
-        appState.items = items
+        appState.fileSystem.items = items
         appState.selectedURLs = [items[0].url]
         simulateMoveSelection(by: 2, isShift: true, appState: appState)
         let expected: Set<URL> = Set(items.map { $0.url })
@@ -109,15 +109,18 @@ public struct ArrowKeyNavigationTests {
 
         let icon = NSWorkspace.shared.icon(forFile: childDir.path)
         let dirItem = FileItem(url: childDir, icon: icon)
-        appState.items = [dirItem]
+        appState.fileSystem.items = [dirItem]
         appState.selectedURLs = [dirItem.url]
         // Simulate → on a directory in List View
         if let first = appState.selectedURLs.first,
-           let item = appState.items.first(where: { $0.url == first }),
+           let item = appState.fileSystem.items.first(where: { $0.url == first }),
            item.isDirectory {
             appState.navigateTo(first)
         }
-        report("Navigation/ArrowKeys", "POS: → navigates into selected directory in List View", result: appState.currentURL.standardizedFileURL == childDir.standardizedFileURL)
+        report(
+            "Navigation/ArrowKeys", "POS: → navigates into selected directory in List View",
+            result: appState.navigation.currentURL.standardizedFileURL == childDir.standardizedFileURL
+        )
     }
 
     private static func testArrowLeftGoesUp() {
@@ -129,7 +132,7 @@ public struct ArrowKeyNavigationTests {
 
         appState.navigateTo(childDir)
         appState.goUp()
-        report("Navigation/ArrowKeys", "POS: ← (goUp) navigates to parent directory", result: appState.currentURL.path == parentDir.standardizedFileURL.path)
+        report("Navigation/ArrowKeys", "POS: ← (goUp) navigates to parent directory", result: appState.navigation.currentURL.path == parentDir.standardizedFileURL.path)
     }
 
     private static func testDefaultColumns() {

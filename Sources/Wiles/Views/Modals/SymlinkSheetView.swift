@@ -84,7 +84,7 @@ public struct SymlinkSheetView: View {
         do {
             let createdURL = try SymlinkService.createSymlink(
                 targetURL: item.url,
-                destinationFolder: appState.currentURL,
+                destinationFolder: appState.navigation.currentURL,
                 symlinkName: symlinkName,
                 mode: mode
             )

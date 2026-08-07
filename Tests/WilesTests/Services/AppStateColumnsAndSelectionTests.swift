@@ -100,7 +100,7 @@ public struct AppStateColumnsAndSelectionTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        appState.viewMode = .list
+        appState.preferences.viewMode = .list
         report(
             "AppState+Columns",
             "NEG: viewModeForFolder() falls back to the global viewMode when no per-folder override exists",
@@ -117,12 +117,12 @@ public struct AppStateColumnsAndSelectionTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        appState.viewMode = .list
+        appState.preferences.viewMode = .list
         appState.setViewModeForFolder(.column, for: dir)
         report(
             "AppState+Columns",
             "POS: setViewModeForFolder() stores the per-folder mode and updates the global viewMode",
-            result: appState.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.column.rawValue && appState.viewMode == .column
+            result: appState.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.column.rawValue && appState.preferences.viewMode == .column
         )
 
         // A different, untouched folder should not have an override.

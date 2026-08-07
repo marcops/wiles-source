@@ -7,7 +7,7 @@ public final class ColumnAutoFitService {
 
     public static func calculateAutoFitWidth(for column: ListColumn, in appState: AppState) -> CGFloat {
         let headerWidth = calculateHeaderWidth(for: column, appState: appState)
-        let itemsMax = appState.items.map { calculateItemWidth(for: $0, column: column, appState: appState) }.max() ?? 0
+        let itemsMax = appState.fileSystem.items.map { calculateItemWidth(for: $0, column: column, appState: appState) }.max() ?? 0
         let maxRequired = max(headerWidth, itemsMax)
         return min(LayoutTokens.columnMaxWidth, max(LayoutTokens.columnMinWidth, maxRequired))
     }
@@ -41,7 +41,7 @@ public final class ColumnAutoFitService {
         case .name:
             let iconSize = max(
                 LayoutTokens.listIconMinSize,
-                min(LayoutTokens.listIconMaxSize, CGFloat(appState.iconSize) * LayoutTokens.listIconScaleMultiplier)
+                min(LayoutTokens.listIconMaxSize, CGFloat(appState.preferences.iconSize) * LayoutTokens.listIconScaleMultiplier)
             )
             let tagExtra = item.tags.isEmpty ? 0 : LayoutTokens.columnNameTagExtraPadding
             let extra = iconSize + LayoutTokens.columnNameIconSpacing + tagExtra + LayoutTokens.columnCellExtraPadding

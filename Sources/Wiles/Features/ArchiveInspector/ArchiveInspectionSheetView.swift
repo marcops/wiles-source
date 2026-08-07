@@ -40,7 +40,7 @@ struct ArchiveInspectionSheetView: View {
                         if !entry.isDirectory {
                             Button(appState.tr(.extractArchive)) {
                                 do {
-                                    _ = try ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.currentURL)
+                                    _ = try ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.navigation.currentURL)
                                 } catch {
                                     appState.showError(error.localizedDescription)
                                 }

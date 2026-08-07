@@ -5,20 +5,20 @@ import Foundation
 public struct NavigationTests {
     public static func run() {
         let appState = AppState()
-        let initial = appState.currentURL
+        let initial = appState.navigation.currentURL
         let tempTarget = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("NavTestFolder_\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tempTarget, withIntermediateDirectories: true)
 
         // Positive: Navigation
         appState.navigateTo(tempTarget)
-        TestReporter.report("Navigation", "POS: navigateTo(tempTarget)", result: appState.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
+        TestReporter.report("Navigation", "POS: navigateTo(tempTarget)", result: appState.navigation.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
 
         // Positive: History Back & Forward
         appState.goBack()
-        TestReporter.report("Navigation", "POS: goBack() restores previous URL", result: appState.currentURL.standardizedFileURL == initial.standardizedFileURL)
+        TestReporter.report("Navigation", "POS: goBack() restores previous URL", result: appState.navigation.currentURL.standardizedFileURL == initial.standardizedFileURL)
 
         appState.goForward()
-        TestReporter.report("Navigation", "POS: goForward() restores forward URL", result: appState.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
+        TestReporter.report("Navigation", "POS: goForward() restores forward URL", result: appState.navigation.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
 
         // Negative: Stack Boundary Checks
         appState.goForward()

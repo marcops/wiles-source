@@ -35,12 +35,12 @@ extension AppState {
         if let raw = perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
             return mode
         }
-        return viewMode
+        return preferences.viewMode
     }
 
     public func setViewModeForFolder(_ mode: ViewMode, for url: URL) {
         perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
-        self.viewMode = mode
+        self.preferences.viewMode = mode
     }
 
     public func performImageConversion(

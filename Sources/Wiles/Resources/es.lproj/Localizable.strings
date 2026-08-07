@@ -190,6 +190,7 @@
 "moreInfo" = "Más Información...";
 "moveTo" = "Mover a:";
 "moveToTrash" = "Mover a la Papelera";
+"moveToTrashConfirm" = "¿Estás seguro de que quieres mover los elementos seleccionados a la papelera?";
 "movies" = "Películas";
 "music" = "Música";
 "name" = "Nombre";

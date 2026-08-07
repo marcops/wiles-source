@@ -190,6 +190,7 @@
 "moreInfo" = "Mehr Info...";
 "moveTo" = "Verschieben nach:";
 "moveToTrash" = "In den Papierkorb legen";
+"moveToTrashConfirm" = "Möchten Sie die ausgewählten Elemente wirklich in den Papierkorb verschieben?";
 "movies" = "Filme";
 "music" = "Musik";
 "name" = "Name";

@@ -133,6 +133,7 @@ public struct L10n {
         case copy
         case copyContent
         case moveToTrash
+        case moveToTrashConfirm
         case createSymbolicLink
         case symlinkNameLabel
         case createLink

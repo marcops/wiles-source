@@ -14,6 +14,7 @@
 - **Dedicated Feature Service Classes**: Each domain feature or system subsystem MUST reside in its own dedicated, isolated Swift service class file (e.g. `Sources/Wiles/Services/ZipArchiveService.swift`). Never bloat existing service files with unrelated feature logic.
 - **No Inline Helper Types**: Never declare a standalone `enum`/`struct` (constants, status codes, options, etc.) inside the same file as an unrelated class/service just because it's used there. It gets its own file in the proper folder (`Constants/`, or a dedicated `Type/Type+Extra.swift` group) — same rule as `AppState/AppState+Navigation.swift`, `Services/FileSystem/FileSystemService.swift`, etc.
 - **Composition over Inheritance**: Prefer SwiftUI View Composition, struct values, extensions, and protocol conformance over deep class hierarchies.
+- **No Inline Compound Conditions**: Any `if`/`guard` combining 3 or more terms (`&&`/`||`/chained comparisons) MUST be extracted into a separate, well-named comparison function or computed property (e.g. `if isEligibleForBulkDelete(...)` instead of `if x || y || z`) instead of left as an inline boolean chain.
 
 ## 2. 100% Native macOS & Proactive Performance Guardrails
 - **100% Native macOS APIs**: The application MUST rely strictly on native Apple frameworks (AppKit, SwiftUI, Foundation, `AppleArchive`, native Apple binaries like `ditto`, `NSWorkspace`, `NSPasteboard`). Zero third-party dependencies or non-native wrappers.

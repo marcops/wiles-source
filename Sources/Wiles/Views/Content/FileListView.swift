@@ -14,7 +14,6 @@ struct FileListView: View {
 
     @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect?
-    @State private var dragStartPoint: CGPoint?
     @State private var lastWindowWidth: CGFloat?
     @State private var hoveredURL: URL?
     @State private var dropTargetedURL: URL?
@@ -27,94 +26,50 @@ struct FileListView: View {
                     ScrollView(.horizontal) {
                     ZStack(alignment: .topLeading) {
                             Color.clear.frame(height: 1).id("top")
-                            Color(NSColor.controlBackgroundColor).opacity(0.001)
-                            .frame(minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness)
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture(minimumDistance: 2, coordinateSpace: .named("listContainer"))
-                                    .onChanged { gesture in
-                                        let start = dragStartPoint ?? gesture.startLocation
-                                        if dragStartPoint == nil { dragStartPoint = start }
-
-                                        let minX = min(start.x, gesture.location.x)
-                                        let minY = min(start.y, gesture.location.y)
-                                        let maxX = max(start.x, gesture.location.x)
-                                        let maxY = max(start.y, gesture.location.y)
-                                        let rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-
-                                        self.selectionRect = rect
-
-                                        var matched = Set<URL>()
-                                        for (url, frame) in cellFrames where frame.intersects(rect) {
-                                            matched.insert(url)
-                                        }
-                                        if NSEvent.modifierFlags.contains(.command) {
-                                            appState.selectedURLs.formUnion(matched)
-                                        } else {
-                                            appState.selectedURLs = matched
-                                        }
-                                    }
-                                    .onEnded { _ in
-                                        selectionRect = nil
-                                        dragStartPoint = nil
-                                    }
+                            SelectionRectangleOverlay(
+                                appState: appState,
+                                cellFrames: cellFrames,
+                                minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness,
+                                selectionRect: $selectionRect
                             )
-                            .onTapGesture {
-                                appState.selectedURLs.removeAll()
-                            }
-                            .overlay(
-                                RightClickDetector {
-                                    appState.selectedURLs.removeAll()
-                                }
-                            )
-                            .contextMenu {
-                                SharedBackgroundContextMenu(appState: appState)
-                            }
 
                         Group {
-                            if appState.items.isEmpty && !appState.isLoading {
+                            if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
                                 emptyStateView
                             } else {
                                 VStack(spacing: 0) {
-                                    tableHeader
+                                    FileListHeaderView(appState: appState)
 
                                     LazyVStack(spacing: 2) {
-                                        let paginate = appState.items.count > LayoutTokens.paginationThreshold
-                                        let visibleItems = paginate ? Array(appState.items.prefix(visibleLimit)) : appState.items
+                                        let paginate = appState.fileSystem.items.count > LayoutTokens.paginationThreshold
+                                        let visibleItems = paginate ? Array(appState.fileSystem.items.prefix(visibleLimit)) : appState.fileSystem.items
 
                                         ForEach(visibleItems) { item in
                                             listRow(for: item)
                                         }
-                                        if paginate && visibleLimit < appState.items.count {
+                                        if paginate && visibleLimit < appState.fileSystem.items.count {
                                             ProgressView()
                                                 .frame(height: 30)
                                                 .onAppear {
-                                                    visibleLimit = min(appState.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                                                    visibleLimit = min(appState.fileSystem.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
                                                 }
                                         }
                                     }
                                     .padding(.horizontal, 10)
                                     .padding(.bottom, 10)
                                     .onAppear {
-                                        if appState.items.count > 500 {
-                                            ThumbnailService.shared.prefetchThumbnails(for: appState.items, size: 36)
+                                        if appState.fileSystem.items.count > 500 {
+                                            ThumbnailService.shared.prefetchThumbnails(for: appState.fileSystem.items, size: 36)
                                         }
                                     }
                                 }
-                                .frame(width: max(geometry.size.width, totalColumnsWidth), alignment: .leading)
+                                .frame(width: max(geometry.size.width, FileListHeaderView.totalColumnsWidth(appState)), alignment: .leading)
                             }
                         }
-                        .id(appState.currentURL)
+                        .id(appState.navigation.currentURL)
                         .transition(.opacity)
 
-                        if let rect = selectionRect {
-                            Rectangle()
-                                .fill(Color.accentColor.opacity(0.15))
-                                .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
-                                .frame(width: rect.width, height: rect.height)
-                                .offset(x: rect.minX, y: rect.minY)
-                                .allowsHitTesting(false)
-                        }
+                        SelectionRectangleOverlay.rectangleOverlay(selectionRect)
                     }
                 .coordinateSpace(name: "listContainer")
                 .onPreferenceChange(ListCellFrameKey.self) { frames in
@@ -124,10 +79,10 @@ struct FileListView: View {
                 .background(ScrollerAutoHideSetter())
                 }
             }
-            .onChange(of: appState.currentURL) { _, _ in
+            .onChange(of: appState.navigation.currentURL) { _, _ in
                 visibleLimit = LayoutTokens.paginationThreshold
             }
-            .onChange(of: appState.items) { _, newItems in
+            .onChange(of: appState.fileSystem.items) { _, newItems in
                 if newItems.count > 500 {
                     ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
                 }
@@ -142,12 +97,12 @@ struct FileListView: View {
             .background(ScrollerAutoHideSetter())
             }
             .onChange(of: geometry.size.width) { _, newWidth in
-                adjustNameColumnWidth(for: newWidth)
+                FileListHeaderView.adjustNameColumnWidth(for: newWidth, appState: appState)
                 lastWindowWidth = newWidth
             }
             .onAppear {
                 lastWindowWidth = geometry.size.width
-                adjustNameColumnWidth(for: geometry.size.width)
+                FileListHeaderView.adjustNameColumnWidth(for: geometry.size.width, appState: appState)
             }
             .background(
                 Color.clear
@@ -164,106 +119,6 @@ struct FileListView: View {
         }
     }
 
-    private var tableHeader: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(visibleColumns.enumerated()), id: \.element) { _, col in
-                headerCell(columnTitle(col), option: sortOption(for: col), isLeading: col == .name)
-                    .frame(width: appState.columnWidth(for: col), alignment: col == .name ? .leading : .trailing)
-                    .overlay(alignment: .trailing) {
-                        ColumnResizeHandle(column: col, appState: appState)
-                            .offset(x: 4)
-                    }
-            }
-            Spacer(minLength: 0)
-        }
-        .font(.system(size: 11, weight: .semibold))
-        .foregroundColor(.secondary)
-        .padding(.horizontal, 22)
-        .frame(height: 30)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.08))
-        .clipped()
-        .contextMenu { columnVisibilityMenu }
-    }
-
-    /// Columns currently set to visible, in canonical order.
-    private var visibleColumns: [ListColumn] {
-        ListColumn.allCases.filter { appState.isColumnVisible($0) }
-    }
-
-    private var totalColumnsWidth: CGFloat {
-        visibleColumns.map { appState.columnWidth(for: $0) }.reduce(0, +) + 44
-    }
-
-    private func adjustNameColumnWidth(for containerWidth: CGFloat) {
-        let otherWidths = visibleColumns.filter { $0 != .name }.map { appState.columnWidth(for: $0) }.reduce(0, +) + 44
-        let targetNameWidth = max(LayoutTokens.columnMinWidth, containerWidth - otherWidths)
-        if abs(appState.columnWidth(for: .name) - targetNameWidth) > 1 {
-            appState.setColumnWidth(.name, width: targetNameWidth)
-        }
-    }
-
-    private func columnTitle(_ col: ListColumn) -> String {
-        switch col {
-        case .name:         return appState.tr(.name)
-        case .size:         return appState.tr(.size)
-        case .dateModified: return appState.tr(.dateModified)
-        case .dateCreated:  return appState.tr(.created)
-        case .dateAccessed: return appState.tr(.lastOpened)
-        case .kind:         return appState.tr(.kind)
-        case .owner:        return appState.tr(.owner)
-        case .group:        return appState.tr(.group)
-        }
-    }
-
-    private func headerCell(_ title: String, option: SortOption, isLeading: Bool) -> some View {
-        Button {
-            if appState.sortOption == option {
-                appState.sortAscending.toggle()
-            } else {
-                appState.sortOption = option
-                appState.sortAscending = true
-            }
-            appState.refreshCurrentDirectory()
-        } label: {
-            HStack(spacing: 4) {
-                Text(title)
-                if appState.sortOption == option {
-                    Image(systemName: appState.sortAscending ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9, weight: .bold))
-                }
-            }
-            .padding(.trailing, isLeading ? 0 : 4)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func sortOption(for col: ListColumn) -> SortOption {
-        switch col {
-        case .name:         return .name
-        case .size:         return .size
-        case .dateModified: return .dateModified
-        case .dateCreated:  return .dateCreated
-        case .dateAccessed: return .dateAccessed
-        case .kind:         return .kind
-        case .owner:        return .owner
-        case .group:        return .group
-        }
-    }
-
-    @ViewBuilder private var columnVisibilityMenu: some View {
-        ForEach(ListColumn.allCases.filter { !$0.isAlwaysVisible }, id: \.self) { col in
-            Button { appState.toggleColumnVisibility(col) } label: {
-                HStack {
-                    Text(columnTitle(col))
-                    Spacer()
-                    if appState.isColumnVisible(col) {
-                        Image(systemName: "checkmark")
-                    }
-                }
-            }
-        }
-    }
-
     private var emptyStateView: some View {
         VStack(spacing: 12) {
             Spacer().frame(height: 80)
@@ -277,7 +132,7 @@ struct FileListView: View {
     }
 
     private var listIconSize: CGFloat {
-        max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.iconSize) * LayoutTokens.listIconScaleMultiplier))
+        max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.preferences.iconSize) * LayoutTokens.listIconScaleMultiplier))
     }
 
     private func dynamicColumnText(_ col: ListColumn, for item: FileItem) -> String? {
@@ -319,7 +174,7 @@ struct FileListView: View {
                 collapsedLineLimit: 1
             )
 
-            if appState.showTags && !item.tags.isEmpty {
+            if appState.preferences.showTags && !item.tags.isEmpty {
                 HStack(alignment: .center, spacing: -2) {
                     ForEach(item.tags, id: \.self) { tag in
                         Circle()
@@ -352,7 +207,7 @@ struct FileListView: View {
         return HStack(spacing: 0) {
             nameCell(for: item, isSel: isSel)
 
-            ForEach(visibleColumns, id: \.self) { col in
+            ForEach(FileListHeaderView.visibleColumns(appState), id: \.self) { col in
                 if col != .name {
                     dynamicColumn(col, for: item, isSel: isSel)
                 }

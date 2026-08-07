@@ -101,6 +101,14 @@ public final class PreferencesStore {
         }
     }
 
+    public var translucentLevel: Int {
+        get { sidebarTranslucentLevel }
+        set {
+            sidebarTranslucentLevel = newValue
+            contentTranslucentLevel = newValue
+        }
+    }
+
     public var sidebarOverlayOpacity: Double {
         let base = 1.0 - Double(sidebarTranslucentLevel) / 100.0
         return appAppearance == .light ? base * 0.5 : base

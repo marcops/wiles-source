@@ -23,7 +23,7 @@ struct NewFolderSheet: View {
 
     private func createFolder(name: String) {
         do {
-            try FileSystemService.createDirectory(at: appState.currentURL, name: name)
+            try FileSystemService.createDirectory(at: appState.navigation.currentURL, name: name)
             appState.refreshCurrentDirectory()
             dismiss()
         } catch {
