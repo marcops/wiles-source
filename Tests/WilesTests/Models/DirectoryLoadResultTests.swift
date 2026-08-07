@@ -5,7 +5,7 @@ import AppKit
 @MainActor
 public struct DirectoryLoadResultTests {
     public static func run() {
-        let tempFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("b.txt")
+        let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("b.txt")
         let items = [FileItem(url: tempFile, icon: NSImage())]
         let result = DirectoryLoadResult(items: items, isPermissionDenied: false)
 

@@ -108,8 +108,12 @@ struct ImageConverterSheetView: View {
         .padding(20)
         .frame(width: 420)
         .onAppear {
-            if let img = NSImage(contentsOf: item.url) {
-                self.loadedNSImage = img
+            let url = item.url
+            Task.detached(priority: .userInitiated) {
+                let img = NSImage(contentsOf: url)
+                await MainActor.run {
+                    self.loadedNSImage = img
+                }
             }
         }
     }

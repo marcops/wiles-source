@@ -65,7 +65,7 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testPropertiesSheetFlows(appState: AppState) {
-        let tempFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_prop.txt")
+        let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("test_prop.txt")
         try? "Properties Test Content".write(to: tempFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempFile) }
 
@@ -86,7 +86,7 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testDuplicateCleanerSheetFlows(appState: AppState) async {
-        let emptyDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let emptyDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: emptyDir) }
 
@@ -100,7 +100,7 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testDiskSpaceVisualizerSheetFlows(appState: AppState) async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -139,7 +139,7 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testSymlinkSheetFlows(appState: AppState) {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -155,7 +155,7 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testNewFileSheetFlows(appState: AppState) {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -169,7 +169,7 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testBatchRenameSheetFlows(appState: AppState) {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 

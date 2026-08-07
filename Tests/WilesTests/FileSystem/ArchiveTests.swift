@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct ArchiveTests {
     public static func run() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let file1 = tempDir.appendingPathComponent("doc1.txt")
@@ -53,7 +53,7 @@ public struct ArchiveTests {
     }
 
     private static func runCoverageExtras() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -74,7 +74,7 @@ public struct ArchiveTests {
     /// subfolder must preserve that structure in the archive, not flatten everything to the zip
     /// root (the old `zip -j` behavior) or silently drop the nested contents (missing `-r`).
     private static func runFolderStructurePreservationTests() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let folder = dir.appendingPathComponent("TopFolder")
         let nested = folder.appendingPathComponent("Nested")
         try? FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
@@ -137,7 +137,7 @@ public struct ArchiveTests {
 
     private static func runCollisionAndPasswordCoverage() {
         // POS: name collision appends " 2.zip" counter
-        let collideDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let collideDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: collideDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: collideDir) }
         let collideFile = collideDir.appendingPathComponent("collide.txt")
@@ -155,7 +155,7 @@ public struct ArchiveTests {
         TestReporter.report("ZipArchive", "POS: compressToZIP resolves name collisions by appending a counter", result: collisionPassed)
 
         // POS: password-protected zip via /usr/bin/zip -P produces a real archive
-        let pwdDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let pwdDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: pwdDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: pwdDir) }
         let pwdFile = pwdDir.appendingPathComponent("secret.txt")
@@ -193,8 +193,8 @@ public struct ArchiveTests {
     /// Regression coverage for the -j/absolute-path fix: source files outside the destination folder must still be found and packed correctly.
     /// Covers both the plain multi-file `zip` branch and the password `zip -P` branch, which use absolute source paths.
     private static func runSourcesOutsideDestinationTests() {
-        let sourceDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        let destDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let sourceDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let destDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: sourceDir, withIntermediateDirectories: true)
         try? FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
         defer {
@@ -230,7 +230,7 @@ public struct ArchiveTests {
     private static func runPasswordOutsideDestinationTest(destDir: URL) {
         // POS: password-protected compressToZIP with sources outside the destination folder
         // (exercises the `zip -j -P <pwd> <dest> <abs paths...>` branch).
-        let pwdSourceDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let pwdSourceDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: pwdSourceDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: pwdSourceDir) }
         let pwdOutsideFile = pwdSourceDir.appendingPathComponent("pwdOutside.txt")
@@ -261,7 +261,7 @@ public struct ArchiveTests {
     }
 
     private static func runPasswordExtractionTests() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

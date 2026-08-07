@@ -44,21 +44,26 @@ extension AppState {
     }
 
     private func executePaste(urls: [URL], isCut: Bool) {
-        Task {
+        let targetFolder = navigation.currentURL
+        Task.detached(priority: .userInitiated) {
             for url in urls {
                 do {
                     if isCut {
-                        let destURL = try FileSystemService.moveItem(at: url, toFolder: navigation.currentURL)
-                        UndoRedoService.shared.recordAction(.move(sourceURL: url, destinationURL: destURL))
+                        let destURL = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
+                        await UndoRedoService.shared.recordAction(.move(sourceURL: url, destinationURL: destURL))
                     } else {
-                        let destURL = try FileSystemService.copyItem(at: url, toFolder: navigation.currentURL)
-                        UndoRedoService.shared.recordAction(.create(url: destURL))
+                        let destURL = try FileSystemService.copyItem(at: url, toFolder: targetFolder)
+                        await UndoRedoService.shared.recordAction(.create(url: destURL))
                     }
                 } catch {
-                    self.showError(error.localizedDescription)
+                    await MainActor.run { [weak self] in
+                        self?.showError(error.localizedDescription)
+                    }
                 }
             }
-            refreshCurrentDirectory()
+            await MainActor.run { [weak self] in
+                self?.refreshCurrentDirectory()
+            }
         }
     }
 
@@ -71,17 +76,21 @@ extension AppState {
         guard !selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
-        Task {
+        Task.detached(priority: .userInitiated) {
             for url in urls {
                 do {
                     let trashed = try FileSystemService.moveToTrash(url: url)
-                    UndoRedoService.shared.recordAction(.trash(originalURL: url, trashedURL: trashed))
+                    await UndoRedoService.shared.recordAction(.trash(originalURL: url, trashedURL: trashed))
                 } catch {
-                    self.showError(error.localizedDescription)
+                    await MainActor.run { [weak self] in
+                        self?.showError(error.localizedDescription)
+                    }
                 }
             }
-            selectedURLs.removeAll()
-            refreshCurrentDirectory()
+            await MainActor.run { [weak self] in
+                self?.selectedURLs.removeAll()
+                self?.refreshCurrentDirectory()
+            }
         }
     }
 
@@ -89,12 +98,18 @@ extension AppState {
         guard !selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
-        do {
-            try FileShredderService.deletePermanently(urls: urls)
-            selectedURLs.removeAll()
-            refreshCurrentDirectory()
-        } catch {
-            showError(error.localizedDescription)
+        Task.detached(priority: .userInitiated) {
+            do {
+                try FileShredderService.deletePermanently(urls: urls)
+                await MainActor.run { [weak self] in
+                    self?.selectedURLs.removeAll()
+                    self?.refreshCurrentDirectory()
+                }
+            } catch {
+                await MainActor.run { [weak self] in
+                    self?.showError(error.localizedDescription)
+                }
+            }
         }
     }
 
@@ -124,18 +139,26 @@ extension AppState {
 
     public func undoLastAction() {
         Task {
-            if let targetURL = await UndoRedoService.shared.undo() {
-                self.refreshCurrentDirectory()
-                self.selectedURLs = [targetURL]
+            do {
+                if let targetURL = try await UndoRedoService.shared.undo() {
+                    self.refreshCurrentDirectory()
+                    self.selectedURLs = [targetURL]
+                }
+            } catch {
+                self.showError(error.localizedDescription)
             }
         }
     }
 
     public func redoLastAction() {
         Task {
-            if let targetURL = await UndoRedoService.shared.redo() {
-                self.refreshCurrentDirectory()
-                self.selectedURLs = [targetURL]
+            do {
+                if let targetURL = try await UndoRedoService.shared.redo() {
+                    self.refreshCurrentDirectory()
+                    self.selectedURLs = [targetURL]
+                }
+            } catch {
+                self.showError(error.localizedDescription)
             }
         }
     }

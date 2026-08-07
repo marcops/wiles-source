@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct OpenWithTests {
     public static func run() {
-        let sampleFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sample_test.txt")
+        let sampleFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("sample_test.txt")
         try? "test data".write(to: sampleFile, atomically: true, encoding: .utf8)
 
         // POS: Discover applications for .txt file
@@ -42,7 +42,7 @@ public struct OpenWithTests {
     // NEG: a file with no extension at all still returns without crashing (may be empty or may fall back
     // to generic apps depending on system state, so we only assert it doesn't throw/crash and returns an array)
     private static func testAvailableApplicationsForFileWithNoExtension() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -57,7 +57,7 @@ public struct OpenWithTests {
     // NEG: a well-formed file URL that does not actually exist on disk should not crash the lookup;
     // NSWorkspace resolves candidate apps from the URL's UTI/extension, not from file existence
     private static func testAvailableApplicationsForNonexistentFileURL() {
-        let ghostFile = URL(fileURLWithPath: NSTemporaryDirectory())
+        let ghostFile = URL(fileURLWithPath: testTemporaryDirectory())
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("txt")
         let apps = OpenWithService.availableApplications(for: ghostFile)
@@ -68,7 +68,7 @@ public struct OpenWithTests {
     // NEG: setDefaultApplication with a syntactically valid extension but an application URL that
     // doesn't point at a real app should not crash; NSWorkspace's completion handler simply reports failure
     private static func testSetDefaultApplicationWithValidExtensionAndBogusAppURL() {
-        let bogusAppURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathExtension("app")
+        let bogusAppURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathExtension("app")
         OpenWithService.setDefaultApplication(for: "txt", applicationURL: bogusAppURL)
         TestReporter.report("OpenWith", "NEG: setDefaultApplication with valid extension but bogus (nonexistent) app URL does not crash", result: true)
     }
@@ -76,7 +76,7 @@ public struct OpenWithTests {
     // POS: availableApplications de-duplicates by bundle identifier — verify the returned list never
     // contains two entries with the same id, which would otherwise show duplicate rows in the Open With menu
     private static func testApplicationsAreDeduplicatedByBundleID() {
-        let sampleFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathExtension("txt")
+        let sampleFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathExtension("txt")
         try? "test data".write(to: sampleFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: sampleFile) }
 

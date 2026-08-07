@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct NewFileTemplateTests {
     public static func run() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         // Positive: Create Markdown Template

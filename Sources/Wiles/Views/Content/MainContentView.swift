@@ -261,6 +261,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
     class KeyMonitorNSView: NSView {
         var appState: AppState?
         private var monitor: Any?
+        private var accumulatedScrollDelta: Double = 0
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -293,8 +294,13 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             let delta = event.scrollingDeltaY != 0 ? event.scrollingDeltaY : event.deltaY
             guard delta != 0 else { return event }
 
-            let step = delta > 0 ? 4.0 : -4.0
-            appState.preferences.iconSize = min(IconSizeToken.maxSize, max(IconSizeToken.minSize, appState.preferences.iconSize + step))
+            accumulatedScrollDelta += delta
+            let stepMagnitude = 4.0
+            while abs(accumulatedScrollDelta) >= stepMagnitude {
+                let step = accumulatedScrollDelta > 0 ? stepMagnitude : -stepMagnitude
+                appState.preferences.iconSize = min(IconSizeToken.maxSize, max(IconSizeToken.minSize, appState.preferences.iconSize + step))
+                accumulatedScrollDelta -= step
+            }
             return nil
         }
 

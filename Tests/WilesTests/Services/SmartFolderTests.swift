@@ -103,7 +103,7 @@ public struct SmartFolderTests {
     private static func testFolderWithNonexistentScopePathPersistsUnchanged() {
         // POS: scopePath validation (FileManager existence check) only happens at query-execution time,
         // never at save time - a folder pointing at a nonexistent path persists exactly as given.
-        let missingDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let missingDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let folder = SmartFolder(name: "Ghost", searchQuery: "kind:any", scopePath: missingDir.path)
 
         SmartFolderService.saveSmartFolders([folder])
@@ -136,9 +136,9 @@ public struct SmartFolderTests {
     }
 
     private static func testMultipleFoldersFieldByFieldRoundTrip() {
-        let tempScopeA = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
-        let tempScopeB = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
-        let tempScopeC = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
+        let tempScopeA = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
+        let tempScopeB = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
+        let tempScopeC = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
 
         let folderA = SmartFolder(name: "Images", icon: "photo", searchQuery: "kind:image", scopePath: tempScopeA)
         let folderB = SmartFolder(name: "Large Files", icon: "doc.fill", searchQuery: "size:>100mb", scopePath: tempScopeB)

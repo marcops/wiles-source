@@ -12,7 +12,7 @@ public struct FileMetadataTests {
     }
 
     private static func testFetchPropertiesForRealFile() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -25,13 +25,13 @@ public struct FileMetadataTests {
     }
 
     private static func testFetchPropertiesForNonExistentFileDoesNotCrash() async {
-        let missing = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).txt")
+        let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).txt")
         let props = await FileMetadataService.shared.fetchProperties(for: missing)
         report("FileMetadata", "NEG: non-existent file returns nil owner/permissions instead of crashing", result: props.ownerName == nil && props.posixPermissions == nil)
     }
 
     private static func testKindIsResolvedForRegularFile() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -43,7 +43,7 @@ public struct FileMetadataTests {
     }
 
     private static func testDimensionsAreResolvedForRealImage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -59,7 +59,7 @@ public struct FileMetadataTests {
 
         let props = await FileMetadataService.shared.fetchProperties(for: file)
         // Note: FileMetadataService resolves dimensions via Spotlight (MDItemCopyAttribute), and
-        // Spotlight does not index the per-user temp directory (NSTemporaryDirectory()) — confirmed
+        // Spotlight does not index the per-user temp directory (testTemporaryDirectory()) — confirmed
         // via `mdls` returning null for kMDItemPixelWidth/Height on freshly written temp files even
         // after a delay. Dimensions can therefore legitimately come back nil here regardless of the
         // image being valid. What we CAN assert is that if a value is produced, it is well-formed.

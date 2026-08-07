@@ -82,6 +82,58 @@ pull items off this list and write the real test before removing the entry.
   PDF", and confirm the app's UI (spinner, other windows) stays interactive throughout instead of
   beachballing.
 
+- **`SmartFolderService.executeQuery`/`executeContentQuery` observer-token cleanup** on
+  `NSMetadataQueryDidFinishGathering`. The predicate-injection half of this fix is unit-tested
+  (`SmartFolderServiceTests.testPredicateInjectionIsNeutralized`), but proving the observer token is
+  actually removed (no N-fold duplicate firing after N searches) needs a fake/injectable
+  `NSMetadataQuery` or a notification-driven test harness — this project has neither. Currently only
+  exercised implicitly via manual QA. Manually verify: run several Smart Folder searches back-to-back
+  and confirm results/callbacks aren't duplicated.
+
+- **`AutoOrganizationService.processFolder()` cross-volume move `Task.detached` dispatch.** The
+  directory-vs-file classification half of this fix is unit-tested
+  (`AutoOrganizationTests.testDirectoryEntriesAreNeverMoved`), but proving the move itself actually
+  keeps `@MainActor` unblocked during a large cross-volume copy+delete needs a real (or
+  simulated-stalled) cross-volume/network mount — a local temp dir move is synchronous-fast and can't
+  exercise the stall this fix guards against. Manually verify: configure a rule that moves files to an
+  external/different volume, drop a large file in the watched folder, and confirm the UI stays
+  responsive while the move completes.
+
+- **`PreferencesStore.scheduleExpandedTreePathsSave()` debounce timing.** The cap-at-500 and
+  truncate-on-load halves of this fix are unit-tested
+  (`PreferencesStoreTests.testExpandedTreePathsCapsInsertionsAt500`,
+  `testExpandedTreePathsTruncatesOnLoadWhenSavedSetExceedsCap`), but proving N rapid expand/collapse
+  toggles coalesce into exactly 1 `UserDefaults` write (not N writes) needs a mock clock or injectable
+  `DispatchQueue` this project doesn't have. Manually verify: rapidly expand/collapse several folders
+  in the directory tree and confirm no UI stutter.
+
+- **`ColumnResizeHandle`'s real `DragGesture`** (`.onChanged`/`.onEnded` wiring, cursor push/pop,
+  `dragStartWidth` reset). Only the underlying `AppState.setColumnWidth(_:width:persist:)` contract is
+  unit-tested (`AppStateColumnsAndSelectionTests.testSetColumnWidthPersistFlagDefersUserDefaultsWrite`)
+  — the actual mouse-drag gesture needs XCUITest simulation. Manually verify: drag a column border and
+  confirm smooth resizing with a single persisted write at drag end (not per-pixel).
+
+- **`LocalHttpServerService.stop()`'s `connections` race fix.** Functional correctness (server starts/
+  stops/serves correctly) is already covered by `HttpServerTests.swift`. Proving the underlying data
+  race is actually eliminated needs a ThreadSanitizer stress test hammering concurrent connections
+  during `stop()`, which this project's test infra doesn't support. Manually verify: run the app under
+  Thread Sanitizer (Xcode scheme diagnostics), open several simultaneous HTTP-share downloads, and call
+  stop mid-transfer repeatedly; confirm no TSan race report on `connections`.
+
+- **`FileColumnView.loadInitialColumns()`'s stale-load guard.** `@State` lives inside a SwiftUI `View`
+  struct with no introspection harness in this project; reproducing the race needs a live view
+  hierarchy and rapid navigation timing, i.e. XCUITest. Manually verify: rapidly navigate between
+  sibling directories in column view (arrow keys / clicks) several times in quick succession and
+  confirm the displayed columns always match the final selected URL, never a stale directory's
+  contents.
+
+- **`MainContentView.GlobalKeyMonitor.handleScrollEvent`'s accumulated-delta throttling** for
+  scroll-wheel icon-size zoom. `handleScrollEvent`/`accumulatedScrollDelta` are `private` inside a
+  nested class only reachable via a real `NSEvent.addLocalMonitorForEvents` callback; this project has
+  no synthetic-`NSEvent` injection harness. Manually verify: hold Cmd/Ctrl and scroll over the file
+  grid — icon size should change in small discrete steps rather than jittering on every tiny scroll
+  tick.
+
 ## Resolved (moved out of this list once tested)
 
 - `AppState.moveSelectedFavorite()` — was on this list, turned out to be plain synchronous state

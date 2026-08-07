@@ -29,6 +29,7 @@ public protocol SmartFolderServiceProtocol: Sendable {
 public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @unchecked Sendable {
     public static let shared = SmartFolderService()
     private var query: NSMetadataQuery?
+    private var queryObserver: NSObjectProtocol?
 
     public static func loadSavedSmartFolders() -> [SmartFolder] {
         guard let data = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue),
@@ -45,16 +46,25 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     public func executeQuery(for smartFolder: SmartFolder, completion: @escaping @Sendable ([FileItem]) -> Void) {
         query?.stop()
         let metadataQuery = NSMetadataQuery()
-        let cleanQuery = smartFolder.searchQuery.replacingOccurrences(of: "'", with: "")
-        let predicateStr = "kMDItemDisplayName == '*\(cleanQuery)*'c"
-        metadataQuery.predicate = NSPredicate(format: predicateStr)
+        let wildcardQuery = "*\(smartFolder.searchQuery)*"
+        metadataQuery.predicate = NSPredicate(format: "kMDItemDisplayName ==[cd] %@", wildcardQuery)
         if !smartFolder.scopePath.isEmpty && FileManager.default.fileExists(atPath: smartFolder.scopePath) {
             metadataQuery.searchScopes = [URL(fileURLWithPath: smartFolder.scopePath)]
         } else {
             metadataQuery.searchScopes = [NSMetadataQueryUserHomeScope]
         }
 
-        NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { notification in
+        if let existingObserver = queryObserver {
+            NotificationCenter.default.removeObserver(existingObserver)
+            queryObserver = nil
+        }
+        queryObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
+            MainActor.assumeIsolated {
+                if let observer = self?.queryObserver {
+                    NotificationCenter.default.removeObserver(observer)
+                    self?.queryObserver = nil
+                }
+            }
             guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
             query.stop()
             guard let results = query.results as? [NSMetadataItem] else { completion([]); return }
@@ -75,12 +85,21 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     public func executeContentQuery(queryText: String, in folderURL: URL, completion: @escaping @Sendable ([FileItem]) -> Void) {
         query?.stop()
         let metadataQuery = NSMetadataQuery()
-        let cleanQuery = queryText.replacingOccurrences(of: "'", with: "")
-        let predicateStr = "(kMDItemTextContent == '*\(cleanQuery)*'c || kMDItemFSName == '*\(cleanQuery)*'c)"
-        metadataQuery.predicate = NSPredicate(format: predicateStr)
+        let wildcardQuery = "*\(queryText)*"
+        metadataQuery.predicate = NSPredicate(format: "(kMDItemTextContent ==[cd] %@) || (kMDItemFSName ==[cd] %@)", wildcardQuery, wildcardQuery)
         metadataQuery.searchScopes = [folderURL]
 
-        NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { notification in
+        if let existingObserver = queryObserver {
+            NotificationCenter.default.removeObserver(existingObserver)
+            queryObserver = nil
+        }
+        queryObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
+            MainActor.assumeIsolated {
+                if let observer = self?.queryObserver {
+                    NotificationCenter.default.removeObserver(observer)
+                    self?.queryObserver = nil
+                }
+            }
             guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
             query.stop()
             guard let results = query.results as? [NSMetadataItem] else { completion([]); return }

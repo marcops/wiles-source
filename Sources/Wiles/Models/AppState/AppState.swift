@@ -53,6 +53,19 @@ public final class AppState {
     }
     public var isSearching: Bool = false
 
+    /// In-flight directory load spawned by `refreshCurrentDirectory()`. Cancelled and replaced on every
+    /// call so rapid search keystrokes or navigations can't leave multiple concurrent loads racing to
+    /// apply stale results.
+    var refreshTask: Task<Void, Never>?
+    /// In-flight `~/.Trash` enumeration spawned by `updateTrashSize()`. Cancelled and replaced on every
+    /// call so it never piles up multiple concurrent full-Trash walks.
+    private var trashSizeTask: Task<Void, Never>?
+    /// Timestamp of the last trash-size enumeration triggered opportunistically from
+    /// `refreshCurrentDirectory()`, used to coalesce it to a coarse interval instead of firing on
+    /// every navigation/search keystroke/FSEvents refresh.
+    var lastOpportunisticTrashSizeCheck: Date = .distantPast
+    static let trashSizeCheckInterval: TimeInterval = 30
+
     public var selectedURLs: Set<URL> = []
     public var quickLookURL: URL?
     public var clipboard: ClipboardState?
@@ -84,8 +97,15 @@ public final class AppState {
     }
 
     public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
-        didSet { saveListColumnStates() }
+        didSet {
+            guard !suppressColumnStatePersistence else { return }
+            saveListColumnStates()
+        }
     }
+    /// Set while a column-resize drag is in progress so intermediate width updates (which fire on every
+    /// mouse-move delta) don't each trigger a synchronous JSON encode + `UserDefaults` write. The final
+    /// width is persisted once via `persistColumnWidths()` on drag end. See `ColumnResizeHandle`.
+    var suppressColumnStatePersistence: Bool = false
 
     public var perFolderViewModes: [String: String] = (UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ?? [:] {
         didSet { UserDefaults.standard.set(perFolderViewModes, forKey: DefaultsKey.perFolderViewModes.rawValue) }
@@ -128,13 +148,18 @@ public final class AppState {
         }
     }
 
-    public var freeSpaceText: String? {
-        if let values = try? navigation.currentURL.resourceValues(forKeys: [.volumeAvailableCapacityKey]),
-           let capacity = values.volumeAvailableCapacity {
-            let formatted = ByteCountFormatter.string(fromByteCount: Int64(capacity), countStyle: .file)
-            return "\(formatted) \(tr(.freeSpace))"
-        }
-        return nil
+    /// Reads volume free-space asynchronously off the main thread. `resourceValues(forKeys:)` is a
+    /// synchronous disk/syscall — on a slow SMB mount it can block for seconds, so this must never be
+    /// called as a computed property from an `@Observable` render path. Callers store the result in
+    /// `@State` via `.task` instead of reading this synchronously in `body`.
+    public func loadFreeSpaceText() async -> String? {
+        let url = navigation.currentURL
+        let capacity = await Task.detached(priority: .utility) { () -> Int? in
+            (try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey]))?.volumeAvailableCapacity
+        }.value
+        guard let capacity else { return nil }
+        let formatted = ByteCountFormatter.string(fromByteCount: Int64(capacity), countStyle: .file)
+        return "\(formatted) \(tr(.freeSpace))"
     }
 
     public func addFavorite(_ url: URL) {
@@ -215,10 +240,11 @@ public final class AppState {
     }
 
     public func updateTrashSize() {
-        Task { @MainActor in
-            self.isTrashUpdating = true
-        }
-        Task.detached(priority: .background) {
+        // Supersede any enumeration already in flight instead of piling another one on top of it —
+        // this fires on every navigation/search keystroke via refreshCurrentDirectory().
+        trashSizeTask?.cancel()
+        self.isTrashUpdating = true
+        trashSizeTask = Task.detached(priority: .background) { [weak self] in
             let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
             guard let url = trashURL else {
                 await MainActor.run { [weak self] in self?.isTrashUpdating = false }
@@ -231,12 +257,14 @@ public final class AppState {
                 return
             }
             while let fileURL = enumerator.nextObject() as? URL {
+                if Task.isCancelled { return }
                 if let res = try? fileURL.resourceValues(forKeys: Set(keys)) {
                     if res.isDirectory == false, let size = res.fileSize {
                         totalSize += Int64(size)
                     }
                 }
             }
+            guard !Task.isCancelled else { return }
             let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
             await MainActor.run { [weak self] in
                 self?.trashSizeString = sizeStr
@@ -260,12 +288,20 @@ public final class AppState {
                 await MainActor.run { [weak self] in self?.isTrashUpdating = false }
                 return
             }
+            var failedCount = 0
             for path in paths {
-                try? fm.removeItem(at: path)
+                do {
+                    try fm.removeItem(at: path)
+                } catch {
+                    failedCount += 1
+                }
             }
             await MainActor.run { [weak self] in
                 self?.updateTrashSize()
                 self?.refreshCurrentDirectory()
+                if failedCount > 0 {
+                    self?.showError("Failed to permanently delete \(failedCount) item(s) from Trash.")
+                }
             }
         }
     }

@@ -19,7 +19,7 @@ public struct ThumbnailServiceCoverageTests {
     }
 
     private static func testSupportsThumbnailForVariousKinds() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -67,7 +67,7 @@ public struct ThumbnailServiceCoverageTests {
     }
 
     private static func testCacheKeyDoesNotCollideBetweenSizes() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let url = tempDir.appendingPathComponent("same-url-\(UUID().uuidString).png")
 
         // NEG: nothing has been cached yet at either size for this fresh URL.
@@ -78,7 +78,7 @@ public struct ThumbnailServiceCoverageTests {
     }
 
     private static func testPrefetchThumbnailsWithMixedEligibility() async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
@@ -120,7 +120,7 @@ public struct ThumbnailServiceCoverageTests {
     }
 
     private static func testCachedThumbnailMiss() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let neverLoadedURL = tempDir.appendingPathComponent("never-loaded-\(UUID().uuidString).png")
 
         // NEG: a URL that was never passed to loadThumbnail(for:size:) is a pure cache miss
@@ -135,7 +135,7 @@ public struct ThumbnailServiceCoverageTests {
     }
 
     private static func testLoadThumbnailForRealPNG() async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 

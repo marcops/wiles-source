@@ -59,6 +59,7 @@ public final class AutomatedTestService {
         SyntaxHighlighterTests.run()
         await DuplicateDetectionTests.run()
         await FileMetadataTests.run()
+        await FileMetadataTooltipServiceTests.run()
         DirectoryCacheTests.run()
         BackgroundOperationsTests.run()
         MiscModelTests.run()
@@ -72,7 +73,7 @@ public final class AutomatedTestService {
     private static func runModelAndStateTests() async {
         await FileSystemSearchAndSortTests.run()
         AppStateColumnsAndSelectionTests.run()
-        AppStateCoreTests.run()
+        await AppStateCoreTests.run()
         AppStateNavigationExtraTests.run()
         await AppStateOperationsExtraTests.run()
         AutoOrganizationRuleAndListColumnTests.run()

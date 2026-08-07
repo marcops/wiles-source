@@ -15,10 +15,11 @@ public struct DuplicateDetectionTests {
         await testHiddenFilesAreSkipped()
         await testThreeIdenticalFilesFormOneGroupOfThree()
         await testSingleUniqueFileFormsNoGroup()
+        await testCancellingCallerTaskStopsScanBeforeCompletion()
     }
 
     private static func tempDir() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
     }
 
     private static func testFindsExactDuplicates() async {
@@ -208,6 +209,40 @@ public struct DuplicateDetectionTests {
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
         report("DuplicateDetection", "NEG: a lone file with a unique size never forms a duplicate group", result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
+    }
+
+    /// Regression coverage for the `withTaskCancellationHandler` fix: `findDuplicates` runs its
+    /// scan on a `Task.detached`, which is NOT automatically cancelled just because the caller's
+    /// task is cancelled — without the explicit `onCancel { scanTask.cancel() }` forwarding,
+    /// cancelling the caller would leave the detached scan running to completion as a zombie.
+    /// A large, fully-duplicated data set forces enough real hashing work that cancelling the
+    /// caller's task immediately after starting it reliably wins the race against completion;
+    /// `findDuplicates` swallows the resulting `CancellationError` internally and falls back to
+    /// an empty result, so a cancelled scan is observable as zero groups / zero reclaimable bytes
+    /// instead of the fully-populated result a completed scan of this data would produce.
+    private static func testCancellingCallerTaskStopsScanBeforeCompletion() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let chunk = Data(repeating: 0x5A, count: 1024 * 1024) // 1 MB
+        var content = Data()
+        for _ in 0..<4 { content.append(chunk) } // 4 MB per file, spans multiple hash chunks
+        for index in 0..<24 {
+            try? content.write(to: dir.appendingPathComponent("dup_\(index).bin"))
+        }
+
+        let callerTask = Task {
+            await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        }
+        callerTask.cancel()
+        let result = await callerTask.value
+
+        report(
+            "DuplicateDetection",
+            "POS: cancelling the caller's task before the scan completes propagates to the detached scan task, yielding an empty (not partial-wrong or hung) result",
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
+        )
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

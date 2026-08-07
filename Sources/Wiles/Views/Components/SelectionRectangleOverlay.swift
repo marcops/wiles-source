@@ -78,10 +78,17 @@ struct SelectionRectangleOverlay: View {
         for (url, frame) in cellFrames where frame.intersects(rect) {
             matched.insert(url)
         }
+        let resolved: Set<URL>
         if NSEvent.modifierFlags.contains(.command) {
-            appState.selectedURLs.formUnion(matched)
+            resolved = appState.selectedURLs.union(matched)
         } else {
-            appState.selectedURLs = matched
+            resolved = matched
+        }
+        // Only write when the resolved set actually differs — every row reads `selectedURLs`
+        // to compute `isSel`, so a write here re-renders the entire visible list. Small mouse
+        // movements within the same set of rows would otherwise re-trigger that on every tick.
+        if resolved != appState.selectedURLs {
+            appState.selectedURLs = resolved
         }
     }
 }

@@ -14,6 +14,7 @@ struct FileColumnView: View {
 
     @State private var columns: [ColumnData] = []
     @State private var activeColumnIndex: Int = 0
+    @State private var loadTask: Task<Void, Never>?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -97,19 +98,23 @@ struct FileColumnView: View {
     }
 
     private func loadInitialColumns() {
-        Task {
+        loadTask?.cancel()
+        let targetURL = appState.navigation.currentURL
+        loadTask = Task {
             let rootItems = await FileSystemService.loadDirectoryContents(
-                at: appState.navigation.currentURL,
+                at: targetURL,
                 options: DirectoryLoadOptions(
                     showHidden: appState.preferences.showHiddenFiles,
                     showTags: appState.preferences.showTags,
                     searchQuery: appState.searchQuery,
                     sortOption: appState.preferences.sortOption,
-                    sortAscending: appState.preferences.sortAscending
+                    sortAscending: appState.preferences.sortAscending,
+                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)
                 )
             )
             await MainActor.run {
-                self.columns = [ColumnData(folderURL: appState.navigation.currentURL, items: rootItems, selectedURL: nil)]
+                guard appState.navigation.currentURL == targetURL else { return }
+                self.columns = [ColumnData(folderURL: targetURL, items: rootItems, selectedURL: nil)]
                 self.activeColumnIndex = 0
                 self.appState.selectedURLs.removeAll()
             }
@@ -171,7 +176,8 @@ struct FileColumnView: View {
                     showTags: appState.preferences.showTags,
                     searchQuery: "",
                     sortOption: appState.preferences.sortOption,
-                    sortAscending: appState.preferences.sortAscending
+                    sortAscending: appState.preferences.sortAscending,
+                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)
                 )
             )
             await MainActor.run {

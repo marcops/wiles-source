@@ -9,11 +9,16 @@ import UniformTypeIdentifiers
 /// results are cached per path since the tooltip is recomputed on every hover.
 @MainActor
 public enum FileMetadataTooltipService {
-    private static var cache: [String: String] = [:]
+    private static let cacheCountLimit = 1000
+    private static let cache: NSCache<NSString, NSString> = {
+        let cache = NSCache<NSString, NSString>()
+        cache.countLimit = cacheCountLimit
+        return cache
+    }()
 
-    public static func tooltip(for item: FileItem) -> String {
-        let key = item.url.path
-        if let cached = cache[key] { return cached }
+    public static func tooltip(for item: FileItem) async -> String {
+        let key = item.url.path as NSString
+        if let cached = cache.object(forKey: key) { return cached as String }
 
         var lines = [item.name]
         if item.isDirectory {
@@ -21,7 +26,7 @@ public enum FileMetadataTooltipService {
         } else {
             lines.append(kindDescription(for: item))
             lines.append(item.formattedSize)
-            if let extra = extraInfo(for: item) {
+            if let extra = await extraInfo(for: item) {
                 lines.append(contentsOf: extra)
             }
         }
@@ -32,12 +37,12 @@ public enum FileMetadataTooltipService {
         }
 
         let text = lines.joined(separator: "\n")
-        cache[key] = text
+        cache.setObject(text as NSString, forKey: key)
         return text
     }
 
     public static func invalidate(url: URL) {
-        cache.removeValue(forKey: url.path)
+        cache.removeObject(forKey: url.path as NSString)
     }
 
     private static func kindDescription(for item: FileItem) -> String {
@@ -47,28 +52,41 @@ public enum FileMetadataTooltipService {
         return type.localizedDescription?.capitalized ?? item.fileExtension.uppercased()
     }
 
-    private static func extraInfo(for item: FileItem) -> [String]? {
+    private static func extraInfo(for item: FileItem) async -> [String]? {
         guard let type = UTType(filenameExtension: item.fileExtension) else { return nil }
 
         if type.conforms(to: .pdf) {
-            guard let doc = PDFDocument(url: item.url) else { return nil }
-            return ["\(doc.pageCount) page\(doc.pageCount == 1 ? "" : "s")"]
+            return await pdfPageCountLine(for: item.url)
         }
 
         if type.conforms(to: .image) {
-            return pixelDimensions(for: item.url).map { [$0] }
+            return await pixelDimensions(for: item.url).map { [$0] }
         }
 
         return nil
     }
 
-    private static func pixelDimensions(for url: URL) -> String? {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let width = properties[kCGImagePropertyPixelWidth] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight] as? Int else {
-            return nil
-        }
-        return "\(width) x \(height)"
+    /// PDF parsing can be slow for large multi-hundred-page documents or files on a network share,
+    /// so it must never block @MainActor synchronously during a hover event.
+    private static func pdfPageCountLine(for url: URL) async -> [String]? {
+        await Task.detached(priority: .utility) {
+            guard let doc = PDFDocument(url: url) else { return nil }
+            let count = doc.pageCount
+            return ["\(count) page\(count == 1 ? "" : "s")"]
+        }.value
+    }
+
+    /// Image header reads can block on a slow network mount or a large RAW file with an embedded
+    /// thumbnail, so this must never block @MainActor synchronously during a hover event.
+    private static func pixelDimensions(for url: URL) async -> String? {
+        await Task.detached(priority: .utility) {
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                  let width = properties[kCGImagePropertyPixelWidth] as? Int,
+                  let height = properties[kCGImagePropertyPixelHeight] as? Int else {
+                return nil
+            }
+            return "\(width) x \(height)"
+        }.value
     }
 }

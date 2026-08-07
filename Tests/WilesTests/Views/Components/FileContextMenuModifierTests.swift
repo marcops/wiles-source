@@ -5,7 +5,7 @@ import SwiftUI
 public struct FileContextMenuModifierTests {
     public static func run() {
         let appState = AppState()
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_ctx.txt")
+        let tempURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("test_ctx.txt")
         let item = FileItem(url: tempURL, icon: NSImage())
 
         let modifier = FileContextMenuModifier(item: item, appState: appState)

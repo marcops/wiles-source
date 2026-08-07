@@ -15,9 +15,21 @@ extension AppState {
         listColumnStates.first { $0.column == column }?.isVisible ?? true
     }
 
-    public func setColumnWidth(_ column: ListColumn, width: CGFloat) {
+    /// - Parameter persist: When `false` (e.g. while a resize drag is still in progress), the width
+    ///   update is applied without triggering `saveListColumnStates()`'s synchronous encode + write.
+    ///   Callers driving high-frequency updates (drag deltas) must call `persistColumnWidths()` once
+    ///   when the interaction ends.
+    public func setColumnWidth(_ column: ListColumn, width: CGFloat, persist: Bool = true) {
         guard let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
+        if !persist { suppressColumnStatePersistence = true }
         listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
+        if !persist { suppressColumnStatePersistence = false }
+    }
+
+    /// Persists the current `listColumnStates` once. Call this at the end of a high-frequency
+    /// interaction (drag end) that used `setColumnWidth(_:width:persist: false)` throughout.
+    public func persistColumnWidths() {
+        saveListColumnStates()
     }
 
     public func autoFitColumnWidth(_ column: ListColumn) {
@@ -85,12 +97,18 @@ extension AppState {
     }
 
     public func performBatchRename(items: [FileItem], mode: BatchRenameMode) {
-        do {
-            let newURLs = try BatchRenameService.performBatchRename(items: items, mode: mode)
-            self.refreshCurrentDirectory()
-            self.selectedURLs = Set(newURLs)
-        } catch {
-            self.showError(error.localizedDescription)
+        Task.detached(priority: .userInitiated) {
+            do {
+                let newURLs = try BatchRenameService.performBatchRename(items: items, mode: mode)
+                await MainActor.run {
+                    self.refreshCurrentDirectory()
+                    self.selectedURLs = Set(newURLs)
+                }
+            } catch {
+                await MainActor.run {
+                    self.showError(error.localizedDescription)
+                }
+            }
         }
     }
 

@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct AutoOrganizationTests {
     public static func run() async {
-        let baseTemp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let baseTemp = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let inputDir = baseTemp.appendingPathComponent("Input")
         let targetDir = baseTemp.appendingPathComponent("Target")
 
@@ -37,8 +37,18 @@ public struct AutoOrganizationTests {
         await testNameContainsCondition(service: service, inputDir: inputDir, targetDir: targetDir)
         await testNamePrefixCondition(service: service, inputDir: inputDir, targetDir: targetDir)
         await testGrowingFileIsNotMoved(service: service, inputDir: inputDir, targetDir: targetDir)
+        await testDirectoryEntriesAreNeverMoved(service: service, inputDir: inputDir, targetDir: targetDir)
         await testScheduleProcessFolderDebounces(service: service, inputDir: inputDir, targetDir: targetDir)
         testRuleMutationMethods(service: service, rule: rule)
+
+        // AutoOrganizationService.processFolder() records every real move it performs on the
+        // process-wide UndoRedoService.shared singleton. Drain this test's own leaked records now,
+        // while the moved files still exist, so they don't poison later tests that also touch the
+        // shared singleton — undoing a record after baseTemp is removed below would fail forever
+        // under that service's retry-on-failure semantics, hanging whatever test runs next.
+        for _ in 0..<10 where UndoRedoService.shared.canUndo() {
+            _ = try? await UndoRedoService.shared.undo()
+        }
 
         service.rules = oldRules
         try? FileManager.default.removeItem(at: baseTemp)
@@ -105,6 +115,42 @@ public struct AutoOrganizationTests {
             "POS: .namePrefix rule matches case-insensitively",
             result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("IMG_1234.jpg").path)
         )
+    }
+
+    /// Regression coverage for the N+1 fileExists fix: processFolder() now prefetches
+    /// [.isDirectoryKey, .isHiddenKey] via `includingPropertiesForKeys` and reads them back through
+    /// `resourceValues(forKeys:)` instead of a per-entry `fm.fileExists(atPath:isDirectory:)` call.
+    /// A subdirectory named exactly like a matching rule's condition value (a real file with that
+    /// name would be moved) proves the resourceValues-based isDirectory check still correctly
+    /// excludes directories — if it had regressed to "always false" (as an N+1 refactor bug could),
+    /// the directory would incorrectly get moved right alongside the real matching file.
+    private static func testDirectoryEntriesAreNeverMoved(service: AutoOrganizationService, inputDir: URL, targetDir: URL) async {
+        let trapDir = inputDir.appendingPathComponent("archive.pdf")
+        try? FileManager.default.createDirectory(at: trapDir, withIntermediateDirectories: true)
+        let realFile = inputDir.appendingPathComponent("statement.pdf")
+        try? "PDF".write(to: realFile, atomically: true, encoding: .utf8)
+
+        let pdfRule = AutoOrganizationRule(
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true
+        )
+        service.rules = [pdfRule]
+
+        service.processFolder(inputDir)
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        let dirStillInPlace = FileManager.default.fileExists(atPath: trapDir.path)
+        var dirIsStillADirectory: ObjCBool = false
+        FileManager.default.fileExists(atPath: trapDir.path, isDirectory: &dirIsStillADirectory)
+        TestReporter.report(
+            "AutoOrganization", "NEG: a directory whose name matches a rule's condition (e.g. \"archive.pdf/\") is never moved",
+            result: dirStillInPlace && dirIsStillADirectory.boolValue
+        )
+        TestReporter.report(
+            "AutoOrganization", "POS: a real matching file alongside the trap directory is still moved correctly",
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("statement.pdf").path)
+        )
+
+        try? FileManager.default.removeItem(at: trapDir)
     }
 
     /// Regression coverage for the CPU-spin fix: a file that's still actively growing (simulating an

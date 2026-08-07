@@ -8,6 +8,7 @@ public struct AppStateColumnsAndSelectionTests {
         testColumnWidth()
         testIsColumnVisible()
         testSetColumnWidth()
+        testSetColumnWidthPersistFlagDefersUserDefaultsWrite()
         testToggleColumnVisibility()
         testViewModeForFolder()
         testSetViewModeForFolder()
@@ -75,6 +76,47 @@ public struct AppStateColumnsAndSelectionTests {
         )
     }
 
+    /// `setColumnWidth(_:width:persist:)` with `persist: false` (used by `ColumnResizeHandle`'s
+    /// `DragGesture.onChanged` on every mouse-move delta) must update `listColumnStates` in memory
+    /// without triggering `AppState.listColumnStates`'s `didSet` -> `saveListColumnStates()` write to
+    /// `UserDefaults.standard`. `persistColumnWidths()` (called once from `.onEnded`) must then persist
+    /// the final width. `AppState`/`PreferencesStore` have no injectable `UserDefaults` suite, so per
+    /// rule 17 this snapshots and restores the real `wiles_listColumnStates` key in `defer`.
+    private static func testSetColumnWidthPersistFlagDefersUserDefaultsWrite() {
+        let key = DefaultsKey.listColumnStates.rawValue
+        let priorData = UserDefaults.standard.data(forKey: key)
+        defer {
+            if let priorData {
+                UserDefaults.standard.set(priorData, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        func persistedWidth(for column: ListColumn) -> CGFloat? {
+            guard let data = UserDefaults.standard.data(forKey: key),
+                  let states = try? JSONDecoder().decode([ListColumnState].self, from: data) else { return nil }
+            return states.first { $0.column == column }?.width
+        }
+
+        let appState = AppState()
+        appState.listColumnStates = ListColumnState.defaults()
+        // Establish a known persisted baseline distinct from the width we're about to drag to.
+        appState.setColumnWidth(.size, width: 150, persist: true)
+        report("AppState+Columns", "POS: setColumnWidth(persist: true) (the default) persists immediately", result: persistedWidth(for: .size) == 150)
+
+        appState.setColumnWidth(.size, width: 321, persist: false)
+        report("AppState+Columns", "POS: setColumnWidth(persist: false) updates the in-memory width immediately", result: appState.columnWidth(for: .size) == 321)
+        report(
+            "AppState+Columns",
+            "NEG: setColumnWidth(persist: false) does not write the new width to UserDefaults yet",
+            result: persistedWidth(for: .size) == 150 && persistedWidth(for: .size) != 321
+        )
+
+        appState.persistColumnWidths()
+        report("AppState+Columns", "POS: persistColumnWidths() persists the width set earlier with persist: false", result: persistedWidth(for: .size) == 321)
+    }
+
     private static func testToggleColumnVisibility() {
         let appState = AppState()
         let before = appState.isColumnVisible(.owner)
@@ -95,7 +137,7 @@ public struct AppStateColumnsAndSelectionTests {
     }
 
     private static func testViewModeForFolder() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -112,7 +154,7 @@ public struct AppStateColumnsAndSelectionTests {
     }
 
     private static func testSetViewModeForFolder() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -126,12 +168,12 @@ public struct AppStateColumnsAndSelectionTests {
         )
 
         // A different, untouched folder should not have an override.
-        let otherDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let otherDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         report("AppState+Columns", "NEG: setViewModeForFolder() does not affect unrelated folders", result: appState.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
     }
 
     private static func testHandleSelectionSingleClick() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -151,7 +193,7 @@ public struct AppStateColumnsAndSelectionTests {
     }
 
     private static func testHandleSelectionExtend() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

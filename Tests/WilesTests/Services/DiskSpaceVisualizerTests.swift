@@ -16,10 +16,11 @@ public struct DiskSpaceVisualizerTests {
         await testPercentagesSumToTotal()
         await testPermissionDeniedSubdirectory()
         await testSingleLargeFileDominatesPercentage()
+        await testDirectoryVsFileClassificationWithEqualZeroSizes()
     }
 
     private static func testBasicUsageAndNonExistentFolder() async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         let fileA = tempDir.appendingPathComponent("fileA.bin")
@@ -44,7 +45,7 @@ public struct DiskSpaceVisualizerTests {
 
     private static func testManyItemsGroupedUnderOthers() async {
         // POS: more than 10 items groups the smallest ones under "Others"
-        let manyDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let manyDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: manyDir, withIntermediateDirectories: true)
         for i in 0..<13 {
             let itemFile = manyDir.appendingPathComponent("item\(i).bin")
@@ -61,7 +62,7 @@ public struct DiskSpaceVisualizerTests {
 
     private static func testNestedSubdirectoryAggregation() async {
         // POS: nested subdirectory size is aggregated recursively
-        let nestedDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let nestedDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let subDir = nestedDir.appendingPathComponent("sub")
         try? FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
         try? Data(repeating: 0, count: 4096).write(to: subDir.appendingPathComponent("nested.bin"))
@@ -75,7 +76,7 @@ public struct DiskSpaceVisualizerTests {
 
     // NEG: a subdirectory whose contents can't be enumerated (permission denied) doesn't crash the scan
     private static func testPermissionDeniedSubdirectory() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer {
             try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.appendingPathComponent("locked").path)
             try? FileManager.default.removeItem(at: dir)
@@ -99,7 +100,7 @@ public struct DiskSpaceVisualizerTests {
 
     // POS: a single very large file dominates the percentage breakdown near 100%
     private static func testSingleLargeFileDominatesPercentage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -116,7 +117,7 @@ public struct DiskSpaceVisualizerTests {
 
     // NEG: an existing but empty directory yields zero size and no items (grandTotal guard)
     private static func testEmptyDirectory() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -129,7 +130,7 @@ public struct DiskSpaceVisualizerTests {
 
     // NEG: dotfiles/hidden files are excluded from the scan (skipsHiddenFiles option)
     private static func testHiddenFilesSkipped() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -146,7 +147,7 @@ public struct DiskSpaceVisualizerTests {
 
     // POS: topItems are sorted strictly descending by size
     private static func testSortedDescendingBySize() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -165,7 +166,7 @@ public struct DiskSpaceVisualizerTests {
 
     // POS: exactly 10 items produces no "Others" grouping (boundary condition, dropFirst(10) is empty)
     private static func testExactlyTenItemsNoOthers() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -182,7 +183,7 @@ public struct DiskSpaceVisualizerTests {
 
     // POS: a symlink to a file is treated as a file entry using fileExists' resolved size
     private static func testSymlinkHandling() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -199,9 +200,39 @@ public struct DiskSpaceVisualizerTests {
         )
     }
 
+    // Regression coverage for the N+1 fileExists fix: collectRawItems now classifies each entry
+    // via `itemURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory` instead of
+    // `fm.fileExists(atPath:isDirectory:)`. An empty subdirectory and an empty file both report
+    // size 0, so if the resourceValues-based check were ever wrong (e.g. defaulting everything to
+    // "file" on failure), this is the case that would silently misclassify the directory — a size
+    // comparison alone can't catch that, only isDirectory can.
+    private static func testDirectoryVsFileClassificationWithEqualZeroSizes() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let emptySubdir = dir.appendingPathComponent("empty_dir")
+        try? FileManager.default.createDirectory(at: emptySubdir, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: dir.appendingPathComponent("empty_file.txt").path, contents: Data())
+        // A non-empty file too, so the grand total isn't 0 and the scan actually returns items.
+        try? Data(repeating: 0, count: 2048).write(to: dir.appendingPathComponent("anchor.bin"))
+
+        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let dirItem = report.topItems.first { $0.name == "empty_dir" }
+        let fileItem = report.topItems.first { $0.name == "empty_file.txt" }
+        TestReporter.report(
+            "DiskSpaceVisualizer", "POS: an empty subdirectory is classified isDirectory=true despite having zero size, same as a zero-byte file",
+            result: dirItem?.isDirectory == true
+        )
+        TestReporter.report(
+            "DiskSpaceVisualizer", "NEG: a zero-byte regular file is not misclassified as a directory",
+            result: fileItem?.isDirectory == false
+        )
+    }
+
     // POS: percentages for top items plus others sum to ~100% of grand total
     private static func testPercentagesSumToTotal() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 

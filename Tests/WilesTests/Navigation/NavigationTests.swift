@@ -6,7 +6,7 @@ public struct NavigationTests {
     public static func run() {
         let appState = AppState()
         let initial = appState.navigation.currentURL
-        let tempTarget = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("NavTestFolder_\(UUID().uuidString)")
+        let tempTarget = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("NavTestFolder_\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tempTarget, withIntermediateDirectories: true)
 
         // Positive: Navigation

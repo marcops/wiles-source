@@ -72,7 +72,7 @@ public struct SmallModelEnumsTests {
     }
 
     private static func testFolderNodeEqualityAndHashing() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let nodeA = FolderNode(id: dir, name: "same", url: dir, children: nil)
@@ -80,7 +80,7 @@ public struct SmallModelEnumsTests {
         report("FolderNode", "POS: two nodes with identical id/name/url/children are Equatable-equal", result: nodeA == nodeB)
         report("FolderNode", "POS: equal nodes produce equal hashes", result: nodeA.hashValue == nodeB.hashValue)
 
-        let otherURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let otherURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let nodeC = FolderNode(id: otherURL, name: "same", url: dir, children: nil)
         report("FolderNode", "NEG: differing id makes nodes unequal even if other fields match", result: nodeA != nodeC)
 
@@ -96,7 +96,7 @@ public struct SmallModelEnumsTests {
     }
 
     private static func testSidebarItemIdentity() {
-        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let itemA = SidebarItem(name: "Downloads", iconName: "folder", url: url)
         let itemB = SidebarItem(name: "Downloads", iconName: "folder", url: url)
         report("SidebarItem", "NEG: two items with identical name/icon/url are NOT equal because id is a freshly-generated UUID", result: itemA != itemB)

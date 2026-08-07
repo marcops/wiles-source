@@ -5,6 +5,7 @@ public struct FileShredderService: Sendable {
     public static func deletePermanently(urls: [URL]) throws {
         let fm = FileManager.default
         for url in urls where fm.fileExists(atPath: url.path) {
+            try Task.checkCancellation()
             try fm.removeItem(at: url)
         }
     }
@@ -13,6 +14,7 @@ public struct FileShredderService: Sendable {
     public static func shredFiles(urls: [URL]) async throws {
         let fm = FileManager.default
         for url in urls {
+            try Task.checkCancellation()
             guard fm.fileExists(atPath: url.path) else { continue }
 
             if let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
@@ -26,6 +28,10 @@ public struct FileShredderService: Sendable {
                     var bytesWritten = 0
 
                     while bytesWritten < fileSize {
+                        if Task.isCancelled {
+                            try? handle.close()
+                            throw CancellationError()
+                        }
                         let toWrite = min(chunkSize, fileSize - bytesWritten)
                         if toWrite == chunkSize {
                             handle.write(zeroBuffer)

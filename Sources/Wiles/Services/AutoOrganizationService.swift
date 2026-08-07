@@ -121,25 +121,37 @@ public class AutoOrganizationService {
         guard !activeRules.isEmpty else { return }
 
         let fm = FileManager.default
-        guard let files = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil, options: [.skipsSubdirectoryDescendants]) else {
+        let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isHiddenKey]
+        guard let files = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: resourceKeys, options: [.skipsSubdirectoryDescendants]) else {
             return
         }
 
         for file in files {
             // Ignore hidden files and directories
             if file.lastPathComponent.hasPrefix(".") { continue }
-            var isDir: ObjCBool = false
-            if fm.fileExists(atPath: file.path, isDirectory: &isDir), isDir.boolValue {
+            let resourceValues = try? file.resourceValues(forKeys: Set(resourceKeys))
+            if resourceValues?.isDirectory == true {
                 continue
             }
 
             for rule in activeRules where matches(file: file, rule: rule) {
-                // Move file natively using UndoRedoService for safe undo
-                Task {
-                    guard await self.isFileStable(file) else { return } // still being written — skip this round
+                // Move file natively using UndoRedoService for safe undo.
+                // Runs detached off the main actor: the stability check sleeps, and
+                // FileSystemService.moveItem falls back to a synchronous copy+delete for
+                // cross-volume moves, which would otherwise freeze the UI on large files.
+                let stabilityCheckDelay = self.stabilityCheckDelay
+                let destinationURL = rule.destinationURL
+                Task.detached(priority: .utility) {
+                    guard let sizeBefore = Self.fileSize(file) else { return }
+                    try? await Task.sleep(nanoseconds: stabilityCheckDelay)
+                    guard let sizeAfter = Self.fileSize(file), sizeBefore == sizeAfter else {
+                        return // still being written — skip this round
+                    }
                     do {
-                        _ = try FileSystemService.moveItem(at: file, toFolder: rule.destinationURL)
-                        UndoRedoService.shared.recordAction(.move(sourceURL: file, destinationURL: rule.destinationURL.appendingPathComponent(file.lastPathComponent)))
+                        _ = try FileSystemService.moveItem(at: file, toFolder: destinationURL)
+                        await MainActor.run {
+                            UndoRedoService.shared.recordAction(.move(sourceURL: file, destinationURL: destinationURL.appendingPathComponent(file.lastPathComponent)))
+                        }
                     } catch {
                         // Suppress silent failures during background file monitoring
                     }
@@ -153,14 +165,10 @@ public class AutoOrganizationService {
     /// Deliberately not a lock check (FileHandle open / POSIX advisory lock): most writers —
     /// browsers, curl, Finder copies — never take an advisory lock on the file they're writing, so
     /// a lock-based check would never actually detect an in-progress download.
-    private func isFileStable(_ url: URL) async -> Bool {
-        guard let sizeBefore = fileSize(url) else { return false }
-        try? await Task.sleep(nanoseconds: stabilityCheckDelay)
-        guard let sizeAfter = fileSize(url) else { return false }
-        return sizeBefore == sizeAfter
-    }
-
-    private func fileSize(_ url: URL) -> Int64? {
+    ///
+    /// `nonisolated` so it can run from the detached move task below without hopping onto the
+    /// main actor for a plain filesystem stat call.
+    private nonisolated static func fileSize(_ url: URL) -> Int64? {
         try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64
     }
 

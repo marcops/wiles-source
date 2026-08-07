@@ -5,7 +5,7 @@ import AppKit
 @MainActor
 public struct FileItemTests {
     public static func run() {
-        let tempFile = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("item_test.txt")
+        let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("item_test.txt")
         try? "FileItem Test Data".write(to: tempFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempFile) }
 

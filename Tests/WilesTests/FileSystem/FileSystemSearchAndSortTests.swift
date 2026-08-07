@@ -20,7 +20,7 @@ public struct FileSystemSearchAndSortTests {
     }
 
     private static func tempDir() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
     }
 
     private static func load(at url: URL, query: String = "", sort: SortOption = .name, ascending: Bool = true, showHidden: Bool = false) async -> [FileItem] {

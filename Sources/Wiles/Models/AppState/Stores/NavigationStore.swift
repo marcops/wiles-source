@@ -37,41 +37,4 @@ public final class NavigationStore {
             }
         }
     }
-
-    public func navigateTo(_ url: URL) {
-        guard url != currentURL else { return }
-        HapticService.shared.play(.alignment)
-        historyBack.append(currentURL)
-        historyForward.removeAll()
-        currentURL = url
-        trackRecent(url)
-    }
-
-    public func goBack() {
-        guard let previous = historyBack.popLast() else { return }
-        HapticService.shared.play(.alignment)
-        historyForward.append(currentURL)
-        currentURL = previous
-    }
-
-    public func goForward() {
-        guard let next = historyForward.popLast() else { return }
-        HapticService.shared.play(.alignment)
-        historyBack.append(currentURL)
-        currentURL = next
-    }
-
-    public func goUp() {
-        let parent = currentURL.deletingLastPathComponent()
-        guard parent != currentURL else { return }
-        navigateTo(parent)
-    }
-
-    private func trackRecent(_ url: URL) {
-        recentOpenedURLs.removeAll { $0 == url }
-        recentOpenedURLs.insert(url, at: 0)
-        if recentOpenedURLs.count > 20 {
-            recentOpenedURLs = Array(recentOpenedURLs.prefix(20))
-        }
-    }
 }

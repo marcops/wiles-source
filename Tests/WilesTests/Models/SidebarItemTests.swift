@@ -12,7 +12,7 @@ public struct SidebarItemTests {
         report("Model/SidebarItem", "POS: SidebarItem name matches 'Documents'", result: item.name == "Documents")
         report("Model/SidebarItem", "POS: SidebarItem iconName matches 'doc.fill'", result: item.iconName == "doc.fill")
 
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let item2 = SidebarItem(name: "Downloads", iconName: "arrow.down.doc", url: tempDir)
         report("Model/SidebarItem", "NEG: Distinct instances have unique UUIDs", result: item.id != item2.id)
     }

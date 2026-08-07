@@ -4,6 +4,11 @@ import AppKit
 struct FooterBarView: View {
     var appState: AppState
     @State private var isIconSizeControlExpanded = false
+    // Free-space lookup is a synchronous disk call (`resourceValues(forKeys:)`) that can block for
+    // seconds on a stalled SMB mount. It's loaded asynchronously via `.task` below and read passively
+    // here instead of computed synchronously in `body`, which `@Observable` re-runs on nearly every
+    // state change the footer observes.
+    @State private var freeSpaceText: String?
 
     var body: some View {
         @Bindable var appState = appState
@@ -16,7 +21,7 @@ struct FooterBarView: View {
                     .foregroundColor(.secondary)
                     .accessibilityIdentifier("Status Bar")
 
-                if let freeSpace = appState.freeSpaceText {
+                if let freeSpace = freeSpaceText {
                     Text("•")
                         .font(.system(size: 11))
                         .foregroundColor(.secondary.opacity(0.6))
@@ -67,6 +72,9 @@ struct FooterBarView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 4)
         .frame(height: 26)
+        .task(id: appState.navigation.currentURL) {
+            freeSpaceText = await appState.loadFreeSpaceText()
+        }
     }
 
     /// Collapses down to just an icon; hovering near it reveals the slider to adjust icon size.

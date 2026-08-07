@@ -4,11 +4,12 @@ import Foundation
 @MainActor
 public struct FileShredderTests {
     public static func run() async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
         await runShredCoverage(tempDir: tempDir)
         await runDeletePermanentlyCoverage(tempDir: tempDir)
+        await runCancellationCoverage(tempDir: tempDir)
 
         try? FileManager.default.removeItem(at: tempDir)
     }
@@ -81,5 +82,51 @@ public struct FileShredderTests {
             deletePermMissingPassed = false
         }
         TestReporter.report("FileShredder", "NEG: deletePermanently on non-existent path handles gracefully without crash", result: deletePermMissingPassed)
+    }
+
+    /// Regression coverage for the `Task.checkCancellation()` guards added to both loops:
+    /// cancelling the task immediately after starting it (before the task closure has had a
+    /// chance to run any loop iteration) is the deterministic way to prove cancellation is
+    /// actually honored — if the check were missing, both operations would run to completion
+    /// on every file regardless of cancellation, and the counts below would be 0 instead of
+    /// matching the full input count.
+    private static func runCancellationCoverage(tempDir: URL) async {
+        var shredURLs: [URL] = []
+        for index in 0..<25 {
+            let url = tempDir.appendingPathComponent("cancel_shred_\(index).txt")
+            try? "shred me".write(to: url, atomically: true, encoding: .utf8)
+            shredURLs.append(url)
+        }
+        let shredTask = Task {
+            try await FileShredderService.shredFiles(urls: shredURLs)
+        }
+        shredTask.cancel()
+        _ = try? await shredTask.value
+        let remainingAfterShredCancel = shredURLs.filter { FileManager.default.fileExists(atPath: $0.path) }.count
+        TestReporter.report(
+            "FileShredder",
+            "POS: shredFiles() honors Task.checkCancellation() and stops before processing any file when cancelled immediately",
+            result: remainingAfterShredCancel == shredURLs.count
+        )
+        for url in shredURLs { try? FileManager.default.removeItem(at: url) }
+
+        var deleteURLs: [URL] = []
+        for index in 0..<25 {
+            let url = tempDir.appendingPathComponent("cancel_delete_\(index).txt")
+            try? "delete me".write(to: url, atomically: true, encoding: .utf8)
+            deleteURLs.append(url)
+        }
+        let deleteTask = Task {
+            try FileShredderService.deletePermanently(urls: deleteURLs)
+        }
+        deleteTask.cancel()
+        _ = try? await deleteTask.value
+        let remainingAfterDeleteCancel = deleteURLs.filter { FileManager.default.fileExists(atPath: $0.path) }.count
+        TestReporter.report(
+            "FileShredder",
+            "POS: deletePermanently() honors Task.checkCancellation() and stops before processing any file when cancelled immediately",
+            result: remainingAfterDeleteCancel == deleteURLs.count
+        )
+        for url in deleteURLs { try? FileManager.default.removeItem(at: url) }
     }
 }

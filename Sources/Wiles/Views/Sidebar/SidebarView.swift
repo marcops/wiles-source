@@ -34,9 +34,7 @@ struct SidebarView: View {
         return items
     }
 
-    var rootFolderNode: FolderNode {
-        FolderNode.buildRootTree()
-    }
+    @State private var rootFolderNode: FolderNode?
 
     var body: some View {
         @Bindable var appState = appState
@@ -89,7 +87,13 @@ struct SidebarView: View {
                             sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.preferences.isTreeExpanded)
                         }
                         if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTreeExpanded {
-                            DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
+                            if let rootFolderNode {
+                                DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
+                            } else {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .padding(.horizontal, 12)
+                            }
                         }
                     }
                 }
@@ -128,6 +132,13 @@ struct SidebarView: View {
             .padding(.bottom, 12)
         }
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
+        .task {
+            guard rootFolderNode == nil else { return }
+            let node = await Task.detached(priority: .userInitiated) {
+                FolderNode.buildRootTree()
+            }.value
+            rootFolderNode = node
+        }
         .background(
             ZStack {
                 TranslucentVisualEffectView(material: .sidebar)

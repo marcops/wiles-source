@@ -12,13 +12,19 @@ public struct DirectoryLoadOptions: Sendable {
     public let searchQuery: String
     public let sortOption: SortOption
     public let sortAscending: Bool
+    /// Whether the Owner/Group columns are visible and their values are actually needed. Defaults
+    /// to `true` (always fetch) so existing call sites that don't pass this explicitly keep their
+    /// current behavior; callers that know Owner/Group are hidden can pass `false` to skip the
+    /// per-file attributesOfItem(atPath:) syscall entirely.
+    public let showOwnerGroup: Bool
 
-    public init(showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool) {
+    public init(showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool, showOwnerGroup: Bool = true) {
         self.showHidden = showHidden
         self.showTags = showTags
         self.searchQuery = searchQuery
         self.sortOption = sortOption
         self.sortAscending = sortAscending
+        self.showOwnerGroup = showOwnerGroup
     }
 }
 
@@ -41,7 +47,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
                 guard fm.fileExists(atPath: fileURL.path) else { continue }
 
                 let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
-                items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags))
+                items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             if !options.searchQuery.isEmpty {
                 let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
@@ -80,7 +86,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
                 if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) { continue }
                 if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
 
-                items.append(FileItem(url: fileURL, fetchTags: options.showTags))
+                items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
             if options.searchQuery.isEmpty {

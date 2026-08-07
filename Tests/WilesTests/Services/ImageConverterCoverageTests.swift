@@ -32,7 +32,7 @@ public struct ImageConverterCoverageTests {
     // MARK: - Fixtures
 
     private static func makeTestImage(width: Int, height: Int) -> URL {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appendingPathComponent("source.png")
 
@@ -311,7 +311,7 @@ public struct ImageConverterCoverageTests {
     // MARK: - Error handling
 
     private static func testNonexistentFileThrowsError() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

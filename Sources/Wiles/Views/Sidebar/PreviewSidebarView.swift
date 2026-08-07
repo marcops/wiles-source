@@ -4,6 +4,7 @@ import AppKit
 struct PreviewSidebarView: View {
     var appState: AppState
     @State private var detailedProps: DetailedFileProperties?
+    @State private var previewContent: String?
 
     var body: some View {
         VStack {
@@ -60,7 +61,7 @@ struct PreviewSidebarView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if !item.isDirectory, let content = try? String(contentsOf: item.url), content.count < 1_000_000 {
+                if !item.isDirectory, let content = previewContent {
                     let ext = item.fileExtension.lowercased()
                     if ["swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "md", "txt"].contains(ext) {
                         Divider()
@@ -89,7 +90,17 @@ struct PreviewSidebarView: View {
                 }
                 .buttonStyle(.link)
             }
+            .task(id: item.url) {
+                previewContent = item.isDirectory ? nil : await Self.loadPreviewContent(url: item.url)
+            }
         }
+    }
+
+    private static func loadPreviewContent(url: URL) async -> String? {
+        await Task.detached(priority: .userInitiated) {
+            guard let content = try? String(contentsOf: url), content.count < 1_000_000 else { return nil }
+            return content
+        }.value
     }
 
     private func propertyRow(label: String, value: String) -> some View {

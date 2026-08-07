@@ -39,7 +39,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
 
         // Initial cd
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            terminalView.send(txt: "cd \"\(path)\"\r")
+            terminalView.send(txt: "cd \"\(CopyPathService.escapeForTerminal(path))\"\r")
             terminalView.send(txt: "clear\r")
         }
 
@@ -51,7 +51,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
         if context.coordinator.lastPath != currentPath {
             context.coordinator.lastPath = currentPath
             // Send cd command to the terminal
-            nsView.send(txt: "cd \"\(currentPath)\"\r")
+            nsView.send(txt: "cd \"\(CopyPathService.escapeForTerminal(currentPath))\"\r")
         }
     }
 

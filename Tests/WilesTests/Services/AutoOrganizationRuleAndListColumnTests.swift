@@ -16,7 +16,7 @@ public struct AutoOrganizationRuleAndListColumnTests {
     // MARK: - AutoOrganizationRule
 
     private static func testRuleCodableRoundTrip() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let source = dir.appendingPathComponent("Source")
         let destination = dir.appendingPathComponent("Destination")
 
@@ -46,8 +46,8 @@ public struct AutoOrganizationRuleAndListColumnTests {
 
     private static func testRuleDefaultIsEnabled() {
         let rule = AutoOrganizationRule(
-            sourceURL: URL(fileURLWithPath: NSTemporaryDirectory()),
-            destinationURL: URL(fileURLWithPath: NSTemporaryDirectory()),
+            sourceURL: URL(fileURLWithPath: testTemporaryDirectory()),
+            destinationURL: URL(fileURLWithPath: testTemporaryDirectory()),
             conditionType: .nameContains,
             conditionValue: "invoice"
         )
@@ -55,8 +55,8 @@ public struct AutoOrganizationRuleAndListColumnTests {
     }
 
     private static func testRuleIdentityIsUniquePerInstance() {
-        let source = URL(fileURLWithPath: NSTemporaryDirectory())
-        let destination = URL(fileURLWithPath: NSTemporaryDirectory())
+        let source = URL(fileURLWithPath: testTemporaryDirectory())
+        let destination = URL(fileURLWithPath: testTemporaryDirectory())
         let ruleA = AutoOrganizationRule(sourceURL: source, destinationURL: destination, conditionType: .namePrefix, conditionValue: "IMG")
         let ruleB = AutoOrganizationRule(sourceURL: source, destinationURL: destination, conditionType: .namePrefix, conditionValue: "IMG")
         report("AutoOrganizationRule", "NEG: two independently-constructed rules with identical fields get distinct auto-generated ids", result: ruleA.id != ruleB.id)

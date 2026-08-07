@@ -15,7 +15,7 @@ public struct HttpServerTests {
     }()
 
     public static func run() async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let sampleFile = tempDir.appendingPathComponent("public_share.txt")
         try? "Public Data".write(to: sampleFile, atomically: true, encoding: .utf8)
@@ -314,7 +314,7 @@ public struct HttpServerTests {
         // down and back up on an isolated temp directory, then restores nothing further
         // since the caller stops/tears down the server again right after this returns.
         var passed = false
-        let emptyDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let emptyDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: emptyDir) }
 

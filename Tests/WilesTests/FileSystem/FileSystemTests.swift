@@ -5,7 +5,7 @@ import AppKit
 @MainActor
 public struct FileSystemTests {
     public static func run() async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         // Positive: Folder Creation
         let createdDir = try? FileSystemService.createDirectory(at: tempDir, name: "TestFolder")
@@ -38,7 +38,7 @@ public struct FileSystemTests {
         }
         TestReporter.report("FileSystem", "NEG: moveItem to non-existent folder throws error", result: negMovePassed)
         try? FileManager.default.removeItem(at: tempDir)
-        runActionsCoverageExtras()
+        await runActionsCoverageExtras()
         runMoveAndZipCoverageExtras()
         await runSearchAndSortCoverageExtras()
         await runAdditionalCoverageExtras()
@@ -68,7 +68,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func tagFilterCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let taggedFile = dir.appendingPathComponent("tagged_doc.txt")
@@ -84,7 +84,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func contentSearchCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let textFile = dir.appendingPathComponent("unrelated_name.txt")
@@ -104,7 +104,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func dateFilterCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let oldFile = dir.appendingPathComponent("old_file.txt")
@@ -130,7 +130,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func sizeFilterUnitAndOperatorCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let exact500 = dir.appendingPathComponent("exact_500b.bin")
@@ -143,7 +143,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func kindFilterVariantsCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? "x".write(to: dir.appendingPathComponent("report.pdf"), atomically: true, encoding: .utf8)
@@ -171,7 +171,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func multiTokenAndCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? "x".write(to: dir.appendingPathComponent("vacation_photo.png"), atomically: true, encoding: .utf8)
@@ -183,7 +183,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func sortOptionVariantsCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let older = dir.appendingPathComponent("older.txt")
@@ -220,7 +220,7 @@ public struct FileSystemTests {
     }
 
     nonisolated private static func recentsVirtualDirectoryCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let realFile = dir.appendingPathComponent("recent_real_file.txt")
@@ -255,7 +255,7 @@ extension FileSystemTests {
     // Covers isFileHidden's fallback branch: a file hidden via the .isHiddenKey resource flag
     // (e.g. `chflags hidden`) rather than via a leading-dot filename.
     nonisolated private static func resourceFlagHiddenFileCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         var flaggedHiddenFile = dir.appendingPathComponent("flagged_hidden.txt")
@@ -275,7 +275,7 @@ extension FileSystemTests {
     // Covers the "<=" operator branch and the gigabyte ("g") unit branch of matchesSizeFilter,
     // neither of which is exercised by the existing size-filter tests (which use "=", ">", "<", and "k"/"b" units).
     nonisolated private static func sizeFilterLessOrEqualAndGigabyteUnitCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let file1k = dir.appendingPathComponent("exactly_1k.bin")
@@ -293,7 +293,7 @@ extension FileSystemTests {
     // Covers the regex-trigger branch of parseSearchRegex reached via "^" or "$" without a "*",
     // distinct from the wildcard-triggered path already tested elsewhere.
     nonisolated private static func nonAsteriskRegexTriggerCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         try? "x".write(to: dir.appendingPathComponent("draft_final.txt"), atomically: true, encoding: .utf8)
@@ -307,13 +307,13 @@ extension FileSystemTests {
     }
     // Covers the early-return [] branch of loadRealDirectoryContents when contentsOfDirectory fails.
     nonisolated private static func nonExistentDirectoryCoverage() async {
-        let missingDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathComponent("does_not_exist")
+        let missingDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathComponent("does_not_exist")
         let results = await loadItems(at: missingDir)
         await TestReporter.report("FileSystem", "NEG: loadDirectoryContents on a non-existent directory returns an empty array instead of crashing", result: results.isEmpty)
     }
     // Covers the throwing path of setTags when given a URL that does not exist on disk.
     nonisolated private static func setTagsNegativeCoverage() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let missingFile = dir.appendingPathComponent("no_such_file.txt")
@@ -328,7 +328,7 @@ extension FileSystemTests {
     // Covers moveItem's success path and its "remove existing destination before moving" branch,
     // and compressToZIP/extractZIP, none of which are exercised elsewhere.
     private static func runMoveAndZipCoverageExtras() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
         // POS: moveItem moves a file into the target folder and removes it from the source location
@@ -387,8 +387,8 @@ extension FileSystemTests {
         TestReporter.report("FileSystem", "POS: compressToZIP/extractZIP round-trips a file's contents", result: zipRoundTripPassed)
     }
 
-    private static func runActionsCoverageExtras() {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+    private static func runActionsCoverageExtras() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
         // POS: copyItem copies file and leaves source intact
@@ -415,10 +415,10 @@ extension FileSystemTests {
             negCopyPassed = true
         }
         TestReporter.report("FileSystem", "NEG: copyItem to non-existent folder throws error", result: negCopyPassed)
-        runTrashCoverageExtra(tempDir: tempDir)
+        await runTrashCoverageExtra(tempDir: tempDir)
     }
 
-    private static func runTrashCoverageExtra(tempDir: URL) {
+    private static func runTrashCoverageExtra(tempDir: URL) async {
         // POS: moveToTrash removes the item from its original location
         let trashCandidate = tempDir.appendingPathComponent("trash_me.txt")
         try? "disposable".write(to: trashCandidate, atomically: true, encoding: .utf8)
@@ -439,10 +439,10 @@ extension FileSystemTests {
             negTrashPassed = true
         }
         TestReporter.report("FileSystem", "NEG: moveToTrash on non-existent file throws error", result: negTrashPassed)
-        runPasteboardCoverageExtras(tempDir: tempDir)
+        await runPasteboardCoverageExtras(tempDir: tempDir)
     }
 
-    private static func runPasteboardCoverageExtras(tempDir: URL) {
+    private static func runPasteboardCoverageExtras(tempDir: URL) async {
         // POS: writeToPasteboard / readFromPasteboard round-trip file URLs
         let pbFileA = tempDir.appendingPathComponent("pb_a.txt")
         let pbFileB = tempDir.appendingPathComponent("pb_b.txt")
@@ -458,7 +458,15 @@ extension FileSystemTests {
         let clipboardContent = "clipboard content \(UUID().uuidString)"
         try? clipboardContent.write(to: clipboardFile, atomically: true, encoding: .utf8)
         FileSystemService.copyFileContentToClipboard(url: clipboardFile)
-        let pasteboardString = NSPasteboard.general.string(forType: .string)
+        // copyFileContentToClipboard dispatches its file read via Task.detached internally (fixed
+        // to keep it off the main actor for slow volumes), so the pasteboard write lands
+        // asynchronously — poll instead of asserting immediately.
+        var pasteboardString: String?
+        for _ in 0..<20 {
+            pasteboardString = NSPasteboard.general.string(forType: .string)
+            if pasteboardString == clipboardContent { break }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
         TestReporter.report("FileSystem", "POS: copyFileContentToClipboard writes the file's text content to the pasteboard", result: pasteboardString == clipboardContent)
         // NEG: copyFileContentToClipboard on a non-existent file does not overwrite pasteboard with stale/empty content
         let priorMarker = "prior marker \(UUID().uuidString)"

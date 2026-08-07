@@ -11,7 +11,7 @@ import Foundation
 /// covered correctness — only the performance characteristics changed).
 public struct FileItemBulkPrefetchTests {
     public static func run() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

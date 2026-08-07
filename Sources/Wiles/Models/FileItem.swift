@@ -28,7 +28,7 @@ public struct FileItem: Identifiable, Hashable, Sendable {
     /// since it's part of the same batch as the other keys) and finally to `NSWorkspace`, but the
     /// hot path — loading a whole directory — should always supply the prefetched icon directly to
     /// avoid a blocking LaunchServices IPC call per file.
-    public init(url: URL, icon: NSImage? = nil, fetchTags: Bool = false) {
+    public init(url: URL, icon: NSImage? = nil, fetchTags: Bool = false, needsOwnerGroup: Bool = true) {
         self.url = url.standardizedFileURL
         self.name = url.lastPathComponent
 
@@ -42,11 +42,7 @@ public struct FileItem: Identifiable, Hashable, Sendable {
             .effectiveIconKey
         ]
         let values = try? url.resourceValues(forKeys: keys)
-
-        let resolvedIcon = icon ?? (values?.effectiveIcon as? NSImage) ?? NSWorkspace.shared.icon(forFile: url.path)
-        let highResIcon = (resolvedIcon.copy() as? NSImage) ?? resolvedIcon
-        highResIcon.size = NSSize(width: 512, height: 512)
-        self.icon = highResIcon
+        self.icon = Self.resolveHighResIcon(icon, values: values, url: url)
 
         // Fetched in a separate call: requesting .tagNamesKey together with the
         // .isUbiquitousItemKey/.ubiquitousItem* keys in one resourceValues batch
@@ -61,14 +57,20 @@ public struct FileItem: Identifiable, Hashable, Sendable {
         self.isHidden = values?.isHidden ?? url.lastPathComponent.hasPrefix(".")
         self.fileExtension = url.pathExtension.lowercased()
 
-        self.isUbiquitous = values?.isUbiquitousItem ?? false
-        let status = values?.ubiquitousItemDownloadingStatus
-        self.isUbiquitousNotDownloaded = (status == .notDownloaded)
-        self.isUbiquitousDownloading = values?.ubiquitousItemIsDownloading ?? false
-        self.isUbiquitousUploading = values?.ubiquitousItemIsUploading ?? false
+        let ubiquitous = Self.ubiquitousStatus(from: values)
+        self.isUbiquitous = ubiquitous.isUbiquitous
+        self.isUbiquitousNotDownloaded = ubiquitous.notDownloaded
+        self.isUbiquitousDownloading = ubiquitous.downloading
+        self.isUbiquitousUploading = ubiquitous.uploading
 
-        // Fetch POSIX owner/group
-        (self.ownerName, self.groupName) = Self.ownerAndGroup(atPath: url.path)
+        // Fetch POSIX owner/group. This is a separate stat/getpwuid/getgrgid syscall path that
+        // doesn't share the bulk-prefetched URLResourceValues above, so skip it entirely when the
+        // caller knows the Owner/Group columns aren't visible.
+        if needsOwnerGroup {
+            (self.ownerName, self.groupName) = Self.ownerAndGroup(atPath: url.path)
+        } else {
+            (self.ownerName, self.groupName) = ("--", "--")
+        }
 
         if fetchTags {
             self.tags = tagValues?.tagNames ?? []
@@ -77,6 +79,29 @@ public struct FileItem: Identifiable, Hashable, Sendable {
             self.tags = []
             self.tagColor = nil
         }
+    }
+
+    private static func resolveHighResIcon(_ icon: NSImage?, values: URLResourceValues?, url: URL) -> NSImage {
+        let resolvedIcon = icon ?? (values?.effectiveIcon as? NSImage) ?? NSWorkspace.shared.icon(forFile: url.path)
+        let highResIcon = (resolvedIcon.copy() as? NSImage) ?? resolvedIcon
+        highResIcon.size = NSSize(width: 512, height: 512)
+        return highResIcon
+    }
+
+    private struct UbiquitousStatus {
+        let isUbiquitous: Bool
+        let notDownloaded: Bool
+        let downloading: Bool
+        let uploading: Bool
+    }
+
+    private static func ubiquitousStatus(from values: URLResourceValues?) -> UbiquitousStatus {
+        UbiquitousStatus(
+            isUbiquitous: values?.isUbiquitousItem ?? false,
+            notDownloaded: values?.ubiquitousItemDownloadingStatus == .notDownloaded,
+            downloading: values?.ubiquitousItemIsDownloading ?? false,
+            uploading: values?.ubiquitousItemIsUploading ?? false
+        )
     }
 
     private static func ownerAndGroup(atPath path: String) -> (owner: String, group: String) {

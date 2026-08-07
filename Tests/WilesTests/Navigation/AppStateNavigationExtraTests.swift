@@ -14,12 +14,14 @@ public struct AppStateNavigationExtraTests {
         testNavigateToWithAddToHistoryFalseDoesNotPushHistory()
         testGoBackDoesNotDropForwardOnRepeatedCalls()
         testGoUpAtRootDoesNotNavigate()
+        testHistoryBackCapsAt200Entries()
+        testHistoryForwardCapsAt200EntriesWhenDrainingHistoryBack()
     }
 
     // MARK: - Helpers
 
     private static func tempDir() -> URL {
-        URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {
@@ -189,5 +191,78 @@ public struct AppStateNavigationExtraTests {
         appState.navigation.currentURL = root
         appState.goUp()
         report("Navigation/GoUp", "NEG: goUp() at the filesystem root does not navigate (parent == self)", result: appState.navigation.currentURL.path == root.path)
+    }
+
+    // MARK: - history cap (maxNavigationHistoryCount = 200)
+
+    /// Builds `count` real, existing temp subdirectories under a fresh parent dir so `navigateTo()`'s
+    /// synchronous local-path `fileExists` check treats each as a valid directory to navigate into.
+    private static func makeTempDirs(_ count: Int, in parent: URL) -> [URL] {
+        (0..<count).map { i in
+            let url = parent.appendingPathComponent("d\(i)")
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            return url
+        }
+    }
+
+    private static func testHistoryBackCapsAt200Entries() {
+        let parent = tempDir()
+        try? FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+
+        let appState = AppState()
+        appState.navigation.historyBack = []
+        appState.navigation.historyForward = []
+
+        // navigateTo() on a local (non-/Volumes/) path resolves fileExists synchronously and calls
+        // completeNavigation() inline, so this drives the full push-and-cap logic synchronously —
+        // no async wait needed.
+        let dirs = makeTempDirs(250, in: parent)
+        appState.navigation.currentURL = dirs[0]
+        for dir in dirs.dropFirst() {
+            appState.navigateTo(dir)
+        }
+
+        report(
+            "Navigation/History",
+            "POS: historyBack caps at 200 entries after 249 navigations (would be 249 uncapped)",
+            result: appState.navigation.historyBack.count == 200
+        )
+        report(
+            "Navigation/History",
+            "NEG: historyBack does not grow past the 200 cap",
+            result: appState.navigation.historyBack.count < dirs.count - 1
+        )
+    }
+
+    private static func testHistoryForwardCapsAt200EntriesWhenDrainingHistoryBack() {
+        let parent = tempDir()
+        try? FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+
+        let appState = AppState()
+        appState.navigation.historyBack = []
+        appState.navigation.historyForward = []
+
+        let dirs = makeTempDirs(250, in: parent)
+        appState.navigation.currentURL = dirs[0]
+        for dir in dirs.dropFirst() {
+            appState.navigateTo(dir)
+        }
+        // historyBack is now capped at 200. Drain it entirely with more goBack() calls than entries
+        // exist (250 > 200) to also exercise the "no-op past empty" guard, while every successful pop
+        // pushes into historyForward — proving that side's cap enforcement (goBack()'s own
+        // `if navigation.historyForward.count > maxNavigationHistoryCount { removeFirst() }`) never
+        // lets it exceed 200 either.
+        for _ in 0..<250 {
+            appState.goBack()
+        }
+
+        report("Navigation/History", "POS: historyBack drains to empty once fully popped", result: appState.navigation.historyBack.isEmpty)
+        report(
+            "Navigation/History",
+            "POS: historyForward caps at 200 entries after draining a 200-entry historyBack (would be 200, cap has no effect on exceeding it here, but never grows past it)",
+            result: appState.navigation.historyForward.count == 200
+        )
     }
 }

@@ -16,14 +16,14 @@ public struct DirectoryCacheTests {
     }
 
     private static func sampleResult() -> DirectoryLoadResult {
-        let tempDir = NSTemporaryDirectory()
+        let tempDir = testTemporaryDirectory()
         let url = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("cache-test-item.txt"))
         let item = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
         return DirectoryLoadResult(items: [item], isPermissionDenied: false)
     }
 
     private static func testCacheAndRetrieveRoundTrip() {
-        let tempDir = NSTemporaryDirectory()
+        let tempDir = testTemporaryDirectory()
         let url = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("cache-test-dir-\(UUID().uuidString)"))
         let service = DirectoryCacheService.shared
         service.invalidate(url: url)
@@ -37,14 +37,14 @@ public struct DirectoryCacheTests {
     }
 
     private static func testUncachedURLReturnsNil() {
-        let tempDir = NSTemporaryDirectory()
+        let tempDir = testTemporaryDirectory()
         let url = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("never-cached-\(UUID().uuidString)"))
         let cached = DirectoryCacheService.shared.cachedResult(for: url)
         report("DirectoryCache", "NEG: querying an untouched URL returns nil", result: cached == nil)
     }
 
     private static func testInvalidateRemovesEntry() {
-        let tempDir = NSTemporaryDirectory()
+        let tempDir = testTemporaryDirectory()
         let url = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("cache-invalidate-\(UUID().uuidString)"))
         let service = DirectoryCacheService.shared
         service.cacheDirectory(sampleResult(), for: url)
@@ -55,7 +55,7 @@ public struct DirectoryCacheTests {
     }
 
     private static func testThumbnailPrefetchPositiveAndNegative() {
-        let tempDir = NSTemporaryDirectory()
+        let tempDir = testTemporaryDirectory()
         let pngURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("test-sample.png"))
         let pdfURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("document.pdf"))
         let txtURL = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("readme.txt"))
@@ -85,7 +85,7 @@ public struct DirectoryCacheTests {
     }
 
     private static func testClearAllRemovesMultipleEntries() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -102,7 +102,7 @@ public struct DirectoryCacheTests {
     }
 
     private static func testCachingOverwritesExistingEntry() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -125,7 +125,7 @@ public struct DirectoryCacheTests {
     }
 
     private static func testStandardizedURLEquivalence() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -148,7 +148,7 @@ public struct DirectoryCacheTests {
     }
 
     private static func testInvalidateNonExistentURLIsNoOp() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

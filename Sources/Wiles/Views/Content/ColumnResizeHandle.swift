@@ -42,10 +42,14 @@ struct ColumnResizeHandle: View {
                     let initWidth = dragStartWidth ?? column.defaultWidth
                     let newWidth = max(LayoutTokens.columnMinWidth, initWidth + dx)
 
-                    appState.setColumnWidth(column, width: newWidth)
+                    // Skip persistence on every intermediate delta — encoding + writing to UserDefaults
+                    // on each mouse-move would run dozens of times/sec while dragging. The final width
+                    // is persisted once in .onEnded below.
+                    appState.setColumnWidth(column, width: newWidth, persist: false)
                 }
                 .onEnded { _ in
                     dragStartWidth = nil
+                    appState.persistColumnWidths()
                     NSCursor.pop()
                 }
         )

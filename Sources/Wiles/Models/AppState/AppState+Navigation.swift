@@ -2,6 +2,10 @@ import Foundation
 import AppKit
 import SwiftUI
 
+/// Caps `navigation.historyBack`/`navigation.historyForward` so a long session of folder-hopping
+/// doesn't grow these arrays (and the recent-folders UI they drive) without bound.
+private let maxNavigationHistoryCount = 200
+
 extension AppState {
     public func navigateTo(_ url: URL, addToHistory: Bool = true) {
         HapticService.shared.play(.alignment)
@@ -33,6 +37,7 @@ extension AppState {
     private func navigateToRecentsVirtual(addToHistory: Bool) {
         if addToHistory && Self.recentsVirtualURL != navigation.currentURL {
             navigation.historyBack.append(navigation.currentURL)
+            if navigation.historyBack.count > maxNavigationHistoryCount { navigation.historyBack.removeFirst() }
             navigation.historyForward.removeAll()
         }
         navigation.currentURL = Self.recentsVirtualURL
@@ -50,6 +55,7 @@ extension AppState {
         let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: url.standardizedFileURL)
         if addToHistory && url != navigation.currentURL {
             navigation.historyBack.append(navigation.currentURL)
+            if navigation.historyBack.count > maxNavigationHistoryCount { navigation.historyBack.removeFirst() }
             navigation.historyForward.removeAll()
         }
         navigation.currentURL = url.standardizedFileURL
@@ -73,12 +79,14 @@ extension AppState {
     public func goBack() {
         guard let prev = navigation.historyBack.popLast() else { return }
         navigation.historyForward.append(navigation.currentURL)
+        if navigation.historyForward.count > maxNavigationHistoryCount { navigation.historyForward.removeFirst() }
         navigateTo(prev, addToHistory: false)
     }
 
     public func goForward() {
         guard let next = navigation.historyForward.popLast() else { return }
         navigation.historyBack.append(navigation.currentURL)
+        if navigation.historyBack.count > maxNavigationHistoryCount { navigation.historyBack.removeFirst() }
         navigateTo(next, addToHistory: false)
     }
 
@@ -94,6 +102,7 @@ extension AppState {
         let target = navigation.currentURL
         let hidden = preferences.showHiddenFiles
         let tags = preferences.showTags
+        let ownerGroup = isColumnVisible(.owner) || isColumnVisible(.group)
         let query = searchQuery
         let sort = preferences.sortOption
         let asc = preferences.sortAscending
@@ -104,18 +113,35 @@ extension AppState {
             applyLoadedItems(cached.items, target: target)
         }
 
-        Task {
+        // Cancel any load already in flight — every keystroke of a search or rapid navigation used to
+        // spawn an unstructured Task with no cancellation, letting a stale result race a fresher one.
+        refreshTask?.cancel()
+        refreshTask = Task {
             let loaded = await FileSystemService.loadDirectoryContents(
                 at: target,
-                options: DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc)
+                options: DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc, showOwnerGroup: ownerGroup)
             )
-            if self.navigation.currentURL == target {
+            guard !Task.isCancelled else { return }
+            if self.navigation.currentURL == target && self.searchQuery == query {
                 await MainActor.run {
                     self.applyLoadedItems(loaded, target: target)
+                    self.refreshTrashSizeIfNeeded(target: target)
                 }
             }
-            self.updateTrashSize()
         }
+    }
+
+    /// `updateTrashSize()` recursively enumerates all of `~/.Trash` — too expensive to run
+    /// unconditionally on every navigation, search keystroke, and FSEvents auto-refresh. Only run it
+    /// when the user actually navigated into Trash, or opportunistically at most once per
+    /// `trashSizeCheckInterval` so the footer/sidebar figure still drifts back into sync over time.
+    private func refreshTrashSizeIfNeeded(target: URL) {
+        let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
+        let isTrash = trashURL.map { $0.standardizedFileURL == target.standardizedFileURL } ?? false
+        let dueForCoarseCheck = Date().timeIntervalSince(lastOpportunisticTrashSizeCheck) >= Self.trashSizeCheckInterval
+        guard isTrash || dueForCoarseCheck else { return }
+        lastOpportunisticTrashSizeCheck = Date()
+        updateTrashSize()
     }
 
     /// Applies a freshly-loaded (or cached) item list — used by both the instant cache render and the

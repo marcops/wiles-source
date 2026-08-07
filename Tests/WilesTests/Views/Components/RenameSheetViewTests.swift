@@ -5,7 +5,7 @@ import SwiftUI
 public struct RenameSheetViewTests {
     public static func run() {
         let appState = AppState()
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_rename.txt")
+        let tempURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("test_rename.txt")
         let item = FileItem(url: tempURL, icon: NSImage())
 
         let view = RenameSheetView(item: item, appState: appState)

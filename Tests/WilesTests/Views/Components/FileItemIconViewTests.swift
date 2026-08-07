@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 public struct FileItemIconViewTests {
     public static func run() {
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("test_icon.txt")
+        let tempURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("test_icon.txt")
         let item = FileItem(url: tempURL, icon: NSImage())
 
         let view = FileItemIconView(item: item, size: 32)

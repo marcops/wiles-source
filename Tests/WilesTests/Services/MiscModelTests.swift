@@ -13,11 +13,11 @@ public struct MiscModelTests {
     }
 
     private static func testWilesErrorDescriptions() {
-        let secretPath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("secret").path
+        let secretPath = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("secret").path
         let permissionDenied = WilesError.permissionDenied(path: secretPath)
         report("WilesError", "POS: permissionDenied includes the offending path", result: (permissionDenied.errorDescription ?? "").contains(secretPath))
 
-        let fullPath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("full").path
+        let fullPath = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("full").path
         let diskFull = WilesError.diskFull(path: fullPath)
         report("WilesError", "POS: diskFull includes the offending path", result: (diskFull.errorDescription ?? "").contains(fullPath))
 
@@ -30,7 +30,7 @@ public struct MiscModelTests {
     }
 
     private static func testClipboardStateIsCut() {
-        let tempBase = URL(fileURLWithPath: NSTemporaryDirectory())
+        let tempBase = URL(fileURLWithPath: testTemporaryDirectory())
         let url = tempBase.appendingPathComponent("clip-test-\(UUID().uuidString).txt")
         let cutState = ClipboardState(urls: [url], action: .cut)
         report("ClipboardState", "POS: isCut(url:) is true for a URL that was cut", result: cutState.isCut(url: url))

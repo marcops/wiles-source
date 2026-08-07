@@ -268,22 +268,31 @@ struct SharedFileItemContextMenu: View {
                 let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
                 ForEach(predefinedTags, id: \.self) { tag in
                     Button {
-                        for url in targetURLs {
-                            let fallbackItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
-                            let currentItem = appState.fileSystem.items.first(where: { $0.url == url }) ?? fallbackItem
-                            var newTags = currentItem.tags
-                            if newTags.contains(tag) {
-                                newTags.removeAll { $0 == tag }
-                            } else {
-                                newTags.append(tag)
+                        let itemsSnapshot = appState.fileSystem.items
+                        Task.detached(priority: .userInitiated) {
+                            var lastError: String?
+                            for url in targetURLs {
+                                let fallbackItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
+                                let currentItem = itemsSnapshot.first(where: { $0.url == url }) ?? fallbackItem
+                                var newTags = currentItem.tags
+                                if newTags.contains(tag) {
+                                    newTags.removeAll { $0 == tag }
+                                } else {
+                                    newTags.append(tag)
+                                }
+                                do {
+                                    try FileSystemService.setTags(for: url, tags: newTags)
+                                } catch {
+                                    lastError = error.localizedDescription
+                                }
                             }
-                            do {
-                                try FileSystemService.setTags(for: url, tags: newTags)
-                            } catch {
-                                appState.showError(error.localizedDescription)
+                            await MainActor.run {
+                                if let lastError {
+                                    appState.showError(lastError)
+                                }
+                                appState.refreshCurrentDirectory()
                             }
                         }
-                        appState.refreshCurrentDirectory()
                     } label: {
                         HStack {
                             if let key = tagKeys[tag] {
@@ -300,14 +309,22 @@ struct SharedFileItemContextMenu: View {
                 if !item.tags.isEmpty || targetURLs.count > 1 {
                     Divider()
                     Button(appState.tr(.clearAllTags)) {
-                        for url in targetURLs {
-                            do {
-                                try FileSystemService.setTags(for: url, tags: [])
-                            } catch {
-                                appState.showError(error.localizedDescription)
+                        Task.detached(priority: .userInitiated) {
+                            var lastError: String?
+                            for url in targetURLs {
+                                do {
+                                    try FileSystemService.setTags(for: url, tags: [])
+                                } catch {
+                                    lastError = error.localizedDescription
+                                }
+                            }
+                            await MainActor.run {
+                                if let lastError {
+                                    appState.showError(lastError)
+                                }
+                                appState.refreshCurrentDirectory()
                             }
                         }
-                        appState.refreshCurrentDirectory()
                     }
                 }
             }

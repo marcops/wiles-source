@@ -51,10 +51,13 @@ public final class LocalHttpServerService: @unchecked Sendable {
     public func stop() {
         listener?.cancel()
         listener = nil
-        for conn in connections {
-            conn.cancel()
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            for conn in self.connections {
+                conn.cancel()
+            }
+            self.connections.removeAll()
         }
-        connections.removeAll()
         sharedFolder = nil
         Task { @MainActor in
             isRunning = false
@@ -191,12 +194,60 @@ public final class LocalHttpServerService: @unchecked Sendable {
             return
         }
 
+        streamFile(at: fileURL, connection: connection)
+    }
+
+    // Chunk size for streaming file bodies: bounds peak memory usage while serving large files
+    // instead of buffering the entire file into a single `Data` object (see `streamFile`).
+    private static let fileStreamChunkSize = 64 * 1024
+
+    private func streamFile(at fileURL: URL, connection: NWConnection) {
         do {
-            let data = try Data(contentsOf: fileURL)
-            sendResponse(connection: connection, statusCode: HTTPStatus.ok, body: data, contentType: "application/octet-stream")
+            let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+            let fileSize = (attributes[.size] as? Int) ?? 0
+            let fileHandle = try FileHandle(forReadingFrom: fileURL)
+            let statusText = HTTPURLResponse.localizedString(forStatusCode: HTTPStatus.ok)
+            let headerStr = """
+            HTTP/1.1 \(HTTPStatus.ok) \(statusText)\r
+            Content-Length: \(fileSize)\r
+            Content-Type: application/octet-stream\r
+            Connection: close\r
+            \r
+
+            """
+            connection.send(content: Data(headerStr.utf8), completion: .contentProcessed({ [weak self] error in
+                guard let self = self, error == nil else {
+                    try? fileHandle.close()
+                    connection.cancel()
+                    self?.connections.removeAll(where: { $0 === connection })
+                    return
+                }
+                self.sendNextChunk(fileHandle: fileHandle, connection: connection)
+            }))
         } catch {
             sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading file".utf8))
         }
+    }
+
+    private func sendNextChunk(fileHandle: FileHandle, connection: NWConnection) {
+        let chunk = try? fileHandle.read(upToCount: Self.fileStreamChunkSize)
+
+        guard let chunk = chunk, !chunk.isEmpty else {
+            try? fileHandle.close()
+            connection.cancel()
+            connections.removeAll(where: { $0 === connection })
+            return
+        }
+
+        connection.send(content: chunk, completion: .contentProcessed({ [weak self] error in
+            guard let self = self, error == nil else {
+                try? fileHandle.close()
+                connection.cancel()
+                self?.connections.removeAll(where: { $0 === connection })
+                return
+            }
+            self.sendNextChunk(fileHandle: fileHandle, connection: connection)
+        }))
     }
 
     private func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain") {

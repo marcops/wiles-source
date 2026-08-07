@@ -39,56 +39,62 @@ public final class UndoRedoService {
         !redoStack.isEmpty
     }
 
-    public func undo() async -> URL? {
+    public func undo() async throws -> URL? {
         guard let record = undoStack.popLast() else { return nil }
-        redoStack.append(record)
-        return await executeReverseAction(record.actionType)
-    }
-
-    public func redo() async -> URL? {
-        guard let record = redoStack.popLast() else { return nil }
-        undoStack.append(record)
-        return await executeForwardAction(record.actionType)
-    }
-
-    private func executeReverseAction(_ action: UndoActionType) async -> URL? {
         do {
-            switch action {
-            case .rename(let oldURL, let newURL):
-                return try FileSystemService.renameItem(at: newURL, newName: oldURL.lastPathComponent)
-            case .move(let sourceURL, let destinationURL):
-                return try FileSystemService.moveItem(at: destinationURL, toFolder: sourceURL.deletingLastPathComponent())
-            case .create(let url):
-                _ = try FileSystemService.moveToTrash(url: url)
-                return url.deletingLastPathComponent()
-            case .trash(let originalURL, let trashedURL):
-                return try FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
-            }
+            let url = try await executeReverseAction(record.actionType)
+            redoStack.append(record)
+            return url
         } catch {
-            return nil
+            // Action wasn't actually undone: put the record back so it remains available
+            // to retry, instead of silently promoting it to a bogus redo entry.
+            undoStack.append(record)
+            throw error
         }
     }
 
-    private func executeForwardAction(_ action: UndoActionType) async -> URL? {
+    public func redo() async throws -> URL? {
+        guard let record = redoStack.popLast() else { return nil }
         do {
-            switch action {
-            case .rename(let oldURL, let newURL):
-                return try FileSystemService.renameItem(at: oldURL, newName: newURL.lastPathComponent)
-            case .move(let sourceURL, let destinationURL):
-                return try FileSystemService.moveItem(at: sourceURL, toFolder: destinationURL.deletingLastPathComponent())
-            case .create(let url):
-                let folder = url.deletingLastPathComponent()
-                let name = url.lastPathComponent
-                return try FileSystemService.createDirectory(at: folder, name: name)
-            case .trash(let originalURL, _):
-                // originalURL, not the stale trashedURL: undo() already moved the file back to
-                // originalURL, so the old trashedURL path no longer exists on disk by the time
-                // redo runs (moveToTrash on it would throw, incorrectly failing every trash redo).
-                _ = try FileSystemService.moveToTrash(url: originalURL)
-                return originalURL.deletingLastPathComponent()
-            }
+            let url = try await executeForwardAction(record.actionType)
+            undoStack.append(record)
+            return url
         } catch {
-            return nil
+            redoStack.append(record)
+            throw error
+        }
+    }
+
+    private func executeReverseAction(_ action: UndoActionType) async throws -> URL {
+        switch action {
+        case .rename(let oldURL, let newURL):
+            return try FileSystemService.renameItem(at: newURL, newName: oldURL.lastPathComponent)
+        case .move(let sourceURL, let destinationURL):
+            return try FileSystemService.moveItem(at: destinationURL, toFolder: sourceURL.deletingLastPathComponent())
+        case .create(let url):
+            _ = try FileSystemService.moveToTrash(url: url)
+            return url.deletingLastPathComponent()
+        case .trash(let originalURL, let trashedURL):
+            return try FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
+        }
+    }
+
+    private func executeForwardAction(_ action: UndoActionType) async throws -> URL {
+        switch action {
+        case .rename(let oldURL, let newURL):
+            return try FileSystemService.renameItem(at: oldURL, newName: newURL.lastPathComponent)
+        case .move(let sourceURL, let destinationURL):
+            return try FileSystemService.moveItem(at: sourceURL, toFolder: destinationURL.deletingLastPathComponent())
+        case .create(let url):
+            let folder = url.deletingLastPathComponent()
+            let name = url.lastPathComponent
+            return try FileSystemService.createDirectory(at: folder, name: name)
+        case .trash(let originalURL, _):
+            // originalURL, not the stale trashedURL: undo() already moved the file back to
+            // originalURL, so the old trashedURL path no longer exists on disk by the time
+            // redo runs (moveToTrash on it would throw, incorrectly failing every trash redo).
+            _ = try FileSystemService.moveToTrash(url: originalURL)
+            return originalURL.deletingLastPathComponent()
         }
     }
 }

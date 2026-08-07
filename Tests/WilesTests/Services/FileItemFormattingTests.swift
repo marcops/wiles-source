@@ -11,6 +11,7 @@ public struct FileItemFormattingTests {
         testFormattedDatesForFreshFile()
         testFormattedDateAccessedHandlesNil()
         testOwnerAndGroupNameResolution()
+        testNeedsOwnerGroupFlagSkipsSyscall()
     }
 
     private static func makeFileItem(at url: URL) -> FileItem {
@@ -18,7 +19,7 @@ public struct FileItemFormattingTests {
     }
 
     private static func testFormattedSizeForZeroByteFile() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -31,7 +32,7 @@ public struct FileItemFormattingTests {
     }
 
     private static func testFormattedSizeGrowsWithFileSize() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -55,7 +56,7 @@ public struct FileItemFormattingTests {
     }
 
     private static func testFormattedSizeForDirectory() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -68,7 +69,7 @@ public struct FileItemFormattingTests {
     }
 
     private static func testFormattedDatesForFreshFile() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -101,7 +102,7 @@ public struct FileItemFormattingTests {
     }
 
     private static func testFormattedDateAccessedHandlesNil() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -132,7 +133,7 @@ public struct FileItemFormattingTests {
     }
 
     private static func testOwnerAndGroupNameResolution() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -147,6 +148,48 @@ public struct FileItemFormattingTests {
 
         let currentUser = NSUserName()
         report("FileItem.ownerName", "POS: ownerName matches the current process's account name for a file created by this process", result: item.ownerName == currentUser)
+    }
+
+    // Regression coverage for the N+1 owner/group syscall fix: FileItem.init gained a
+    // `needsOwnerGroup: Bool = true` parameter. When false, it must skip the ownerAndGroup(atPath:)
+    // syscall entirely and fall back to the "--" placeholders instead of resolving real values —
+    // this is what lets bulk directory loads (which already fetch owner/group elsewhere) avoid a
+    // per-file stat call. When true (or omitted, the default), real values must still be resolved,
+    // proving the flag doesn't accidentally short-circuit the normal path.
+    private static func testNeedsOwnerGroupFlagSkipsSyscall() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("needs_owner_group.txt")
+        try? "hello".write(to: file, atomically: true, encoding: .utf8)
+
+        let skippedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: false)
+        report(
+            "FileItem.needsOwnerGroup", "POS: needsOwnerGroup: false sets ownerName to the \"--\" placeholder instead of resolving it",
+            result: skippedItem.ownerName == "--"
+        )
+        report(
+            "FileItem.needsOwnerGroup", "POS: needsOwnerGroup: false sets groupName to the \"--\" placeholder instead of resolving it",
+            result: skippedItem.groupName == "--"
+        )
+
+        let resolvedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: true)
+        let currentUser = NSUserName()
+        report(
+            "FileItem.needsOwnerGroup", "NEG: needsOwnerGroup: true still resolves ownerName to a real (non-placeholder) value",
+            result: resolvedItem.ownerName != "--" && resolvedItem.ownerName == currentUser
+        )
+        report(
+            "FileItem.needsOwnerGroup", "NEG: needsOwnerGroup: true still resolves groupName to a real (non-placeholder) value",
+            result: resolvedItem.groupName != "--" && !resolvedItem.groupName.isEmpty
+        )
+
+        let defaultedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)))
+        report(
+            "FileItem.needsOwnerGroup", "POS: omitting needsOwnerGroup defaults to true and still resolves a real ownerName",
+            result: defaultedItem.ownerName == currentUser
+        )
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

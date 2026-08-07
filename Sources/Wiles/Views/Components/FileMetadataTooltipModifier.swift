@@ -13,7 +13,9 @@ private struct FileMetadataTooltipModifier: ViewModifier {
             .help(text ?? item.name)
             .onHover { hovering in
                 if hovering && text == nil {
-                    text = FileMetadataTooltipService.tooltip(for: item)
+                    Task { @MainActor in
+                        text = await FileMetadataTooltipService.tooltip(for: item)
+                    }
                 }
             }
     }

@@ -3,7 +3,7 @@ import Foundation
 
 extension ArchiveTests {
     static func runTarExtractionTests() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -107,7 +107,7 @@ extension ArchiveTests {
     }
 
     static func runIsArchiveEdgeCaseTests() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
 
         // POS: isArchive is case-insensitive on extension
         let uppercaseZip = ArchiveService.isArchive(url: dir.appendingPathComponent("Photo.ZIP"))
@@ -127,7 +127,7 @@ extension ArchiveTests {
     }
 
     static func runExtractZIPWrapperTests() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -164,7 +164,7 @@ extension ArchiveTests {
     }
 
     static func runCorruptArchiveErrorPathTests() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

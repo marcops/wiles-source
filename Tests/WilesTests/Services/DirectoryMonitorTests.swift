@@ -10,7 +10,7 @@ public struct DirectoryMonitorTests {
     }
 
     private static func testStartDetectsFileCreation() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -43,7 +43,7 @@ public struct DirectoryMonitorTests {
     }
 
     private static func testCancelStopsFurtherNotifications() async {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -79,7 +79,7 @@ public struct DirectoryMonitorTests {
     }
 
     private static func testStartOnNonexistentPathDoesNotCrash() {
-        let missingDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let missingDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         // Deliberately do not create this directory.
 
         let monitor = DirectoryMonitor()

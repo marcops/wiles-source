@@ -9,7 +9,7 @@ public struct HttpSharingFeatureTests {
         defer {
             if initialState != server.isRunning {
                 if initialState {
-                    try? server.start(sharing: URL(fileURLWithPath: NSTemporaryDirectory()))
+                    try? server.start(sharing: URL(fileURLWithPath: testTemporaryDirectory()))
                 } else {
                     server.stop()
                 }

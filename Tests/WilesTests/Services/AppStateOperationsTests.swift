@@ -31,7 +31,7 @@ public struct AppStateOperationsTests {
         appState.cutSelected()
         report("AppState+Operations", "NEG: cutSelected() with empty selection leaves clipboard nil", result: appState.clipboard == nil)
 
-        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("cut-\(UUID().uuidString).txt")
+        let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("cut-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.cutSelected()
         report(
@@ -47,14 +47,14 @@ public struct AppStateOperationsTests {
         appState.copySelected()
         report("AppState+Operations", "NEG: copySelected() with empty selection leaves clipboard nil", result: appState.clipboard == nil)
 
-        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("copy-\(UUID().uuidString).txt")
+        let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("copy-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.copySelected()
         report("AppState+Operations", "POS: copySelected() stores selection in clipboard with .copy action", result: appState.clipboard?.action == .copy)
     }
 
     private static func testSelectAllItems() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -68,7 +68,7 @@ public struct AppStateOperationsTests {
     }
 
     private static func testOpenSelectedItemNavigatesIn() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let subfolder = dir.appendingPathComponent("subfolder")
         try? FileManager.default.createDirectory(at: subfolder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -89,14 +89,14 @@ public struct AppStateOperationsTests {
         appState.triggerQuickLookForSelected()
         report("AppState+Operations", "NEG: triggerQuickLookForSelected() with no selection leaves quickLookURL nil", result: appState.quickLookURL == nil)
 
-        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ql-\(UUID().uuidString).txt")
+        let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("ql-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.triggerQuickLookForSelected()
         report("AppState+Operations", "POS: triggerQuickLookForSelected() sets quickLookURL to the selected item", result: appState.quickLookURL == url)
     }
 
     private static func testOpenPropertiesForSelected() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -113,7 +113,7 @@ public struct AppStateOperationsTests {
 
         let appState2 = AppState()
         appState2.fileSystem.items = []
-        appState2.selectedURLs = [URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("unknown-\(UUID().uuidString).txt")]
+        appState2.selectedURLs = [URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("unknown-\(UUID().uuidString).txt")]
         appState2.openPropertiesForSelected()
         report("AppState+Operations", "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item", result: appState2.propertiesItem == nil)
     }

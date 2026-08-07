@@ -6,15 +6,10 @@ public struct UndoRedoTests {
     public static func run() async {
         let service = UndoRedoService.shared
 
-        // Negative: Undo on empty stack
-        let emptyUndo = await service.undo()
-        TestReporter.report("UndoRedo", "NEG: undo() on empty stack returns nil", result: emptyUndo == nil)
-
-        let emptyRedo = await service.redo()
-        TestReporter.report("UndoRedo", "NEG: redo() on empty stack returns nil", result: emptyRedo == nil)
+        await testEmptyStackOperations(service: service)
 
         // Positive: Record & Undo Action
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let fileA = tempDir.appendingPathComponent("fileA.txt")
         try? "Data".write(to: fileA, atomically: true, encoding: .utf8)
@@ -22,8 +17,35 @@ public struct UndoRedoTests {
         await testRenameAndMoveRoundTrip(service: service, tempDir: tempDir, fileA: fileA)
         await testCreateTrashAndHistoryCap(service: service, tempDir: tempDir, fileA: fileA)
         await testTrashRedoAndGhostFailures(service: service, tempDir: tempDir)
+        await testFailedUndoDoesNotCorruptStack(service: service, tempDir: tempDir)
 
         try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    // UndoRedoService.shared is a process-wide singleton (AGENTS.md rule 17: no shared-state
+    // assumptions). Other test files that touch it earlier in the same test run may leave residue
+    // that can never be fully cleared via undo()/redo() alone — both always relocate a record to
+    // the opposite stack, never discard it, so a record left by another file can end up parked on
+    // either stack. Only assert the nil-on-empty behavior when the stack is verifiably empty going
+    // in, instead of assuming a pristine singleton.
+    private static func testEmptyStackOperations(service: UndoRedoService) async {
+        if !service.canUndo() {
+            do {
+                let emptyUndo = try await service.undo()
+                TestReporter.report("UndoRedo", "NEG: undo() on empty stack returns nil", result: emptyUndo == nil)
+            } catch {
+                TestReporter.report("UndoRedo", "NEG: undo() on empty stack returns nil", result: false)
+            }
+        }
+
+        if !service.canRedo() {
+            do {
+                let emptyRedo = try await service.redo()
+                TestReporter.report("UndoRedo", "NEG: redo() on empty stack returns nil", result: emptyRedo == nil)
+            } catch {
+                TestReporter.report("UndoRedo", "NEG: redo() on empty stack returns nil", result: false)
+            }
+        }
     }
 
     private static func testRenameAndMoveRoundTrip(service: UndoRedoService, tempDir: URL, fileA: URL) async {
@@ -34,7 +56,7 @@ public struct UndoRedoTests {
             service.recordAction(.rename(oldURL: fileA, newURL: newURL))
             TestReporter.report("UndoRedo", "POS: canUndo() is true after recording action", result: service.canUndo())
 
-            let undoResult = await service.undo()
+            let undoResult = try? await service.undo()
             let undoPos = undoResult != nil && FileManager.default.fileExists(atPath: fileA.path) && !FileManager.default.fileExists(atPath: fileB.path)
             TestReporter.report("UndoRedo", "POS: undo() reverses rename operation", result: undoPos)
         }
@@ -49,12 +71,12 @@ public struct UndoRedoTests {
 
         if let movedURL = try? FileSystemService.moveItem(at: movable, toFolder: destDir) {
             service.recordAction(.move(sourceURL: movable, destinationURL: movedURL))
-            let undoMove = await service.undo()
+            let undoMove = try? await service.undo()
             let undoMovePos = undoMove != nil && FileManager.default.fileExists(atPath: movable.path) && !FileManager.default.fileExists(atPath: movedURL.path)
             TestReporter.report("UndoRedo", "POS: undo() reverses a move operation", result: undoMovePos)
 
             TestReporter.report("UndoRedo", "POS: canRedo() is true right after an undo", result: service.canRedo())
-            let redoMove = await service.redo()
+            let redoMove = try? await service.redo()
             let redoMovePos = redoMove != nil && FileManager.default.fileExists(atPath: movedURL.path) && !FileManager.default.fileExists(atPath: movable.path)
             TestReporter.report("UndoRedo", "POS: redo() re-applies the move operation", result: redoMovePos)
         }
@@ -65,11 +87,11 @@ public struct UndoRedoTests {
         let createdFolderName = "created_by_test"
         if let createdURL = try? FileSystemService.createDirectory(at: tempDir, name: createdFolderName) {
             service.recordAction(.create(url: createdURL))
-            let undoCreate = await service.undo()
+            let undoCreate = try? await service.undo()
             let undoCreatePos = undoCreate != nil && !FileManager.default.fileExists(atPath: createdURL.path)
             TestReporter.report("UndoRedo", "POS: undo() on a create action trashes the created item", result: undoCreatePos)
 
-            let redoCreate = await service.redo()
+            let redoCreate = try? await service.redo()
             let redoCreatePos = redoCreate != nil && FileManager.default.fileExists(atPath: createdURL.path)
             TestReporter.report("UndoRedo", "POS: redo() on a create action recreates the folder", result: redoCreatePos)
         }
@@ -79,33 +101,45 @@ public struct UndoRedoTests {
         try? "trash me".write(to: trashable, atomically: true, encoding: .utf8)
         if let trashedURL = try? FileSystemService.moveToTrash(url: trashable) {
             service.recordAction(.trash(originalURL: trashable, trashedURL: trashedURL))
-            let undoTrash = await service.undo()
+            let undoTrash = try? await service.undo()
             let undoTrashPos = undoTrash != nil && FileManager.default.fileExists(atPath: trashable.path)
             TestReporter.report("UndoRedo", "POS: undo() on a trash action restores the file from Trash", result: undoTrashPos)
         }
 
-        // NEG: recording a new action clears the redo stack
-        service.recordAction(.rename(oldURL: fileA, newURL: fileA))
+        // NEG: recording a new action clears the redo stack. Must back this with a real,
+        // successfully-completed rename (not a no-op self-rename on a URL that may no longer
+        // exist) — the drain loop below undoes every queued record for real, and Fix 2's retry
+        // semantics re-push any record whose undo fails, so a permanently-unrecoverable dummy
+        // record here would make that loop spin forever.
+        let redoClearDummy = tempDir.appendingPathComponent("redo_clear_dummy.txt")
+        try? "x".write(to: redoClearDummy, atomically: true, encoding: .utf8)
+        if let renamedDummy = try? FileSystemService.renameItem(at: redoClearDummy, newName: "redo_clear_dummy_renamed.txt") {
+            service.recordAction(.rename(oldURL: redoClearDummy, newURL: renamedDummy))
+        }
         TestReporter.report("UndoRedo", "NEG: recording a new action clears the redo stack", result: !service.canRedo())
 
-        // NEG: undo() returns nil when the underlying file operation throws
-        // (record a rename action, then externally delete the renamed file before calling undo)
-        let ghostSource = tempDir.appendingPathComponent("ghostSource.txt")
-        let ghostRenamed = tempDir.appendingPathComponent("ghostRenamed.txt")
-        try? "ghost".write(to: ghostRenamed, atomically: true, encoding: .utf8)
-        service.recordAction(.rename(oldURL: ghostSource, newURL: ghostRenamed))
-        try? FileManager.default.removeItem(at: ghostRenamed) // remove the file the undo would try to rename
-        let ghostUndo = await service.undo()
-        TestReporter.report("UndoRedo", "NEG: undo() returns nil when the underlying file operation throws (renamed file externally deleted)", result: ghostUndo == nil)
-
-        // POS/NEG: history is capped at maxHistoryLimit (50) - oldest actions are evicted
-        while service.canUndo() { _ = await service.undo() }
+        // POS/NEG: history is capped at maxHistoryLimit (50) - oldest actions are evicted.
+        // NOTE: this drain relies on every queued record undoing successfully - it must run
+        // before any test that deliberately poisons the stack with a record that fails to
+        // undo, otherwise the failed record gets re-pushed on every attempt (Fix 2's retry
+        // semantics) and this loop would never terminate.
+        while service.canUndo() { _ = try? await service.undo() }
+        // Each dummy must be a real, undo-able rename (not a same-URL self-rename, which always
+        // fails and — under Fix 2's retry semantics — gets re-pushed onto the same stack position
+        // forever instead of ever being removed) so the 50 undo() calls below genuinely shrink the
+        // stack by one each time, leaving exactly 1 of the 51.
         for i in 0..<51 {
             let dummyURL = tempDir.appendingPathComponent("cap_dummy_\(i).txt")
-            service.recordAction(.rename(oldURL: dummyURL, newURL: dummyURL))
+            let dummyRenamedURL = tempDir.appendingPathComponent("cap_dummy_\(i)_renamed.txt")
+            try? "x".write(to: dummyRenamedURL, atomically: true, encoding: .utf8)
+            service.recordAction(.rename(oldURL: dummyURL, newURL: dummyRenamedURL))
         }
-        for _ in 0..<50 { _ = await service.undo() }
+        for _ in 0..<50 { _ = try? await service.undo() }
         TestReporter.report("UndoRedo", "POS: history is capped at maxHistoryLimit(50) - only 50 of 51 recorded actions remain undoable", result: !service.canUndo())
+
+        // Drain the one remaining (real, undo-able) record so it doesn't leak into later tests in
+        // this file or other test files that also touch the shared UndoRedoService.shared singleton.
+        while service.canUndo() { _ = try? await service.undo() }
     }
 
     private static func testTrashRedoAndGhostFailures(service: UndoRedoService, tempDir: URL) async {
@@ -117,15 +151,15 @@ public struct UndoRedoTests {
         try? "trash me again".write(to: simulatedTrash2, atomically: true, encoding: .utf8)
         service.recordAction(.trash(originalURL: trashable2, trashedURL: simulatedTrash2))
 
-        let undoTrash2 = await service.undo()
+        let undoTrash2 = try? await service.undo()
         let undoTrash2Pos = undoTrash2 != nil && FileManager.default.fileExists(atPath: trashable2.path)
         TestReporter.report("UndoRedo", "POS: undo() on a trash action restores the file (setup for redo)", result: undoTrash2Pos)
 
-        let redoTrash2 = await service.redo()
+        let redoTrash2 = try? await service.redo()
         let redoTrash2Pos = redoTrash2 != nil && !FileManager.default.fileExists(atPath: trashable2.path)
         TestReporter.report("UndoRedo", "POS: redo() on a trash action re-trashes the restored file", result: redoTrash2Pos)
 
-        // NEG: redo() returns nil when the underlying forward file operation throws
+        // NEG: redo() throws when the underlying forward file operation fails
         // (record a rename action, undo it back onto the undo stack via redo pending state,
         // then externally delete the file the redo would try to rename)
         let ghostSource2 = tempDir.appendingPathComponent("ghostSource2.txt")
@@ -134,17 +168,75 @@ public struct UndoRedoTests {
         // the fixture file must exist at newURL (ghostRenamed2), not oldURL.
         try? "ghost2".write(to: ghostRenamed2, atomically: true, encoding: .utf8)
         service.recordAction(.rename(oldURL: ghostSource2, newURL: ghostRenamed2))
-        let ghostUndo2 = await service.undo()
+        let ghostUndo2 = try? await service.undo()
         let ghostUndo2Pos = ghostUndo2 != nil && FileManager.default.fileExists(atPath: ghostSource2.path)
         TestReporter.report("UndoRedo", "POS: undo() reverses rename action (setup for redo failure test)", result: ghostUndo2Pos)
         try? FileManager.default.removeItem(at: ghostSource2) // remove the file the redo would try to rename
-        let ghostRedo2 = await service.redo()
-        TestReporter.report("UndoRedo", "NEG: redo() returns nil when the underlying file operation throws (source file externally deleted)", result: ghostRedo2 == nil)
 
-        // NEG: undo() on a create action whose folder was already externally removed returns nil
+        var ghostRedo2Threw = false
+        do {
+            _ = try await service.redo()
+        } catch {
+            ghostRedo2Threw = true
+        }
+        TestReporter.report("UndoRedo", "NEG: redo() throws when the underlying file operation fails (source file externally deleted)", result: ghostRedo2Threw)
+
+        // NEG: undo() throws for a create action whose folder was already externally removed
         let ghostCreatedURL = tempDir.appendingPathComponent("ghost_created_dir")
         service.recordAction(.create(url: ghostCreatedURL)) // never actually created on disk
-        let ghostCreateUndo = await service.undo()
-        TestReporter.report("UndoRedo", "NEG: undo() on a create action for a non-existent path returns nil", result: ghostCreateUndo == nil)
+        var ghostCreateUndoThrew = false
+        do {
+            _ = try await service.undo()
+        } catch {
+            ghostCreateUndoThrew = true
+        }
+        TestReporter.report("UndoRedo", "NEG: undo() on a create action for a non-existent path throws", result: ghostCreateUndoThrew)
+    }
+
+    /// Fix 2 regression coverage: undo()/redo() must (a) propagate errors instead of silently
+    /// swallowing them, and (b) only push a record onto the opposite stack AFTER the reverse/
+    /// forward action actually succeeds - a failed undo must not corrupt the stack into a bogus
+    /// available redo. This must run last: a failed undo re-pushes its record back onto the undo
+    /// stack for retry, and nothing after this function relies on the shared singleton's stack
+    /// being empty.
+    private static func testFailedUndoDoesNotCorruptStack(service: UndoRedoService, tempDir: URL) async {
+        let ghostSource = tempDir.appendingPathComponent("corruption_ghost_source.txt")
+        let ghostRenamed = tempDir.appendingPathComponent("corruption_ghost_renamed.txt")
+        try? "ghost".write(to: ghostRenamed, atomically: true, encoding: .utf8)
+
+        service.recordAction(.rename(oldURL: ghostSource, newURL: ghostRenamed))
+        let redoStackWasEmptyBeforeFailure = !service.canRedo()
+
+        try? FileManager.default.removeItem(at: ghostRenamed) // simulate external interference
+
+        var undoThrew = false
+        do {
+            _ = try await service.undo()
+        } catch {
+            undoThrew = true
+        }
+        TestReporter.report(
+            "UndoRedo", "NEG: undo() propagates (throws) an error instead of silently swallowing it when the underlying rename fails",
+            result: undoThrew
+        )
+
+        TestReporter.report(
+            "UndoRedo", "NEG: a failed undo() does not push its record onto the redo stack (no stack corruption)",
+            result: redoStackWasEmptyBeforeFailure && !service.canRedo()
+        )
+
+        // redo() must be a no-op after the failed undo, not attempt to redo a rename that never happened.
+        do {
+            let bogusRedo = try await service.redo()
+            TestReporter.report(
+                "UndoRedo", "POS: redo() after a failed undo() is a no-op instead of attempting a bogus redo",
+                result: bogusRedo == nil
+            )
+        } catch {
+            TestReporter.report(
+                "UndoRedo", "POS: redo() after a failed undo() is a no-op instead of attempting a bogus redo",
+                result: false
+            )
+        }
     }
 }

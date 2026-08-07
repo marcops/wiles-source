@@ -62,7 +62,13 @@ public final class PreferencesStore {
         didSet { UserDefaults.standard.set(isTreeExpanded, forKey: DefaultsKey.isTreeExpanded.rawValue) }
     }
     public var expandedTreePaths: Set<String> = [] {
-        didSet { UserDefaults.standard.set(Array(expandedTreePaths), forKey: DefaultsKey.expandedTreePaths.rawValue) }
+        didSet {
+            if expandedTreePaths.count > Self.maxExpandedTreePaths {
+                expandedTreePaths = oldValue
+                return
+            }
+            scheduleExpandedTreePathsSave()
+        }
     }
     public var isTagsExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isTagsExpanded, forKey: DefaultsKey.isTagsExpanded.rawValue) }
@@ -94,6 +100,13 @@ public final class PreferencesStore {
     public var iconSize: Double = 54.0 {
         didSet { UserDefaults.standard.set(iconSize, forKey: DefaultsKey.iconSize.rawValue) }
     }
+    /// Caps `expandedTreePaths` so an unbounded set of ever-expanded folders isn't retained forever.
+    /// Once at the cap, further insertions are dropped (see `expandedTreePaths`'s `didSet`).
+    private static let maxExpandedTreePaths = 500
+    /// Coalesces rapid expand/collapse toggles into a single `UserDefaults` write.
+    private static let expandedTreePathsSaveDebounceInterval: TimeInterval = 0.5
+    private var pendingExpandedTreePathsSave: DispatchWorkItem?
+
     public var favoriteURLs: [URL] = [] {
         didSet {
             let paths = favoriteURLs.map { $0.path }
@@ -141,6 +154,18 @@ public final class PreferencesStore {
         }
     }
 
+    /// Coalesces repeated `expandedTreePaths` edits into one `UserDefaults` write, resetting the
+    /// timer on every new toggle so a burst of expand/collapse calls only serializes the set once.
+    private func scheduleExpandedTreePathsSave() {
+        pendingExpandedTreePathsSave?.cancel()
+        let paths = expandedTreePaths
+        let workItem = DispatchWorkItem {
+            UserDefaults.standard.set(Array(paths), forKey: DefaultsKey.expandedTreePaths.rawValue)
+        }
+        pendingExpandedTreePathsSave = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.expandedTreePathsSaveDebounceInterval, execute: workItem)
+    }
+
     private func loadSavedPreferences() {
         let defaults = UserDefaults.standard
         loadViewPreferences(defaults)
@@ -182,7 +207,7 @@ public final class PreferencesStore {
         loadBool(.isSmartFoldersExpanded, into: \.isSmartFoldersExpanded, from: defaults)
 
         if let treePaths = defaults.stringArray(forKey: DefaultsKey.expandedTreePaths.rawValue) {
-            self.expandedTreePaths = Set(treePaths)
+            self.expandedTreePaths = Set(treePaths.prefix(Self.maxExpandedTreePaths))
         }
     }
 

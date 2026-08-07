@@ -64,17 +64,15 @@ public final class DiskSpaceVisualizerService {
     private static func collectRawItems(in contents: [URL], fm: FileManager) -> [RawItem] {
         var rawItems: [RawItem] = []
         for itemURL in contents {
-            var isDir: ObjCBool = false
-            if fm.fileExists(atPath: itemURL.path, isDirectory: &isDir) {
-                let size: Int64
-                if isDir.boolValue {
-                    size = computeFolderSizeFast(folderURL: itemURL)
-                } else {
-                    let values = try? itemURL.resourceValues(forKeys: [.fileSizeKey])
-                    size = Int64(values?.fileSize ?? 0)
-                }
-                rawItems.append(RawItem(url: itemURL, name: itemURL.lastPathComponent, size: size, isDir: isDir.boolValue))
+            let isDir = (try? itemURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            let size: Int64
+            if isDir {
+                size = computeFolderSizeFast(folderURL: itemURL)
+            } else {
+                let values = try? itemURL.resourceValues(forKeys: [.fileSizeKey])
+                size = Int64(values?.fileSize ?? 0)
             }
+            rawItems.append(RawItem(url: itemURL, name: itemURL.lastPathComponent, size: size, isDir: isDir))
         }
         return rawItems
     }

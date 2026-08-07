@@ -8,7 +8,13 @@ public final class DuplicateDetectionService: Sendable {
     private init() {}
 
     public func findDuplicates(in folderURL: URL) async -> DuplicateScanResult {
-        return await Task.detached(priority: .userInitiated) {
+        // `.task { }` cancellation on the calling side does NOT automatically cancel a
+        // `Task.detached` — detached tasks are unlinked from their creator, so the scan
+        // would otherwise become a zombie that keeps enumerating/hashing after the sheet
+        // closes. `withTaskCancellationHandler` explicitly forwards cancellation to the
+        // detached task, and the detached task now throws `CancellationError` promptly
+        // instead of running to completion.
+        let scanTask = Task.detached(priority: .userInitiated) { () throws -> DuplicateScanResult in
             let fm = FileManager.default
             guard let enumerator = fm.enumerator(
                 at: folderURL,
@@ -21,6 +27,7 @@ public final class DuplicateDetectionService: Sendable {
             var sizeMap: [Int64: [URL]] = [:]
 
             while let fileURL = enumerator.nextObject() as? URL {
+                try Task.checkCancellation()
                 guard let resourceValues = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
                       let isDir = resourceValues.isDirectory, !isDir,
                       let size = resourceValues.fileSize, size > 0 else {
@@ -34,13 +41,19 @@ public final class DuplicateDetectionService: Sendable {
             var totalReclaimable: Int64 = 0
 
             for (size, urls) in candidateGroups {
-                let (groups, reclaimable) = Self.confirmedDuplicateGroups(among: urls, size: size)
+                let (groups, reclaimable) = try Self.confirmedDuplicateGroups(among: urls, size: size)
                 finalGroups.append(contentsOf: groups)
                 totalReclaimable += reclaimable
             }
 
             return DuplicateScanResult(groups: finalGroups, totalReclaimableBytes: totalReclaimable)
-        }.value
+        }
+
+        return await withTaskCancellationHandler {
+            (try? await scanTask.value) ?? DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
+        } onCancel: {
+            scanTask.cancel()
+        }
     }
 
     /// Same-size candidates with a matching *partial* (first-4KB) hash are not yet proven
@@ -48,9 +61,10 @@ public final class DuplicateDetectionService: Sendable {
     /// this size and this partial hash could still differ entirely past the first 4KB. Only a
     /// full-content hash, computed here for partial-hash matches only (not every candidate, to
     /// avoid hashing every same-size file in full), can safely group files as true duplicates.
-    private static func confirmedDuplicateGroups(among urls: [URL], size: Int64) -> ([DuplicateGroup], Int64) {
+    private static func confirmedDuplicateGroups(among urls: [URL], size: Int64) throws -> ([DuplicateGroup], Int64) {
         var partialHashGroups: [String: [URL]] = [:]
         for url in urls {
+            try Task.checkCancellation()
             if let hash = Self.computePartialHash(for: url) {
                 partialHashGroups[hash, default: []].append(url)
             }
@@ -61,6 +75,7 @@ public final class DuplicateDetectionService: Sendable {
         for (_, candidates) in partialHashGroups where candidates.count > 1 {
             var fullHashGroups: [String: [URL]] = [:]
             for url in candidates {
+                try Task.checkCancellation()
                 if let fullHash = Self.computeFullHash(for: url) {
                     fullHashGroups[fullHash, default: []].append(url)
                 }

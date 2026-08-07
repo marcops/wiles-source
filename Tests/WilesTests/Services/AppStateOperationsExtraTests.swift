@@ -5,8 +5,8 @@ import AppKit
 @MainActor
 public struct AppStateOperationsExtraTests {
     public static func run() async {
-        testDeletePermanentlySelected()
-        testCopyContentOfSelected()
+        await testDeletePermanentlySelected()
+        await testCopyContentOfSelected()
         await testDeleteSelected()
         await testShredSelected()
         await testPasteToCurrentDirectory()
@@ -22,12 +22,29 @@ public struct AppStateOperationsExtraTests {
     }
 
     private static func makeTempDir() -> URL {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
 
-    private static func testDeletePermanentlySelected() {
+    /// AppState operations that succeed (paste, trash-delete, undo/redo) record on the
+    /// process-wide UndoRedoService.shared singleton. Call this as the last statement in any test
+    /// function that triggers one, before its `defer`-removal of the temp dir runs — otherwise the
+    /// leftover record points at a file that's about to vanish, and undoing it later (from whatever
+    /// test happens to touch the shared singleton next) fails forever under that service's
+    /// retry-on-failure semantics, hanging the suite.
+    private static func drainUndoRedoService() async {
+        for _ in 0..<10 where UndoRedoService.shared.canUndo() {
+            _ = try? await UndoRedoService.shared.undo()
+        }
+    }
+
+    // deletePermanentlySelected() moved its shred call into a Task.detached (see
+    // AppState+Operations.swift) so the file removal and selection-clearing now happen
+    // asynchronously off @MainActor. A synchronous check right after calling it is racy —
+    // poll with a bounded timeout, matching the pattern already used by
+    // testDeleteSelected()/testShredSelected() below for the same reason.
+    private static func testDeletePermanentlySelected() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -39,11 +56,22 @@ public struct AppStateOperationsExtraTests {
         let fileURL = makeFile(named: "to-shred.txt", in: dir)
         appState.selectedURLs = [fileURL]
         appState.deletePermanentlySelected()
-        let stillExists = FileManager.default.fileExists(atPath: fileURL.path)
+        var stillExists = true
+        for _ in 0..<20 {
+            stillExists = FileManager.default.fileExists(atPath: fileURL.path)
+            if !stillExists { break }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
         report("AppState+Operations", "POS: deletePermanentlySelected() removes the file from disk and clears selection", result: !stillExists && appState.selectedURLs.isEmpty)
     }
 
-    private static func testCopyContentOfSelected() {
+    // copyFileContentToClipboard() (called by copyContentOfSelected()) now reads the file and
+    // writes to the pasteboard inside an internal Task.detached, keeping its own signature
+    // synchronous/fire-and-forget (see FileSystemService+Actions.swift). A synchronous check
+    // right after calling it is racy — poll with a bounded timeout for the positive case; the
+    // negative (empty-selection) case never spawns a task at all, so it's safe to check
+    // immediately.
+    private static func testCopyContentOfSelected() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -60,7 +88,12 @@ public struct AppStateOperationsExtraTests {
         let fileURL = makeFile(named: "content.txt", in: dir, content: "hello from wiles")
         appState.selectedURLs = [fileURL]
         appState.copyContentOfSelected()
-        let copied = pb.string(forType: .string) == "hello from wiles"
+        var copied = false
+        for _ in 0..<20 {
+            copied = pb.string(forType: .string) == "hello from wiles"
+            if copied { break }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
         report("AppState+Operations", "POS: copyContentOfSelected() writes the first selected file's text content onto the pasteboard", result: copied)
     }
 
@@ -96,6 +129,7 @@ public struct AppStateOperationsExtraTests {
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         report("AppState+Operations", "POS: performDeleteSelected() moves the file to Trash and clears the selection", result: !stillExists && appState.selectedURLs.isEmpty)
+        await drainUndoRedoService()
     }
 
     private static func testShredSelected() async {
@@ -166,6 +200,7 @@ public struct AppStateOperationsExtraTests {
             "POS: pasteToCurrentDirectory() with a .cut clipboard eventually moves the file into the current directory",
             result: movedExists && originalGone
         )
+        await drainUndoRedoService()
     }
 
     private static func testUndoRedoLastAction() async {
@@ -207,10 +242,11 @@ public struct AppStateOperationsExtraTests {
             "NEG: redoLastAction() with an empty redo stack leaves the current selection untouched",
             result: appState2.selectedURLs.first?.path == sentinel.path
         )
+        await drainUndoRedoService()
     }
 
     private static func testDownloadFromiCloudFailure() async {
-        let missingURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).icloud")
+        let missingURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).icloud")
         let appState = AppState()
         appState.modal.errorMessage = nil
         appState.downloadFromiCloud(url: missingURL)

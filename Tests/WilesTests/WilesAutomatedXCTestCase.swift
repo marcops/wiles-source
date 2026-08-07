@@ -47,7 +47,6 @@ final class WilesAutomatedTests: XCTestCase {
         DirectoryLoadResultTests.run()
         FileSystemStoreTests.run()
         ModalStoreTests.run()
-        NavigationStoreTests.run()
         PreferencesStoreTests.run()
     }
 
@@ -261,8 +260,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testAppStateCoreTests() {
-        AppStateCoreTests.run()
+    func testAppStateCoreTests() async {
+        await AppStateCoreTests.run()
     }
 
     @MainActor

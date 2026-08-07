@@ -7,7 +7,7 @@ public struct ArchiveInspectionTests {
         await runBasicListEntriesTest()
 
         // POS: listEntries reflects nested folder structure (directory entries end with "/")
-        let nestedRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let nestedRoot = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: nestedRoot, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: nestedRoot) }
 
@@ -51,7 +51,7 @@ public struct ArchiveInspectionTests {
     }
 
     private static func runBasicListEntriesTest() async {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory())
         let fileToZip = tempDir.appendingPathComponent("inspect_test_file.txt")
         try? "test data for zip".write(to: fileToZip, atomically: true, encoding: .utf8)
 
@@ -97,7 +97,7 @@ public struct ArchiveInspectionTests {
     // POS: listEntries lists every entry when the archive contains multiple files,
     // POS: entries with spaces/special characters in their names are listed and extractable.
     private static func runMultiEntryAndSpecialCharTests() async {
-        let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
@@ -143,7 +143,7 @@ public struct ArchiveInspectionTests {
     // POS: listEntries/extractSingleEntry handle entry paths nested more than one directory deep,
     // NEG: listEntries on a completely missing archive file (not just a corrupt one) does not crash.
     private static func runDeepNestingAndMissingArchiveTests() async {
-        let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 

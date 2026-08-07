@@ -4,7 +4,7 @@ import AppKit
 
 @MainActor
 public struct AppStateCoreTests {
-    public static func run() {
+    public static func run() async {
         testAddFavorite()
         testRemoveFavorite()
         testIsFavorite()
@@ -17,7 +17,7 @@ public struct AppStateCoreTests {
         testShowError()
         testAddSmartFolder()
         testRemoveSmartFolder()
-        testFreeSpaceText()
+        await testFreeSpaceText()
     }
 
     private static func makeItem(named name: String, in dir: URL, contents: String = "content", isDirectory: Bool = false) -> FileItem {
@@ -31,7 +31,7 @@ public struct AppStateCoreTests {
     }
 
     private static func testAddFavorite() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -52,7 +52,7 @@ public struct AppStateCoreTests {
     }
 
     private static func testRemoveFavorite() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -72,7 +72,7 @@ public struct AppStateCoreTests {
     }
 
     private static func testIsFavorite() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -89,7 +89,7 @@ public struct AppStateCoreTests {
     }
 
     private static func testMoveSelectedFavorite() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -215,9 +215,9 @@ public struct AppStateCoreTests {
         appState.selection.gridCellFrames = [:]
         report("AppState", "NEG: gridColumnCount is 1 when there are 0 or 1 cell frames", result: appState.selection.gridColumnCount == 1)
 
-        let urlA = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("a-\(UUID().uuidString)")
-        let urlB = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("b-\(UUID().uuidString)")
-        let urlC = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("c-\(UUID().uuidString)")
+        let urlA = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("a-\(UUID().uuidString)")
+        let urlB = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("b-\(UUID().uuidString)")
+        let urlC = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("c-\(UUID().uuidString)")
         appState.selection.gridCellFrames = [
             urlA: CGRect(x: 0, y: 0, width: 50, height: 50),
             urlB: CGRect(x: 60, y: 0, width: 50, height: 50),
@@ -227,7 +227,7 @@ public struct AppStateCoreTests {
     }
 
     private static func testStatusText() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
@@ -323,14 +323,16 @@ public struct AppStateCoreTests {
         )
     }
 
-    private static func testFreeSpaceText() {
+    private static func testFreeSpaceText() async {
         let appState = AppState()
         appState.navigation.currentURL = FileManager.default.homeDirectoryForCurrentUser
-        report("AppState", "POS: freeSpaceText returns a non-nil formatted string for a valid, resolvable directory", result: appState.freeSpaceText != nil)
+        let validText = await appState.loadFreeSpaceText()
+        report("AppState", "POS: loadFreeSpaceText() returns a non-nil formatted string for a valid, resolvable directory", result: validText != nil)
 
         let bogus = URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)/deeper/path")
         appState.navigation.currentURL = bogus
-        report("AppState", "NEG: freeSpaceText is nil when volumeAvailableCapacity can't be resolved for the URL", result: appState.freeSpaceText == nil)
+        let bogusText = await appState.loadFreeSpaceText()
+        report("AppState", "NEG: loadFreeSpaceText() is nil when volumeAvailableCapacity can't be resolved for the URL", result: bogusText == nil)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

@@ -138,7 +138,9 @@ struct FilePropertiesSheet: View {
         .frame(width: 400, height: 500)
         .task {
             detailedProps = await FileMetadataService.shared.fetchProperties(for: item.url)
-            exifData = ExifMetadataService.extractExif(from: item.url)
+            exifData = await Task.detached(priority: .userInitiated) {
+                ExifMetadataService.extractExif(from: item.url)
+            }.value
             if let loadedPermissions = FilePermissionsService.getPermissions(for: item.url) {
                 permissions = loadedPermissions
                 hasPermissions = true

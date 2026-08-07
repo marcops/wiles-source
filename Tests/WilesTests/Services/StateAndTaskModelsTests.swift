@@ -15,7 +15,7 @@ public struct StateAndTaskModelsTests {
     // MARK: - WilesError (cases not already covered in MiscModelTests)
 
     private static func testWilesErrorRemainingCases() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
         let busyPath = dir.appendingPathComponent("busy-file.txt").path
 
@@ -46,7 +46,7 @@ public struct StateAndTaskModelsTests {
     // MARK: - ClipboardState (beyond isCut)
 
     private static func testClipboardStateBeyondIsCut() {
-        let tempBase = URL(fileURLWithPath: NSTemporaryDirectory())
+        let tempBase = URL(fileURLWithPath: testTemporaryDirectory())
         let raw = tempBase.appendingPathComponent("Clip-\(UUID().uuidString)")
         // Deliberately construct a non-standardized URL (trailing slash quirks etc.) to
         // exercise the standardizedFileURL normalization performed in init.
@@ -96,7 +96,7 @@ public struct StateAndTaskModelsTests {
         let deniedResult = DirectoryLoadResult(items: [], isPermissionDenied: true)
         report("DirectoryLoadResult", "POS: isPermissionDenied honors the explicit value passed in", result: deniedResult.isPermissionDenied)
 
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let fileURL = dir.appendingPathComponent("item.txt")
@@ -125,7 +125,7 @@ public struct StateAndTaskModelsTests {
     // MARK: - DuplicateGroup
 
     private static func testDuplicateGroupReclaimableBytes() {
-        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 

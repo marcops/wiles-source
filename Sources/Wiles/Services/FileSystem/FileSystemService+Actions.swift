@@ -52,14 +52,23 @@ extension FileSystemService {
     }
 
     public static func copyFileContentToClipboard(url: URL) {
-        guard let values = try? url.resourceValues(forKeys: [.fileSizeKey]),
-              let size = values.fileSize, size < 10_000_000,
-              let content = try? String(contentsOf: url) else {
-            return
+        // Reading the file (up to 10MB) can stall for seconds on a slow or stalled
+        // network/SMB mount. Perform the read off the main actor and round-trip only the
+        // resulting string back, mirroring the /Volumes slow-mount pattern used by
+        // AppState+Navigation.swift's navigateTo. The signature stays synchronous to satisfy
+        // FileSystemServiceProtocol; the heavy work is dispatched internally instead.
+        Task.detached(priority: .userInitiated) {
+            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey]),
+                  let size = values.fileSize, size < 10_000_000,
+                  let content = try? String(contentsOf: url) else {
+                return
+            }
+            await MainActor.run {
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(content, forType: .string)
+            }
         }
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setString(content, forType: .string)
     }
 
     public static func compressToZIP(urls: [URL], in destinationFolder: URL) throws {
