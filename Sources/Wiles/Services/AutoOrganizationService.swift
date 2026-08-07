@@ -16,6 +16,16 @@ public class AutoOrganizationService {
 
     private var fileMonitors: [String: DispatchSourceFileSystemObject] = [:]
     private var fileDescriptors: [String: CInt] = [:]
+    /// Debounces rapid-fire `.write` events on a watched folder (e.g. a browser writing a large
+    /// download incrementally can fire this thousands of times) into a single processFolder() call
+    /// after activity settles, instead of re-scanning the whole directory on every single write.
+    private var pendingScans: [String: DispatchWorkItem] = [:]
+    private let scanDebounceInterval: TimeInterval = 0.5
+    /// How long a matched file's size must stay unchanged before it's considered done writing and
+    /// safe to move. FileHandle/POSIX lock checks don't work for this: most writers (browsers,
+    /// curl, Finder copies) never take an advisory lock, so a locked-file check would never detect
+    /// an in-progress download — size stability is what actually reflects "still being written to."
+    private let stabilityCheckDelay: UInt64 = 150_000_000
 
     private init() {
         loadRules()
@@ -62,6 +72,10 @@ public class AutoOrganizationService {
         }
         fileMonitors.removeAll()
         fileDescriptors.removeAll()
+        for (_, workItem) in pendingScans {
+            workItem.cancel()
+        }
+        pendingScans.removeAll()
 
         let activeRules = rules.filter { $0.isEnabled }
         let uniqueSourceFolders = Set(activeRules.map { $0.sourceURL.standardizedFileURL })
@@ -78,7 +92,7 @@ public class AutoOrganizationService {
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: .write, queue: .main)
 
         source.setEventHandler { [weak self] in
-            self?.processFolder(folder)
+            self?.scheduleProcessFolder(folder)
         }
 
         source.setCancelHandler {
@@ -88,6 +102,18 @@ public class AutoOrganizationService {
         fileDescriptors[folder.path] = fd
         fileMonitors[folder.path] = source
         source.resume()
+    }
+
+    /// Coalesces repeated `.write` events for the same folder into one processFolder() call,
+    /// resetting the timer on every new event — so a file that's still actively growing keeps
+    /// pushing the scan back instead of triggering one per write.
+    func scheduleProcessFolder(_ folder: URL) {
+        pendingScans[folder.path]?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.processFolder(folder)
+        }
+        pendingScans[folder.path] = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + scanDebounceInterval, execute: workItem)
     }
 
     public func processFolder(_ folder: URL) {
@@ -110,6 +136,7 @@ public class AutoOrganizationService {
             for rule in activeRules where matches(file: file, rule: rule) {
                 // Move file natively using UndoRedoService for safe undo
                 Task {
+                    guard await self.isFileStable(file) else { return } // still being written — skip this round
                     do {
                         _ = try FileSystemService.moveItem(at: file, toFolder: rule.destinationURL)
                         UndoRedoService.shared.recordAction(.move(sourceURL: file, destinationURL: rule.destinationURL.appendingPathComponent(file.lastPathComponent)))
@@ -120,6 +147,21 @@ public class AutoOrganizationService {
                 break // Stop checking other rules for this file if one matched
             }
         }
+    }
+
+    /// A file is considered "still being written" if its size changes across a short window.
+    /// Deliberately not a lock check (FileHandle open / POSIX advisory lock): most writers —
+    /// browsers, curl, Finder copies — never take an advisory lock on the file they're writing, so
+    /// a lock-based check would never actually detect an in-progress download.
+    private func isFileStable(_ url: URL) async -> Bool {
+        guard let sizeBefore = fileSize(url) else { return false }
+        try? await Task.sleep(nanoseconds: stabilityCheckDelay)
+        guard let sizeAfter = fileSize(url) else { return false }
+        return sizeBefore == sizeAfter
+    }
+
+    private func fileSize(_ url: URL) -> Int64? {
+        try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64
     }
 
     private func matches(file: URL, rule: AutoOrganizationRule) -> Bool {

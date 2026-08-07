@@ -62,12 +62,21 @@ public actor FileMetadataService {
 
     public func streamBatchProperties(for urls: [URL]) -> AsyncStream<DetailedFileProperties> {
         AsyncStream { continuation in
-            Task {
+            let task = Task {
                 for url in urls {
+                    // Consuming a stream is exactly how a caller signals "I stopped waiting" — a
+                    // `for await` loop that `break`s, or its own enclosing Task being cancelled,
+                    // triggers onTermination below. Without this check, closing the properties
+                    // sheet mid-scan would leave this loop reading disk metadata for the rest of
+                    // the (possibly huge) URL list in the background, for nobody.
+                    if Task.isCancelled { break }
                     let props = fetchProperties(for: url)
                     continuation.yield(props)
                 }
                 continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                task.cancel()
             }
         }
     }

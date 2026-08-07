@@ -25,9 +25,15 @@ public final class SpotlightSearchService {
         self.completionHandler = completion
         self.metadataQuery = query
 
-        let trimmedQuery = queryText.replacingOccurrences(of: "\"", with: "\\\"")
-        let predicateString = "(kMDItemFSName ==[cd] '*\(trimmedQuery)*') || (kMDItemDisplayName ==[cd] '*\(trimmedQuery)*')"
-        query.predicate = NSPredicate(format: predicateString)
+        // Splicing user input directly into the predicate *format string* (the old `'*\(query)*'`
+        // approach) means any apostrophe in the search text breaks out of the quoted literal and
+        // corrupts the predicate syntax — NSPredicate(format:) then raises an NSInvalidArgumentException,
+        // which is an Objective-C exception, not a Swift Error, so it cannot be caught and crashes the
+        // whole app. %@ substitution passes the value as a genuine argument instead of format syntax,
+        // so it's never parsed and can't break out no matter what characters it contains.
+        let trimmedQuery = queryText.trimmingCharacters(in: .whitespaces)
+        let wildcardQuery = "*\(trimmedQuery)*"
+        query.predicate = NSPredicate(format: "(kMDItemFSName ==[cd] %@) || (kMDItemDisplayName ==[cd] %@)", wildcardQuery, wildcardQuery)
 
         query.searchScopes = [scopeURL.path]
 

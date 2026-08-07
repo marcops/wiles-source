@@ -45,6 +45,16 @@ pull items off this list and write the real test before removing the entry.
   anywhere (see `DirectoryCacheService`, which has the same gap) — same call applies to
   `ThumbnailService`'s new limits, for consistency rather than a one-off exception.
 
+- **`FileMetadataService.streamBatchProperties()` stops when the consumer stops** (zombie-task fix,
+  same shape as the ThumbnailService one above). The fix wires `continuation.onTermination` to
+  cancel the producing `Task` and checks `Task.isCancelled` in the loop — a standard AsyncStream
+  cancellation idiom. Proving "the loop actually stopped" without consuming the stream's output
+  requires either a real timing wait (rejected, same reasoning as above) or adding test-only
+  instrumentation to production code just to make internal loop progress observable, which isn't
+  worth the added surface for a one-off test. Shipped on code-review confidence. Currently unused
+  by any caller in the app (dead code), so there's no live UI path to manually verify yet either —
+  re-check this once something actually calls it.
+
 ## Resolved (moved out of this list once tested)
 
 - `AppState.moveSelectedFavorite()` — was on this list, turned out to be plain synchronous state
