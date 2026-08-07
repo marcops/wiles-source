@@ -19,7 +19,6 @@ struct FileGridView: View {
         [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth + 24), spacing: LayoutTokens.gridSpacing)]
     }
 
-    @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect?
     @State private var visibleLimit: Int = LayoutTokens.paginationThreshold
 
@@ -32,7 +31,6 @@ struct FileGridView: View {
 
                         SelectionRectangleOverlay(
                             appState: appState,
-                            cellFrames: cellFrames,
                             coordinateSpaceName: "gridContainer",
                             selectionRect: $selectionRect
                         )
@@ -82,7 +80,6 @@ struct FileGridView: View {
                     }
                     .coordinateSpace(name: "gridContainer")
                     .onPreferenceChange(CellFrameKey.self) { frames in
-                        self.cellFrames = frames
                         appState.selection.gridCellFrames = frames
                     }
                     .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)

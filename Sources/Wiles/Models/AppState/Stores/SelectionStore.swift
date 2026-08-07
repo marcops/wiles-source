@@ -12,8 +12,13 @@ public final class SelectionStore {
     public var columnViewVerticalTrigger: Int = 0
     /// Bumped by the left-arrow key handler so Column View shifts focus back one column.
     public var columnViewMoveLeftTrigger: Int = 0
-    /// Cell frames from the Grid View, updated live. Used to compute the real column count.
+    /// Cell frames from the Grid View, updated live. Used to compute the real column count and,
+    /// together with `listCellFrames`, to hit-test the drag-to-select marquee. Read only from
+    /// SelectionRectangleOverlay's gesture handler (never from a view `body`), so updates here
+    /// don't trigger a re-render of FileGridView/FileListView on every newly-visible lazy row.
     public var gridCellFrames: [URL: CGRect] = [:]
+    /// Cell frames from the List View — see `gridCellFrames`.
+    public var listCellFrames: [URL: CGRect] = [:]
 
     /// Set when navigating up/back to a parent directory, so the child folder just left gets reselected instead of the first item.
     public var pendingSelectionURL: URL?

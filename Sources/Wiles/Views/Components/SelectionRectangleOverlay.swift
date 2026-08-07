@@ -5,16 +5,22 @@ import AppKit
 /// marquee (reporting its current rect via `selectionRect` so the caller can draw it *above* the row
 /// content — this view must stay *below* the rows in z-order so row gestures still win), plus
 /// background tap-to-deselect, right-click-to-deselect, and the shared empty-area context menu.
-/// Matches selection against `cellFrames` (populated by row-level preference-key frames).
+/// Matches selection against `appState.selection.gridCellFrames`/`listCellFrames` (populated by
+/// row-level preference-key frames), read only inside the drag-gesture handler — never from this
+/// view's `body` — so the caller (FileGridView/FileListView) never re-renders when a newly-visible
+/// lazy row updates the cell-frame dictionary during scrolling.
 /// Expects an ancestor `.coordinateSpace(name: coordinateSpaceName)`.
 struct SelectionRectangleOverlay: View {
     var appState: AppState
-    var cellFrames: [URL: CGRect]
     var coordinateSpaceName: String
     var minWidth: CGFloat?
     @Binding var selectionRect: CGRect?
 
     @State private var dragStartPoint: CGPoint?
+
+    private var cellFrames: [URL: CGRect] {
+        coordinateSpaceName == "gridContainer" ? appState.selection.gridCellFrames : appState.selection.listCellFrames
+    }
 
     var body: some View {
         Color(NSColor.controlBackgroundColor).opacity(0.001)

@@ -11,8 +11,16 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
     public static let shared = ThumbnailService()
     private static let maxDimension: CGFloat = 512
     private let cache = NSCache<NSString, NSImage>()
+    private var prefetchTask: Task<Void, Never>?
 
-    private init() {}
+    private init() {
+        // Without these, a folder with thousands of images would cache every full-size bitmap
+        // forever, easily ballooning to gigabytes of RAM. totalCostLimit only takes effect because
+        // setObject below passes a real per-image byte cost — without that, NSCache treats every
+        // entry as cost 0 and this limit silently never triggers.
+        cache.countLimit = 500
+        cache.totalCostLimit = 100 * 1024 * 1024 // 100 MB RAM limit
+    }
 
     public static func isImage(fileExtension: String) -> Bool {
         guard let type = UTType(filenameExtension: fileExtension) else { return false }
@@ -56,16 +64,22 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
         guard let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
             return nil
         }
-        cache.setObject(representation.nsImage, forKey: key)
-        return representation.nsImage
+        let image = representation.nsImage
+        let cost = Int(image.size.width * image.size.height * 4) // rough RGBA-bitmap byte estimate
+        cache.setObject(image, forKey: key, cost: cost)
+        return image
     }
 
     public func prefetchThumbnails(for items: [FileItem], size: CGFloat) {
         let eligibleItems = items.filter { Self.supportsThumbnail(item: $0) }
         guard !eligibleItems.isEmpty else { return }
-        Task.detached(priority: .userInitiated) {
+        // Cancel any prefetch still running for a previously-viewed folder — otherwise it keeps
+        // burning CPU generating thumbnails for a folder the user already navigated away from.
+        prefetchTask?.cancel()
+        prefetchTask = Task.detached(priority: .userInitiated) { [weak self] in
             for item in eligibleItems {
-                _ = await self.loadThumbnail(for: item.url, size: size)
+                if Task.isCancelled { break }
+                _ = await self?.loadThumbnail(for: item.url, size: size)
             }
         }
     }

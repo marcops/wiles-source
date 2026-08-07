@@ -8,6 +8,7 @@ public struct AppStateCoreTests {
         testAddFavorite()
         testRemoveFavorite()
         testIsFavorite()
+        testMoveSelectedFavorite()
         testTranslucentLevelGetterSetter()
         testSidebarOverlayOpacity()
         testContentOverlayOpacity()
@@ -85,6 +86,76 @@ public struct AppStateCoreTests {
         let notFav = dir.appendingPathComponent("notfav.txt")
         try? "x".write(to: notFav, atomically: true, encoding: .utf8)
         report("AppState", "NEG: isFavorite() returns false for a URL not present in favoriteURLs", result: appState.isFavorite(notFav) == false)
+    }
+
+    private static func testMoveSelectedFavorite() {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let favA = dir.appendingPathComponent("A")
+        let favB = dir.appendingPathComponent("B")
+        let favC = dir.appendingPathComponent("C")
+        for url in [favA, favB, favC] {
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+
+        let appState = AppState()
+        appState.preferences.favoriteURLs = [favA, favB, favC]
+        appState.navigation.currentURL = favB
+        appState.selectedFavoriteURL = favB
+
+        appState.moveSelectedFavorite(offset: -1)
+        report(
+            "AppState", "POS: moveSelectedFavorite(-1) swaps the selected favorite with the one before it",
+            result: appState.preferences.favoriteURLs == [favB, favA, favC]
+        )
+
+        appState.moveSelectedFavorite(offset: 1)
+        report(
+            "AppState", "POS: moveSelectedFavorite(1) swaps back, restoring original order",
+            result: appState.preferences.favoriteURLs == [favA, favB, favC]
+        )
+
+        testMoveSelectedFavoriteOutOfBoundsAndStaleSelection(appState: appState, favA: favA, favB: favB, favC: favC)
+    }
+
+    private static func testMoveSelectedFavoriteOutOfBoundsAndStaleSelection(appState: AppState, favA: URL, favB: URL, favC: URL) {
+        // NEG: moving the first favorite up (out of bounds) is a no-op.
+        appState.selectedFavoriteURL = favA
+        appState.navigation.currentURL = favA
+        appState.moveSelectedFavorite(offset: -1)
+        report(
+            "AppState", "NEG: moveSelectedFavorite(-1) on the first favorite does not change order (out of bounds)",
+            result: appState.preferences.favoriteURLs == [favA, favB, favC]
+        )
+
+        // NEG: moving the last favorite down (out of bounds) is a no-op.
+        appState.selectedFavoriteURL = favC
+        appState.navigation.currentURL = favC
+        appState.moveSelectedFavorite(offset: 1)
+        report(
+            "AppState", "NEG: moveSelectedFavorite(1) on the last favorite does not change order (out of bounds)",
+            result: appState.preferences.favoriteURLs == [favA, favB, favC]
+        )
+
+        // NEG: selectedFavoriteURL no longer matching currentURL (navigated away) blocks the move —
+        // this is what stops a stale selection from reordering favorites after the user moved on.
+        appState.selectedFavoriteURL = favB
+        appState.navigation.currentURL = favC
+        appState.moveSelectedFavorite(offset: -1)
+        report(
+            "AppState", "NEG: moveSelectedFavorite() is a no-op when selectedFavoriteURL doesn't match currentURL",
+            result: appState.preferences.favoriteURLs == [favA, favB, favC]
+        )
+
+        // NEG: no favorite selected at all.
+        appState.selectedFavoriteURL = nil
+        appState.moveSelectedFavorite(offset: 1)
+        report(
+            "AppState", "NEG: moveSelectedFavorite() is a no-op when selectedFavoriteURL is nil",
+            result: appState.preferences.favoriteURLs == [favA, favB, favC]
+        )
     }
 
     private static func testTranslucentLevelGetterSetter() {

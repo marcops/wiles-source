@@ -132,4 +132,20 @@
 ## 24. UserDefaults Payload Limits
 - **`UserDefaults.standard` is for lightweight toggles, enums, numbers, and small bounded arrays/JSON only** (e.g. `listColumnStates`, `AutoOrganizationRule` list) — never for large collections or a full directory listing. `UserDefaults` reads/writes are synchronous and can block the main thread if the payload is heavy. Directory-scale caching belongs in an in-memory service (see `DirectoryCacheService`), not `UserDefaults`.
 
+## 25. Explicit View Identity Reset on Full Dataset Replacement
+- **When a view's entire backing dataset is replaced wholesale** (e.g. navigating to a different directory with a completely different 1,000+ item list), attach `.id(directoryURL)` to the container holding that content. This forces SwiftUI to destroy and recreate the view tree instantly instead of diffing thousands of old rows against thousands of new ones. See `FileListView`/`FileGridView`, which key their content `Group` on `appState.navigation.currentURL`.
+
+## 26. Defensive Memory Bounding for Caches
+- **Never back an in-memory cache (directory listings, thumbnails, images) with an unbounded dictionary.** Use `NSCache` with an explicit `countLimit` and `totalCostLimit` (see `DirectoryCacheService`: 50 entries / 30 MB) so heavy navigation can't silently balloon RAM usage.
+
+## 27. Scope GeometryReader to Preference-Key Frame Extraction, Not All Layout
+- **When `GeometryReader` exists only to read a child's frame for a `PreferenceKey`** (e.g. `ListCellFrameKey`/`CellFrameKey` row-frame tracking for marquee-selection hit testing), wrap it in `.background(GeometryReader { ... }.preference(...))` so it doesn't participate in layout sizing — see the row-frame extraction in `FileListView`/`FileGridView`.
+- This does **not** mean "never use `GeometryReader` as a structural root" — reading a container's available width to drive adaptive sizing (grid column count, breadcrumb truncation, sidebar-width tracking) is a legitimate, necessary use and several views rely on it (`FileListView`, `FileGridView`, `PathBarView`). Don't flag or "fix" that pattern; only the preference-key-extraction case must be background-scoped.
+
+## 28. Red-Green: Tests Before the Fix, Not After
+- **When fixing a bug or implementing a testable unit of logic, write the test first, run it, and confirm it actually fails (red) before writing the fix.** Only then write the minimal code to make it pass (green). A test added after the fix already exists never proves it would have caught the bug — it's not verified to fail against the old code.
+- **Every non-cosmetic behavior change in this session must have a corresponding unit test** in `Tests/WilesTests/` before it's considered done — not just "the app still builds and existing tests still pass." If a fix isn't practically unit-testable (a real gesture-drag interaction, an actual stalled network mount), say so explicitly instead of silently skipping coverage.
+- This applies to Claude/agent-driven changes just as much as human-written ones — no exception for "it's just a small fix."
+- **When something genuinely isn't unit-testable today** (needs real gesture simulation, a stalled network mount, or SwiftUI render-timing infrastructure this project doesn't have), it MUST be logged in `UI_TEST_BACKLOG.md` at the repo root with what's missing and why — not silently skipped. Pull an item off that list and write the real test the moment the missing infrastructure exists.
+
 

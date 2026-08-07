@@ -12,7 +12,6 @@ struct ListCellFrameKey: PreferenceKey {
 struct FileListView: View {
     var appState: AppState
 
-    @State private var cellFrames: [URL: CGRect] = [:]
     @State private var selectionRect: CGRect?
     @State private var lastWindowWidth: CGFloat?
     @State private var hoveredURL: URL?
@@ -28,7 +27,6 @@ struct FileListView: View {
                             Color.clear.frame(height: 1).id("top")
                             SelectionRectangleOverlay(
                                 appState: appState,
-                                cellFrames: cellFrames,
                                 coordinateSpaceName: "listContainer",
                                 minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness,
                                 selectionRect: $selectionRect
@@ -74,7 +72,7 @@ struct FileListView: View {
                     }
                 .coordinateSpace(name: "listContainer")
                 .onPreferenceChange(ListCellFrameKey.self) { frames in
-                    self.cellFrames = frames
+                    appState.selection.listCellFrames = frames
                 }
                 .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
                 .background(ScrollerAutoHideSetter())
