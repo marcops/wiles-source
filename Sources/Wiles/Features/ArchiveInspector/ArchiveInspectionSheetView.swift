@@ -39,12 +39,18 @@ struct ArchiveInspectionSheetView: View {
                         Spacer()
                         if !entry.isDirectory {
                             Button(appState.tr(.extractArchive)) {
-                                do {
-                                    _ = try ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.navigation.currentURL)
-                                } catch {
-                                    appState.showError(error.localizedDescription)
+                                Task {
+                                    do {
+                                        _ = try await ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.navigation.currentURL)
+                                    } catch {
+                                        await MainActor.run {
+                                            appState.showError(error.localizedDescription)
+                                        }
+                                    }
+                                    await MainActor.run {
+                                        appState.refreshCurrentDirectory()
+                                    }
                                 }
-                                appState.refreshCurrentDirectory()
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
@@ -64,8 +70,8 @@ struct ArchiveInspectionSheetView: View {
         }
         .padding()
         .frame(width: 450, height: 400)
-        .onAppear {
-            entries = ArchiveInspectionService.listEntries(in: archiveURL)
+        .task {
+            entries = await ArchiveInspectionService.listEntries(in: archiveURL)
         }
     }
 }

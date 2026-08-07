@@ -175,3 +175,5 @@ Before finalizing any code or creating a commit, you MUST perform a generic self
     - *Validation*: Never use string interpolation to build shell commands. Always strictly pass user data into the `arguments` array of `Process`, bypassing shell evaluation entirely, to prevent command injection.
 12. **UI/UX Silent Failures**: Are you catching errors in a user-initiated action without updating the UI?
     - *Validation*: Never swallow errors silently (e.g. `try?`) unless it's an expected background debounce. All user-initiated failures MUST bubble up to a visible UI alert or status indicator so the user knows what went wrong.
+13. **Subprocess Data Streaming & IPC OOM**: Are you reading the output of a subprocess (`Process`, `Pipe`) that could return massive amounts of data (e.g., unzipping a file, video conversion)?
+    - *Validation*: Never use `pipe.fileHandleForReading.readDataToEndOfFile()` or load unbounded stdout data directly into a single `Data` object in RAM. Always connect the `Process.standardOutput` directly to a disk-backed `FileHandle` so the OS streams the data natively without exhausting memory.

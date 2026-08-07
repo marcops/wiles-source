@@ -70,7 +70,7 @@ final class WilesAutomatedTests: XCTestCase {
 
     @MainActor
     func testFeatureSuites() async {
-        ArchiveInspectorFeatureTests.run()
+        await ArchiveInspectorFeatureTests.run()
         BatchRenameFeatureTests.run()
         await DiskSpaceVisualizerFeatureTests.run()
         await DuplicateCleanerFeatureTests.run()

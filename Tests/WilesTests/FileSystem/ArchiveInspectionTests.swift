@@ -3,8 +3,8 @@ import Foundation
 
 @MainActor
 public struct ArchiveInspectionTests {
-    public static func run() {
-        runBasicListEntriesTest()
+    public static func run() async {
+        await runBasicListEntriesTest()
 
         // POS: listEntries reflects nested folder structure (directory entries end with "/")
         let nestedRoot = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
@@ -22,7 +22,7 @@ public struct ArchiveInspectionTests {
         do {
             try ArchiveService.compressToZIP(urls: [subDir], in: nestedRoot)
             let nestedZip = nestedRoot.appendingPathComponent("subfolder.zip")
-            let nestedEntries = ArchiveInspectionService.listEntries(in: nestedZip)
+            let nestedEntries = await ArchiveInspectionService.listEntries(in: nestedZip)
             // Note: ArchiveService.compressToZIP uses `ditto -c -k --sequesterRsrc`, which zips the
             // CONTENTS of a source directory rather than the directory itself (same quirk documented
             // in AGENTS.md rule 12 for release packaging) — so "subfolder/" is never a real entry here,
@@ -33,7 +33,7 @@ public struct ArchiveInspectionTests {
                 extractedNestedEntryPath = entry.path
                 let extractDest = nestedRoot.appendingPathComponent("ExtractedSingle")
                 try FileManager.default.createDirectory(at: extractDest, withIntermediateDirectories: true)
-                let extractedURL = try ArchiveInspectionService.extractSingleEntry(from: nestedZip, entryPath: entry.path, to: extractDest)
+                let extractedURL = try await ArchiveInspectionService.extractSingleEntry(from: nestedZip, entryPath: entry.path, to: extractDest)
                 let content = try? String(contentsOf: extractedURL, encoding: .utf8)
                 extractSingleEntryPassed = content == "nested content"
             }
@@ -44,13 +44,13 @@ public struct ArchiveInspectionTests {
         TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts a single entry by path with correct content", result: extractSingleEntryPassed)
         _ = extractedNestedEntryPath
 
-        runCorruptAndMissingEntryTests(nestedRoot: nestedRoot, nestedFile: nestedFile)
+        await runCorruptAndMissingEntryTests(nestedRoot: nestedRoot, nestedFile: nestedFile)
 
-        runMultiEntryAndSpecialCharTests()
-        runDeepNestingAndMissingArchiveTests()
+        await runMultiEntryAndSpecialCharTests()
+        await runDeepNestingAndMissingArchiveTests()
     }
 
-    private static func runBasicListEntriesTest() {
+    private static func runBasicListEntriesTest() async {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
         let fileToZip = tempDir.appendingPathComponent("inspect_test_file.txt")
         try? "test data for zip".write(to: fileToZip, atomically: true, encoding: .utf8)
@@ -58,18 +58,18 @@ public struct ArchiveInspectionTests {
         let zipURL = tempDir.appendingPathComponent("inspect_test_file.zip")
         try? ZipArchiveService.compressToZIP(urls: [fileToZip], in: tempDir)
 
-        let entries = ArchiveInspectionService.listEntries(in: zipURL)
+        let entries = await ArchiveInspectionService.listEntries(in: zipURL)
         TestReporter.report("ArchiveInspection", "POS: listEntries lists files in zip", result: entries.contains(where: { $0.name.contains("inspect_test_file.txt") }))
 
         try? FileManager.default.removeItem(at: fileToZip)
         try? FileManager.default.removeItem(at: zipURL)
     }
 
-    private static func runCorruptAndMissingEntryTests(nestedRoot: URL, nestedFile: URL) {
+    private static func runCorruptAndMissingEntryTests(nestedRoot: URL, nestedFile: URL) async {
         // NEG: listEntries on a non-existent / corrupt archive returns empty results, not a crash
         let corruptArchive = nestedRoot.appendingPathComponent("corrupt.zip")
         try? "this is not a real zip file".write(to: corruptArchive, atomically: true, encoding: .utf8)
-        let corruptEntries = ArchiveInspectionService.listEntries(in: corruptArchive)
+        let corruptEntries = await ArchiveInspectionService.listEntries(in: corruptArchive)
         TestReporter.report("ArchiveInspection", "NEG: listEntries on corrupt archive returns empty list", result: corruptEntries.isEmpty)
 
         // NEG: extractSingleEntry for a non-existent entry path produces an empty extracted file, not a match
@@ -84,7 +84,7 @@ public struct ArchiveInspectionTests {
             let badDest = nestedRoot.appendingPathComponent("BadExtract")
             try? FileManager.default.createDirectory(at: badDest, withIntermediateDirectories: true)
             do {
-                let extractedURL = try ArchiveInspectionService.extractSingleEntry(from: flatZip, entryPath: "does_not_exist.txt", to: badDest)
+                let extractedURL = try await ArchiveInspectionService.extractSingleEntry(from: flatZip, entryPath: "does_not_exist.txt", to: badDest)
                 let data = try? Data(contentsOf: extractedURL)
                 negExtractPassed = (data?.isEmpty ?? true)
             } catch {
@@ -96,7 +96,7 @@ public struct ArchiveInspectionTests {
 
     // POS: listEntries lists every entry when the archive contains multiple files,
     // POS: entries with spaces/special characters in their names are listed and extractable.
-    private static func runMultiEntryAndSpecialCharTests() {
+    private static func runMultiEntryAndSpecialCharTests() async {
         let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -120,7 +120,7 @@ public struct ArchiveInspectionTests {
             let zipURL = FileManager.default.fileExists(atPath: zip.path)
                 ? zip
                 : archiveDir.appendingPathComponent("multi.zip")
-            let entries = ArchiveInspectionService.listEntries(in: zipURL)
+            let entries = await ArchiveInspectionService.listEntries(in: zipURL)
             multiListPassed = entries.contains(where: { $0.name == "alpha.txt" })
                 && entries.contains(where: { $0.name == "beta.txt" })
 
@@ -128,7 +128,7 @@ public struct ArchiveInspectionTests {
                 specialCharListPassed = true
                 let dest = root.appendingPathComponent("ExtractedSpecial")
                 try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
-                let extractedURL = try ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: specialEntry.path, to: dest)
+                let extractedURL = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: specialEntry.path, to: dest)
                 let content = try? String(contentsOf: extractedURL, encoding: .utf8)
                 specialCharExtractPassed = content == "special content"
             }
@@ -142,7 +142,7 @@ public struct ArchiveInspectionTests {
 
     // POS: listEntries/extractSingleEntry handle entry paths nested more than one directory deep,
     // NEG: listEntries on a completely missing archive file (not just a corrupt one) does not crash.
-    private static func runDeepNestingAndMissingArchiveTests() {
+    private static func runDeepNestingAndMissingArchiveTests() async {
         let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -158,14 +158,14 @@ public struct ArchiveInspectionTests {
         do {
             try ArchiveService.compressToZIP(urls: [level1], in: root)
             let zipURL = root.appendingPathComponent("level1.zip")
-            let entries = ArchiveInspectionService.listEntries(in: zipURL)
+            let entries = await ArchiveInspectionService.listEntries(in: zipURL)
             // Entry path should be nested (e.g. "level2/deep.txt"), but the parsed `name`
             // should be just the last path component, not the full nested path.
             if let deepEntry = entries.first(where: { !$0.isDirectory && $0.name == "deep.txt" }) {
                 deepNameParsedPassed = deepEntry.path.contains("level2")
                 let dest = root.appendingPathComponent("ExtractedDeep")
                 try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
-                let extractedURL = try ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: deepEntry.path, to: dest)
+                let extractedURL = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: deepEntry.path, to: dest)
                 let content = try? String(contentsOf: extractedURL, encoding: .utf8)
                 deepExtractPassed = content == "deep content"
             }
@@ -176,13 +176,13 @@ public struct ArchiveInspectionTests {
             result: deepNameParsedPassed)
         TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts an entry nested more than one directory deep", result: deepExtractPassed)
 
-        runMissingArchiveTests(root: root)
+        await runMissingArchiveTests(root: root)
     }
 
-    private static func runMissingArchiveTests(root: URL) {
+    private static func runMissingArchiveTests(root: URL) async {
         // NEG: archive file does not exist at all (unzip should fail cleanly, not crash).
         let missingArchive = root.appendingPathComponent("does_not_exist.zip")
-        let missingEntries = ArchiveInspectionService.listEntries(in: missingArchive)
+        let missingEntries = await ArchiveInspectionService.listEntries(in: missingArchive)
         TestReporter.report("ArchiveInspection", "NEG: listEntries on a nonexistent archive file returns empty list without crashing", result: missingEntries.isEmpty)
 
         // NEG: extractSingleEntry from a nonexistent archive should not silently succeed with real content.
@@ -190,7 +190,7 @@ public struct ArchiveInspectionTests {
         do {
             let dest = root.appendingPathComponent("ExtractedMissing")
             try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
-            let extractedURL = try ArchiveInspectionService.extractSingleEntry(from: missingArchive, entryPath: "deep.txt", to: dest)
+            let extractedURL = try await ArchiveInspectionService.extractSingleEntry(from: missingArchive, entryPath: "deep.txt", to: dest)
             let data = try? Data(contentsOf: extractedURL)
             missingArchiveExtractPassed = (data?.isEmpty ?? true)
         } catch {

@@ -40,7 +40,7 @@ public final class AutomatedTestService {
         SmartFolderTests.run()
         await PDFMergeTests.run()
         ExifMetadataTests.run()
-        ArchiveInspectionTests.run()
+        await ArchiveInspectionTests.run()
         ArchiveTests.run()
         BatchRenameTests.run()
         await FileShredderTests.run()
