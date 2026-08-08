@@ -15,8 +15,15 @@ struct FileGridView: View {
     private var iconSize: CGFloat { CGFloat(appState.preferences.iconSize) * LayoutTokens.gridIconScaleMultiplier }
     private var cardWidth: CGFloat { iconSize + LayoutTokens.cardWidthOffset }
     private var cardHeight: CGFloat { iconSize + LayoutTokens.cardHeightOffset }
+    // `maximum` used to be `cardWidth + 24`, letting each column stretch up to 24pt past the card's
+    // own width to fill the row evenly. Since the card content itself stays a fixed `cardWidth`,
+    // that slack just became extra empty margin around the icon — and since how much slack is left
+    // over per row depends on how many columns fit, which changes with `cardWidth`, the visual gap
+    // between icons appeared to grow/shrink as the icon-size slider moved even though `gridSpacing`
+    // itself never changed. Locking `maximum` to `cardWidth` removes the stretch entirely: any
+    // leftover row width becomes trailing margin instead of inflating the gap between icons.
     private var columns: [GridItem] {
-        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth + 24), spacing: LayoutTokens.gridSpacing)]
+        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: LayoutTokens.gridSpacing)]
     }
 
     @State private var selectionRect: CGRect?
