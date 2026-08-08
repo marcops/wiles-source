@@ -25,6 +25,9 @@ public protocol OpenWithServiceProtocol: Sendable {
 }
 
 public final class OpenWithService: OpenWithServiceProtocol, Sendable {
+    /// Injectable seam for tests — see `WorkspaceOpening`. Defaults to the real `NSWorkspace`.
+    @MainActor public static var opener: any WorkspaceOpening = RealWorkspaceOpener()
+
     @MainActor
     public static func availableApplications(for url: URL) -> [ApplicationApp] {
         let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: url)
@@ -50,7 +53,7 @@ public final class OpenWithService: OpenWithServiceProtocol, Sendable {
     public static func open(urls: [URL], with applicationURL: URL) {
         guard !urls.isEmpty else { return }
         let config = NSWorkspace.OpenConfiguration()
-        NSWorkspace.shared.open(urls, withApplicationAt: applicationURL, configuration: config, completionHandler: nil)
+        opener.open(urls, withApplicationAt: applicationURL, configuration: config, completionHandler: nil)
     }
 
     @MainActor

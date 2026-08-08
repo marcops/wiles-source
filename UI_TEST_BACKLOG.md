@@ -42,31 +42,7 @@ the real test the moment the missing infrastructure exists.
   exercised — dozens of `AppState()` constructions happen across the suite). Not chasing further;
   flagging in case it recurs for other properties with `UserDefaults ... ?? default` initializers.
 
-## `Sources/Wiles/Services/NetworkServerService.swift`
-
-- **`connectToServer(urlAddress:)` success path — the final `NSWorkspace.shared.open(url)` call.**
-  For any syntactically valid `smb://...` address, this attempts a real macOS network-share mount,
-  which can present real connection/credential system UI or hang waiting on real network I/O — the
-  same class of problem as `OpenWithService.open()` below. Only the two guard branches (empty address
-  no-ops, invalid URL throws) are covered in `NetworkServerServiceTests`.
-  - **Why it's out of scope now**: no injectable seam to swap in a fake opener; would need a
-    `Sources/` change (e.g. an injected `URLOpening` protocol) requiring approval.
-
 ## `Sources/Wiles/Services/OpenWithService.swift`
-
-- **`open(urls:with:)` — non-empty urls branch (the body after `guard !urls.isEmpty else { return }`).**
-  Calls the real `NSWorkspace.shared.open(urls, withApplicationAt:configuration:completionHandler:)`,
-  which is asynchronous and dispatches its actual file lookup after the call returns. A test can't
-  safely provide a real target file and then clean it up (even via `defer`) without racing that
-  async lookup — if the file is gone by the time NSWorkspace processes the request, macOS presents a
-  real, blocking "file not found" system alert that requires a human to dismiss it, hanging any
-  automated run. There is no completion-handler-based way to await/verify the call finished first.
-  - **Why it's out of scope now**: no safe way to test this branch without either leaking temp files
-    permanently (never cleaning up, so a future async open can't race a deletion) or refactoring
-    `OpenWithService.open` to accept an injectable workspace/opener abstraction — a `Sources/` change
-    requiring approval. The empty-urls guard branch is already covered by
-    `OpenWithTests.testOpenWithEmptyURLsIsNoOp` equivalent (`open(urls: [], with:)` case in
-    `OpenWithTests.run()`).
 
 - **`chooseOtherApplication(toOpen:)` — non-empty urls branch (lines 59-71, the body after the
   `guard !urls.isEmpty else { return }`).**

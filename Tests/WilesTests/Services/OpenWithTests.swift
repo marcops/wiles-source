@@ -1,5 +1,30 @@
 @testable import Wiles
 import Foundation
+import AppKit
+
+/// Records calls instead of touching the real OS — see `WorkspaceOpening`. This is what makes
+/// `OpenWithService.open(urls:with:)`'s real call site finally safe to exercise: no real file needs
+/// to exist, nothing can present a blocking system alert.
+@MainActor
+private final class FakeWorkspaceOpener: WorkspaceOpening {
+    private(set) var openedURLPairs: [(urls: [URL], applicationURL: URL)] = []
+    private(set) var openedSingleURLs: [URL] = []
+
+    func open(
+        _ urls: [URL],
+        withApplicationAt applicationURL: URL,
+        configuration: NSWorkspace.OpenConfiguration,
+        completionHandler: (@Sendable (NSRunningApplication?, Error?) -> Void)?
+    ) {
+        openedURLPairs.append((urls, applicationURL))
+        completionHandler?(nil, nil)
+    }
+
+    func open(_ url: URL) -> Bool {
+        openedSingleURLs.append(url)
+        return true
+    }
+}
 
 @MainActor
 public struct OpenWithTests {
@@ -30,6 +55,26 @@ public struct OpenWithTests {
         testAvailableApplicationsForNonexistentFileURL()
         testSetDefaultApplicationWithValidExtensionAndBogusAppURL()
         testApplicationsAreDeduplicatedByBundleID()
+        testOpenWithNonEmptyURLsCallsThroughToTheInjectedOpener()
+    }
+
+    // POS: open(urls:with:) with a non-empty urls array passes the guard and reaches the real
+    // NSWorkspace.shared.open(...) call site — now safe to exercise for real via the injected
+    // WorkspaceOpening seam (see WorkspaceOpening.swift) instead of touching the actual OS.
+    private static func testOpenWithNonEmptyURLsCallsThroughToTheInjectedOpener() {
+        let fake = FakeWorkspaceOpener()
+        let previousOpener = OpenWithService.opener
+        OpenWithService.opener = fake
+        defer { OpenWithService.opener = previousOpener }
+
+        let targetFile = URL(fileURLWithPath: "/tmp/does-not-need-to-exist.txt")
+        let appURL = URL(fileURLWithPath: "/Applications/Safari.app")
+        OpenWithService.open(urls: [targetFile], with: appURL)
+
+        TestReporter.report(
+            "OpenWith", "POS: open(urls:with:) with non-empty urls calls through to the injected opener with the right arguments",
+            result: fake.openedURLPairs.count == 1 && fake.openedURLPairs.first?.urls == [targetFile] && fake.openedURLPairs.first?.applicationURL == appURL
+        )
     }
 
     // NEG: chooseOtherApplication(toOpen:) with an empty URL array hits the guard and safely no-ops
