@@ -38,6 +38,7 @@ public struct AutoOrganizationTests {
         await testNamePrefixCondition(service: service, inputDir: inputDir, targetDir: targetDir)
         await testGrowingFileIsNotMoved(service: service, inputDir: inputDir, targetDir: targetDir)
         await testDirectoryEntriesAreNeverMoved(service: service, inputDir: inputDir, targetDir: targetDir)
+        await testHiddenFilesAreNeverProcessed(service: service, inputDir: inputDir, targetDir: targetDir)
         await testScheduleProcessFolderDebounces(service: service, inputDir: inputDir, targetDir: targetDir)
         testRuleMutationMethods(service: service, rule: rule)
 
@@ -151,6 +152,39 @@ public struct AutoOrganizationTests {
         )
 
         try? FileManager.default.removeItem(at: trapDir)
+    }
+
+    /// `processFolder()` skips any entry whose name starts with "." (`file.lastPathComponent.hasPrefix(".")`)
+    /// before even reaching the per-rule `matches(file:rule:)` check, so a dotfile that would otherwise
+    /// match a rule's condition must never be moved. This branch is pure synchronous filtering logic
+    /// (unlike the cross-volume `Task.detached` move dispatch this file's backlog item is about), so it's
+    /// directly unit-testable: create a hidden file matching an active rule, run processFolder(), and
+    /// confirm it's still in place after enough time has passed for a real match to have been moved.
+    private static func testHiddenFilesAreNeverProcessed(service: AutoOrganizationService, inputDir: URL, targetDir: URL) async {
+        let hiddenMatchingFile = inputDir.appendingPathComponent(".secret.pdf")
+        try? "PDF".write(to: hiddenMatchingFile, atomically: true, encoding: .utf8)
+        let visibleMatchingFile = inputDir.appendingPathComponent("visible-alongside-hidden.pdf")
+        try? "PDF".write(to: visibleMatchingFile, atomically: true, encoding: .utf8)
+
+        let pdfRule = AutoOrganizationRule(
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true
+        )
+        service.rules = [pdfRule]
+
+        service.processFolder(inputDir)
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        TestReporter.report(
+            "AutoOrganization", "NEG: a dotfile matching a rule's condition (e.g. \".secret.pdf\") is never moved",
+            result: FileManager.default.fileExists(atPath: hiddenMatchingFile.path)
+                && !FileManager.default.fileExists(atPath: targetDir.appendingPathComponent(".secret.pdf").path)
+        )
+        TestReporter.report(
+            "AutoOrganization", "POS: a real matching file alongside the dotfile is still moved correctly",
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("visible-alongside-hidden.pdf").path)
+        )
+
+        try? FileManager.default.removeItem(at: hiddenMatchingFile)
     }
 
     /// Regression coverage for the CPU-spin fix: a file that's still actively growing (simulating an

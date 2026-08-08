@@ -15,6 +15,41 @@ public struct PreferencesStoreTests {
 
         testExpandedTreePathsCapsInsertionsAt500()
         testExpandedTreePathsTruncatesOnLoadWhenSavedSetExceedsCap()
+        testShowDirectoryTreePersistsAcrossStoreInstances()
+    }
+
+    // MARK: - showDirectoryTree persistence
+
+    /// `showDirectoryTree` (the independent sidebar toggle that replaced the old mutually-exclusive
+    /// `SidebarMode` picker — see UI_TEST_BACKLOG.md) writes through `didSet` to
+    /// `DefaultsKey.showDirectoryTree` and is restored on `init` via `loadBool`, exactly like its
+    /// sibling `show*` sidebar-visibility booleans. This mutates the real `UserDefaults.standard`
+    /// key (`PreferencesStore` has no injectable suite), so per rule 17 we snapshot and restore the
+    /// real value in `defer`.
+    private static func testShowDirectoryTreePersistsAcrossStoreInstances() {
+        let key = DefaultsKey.showDirectoryTree.rawValue
+        let priorValue = UserDefaults.standard.object(forKey: key) as? Bool
+        defer {
+            if let priorValue {
+                UserDefaults.standard.set(priorValue, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        let store = PreferencesStore()
+        let defaultValue = store.showDirectoryTree
+        store.showDirectoryTree = !defaultValue
+
+        let reloaded = PreferencesStore()
+        report(
+            "Store/PreferencesStore",
+            "POS: showDirectoryTree persists to UserDefaults and is restored by a freshly-constructed PreferencesStore",
+            result: reloaded.showDirectoryTree == !defaultValue
+        )
+
+        // Flip back and restore the real prior value so a real user's setting isn't clobbered.
+        store.showDirectoryTree = defaultValue
     }
 
     // MARK: - expandedTreePaths cap (500 entries)

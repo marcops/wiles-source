@@ -22,10 +22,13 @@ public struct PDFMergeTests {
             try? png.write(to: imgFile)
         }
 
-        await runScenarios(tempDir: tempDir, imgFile: imgFile)
+        let unsupportedFile = tempDir.appendingPathComponent("merge_sample.txt")
+        try? "not an image or pdf".write(to: unsupportedFile, atomically: true, encoding: .utf8)
+
+        await runScenarios(tempDir: tempDir, imgFile: imgFile, unsupportedFile: unsupportedFile)
     }
 
-    private static func runScenarios(tempDir: URL, imgFile: URL) async {
+    private static func runScenarios(tempDir: URL, imgFile: URL, unsupportedFile: URL) async {
         if let merged = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "TestMerged.pdf") {
             TestReporter.report("PDFMerge", "POS: mergeFiles creates valid PDF file", result: FileManager.default.fileExists(atPath: merged.path))
         } else {
@@ -70,6 +73,28 @@ public struct PDFMergeTests {
             TestReporter.report("PDFMerge", "POS: merging two single-page PDFs produces a 2-page combined document", result: combinedDoc.pageCount == 2)
         } else {
             TestReporter.report("PDFMerge", "POS: merging two single-page PDFs produces a 2-page combined document", result: false)
+        }
+
+        // NEG: a file whose extension isn't "pdf" and can't be loaded as an NSImage (appendPages'
+        // else-if branch fails both checks) is silently skipped rather than throwing, so the merge
+        // still succeeds but contributes zero pages.
+        if let unsupportedOnly = try? await PDFMergeService.mergeFiles(urls: [unsupportedFile], in: tempDir, outputName: "UnsupportedOnly.pdf"),
+           let unsupportedDoc = PDFDocument(url: unsupportedOnly) {
+            TestReporter.report(
+                "PDFMerge", "NEG: mergeFiles with only an unsupported file type produces a valid but empty (0-page) PDF",
+                result: FileManager.default.fileExists(atPath: unsupportedOnly.path) && unsupportedDoc.pageCount == 0
+            )
+        } else {
+            TestReporter.report("PDFMerge", "NEG: mergeFiles with only an unsupported file type produces a valid but empty (0-page) PDF", result: false)
+        }
+
+        // POS: mixing a valid image with an unsupported file only contributes a page for the valid
+        // one — appendPages' pageIndex accumulator must skip the failed entry without leaving a gap.
+        if let mixed = try? await PDFMergeService.mergeFiles(urls: [imgFile, unsupportedFile], in: tempDir, outputName: "Mixed.pdf"),
+           let mixedDoc = PDFDocument(url: mixed) {
+            TestReporter.report("PDFMerge", "POS: merging a valid image alongside an unsupported file only includes the valid file's page", result: mixedDoc.pageCount == 1)
+        } else {
+            TestReporter.report("PDFMerge", "POS: merging a valid image alongside an unsupported file only includes the valid file's page", result: false)
         }
     }
 }

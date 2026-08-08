@@ -101,21 +101,23 @@ public struct AppStateOperationsTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
+        let windowUIState = WindowUIState()
         let item = makeItem(named: "props.txt", in: dir)
         appState.fileSystem.items = [item]
         appState.selectedURLs = [item.url]
-        appState.openPropertiesForSelected()
+        appState.openPropertiesForSelected(windowUIState: windowUIState)
         report(
             "AppState+Operations",
             "POS: openPropertiesForSelected() sets propertiesItem when the selected URL matches a listed item",
-            result: appState.propertiesItem?.url == item.url
+            result: windowUIState.propertiesItem?.url == item.url
         )
 
         let appState2 = AppState()
+        let windowUIState2 = WindowUIState()
         appState2.fileSystem.items = []
         appState2.selectedURLs = [URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("unknown-\(UUID().uuidString).txt")]
-        appState2.openPropertiesForSelected()
-        report("AppState+Operations", "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item", result: appState2.propertiesItem == nil)
+        appState2.openPropertiesForSelected(windowUIState: windowUIState2)
+        report("AppState+Operations", "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item", result: windowUIState2.propertiesItem == nil)
     }
 
     private static func testStartEditingPath() {

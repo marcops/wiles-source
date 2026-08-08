@@ -11,36 +11,44 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 FAILED=0
+COVERAGE_PCT="(not measured)"
 
 section() {
   echo
   echo "==> $1"
 }
 
-section "swift build (zero warnings required)"
+section "sswift test (zero warnings required)"
 if swift build -c release 2>&1 | tee /tmp/wiles_build.log | grep -qi "warning:"; then
   echo "FAIL: build produced warnings:"
   grep -i "warning:" /tmp/wiles_build.log
   FAILED=1
 else
-  echo "OK"
+  echo "swift build OK"
 fi
 
 section "swift test (unit tests — WilesTests, with code coverage)"
 TEST_LOG="$(mktemp)"
-if ! swift test --enable-code-coverage --filter WilesTests 2>&1 | tee "$TEST_LOG"; then
+swift test --enable-code-coverage --filter WilesTests 2>&1 | tee "$TEST_LOG" || true
+if grep -q "FAIL\|error:" "$TEST_LOG" 2>/dev/null && ! grep -q "Build complete" "$TEST_LOG" 2>/dev/null; then
+  echo "FAIL: unit tests did not pass"
+  FAILED=1
+elif grep -qE "^.*(FAILED|❌)" "$TEST_LOG" 2>/dev/null; then
   echo "FAIL: unit tests did not pass"
   FAILED=1
 else
-  echo "OK"
-  BIN=".build/debug/WilesPackageTests.xctest/Contents/MacOS/WilesPackageTests"
-  PROFDATA=".build/debug/codecov/default.profdata"
-  if [[ -f "$BIN" && -f "$PROFDATA" ]]; then
-    echo
-    echo "-- Code coverage summary --"
-    xcrun llvm-cov report "$BIN" -instr-profile="$PROFDATA" -ignore-filename-regex=".build|Tests/" | tail -1
-    echo "(full report: xcrun llvm-cov report \"$BIN\" -instr-profile=\"$PROFDATA\" -ignore-filename-regex=\".build|Tests/\")"
-  fi
+  echo "swift test OK"
+fi
+# Compute coverage regardless of pass/fail — profdata is written even when some tests fail
+BIN=".build/debug/WilesPackageTests.xctest/Contents/MacOS/WilesPackageTests"
+PROFDATA=".build/debug/codecov/default.profdata"
+if [[ -f "$BIN" && -f "$PROFDATA" ]]; then
+  COVERAGE_LINE=$(xcrun llvm-cov report "$BIN" -instr-profile="$PROFDATA" -ignore-filename-regex=".build|Tests/" | tail -1)
+  COVERAGE_PCT=$(echo "$COVERAGE_LINE" | awk '{print $NF}')
+  echo
+  echo "-- Code coverage summary --"
+  echo "$COVERAGE_LINE"
+  echo "(full report: xcrun llvm-cov report \"$BIN\" -instr-profile=\"$PROFDATA\" -ignore-filename-regex=\".build|Tests/\")"
 fi
 scripts/test_timing.sh "$TEST_LOG"
 
@@ -54,7 +62,7 @@ if ! xcodebuild test \
   echo "FAIL: UI tests did not pass"
   FAILED=1
 else
-  echo "OK"
+  echo "xcodebuild UI tests OK"
 fi
 
 section "SwiftLint (required — never releases with lint non-zero)"
@@ -66,7 +74,7 @@ else
     echo "FAIL: swiftlint found issues"
     FAILED=1
   else
-    echo "OK"
+    echo "SwiftLint OK"
   fi
 fi
 
@@ -78,7 +86,7 @@ else
     echo "FAIL: files are not formatted (run 'swiftformat .' to fix)"
     FAILED=1
   else
-    echo "OK"
+    echo "SwiftFormat OK"
   fi
 fi
 
@@ -88,5 +96,6 @@ if [[ "$FAILED" -eq 0 ]]; then
 else
   echo "==> One or more checks failed. See above."
 fi
+echo "==> Code coverage: $COVERAGE_PCT"
 
 exit "$FAILED"

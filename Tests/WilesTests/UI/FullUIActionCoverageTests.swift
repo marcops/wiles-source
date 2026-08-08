@@ -14,7 +14,7 @@ public struct FullUIActionCoverageTests {
         await testDuplicateCleanerSheetFlows(appState: appState)
         testImageConverterSheetFlows(appState: appState)
         await testDiskSpaceVisualizerSheetFlows(appState: appState)
-        testModalSheetsCoverage(appState: appState)
+        testModalSheetsCoverage(windowUIState: WindowUIState())
         testConnectToServerSheetFlows(appState: appState)
         testSymlinkSheetFlows(appState: appState)
         testNewFileSheetFlows(appState: appState)
@@ -69,12 +69,13 @@ public struct FullUIActionCoverageTests {
         try? "Properties Test Content".write(to: tempFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempFile) }
 
+        let windowUIState = WindowUIState()
         let item = FileItem(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
-        appState.propertiesItem = item
-        report("UI/Properties", "POS: Opening PropertiesSheet sets propertiesItem", result: appState.propertiesItem != nil)
+        windowUIState.propertiesItem = item
+        report("UI/Properties", "POS: Opening PropertiesSheet sets propertiesItem", result: windowUIState.propertiesItem != nil)
 
-        appState.propertiesItem = nil
-        report("UI/Properties", "NEG: Setting propertiesItem to nil closes sheet", result: appState.propertiesItem == nil)
+        windowUIState.propertiesItem = nil
+        report("UI/Properties", "NEG: Setting propertiesItem to nil closes sheet", result: windowUIState.propertiesItem == nil)
     }
 
     private static func testNewFolderSheetFlows(appState: AppState) {
@@ -108,26 +109,26 @@ public struct FullUIActionCoverageTests {
         report("UI/DiskSpaceVisualizer", "POS: Analyzing empty folder returns zero total size", result: result.totalSize == 0)
     }
 
-    private static func testModalSheetsCoverage(appState: AppState) {
-        appState.modal.showSaveSmartFolderSheet = true
-        report("UI/Modals", "POS: showSaveSmartFolderSheet sets flag", result: appState.modal.showSaveSmartFolderSheet)
-        appState.modal.showSaveSmartFolderSheet = false
+    private static func testModalSheetsCoverage(windowUIState: WindowUIState) {
+        windowUIState.showSaveSmartFolderSheet = true
+        report("UI/Modals", "POS: showSaveSmartFolderSheet sets flag", result: windowUIState.showSaveSmartFolderSheet)
+        windowUIState.showSaveSmartFolderSheet = false
 
-        appState.modal.showPasswordCompressSheet = true
-        report("UI/Modals", "POS: showPasswordCompressSheet sets flag", result: appState.modal.showPasswordCompressSheet)
-        appState.modal.showPasswordCompressSheet = false
+        windowUIState.showPasswordCompressSheet = true
+        report("UI/Modals", "POS: showPasswordCompressSheet sets flag", result: windowUIState.showPasswordCompressSheet)
+        windowUIState.showPasswordCompressSheet = false
 
-        appState.modal.showArchiveInspectionSheet = true
-        report("UI/Modals", "POS: showArchiveInspectionSheet sets flag", result: appState.modal.showArchiveInspectionSheet)
-        appState.modal.showArchiveInspectionSheet = false
+        windowUIState.showArchiveInspectionSheet = true
+        report("UI/Modals", "POS: showArchiveInspectionSheet sets flag", result: windowUIState.showArchiveInspectionSheet)
+        windowUIState.showArchiveInspectionSheet = false
 
-        appState.modal.showHelpSheet = true
-        report("UI/Modals", "POS: showHelpSheet sets flag", result: appState.modal.showHelpSheet)
-        appState.modal.showHelpSheet = false
+        windowUIState.showHelpSheet = true
+        report("UI/Modals", "POS: showHelpSheet sets flag", result: windowUIState.showHelpSheet)
+        windowUIState.showHelpSheet = false
 
-        appState.modal.showAboutSheet = true
-        report("UI/Modals", "POS: showAboutSheet sets flag", result: appState.modal.showAboutSheet)
-        appState.modal.showAboutSheet = false
+        windowUIState.showAboutSheet = true
+        report("UI/Modals", "POS: showAboutSheet sets flag", result: windowUIState.showAboutSheet)
+        windowUIState.showAboutSheet = false
     }
 
     private static func testConnectToServerSheetFlows(appState: AppState) {

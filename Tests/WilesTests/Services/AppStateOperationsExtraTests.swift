@@ -102,8 +102,9 @@ public struct AppStateOperationsExtraTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
+        let windowUIState = WindowUIState()
         appState.selectedURLs = []
-        appState.deleteSelected()
+        appState.deleteSelected(windowUIState: windowUIState)
         report("AppState+Operations", "NEG: deleteSelected() with empty selection leaves selection empty", result: appState.selectedURLs.isEmpty)
 
         // deleteSelected() internally calls refreshCurrentDirectory(), which reloads
@@ -115,10 +116,10 @@ public struct AppStateOperationsExtraTests {
 
         let fileURL = makeFile(named: "to-trash.txt", in: dir)
         appState.selectedURLs = [fileURL]
-        appState.deleteSelected()
+        appState.deleteSelected(windowUIState: windowUIState)
         report(
             "AppState+Operations", "POS: deleteSelected() raises the confirmation alert without deleting yet",
-            result: appState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: fileURL.path)
+            result: windowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: fileURL.path)
         )
 
         appState.performDeleteSelected()
@@ -130,6 +131,41 @@ public struct AppStateOperationsExtraTests {
         }
         report("AppState+Operations", "POS: performDeleteSelected() moves the file to Trash and clears the selection", result: !stillExists && appState.selectedURLs.isEmpty)
         await drainUndoRedoService()
+
+        // UI_TEST_BACKLOG.md's `skipDeleteConfirmation` bypass branch, deferred until this file was
+        // touched again for a real reason (it now has been, for the WindowUIState migration above).
+        let bypassFile = makeFile(named: "bypass.txt", in: dir)
+        let bypassAppState = AppState()
+        let bypassWindowUIState = WindowUIState()
+        bypassAppState.navigation.currentURL = dir
+        bypassAppState.preferences.skipDeleteConfirmation = true
+        bypassAppState.selectedURLs = [bypassFile]
+        bypassAppState.deleteSelected(windowUIState: bypassWindowUIState)
+        var bypassFileStillExists = true
+        for _ in 0..<20 {
+            bypassFileStillExists = FileManager.default.fileExists(atPath: bypassFile.path)
+            if !bypassFileStillExists { break }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        report(
+            "AppState+Operations",
+            "POS: deleteSelected() with skipDeleteConfirmation=true deletes directly without raising the confirm alert",
+            result: !bypassFileStillExists && !bypassWindowUIState.showDeleteConfirmAlert
+        )
+        await drainUndoRedoService()
+
+        let keepFile = makeFile(named: "keep.txt", in: dir)
+        let keepAppState = AppState()
+        let keepWindowUIState = WindowUIState()
+        keepAppState.navigation.currentURL = dir
+        keepAppState.preferences.skipDeleteConfirmation = false
+        keepAppState.selectedURLs = [keepFile]
+        keepAppState.deleteSelected(windowUIState: keepWindowUIState)
+        report(
+            "AppState+Operations",
+            "NEG: deleteSelected() with skipDeleteConfirmation=false only raises the confirm alert and never touches the file system",
+            result: keepWindowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: keepFile.path)
+        )
     }
 
     private static func testShredSelected() async {
@@ -270,9 +306,8 @@ public struct AppStateOperationsExtraTests {
         let fileURL = makeFile(named: "secret.txt", in: dir, content: "classified")
         let appState = AppState()
         appState.navigation.currentURL = dir
-        appState.modal.passwordCompressURLs = [fileURL]
 
-        appState.compressSelectedToZIPWithPassword("hunter2")
+        appState.compressSelectedToZIPWithPassword("hunter2", urls: [fileURL])
 
         let zipURL = dir.appendingPathComponent("secret.zip")
         var zipCreated = false
@@ -291,8 +326,7 @@ public struct AppStateOperationsExtraTests {
         defer { try? FileManager.default.removeItem(at: emptyDir) }
         let emptyAppState = AppState()
         emptyAppState.navigation.currentURL = emptyDir
-        emptyAppState.modal.passwordCompressURLs = nil
-        emptyAppState.compressSelectedToZIPWithPassword("irrelevant")
+        emptyAppState.compressSelectedToZIPWithPassword("irrelevant", urls: nil)
         try? await Task.sleep(nanoseconds: 300_000_000)
         let emptyDirContents = (try? FileManager.default.contentsOfDirectory(atPath: emptyDir.path)) ?? ["unexpected-error"]
         report(
