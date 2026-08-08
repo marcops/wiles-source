@@ -48,29 +48,42 @@ public final class DiskSpaceVisualizerService {
     }
 
     public static func calculateDiskUsage(for folderURL: URL) async -> DiskUsageReport {
-        return await Task.detached(priority: .userInitiated) {
+        // `.task(id:)` cancellation on the calling side does NOT automatically cancel a
+        // `Task.detached` — detached tasks are unlinked from their creator, so the scan
+        // would otherwise become a zombie that keeps recursively walking a folder the user
+        // already navigated away from. `withTaskCancellationHandler` explicitly forwards
+        // cancellation to the detached task, and the detached task now throws
+        // `CancellationError` promptly instead of running to completion.
+        let scanTask = Task.detached(priority: .userInitiated) { () throws -> DiskUsageReport in
             let fm = FileManager.default
             guard let contents = try? fm.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey], options: [.skipsHiddenFiles]) else {
                 return DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
             }
 
-            let rawItems = collectRawItems(in: contents, fm: fm)
+            let rawItems = try collectRawItems(in: contents, fm: fm)
             let grandTotal = rawItems.reduce(0) { $0 + $1.size }
             guard grandTotal > 0 else {
                 return DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
             }
 
             return buildReport(from: rawItems, grandTotal: grandTotal, folderURL: folderURL)
-        }.value
+        }
+
+        return await withTaskCancellationHandler {
+            (try? await scanTask.value) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
+        } onCancel: {
+            scanTask.cancel()
+        }
     }
 
-    private static func collectRawItems(in contents: [URL], fm: FileManager) -> [RawItem] {
+    private static func collectRawItems(in contents: [URL], fm: FileManager) throws -> [RawItem] {
         var rawItems: [RawItem] = []
         for itemURL in contents {
+            try Task.checkCancellation()
             let isDir = (try? itemURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             let size: Int64
             if isDir {
-                size = computeFolderSizeFast(folderURL: itemURL)
+                size = try computeFolderSizeFast(folderURL: itemURL)
             } else {
                 let values = try? itemURL.resourceValues(forKeys: [.fileSizeKey])
                 size = Int64(values?.fileSize ?? 0)
@@ -106,7 +119,7 @@ public final class DiskSpaceVisualizerService {
         return DiskUsageReport(totalSize: grandTotal, topItems: formattedTopItems, othersItem: othersItem)
     }
 
-    private static func computeFolderSizeFast(folderURL: URL) -> Int64 {
+    private static func computeFolderSizeFast(folderURL: URL) throws -> Int64 {
         let fm = FileManager.default
         guard let enumerator = fm.enumerator(at: folderURL, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) else {
             return 0
@@ -114,6 +127,7 @@ public final class DiskSpaceVisualizerService {
         var total: Int64 = 0
         var count = 0
         while let fileURL = enumerator.nextObject() as? URL {
+            try Task.checkCancellation()
             if let values = try? fileURL.resourceValues(forKeys: [.fileSizeKey]), let fileSize = values.fileSize {
                 total += Int64(fileSize)
             }
