@@ -28,6 +28,7 @@
 "ascending" = "Croissant";
 "autoOrganization" = "Règles d'organisation automatique...";
 "autoOrganizationSubtitle" = "Déplace automatiquement les fichiers entre les dossiers selon les règles que vous définissez";
+"autoOrgRuleCondition" = "Si %@ est '%@'";
 "back" = "Retour";
 "backgroundOperations" = "Opérations en arrière-plan";
 "backgroundTasksSuffix" = "tâches en arrière-plan";

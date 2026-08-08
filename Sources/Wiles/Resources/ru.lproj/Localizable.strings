@@ -28,6 +28,7 @@
 "ascending" = "Ascending";
 "autoOrganization" = "Правила автоматической организации...";
 "autoOrganizationSubtitle" = "Автоматически перемещает файлы между папками на основе заданных вами правил";
+"autoOrgRuleCondition" = "Если %@ равно '%@'";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "фоновых задач";

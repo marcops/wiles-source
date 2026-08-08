@@ -28,6 +28,7 @@
 "ascending" = "Ascending";
 "autoOrganization" = "Regels voor Automatische Organisatie...";
 "autoOrganizationSubtitle" = "Verplaatst bestanden automatisch tussen mappen op basis van de regels die je instelt";
+"autoOrgRuleCondition" = "Als %@ '%@' is";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "achtergrondtaken";

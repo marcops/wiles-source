@@ -28,6 +28,7 @@
 "ascending" = "Ascending";
 "autoOrganization" = "自动整理规则…";
 "autoOrganizationSubtitle" = "根据您定义的规则在文件夹之间自动移动文件";
+"autoOrgRuleCondition" = "如果 %@ 为 '%@'";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "个后台任务";

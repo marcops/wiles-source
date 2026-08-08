@@ -1,11 +1,13 @@
 import Foundation
 import AppKit
+import os
 
 @MainActor
-public class AutoOrganizationService {
+public final class AutoOrganizationService {
     public static let shared = AutoOrganizationService()
 
     private let rulesKey = DefaultsKey.autoOrganizationRules.rawValue
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Wiles", category: "AutoOrganizationService")
 
     public var rules: [AutoOrganizationRule] = [] {
         didSet {
@@ -36,15 +38,20 @@ public class AutoOrganizationService {
     }
 
     private func loadRules() {
-        if let data = UserDefaults.standard.data(forKey: rulesKey),
-           let loaded = try? JSONDecoder().decode([AutoOrganizationRule].self, from: data) {
-            self.rules = loaded
+        guard let data = UserDefaults.standard.data(forKey: rulesKey) else { return }
+        do {
+            self.rules = try JSONDecoder().decode([AutoOrganizationRule].self, from: data)
+        } catch {
+            Self.logger.error("Failed to decode auto-organization rules from UserDefaults: \(error.localizedDescription, privacy: .public)")
         }
     }
 
     private func saveRules() {
-        if let data = try? JSONEncoder().encode(rules) {
+        do {
+            let data = try JSONEncoder().encode(rules)
             UserDefaults.standard.set(data, forKey: rulesKey)
+        } catch {
+            Self.logger.error("Failed to encode auto-organization rules for UserDefaults: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -117,14 +124,32 @@ public class AutoOrganizationService {
     }
 
     public func processFolder(_ folder: URL) {
+        let hasActiveRule = rules.contains { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
+        guard hasActiveRule else { return }
+
+        // `folder` is a user-configured source path and can point anywhere, including under
+        // /Volumes (an SMB/FTP/SFTP share or external drive). contentsOfDirectory(at:) is a
+        // synchronous disk call that can block for a long time if that mount has stalled, freezing
+        // the whole UI — the same hazard AppState+Navigation's navigateTo guards against for
+        // /Volumes/ paths. Detach the initial scan off the main actor; the per-file rule matching
+        // and move dispatch below then hop back to the main actor, unchanged.
+        let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isHiddenKey]
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let fm = FileManager.default
+            guard let files = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: resourceKeys, options: [.skipsSubdirectoryDescendants]) else {
+                return
+            }
+            await self?.matchAndDispatchMoves(folder: folder, files: files, resourceKeys: resourceKeys)
+        }
+    }
+
+    /// Runs on the main actor: re-filters the current rules against `folder` (rules may have
+    /// changed while the detached scan above was in flight) and matches the freshly-scanned
+    /// `files`, dispatching each match's move exactly as before. Split out of `processFolder` only
+    /// so the initial (potentially slow, /Volumes-backed) directory scan can run detached.
+    private func matchAndDispatchMoves(folder: URL, files: [URL], resourceKeys: [URLResourceKey]) {
         let activeRules = rules.filter { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
         guard !activeRules.isEmpty else { return }
-
-        let fm = FileManager.default
-        let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isHiddenKey]
-        guard let files = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: resourceKeys, options: [.skipsSubdirectoryDescendants]) else {
-            return
-        }
 
         for file in files {
             // Ignore hidden files and directories
