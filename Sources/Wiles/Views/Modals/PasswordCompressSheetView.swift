@@ -3,7 +3,8 @@ import AppKit
 
 struct PasswordCompressSheetView: View {
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @Environment(\.dismiss)
     private var dismiss
     @State private var password: String = ""

@@ -3,7 +3,8 @@ import AppKit
 
 struct HeaderBarView: View {
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @FocusState private var isSearchFocused: Bool
     @State private var viewSwitcherExpanded = false
 

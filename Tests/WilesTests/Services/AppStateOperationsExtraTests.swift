@@ -132,8 +132,12 @@ public struct AppStateOperationsExtraTests {
         report("AppState+Operations", "POS: performDeleteSelected() moves the file to Trash and clears the selection", result: !stillExists && appState.selectedURLs.isEmpty)
         await drainUndoRedoService()
 
-        // UI_TEST_BACKLOG.md's `skipDeleteConfirmation` bypass branch, deferred until this file was
-        // touched again for a real reason (it now has been, for the WindowUIState migration above).
+        await testDeleteSelectedSkipConfirmation(dir: dir)
+    }
+
+    // UI_TEST_BACKLOG.md's `skipDeleteConfirmation` bypass branch, deferred until this file was
+    // touched again for a real reason (it now has been, for the WindowUIState migration above).
+    private static func testDeleteSelectedSkipConfirmation(dir: URL) async {
         let bypassFile = makeFile(named: "bypass.txt", in: dir)
         let bypassAppState = AppState()
         let bypassWindowUIState = WindowUIState()

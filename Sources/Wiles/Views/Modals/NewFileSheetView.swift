@@ -2,7 +2,8 @@ import SwiftUI
 
 public struct NewFileSheetView: View {
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
 
     public init(appState: AppState) {
         self.appState = appState

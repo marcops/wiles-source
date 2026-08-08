@@ -63,7 +63,8 @@ public struct AppStateNavigateToVolumesTests {
         // synchronously and inline instead.
         report(
             "Navigation/Volumes",
-            "POS: navigateTo() on a /Volumes/ path does not update currentURL synchronously (proves it hops off the calling context via Task.detached rather than resolving inline)",
+            "POS: navigateTo() on a /Volumes/ path does not update currentURL synchronously " +
+                "(proves it hops off the calling context via Task.detached rather than resolving inline)",
             result: appState.navigation.currentURL == before
         )
 

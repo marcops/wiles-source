@@ -1,0 +1,39 @@
+name: Wiles
+
+options:
+  bundleIdPrefix: com.marco
+  deploymentTarget:
+    macOS: "14.0"
+
+# Exists only so WilesUITests has a real .app to launch (see Tests/WilesUITests/WilesLaunchUITests.swift's
+# own header comment on why `swift test`/bare `xcodebuild` can't do this). The actual app is still
+# built entirely by SPM (`swift build`, via scripts/build_debug_app.sh) — this target has no Swift
+# sources of its own, it just wraps that output so xcodebuild recognizes it as a real app product
+# and links WilesUITests to it as the "Target Application". WilesTests keeps using `swift test`
+# directly (scripts/validate.sh) — untouched by this project.
+targets:
+  Wiles:
+    type: application
+    platform: macOS
+    sources: []
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.marco.wiles
+      PRODUCT_NAME: Wiles
+      CODE_SIGN_IDENTITY: "-"
+      GENERATE_INFOPLIST_FILE: YES
+      INFOPLIST_KEY_NSPrincipalClass: NSApplication
+      INFOPLIST_KEY_NSHighResolutionCapable: YES
+    postCompileScripts:
+      - name: Build Wiles.app via SPM
+        script: |
+          "$SRCROOT/scripts/build_debug_app.sh"
+
+  WilesUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - Tests/WilesUITests
+    settings:
+      GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Wiles

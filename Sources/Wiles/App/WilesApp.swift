@@ -4,8 +4,10 @@ import AppKit
 @main
 struct WilesApp: App {
     @State private var appState = AppState()
-    @Environment(\.openWindow) private var openWindow
-    @FocusedValue(\.windowUIState) private var windowUIState
+    @Environment(\.openWindow)
+    private var openWindow
+    @FocusedValue(\.windowUIState)
+    private var windowUIState
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)

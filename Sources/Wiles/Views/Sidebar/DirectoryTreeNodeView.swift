@@ -5,7 +5,8 @@ struct DirectoryTreeNodeView: View {
     let node: FolderNode
     let depth: Int
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var isRightClicked = false
 
     init(node: FolderNode, depth: Int = 0, appState: AppState) {

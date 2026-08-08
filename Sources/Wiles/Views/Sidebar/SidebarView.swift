@@ -310,7 +310,8 @@ struct SidebarView: View {
 private struct SidebarRowView: View {
     let item: SidebarItem
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     let isFavoritesSection: Bool
     let isRightClicked: Bool
     let isAnotherRowRightClicked: Bool

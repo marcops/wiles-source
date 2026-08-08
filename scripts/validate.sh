@@ -12,10 +12,20 @@ cd "$ROOT_DIR"
 
 FAILED=0
 COVERAGE_PCT="(not measured)"
+COVERAGE_LINE=""
+
+VALIDATE_START=$SECONDS
+STEP_START=$SECONDS
+STEP_NAME=""
 
 section() {
+  if [[ -n "$STEP_NAME" ]]; then
+    echo "(\"$STEP_NAME\" took $((SECONDS - STEP_START))s)"
+  fi
   echo
   echo "==> $1"
+  STEP_NAME="$1"
+  STEP_START=$SECONDS
 }
 
 section "sswift test (zero warnings required)"
@@ -39,16 +49,14 @@ elif grep -qE "^.*(FAILED|❌)" "$TEST_LOG" 2>/dev/null; then
 else
   echo "swift test OK"
 fi
-# Compute coverage regardless of pass/fail — profdata is written even when some tests fail
+# Compute coverage regardless of pass/fail — profdata is written even when some tests fail.
+# Only WilesTests (unit tests) feed this profile; the xcodebuild UI test run below is a separate
+# harness with its own coverage format and isn't merged in here. Printed at the end, not here.
 BIN=".build/debug/WilesPackageTests.xctest/Contents/MacOS/WilesPackageTests"
 PROFDATA=".build/debug/codecov/default.profdata"
 if [[ -f "$BIN" && -f "$PROFDATA" ]]; then
   COVERAGE_LINE=$(xcrun llvm-cov report "$BIN" -instr-profile="$PROFDATA" -ignore-filename-regex=".build|Tests/" | tail -1)
   COVERAGE_PCT=$(echo "$COVERAGE_LINE" | awk '{print $NF}')
-  echo
-  echo "-- Code coverage summary --"
-  echo "$COVERAGE_LINE"
-  echo "(full report: xcrun llvm-cov report \"$BIN\" -instr-profile=\"$PROFDATA\" -ignore-filename-regex=\".build|Tests/\")"
 fi
 scripts/test_timing.sh "$TEST_LOG"
 
@@ -90,6 +98,15 @@ else
   fi
 fi
 
+echo "(\"$STEP_NAME\" took $((SECONDS - STEP_START))s)"
+
+echo
+if [[ -n "$COVERAGE_LINE" ]]; then
+  echo "-- Code coverage summary (WilesTests unit tests only — see note above) --"
+  echo "$COVERAGE_LINE"
+  echo "(full report: xcrun llvm-cov report \"$BIN\" -instr-profile=\"$PROFDATA\" -ignore-filename-regex=\".build|Tests/\")"
+fi
+
 echo
 if [[ "$FAILED" -eq 0 ]]; then
   echo "==> All checks passed."
@@ -97,5 +114,6 @@ else
   echo "==> One or more checks failed. See above."
 fi
 echo "==> Code coverage: $COVERAGE_PCT"
+echo "==> Total time: $((SECONDS - VALIDATE_START))s"
 
 exit "$FAILED"

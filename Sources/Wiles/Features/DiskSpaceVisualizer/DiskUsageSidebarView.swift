@@ -128,8 +128,7 @@ struct DiskUsageSidebarView: View {
         item.colorHue == 0.0 ? Color.gray.opacity(0.5) : Color(hue: item.colorHue, saturation: 0.7, brightness: 0.8)
     }
 
-    @ViewBuilder
-    private var loadingIndicator: some View {
+    @ViewBuilder private var loadingIndicator: some View {
         VStack(spacing: 10) {
             Spacer()
             ProgressView()
@@ -138,8 +137,7 @@ struct DiskUsageSidebarView: View {
         .frame(maxWidth: .infinity, minHeight: 220)
     }
 
-    @ViewBuilder
-    private var emptyStateView: some View {
+    @ViewBuilder private var emptyStateView: some View {
         VStack {
             Spacer()
             Text(appState.tr(.folderIsEmpty))

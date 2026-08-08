@@ -42,7 +42,8 @@ struct TranslucentVisualEffectView: NSViewRepresentable {
 
 struct SharedBackgroundContextMenu: View {
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
 
     var body: some View {
         Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
@@ -94,7 +95,8 @@ struct SharedBackgroundContextMenu: View {
 struct SharedFileItemContextMenu: View {
     let item: FileItem
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
 
     var body: some View {
         Button(appState.tr(.open)) { appState.navigateTo(item.url) }

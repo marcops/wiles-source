@@ -24,6 +24,13 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
                 pageIndex = appendPages(from: url, into: outputPDF, startingAt: pageIndex)
             }
 
+            // PDFDocument.write(to:) does not fail for a zero-page document — on this
+            // platform it silently produces a valid PDF with one blank page. Throw here
+            // instead of letting that surprise the caller with an unrequested blank page.
+            guard pageIndex > 0 else {
+                throw NSError(domain: "PDFMergeService", code: 3, userInfo: [NSLocalizedDescriptionKey: "No valid pages found in the provided files."])
+            }
+
             let destURL = uniqueDestination(for: outputName, in: destinationFolder)
             guard outputPDF.write(to: destURL) else {
                 throw NSError(domain: "PDFMergeService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not write the merged PDF to disk."])

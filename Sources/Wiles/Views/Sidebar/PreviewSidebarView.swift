@@ -3,7 +3,8 @@ import AppKit
 
 struct PreviewSidebarView: View {
     var appState: AppState
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var detailedProps: DetailedFileProperties?
     @State private var previewContent: String?
 

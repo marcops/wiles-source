@@ -1,5 +1,11 @@
 import SwiftUI
 
+private struct QuickLocation {
+    let name: String
+    let url: URL
+    let icon: String
+}
+
 struct FolderPickerSheet: View {
     @Environment(\.dismiss)
     private var dismiss
@@ -7,7 +13,7 @@ struct FolderPickerSheet: View {
     var initialURL: URL?
     var onSelect: (URL) -> Void
 
-    @State private var rootNode: FolderNode = FolderNode.buildRootTree()
+    @State private var rootNode = FolderNode.buildRootTree()
     @State private var selectedURL: URL?
     @State private var expandedPaths: Set<URL> = []
 
@@ -54,7 +60,7 @@ struct FolderPickerSheet: View {
         .frame(width: 160, alignment: .top)
     }
 
-    private func quickLocationRow(_ location: (name: String, url: URL, icon: String)) -> some View {
+    private func quickLocationRow(_ location: QuickLocation) -> some View {
         Button {
             selectedURL = location.url
             expandAncestors(of: location.url)
@@ -103,12 +109,12 @@ struct FolderPickerSheet: View {
         .padding(12)
     }
 
-    private var quickLocations: [(name: String, url: URL, icon: String)] {
+    private var quickLocations: [QuickLocation] {
         [
-            (appState.tr(.home), URL.userHome, "house"),
-            (appState.tr(.desktop), URL.userHome.appendingPathComponent("Desktop"), "menubar.dock.rectangle"),
-            (appState.tr(.documents), URL.userHome.appendingPathComponent("Documents"), "folder"),
-            (appState.tr(.downloads), URL.userHome.appendingPathComponent("Downloads"), "arrow.down.circle")
+            QuickLocation(name: appState.tr(.home), url: URL.userHome, icon: "house"),
+            QuickLocation(name: appState.tr(.desktop), url: URL.userHome.appendingPathComponent("Desktop"), icon: "menubar.dock.rectangle"),
+            QuickLocation(name: appState.tr(.documents), url: URL.userHome.appendingPathComponent("Documents"), icon: "folder"),
+            QuickLocation(name: appState.tr(.downloads), url: URL.userHome.appendingPathComponent("Downloads"), icon: "arrow.down.circle")
         ]
     }
 
@@ -141,7 +147,7 @@ private struct FolderPickerNodeView: View {
             if let children = node.children, !children.isEmpty {
                 DisclosureGroup(isExpanded: isExpandedBinding) {
                     ForEach(children) { child in
-                        FolderPickerNodeView(node: child, depth: depth + 1, selectedURL: $selectedURL, expandedPaths: $expandedPaths)
+                        Self(node: child, depth: depth + 1, selectedURL: $selectedURL, expandedPaths: $expandedPaths)
                     }
                 } label: { rowLabel }
             } else {
