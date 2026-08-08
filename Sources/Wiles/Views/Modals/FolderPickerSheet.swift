@@ -61,23 +61,23 @@ struct FolderPickerSheet: View {
     }
 
     private func quickLocationRow(_ location: QuickLocation) -> some View {
-        Button {
+        HStack(spacing: 6) {
+            Image(systemName: location.icon)
+                .foregroundColor(.accentColor)
+            Text(location.name)
+                .font(.system(size: 12))
+            Spacer()
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(selectedURL?.standardizedFileURL == location.url.standardizedFileURL ? Color.accentColor.opacity(0.15) : Color.clear)
+        .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onTapGesture {
             selectedURL = location.url
             expandAncestors(of: location.url)
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: location.icon)
-                    .foregroundColor(.accentColor)
-                Text(location.name)
-                    .font(.system(size: 12))
-                Spacer()
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(selectedURL?.standardizedFileURL == location.url.standardizedFileURL ? Color.accentColor.opacity(0.15) : Color.clear)
-            .cornerRadius(6)
         }
-        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
         .accessibilityLabel(location.name)
     }
 
@@ -158,24 +158,23 @@ private struct FolderPickerNodeView: View {
 
     private var rowLabel: some View {
         let isSelected = selectedURL?.standardizedFileURL == node.url.standardizedFileURL
-        return Button {
-            selectedURL = node.url
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.accentColor)
-                Text(node.name)
-                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                Spacer()
-            }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 2)
-            .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-            .cornerRadius(4)
+        return HStack(spacing: 6) {
+            Image(systemName: "folder.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.accentColor)
+            Text(node.name)
+                .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+        .cornerRadius(4)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedURL = node.url
+        }
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
         .accessibilityLabel(node.name)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

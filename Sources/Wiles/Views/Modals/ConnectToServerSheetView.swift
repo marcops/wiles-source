@@ -35,20 +35,21 @@ public struct ConnectToServerSheetView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(recentServers, id: \.self) { server in
-                                Button { serverAddress = server } label: {
-                                    HStack {
-                                        Image(systemName: "server.rack")
-                                            .foregroundColor(.secondary)
-                                        Text(server)
-                                            .font(.system(size: 12))
-                                        Spacer()
-                                    }
-                                    .padding(.vertical, 3)
-                                    .padding(.horizontal, 6)
-                                    .background(Color.primary.opacity(0.04))
-                                    .cornerRadius(4)
+                                HStack {
+                                    Image(systemName: "server.rack")
+                                        .foregroundColor(.secondary)
+                                    Text(server)
+                                        .font(.system(size: 12))
+                                    Spacer()
                                 }
-                                .buttonStyle(.plain)
+                                .padding(.vertical, 3)
+                                .padding(.horizontal, 6)
+                                .background(Color.primary.opacity(0.04))
+                                .cornerRadius(4)
+                                .contentShape(Rectangle())
+                                .onTapGesture { serverAddress = server }
+                                .accessibilityAddTraits(.isButton)
+                                .accessibilityLabel(Text(server))
                             }
                         }
                     }
