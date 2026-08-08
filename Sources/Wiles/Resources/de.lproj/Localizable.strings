@@ -288,6 +288,7 @@
 "showTags" = "Tags anzeigen";
 "showTerminal" = "Terminal anzeigen";
 "sidebarDocuments" = "Dokumente";
+"ejectVolume" = "Volume auswerfen";
 "sidebarMode" = "Seitenleiste";
 "sidebarMenuTitle" = "Seitenleiste";
 "sidebarTranslucentLevel" = "Seitenleisten-Transparenz";

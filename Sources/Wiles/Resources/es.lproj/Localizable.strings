@@ -288,6 +288,7 @@
 "showTags" = "Mostrar Etiquetas";
 "showTerminal" = "Mostrar Terminal";
 "sidebarDocuments" = "Documentos";
+"ejectVolume" = "Expulsar volumen";
 "sidebarMode" = "Barra Lateral";
 "sidebarMenuTitle" = "Barra Lateral";
 "sidebarTranslucentLevel" = "Transparencia Lateral";

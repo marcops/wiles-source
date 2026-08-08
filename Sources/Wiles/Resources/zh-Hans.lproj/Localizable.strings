@@ -320,6 +320,7 @@
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
+"ejectVolume" = "推出磁盘";
 "sidebarTrash" = "Trash";"itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";

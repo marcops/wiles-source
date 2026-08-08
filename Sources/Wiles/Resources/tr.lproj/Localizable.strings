@@ -320,6 +320,7 @@
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
+"ejectVolume" = "Birimi Çıkart";
 "sidebarTrash" = "Trash";"itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
