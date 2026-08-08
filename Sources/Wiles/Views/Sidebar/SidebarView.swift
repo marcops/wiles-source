@@ -166,27 +166,28 @@ struct SidebarView: View {
     // `identifierKey` is a fixed, non-localized key (e.g. "FAVORITES") kept separate from the
     // localized `title` shown on screen — accessibility identifiers must stay stable across
     // languages so UI tests and automation don't break when the OS language changes.
+    // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
+    // composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
     private func sectionHeader(title: String, identifierKey: String, isExpanded: Binding<Bool>) -> some View {
-        Button {
+        HStack(spacing: 4) {
+            Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.secondary)
+                .frame(width: 12)
+            Text(title)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
             withAnimation(MotionTokens.quickEase) {
                 isExpanded.wrappedValue.toggle()
             }
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .frame(width: 12)
-                Text(title)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 2)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("Section_\(identifierKey)")
         .accessibilityLabel(title)
         .accessibilityHint(appState.tr(.folder))
@@ -236,47 +237,35 @@ struct SidebarView: View {
         let std = url.standardizedFileURL
         let path = std.path
 
-        let icon: String
-        let name: String
-
         if url == AppState.recentsVirtualURL || std.absoluteString == AppState.recentsVirtualURL.absoluteString {
-            name = appState.tr(.recents); icon = "clock.fill"
-        } else if path == home.path {
-            name = appState.tr(.home); icon = "house.fill"
-        } else if path == home.appendingPathComponent("Desktop").path {
-            name = appState.tr(.desktop); icon = "desktopcomputer"
-        } else if path == home.appendingPathComponent("Documents").path {
-            name = appState.tr(.sidebarDocuments); icon = "doc.fill"
-        } else if path == home.appendingPathComponent("Downloads").path {
-            name = appState.tr(.downloads); icon = "arrow.down.circle.fill"
-        } else if path == "/Applications" {
-            name = appState.tr(.applications); icon = "square.grid.3x3.fill"
-        } else if path == home.appendingPathComponent("Music").path {
-            name = appState.tr(.music); icon = "music.note"
-        } else if path == home.appendingPathComponent("Pictures").path {
-            name = appState.tr(.pictures); icon = "photo.fill"
-        } else if path == home.appendingPathComponent("Movies").path {
-            name = appState.tr(.movies); icon = "film.fill"
-        } else if path == home.appendingPathComponent(".Trash").path {
-            name = appState.tr(.sidebarTrash); icon = "trash.fill"
-        } else if path == "/" {
-            name = "Macintosh HD"; icon = "internaldrive.fill"
-        } else {
-            name = std.lastPathComponent.isEmpty ? "/" : std.lastPathComponent
-            icon = "folder.fill"
+            return SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: std)
         }
-        return SidebarItem(name: name, iconName: icon, url: std)
+        if let wellKnown = wellKnownSidebarInfo(forPath: path, home: home) {
+            return SidebarItem(name: wellKnown.name, iconName: wellKnown.icon, url: std)
+        }
+        let name = std.lastPathComponent.isEmpty ? "/" : std.lastPathComponent
+        return SidebarItem(name: name, iconName: "folder.fill", url: std)
+    }
+
+    private func wellKnownSidebarInfo(forPath path: String, home: URL) -> (name: String, icon: String)? {
+        switch path {
+        case home.path: return (appState.tr(.home), "house.fill")
+        case home.appendingPathComponent("Desktop").path: return (appState.tr(.desktop), "desktopcomputer")
+        case home.appendingPathComponent("Documents").path: return (appState.tr(.sidebarDocuments), "doc.fill")
+        case home.appendingPathComponent("Downloads").path: return (appState.tr(.downloads), "arrow.down.circle.fill")
+        case "/Applications": return (appState.tr(.applications), "square.grid.3x3.fill")
+        case home.appendingPathComponent("Music").path: return (appState.tr(.music), "music.note")
+        case home.appendingPathComponent("Pictures").path: return (appState.tr(.pictures), "photo.fill")
+        case home.appendingPathComponent("Movies").path: return (appState.tr(.movies), "film.fill")
+        case home.appendingPathComponent(".Trash").path: return (appState.tr(.sidebarTrash), "trash.fill")
+        case "/": return ("Macintosh HD", "internaldrive.fill")
+        default: return nil
+        }
     }
 
     private func smartFolderRow(folder: SmartFolder) -> some View {
         Button {
-            appState.searchQuery = folder.searchQuery
-            appState.isSearching = true
-            SmartFolderService.shared.executeQuery(for: folder) { items in
-                Task { @MainActor in
-                    appState.fileSystem.items = items
-                }
-            }
+            runSmartFolder(folder)
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: folder.icon)
@@ -295,6 +284,16 @@ struct SidebarView: View {
         .contextMenu {
             Button(appState.tr(.moveToTrash), role: .destructive) {
                 appState.removeSmartFolder(folder)
+            }
+        }
+    }
+
+    private func runSmartFolder(_ folder: SmartFolder) {
+        appState.searchQuery = folder.searchQuery
+        appState.isSearching = true
+        SmartFolderService.shared.executeQuery(for: folder) { items in
+            Task { @MainActor in
+                appState.fileSystem.items = items
             }
         }
     }
@@ -332,71 +331,74 @@ private struct SidebarRowView: View {
         let isCurrentFolder = appState.navigation.currentURL.standardizedFileURL == item.url.standardizedFileURL
         let isSel = isRightClicked || (isCurrentFolder && !isAnotherRowRightClicked)
         let isTrash = item.url.standardizedFileURL == URL.userTrash.standardizedFileURL
-        return Button {
+        // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
+        // for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
+        return HStack(spacing: 10) {
+            Image(systemName: item.iconName)
+                .font(.system(size: 15)).foregroundColor(.accentColor).frame(width: 20)
+            Text(item.name)
+                .font(.system(size: 13, weight: isSel ? .semibold : .regular))
+                .foregroundColor(.primary)
+            Spacer()
+            if isTrash {
+                if appState.isTrashUpdating {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .controlSize(.mini)
+                        .scaleEffect(0.6)
+                        .frame(width: 16, height: 16)
+                } else if !appState.trashSizeString.isEmpty
+                    && !["Zero KB", "0 KB", "0 bytes"].contains(appState.trashSizeString) {
+                    Text(appState.trashSizeString)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.15))
+                        .cornerRadius(10)
+                }
+            }
+            if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
+                Button {
+                    let target = item.url
+                    do {
+                        try NSWorkspace.shared.unmountAndEjectDevice(at: target)
+                        appState.refreshCurrentDirectory()
+                    } catch {
+                        appState.showError(error.localizedDescription)
+                    }
+                } label: {
+                    Image(systemName: "eject.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help(appState.tr(.ejectVolume))
+                .accessibilityLabel(appState.tr(.ejectVolume))
+                .accessibilityHint(appState.tr(.ejectVolume))
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background(
+            isDragTargeted ? Color.accentColor.opacity(0.25) :
+            (isSel ? Color.accentColor.opacity(0.18) :
+            (isHovered ? Color.primary.opacity(0.06) : Color.clear))
+        )
+        .cornerRadius(8)
+        .scaleEffect(isDragTargeted ? 1.02 : 1.0)
+        .animation(MotionTokens.snappySpring, value: isDragTargeted)
+        .animation(MotionTokens.quickEase, value: isHovered)
+        .contentShape(Rectangle())
+        .onTapGesture {
             onLeftClick()
             appState.navigateTo(item.url)
             appState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: item.iconName)
-                    .font(.system(size: 15)).foregroundColor(.accentColor).frame(width: 20)
-                Text(item.name)
-                    .font(.system(size: 13, weight: isSel ? .semibold : .regular))
-                    .foregroundColor(.primary)
-                Spacer()
-                if isTrash {
-                    if appState.isTrashUpdating {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .controlSize(.mini)
-                            .scaleEffect(0.6)
-                            .frame(width: 16, height: 16)
-                    } else if !appState.trashSizeString.isEmpty
-                        && !["Zero KB", "0 KB", "0 bytes"].contains(appState.trashSizeString) {
-                        Text(appState.trashSizeString)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.secondary.opacity(0.15))
-                            .cornerRadius(10)
-                    }
-                }
-                if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
-                    Button {
-                        let target = item.url
-                        do {
-                            try NSWorkspace.shared.unmountAndEjectDevice(at: target)
-                            appState.refreshCurrentDirectory()
-                        } catch {
-                            appState.showError(error.localizedDescription)
-                        }
-                    } label: {
-                        Image(systemName: "eject.fill")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Eject Volume")
-                }
-            }
-            .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(
-                isDragTargeted ? Color.accentColor.opacity(0.25) :
-                (isSel ? Color.accentColor.opacity(0.18) :
-                (isHovered ? Color.primary.opacity(0.06) : Color.clear))
-            )
-            .cornerRadius(8)
-            .scaleEffect(isDragTargeted ? 1.02 : 1.0)
-            .animation(MotionTokens.snappySpring, value: isDragTargeted)
-            .animation(MotionTokens.quickEase, value: isHovered)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain).padding(.horizontal, 8)
+        .padding(.horizontal, 8)
+        .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .accessibilityIdentifier(item.name)
         .accessibilityLabel(item.name)
         .accessibilityHint(appState.tr(.folder))
-        .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .onHover { isHovered = $0 }
         .overlay(
             RightClickDetector { onRightClick() }

@@ -168,6 +168,7 @@ public struct L10n {
         case trash
         case sidebarTrash
         case sidebarDocuments
+        case ejectVolume
         case applications
         case airDrop
         case iCloudDrive

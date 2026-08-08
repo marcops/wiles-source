@@ -322,6 +322,7 @@
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
+"ejectVolume" = "Mata ut volym";
 "sidebarTrash" = "Trash";"itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";

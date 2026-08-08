@@ -45,27 +45,30 @@ struct DirectoryTreeNodeView: View {
         .padding(.leading, CGFloat(depth) * 12)
     }
 
+    // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
+    // composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
     private var rowContent: some View {
         let isSel = appState.navigation.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
-        return Button {
+        return HStack(spacing: 6) {
+            Image(systemName: "folder.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.accentColor)
+            Text(node.name)
+                .font(.system(size: 12, weight: isSel ? .semibold : .regular))
+                .foregroundColor(.primary)
+            Spacer()
+        }
+        .padding(.horizontal, 6).padding(.vertical, 3)
+        .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
+        .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onTapGesture {
             isRightClicked = false
             appState.navigateTo(node.url)
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.accentColor)
-                Text(node.name)
-                    .font(.system(size: 12, weight: isSel ? .semibold : .regular))
-                    .foregroundColor(.primary)
-                Spacer()
-            }
-            .padding(.horizontal, 6).padding(.vertical, 3)
-            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
-            .cornerRadius(6)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(node.name)
+        .accessibilityHint(appState.tr(.folder))
         .overlay(
             RightClickDetector { isRightClicked = true }
         )
