@@ -1,9 +1,17 @@
 import Foundation
+import os
+
+private let columnPersistenceLogger = Logger(subsystem: "com.wiles.app", category: "ColumnPersistence")
 
 extension AppState {
     func saveListColumnStates() {
-        if let data = try? JSONEncoder().encode(listColumnStates) {
+        do {
+            let data = try JSONEncoder().encode(listColumnStates)
             UserDefaults.standard.set(data, forKey: DefaultsKey.listColumnStates.rawValue)
+        } catch {
+            // Encoding failure here silently drops the user's column widths/visibility on next
+            // launch (falls back to defaults) with no other signal, so log it for debugging.
+            columnPersistenceLogger.error("Failed to encode listColumnStates: \(error.localizedDescription)")
         }
     }
 
