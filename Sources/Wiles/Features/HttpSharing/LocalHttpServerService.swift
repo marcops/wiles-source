@@ -117,6 +117,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             }
             guard let requestStr = String(bytes: content, encoding: .utf8) else {
                 connection.cancel()
+                self.connections.removeAll(where: { $0 === connection })
                 return
             }
             self.processRequest(requestStr, connection: connection)
