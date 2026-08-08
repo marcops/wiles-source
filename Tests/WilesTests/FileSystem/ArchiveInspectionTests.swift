@@ -49,6 +49,45 @@ public struct ArchiveInspectionTests {
         await runMultiEntryAndSpecialCharTests()
         await runDeepNestingAndMissingArchiveTests()
         await runArchiveEntryItemIdAndDestinationFailureTests()
+        await runUnicodeFilenameTests()
+    }
+
+    // POS: listEntries decodes non-ASCII (e.g. emoji) filenames correctly. `ditto` writes raw
+    // UTF-8 name bytes into the ZIP central directory without setting the UTF-8 flag bit, which
+    // makes `/usr/bin/unzip`'s locale-based text conversion mangle them — listEntries reads the
+    // central directory itself instead, so this must decode the name intact.
+    private static func runUnicodeFilenameTests() async {
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let emojiFileName = "🎉party.txt"
+        let emojiFile = root.appendingPathComponent(emojiFileName)
+        try? "emoji content".write(to: emojiFile, atomically: true, encoding: .utf8)
+
+        let archiveDir = root.appendingPathComponent("unicode")
+        try? FileManager.default.createDirectory(at: archiveDir, withIntermediateDirectories: true)
+
+        var unicodeListPassed = false
+        var unicodeExtractPassed = false
+        do {
+            try ArchiveService.compressToZIP(urls: [emojiFile], in: archiveDir)
+            let resolvedZip = archiveDir.appendingPathComponent("\(emojiFile.deletingPathExtension().lastPathComponent).zip")
+            let entries = await ArchiveInspectionService.listEntries(in: resolvedZip)
+
+            if let emojiEntry = entries.first(where: { $0.name == emojiFileName }) {
+                unicodeListPassed = true
+                let dest = root.appendingPathComponent("ExtractedUnicode")
+                try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+                let extractedURL = try await ArchiveInspectionService.extractSingleEntry(from: resolvedZip, entryPath: emojiEntry.path, to: dest)
+                let content = try? String(contentsOf: extractedURL, encoding: .utf8)
+                unicodeExtractPassed = content == "emoji content"
+            }
+        } catch {
+            print("Unicode filename archive error: \(error)")
+        }
+        TestReporter.report("ArchiveInspection", "POS: listEntries decodes non-ASCII (emoji) filenames as UTF-8 instead of mangling them", result: unicodeListPassed)
+        TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts an entry whose name contains emoji/non-ASCII characters", result: unicodeExtractPassed)
     }
 
     // POS: ArchiveEntryItem.id (Identifiable conformance) returns the entry's path.

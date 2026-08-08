@@ -37,6 +37,9 @@ public struct DiskUsageReport: Sendable {
 }
 
 public final class DiskSpaceVisualizerService {
+    /// Guardrail: stop enumerating a folder's contents after this many files to keep scans fast.
+    private static let maxScannedFileCount = 5000
+
     private struct RawItem {
         let url: URL
         let name: String
@@ -115,7 +118,7 @@ public final class DiskSpaceVisualizerService {
                 total += Int64(fileSize)
             }
             count += 1
-            if count > 5000 { break } // Performance cap guardrail
+            if count > maxScannedFileCount { break }
         }
         return total
     }

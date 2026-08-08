@@ -12,6 +12,11 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
+    func testAppStateNavigateToFileTests() {
+        AppStateNavigateToFileTests.run()
+    }
+
+    @MainActor
     func testArrowKeyNavigationTests() {
         ArrowKeyNavigationTests.run()
     }

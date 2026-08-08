@@ -23,20 +23,13 @@ public protocol ArchiveInspectionServiceProtocol: Sendable {
 public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable {
     public static func listEntries(in archiveURL: URL) async -> [ArchiveEntryItem] {
         return await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-            process.arguments = ["-Z1", archiveURL.path]
-
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            try? process.run()
-            process.waitUntilExit()
-
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let output = String(data: data, encoding: .utf8) else { return [] }
-
-            let lines = output.components(separatedBy: .newlines).filter { !$0.isEmpty }
-            return lines.map { ArchiveEntryItem(path: $0) }
+            // `unzip -Z1` mangles non-ASCII filenames (e.g. emoji) on this system: Apple's
+            // bundled unzip lacks proper UTF-8 support and re-encodes names through the
+            // process locale, even though tools like `ditto`/`zip` store genuine UTF-8 bytes
+            // in the ZIP central directory. Parsing the central directory ourselves and
+            // decoding names directly as UTF-8 sidesteps that mangling entirely.
+            guard let data = try? Data(contentsOf: archiveURL, options: .mappedIfSafe) else { return [] }
+            return ZIPCentralDirectoryReader.readEntryNames(from: data).map { ArchiveEntryItem(path: $0) }
         }.value
     }
 

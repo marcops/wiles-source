@@ -16,10 +16,3 @@ public enum KeyCode {
     public static let arrowLeft: UInt16 = 123
     public static let arrowRight: UInt16 = 124
 }
-
-public enum IconSizeToken {
-    public static let minSize: Double = 36.0
-    public static let maxSize: Double = 128.0
-    public static let defaultSize: Double = 54.0
-    public static let step: Double = 8.0
-}

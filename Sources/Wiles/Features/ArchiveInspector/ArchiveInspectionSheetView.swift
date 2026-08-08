@@ -7,6 +7,7 @@ struct ArchiveInspectionSheetView: View {
     @Environment(\.dismiss)
     private var dismiss
     @State private var entries: [ArchiveEntryItem] = []
+    @State private var isLoading = true
 
     var body: some View {
         VStack(spacing: 12) {
@@ -21,10 +22,20 @@ struct ArchiveInspectionSheetView: View {
 
             Divider()
 
-            if entries.isEmpty {
+            if isLoading {
                 VStack {
                     ProgressView()
                     Text("Loading entries...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxHeight: .infinity)
+            } else if entries.isEmpty {
+                VStack {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+                    Text("No entries found or the archive could not be read.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -72,6 +83,7 @@ struct ArchiveInspectionSheetView: View {
         .frame(width: 450, height: 400)
         .task {
             entries = await ArchiveInspectionService.listEntries(in: archiveURL)
+            isLoading = false
         }
     }
 }

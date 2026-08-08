@@ -26,6 +26,7 @@ public final class AutomatedTestService {
 
     private static func runCoreAndFileSystemTests() async {
         NavigationTests.run()
+        AppStateNavigateToFileTests.run()
         ArrowKeyNavigationTests.run()
         ListColumnTests.run()
         await UISearchTests.run()

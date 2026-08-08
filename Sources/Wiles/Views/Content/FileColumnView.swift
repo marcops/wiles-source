@@ -244,9 +244,14 @@ struct FileColumnRowView: View {
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
         .accessibilityValue(item.formattedSize)
-        .onTapGesture {
-            onSelect()
+        .onTapGesture(count: 2) {
+            appState.navigateTo(item.url)
         }
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                onSelect()
+            }
+        )
         .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState) { targeted in
             isDropTargeted = targeted
         }
