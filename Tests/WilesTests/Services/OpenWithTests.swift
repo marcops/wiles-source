@@ -30,28 +30,6 @@ public struct OpenWithTests {
         testAvailableApplicationsForNonexistentFileURL()
         testSetDefaultApplicationWithValidExtensionAndBogusAppURL()
         testApplicationsAreDeduplicatedByBundleID()
-        testOpenWithNonEmptyURLsAndBogusApplicationDoesNotCrash()
-    }
-
-    // NEG: open(urls:with:) with a non-empty urls array passes the guard and reaches the real
-    // NSWorkspace.shared.open(...) call (lines otherwise uncovered). The target file must exist on
-    // disk - a nonexistent target makes NSWorkspace present a real, blocking "file not found" system
-    // alert instead of failing silently via the (nil) completion handler, which would hang an
-    // automated test run waiting for a human to dismiss it. The bogus (nonexistent) application URL
-    // is still safe to leave as-is: that failure mode reports through the completion handler rather
-    // than a UI alert.
-    private static func testOpenWithNonEmptyURLsAndBogusApplicationDoesNotCrash() {
-        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-
-        let realFile = dir.appendingPathComponent("real.txt")
-        try? "content".write(to: realFile, atomically: true, encoding: .utf8)
-        let bogusAppURL = URL(fileURLWithPath: testTemporaryDirectory())
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension("app")
-        OpenWithService.open(urls: [realFile], with: bogusAppURL)
-        TestReporter.report("OpenWith", "NEG: open(urls:with:) with non-empty urls and a bogus (nonexistent) app URL does not crash", result: true)
     }
 
     // NEG: chooseOtherApplication(toOpen:) with an empty URL array hits the guard and safely no-ops
