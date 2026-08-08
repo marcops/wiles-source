@@ -9,6 +9,48 @@ public struct FileMetadataTests {
         await testFetchPropertiesForNonExistentFileDoesNotCrash()
         await testKindIsResolvedForRegularFile()
         await testDimensionsAreResolvedForRealImage()
+        await testStreamBatchPropertiesYieldsOneItemPerURLInOrder()
+        await testStreamBatchPropertiesStopsEarlyWhenConsumerBreaks()
+    }
+
+    private static func testStreamBatchPropertiesYieldsOneItemPerURLInOrder() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let fileA = dir.appendingPathComponent("a.txt")
+        let fileB = dir.appendingPathComponent("b.txt")
+        try? "a".write(to: fileA, atomically: true, encoding: .utf8)
+        try? "b".write(to: fileB, atomically: true, encoding: .utf8)
+
+        var received: [URL] = []
+        for await props in await FileMetadataService.shared.streamBatchProperties(for: [fileA, fileB]) {
+            received.append(props.url)
+        }
+        report("FileMetadata", "POS: streamBatchProperties yields exactly one item per URL, in order", result: received == [fileA, fileB])
+    }
+
+    /// Regression coverage for the `Task.isCancelled` check inside the stream's loop: breaking out
+    /// of a `for await` early triggers `onTermination`, which cancels the underlying `Task` — proving
+    /// the loop actually stops instead of continuing to scan every remaining URL in the background.
+    private static func testStreamBatchPropertiesStopsEarlyWhenConsumerBreaks() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        var urls: [URL] = []
+        for index in 0..<20 {
+            let url = dir.appendingPathComponent("file_\(index).txt")
+            try? "content".write(to: url, atomically: true, encoding: .utf8)
+            urls.append(url)
+        }
+
+        var received = 0
+        for await _ in await FileMetadataService.shared.streamBatchProperties(for: urls) {
+            received += 1
+            if received == 2 { break }
+        }
+        report("FileMetadata", "POS: breaking out of streamBatchProperties early stops before yielding every URL", result: received < urls.count)
     }
 
     private static func testFetchPropertiesForRealFile() async {
@@ -21,6 +63,7 @@ public struct FileMetadataTests {
 
         let props = await FileMetadataService.shared.fetchProperties(for: file)
         report("FileMetadata", "POS: owner name is resolved for a real file", result: props.ownerName != nil && !(props.ownerName ?? "").isEmpty)
+        report("FileMetadata", "POS: group name is resolved for a real file", result: props.groupName != nil && !(props.groupName ?? "").isEmpty)
         report("FileMetadata", "POS: POSIX permissions string has the expected rwx-style length", result: (props.posixPermissions ?? "").count == 9)
     }
 
