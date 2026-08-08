@@ -1,71 +1,84 @@
-@testable import Wiles
 import XCTest
 
-// MARK: - Wiles UI State Smoke Test
+// MARK: - Wiles Core UI Smoke Test
 //
-// XCUIApplication cannot work in an SPM test target (unit-test bundle, not
-// ui-testing bundle). These tests verify the UI-layer state that drives the
-// real interface — accessibility identifiers, sidebar structure, preferences
-// defaults — without going through the XCUIApplication stack.
+// This test uses XCUIApplication() — it launches Wiles.app, takes control of
+// the screen and verifies the core UI shell is present and interactive.
 //
-// Run with:
-//   swift test --filter WilesUITests
-//   xcodebuild test -scheme Wiles -only-testing:WilesUITests -skip-testing:WilesTests
+// ✅ Run from Xcode: open Package.swift → Product → Test (⌘U)
+//    Xcode configures the host app automatically. You will see macOS ask for
+//    Accessibility permission on first run and the screen will be controlled.
+//
+// ❌ NOT run via `swift test` or bare `xcodebuild` — SPM produces a unit-test
+//    bundle, not a ui-testing bundle. validate.sh already skips WilesUITests.
+//
+// Accessibility identifiers relied on (must remain stable):
+//   "Section_FAVORITES"   SidebarView.swift ~184
+//   "Status Bar"          FooterBarView.swift ~22
 
 @MainActor
 final class WilesLaunchUITests: XCTestCase {
 
-    // MARK: - Sidebar accessibility identifiers
+    // swiftlint:disable:next implicitly_unwrapped_optional
+    private var app: XCUIApplication!
 
-    /// Verifies that every sidebar section produces the exact accessibility
-    /// identifier string that WilesLaunchUITests would query via XCUIApplication.
-    /// If an identifier changes, UI automation breaks — this catches it at compile time.
-    func testSidebarSectionAccessibilityIdentifiers() {
-        let expected: [(String, String)] = [
-            ("FAVORITES",      "Section_FAVORITES"),
-            ("RECENTS",        "Section_RECENTS"),
-            ("MAC",            "Section_MAC"),
-            ("DEVICES",        "Section_DEVICES"),
-            ("DIRECTORY TREE", "Section_DIRECTORY TREE"),
-        ]
-
-        for (title, expectedID) in expected {
-            let actualID = "Section_\(title.uppercased())"
-            XCTAssertEqual(
-                actualID, expectedID,
-                "Accessibility identifier for section '\(title)' changed — " +
-                "update the UI tests that query '\(expectedID)'"
-            )
-        }
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        app = XCUIApplication()
+        app.launchArguments = ["--ui-testing"]
+        app.launch()
     }
 
-    // MARK: - Status Bar accessibility identifier
-
-    /// The status bar text uses the literal "Status Bar" as its accessibility
-    /// identifier (FooterBarView.swift ~22). This test ensures the string stays stable.
-    func testStatusBarAccessibilityIdentifierIsStable() {
-        // The identifier is a hardcoded string literal in FooterBarView.
-        // If it ever changes, this constant must change too.
-        let expectedIdentifier = "Status Bar"
-        XCTAssertFalse(
-            expectedIdentifier.isEmpty,
-            "Status Bar accessibility identifier must not be empty"
-        )
-        XCTAssertEqual(
-            expectedIdentifier, "Status Bar",
-            "Footer status-bar identifier changed — update XCUIApplication queries"
-        )
+    override func tearDownWithError() throws {
+        app.terminate()
+        app = nil
     }
 
-    // MARK: - AppState & UI defaults
+    // MARK: - Smoke test: launch + core shell
 
-    /// Verifies that AppState initialises with the expected default view mode
-    /// (list) and that the preferences store is in a clean state for new users.
-    func testAppStateInitialisesWithExpectedUIDefaults() {
-        let appState = AppState()
+    /// Launches Wiles, waits for the main window, then verifies:
+    ///   1. The FAVORITES sidebar section exists and is hittable.
+    ///   2. The footer status-bar text exists.
+    ///   3. Clicking FAVORITES (collapse/expand) does not crash.
+    ///
+    /// All assertions are unconditional — no silent `if element.exists` guards.
+    func testAppLaunchesAndCoreShellIsVisible() throws {
+        // 1. Main window must appear within 5 s.
+        let window = app.windows.firstMatch
+        XCTAssertTrue(
+            window.waitForExistence(timeout: 5.0),
+            "Wiles main window did not appear within 5 seconds"
+        )
 
-        XCTAssertNotNil(appState.preferences, "Preferences store must be non-nil after AppState init")
-        XCTAssertNotNil(appState.fileSystem,   "FileSystem store must be non-nil after AppState init")
-        XCTAssertNotNil(appState.navigation,   "Navigation store must be non-nil after AppState init")
+        // 2. FAVORITES sidebar section must be present.
+        //    id: "Section_FAVORITES" — SidebarView.swift ~184
+        let favorites = app.buttons["Section_FAVORITES"]
+        XCTAssertTrue(
+            favorites.waitForExistence(timeout: 3.0),
+            "Sidebar FAVORITES section (id='Section_FAVORITES') not found — " +
+            "sidebar failed to render or the accessibility identifier changed"
+        )
+
+        // 3. FAVORITES must be hittable (not obscured).
+        XCTAssertTrue(
+            favorites.isHittable,
+            "Sidebar FAVORITES section exists but is not hittable"
+        )
+
+        // 4. Footer status-bar text must be present.
+        //    id: "Status Bar" — FooterBarView.swift ~22
+        let statusBar = app.staticTexts["Status Bar"]
+        XCTAssertTrue(
+            statusBar.waitForExistence(timeout: 3.0),
+            "Footer status-bar text (id='Status Bar') not found — " +
+            "footer failed to render or the accessibility identifier changed"
+        )
+
+        // 5. Click FAVORITES — button must survive (toggles collapse state).
+        favorites.click()
+        XCTAssertTrue(
+            favorites.waitForExistence(timeout: 2.0),
+            "FAVORITES button disappeared after click — unexpected crash or removal"
+        )
     }
 }
