@@ -28,6 +28,7 @@
 "ascending" = "Ascending";
 "autoOrganization" = "قواعد التنظيم التلقائي...";
 "autoOrganizationSubtitle" = "ينقل الملفات تلقائيًا بين المجلدات استنادًا إلى القواعد التي تحددها";
+"autoOrgRuleCondition" = "إذا كان %@ هو '%@'";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "مهام في الخلفية";

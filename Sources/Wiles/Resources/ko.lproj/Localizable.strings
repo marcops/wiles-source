@@ -28,6 +28,7 @@
 "ascending" = "Ascending";
 "autoOrganization" = "자동 정리 규칙...";
 "autoOrganizationSubtitle" = "사용자가 정의한 규칙에 따라 폴더 간에 파일을 자동으로 이동합니다";
+"autoOrgRuleCondition" = "%@ 이(가) '%@'인 경우";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "백그라운드 작업";

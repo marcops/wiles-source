@@ -28,6 +28,7 @@
 "ascending" = "Ascending";
 "autoOrganization" = "自動整理ルール...";
 "autoOrganizationSubtitle" = "定義したルールに基づいてファイルをフォルダ間で自動的に移動します";
+"autoOrgRuleCondition" = "%@ が '%@' の場合";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "バックグラウンドタスク";

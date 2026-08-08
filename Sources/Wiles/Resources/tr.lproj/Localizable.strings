@@ -28,6 +28,7 @@
 "ascending" = "Ascending";
 "autoOrganization" = "Otomatik Düzenleme Kuralları...";
 "autoOrganizationSubtitle" = "Tanımladığınız kurallara göre dosyaları klasörler arasında otomatik olarak taşır";
+"autoOrgRuleCondition" = "%@ '%@' ise";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "arka plan görevi";

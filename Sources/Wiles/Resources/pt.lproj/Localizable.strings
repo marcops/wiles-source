@@ -30,6 +30,7 @@
 "ascending" = "Crescente";
 "autoOrganization" = "Regras de Organização Automática...";
 "autoOrganizationSubtitle" = "Mova arquivos automaticamente entre pastas com base em regras que você define";
+"autoOrgRuleCondition" = "Se %@ for '%@'";
 "back" = "Voltar";
 "backgroundOperations" = "Operações em Segundo Plano";
 "backgroundTasksSuffix" = "tarefas em segundo plano";

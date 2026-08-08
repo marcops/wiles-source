@@ -110,7 +110,7 @@ struct AutoOrganizationSheet: View {
                     Text(rule.destinationURL.lastPathComponent)
                         .fontWeight(.semibold)
                 }
-                Text("If \(rule.conditionType.rawValue) is '\(rule.conditionValue)'")
+                Text(String(format: appState.tr(.autoOrgRuleCondition), rule.conditionType.rawValue, rule.conditionValue))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
