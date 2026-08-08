@@ -43,6 +43,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             let fm = FileManager.default
             var items: [FileItem] = []
             for path in paths {
+                if Task.isCancelled { break }
                 let fileURL = URL(fileURLWithPath: path)
                 guard fm.fileExists(atPath: fileURL.path) else { continue }
 
@@ -83,6 +84,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
             var items: [FileItem] = []
             for fileURL in fileURLs {
+                if Task.isCancelled { break }
                 if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) { continue }
                 if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
 

@@ -21,7 +21,8 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
             var pageIndex = 0
 
             for url in urls {
-                pageIndex = appendPages(from: url, into: outputPDF, startingAt: pageIndex)
+                try Task.checkCancellation()
+                pageIndex = try appendPages(from: url, into: outputPDF, startingAt: pageIndex)
             }
 
             // PDFDocument.write(to:) does not fail for a zero-page document — on this
@@ -42,13 +43,14 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
     /// autoreleasepool ensures each image's uncompressed bitmap (which can be tens of MB for a
     /// single large photo) is freed immediately after its page is inserted, instead of all of
     /// them accumulating until the whole merge loop finishes.
-    private static func appendPages(from url: URL, into outputPDF: PDFDocument, startingAt pageIndex: Int) -> Int {
+    private static func appendPages(from url: URL, into outputPDF: PDFDocument, startingAt pageIndex: Int) throws -> Int {
         var pageIndex = pageIndex
-        autoreleasepool {
+        try autoreleasepool {
             let ext = url.pathExtension.lowercased()
             if ext == "pdf" {
                 if let doc = PDFDocument(url: url) {
                     for pageNum in 0..<doc.pageCount {
+                        try Task.checkCancellation()
                         if let page = doc.page(at: pageNum) {
                             outputPDF.insert(page, at: pageIndex)
                             pageIndex += 1
