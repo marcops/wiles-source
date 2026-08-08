@@ -45,22 +45,22 @@ public struct DuplicateCleanerSheetView: View {
     }
 
     private var headerBar: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: "doc.on.doc.fill")
                 .foregroundColor(.accentColor)
                 .font(.system(size: 16))
-            Text(appState.tr(.duplicateCleanerTitle))
-                .font(.headline)
-            Spacer()
-            Button { dismiss() } label: {
-                Image(systemName: "xmark.circle.fill")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(appState.tr(.duplicateCleanerTitle))
+                    .font(.headline)
+                Text(appState.tr(.duplicateCleanerSubtitle))
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
-                    .font(.system(size: 16))
             }
-            .buttonStyle(.plain)
+            Spacer()
         }
         .padding(.horizontal, 16)
-        .frame(height: 44)
+        .padding(.vertical, 10)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
 
     private var scanningView: some View {

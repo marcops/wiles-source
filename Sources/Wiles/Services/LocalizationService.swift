@@ -401,6 +401,7 @@ public struct L10n {
         case fullDiskAccessNotice
         case findDuplicates
         case duplicateCleanerTitle
+        case duplicateCleanerSubtitle
         case reclaimableSpace
         case trashSelectedDuplicates
         case noDuplicatesFound

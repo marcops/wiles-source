@@ -82,6 +82,7 @@
 "downloadFromiCloud" = "iCloud에서 다운로드";
 "downloads" = "다운로드";
 "duplicateCleanerTitle" = "중복 파일 클리너";
+"duplicateCleanerSubtitle" = "중복 파일을 찾아 제거하여 공간을 확보하세요";
 "duration" = "Duration";
 "emptyFolder" = "이 폴더는 비어 있습니다";
 "emptyTrash" = "휴지통 비우기";

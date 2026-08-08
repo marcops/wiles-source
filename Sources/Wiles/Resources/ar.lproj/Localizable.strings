@@ -82,6 +82,7 @@
 "downloadFromiCloud" = "تنزيل من iCloud";
 "downloads" = "التنزيلات";
 "duplicateCleanerTitle" = "منظف الملفات المكررة";
+"duplicateCleanerSubtitle" = "ابحث عن الملفات المكررة وأزلها لتحرير المساحة";
 "duration" = "Duration";
 "emptyFolder" = "هذا المجلد فارغ";
 "emptyTrash" = "إفراغ سلة المهملات";

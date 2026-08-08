@@ -82,6 +82,7 @@
 "downloadFromiCloud" = "Télécharger depuis iCloud";
 "downloads" = "Téléchargements";
 "duplicateCleanerTitle" = "Nettoyeur de doublons";
+"duplicateCleanerSubtitle" = "Trouvez et supprimez les fichiers en double pour libérer de l'espace";
 "duration" = "Durée";
 "emptyFolder" = "Ce dossier est vide";
 "emptyTrash" = "Vider la corbeille";

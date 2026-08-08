@@ -82,6 +82,7 @@
 "downloadFromiCloud" = "iCloudからダウンロード";
 "downloads" = "ダウンロード";
 "duplicateCleanerTitle" = "重複ファイルクリーナー";
+"duplicateCleanerSubtitle" = "重複ファイルを見つけて削除し、容量を解放します";
 "duration" = "Duration";
 "emptyFolder" = "このフォルダは空です";
 "emptyTrash" = "ゴミ箱を空にする";
