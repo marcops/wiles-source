@@ -335,7 +335,7 @@ private struct SidebarRowView: View {
         return Button {
             onLeftClick()
             appState.navigateTo(item.url)
-            appState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
+            windowUIState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: item.iconName)

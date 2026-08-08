@@ -49,10 +49,11 @@ public struct UITests {
             result: appState.navigation.currentURL.standardizedFileURL == parentURL.standardizedFileURL
         )
 
-        appState.isEditingPath = true
+        let windowUIState = WindowUIState()
+        windowUIState.isEditingPath = true
         appState.navigation.pathText = "/Applications"
         appState.navigateTo(URL(fileURLWithPath: appState.navigation.pathText))
-        appState.isEditingPath = false
+        windowUIState.isEditingPath = false
         report("UI/PathBar", "POS: Direct path text editing submission updates currentURL to /Applications", result: appState.navigation.currentURL.path == "/Applications")
     }
 

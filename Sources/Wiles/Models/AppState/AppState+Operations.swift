@@ -177,9 +177,9 @@ extension AppState {
         }
     }
 
-    public func triggerQuickLookForSelected() {
+    public func triggerQuickLookForSelected(windowUIState: WindowUIState) {
         if let first = selectedURLs.first {
-            quickLookURL = first
+            windowUIState.quickLookURL = first
         }
     }
 
@@ -189,9 +189,9 @@ extension AppState {
         }
     }
 
-    public func startEditingPath() {
+    public func startEditingPath(windowUIState: WindowUIState) {
         navigation.pathText = navigation.currentURL.path
-        isEditingPath = true
+        windowUIState.isEditingPath = true
     }
 
     public func toggleSearching() {

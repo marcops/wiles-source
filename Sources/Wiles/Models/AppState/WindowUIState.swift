@@ -39,6 +39,9 @@ public final class WindowUIState {
     public var showHelpSheet: Bool = false
     public var showAboutSheet: Bool = false
     public var showSettingsSheet: Bool = false
+    public var quickLookURL: URL?
+    public var selectedFavoriteURL: URL?
+    public var isEditingPath: Bool = false
 
     public init() {}
 }

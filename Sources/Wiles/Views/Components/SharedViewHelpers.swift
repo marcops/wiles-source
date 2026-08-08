@@ -100,7 +100,7 @@ struct SharedFileItemContextMenu: View {
 
     var body: some View {
         Button(appState.tr(.open)) { appState.navigateTo(item.url) }
-        Button("\(appState.tr(.quickLook)) (Space)") { appState.quickLookURL = item.url }
+        Button("\(appState.tr(.quickLook)) (Space)") { windowUIState.quickLookURL = item.url }
         Menu(appState.tr(.openWith)) {
             let availableApps = OpenWithService.availableApplications(for: item.url)
             ForEach(availableApps) { app in

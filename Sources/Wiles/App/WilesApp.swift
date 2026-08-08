@@ -109,9 +109,11 @@ struct WilesApp: App {
             }
             .keyboardShortcut("i", modifiers: .command)
             .disabled(appState.selectedURLs.isEmpty)
-            Button(appState.tr(.quickLook)) { appState.triggerQuickLookForSelected() }
-                .keyboardShortcut(" ", modifiers: [])
-                .disabled(appState.selectedURLs.isEmpty)
+            Button(appState.tr(.quickLook)) {
+                if let windowUIState { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
+            }
+            .keyboardShortcut(" ", modifiers: [])
+            .disabled(appState.selectedURLs.isEmpty)
             Divider()
             Button(appState.tr(.moveToTrash)) {
                 if let windowUIState { appState.deleteSelected(windowUIState: windowUIState) }
@@ -198,8 +200,10 @@ struct WilesApp: App {
             .disabled(appState.navigation.historyForward.isEmpty)
         Button(appState.tr(.enclosingFolder)) { appState.goUp() }
         Divider()
-        Button(appState.tr(.goToFolder)) { appState.startEditingPath() }
-            .keyboardShortcut("l", modifiers: .command)
+        Button(appState.tr(.goToFolder)) {
+            if let windowUIState { appState.startEditingPath(windowUIState: windowUIState) }
+        }
+        .keyboardShortcut("l", modifiers: .command)
         Button(appState.tr(.connectToServer) + "...") { windowUIState?.showConnectToServerSheet = true }
             .keyboardShortcut("k", modifiers: .command)
     }
