@@ -39,7 +39,10 @@ struct MainContentView: View {
                     contentArea
                         .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
                         .background(contentTranslucentBackground)
-                    if appState.preferences.showPreviewSidebar {
+                    if appState.preferences.showDiskUsageSidebar {
+                        DiskUsageSidebarView(appState: appState)
+                            .frame(maxHeight: .infinity)
+                    } else if appState.preferences.showPreviewSidebar {
                         PreviewSidebarView(appState: appState)
                             .frame(maxHeight: .infinity)
                     }
@@ -68,7 +71,7 @@ struct MainContentView: View {
             .layoutPriority(1)
         }
         .ignoresSafeArea(.all, edges: .top)
-        .frame(minWidth: LayoutTokens.windowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
+        .frame(minWidth: effectiveWindowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
         .quickLookPreview($appState.quickLookURL)
         .sheet(item: $windowUIState.propertiesItem) { item in
             FilePropertiesSheet(item: item, appState: appState)
@@ -81,6 +84,9 @@ struct MainContentView: View {
         }
         .sheet(isPresented: $windowUIState.showAboutSheet) {
             AboutSheet(appState: appState)
+        }
+        .sheet(isPresented: $windowUIState.showSettingsSheet) {
+            SettingsView(appState: appState)
         }
         .sheet(isPresented: $windowUIState.showAutoOrganizationSheet) {
             AutoOrganizationSheet(appState: appState)
@@ -99,9 +105,6 @@ struct MainContentView: View {
         .sheet(isPresented: $windowUIState.showBatchRenameSheet) {
             let selectedItems = appState.fileSystem.items.filter { appState.selectedURLs.contains($0.url) }
             BatchRenameSheetView(items: selectedItems, appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showDiskUsageSheet) {
-            DiskSpaceVisualizerSheetView(appState: appState)
         }
         .sheet(isPresented: $windowUIState.showNewFileSheet) {
             NewFileSheetView(appState: appState)
@@ -160,6 +163,23 @@ struct MainContentView: View {
         }
         .environment(windowUIState)
         .focusedSceneValue(\.windowUIState, windowUIState)
+    }
+
+    /// The window's own minimum width must grow to cover whichever trailing inspector pane
+    /// (Disk Usage or Preview) is currently visible, on top of the sidebar + content minimums —
+    /// otherwise the window itself can be dragged smaller than what all the visible panes need
+    /// combined, and `HSplitView` has nowhere to take the missing width from except by crushing
+    /// a pane below its own declared `.frame(minWidth:)`.
+    private var effectiveWindowMinWidth: CGFloat {
+        let inspectorMinWidth: CGFloat
+        if appState.preferences.showDiskUsageSidebar {
+            inspectorMinWidth = 240
+        } else if appState.preferences.showPreviewSidebar {
+            inspectorMinWidth = 200
+        } else {
+            inspectorMinWidth = 0
+        }
+        return LayoutTokens.windowMinWidth + inspectorMinWidth
     }
 
     private var contentTranslucentBackground: some View {

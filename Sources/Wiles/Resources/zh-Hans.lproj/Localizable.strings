@@ -219,7 +219,6 @@
 "permissions" = "Sharing & Permissions";
 "pictures" = "图片";
 "places" = "Places & Devices";
-"placesMenuOption" = "位置";
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "属性";
@@ -279,12 +278,16 @@
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showPlaces" = "显示位置";
 "showPreviewSidebar" = "Show Preview";
+"showDiskUsageSidebar" = "Show Disk Usage";
+"hideDiskUsageSidebar" = "Hide Disk Usage";
 "showRecents" = "Show Recents";
+"showDirectoryTree" = "Show Directory Tree";
 "showSidebarSectionTitles" = "显示侧边栏标题";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar Mode";
+"sidebarMode" = "Sidebar";
+"sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "智能文件夹名称";
@@ -305,7 +308,6 @@
 "translucentLevel" = "Transparency";
 "trash" = "废纸篓";
 "trashSelectedDuplicates" = "将选中的重复项移至废纸篓";
-"treeMenuOption" = "目录树";
 "undo" = "撤销";
 "version" = "Version";
 "viewMode" = "View Mode";
@@ -328,6 +330,7 @@
 "skipDeleteConfirmation" = "跳过删除确认";
 "skipDeleteConfirmationHint" = "无需确认即可立即将项目移到废纸篓。";
 "settingsWindowTitle" = "Wiles 设置";
+"settingsHeaderSubtitle" = "根据您的偏好自定义 Wiles。";
 "settingsMenuItem" = "设置…";
 "settingsGeneralTab" = "通用";
 "settingsAppearanceTab" = "外观";
@@ -338,14 +341,12 @@
 "settingsThemeSection" = "主题";
 "settingsTranslucencySection" = "透明度";
 "settingsSidebarSectionsSection" = "侧边栏部分";
-"settingsSidebarDisplaySection" = "侧边栏显示";
 "settingsViewSection" = "显示";
-"settingsFooterHint" = "这些设置会立即生效并自动保存。";
 "appearanceSystemOption" = "系统";
 "appearanceLightOption" = "浅色";
 "appearanceDarkOption" = "深色";
 "settingsDefaultAppSection" = "默认应用";
 "defaultAppRegisterButton" = "将 Wiles 注册为文件夹应用";
-"defaultAppExplanation" = "macOS 将双击文件夹的行为专门保留给访达（Finder）——没有任何应用可以在系统层面更改这一点。此操作会将 Wiles 添加到访达中文件夹右键菜单的“打开方式”列表中。";
+"defaultAppExplanation" = "将 Wiles 添加到文件夹右键菜单的“打开方式”中(双击行为已被访达独占)。";
 "defaultAppRegisteredConfirmation" = "Wiles 已添加到文件夹的“打开方式”菜单中。";
 "defaultAppRegistrationFailed" = "无法注册 Wiles。请重试，或检查系统设置 > 通用 > 登录项与扩展。";

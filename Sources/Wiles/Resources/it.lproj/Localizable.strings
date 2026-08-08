@@ -219,7 +219,6 @@
 "permissions" = "Sharing & Permissions";
 "pictures" = "Immagini";
 "places" = "Places & Devices";
-"placesMenuOption" = "Posizioni";
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "Informazioni";
@@ -279,12 +278,16 @@
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showPlaces" = "Mostra Posizioni";
 "showPreviewSidebar" = "Show Preview";
+"showDiskUsageSidebar" = "Show Disk Usage";
+"hideDiskUsageSidebar" = "Hide Disk Usage";
 "showRecents" = "Show Recents";
+"showDirectoryTree" = "Show Directory Tree";
 "showSidebarSectionTitles" = "Mostra Titoli Sezioni Laterali";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar Mode";
+"sidebarMode" = "Sidebar";
+"sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Nome cartella intelligente";
@@ -305,7 +308,6 @@
 "translucentLevel" = "Transparency";
 "trash" = "Cestino";
 "trashSelectedDuplicates" = "Sposta i duplicati selezionati nel cestino";
-"treeMenuOption" = "Struttura Cartelle";
 "undo" = "Annulla";
 "version" = "Version";
 "viewMode" = "View Mode";
@@ -328,6 +330,7 @@
 "skipDeleteConfirmation" = "Salta conferma di eliminazione";
 "skipDeleteConfirmationHint" = "Sposta gli elementi nel Cestino immediatamente, senza chiedere conferma.";
 "settingsWindowTitle" = "Impostazioni di Wiles";
+"settingsHeaderSubtitle" = "Personalizza Wiles in base alle tue preferenze.";
 "settingsMenuItem" = "Impostazioni…";
 "settingsGeneralTab" = "Generali";
 "settingsAppearanceTab" = "Aspetto";
@@ -338,14 +341,12 @@
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Trasparenza";
 "settingsSidebarSectionsSection" = "Sezioni della barra laterale";
-"settingsSidebarDisplaySection" = "Visualizzazione della barra laterale";
 "settingsViewSection" = "Vista";
-"settingsFooterHint" = "Queste impostazioni vengono applicate immediatamente e salvate automaticamente.";
 "appearanceSystemOption" = "Sistema";
 "appearanceLightOption" = "Chiaro";
 "appearanceDarkOption" = "Scuro";
 "settingsDefaultAppSection" = "App Predefinita";
 "defaultAppRegisterButton" = "Registra Wiles per le Cartelle";
-"defaultAppExplanation" = "macOS riserva il doppio clic su una cartella esclusivamente al Finder: nessuna app può cambiarlo a livello di sistema. Questo aggiunge Wiles al menu \"Apri con\" (clic destro) delle cartelle nel Finder.";
+"defaultAppExplanation" = "Aggiunge Wiles al menu \"Apri con\" (clic destro) delle cartelle (macOS riserva il doppio clic al Finder).";
 "defaultAppRegisteredConfirmation" = "Wiles è stato aggiunto al menu \"Apri con\" delle cartelle.";
 "defaultAppRegistrationFailed" = "Impossibile registrare Wiles. Riprova oppure controlla Impostazioni di Sistema > Generali > Elementi di login ed estensioni.";

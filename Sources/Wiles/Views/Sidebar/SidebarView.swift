@@ -74,14 +74,16 @@ struct SidebarView: View {
                     )
                 }
 
-                if appState.preferences.showPlaces && appState.preferences.sidebarMode == .places {
+                if appState.preferences.showPlaces {
                     collapsibleSection(
                         title: appState.tr(.places),
                         isExpanded: $appState.preferences.isDevicesExpanded,
                         items: devices,
                         isFavoritesSection: false
                     )
-                } else if appState.preferences.sidebarMode == .tree {
+                }
+
+                if appState.preferences.showDirectoryTree {
                     VStack(alignment: .leading, spacing: 4) {
                         if appState.preferences.showSidebarSectionTitles {
                             sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.preferences.isTreeExpanded)

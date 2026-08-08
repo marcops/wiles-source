@@ -11,9 +11,6 @@ struct AboutSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            headerView
-            Divider()
-
             VStack(spacing: 16) {
                 Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
                     .resizable()
@@ -67,17 +64,6 @@ struct AboutSheet: View {
         }
         .frame(width: LayoutTokens.aboutWindowWidth)
         .background(Color(NSColor.windowBackgroundColor))
-    }
-
-    private var headerView: some View {
-        HStack {
-            Text(appState.tr(.aboutWiles))
-                .font(.system(size: 14, weight: .bold))
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
 
     private var footerView: some View {

@@ -1,8 +1,10 @@
 import SwiftUI
 
-/// "Sidebar" tab of `SettingsView`: which sidebar sections are visible and whether it displays as
-/// a flat Places list or a full Directory Tree — previously five separate `Toggle`/`Picker` rows
-/// buried in the View menu (`viewMenuCommands` in `WilesApp.swift`).
+/// "Sidebar" tab of `SettingsView`: which sidebar sections are visible — previously five separate
+/// `Toggle`/`Picker` rows buried in the View menu (`viewMenuCommands` in `WilesApp.swift`). The
+/// Directory Tree used to be a mutually-exclusive alternative to the Places list (a `SidebarMode`
+/// picker); it's now just another independent section toggle like the rest, so Places and the
+/// Directory Tree can both be shown at once.
 struct SidebarSettingsView: View {
     var appState: AppState
 
@@ -14,16 +16,8 @@ struct SidebarSettingsView: View {
                 Toggle(appState.tr(.showPlaces), isOn: $appState.preferences.showPlaces)
                 Toggle(appState.tr(.showRecents), isOn: $appState.preferences.showRecents)
                 Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
+                Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
                 Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
-            }
-
-            Section(appState.tr(.settingsSidebarDisplaySection)) {
-                Picker(appState.tr(.sidebarMode), selection: $appState.preferences.sidebarMode) {
-                    ForEach(SidebarMode.allCases) { mode in
-                        Text(appState.tr(mode.menuL10nKey)).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
             }
         }
         .formStyle(.grouped)

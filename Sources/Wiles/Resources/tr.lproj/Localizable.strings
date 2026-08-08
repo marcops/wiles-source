@@ -219,7 +219,6 @@
 "permissions" = "Sharing & Permissions";
 "pictures" = "Resimler";
 "places" = "Places & Devices";
-"placesMenuOption" = "Konumlar";
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "Bilgi Ver";
@@ -279,12 +278,16 @@
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showPlaces" = "Yerleri Göster";
 "showPreviewSidebar" = "Show Preview";
+"showDiskUsageSidebar" = "Show Disk Usage";
+"hideDiskUsageSidebar" = "Hide Disk Usage";
 "showRecents" = "Show Recents";
+"showDirectoryTree" = "Show Directory Tree";
 "showSidebarSectionTitles" = "Yan Çubuk Başlıklarını Göster";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar Mode";
+"sidebarMode" = "Sidebar";
+"sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Akıllı Klasör Adı";
@@ -305,7 +308,6 @@
 "translucentLevel" = "Transparency";
 "trash" = "Çöp Kutusu";
 "trashSelectedDuplicates" = "Seçilen Çiftleri Çöp Kutusuna Taşı";
-"treeMenuOption" = "Dizin Ağacı";
 "undo" = "Geri Al";
 "version" = "Version";
 "viewMode" = "View Mode";
@@ -328,6 +330,7 @@
 "skipDeleteConfirmation" = "Silme onayını atla";
 "skipDeleteConfirmationHint" = "Onay istemeden öğeleri hemen Çöp Kutusuna taşır.";
 "settingsWindowTitle" = "Wiles Ayarları";
+"settingsHeaderSubtitle" = "Wiles'ı tercihlerinize göre özelleştirin.";
 "settingsMenuItem" = "Ayarlar…";
 "settingsGeneralTab" = "Genel";
 "settingsAppearanceTab" = "Görünüm";
@@ -338,14 +341,12 @@
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Saydamlık";
 "settingsSidebarSectionsSection" = "Kenar Çubuğu Bölümleri";
-"settingsSidebarDisplaySection" = "Kenar Çubuğu Görünümü";
 "settingsViewSection" = "Görünüm";
-"settingsFooterHint" = "Bu ayarlar hemen uygulanır ve otomatik olarak kaydedilir.";
 "appearanceSystemOption" = "Sistem";
 "appearanceLightOption" = "Açık";
 "appearanceDarkOption" = "Koyu";
 "settingsDefaultAppSection" = "Varsayılan Uygulama";
 "defaultAppRegisterButton" = "Wiles'ı Klasörler için Kaydet";
-"defaultAppExplanation" = "macOS, bir klasöre çift tıklamayı yalnızca Finder için ayırır — hiçbir uygulama bunu sistem genelinde değiştiremez. Bu, Wiles'ı Finder'da klasörlerin sağ tık \"Birlikte Aç\" menüsüne ekler.";
+"defaultAppExplanation" = "Wiles'ı klasörlerin sağ tık \"Birlikte Aç\" menüsüne ekler (çift tıklama Finder'a ayrılmıştır).";
 "defaultAppRegisteredConfirmation" = "Wiles, klasörlerin \"Birlikte Aç\" menüsüne eklendi.";
 "defaultAppRegistrationFailed" = "Wiles kaydedilemedi. Tekrar deneyin veya Sistem Ayarları > Genel > Oturum Açma Öğeleri ve Uzantılar kısmını kontrol edin.";

@@ -10,8 +10,8 @@ public final class PreferencesStore {
     public var appAppearance: AppAppearance = .system {
         didSet { UserDefaults.standard.set(appAppearance.rawValue, forKey: DefaultsKey.appAppearance.rawValue) }
     }
-    public var sidebarMode: SidebarMode = .places {
-        didSet { UserDefaults.standard.set(sidebarMode.rawValue, forKey: DefaultsKey.sidebarMode.rawValue) }
+    public var showDirectoryTree: Bool = false {
+        didSet { UserDefaults.standard.set(showDirectoryTree, forKey: DefaultsKey.showDirectoryTree.rawValue) }
     }
     public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
         didSet { UserDefaults.standard.set(sidebarWidth, forKey: DefaultsKey.sidebarWidth.rawValue) }
@@ -88,8 +88,24 @@ public final class PreferencesStore {
     public var showTerminalDrawer: Bool = false {
         didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: DefaultsKey.showTerminalDrawer.rawValue) }
     }
+    // `showPreviewSidebar` and `showDiskUsageSidebar` are mutually exclusive: both occupy the
+    // same trailing pane of the content `HSplitView`. Letting both be true at once would put a
+    // 3rd pane into that split view, which `HSplitView`/`NSSplitView` doesn't reliably size on
+    // first appearance — newly-inserted panes there could render at ~0 width instead of honoring
+    // their `.frame(minWidth:)`. Keeping it to a strict 2-pane split (content | one inspector) is
+    // the same shape that already worked correctly, so enforce exclusivity here instead of
+    // fighting NSSplitView's sizing from the view layer.
     public var showPreviewSidebar: Bool = false {
-        didSet { UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue) }
+        didSet {
+            UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue)
+            if showPreviewSidebar && showDiskUsageSidebar { showDiskUsageSidebar = false }
+        }
+    }
+    public var showDiskUsageSidebar: Bool = false {
+        didSet {
+            UserDefaults.standard.set(showDiskUsageSidebar, forKey: DefaultsKey.showDiskUsageSidebar.rawValue)
+            if showDiskUsageSidebar && showPreviewSidebar { showPreviewSidebar = false }
+        }
     }
     public var skipDeleteConfirmation: Bool = false {
         didSet { UserDefaults.standard.set(skipDeleteConfirmation, forKey: DefaultsKey.skipDeleteConfirmation.rawValue) }
@@ -181,7 +197,7 @@ public final class PreferencesStore {
     private func loadViewPreferences(_ defaults: UserDefaults) {
         loadEnum(.viewMode, into: \.viewMode, from: defaults)
         loadEnum(.appAppearance, into: \.appAppearance, from: defaults)
-        loadEnum(.sidebarMode, into: \.sidebarMode, from: defaults)
+        loadBool(.showDirectoryTree, into: \.showDirectoryTree, from: defaults)
         loadEnum(.sortOption, into: \.sortOption, from: defaults)
         loadBool(.sortAscending, into: \.sortAscending, from: defaults)
 
@@ -220,6 +236,7 @@ public final class PreferencesStore {
         loadBool(.showFooter, into: \.showFooter, from: defaults)
         loadBool(.showTerminalDrawer, into: \.showTerminalDrawer, from: defaults)
         loadBool(.showPreviewSidebar, into: \.showPreviewSidebar, from: defaults)
+        loadBool(.showDiskUsageSidebar, into: \.showDiskUsageSidebar, from: defaults)
         loadBool(.skipDeleteConfirmation, into: \.skipDeleteConfirmation, from: defaults)
 
         let sLevel = defaults.integer(forKey: DefaultsKey.sidebarTranslucentLevel.rawValue)

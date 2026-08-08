@@ -4,26 +4,12 @@ import Foundation
 @MainActor
 public struct SmallModelEnumsTests {
     public static func run() {
-        testSidebarMode()
         testNavigationMode()
         testViewMode()
         testSortOption()
         testAppAppearance()
         testFolderNodeEqualityAndHashing()
         testSidebarItemIdentity()
-    }
-
-    private static func testSidebarMode() {
-        report("SidebarMode", "POS: CaseIterable has exactly the 2 known cases", result: SidebarMode.allCases.count == 2)
-        for mode in SidebarMode.allCases {
-            report("SidebarMode", "POS: rawValue round-trips for \(mode)", result: SidebarMode(rawValue: mode.rawValue) == mode)
-            report("SidebarMode", "POS: id equals rawValue for \(mode)", result: mode.id == mode.rawValue)
-        }
-        report("SidebarMode", "NEG: garbage rawValue returns nil", result: SidebarMode(rawValue: "not-a-real-mode") == nil)
-        report("SidebarMode", "NEG: empty rawValue returns nil", result: SidebarMode(rawValue: "") == nil)
-        report("SidebarMode", "POS: l10nKey differs between .places and .tree", result: SidebarMode.places.l10nKey != SidebarMode.tree.l10nKey)
-        report("SidebarMode", "POS: menuL10nKey differs between .places and .tree", result: SidebarMode.places.menuL10nKey != SidebarMode.tree.menuL10nKey)
-        report("SidebarMode", "POS: l10nKey and menuL10nKey differ for .places", result: SidebarMode.places.l10nKey != SidebarMode.places.menuL10nKey)
     }
 
     private static func testNavigationMode() {

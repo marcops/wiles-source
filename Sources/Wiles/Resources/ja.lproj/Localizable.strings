@@ -219,7 +219,6 @@
 "permissions" = "Sharing & Permissions";
 "pictures" = "ピクチャ";
 "places" = "Places & Devices";
-"placesMenuOption" = "場所";
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "情報を見る";
@@ -279,12 +278,16 @@
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showPlaces" = "場所を表示";
 "showPreviewSidebar" = "Show Preview";
+"showDiskUsageSidebar" = "Show Disk Usage";
+"hideDiskUsageSidebar" = "Hide Disk Usage";
 "showRecents" = "Show Recents";
+"showDirectoryTree" = "Show Directory Tree";
 "showSidebarSectionTitles" = "サイドバーのタイトルを表示";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar Mode";
+"sidebarMode" = "Sidebar";
+"sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "スマートフォルダ名";
@@ -305,7 +308,6 @@
 "translucentLevel" = "Transparency";
 "trash" = "ゴミ箱";
 "trashSelectedDuplicates" = "選択した重複項目をごみ箱に移動";
-"treeMenuOption" = "ディレクトリツリー";
 "undo" = "元に戻す";
 "version" = "Version";
 "viewMode" = "View Mode";
@@ -328,6 +330,7 @@
 "skipDeleteConfirmation" = "削除確認をスキップ";
 "skipDeleteConfirmationHint" = "確認を求めずに項目をすぐにゴミ箱に移動します。";
 "settingsWindowTitle" = "Wilesの設定";
+"settingsHeaderSubtitle" = "Wilesをお好みに合わせてカスタマイズします。";
 "settingsMenuItem" = "設定…";
 "settingsGeneralTab" = "一般";
 "settingsAppearanceTab" = "外観";
@@ -338,14 +341,12 @@
 "settingsThemeSection" = "テーマ";
 "settingsTranslucencySection" = "透明度";
 "settingsSidebarSectionsSection" = "サイドバーのセクション";
-"settingsSidebarDisplaySection" = "サイドバー表示";
 "settingsViewSection" = "表示";
-"settingsFooterHint" = "これらの設定はすぐに適用され、自動的に保存されます。";
 "appearanceSystemOption" = "システム";
 "appearanceLightOption" = "ライト";
 "appearanceDarkOption" = "ダーク";
 "settingsDefaultAppSection" = "デフォルトアプリ";
 "defaultAppRegisterButton" = "フォルダ用にWilesを登録";
-"defaultAppExplanation" = "macOSはフォルダのダブルクリックをFinder専用に予約しており、システム全体でこれを変更できるアプリはありません。代わりに、Finderでフォルダを右クリックした際の「このアプリケーションで開く」メニューにWilesを追加します。";
+"defaultAppExplanation" = "フォルダの右クリック「このアプリケーションで開く」メニューにWilesを追加します(ダブルクリックはFinder専用のため)。";
 "defaultAppRegisteredConfirmation" = "Wilesがフォルダの「このアプリケーションで開く」メニューに追加されました。";
 "defaultAppRegistrationFailed" = "Wilesを登録できませんでした。もう一度お試しいただくか、システム設定 > 一般 > ログイン項目と機能拡張を確認してください。";

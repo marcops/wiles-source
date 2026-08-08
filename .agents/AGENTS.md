@@ -197,14 +197,28 @@ Before finalizing any code or creating a commit, you MUST perform a generic self
     - *Validation*: An `async` function that loops over a large dataset (files, URLs, chunks) continues running even after its parent `Task` is cancelled — it becomes a zombie consuming CPU, disk I/O, or battery with no way to abort. Always call `try Task.checkCancellation()` (or check `Task.isCancelled`) at the top of each loop iteration. This guarantees the operation exits the moment the user cancels or navigates away, without requiring any external coordination.
 
 ## 30. Standard Modal/Sheet Screen Pattern (MANDATORY for every new sheet/modal)
-Every modal in this app (`AutoOrganizationSheet`, `HelpSheet`, `AboutSheet`, `FilePropertiesSheet`,
-`SymlinkSheetView`, `DiskSpaceVisualizerSheetView`, `FolderPickerSheet`, `BatchRenameSheetView`,
-`ImageConverterSheetView`, `ArchiveInspectionSheetView`, `DuplicateCleanerSheetView`,
-`HttpShareSheet`, etc.) already follows the exact same skeleton. When adding or editing a modal, do
-not improvise a new layout, a new close mechanism, or new spacing convention — copy this pattern:
+Every modal in this app (`AutoOrganizationSheet`, `HelpSheet`, `AboutSheet`, `SettingsView`,
+`FilePropertiesSheet`, `SymlinkSheetView`, `DiskSpaceVisualizerSheetView`, `FolderPickerSheet`,
+`BatchRenameSheetView`, `ImageConverterSheetView`, `ArchiveInspectionSheetView`,
+`DuplicateCleanerSheetView`, `HttpShareSheet`, etc.) already follows the exact same skeleton. When
+adding or editing a modal, do not improvise a new layout, a new close mechanism, or new spacing
+convention — copy this pattern:
 
 - **Structure**: `VStack { headerView; Divider(); contentArea; Divider(); footerView }`. Content
   between the two `Divider()`s is the only part that scrolls or grows; header and footer stay fixed.
+- **Always present as a real `.sheet(isPresented:)`, never as its own `Scene`** (e.g. `Settings { }`,
+  a second `WindowGroup`). A `Scene` always comes with its own native title bar and traffic-light
+  window chrome that visually fights this header/footer pattern — and that chrome cannot be reliably
+  stripped: `.windowStyle(.hiddenTitleBar)` silently has no effect on a `Settings` scene, and
+  reaching into the real `NSWindow` via `NSViewRepresentable` to hide the buttons/title bar directly
+  still leaves rendering glitches (blank strips, clipped content) that aren't worth chasing. A sheet
+  has no window chrome to begin with, so the standard pattern applies with zero extra work — see
+  `SettingsView.swift`, wired through `windowUIState.showSettingsSheet` like every other sheet flag.
+- **Multi-tab screens**: put the tab switcher *inside* `headerView`, below the icon/title/subtitle
+  row. Don't reach for `Picker(selection:).pickerStyle(.segmented)` if the tabs need icons — macOS
+  silently drops the icon from a `Label` there, even with `.labelStyle(.titleAndIcon)` applied
+  (text-only in practice). Hand-roll the tab row instead (icon above title, centered, selected-state
+  tint) — see `SettingsView.swift`'s `tabSwitcher`.
 - **Header**: a leading icon + a `VStack(alignment: .leading, spacing: 2)` holding a bold title and,
   directly beneath it, a one-line secondary subtitle (`.font(.system(size: 11))`,
   `.foregroundColor(.secondary)`) describing what the screen is for — never ship a header with just a
@@ -297,3 +311,31 @@ don't improvise a layout that merely "looks plausible." General rules:
   legitimately stays on the shared `AppState`/`ModalStore`, since the user needs to see it regardless
   of which window (if any) currently has focus. Only move state that is set as the direct result of
   an explicit action taken *in* one specific window.
+
+## 33. Custom Button/Tappable Content MUST Have an Explicit `.contentShape` (repeat offender — check every time)
+- **A `Button` (or `.onTapGesture`) whose label is composite content** — an `Image` + `Text` in a
+  `VStack`/`HStack`, an icon with surrounding padding, anything that isn't a single opaque `Text` —
+  is **only tappable on its actual rendered, non-transparent pixels** by default. Clicking the visible
+  padding around an icon, or the gap between an icon and its label, silently does nothing — this
+  reads to the user as "the button doesn't work," not as a hit-testing subtlety, and it has shipped
+  more than once in this app.
+- **On macOS, a real `Button` does not reliably honor `.contentShape` at all for this** — not just
+  when the shape is oversized, but even when it's set to `Rectangle()` matched *exactly* to the
+  label's own frame. `Button`'s AppKit-backed click routing keeps tracking only the rendered
+  content's actual bounds regardless of what `.contentShape` you attach. **Never use `Button` for a
+  composite-content control where the padding around the content needs to be tappable** — use a plain
+  view with `.contentShape(Rectangle())` + `.onTapGesture { }` instead (add
+  `.accessibilityAddTraits(.isButton)` + `.accessibilityLabel(...)` since it's no longer a real
+  control). This combination is what actually respects `.contentShape`, matched or oversized alike —
+  see `SettingsView.swift`'s `tabButton`. This is the default, non-negotiable way to write any custom
+  tappable view with non-trivial label content — not something swapped in reactively after a bug
+  report.
+- **Keep `.contentShape(Rectangle())` matched exactly to the visible frame — do not outset it past
+  that frame unless there is real, uninterrupted empty space on every side you're growing into.** A
+  row of adjacent tappable controls (a tab switcher, a segmented row, icon buttons a few points apart)
+  almost never has that space: outsetting each one's hit region past its own bounds makes neighboring
+  regions overlap, so a click near the boundary — or even solidly inside one control — can register on
+  the *wrong* sibling. This has actually shipped in `SettingsView.swift`'s tab row (clicking "General"
+  selected a different tab). If a bigger tap target is genuinely needed for controls packed this
+  tightly, increase the real `HStack`/`VStack` `spacing` between them first so there's slack to grow
+  into, rather than letting hit regions silently overlap.

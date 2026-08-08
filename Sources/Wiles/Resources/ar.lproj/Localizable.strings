@@ -219,7 +219,6 @@
 "permissions" = "Sharing & Permissions";
 "pictures" = "الصور";
 "places" = "Places & Devices";
-"placesMenuOption" = "الأماكن";
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "جلب المعلومات";
@@ -279,12 +278,16 @@
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showPlaces" = "إظهار الأماكن";
 "showPreviewSidebar" = "Show Preview";
+"showDiskUsageSidebar" = "Show Disk Usage";
+"hideDiskUsageSidebar" = "Hide Disk Usage";
 "showRecents" = "Show Recents";
+"showDirectoryTree" = "Show Directory Tree";
 "showSidebarSectionTitles" = "إظهار عناوين الشريط الجانبي";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar Mode";
+"sidebarMode" = "Sidebar";
+"sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "اسم المجلد الذكي";
@@ -305,7 +308,6 @@
 "translucentLevel" = "Transparency";
 "trash" = "سلة المهملات";
 "trashSelectedDuplicates" = "نقل المكررات المحددة إلى السلة";
-"treeMenuOption" = "شجرة الدليل";
 "undo" = "تراجع";
 "version" = "Version";
 "viewMode" = "View Mode";
@@ -328,6 +330,7 @@
 "skipDeleteConfirmation" = "تخطي تأكيد الحذف";
 "skipDeleteConfirmationHint" = "ينقل العناصر إلى المهملات فورًا دون طلب التأكيد.";
 "settingsWindowTitle" = "إعدادات Wiles";
+"settingsHeaderSubtitle" = "خصص Wiles وفقًا لتفضيلاتك.";
 "settingsMenuItem" = "إعدادات…";
 "settingsGeneralTab" = "عام";
 "settingsAppearanceTab" = "المظهر";
@@ -338,14 +341,12 @@
 "settingsThemeSection" = "السمة";
 "settingsTranslucencySection" = "الشفافية";
 "settingsSidebarSectionsSection" = "أقسام الشريط الجانبي";
-"settingsSidebarDisplaySection" = "عرض الشريط الجانبي";
 "settingsViewSection" = "العرض";
-"settingsFooterHint" = "يتم تطبيق هذه الإعدادات فورًا وحفظها تلقائيًا.";
 "appearanceSystemOption" = "النظام";
 "appearanceLightOption" = "فاتح";
 "appearanceDarkOption" = "داكن";
 "settingsDefaultAppSection" = "التطبيق الافتراضي";
 "defaultAppRegisterButton" = "تسجيل Wiles للمجلدات";
-"defaultAppExplanation" = "يحجز macOS النقر المزدوج على مجلد حصريًا لتطبيق Finder — لا يمكن لأي تطبيق تغيير ذلك على مستوى النظام بأكمله. يضيف هذا Wiles إلى قائمة \"فتح باستخدام\" التي تظهر بالنقر بزر الماوس الأيمن على المجلدات في Finder.";
+"defaultAppExplanation" = "يضيف Wiles إلى قائمة \"فتح باستخدام\" بالنقر بزر الماوس الأيمن على المجلدات (النقر المزدوج محجوز حصريًا لـ Finder).";
 "defaultAppRegisteredConfirmation" = "تمت إضافة Wiles إلى قائمة \"فتح باستخدام\" للمجلدات.";
 "defaultAppRegistrationFailed" = "تعذر تسجيل Wiles. حاول مرة أخرى أو تحقق من إعدادات النظام > عام > عناصر تسجيل الدخول والامتدادات.";

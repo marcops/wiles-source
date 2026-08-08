@@ -113,10 +113,10 @@ public struct L10n {
         case showPlaces
         case showSidebarSectionTitles
         case sidebarMode
+        case sidebarMenuTitle
         case places
         case directoryTree
-        case placesMenuOption
-        case treeMenuOption
+        case showDirectoryTree
         case shortcutMode
         case refresh
         case copyPath
@@ -240,6 +240,8 @@ public struct L10n {
         case services
 
         case showPreviewSidebar
+        case showDiskUsageSidebar
+        case hideDiskUsageSidebar
         case moreInfo
         case general
         case permissions
@@ -421,6 +423,7 @@ public struct L10n {
         case skipDeleteConfirmation
         case skipDeleteConfirmationHint
         case settingsWindowTitle
+        case settingsHeaderSubtitle
         case settingsMenuItem
         case settingsGeneralTab
         case settingsAppearanceTab
@@ -431,9 +434,7 @@ public struct L10n {
         case settingsThemeSection
         case settingsTranslucencySection
         case settingsSidebarSectionsSection
-        case settingsSidebarDisplaySection
         case settingsViewSection
-        case settingsFooterHint
         case appearanceSystemOption
         case appearanceLightOption
         case appearanceDarkOption

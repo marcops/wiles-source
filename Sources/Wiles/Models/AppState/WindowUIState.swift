@@ -22,7 +22,6 @@ public final class WindowUIState {
     public var imageConverterItem: FileItem?
     public var symlinkItem: FileItem?
     public var showBatchRenameSheet: Bool = false
-    public var showDiskUsageSheet: Bool = false
     public var showNewFolderSheet: Bool = false
     public var showNewFileSheet: Bool = false
     public var showEmptyTrashAlert: Bool = false
@@ -39,6 +38,7 @@ public final class WindowUIState {
     public var showArchiveInspectionSheet: Bool = false
     public var showHelpSheet: Bool = false
     public var showAboutSheet: Bool = false
+    public var showSettingsSheet: Bool = false
 
     public init() {}
 }

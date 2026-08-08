@@ -81,7 +81,7 @@ struct SharedBackgroundContextMenu: View {
             windowUIState.showHttpShareSheet = true
         }
         Button("\(appState.tr(.diskUsageVisualizer))... (Shift+Cmd+D)") {
-            windowUIState.showDiskUsageSheet = true
+            appState.preferences.showDiskUsageSidebar = true
         }
         Divider()
         Button(appState.tr(.folderProperties)) {

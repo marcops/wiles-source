@@ -219,7 +219,6 @@
 "permissions" = "Sharing & Permissions";
 "pictures" = "Изображения";
 "places" = "Places & Devices";
-"placesMenuOption" = "Места";
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "Свойства";
@@ -279,12 +278,16 @@
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showPlaces" = "Показать Места";
 "showPreviewSidebar" = "Show Preview";
+"showDiskUsageSidebar" = "Show Disk Usage";
+"hideDiskUsageSidebar" = "Hide Disk Usage";
 "showRecents" = "Show Recents";
+"showDirectoryTree" = "Show Directory Tree";
 "showSidebarSectionTitles" = "Показать Заголовки Боковой Панели";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar Mode";
+"sidebarMode" = "Sidebar";
+"sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Имя smart-папки";
@@ -305,7 +308,6 @@
 "translucentLevel" = "Transparency";
 "trash" = "Корзина";
 "trashSelectedDuplicates" = "Переместить выбранные дубликаты в корзину";
-"treeMenuOption" = "Дерево каталогов";
 "undo" = "Отменить";
 "version" = "Version";
 "viewMode" = "View Mode";
@@ -328,6 +330,7 @@
 "skipDeleteConfirmation" = "Не запрашивать подтверждение удаления";
 "skipDeleteConfirmationHint" = "Немедленно перемещает элементы в Корзину, не запрашивая подтверждение.";
 "settingsWindowTitle" = "Настройки Wiles";
+"settingsHeaderSubtitle" = "Настройте Wiles под свои предпочтения.";
 "settingsMenuItem" = "Настройки…";
 "settingsGeneralTab" = "Основные";
 "settingsAppearanceTab" = "Внешний вид";
@@ -338,14 +341,12 @@
 "settingsThemeSection" = "Тема";
 "settingsTranslucencySection" = "Прозрачность";
 "settingsSidebarSectionsSection" = "Разделы боковой панели";
-"settingsSidebarDisplaySection" = "Отображение боковой панели";
 "settingsViewSection" = "Вид";
-"settingsFooterHint" = "Эти настройки применяются немедленно и сохраняются автоматически.";
 "appearanceSystemOption" = "Системная";
 "appearanceLightOption" = "Светлая";
 "appearanceDarkOption" = "Тёмная";
 "settingsDefaultAppSection" = "Приложение по умолчанию";
 "defaultAppRegisterButton" = "Зарегистрировать Wiles для папок";
-"defaultAppExplanation" = "macOS резервирует двойной щелчок по папке исключительно для Finder — ни одно приложение не может изменить это на уровне системы. Это добавляет Wiles в меню «Открыть с помощью» (по правому клику) для папок в Finder.";
+"defaultAppExplanation" = "Добавляет Wiles в меню «Открыть с помощью» (по правому клику) для папок (двойной клик зарезервирован для Finder).";
 "defaultAppRegisteredConfirmation" = "Wiles добавлен в меню «Открыть с помощью» для папок.";
 "defaultAppRegistrationFailed" = "Не удалось зарегистрировать Wiles. Повторите попытку или проверьте Системные настройки > Основные > Элементы входа и расширения.";

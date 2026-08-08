@@ -18,12 +18,6 @@ struct AdvancedSettingsView: View {
             }
 
             defaultAppSection
-
-            Section {
-                Text(appState.tr(.settingsFooterHint))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
         .formStyle(.grouped)
         .accessibilityLabel(Text(appState.tr(.settingsAdvancedTab)))

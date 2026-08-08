@@ -5,7 +5,6 @@ import AppKit
 struct WilesApp: App {
     @State private var appState = AppState()
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
     @FocusedValue(\.windowUIState) private var windowUIState
 
     init() {
@@ -57,21 +56,24 @@ struct WilesApp: App {
             CommandMenu(appState.tr(.toolsMenuTitle)) { toolsMenuCommands }
             helpMenuCommands
         }
-
-        Settings {
-            SettingsView(appState: appState)
-        }
     }
 
     @CommandsBuilder private var appMenuCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button(appState.tr(.aboutWiles)) { windowUIState?.showAboutSheet = true }
         }
+        // `SettingsView` is presented as a sheet (`windowUIState.showSettingsSheet`, wired in
+        // `MainContentView`) rather than a `Settings { }` scene — a real scene always gets its own
+        // native title bar/traffic-light window chrome that fights the app's own header/footer sheet
+        // styling, and every attempt to strip that chrome via `NSWindow` still left rendering glitches.
+        // A sheet has no window chrome to fight in the first place, matching `HelpSheet`/`AboutSheet`.
+        // This also sidesteps the old duplicate-menu-item bug for good: that bug came from SwiftUI
+        // auto-generating its own native "Settings…" item whenever a `Settings` scene exists, which
+        // collided with `CommandGroup(replacing: .appSettings)` adding a second, translated one. With
+        // no `Settings` scene at all, there's nothing left for SwiftUI to auto-generate.
         CommandGroup(replacing: .appSettings) {
-            Button { openSettings() } label: {
-                Label(appState.tr(.settingsMenuItem), systemImage: "gearshape")
-            }
-            .keyboardShortcut(",", modifiers: .command)
+            Button(appState.tr(.settingsMenuItem)) { windowUIState?.showSettingsSheet = true }
+                .keyboardShortcut(",", modifiers: .command)
         }
     }
 
@@ -153,6 +155,16 @@ struct WilesApp: App {
                 .keyboardShortcut("j", modifiers: .command)
             Toggle(appState.tr(appState.preferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $appState.preferences.showPreviewSidebar)
                 .keyboardShortcut("p", modifiers: [.command, .shift])
+            Toggle(appState.tr(appState.preferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar), isOn: $appState.preferences.showDiskUsageSidebar)
+                .keyboardShortcut("d", modifiers: [.command, .shift])
+            Menu(appState.tr(.sidebarMenuTitle)) {
+                Toggle(appState.tr(.showFavorites), isOn: $appState.preferences.showFavorites)
+                Toggle(appState.tr(.showPlaces), isOn: $appState.preferences.showPlaces)
+                Toggle(appState.tr(.showRecents), isOn: $appState.preferences.showRecents)
+                Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
+                Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
+                Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
+            }
             Divider()
             Picker(selection: $appState.preferences.viewMode) {
                 Text(appState.tr(.gridView)).tag(ViewMode.grid)
@@ -191,8 +203,6 @@ struct WilesApp: App {
     }
 
     @ViewBuilder private var toolsMenuCommands: some View {
-        Button(appState.tr(.actDiskVisualizer) + "...") { windowUIState?.showDiskUsageSheet = true }
-            .keyboardShortcut("d", modifiers: [.command, .shift])
         Button(appState.tr(.autoOrganization) + "...") { windowUIState?.showAutoOrganizationSheet = true }
         Divider()
         Menu(appState.tr(.copyPath)) {

@@ -219,7 +219,6 @@
 "permissions" = "Sharing & Permissions";
 "pictures" = "Bilder";
 "places" = "Places & Devices";
-"placesMenuOption" = "Platser";
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "Visa info";
@@ -279,12 +278,16 @@
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showPlaces" = "Visa Platser";
 "showPreviewSidebar" = "Show Preview";
+"showDiskUsageSidebar" = "Show Disk Usage";
+"hideDiskUsageSidebar" = "Hide Disk Usage";
 "showRecents" = "Show Recents";
+"showDirectoryTree" = "Show Directory Tree";
 "showSidebarSectionTitles" = "Visa Sidofältstitlar";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar Mode";
+"sidebarMode" = "Sidebar";
+"sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Namn på smart mapp";
@@ -305,7 +308,6 @@
 "translucentLevel" = "Transparency";
 "trash" = "Papperskorg";
 "trashSelectedDuplicates" = "Flytta valda dubbletter till papperskorgen";
-"treeMenuOption" = "Katalogträd";
 "undo" = "Ångra";
 "version" = "Version";
 "viewMode" = "View Mode";
@@ -328,6 +330,7 @@
 "skipDeleteConfirmation" = "Hoppa över raderingsbekräftelse";
 "skipDeleteConfirmationHint" = "Flyttar objekt till Papperskorgen direkt, utan att be om bekräftelse.";
 "settingsWindowTitle" = "Wiles-inställningar";
+"settingsHeaderSubtitle" = "Anpassa Wiles efter dina preferenser.";
 "settingsMenuItem" = "Inställningar…";
 "settingsGeneralTab" = "Allmänt";
 "settingsAppearanceTab" = "Utseende";
@@ -338,14 +341,12 @@
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Genomskinlighet";
 "settingsSidebarSectionsSection" = "Sidopanelsavsnitt";
-"settingsSidebarDisplaySection" = "Sidopanelsvisning";
 "settingsViewSection" = "Vy";
-"settingsFooterHint" = "Dessa inställningar tillämpas omedelbart och sparas automatiskt.";
 "appearanceSystemOption" = "System";
 "appearanceLightOption" = "Ljust";
 "appearanceDarkOption" = "Mörkt";
 "settingsDefaultAppSection" = "Standardapp";
 "defaultAppRegisterButton" = "Registrera Wiles för mappar";
-"defaultAppExplanation" = "macOS reserverar dubbelklick på en mapp enbart för Finder — ingen app kan ändra det systemomfattande. Detta lägger till Wiles i mappars högerklicksmeny \"Öppna med\" i Finder.";
+"defaultAppExplanation" = "Lägger till Wiles i mappars högerklicksmeny \"Öppna med\" (macOS reserverar dubbelklick för Finder).";
 "defaultAppRegisteredConfirmation" = "Wiles har lagts till i menyn \"Öppna med\" för mappar.";
 "defaultAppRegistrationFailed" = "Det gick inte att registrera Wiles. Försök igen eller kontrollera Systeminställningar > Allmänt > Inloggningsobjekt och tillägg.";
