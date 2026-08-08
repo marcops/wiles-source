@@ -67,12 +67,12 @@ extension AppState {
         }
     }
 
-    public func deleteSelected() {
+    public func deleteSelected(windowUIState: WindowUIState) {
         guard !selectedURLs.isEmpty else { return }
         if preferences.skipDeleteConfirmation {
             performDeleteSelected()
         } else {
-            showDeleteConfirmAlert = true
+            windowUIState.showDeleteConfirmAlert = true
         }
     }
 
@@ -183,9 +183,9 @@ extension AppState {
         }
     }
 
-    public func openPropertiesForSelected() {
+    public func openPropertiesForSelected(windowUIState: WindowUIState) {
         if let first = selectedURLs.first, let item = fileSystem.items.first(where: { $0.url == first }) {
-            propertiesItem = item
+            windowUIState.propertiesItem = item
         }
     }
 

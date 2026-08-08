@@ -2,12 +2,30 @@ import SwiftUI
 import QuickLook
 import AppKit
 
+/// Per-window focus key for `WindowUIState`. Published via `.focusedSceneValue` (not
+/// `.focusedValue`, which needs an actual SwiftUI-focused control — this app uses custom
+/// `NSEvent` monitors instead of native focus) so the menu commands in `WilesApp`, which live
+/// outside any single window's view hierarchy, can read/toggle only the currently active window's
+/// sheets, alerts, and shortcuts HUD. See `WindowUIState` for the full rationale.
+private struct WindowUIStateKey: FocusedValueKey {
+    typealias Value = WindowUIState
+}
+
+extension FocusedValues {
+    var windowUIState: WindowUIState? {
+        get { self[WindowUIStateKey.self] }
+        set { self[WindowUIStateKey.self] = newValue }
+    }
+}
+
 struct MainContentView: View {
     var appState: AppState
+    @State private var windowUIState = WindowUIState()
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
 
     var body: some View {
         @Bindable var appState = appState
+        @Bindable var windowUIState = windowUIState
         return ZStack {
             HSplitView {
             SidebarView(appState: appState)
@@ -52,40 +70,60 @@ struct MainContentView: View {
         .ignoresSafeArea(.all, edges: .top)
         .frame(minWidth: LayoutTokens.windowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
         .quickLookPreview($appState.quickLookURL)
-        .sheet(item: $appState.renameItem) { item in
+        .sheet(item: $windowUIState.propertiesItem) { item in
+            FilePropertiesSheet(item: item, appState: appState)
+        }
+        .sheet(isPresented: $windowUIState.showNewFolderSheet) {
+            NewFolderSheet(appState: appState)
+        }
+        .sheet(isPresented: $windowUIState.showHelpSheet) {
+            HelpSheet(appState: appState)
+        }
+        .sheet(isPresented: $windowUIState.showAboutSheet) {
+            AboutSheet(appState: appState)
+        }
+        .sheet(isPresented: $windowUIState.showAutoOrganizationSheet) {
+            AutoOrganizationSheet(appState: appState)
+        }
+        .sheet(isPresented: $windowUIState.showHttpShareSheet) {
+            if let url = windowUIState.httpShareFolderURL {
+                HttpShareSheet(appState: appState, folderURL: url)
+            }
+        }
+        .sheet(item: $windowUIState.renameItem) { item in
             RenameSheetView(item: item, appState: appState)
         }
-        .sheet(item: $appState.imageConverterItem) { item in
+        .sheet(item: $windowUIState.imageConverterItem) { item in
             ImageConverterSheetView(item: item, appState: appState)
         }
-        .sheet(isPresented: $appState.showBatchRenameSheet) {
+        .sheet(isPresented: $windowUIState.showBatchRenameSheet) {
             let selectedItems = appState.fileSystem.items.filter { appState.selectedURLs.contains($0.url) }
             BatchRenameSheetView(items: selectedItems, appState: appState)
         }
-        .sheet(isPresented: $appState.showDiskUsageSheet) {
+        .sheet(isPresented: $windowUIState.showDiskUsageSheet) {
             DiskSpaceVisualizerSheetView(appState: appState)
         }
-        .sheet(isPresented: $appState.showNewFileSheet) {
+        .sheet(isPresented: $windowUIState.showNewFileSheet) {
             NewFileSheetView(appState: appState)
         }
-        .sheet(isPresented: $appState.showConnectToServerSheet) {
+        .sheet(isPresented: $windowUIState.showConnectToServerSheet) {
             ConnectToServerSheetView(appState: appState)
         }
-        .sheet(item: $appState.symlinkItem) { item in
+        .sheet(item: $windowUIState.symlinkItem) { item in
             SymlinkSheetView(item: item, appState: appState)
         }
-        .sheet(isPresented: $appState.modal.showSaveSmartFolderSheet) {
+        .sheet(isPresented: $windowUIState.showSaveSmartFolderSheet) {
             SaveSmartFolderSheetView(appState: appState)
         }
-        .sheet(isPresented: $appState.modal.showPasswordCompressSheet) {
+        .sheet(isPresented: $windowUIState.showPasswordCompressSheet) {
             PasswordCompressSheetView(appState: appState)
         }
-        .sheet(isPresented: $appState.modal.showArchiveInspectionSheet) {
-            if let url = appState.modal.inspectArchiveURL {
+        .sheet(isPresented: $windowUIState.showArchiveInspectionSheet) {
+            if let url = windowUIState.inspectArchiveURL {
                 ArchiveInspectionSheetView(archiveURL: url, appState: appState)
             }
         }
-        .alert(appState.tr(.emptyTrash) + "?", isPresented: $appState.showEmptyTrashAlert) {
+        .alert(appState.tr(.emptyTrash) + "?", isPresented: $windowUIState.showEmptyTrashAlert) {
             Button(appState.tr(.emptyTrash), role: .destructive) {
                 appState.performEmptyTrash()
             }
@@ -93,7 +131,7 @@ struct MainContentView: View {
         } message: {
             Text(appState.tr(.emptyTrashConfirm))
         }
-        .alert(appState.tr(.moveToTrash) + "?", isPresented: $appState.showDeleteConfirmAlert) {
+        .alert(appState.tr(.moveToTrash) + "?", isPresented: $windowUIState.showDeleteConfirmAlert) {
             Button(appState.tr(.moveToTrash), role: .destructive) {
                 appState.performDeleteSelected()
             }
@@ -112,14 +150,16 @@ struct MainContentView: View {
                 Color(NSColor.windowBackgroundColor)
                     .opacity(appState.preferences.sidebarOverlayOpacity)
                 keyboardShortcutsHandler
-                GlobalKeyMonitor(appState: appState)
+                GlobalKeyMonitor(appState: appState, windowUIState: windowUIState)
             }
         )
-        if appState.showShortcutsHUD {
-            ShortcutsHUDOverlay(appState: appState, isPresented: $appState.showShortcutsHUD)
+        if windowUIState.showShortcutsHUD {
+            ShortcutsHUDOverlay(appState: appState, isPresented: $windowUIState.showShortcutsHUD)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
         }
         }
+        .environment(windowUIState)
+        .focusedSceneValue(\.windowUIState, windowUIState)
     }
 
     private var contentTranslucentBackground: some View {
@@ -168,25 +208,25 @@ struct MainContentView: View {
             Button("") { appState.selectedURLs.removeAll() }
                 .keyboardShortcut(.escape, modifiers: [])
                 .hidden()
-                .disabled(appState.showShortcutsHUD)
+                .disabled(windowUIState.showShortcutsHUD)
             Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
-            Button("") { appState.modal.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
+            Button("") { windowUIState.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
             Button("") {
                 withAnimation(MotionTokens.snappySpring) {
-                    appState.showShortcutsHUD.toggle()
+                    windowUIState.showShortcutsHUD.toggle()
                 }
             }.keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom)).hidden()
         }
         .onDeleteCommand {
-            appState.deleteSelected()
+            appState.deleteSelected(windowUIState: windowUIState)
         }
     }
 
     private func triggerRenameForSelected() {
         if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
-            appState.renameItem = item
+            windowUIState.renameItem = item
         }
     }
 
@@ -250,19 +290,23 @@ struct SplitViewDividerSetter: NSViewRepresentable {
 
 struct GlobalKeyMonitor: NSViewRepresentable {
     var appState: AppState
+    var windowUIState: WindowUIState
 
     func makeNSView(context: Context) -> KeyMonitorNSView {
         let view = KeyMonitorNSView()
         view.appState = appState
+        view.windowUIState = windowUIState
         return view
     }
 
     func updateNSView(_ nsView: KeyMonitorNSView, context: Context) {
         nsView.appState = appState
+        nsView.windowUIState = windowUIState
     }
 
     class KeyMonitorNSView: NSView {
         var appState: AppState?
+        var windowUIState: WindowUIState?
         private var monitor: Any?
         private var accumulatedScrollDelta: Double = 0
 
@@ -276,7 +320,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         }
 
         private func processLocalEvent(_ event: NSEvent) -> NSEvent? {
-            guard let appState = appState else { return event }
+            guard let appState = appState, let windowUIState = windowUIState else { return event }
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
                 return event
             }
@@ -284,7 +328,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             if event.type == .scrollWheel {
                 return handleScrollEvent(event, appState: appState)
             } else if event.type == .keyDown {
-                return handleKeyDownEvent(event, appState: appState)
+                return handleKeyDownEvent(event, appState: appState, windowUIState: windowUIState)
             }
             return event
         }
@@ -307,7 +351,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             return nil
         }
 
-        private func handleKeyDownEvent(_ event: NSEvent, appState: AppState) -> NSEvent? {
+        private func handleKeyDownEvent(_ event: NSEvent, appState: AppState, windowUIState: WindowUIState) -> NSEvent? {
             let isCmd = event.modifierFlags.contains(.command)
             let isCtrl = event.modifierFlags.contains(.control)
             let code = event.keyCode
@@ -315,7 +359,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             if (isCmd || isCtrl) && handleZoomKeyDown(code: code, appState: appState) {
                 return nil
             }
-            if handleNavigationKeyDown(code: code, isCmd: isCmd, appState: appState) {
+            if handleNavigationKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState) {
                 return nil
             }
             return event
@@ -337,7 +381,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             }
         }
 
-        private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState) -> Bool {
+        private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
             if let arrowCode = ArrowKey(code: code) {
                 if isCmd, let fav = appState.selectedFavoriteURL,
                     fav.standardizedFileURL == appState.navigation.currentURL.standardizedFileURL,
@@ -349,7 +393,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 handleArrowKeyDown(arrowCode, isShift: isShift, appState: appState)
                 return true
             }
-            return handleEditActionKeyDown(code: code, isCmd: isCmd, appState: appState)
+            return handleEditActionKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState)
         }
 
         private enum ArrowKey: Equatable {
@@ -404,29 +448,29 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             }
         }
 
-        private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState) -> Bool {
+        private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
             if code == KeyCode.f2 {
                 if !appState.selectedURLs.isEmpty {
-                    triggerRenameForSelected(appState: appState)
+                    triggerRenameForSelected(appState: appState, windowUIState: windowUIState)
                     return true
                 }
             } else if code == KeyCode.backspace || code == KeyCode.forwardDelete {
                 if !appState.selectedURLs.isEmpty {
-                    appState.deleteSelected()
+                    appState.deleteSelected(windowUIState: windowUIState)
                     return true
                 } else if appState.navigationMode == .gnome && !isCmd {
                     appState.goUp()
                     return true
                 }
             } else if code == KeyCode.returnKey {
-                return handleReturnKeyDown(isCmd: isCmd, appState: appState)
+                return handleReturnKeyDown(isCmd: isCmd, appState: appState, windowUIState: windowUIState)
             }
             return false
         }
 
-        private func handleReturnKeyDown(isCmd: Bool, appState: AppState) -> Bool {
+        private func handleReturnKeyDown(isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
             if isCmd && !appState.selectedURLs.isEmpty {
-                appState.deleteSelected()
+                appState.deleteSelected(windowUIState: windowUIState)
                 return true
             } else if !isCmd {
                 if appState.navigationMode == .gnome, let first = appState.selectedURLs.first {
@@ -434,7 +478,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                     return true
                 } else if appState.navigationMode == .macOS, let first = appState.selectedURLs.first,
                     let item = appState.fileSystem.items.first(where: { $0.url == first }) {
-                    appState.renameItem = item
+                    windowUIState.renameItem = item
                     return true
                 }
             }
@@ -457,11 +501,11 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             }
         }
 
-        private func triggerRenameForSelected(appState: AppState) {
+        private func triggerRenameForSelected(appState: AppState, windowUIState: WindowUIState) {
             if appState.selectedURLs.count > 1 {
-                appState.showBatchRenameSheet = true
+                windowUIState.showBatchRenameSheet = true
             } else if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
-                appState.renameItem = item
+                windowUIState.renameItem = item
             }
         }
     }

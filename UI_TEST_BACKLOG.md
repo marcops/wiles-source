@@ -330,6 +330,63 @@ pull items off this list and write the real test before removing the entry.
   card with no visible seam, and (b) the dimming backdrop covers the main window's top toolbar strip
   (traffic lights/breadcrumb/search) exactly as evenly as it covers the sidebar and file list below it.
 
+- **`WindowUIState` — per-window scoping for every sheet/alert/HUD** (new file
+  `WindowUIState.swift`; touches `MainContentView.swift`, `WilesApp.swift`,
+  `SharedViewHelpers.swift`, `SidebarView.swift`, `DirectoryTreeNodeView.swift`,
+  `PreviewSidebarView.swift`, `HeaderBarView.swift`, `NewFileSheetView.swift`,
+  `PasswordCompressSheetView.swift`, `AppState.swift`, `AppState+Operations.swift`,
+  `ModalStore.swift`). Fixed the bug class where, with multiple Wiles windows open, any
+  window-scoped sheet/alert/HUD (Properties, New Folder, New File, Batch Rename, Disk Usage, Connect
+  to Server, Auto Organization, Share via Wi-Fi, Save Smart Folder, Compress with Password, Archive
+  Inspection, Rename, Image Converter, Create Symlink, Empty Trash confirm, Move to Trash confirm,
+  Help, About, and the shortcuts HUD) opened in *every* open window at once instead of just the one
+  the user acted on. All of these moved off the window-shared `AppState`/`ModalStore` onto a new
+  per-window `WindowUIState` (`@Observable`, instantiated as `@State` in `MainContentView`), injected
+  into that window's view tree via `.environment(_:)` and read by descendants with
+  `@Environment(WindowUIState.self)`; published to the app-level menu `Commands` (which sit outside
+  any single window's view hierarchy) via `.focusedSceneValue`/`@FocusedValue`. `AppState.deleteSelected()`
+  and `.openPropertiesForSelected()` now take a `windowUIState:` parameter since the confirm-alert/
+  properties-item they set is window-scoped. `ModalStore.showErrorAlert`/`errorMessage` intentionally
+  stayed on the shared `AppState` — background-originated errors (auto-organization, network ops)
+  have no owning window and must surface regardless of focus (see AGENTS.md rule 32 for the general
+  pattern, captured there for future features). Needs multi-window XCUITest infrastructure to assert
+  "sheet/alert X visible in window A, not in window B" — `Tests/WilesUITests` currently drives a
+  single window. Manually verify: open two windows (⌘N), and for each of the presentations listed
+  above, trigger it from one window (menu item, ⌘-shortcut, or context menu) and confirm it appears
+  only in that window, while the other window's own trigger still opens/closes its own instance
+  independently.
+
+- **Shortcuts HUD "All Shortcuts" tab + renamed Windows/Mac tabs + Help menu relocation**
+  (`ShortcutsHUDOverlay.swift`, `HelpSheet.swift`, `WilesApp.swift`, `NavigationMode.swift`,
+  `LocalizationService.swift` + all 15 `Localizable.strings`). Three changes bundled together:
+  1. `NavigationMode.gnome`'s user-facing label changed from "GNOME Mode" to "Windows Mode"
+     everywhere (Settings picker, shortcuts HUD tab) — the enum case name, its persisted
+     `UserDefaults` raw value, and `l10nKey`/`gnomeModeTitle` identifiers were deliberately left
+     unchanged to avoid resetting existing users' saved navigation-mode preference; only the
+     translated string content changed.
+  2. Added a third "All Shortcuts" tab (`ShortcutsFilter.all`) to the HUD that merges the
+     Windows-mode and macOS-mode variants of Navigation/File Actions/System (`merged(_:_:)`
+     collapses identical bindings, labels differing ones "X (Mac) · Y (Windows)"), plus a new
+     "General" group for app/window-level shortcuts that were previously only listed in the Help
+     sheet's removed shortcuts tab (Settings, New Window, Close, Open, Toggle Terminal, Toggle
+     Preview, Go to Folder, Connect to Server, Disk Usage Visualizer, Wiles Help). Two stale entries
+     from the old Help list were dropped rather than carried over: "Refresh Directory (⌘R)" (no such
+     shortcut is actually wired anywhere in `WilesApp.swift`) and "Toggle Status Bar (⌘/)" (⌘/ is
+     actually the shortcuts-HUD toggle, mislabeled in the old list).
+  3. Removed the redundant shortcuts list from `HelpSheet.swift` (`HelpTab.shortcuts` case,
+     `shortcutsSection`, `shortcutRow`) since the HUD now fully supersedes it. Consolidated the
+     "open shortcuts HUD" command into the Help menu only (previously duplicated across the View
+     menu and the Tools menu) via `CommandGroup(replacing: .help)`.
+  No behavior here has a testable logic component beyond string/UI content — `merged(_:_:)` is a
+  pure function and could get a real unit test (compare two hand-built `[(String,String)]` arrays,
+  assert collapse vs. combine), but wasn't added yet per project convention (tests written after
+  manual review, not alongside the UI change). Manually verify: open the shortcuts HUD (⌘/, now only
+  in the Help menu — confirm it's gone from View and Tools menus), confirm three tabs read "Windows
+  Mode (Default)" / "macOS Finder Mode" / "All Shortcuts", confirm the current mode's tab shows the
+  "Current" badge, confirm the All tab shows merged Mac/Windows bindings plus the General group, and
+  confirm Settings' navigation-mode picker also now reads "Windows Mode (Default)". Also confirm the
+  Help sheet (separate ⌘? item, still in Help menu) no longer has a Shortcuts tab.
+
 ## Resolved (moved out of this list once tested)
 
 - `AppState.moveSelectedFavorite()` — was on this list, turned out to be plain synchronous state

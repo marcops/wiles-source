@@ -12,10 +12,8 @@
 "actPasteShortcut" = "Dateien einfügen";
 "actQuickLook" = "Übersicht-Vorschau";
 "actRedo" = "Vorgang wiederholen";
-"actRefreshShortcut" = "Verzeichnis aktualisieren";
 "actSearch" = "Im Verzeichnis suchen";
 "actTogglePreview" = "Vorschau-Seitenleiste umschalten";
-"actToggleStatusBar" = "Statusleiste umschalten";
 "actToggleTerminal" = "Integriertes Terminal umschalten";
 "actUndo" = "Vorgang rückgängig machen";
 "activeSuffix" = "aktiv";
@@ -117,7 +115,7 @@
 "fullDiskAccessPromptTitle" = "Voller Festplattenzugriff";
 "general" = "Allgemein";
 "gnomeModeDesc" = "• Eingabe: Ordner öffnen\n• F2: Umbenennen\n• Rückschritt: Übergeordneter Ordner\n• Strg+H: Ausgeblendete Dateien";
-"gnomeModeTitle" = "GNOME-Modus (Standard)";
+"gnomeModeTitle" = "Windows-Modus";
 "goMenuTitle" = "Gehe zu";
 "goToFolder" = "Gehe zum Ordner...";
 "grantFullDiskAccess" = "Vollzugriff auf die Festplatte gewähren (Alle Ordner)...";
@@ -133,11 +131,7 @@
 "helpCopyContentTitle" = "Dateiinhalt in die Zwischenablage kopieren";
 "helpDiskDesc" = "Drücken Sie Umschalt+Cmd+D, um große Dateien zu untersuchen.";
 "helpDiskTitle" = "Speicherplatz-Visualisierung";
-"helpDragDropDesc" = "Ziehen Sie Dateien in Favoriten oder Ordner.";
-"helpDragDropTitle" = "Drag & Drop Dateivorgänge";
 "helpGuideTitle" = "Hilfe & Funktionshandbuch";
-"helpI18nDesc" = "Automatische Erkennung der System-Sprache mit manueller Wahl.";
-"helpI18nTitle" = "Mehrsprachiges System (i18n)";
 "helpImageDesc" = "Rechtsklick auf ein Bild -> 'Schnelles Konvertieren des Bildes...'.";
 "helpImageTitle" = "Schneller Bildkonverter";
 "helpPathBarDesc" = "Klicken Sie auf ein Segment, um zu navigieren.";
@@ -185,7 +179,7 @@
 "location" = "Ort";
 "mac" = "MAC";
 "macModeDesc" = "• Cmd+Runter: Ordner öffnen\n• Eingabe: Umbenennen\n• Cmd+Hoch: Übergeordneter Ordner\n• Cmd+Shift+.: Ausgeblendete Dateien";
-"macModeTitle" = "macOS Finder-Modus";
+"macModeTitle" = "macOS-Modus";
 "mergeIntoPDF" = "In eine Einzel-PDF zusammenführen";
 "modified" = "Geändert";
 "moreInfo" = "Mehr Info...";
@@ -265,10 +259,12 @@
 "sharingActive" = "Freigabe aktiv";
 "sharingAndPermissions" = "Freigabe & Rechte";
 "shortcutMode" = "Tastenkürzel-Modus";
-"shortcutsCheatsheetTitle" = "Tastaturkurzbefehle Übersicht";
+"shortcutsAllTab" = "Alle Tastenkombinationen";
+"shortcutsCheatsheetTitle" = "Tastenkürzel";
 "shortcutsCheatsheetSubtitle" = "Kurzübersicht der Tastaturkürzel";
 "shortcutsCurrentModeBadge" = "Aktuell";
 "shortcutsFileActions" = "Dateiaktionen";
+"shortcutsGeneral" = "Allgemein";
 "shortcutsNav" = "Navigation";
 "shortcutsOpenFolder" = "Ausgewählten Ordner Öffnen";
 "shortcutsRename" = "Ausgewähltes Element Umbenennen";
@@ -303,7 +299,6 @@
 "symlinkNameLabel" = "Link-Name";
 "tabFeatures" = "Funktionen & Werkzeuge";
 "tabOverview" = "Übersicht";
-"tabShortcuts" = "Tastaturkurzbefehle";
 "tabSystem" = "Navigation & System";
 "tags" = "Tags";
 "targetFormat" = "Zielformat";
@@ -318,7 +313,7 @@
 "viewMode" = "Ansichtsmodus";
 "wifiShareNotice" = "Jeder in Ihrem WLAN-Netzwerk kann über die obige Adresse auf diesen Ordner zugreifen.";
 "wilesFileManager" = "Wiles Dateimanager";
-"wilesHelpAndShortcuts" = "Wiles Hilfe & Tastenkürzel";
+"wilesHelpAndShortcuts" = "Hilfe";
 "write" = "Schreiben";
 "yellow" = "Gelb";
 "yes" = "Ja";

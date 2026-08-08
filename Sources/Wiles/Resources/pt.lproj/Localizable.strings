@@ -117,7 +117,7 @@
 "fullDiskAccessPromptTitle" = "Acesso Total ao Disco";
 "general" = "Geral";
 "gnomeModeDesc" = "• Enter: Abrir pasta ou arquivo\n• F2: Renomear item\n• Backspace: Voltar para pasta pai\n• Ctrl+H: Alternar arquivos ocultos";
-"gnomeModeTitle" = "Modo GNOME (Padrão)";
+"gnomeModeTitle" = "Modo Windows";
 "goMenuTitle" = "Ir";
 "goToFolder" = "Ir para a Pasta...";
 "grantFullDiskAccess" = "Conceder Acesso Total ao Disco (Todas as Pastas)...";
@@ -133,11 +133,7 @@
 "helpCopyContentTitle" = "Copiar Conteúdo do Arquivo para a Área de Transferência";
 "helpDiskDesc" = "Pressione Shift+Cmd+D ou escolha 'Visualizador de Espaço em Disco...' no menu de contexto para inspecionar os maiores arquivos.";
 "helpDiskTitle" = "Visualizador de Espaço em Disco";
-"helpDragDropDesc" = "Arraste arquivos para os favoritos da barra lateral, subpastas ou aplicativos externos. Suporta seleção por caixa no Grid e Lista.";
-"helpDragDropTitle" = "Operações de Arrastar e Soltar (Drag & Drop)";
 "helpGuideTitle" = "Guia de Ajuda e Recursos";
-"helpI18nDesc" = "Detecção automática do idioma do sistema macOS com alteração manual (Inglês, Português, Espanhol, Francês, Alemão).";
-"helpI18nTitle" = "Sistema Multi-idioma (i18n)";
 "helpImageDesc" = "Clique com o botão direito em uma imagem -> 'Conversão Rápida de Imagem...' para converter formato (PNG, JPG, WEBP, HEIC), redimensionar ou cortar.";
 "helpImageTitle" = "Conversor Rápido de Imagens";
 "helpPathBarDesc" = "Clique em qualquer segmento da barra de caminho para navegar instantaneamente. Clique no ícone de lápis para digitar caminhos.";
@@ -185,7 +181,7 @@
 "location" = "Localização";
 "mac" = "MAC";
 "macModeDesc" = "• Cmd+Baixo: Abrir pasta ou arquivo\n• Enter: Renomear item\n• Cmd+Cima: Voltar para pasta pai\n• Cmd+Shift+.: Alternar arquivos ocultos";
-"macModeTitle" = "Modo macOS Finder";
+"macModeTitle" = "Modo macOS";
 "mergeIntoPDF" = "Combinar em PDF Único";
 "modified" = "Modificado";
 "moreInfo" = "Mais Informações...";
@@ -265,10 +261,12 @@
 "sharingActive" = "Compartilhamento Ativo";
 "sharingAndPermissions" = "Compartilhamento e Permissões";
 "shortcutMode" = "Modo de Atalhos";
-"shortcutsCheatsheetTitle" = "Lista de Atalhos de Teclado";
+"shortcutsAllTab" = "Todos os Atalhos";
+"shortcutsCheatsheetTitle" = "Atalhos";
 "shortcutsCheatsheetSubtitle" = "Referência rápida dos atalhos de teclado";
 "shortcutsCurrentModeBadge" = "Atual";
 "shortcutsFileActions" = "Ações de Arquivo";
+"shortcutsGeneral" = "Geral";
 "shortcutsNav" = "Navegação";
 "shortcutsOpenFolder" = "Abrir Pasta Selecionada";
 "shortcutsRename" = "Renomear Item Selecionado";
@@ -318,7 +316,7 @@
 "viewMode" = "Modo de Visualização";
 "wifiShareNotice" = "Qualquer pessoa na sua rede Wi-Fi pode acessar esta pasta visitando o endereço acima.";
 "wilesFileManager" = "Gerenciador de Arquivos Wiles";
-"wilesHelpAndShortcuts" = "Ajuda e Atalhos do Wiles";
+"wilesHelpAndShortcuts" = "Ajuda";
 "write" = "Escrita";
 "yellow" = "Amarelo";
 "yes" = "Sim";

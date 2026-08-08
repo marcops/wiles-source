@@ -12,10 +12,8 @@
 "actPasteShortcut" = "Paste Files";
 "actQuickLook" = "Quick Look Preview";
 "actRedo" = "Redo Operation";
-"actRefreshShortcut" = "Refresh Directory";
 "actSearch" = "Search in Directory";
 "actTogglePreview" = "Toggle Preview Sidebar";
-"actToggleStatusBar" = "Toggle Status Bar";
 "actToggleTerminal" = "Toggle Terminal Drawer";
 "actUndo" = "Undo Operation";
 "activeSuffix" = "个进行中";
@@ -117,7 +115,7 @@
 "fullDiskAccessPromptTitle" = "Full Disk Access";
 "general" = "General";
 "gnomeModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
-"gnomeModeTitle" = "GNOME Mode (Default)";
+"gnomeModeTitle" = "Windows Mode";
 "goMenuTitle" = "前往";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "授予完全磁盘访问权限（所有文件夹）...";
@@ -133,11 +131,7 @@
 "helpCopyContentTitle" = "Copy File Content to Clipboard";
 "helpDiskDesc" = "Press Shift+Cmd+D or choose 'Disk Usage Visualizer...' from background menu to inspect largest files and folder size breakdowns.";
 "helpDiskTitle" = "Disk Space Visualizer";
-"helpDragDropDesc" = "Drag files into sidebar favorites, subfolders, or external apps. Supports box marquee selection in Grid and List views.";
-"helpDragDropTitle" = "Drag & Drop File Operations";
 "helpGuideTitle" = "Help & Feature Guide";
-"helpI18nDesc" = "Automatic macOS system language detection with manual preference overrides (English, Portuguese, Spanish, French, German).";
-"helpI18nTitle" = "Multi-Language System (i18n)";
 "helpImageDesc" = "Right-click any image -> 'Quick Convert Image...' to batch convert (PNG, JPG, WEBP, HEIC), resize, or crop.";
 "helpImageTitle" = "Image Quick Converter";
 "helpPathBarDesc" = "Click any segment in the top or bottom path bar to navigate instantly. Click the edit pencil icon to manually type or paste paths.";
@@ -185,7 +179,7 @@
 "location" = "Location";
 "mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
-"macModeTitle" = "macOS Finder Mode";
+"macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "合并为单个 PDF";
 "modified" = "Modified";
 "moreInfo" = "More Info...";
@@ -265,10 +259,12 @@
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "共享与权限";
 "shortcutMode" = "Shortcut Mode";
-"shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsAllTab" = "All Shortcuts";
+"shortcutsCheatsheetTitle" = "Shortcuts";
 "shortcutsCheatsheetSubtitle" = "键盘快捷键快速参考";
 "shortcutsCurrentModeBadge" = "当前";
 "shortcutsFileActions" = "文件操作";
+"shortcutsGeneral" = "General";
 "shortcutsNav" = "导航";
 "shortcutsOpenFolder" = "打开所选文件夹";
 "shortcutsRename" = "重命名所选项目";
@@ -301,7 +297,6 @@
 "symlinkNameLabel" = "符号链接名称";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
-"tabShortcuts" = "Shortcuts";
 "tabSystem" = "Navigation & System";
 "tags" = "Tags";
 "targetFormat" = "Target Format";
@@ -316,7 +311,7 @@
 "viewMode" = "View Mode";
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Wiles 文件管理器";
-"wilesHelpAndShortcuts" = "Wiles 帮助与快捷键";
+"wilesHelpAndShortcuts" = "帮助";
 "write" = "写入";
 "yellow" = "Yellow";
 "yes" = "Yes";

@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct NewFileSheetView: View {
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
 
     public init(appState: AppState) {
         self.appState = appState
@@ -15,7 +16,7 @@ public struct NewFileSheetView: View {
             actionButtonTitle: appState.tr(.create),
             cancelTitle: appState.tr(.cancel),
             onCancel: {
-                appState.showNewFileSheet = false
+                windowUIState.showNewFileSheet = false
             },
             onSubmit: { fileName in
                 createNewFile(name: fileName)
@@ -36,6 +37,6 @@ public struct NewFileSheetView: View {
         } catch {
             appState.showError(error.localizedDescription)
         }
-        appState.showNewFileSheet = false
+        windowUIState.showNewFileSheet = false
     }
 }

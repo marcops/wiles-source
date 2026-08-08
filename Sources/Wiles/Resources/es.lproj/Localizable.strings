@@ -12,10 +12,8 @@
 "actPasteShortcut" = "Pegar Archivos";
 "actQuickLook" = "Vista Previa Quick Look";
 "actRedo" = "Rehacer Operación";
-"actRefreshShortcut" = "Actualizar Directorio";
 "actSearch" = "Buscar en el Directorio";
 "actTogglePreview" = "Alternar Barra Lateral de Vista Previa";
-"actToggleStatusBar" = "Alternar Barra de Estado";
 "actToggleTerminal" = "Alternar Terminal Integrado";
 "actUndo" = "Deshacer Operación";
 "activeSuffix" = "activas";
@@ -117,7 +115,7 @@
 "fullDiskAccessPromptTitle" = "Acceso Total al Disco";
 "general" = "General";
 "gnomeModeDesc" = "• Enter: Abrir carpeta\n• F2: Renombrar\n• Backspace: Carpeta superior\n• Ctrl+H: Archivos ocultos";
-"gnomeModeTitle" = "Modo GNOME (Predeterminado)";
+"gnomeModeTitle" = "Modo Windows";
 "goMenuTitle" = "Ir";
 "goToFolder" = "Ir a la Carpeta...";
 "grantFullDiskAccess" = "Conceder acceso total al disco (Todas las carpetas)...";
@@ -133,11 +131,7 @@
 "helpCopyContentTitle" = "Copiar Contenido del Archivo al Portapapeles";
 "helpDiskDesc" = "Presione Shift+Cmd+D para inspeccionar archivos grandes.";
 "helpDiskTitle" = "Visualizador de Espacio en Disco";
-"helpDragDropDesc" = "Arrastre archivos a favoritos o carpetas.";
-"helpDragDropTitle" = "Operaciones de Arrastrar y Soltar";
 "helpGuideTitle" = "Guía de Ayuda y Funciones";
-"helpI18nDesc" = "Detección automática del idioma del sistema con opción manual.";
-"helpI18nTitle" = "Sistema Multilingüe (i18n)";
 "helpImageDesc" = "Haga clic derecho en una imagen -> 'Conversión Rápida de Imagen...'.";
 "helpImageTitle" = "Convertidor Rápido de Imágenes";
 "helpPathBarDesc" = "Haga clic en cualquier segmento para navegar.";
@@ -185,7 +179,7 @@
 "location" = "Ubicación";
 "mac" = "MAC";
 "macModeDesc" = "• Cmd+Abajo: Abrir carpeta\n• Enter: Renombrar\n• Cmd+Arriba: Carpeta superior\n• Cmd+Shift+.: Archivos ocultos";
-"macModeTitle" = "Modo macOS Finder";
+"macModeTitle" = "Modo macOS";
 "mergeIntoPDF" = "Combinar en un Solo PDF";
 "modified" = "Modificado";
 "moreInfo" = "Más Información...";
@@ -265,10 +259,12 @@
 "sharingActive" = "Compartición Activa";
 "sharingAndPermissions" = "Compartir y Permisos";
 "shortcutMode" = "Modo de Atajos";
-"shortcutsCheatsheetTitle" = "Lista de Atajos de Teclado";
+"shortcutsAllTab" = "Todos los Atajos";
+"shortcutsCheatsheetTitle" = "Atajos";
 "shortcutsCheatsheetSubtitle" = "Referencia rápida de atajos de teclado";
 "shortcutsCurrentModeBadge" = "Actual";
 "shortcutsFileActions" = "Acciones de Archivo";
+"shortcutsGeneral" = "General";
 "shortcutsNav" = "Navegación";
 "shortcutsOpenFolder" = "Abrir Carpeta Seleccionada";
 "shortcutsRename" = "Renombrar Elemento Seleccionado";
@@ -303,7 +299,6 @@
 "symlinkNameLabel" = "Nombre del Enlace";
 "tabFeatures" = "Funciones y Herramientas";
 "tabOverview" = "Visión General";
-"tabShortcuts" = "Atajos";
 "tabSystem" = "Navegación y Sistema";
 "tags" = "Etiquetas";
 "targetFormat" = "Formato de Destino";
@@ -318,7 +313,7 @@
 "viewMode" = "Modo de Vista";
 "wifiShareNotice" = "Cualquier persona en tu red Wi-Fi puede acceder a esta carpeta visitando la dirección de arriba.";
 "wilesFileManager" = "Gestor de Archivos Wiles";
-"wilesHelpAndShortcuts" = "Ayuda y Atajos de Wiles";
+"wilesHelpAndShortcuts" = "Ayuda";
 "write" = "Escritura";
 "yellow" = "Amarillo";
 "yes" = "Sí";

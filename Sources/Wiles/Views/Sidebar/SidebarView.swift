@@ -308,6 +308,7 @@ struct SidebarView: View {
 private struct SidebarRowView: View {
     let item: SidebarItem
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
     let isFavoritesSection: Bool
     let isRightClicked: Bool
     let isAnotherRowRightClicked: Bool
@@ -423,12 +424,12 @@ private struct SidebarRowView: View {
             Divider()
             Button("\(appState.tr(.properties)) (Cmd+I)") {
                 let fileItem = FileItem(url: item.url, icon: NSWorkspace.shared.icon(forFile: item.url.path))
-                appState.propertiesItem = fileItem
+                windowUIState.propertiesItem = fileItem
             }
             if isTrash {
                 Divider()
                 Button("\(appState.tr(.emptyTrash))...") {
-                    appState.showEmptyTrashAlert = true
+                    windowUIState.showEmptyTrashAlert = true
                 }
             }
         }

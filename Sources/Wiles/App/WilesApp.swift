@@ -6,6 +6,7 @@ struct WilesApp: App {
     @State private var appState = AppState()
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
+    @FocusedValue(\.windowUIState) private var windowUIState
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
@@ -17,26 +18,6 @@ struct WilesApp: App {
         WindowGroup(AppConstants.appName, id: AppConstants.mainWindowID) {
             MainContentView(appState: appState)
                 .preferredColorScheme(appState.preferences.appAppearance.colorScheme)
-                .sheet(item: $appState.propertiesItem) { item in
-                    FilePropertiesSheet(item: item, appState: appState)
-                }
-                .sheet(isPresented: $appState.showNewFolderSheet) {
-                    NewFolderSheet(appState: appState)
-                }
-                .sheet(isPresented: $appState.modal.showHelpSheet) {
-                    HelpSheet(appState: appState)
-                }
-                .sheet(isPresented: $appState.modal.showAboutSheet) {
-                    AboutSheet(appState: appState)
-                }
-                .sheet(isPresented: $appState.showAutoOrganizationSheet) {
-                    AutoOrganizationSheet(appState: appState)
-                }
-                .sheet(isPresented: $appState.showHttpShareSheet) {
-                    if let url = appState.httpShareFolderURL {
-                        HttpShareSheet(appState: appState, folderURL: url)
-                    }
-                }
                 .onAppear {
                     NSApplication.shared.activate(ignoringOtherApps: true)
                     let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ??
@@ -46,14 +27,13 @@ struct WilesApp: App {
                     if let iconImage = NSImage(contentsOf: iconURL) {
                         NSApplication.shared.applicationIconImage = iconImage
                     }
-                    // `appState` is shared by every window — every sheet/overlay toggle on it
-                    // (including `showShortcutsHUD`) shows in every open window at once. A
-                    // per-window `@FocusedValue` scoping attempt for just the shortcuts HUD was
-                    // tried and reverted (broke the shortcut entirely — `.focusedValue` needs an
-                    // actual SwiftUI-focused control, which this app doesn't use). Revisit this for
-                    // every affected sheet at once, properly, rather than one at a time — tracked as
-                    // a TODO. `isRestorable = false` keeps each launch starting clean instead of
-                    // macOS silently restoring however many windows were open at last quit.
+                    // `appState` is shared by every window — every sheet/overlay toggle on it would
+                    // show in every open window at once if it lived there. All window-scoped sheets/
+                    // alerts/HUDs live on `WindowUIState` instead (one instance per window, published
+                    // to these menu commands via `.focusedSceneValue`/`@FocusedValue` — see
+                    // `WindowUIState.swift` and `WindowUIStateKey` in `MainContentView.swift`).
+                    // `isRestorable = false` keeps each launch starting clean instead of macOS
+                    // silently restoring however many windows were open at last quit.
                     for window in NSApplication.shared.windows {
                         window.tabbingMode = .disallowed
                         window.isMovableByWindowBackground = false
@@ -85,7 +65,7 @@ struct WilesApp: App {
 
     @CommandsBuilder private var appMenuCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button(appState.tr(.aboutWiles)) { appState.modal.showAboutSheet = true }
+            Button(appState.tr(.aboutWiles)) { windowUIState?.showAboutSheet = true }
         }
         CommandGroup(replacing: .appSettings) {
             Button { openSettings() } label: {
@@ -101,8 +81,9 @@ struct WilesApp: App {
         // Replacing `.newItem` gives full, translated control over it (see UI_TEST_BACKLOG.md).
         CommandGroup(replacing: .newItem) {
             // `appState` is a single instance shared by every window — every sheet/overlay flag on
-            // it (including `showShortcutsHUD`) shows in every open window at once. Real per-window
-            // isolation needs a follow-up (tracked as a TODO), not attempted here.
+            // it shows in every open window at once. Window-scoped presentation (New Folder,
+            // Properties, Move to Trash confirmation, etc.) reads/writes `windowUIState` instead,
+            // scoped to the focused window via `.focusedSceneValue` — see `WindowUIState.swift`.
             Button(appState.tr(.newWindow)) { openWindow(id: AppConstants.mainWindowID) }
                 .keyboardShortcut("n", modifiers: .command)
         }
@@ -113,21 +94,25 @@ struct WilesApp: App {
                 .keyboardShortcut("w", modifiers: .command)
         }
         CommandGroup(after: .newItem) {
-            Button(appState.tr(.newFolder)) { appState.showNewFolderSheet = true }
+            Button(appState.tr(.newFolder)) { windowUIState?.showNewFolderSheet = true }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
             Divider()
             Button(appState.tr(.open)) { appState.openSelectedItem() }
                 .keyboardShortcut("o", modifiers: .command)
                 .disabled(appState.selectedURLs.isEmpty)
-            Button(appState.tr(.properties)) { appState.openPropertiesForSelected() }
-                .keyboardShortcut("i", modifiers: .command)
-                .disabled(appState.selectedURLs.isEmpty)
+            Button(appState.tr(.properties)) {
+                if let windowUIState { appState.openPropertiesForSelected(windowUIState: windowUIState) }
+            }
+            .keyboardShortcut("i", modifiers: .command)
+            .disabled(appState.selectedURLs.isEmpty)
             Button(appState.tr(.quickLook)) { appState.triggerQuickLookForSelected() }
                 .keyboardShortcut(" ", modifiers: [])
                 .disabled(appState.selectedURLs.isEmpty)
             Divider()
-            Button(appState.tr(.moveToTrash)) { appState.deleteSelected() }
-                .disabled(appState.selectedURLs.isEmpty)
+            Button(appState.tr(.moveToTrash)) {
+                if let windowUIState { appState.deleteSelected(windowUIState: windowUIState) }
+            }
+            .disabled(appState.selectedURLs.isEmpty)
         }
     }
 
@@ -164,12 +149,6 @@ struct WilesApp: App {
     @CommandsBuilder private var viewMenuCommands: some Commands {
         CommandGroup(after: .sidebar) {
             Divider()
-            Button(appState.tr(.shortcutsCheatsheetTitle)) {
-                withAnimation(MotionTokens.snappySpring) {
-                    appState.showShortcutsHUD.toggle()
-                }
-            }
-            .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
             Toggle(appState.tr(appState.preferences.showTerminalDrawer ? .hideTerminal : .showTerminal), isOn: $appState.preferences.showTerminalDrawer)
                 .keyboardShortcut("j", modifiers: .command)
             Toggle(appState.tr(appState.preferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $appState.preferences.showPreviewSidebar)
@@ -207,14 +186,14 @@ struct WilesApp: App {
         Divider()
         Button(appState.tr(.goToFolder)) { appState.startEditingPath() }
             .keyboardShortcut("l", modifiers: .command)
-        Button(appState.tr(.connectToServer) + "...") { appState.showConnectToServerSheet = true }
+        Button(appState.tr(.connectToServer) + "...") { windowUIState?.showConnectToServerSheet = true }
             .keyboardShortcut("k", modifiers: .command)
     }
 
     @ViewBuilder private var toolsMenuCommands: some View {
-        Button(appState.tr(.actDiskVisualizer) + "...") { appState.showDiskUsageSheet = true }
+        Button(appState.tr(.actDiskVisualizer) + "...") { windowUIState?.showDiskUsageSheet = true }
             .keyboardShortcut("d", modifiers: [.command, .shift])
-        Button(appState.tr(.autoOrganization) + "...") { appState.showAutoOrganizationSheet = true }
+        Button(appState.tr(.autoOrganization) + "...") { windowUIState?.showAutoOrganizationSheet = true }
         Divider()
         Menu(appState.tr(.copyPath)) {
             Button(appState.tr(.copyPathAbsolute)) {
@@ -230,19 +209,18 @@ struct WilesApp: App {
                 CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .terminalEscaped)
             }
         }
-        Divider()
-        Button(appState.tr(.shortcutsCheatsheetTitle)) {
-            withAnimation(MotionTokens.snappySpring) {
-                appState.showShortcutsHUD.toggle()
-            }
-        }
-        .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
     }
 
     @CommandsBuilder private var helpMenuCommands: some Commands {
         CommandGroup(replacing: .help) {
-            Button(appState.tr(.wilesHelpAndShortcuts)) { appState.modal.showHelpSheet = true }
+            Button(appState.tr(.wilesHelpAndShortcuts)) { windowUIState?.showHelpSheet = true }
                 .keyboardShortcut("?", modifiers: .command)
+            Button(appState.tr(.shortcutsCheatsheetTitle)) {
+                withAnimation(MotionTokens.snappySpring) {
+                    windowUIState?.showShortcutsHUD.toggle()
+                }
+            }
+            .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
         }
     }
 }

@@ -1,15 +1,42 @@
 import SwiftUI
 import AppKit
 
+/// The three tabs on the shortcuts cheatsheet: the two navigation-mode-specific views (which only
+/// show shortcuts that differ between modes with that mode's key), and an "all" view that merges
+/// both modes' shortcuts plus app/window-level shortcuts that don't depend on navigation mode.
+private enum ShortcutsFilter: CaseIterable, Identifiable {
+    case windows
+    case macOS
+    case all
+
+    var id: Self { self }
+
+    var navigationMode: NavigationMode? {
+        switch self {
+        case .windows: return .gnome
+        case .macOS: return .macOS
+        case .all: return nil
+        }
+    }
+
+    var l10nKey: L10n.Key {
+        switch self {
+        case .windows: return .gnomeModeTitle
+        case .macOS: return .macModeTitle
+        case .all: return .shortcutsAllTab
+        }
+    }
+}
+
 struct ShortcutsHUDOverlay: View {
     var appState: AppState
     @Binding var isPresented: Bool
-    @State private var previewMode: NavigationMode
+    @State private var selectedFilter: ShortcutsFilter
 
     init(appState: AppState, isPresented: Binding<Bool>) {
         self.appState = appState
         self._isPresented = isPresented
-        _previewMode = State(initialValue: appState.navigationMode)
+        _selectedFilter = State(initialValue: appState.navigationMode == .macOS ? .macOS : .windows)
     }
 
     var body: some View {
@@ -39,7 +66,7 @@ struct ShortcutsHUDOverlay: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
             }
-            .frame(minWidth: 300, maxWidth: 400, minHeight: 340, maxHeight: 460)
+            .frame(minWidth: 350, maxWidth: 450, minHeight: 390, maxHeight: 510)
             .background(
                 ZStack {
                     TranslucentVisualEffectView(material: .hudWindow)
@@ -85,20 +112,21 @@ struct ShortcutsHUDOverlay: View {
 
     private var modeTabRow: some View {
         HStack(spacing: 8) {
-            modeTabButton(.gnome)
-            modeTabButton(.macOS)
+            ForEach(ShortcutsFilter.allCases) { filter in
+                modeTabButton(filter)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    private func modeTabButton(_ mode: NavigationMode) -> some View {
-        let isSelected = previewMode == mode
-        let isActual = appState.navigationMode == mode
+    private func modeTabButton(_ filter: ShortcutsFilter) -> some View {
+        let isSelected = selectedFilter == filter
+        let isActual = filter.navigationMode == appState.navigationMode
         return Button {
-            withAnimation(MotionTokens.snappySpring) { previewMode = mode }
+            withAnimation(MotionTokens.snappySpring) { selectedFilter = filter }
         } label: {
             HStack(spacing: 5) {
-                Text(appState.tr(mode.l10nKey))
+                Text(appState.tr(filter.l10nKey))
                     .font(.system(size: 11, weight: .semibold))
                 if isActual {
                     Text(appState.tr(.shortcutsCurrentModeBadge).uppercased())
@@ -116,7 +144,7 @@ struct ShortcutsHUDOverlay: View {
             .cornerRadius(8)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(appState.tr(mode.l10nKey))
+        .accessibilityLabel(appState.tr(filter.l10nKey))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
@@ -135,9 +163,17 @@ struct ShortcutsHUDOverlay: View {
     private var shortcutColumns: some View {
         ScrollView {
             VStack(spacing: 12) {
-                shortcutGroup(title: appState.tr(.shortcutsNav), items: navigationShortcuts)
-                shortcutGroup(title: appState.tr(.shortcutsFileActions), items: fileActionsShortcuts)
-                shortcutGroup(title: appState.tr(.shortcutsSystem), items: systemShortcuts)
+                if selectedFilter == .all {
+                    shortcutGroup(title: appState.tr(.shortcutsNav), items: merged(navigationShortcuts(for: .macOS), navigationShortcuts(for: .gnome)))
+                    shortcutGroup(title: appState.tr(.shortcutsFileActions), items: merged(fileActionsShortcuts(for: .macOS), fileActionsShortcuts(for: .gnome)))
+                    shortcutGroup(title: appState.tr(.shortcutsSystem), items: merged(systemShortcuts(for: .macOS), systemShortcuts(for: .gnome)))
+                    shortcutGroup(title: appState.tr(.shortcutsGeneral), items: generalShortcuts)
+                } else {
+                    let mode = selectedFilter.navigationMode ?? appState.navigationMode
+                    shortcutGroup(title: appState.tr(.shortcutsNav), items: navigationShortcuts(for: mode))
+                    shortcutGroup(title: appState.tr(.shortcutsFileActions), items: fileActionsShortcuts(for: mode))
+                    shortcutGroup(title: appState.tr(.shortcutsSystem), items: systemShortcuts(for: mode))
+                }
             }
             .padding(.leading, 20)
             .padding(.trailing, 12)
@@ -145,8 +181,8 @@ struct ShortcutsHUDOverlay: View {
         }
     }
 
-    private var navigationShortcuts: [(String, String)] {
-        if previewMode == .macOS {
+    private func navigationShortcuts(for mode: NavigationMode) -> [(String, String)] {
+        if mode == .macOS {
             return [
                 (appState.tr(.actNavBackForward), "⌘ [  /  ⌘ ]"),
                 (appState.tr(.actParentFolder), "⌘ ↑"),
@@ -161,8 +197,8 @@ struct ShortcutsHUDOverlay: View {
         }
     }
 
-    private var fileActionsShortcuts: [(String, String)] {
-        let renameKey = previewMode == .gnome ? "F2" : "Return"
+    private func fileActionsShortcuts(for mode: NavigationMode) -> [(String, String)] {
+        let renameKey = mode == .gnome ? "F2" : "Return"
         return [
             (appState.tr(.actCopyShortcut), "⌘ C"),
             (appState.tr(.actCutShortcut), "⌘ X"),
@@ -175,8 +211,8 @@ struct ShortcutsHUDOverlay: View {
         ]
     }
 
-    private var systemShortcuts: [(String, String)] {
-        let hiddenKey = previewMode == .gnome ? "Ctrl + H" : "⌘ Shift ."
+    private func systemShortcuts(for mode: NavigationMode) -> [(String, String)] {
+        let hiddenKey = mode == .gnome ? "Ctrl + H" : "⌘ Shift ."
         return [
             (appState.tr(.actSearch), "⌘ F"),
             (appState.tr(.shortcutsToggleHidden), hiddenKey),
@@ -184,6 +220,31 @@ struct ShortcutsHUDOverlay: View {
             (appState.tr(.actRedo), "⌘ Shift Z"),
             (appState.tr(.shortcutsToggleOverlay), "⌘ /")
         ]
+    }
+
+    /// App/window-level shortcuts that don't depend on navigation mode, shown only on the "All" tab
+    /// (the per-mode tabs stay focused on the shortcuts that actually differ between modes).
+    private var generalShortcuts: [(String, String)] {
+        [
+            (appState.tr(.settingsMenuItem), "⌘ ,"),
+            (appState.tr(.newWindow), "⌘ N"),
+            (appState.tr(.close), "⌘ W"),
+            (appState.tr(.open), "⌘ O"),
+            (appState.tr(.actToggleTerminal), "⌘ J"),
+            (appState.tr(.actTogglePreview), "⌘ Shift P"),
+            (appState.tr(.goToFolder), "⌘ L"),
+            (appState.tr(.actConnectServer), "⌘ K"),
+            (appState.tr(.actDiskVisualizer), "⌘ Shift D"),
+            (appState.tr(.wilesHelpAndShortcuts), "⌘ ?")
+        ]
+    }
+
+    /// Combines the macOS- and Windows-mode variants of a shortcut group into one list for the
+    /// "All" tab: identical bindings collapse to a single row, differing ones show both labeled.
+    private func merged(_ macList: [(String, String)], _ windowsList: [(String, String)]) -> [(String, String)] {
+        zip(macList, windowsList).map { mac, windows in
+            mac.1 == windows.1 ? mac : (mac.0, "\(mac.1) (Mac)  ·  \(windows.1) (Windows)")
+        }
     }
 
     private func shortcutGroup(title: String, items: [(String, String)]) -> some View {

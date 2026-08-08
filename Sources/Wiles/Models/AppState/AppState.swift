@@ -73,24 +73,9 @@ public final class AppState {
         didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
     }
 
-    public var propertiesItem: FileItem?
-    public var renameItem: FileItem?
-    public var imageConverterItem: FileItem?
-    public var symlinkItem: FileItem?
-    public var showBatchRenameSheet: Bool = false
-    public var showDiskUsageSheet: Bool = false
-    public var showNewFolderSheet: Bool = false
-    public var showNewFileSheet: Bool = false
     public var trashSizeString: String = ""
-    public var showEmptyTrashAlert: Bool = false
-    public var showDeleteConfirmAlert: Bool = false
     public var selectedFavoriteURL: URL?
-    public var showShortcutsHUD: Bool = false
     public var isTrashUpdating: Bool = false
-    public var showConnectToServerSheet: Bool = false
-    public var showAutoOrganizationSheet: Bool = false
-    public var showHttpShareSheet: Bool = false
-    public var httpShareFolderURL: URL?
 
     public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: DefaultsKey.isCompactMode.rawValue) {
         didSet { UserDefaults.standard.set(isCompactMode, forKey: DefaultsKey.isCompactMode.rawValue) }
@@ -206,8 +191,8 @@ public final class AppState {
         }
     }
 
-    public func compressSelectedToZIPWithPassword(_ password: String) {
-        guard let urls = modal.passwordCompressURLs, !urls.isEmpty else { return }
+    public func compressSelectedToZIPWithPassword(_ password: String, urls: [URL]?) {
+        guard let urls, !urls.isEmpty else { return }
         let current = navigation.currentURL
         Task.detached(priority: .userInitiated) {
             do {

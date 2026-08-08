@@ -12,10 +12,8 @@
 "actPasteShortcut" = "Paste Files";
 "actQuickLook" = "Quick Look Preview";
 "actRedo" = "Redo Operation";
-"actRefreshShortcut" = "Refresh Directory";
 "actSearch" = "Search in Directory";
 "actTogglePreview" = "Toggle Preview Sidebar";
-"actToggleStatusBar" = "Toggle Status Bar";
 "actToggleTerminal" = "Toggle Terminal Drawer";
 "actUndo" = "Undo Operation";
 "activeSuffix" = "aktiva";
@@ -117,7 +115,7 @@
 "fullDiskAccessPromptTitle" = "Full Disk Access";
 "general" = "General";
 "gnomeModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
-"gnomeModeTitle" = "GNOME Mode (Default)";
+"gnomeModeTitle" = "Windows Mode";
 "goMenuTitle" = "Gå till";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "Bevilja full skivtillgång (Alla mappar)...";
@@ -133,11 +131,7 @@
 "helpCopyContentTitle" = "Copy File Content to Clipboard";
 "helpDiskDesc" = "Press Shift+Cmd+D or choose 'Disk Usage Visualizer...' from background menu to inspect largest files and folder size breakdowns.";
 "helpDiskTitle" = "Disk Space Visualizer";
-"helpDragDropDesc" = "Drag files into sidebar favorites, subfolders, or external apps. Supports box marquee selection in Grid and List views.";
-"helpDragDropTitle" = "Drag & Drop File Operations";
 "helpGuideTitle" = "Help & Feature Guide";
-"helpI18nDesc" = "Automatic macOS system language detection with manual preference overrides (English, Portuguese, Spanish, French, German).";
-"helpI18nTitle" = "Multi-Language System (i18n)";
 "helpImageDesc" = "Right-click any image -> 'Quick Convert Image...' to batch convert (PNG, JPG, WEBP, HEIC), resize, or crop.";
 "helpImageTitle" = "Image Quick Converter";
 "helpPathBarDesc" = "Click any segment in the top or bottom path bar to navigate instantly. Click the edit pencil icon to manually type or paste paths.";
@@ -185,7 +179,7 @@
 "location" = "Location";
 "mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
-"macModeTitle" = "macOS Finder Mode";
+"macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "Slå ihop till en enda PDF";
 "modified" = "Modified";
 "moreInfo" = "More Info...";
@@ -265,10 +259,12 @@
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "Delning och behörigheter";
 "shortcutMode" = "Shortcut Mode";
-"shortcutsCheatsheetTitle" = "Keyboard Shortcuts Cheatsheet";
+"shortcutsAllTab" = "All Shortcuts";
+"shortcutsCheatsheetTitle" = "Shortcuts";
 "shortcutsCheatsheetSubtitle" = "Snabbreferens för tangentbordsgenvägar";
 "shortcutsCurrentModeBadge" = "Aktuellt";
 "shortcutsFileActions" = "Filåtgärder";
+"shortcutsGeneral" = "General";
 "shortcutsNav" = "Navigering";
 "shortcutsOpenFolder" = "Öppna Vald Mapp";
 "shortcutsRename" = "Byt Namn på Valt Objekt";
@@ -301,7 +297,6 @@
 "symlinkNameLabel" = "Symlänk-namn";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
-"tabShortcuts" = "Shortcuts";
 "tabSystem" = "Navigation & System";
 "tags" = "Tags";
 "targetFormat" = "Target Format";
@@ -316,7 +311,7 @@
 "viewMode" = "View Mode";
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Wiles Filhanterare";
-"wilesHelpAndShortcuts" = "Wiles Hjälp och Kortkommandon";
+"wilesHelpAndShortcuts" = "Hjälp";
 "write" = "Skriv";
 "yellow" = "Yellow";
 "yes" = "Yes";

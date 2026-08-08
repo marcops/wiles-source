@@ -6,7 +6,6 @@ enum HelpTab: CaseIterable, Identifiable {
     case overview
     case features
     case system
-    case shortcuts
 
     var id: Self { self }
 
@@ -16,7 +15,6 @@ enum HelpTab: CaseIterable, Identifiable {
         case .overview: return appState.tr(.tabOverview)
         case .features: return appState.tr(.tabFeatures)
         case .system: return appState.tr(.tabSystem)
-        case .shortcuts: return appState.tr(.tabShortcuts)
         }
     }
 }
@@ -43,8 +41,6 @@ struct HelpSheet: View {
                         featureHighlightsSection
                     case .system:
                         navigationAndSystemSection
-                    case .shortcuts:
-                        shortcutsSection
                     }
                 }
                 .padding(20)
@@ -130,9 +126,7 @@ struct HelpSheet: View {
                 featureRow(icon: "arrow.uturn.backward.circle.fill", title: appState.tr(.helpUndoTitle), desc: appState.tr(.helpUndoDesc))
                 featureRow(icon: "sidebar.right", title: appState.tr(.helpPreviewTitle), desc: appState.tr(.helpPreviewDesc))
                 featureRow(icon: "folder.badge.gearshape", title: appState.tr(.helpViewModeMemoryTitle), desc: appState.tr(.helpViewModeMemoryDesc))
-                featureRow(icon: "path", title: appState.tr(.helpPathBarTitle), desc: appState.tr(.helpPathBarDesc))
-                featureRow(icon: "square.and.arrow.down", title: appState.tr(.helpDragDropTitle), desc: appState.tr(.helpDragDropDesc))
-                featureRow(icon: "globe", title: appState.tr(.helpI18nTitle), desc: appState.tr(.helpI18nDesc))
+                featureRow(icon: "signpost.right.fill", title: appState.tr(.helpPathBarTitle), desc: appState.tr(.helpPathBarDesc))
                 featureRow(icon: "slider.horizontal.3", title: appState.tr(.helpTranslucentTitle), desc: appState.tr(.helpTranslucentDesc))
             }
         }
@@ -210,52 +204,6 @@ struct HelpSheet: View {
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(8)
             }
-        }
-    }
-
-    private var shortcutsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(appState.tr(.shortcutsCheatsheetTitle))
-                .font(.system(size: 14, weight: .semibold))
-
-            VStack(spacing: 4) {
-                shortcutRow(action: appState.tr(.settingsMenuItem), shortcut: "Cmd + ,")
-                shortcutRow(action: appState.tr(.actUndo), shortcut: "Cmd + Z")
-                shortcutRow(action: appState.tr(.actRedo), shortcut: "Cmd + Shift + Z")
-                shortcutRow(action: appState.tr(.actQuickLook), shortcut: "Space")
-                shortcutRow(action: appState.tr(.actTogglePreview), shortcut: "Cmd + Shift + P")
-                shortcutRow(action: appState.tr(.actToggleTerminal), shortcut: "Cmd + J")
-                shortcutRow(action: appState.tr(.actSearch), shortcut: "Cmd + F")
-                shortcutRow(action: appState.tr(.actDiskVisualizer), shortcut: "Cmd + Shift + D")
-                shortcutRow(action: appState.tr(.actConnectServer), shortcut: "Cmd + K")
-                shortcutRow(action: appState.tr(.actNewFolderShortcut), shortcut: "Cmd + Shift + N")
-                shortcutRow(action: appState.tr(.actItemProperties), shortcut: "Cmd + I")
-                shortcutRow(action: appState.tr(.actCopyShortcut), shortcut: "Cmd + C")
-                shortcutRow(action: appState.tr(.actCutShortcut), shortcut: "Cmd + X")
-                shortcutRow(action: appState.tr(.actPasteShortcut), shortcut: "Cmd + V")
-                shortcutRow(action: appState.tr(.actMoveTrash), shortcut: "Cmd + Delete")
-                shortcutRow(action: appState.tr(.actNavBackForward), shortcut: "Cmd + [  /  Cmd + ]")
-                shortcutRow(action: appState.tr(.actParentFolder), shortcut: "Cmd + Up")
-                shortcutRow(action: appState.tr(.actRefreshShortcut), shortcut: "Cmd + R")
-                shortcutRow(action: appState.tr(.actToggleStatusBar), shortcut: "Cmd + /")
-            }
-            .padding(10)
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(8)
-        }
-    }
-
-    private func shortcutRow(action: String, shortcut: String) -> some View {
-        HStack {
-            Text(action)
-                .font(.system(size: 12))
-            Spacer()
-            Text(shortcut)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color(NSColor.windowBackgroundColor))
-                .cornerRadius(4)
         }
     }
 

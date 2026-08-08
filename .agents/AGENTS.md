@@ -269,3 +269,31 @@ don't improvise a layout that merely "looks plausible." General rules:
   dividers). A `Divider()` should mark one genuine structural boundary; separate items or sub-groups
   *within* a content region using `VStack`/`HStack` `spacing` instead of literal drawn lines, and only
   reach for an extra divider when spacing alone doesn't communicate the grouping.
+
+## 32. Window-Scoped UI State Must Never Live on the Shared `AppState`
+- **`AppState` is a single instance shared by every open Wiles window.** Any sheet, alert, HUD, or
+  "currently editing/inspecting this item" flag stored directly on `AppState` (or on a store
+  hanging off it, like `ModalStore`) fires in **every** open window simultaneously the moment one
+  window sets it — e.g. opening "Properties" in window A pops the Properties sheet in window B too,
+  toggling the shortcuts cheatsheet in one window shows it in all of them. This is a real,
+  previously-shipped bug class, not a hypothetical.
+- **Any state that represents "what this specific window is currently showing/presenting" belongs on
+  a dedicated per-window `@Observable` state object** (see `WindowUIState`), instantiated as `@State`
+  inside the window's root content view (`MainContentView`) so SwiftUI gives each window its own
+  instance automatically.
+- **Wiring pattern**: inject the per-window object into that window's view hierarchy with
+  `.environment(_:)` at the root, and read it in any descendant view with
+  `@Environment(WindowUIState.self)` — this requires no constructor/parameter changes down the view
+  tree, since `.sheet`/`.popover`/`.contextMenu` content all inherit the presenter's environment.
+  For code that lives *outside* any single window's view hierarchy (menu `Commands` in the `App`
+  struct), publish the object from the root view via `.focusedSceneValue(\.someKey, windowUIState)`
+  and read it there with `@FocusedValue(\.someKey)` — never `.focusedValue`/`@FocusedValue` paired
+  with `.focusedValue(_:)`, which requires an actual native SwiftUI-focused control; this app runs
+  its own `NSEvent` monitors instead of native focus, so `.focusedValue` silently never fires.
+  AppKit-level code reached through an `NSViewRepresentable` (custom key-event monitors, etc.) gets
+  the per-window object threaded through as an explicit parameter, same as `AppState` already is.
+- **Exception**: state with no natural "owning window" — e.g. an error alert triggered by a
+  background service (a stalled auto-organization scan, a network op with no UI in front of it) —
+  legitimately stays on the shared `AppState`/`ModalStore`, since the user needs to see it regardless
+  of which window (if any) currently has focus. Only move state that is set as the direct result of
+  an explicit action taken *in* one specific window.

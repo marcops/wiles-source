@@ -42,13 +42,14 @@ struct TranslucentVisualEffectView: NSViewRepresentable {
 
 struct SharedBackgroundContextMenu: View {
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
 
     var body: some View {
         Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
-            appState.showNewFolderSheet = true
+            windowUIState.showNewFolderSheet = true
         }
         Button("\(appState.tr(.newFileTitle))...") {
-            appState.showNewFileSheet = true
+            windowUIState.showNewFileSheet = true
         }
         if appState.clipboard != nil {
             Button("\(appState.tr(.paste)) (Cmd+V)") {
@@ -76,16 +77,16 @@ struct SharedBackgroundContextMenu: View {
             }
         }
         Button(appState.tr(.shareFolderWifi)) {
-            appState.httpShareFolderURL = appState.navigation.currentURL
-            appState.showHttpShareSheet = true
+            windowUIState.httpShareFolderURL = appState.navigation.currentURL
+            windowUIState.showHttpShareSheet = true
         }
         Button("\(appState.tr(.diskUsageVisualizer))... (Shift+Cmd+D)") {
-            appState.showDiskUsageSheet = true
+            windowUIState.showDiskUsageSheet = true
         }
         Divider()
         Button(appState.tr(.folderProperties)) {
             let fileItem = FileItem(url: appState.navigation.currentURL, icon: NSWorkspace.shared.icon(forFile: appState.navigation.currentURL.path))
-            appState.propertiesItem = fileItem
+            windowUIState.propertiesItem = fileItem
         }
     }
 }
@@ -93,6 +94,7 @@ struct SharedBackgroundContextMenu: View {
 struct SharedFileItemContextMenu: View {
     let item: FileItem
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
 
     var body: some View {
         Button(appState.tr(.open)) { appState.navigateTo(item.url) }
@@ -138,8 +140,8 @@ struct SharedFileItemContextMenu: View {
         Divider()
         if item.isDirectory {
             Button(appState.tr(.shareFolderWifi)) {
-                appState.httpShareFolderURL = item.url
-                appState.showHttpShareSheet = true
+                windowUIState.httpShareFolderURL = item.url
+                windowUIState.showHttpShareSheet = true
             }
             if appState.isFavorite(item.url) {
                 Button(appState.tr(.removeFromFavorites)) { appState.removeFavorite(item.url) }
@@ -184,7 +186,7 @@ struct SharedFileItemContextMenu: View {
             if isImage {
                 Button(appState.tr(.quickConvertImage)) {
                     if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-                    appState.imageConverterItem = item
+                    windowUIState.imageConverterItem = item
                 }
             }
         }
@@ -208,8 +210,8 @@ struct SharedFileItemContextMenu: View {
         Divider()
         if ArchiveService.isArchive(url: item.url) {
             Button(appState.tr(.inspectArchive)) {
-                appState.modal.inspectArchiveURL = item.url
-                appState.modal.showArchiveInspectionSheet = true
+                windowUIState.inspectArchiveURL = item.url
+                windowUIState.showArchiveInspectionSheet = true
             }
             Button(appState.tr(.extractArchive)) {
                 appState.extractArchive(url: item.url)
@@ -221,22 +223,22 @@ struct SharedFileItemContextMenu: View {
         }
         Button(appState.tr(.compressWithPassword)) {
             let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
-            appState.modal.passwordCompressURLs = targetURLs
-            appState.modal.showPasswordCompressSheet = true
+            windowUIState.passwordCompressURLs = targetURLs
+            windowUIState.showPasswordCompressSheet = true
         }
         Divider()
         let renameHint = appState.navigationMode == .gnome ? "(F2)" : "(Return)"
         Button("\(appState.tr(.rename)) \(renameHint)") {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             if appState.selectedURLs.count > 1 {
-                appState.showBatchRenameSheet = true
+                windowUIState.showBatchRenameSheet = true
             } else {
-                appState.renameItem = item
+                windowUIState.renameItem = item
             }
         }
         Button(appState.tr(.moveToTrash), role: .destructive) {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-            appState.deleteSelected()
+            appState.deleteSelected(windowUIState: windowUIState)
         }
         Button("Delete Immediately (Opt+Cmd+Del)", role: .destructive) {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
@@ -248,7 +250,7 @@ struct SharedFileItemContextMenu: View {
         }
         Button("Create Symlink...") {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-            appState.symlinkItem = item
+            windowUIState.symlinkItem = item
         }
         Button("AirDrop...") {
             if let airDrop = NSSharingService(named: .sendViaAirDrop) {
@@ -331,7 +333,7 @@ struct SharedFileItemContextMenu: View {
         }
         Button("\(appState.tr(.properties)) (Cmd+I)") {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
-            appState.propertiesItem = item
+            windowUIState.propertiesItem = item
         }
     }
 }

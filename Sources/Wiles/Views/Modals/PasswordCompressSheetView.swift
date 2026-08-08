@@ -3,6 +3,7 @@ import AppKit
 
 struct PasswordCompressSheetView: View {
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
     @Environment(\.dismiss)
     private var dismiss
     @State private var password: String = ""
@@ -22,7 +23,7 @@ struct PasswordCompressSheetView: View {
                 }
                 Spacer()
                 Button("OK") {
-                    appState.compressSelectedToZIPWithPassword(password)
+                    appState.compressSelectedToZIPWithPassword(password, urls: windowUIState.passwordCompressURLs)
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)

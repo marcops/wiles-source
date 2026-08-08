@@ -5,6 +5,7 @@ struct DirectoryTreeNodeView: View {
     let node: FolderNode
     let depth: Int
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
     @State private var isRightClicked = false
 
     init(node: FolderNode, depth: Int = 0, appState: AppState) {
@@ -86,7 +87,7 @@ struct DirectoryTreeNodeView: View {
             Divider()
             Button("\(appState.tr(.properties)) (Cmd+I)") {
                 let fileItem = FileItem(url: node.url, icon: NSWorkspace.shared.icon(forFile: node.url.path))
-                appState.propertiesItem = fileItem
+                windowUIState.propertiesItem = fileItem
             }
         }
     }

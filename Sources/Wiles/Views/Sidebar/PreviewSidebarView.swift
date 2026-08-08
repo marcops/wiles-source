@@ -3,6 +3,7 @@ import AppKit
 
 struct PreviewSidebarView: View {
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
     @State private var detailedProps: DetailedFileProperties?
     @State private var previewContent: String?
 
@@ -86,7 +87,7 @@ struct PreviewSidebarView: View {
                 Spacer()
 
                 Button(appState.tr(.moreInfo)) {
-                    appState.propertiesItem = item
+                    windowUIState.propertiesItem = item
                 }
                 .buttonStyle(.link)
             }

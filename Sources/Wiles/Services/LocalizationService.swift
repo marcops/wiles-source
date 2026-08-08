@@ -255,7 +255,6 @@ public struct L10n {
         case tabOverview
         case tabFeatures
         case tabSystem
-        case tabShortcuts
         case overviewDesc
         case domainToolsTitle
         case helpTagsTitle
@@ -289,10 +288,6 @@ public struct L10n {
         case helpViewModeMemoryDesc
         case helpPathBarTitle
         case helpPathBarDesc
-        case helpDragDropTitle
-        case helpDragDropDesc
-        case helpI18nTitle
-        case helpI18nDesc
         case helpTranslucentTitle
         case helpTranslucentDesc
         case navProfilesTitle
@@ -335,8 +330,6 @@ public struct L10n {
         case actMoveTrash
         case actNavBackForward
         case actParentFolder
-        case actRefreshShortcut
-        case actToggleStatusBar
         case fullDiskAccessPromptTitle
         case fullDiskAccessPromptMessage
         case openSystemSettings
@@ -419,6 +412,8 @@ public struct L10n {
         case shortcutsRename
         case shortcutsToggleHidden
         case shortcutsToggleOverlay
+        case shortcutsAllTab
+        case shortcutsGeneral
 
         // MARK: - Settings window & remaining menu-bar cleanup (task: Settings redesign + i18n audit)
         case newWindow

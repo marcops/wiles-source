@@ -8,7 +8,7 @@ public enum NavigationMode: String, CaseIterable, Identifiable, Sendable {
 
     public var shortName: String {
         switch self {
-        case .gnome: return "GNOME Mode"
+        case .gnome: return "Windows Mode"
         case .macOS: return "macOS Mode"
         }
     }

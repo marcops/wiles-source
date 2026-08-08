@@ -3,6 +3,7 @@ import AppKit
 
 struct HeaderBarView: View {
     var appState: AppState
+    @Environment(WindowUIState.self) private var windowUIState
     @FocusState private var isSearchFocused: Bool
     @State private var viewSwitcherExpanded = false
 
@@ -98,7 +99,7 @@ struct HeaderBarView: View {
             searchFilterMenu
 
             if !appState.searchQuery.isEmpty {
-                Button { appState.modal.showSaveSmartFolderSheet = true } label: {
+                Button { windowUIState.showSaveSmartFolderSheet = true } label: {
                     Image(systemName: "folder.badge.plus")
                         .foregroundColor(.accentColor)
                 }
