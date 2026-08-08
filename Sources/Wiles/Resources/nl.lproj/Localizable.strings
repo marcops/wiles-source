@@ -81,6 +81,7 @@
 "downloadFromiCloud" = "Downloaden van iCloud";
 "downloads" = "Downloads";
 "duplicateCleanerTitle" = "Dubbele bestanden opschonen";
+"duplicateCleanerSubtitle" = "Zoek en verwijder dubbele bestanden om ruimte vrij te maken";
 "duration" = "Duration";
 "emptyFolder" = "Deze map is leeg";
 "emptyTrash" = "Prullenbak Leegmaken";

@@ -81,6 +81,7 @@
 "downloadFromiCloud" = "Hämta från iCloud";
 "downloads" = "Hämtade filer";
 "duplicateCleanerTitle" = "Dubblettrensare";
+"duplicateCleanerSubtitle" = "Hitta och ta bort dubblettfiler för att frigöra utrymme";
 "duration" = "Duration";
 "emptyFolder" = "Denna mapp är tom";
 "emptyTrash" = "Töm Papperskorgen";

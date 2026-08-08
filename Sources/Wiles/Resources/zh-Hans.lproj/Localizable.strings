@@ -81,6 +81,7 @@
 "downloadFromiCloud" = "从 iCloud 下载";
 "downloads" = "下载";
 "duplicateCleanerTitle" = "重复文件清理器";
+"duplicateCleanerSubtitle" = "查找并删除重复文件以释放空间";
 "duration" = "Duration";
 "emptyFolder" = "此文件夹为空";
 "emptyTrash" = "清空废纸篓";

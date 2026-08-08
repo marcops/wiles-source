@@ -81,6 +81,7 @@
 "downloadFromiCloud" = "Загрузить из iCloud";
 "downloads" = "Загрузки";
 "duplicateCleanerTitle" = "Очиститель дубликатов";
+"duplicateCleanerSubtitle" = "Найдите и удалите повторяющиеся файлы, чтобы освободить место";
 "duration" = "Duration";
 "emptyFolder" = "Эта папка пуста";
 "emptyTrash" = "Очистить корзину";

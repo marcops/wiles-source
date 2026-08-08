@@ -81,6 +81,7 @@
 "downloadFromiCloud" = "iCloud'tan İndir";
 "downloads" = "İndirilenler";
 "duplicateCleanerTitle" = "Çift Dosya Temizleyici";
+"duplicateCleanerSubtitle" = "Yer açmak için yinelenen dosyaları bulun ve kaldırın";
 "duration" = "Duration";
 "emptyFolder" = "Bu Klasör Boş";
 "emptyTrash" = "Çöp Kutusunu Boşalt";

@@ -81,6 +81,7 @@
 "downloadFromiCloud" = "Download from iCloud";
 "downloads" = "Downloads";
 "duplicateCleanerTitle" = "Duplicate File Cleaner";
+"duplicateCleanerSubtitle" = "Find and remove duplicate files to free up space";
 "duration" = "Duration";
 "emptyFolder" = "This Folder is Empty";
 "emptyTrash" = "Empty Trash";
