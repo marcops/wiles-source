@@ -169,6 +169,7 @@
 "iCloudDrive" = "iCloud Drive";
 "ifFileIn" = "If file in:";
 "inspectArchive" = "アーカイブ内容をプレビュー...";
+"itemAlreadyInDestination" = "この項目はすでにその場所にあります。";
 "itemsSelectedSuffix" = "項目を選択中";
 "kind" = "Kind";
 "language" = "Language";

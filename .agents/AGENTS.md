@@ -350,3 +350,22 @@ don't improvise a layout that merely "looks plausible." General rules:
 - `scripts/release.sh` — validate → build_release → update Homebrew Cask → push.
 - `scripts/test_timing.sh` — slowest 10 tests.
 - `scripts/setup_test_ramdisk.sh` — mounts RAM disk for tests.
+
+## 35. Never Destroy User Data — Fail Loud and Untouched, Never Fail Silently Mid-Operation
+- **A destructive filesystem operation (move, delete, overwrite) must never leave the user with
+  less than they started with.** If any precondition isn't clearly safe, abort before touching
+  anything — do not "clean up" the destination, delete-then-recreate, or otherwise perform a
+  partial/irreversible step before the operation is confirmed possible.
+- **Real incident this rule is written from**: `FileSystemService.moveItem(at:toFolder:)` used to
+  unconditionally `removeItem(at: destURL)` "to clear the way" before calling `moveItem`. When the
+  destination happened to be the exact same path as the source (dragging a folder onto the folder
+  it's already in), this deleted the user's folder outright, then failed to move it (source no
+  longer existed) — permanent data loss, not even recoverable from Trash, surfaced only as a
+  confusing untranslated system error. See the regression test in
+  `Tests/WilesTests/FileSystem/FileSystemMoveRegressionTests.swift`.
+- **Concretely**: any function that removes/overwrites a destination "to make room" for a move or
+  write MUST first verify the destination isn't the source itself (compare `.standardizedFileURL`,
+  per rule 20) and MUST NOT proceed with the destructive half of the operation unless the
+  constructive half is actually going to happen. Prefer erroring out over guessing.
+- **Every fix for a data-loss bug must ship with a red→green regression test** (rule 28) that
+  proves the old code actually destroyed data and the new code doesn't — not just "doesn't throw."

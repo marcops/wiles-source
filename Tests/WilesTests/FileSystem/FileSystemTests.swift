@@ -366,6 +366,8 @@ extension FileSystemTests {
             print("moveItem overwrite error: \(error)")
         }
         TestReporter.report("FileSystem", "POS: moveItem overwrites a pre-existing item at the destination", result: overwritePassed)
+
+        FileSystemMoveRegressionTests.run(tempDir: tempDir)
         runZipRoundTripCoverageExtra(tempDir: tempDir)
     }
 

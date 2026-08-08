@@ -57,7 +57,7 @@ extension AppState {
                     }
                 } catch {
                     await MainActor.run { [weak self] in
-                        self?.showError(error.localizedDescription)
+                        self?.showError(error)
                     }
                 }
             }

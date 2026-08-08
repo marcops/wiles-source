@@ -5,6 +5,16 @@ extension FileSystemService {
     @discardableResult
     public static func moveItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
         let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
+
+        // If the destination is the exact same path as the source (moving an item to the folder
+        // it's already in), the "remove existing destination before moving" branch below would
+        // delete destURL — which IS the source — before the subsequent moveItem() ever runs,
+        // permanently destroying the item and leaving nothing for moveItem() to move. Must check
+        // this before touching the filesystem at all, not after.
+        guard url.standardizedFileURL != destURL.standardizedFileURL else {
+            throw WilesError.itemAlreadyInDestination
+        }
+
         if FileManager.default.fileExists(atPath: destURL.path) {
             try FileManager.default.removeItem(at: destURL)
         }

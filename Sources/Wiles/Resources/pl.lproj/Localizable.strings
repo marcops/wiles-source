@@ -169,6 +169,7 @@
 "iCloudDrive" = "iCloud Drive";
 "ifFileIn" = "If file in:";
 "inspectArchive" = "Przeglądaj archiwum...";
+"itemAlreadyInDestination" = "Ten element już znajduje się w tej lokalizacji.";
 "itemsSelectedSuffix" = "wybranych elementów";
 "kind" = "Kind";
 "language" = "Language";

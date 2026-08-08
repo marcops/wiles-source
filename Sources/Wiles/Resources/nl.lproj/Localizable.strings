@@ -169,6 +169,7 @@
 "iCloudDrive" = "iCloud Drive";
 "ifFileIn" = "If file in:";
 "inspectArchive" = "Archief bekijken...";
+"itemAlreadyInDestination" = "Dit item bevindt zich al op die locatie.";
 "itemsSelectedSuffix" = "items geselecteerd";
 "kind" = "Kind";
 "language" = "Language";

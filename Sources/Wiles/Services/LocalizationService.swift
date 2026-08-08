@@ -90,6 +90,7 @@ public struct L10n {
     }
 
     public enum Key: String, Sendable, CaseIterable {
+        case itemAlreadyInDestination
         case newFolder
         case paste
         case selectAll

@@ -453,7 +453,7 @@ private struct SidebarRowView: View {
                         _ = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
                         appState.refreshCurrentDirectory()
                     } catch {
-                        appState.showError(error.localizedDescription)
+                        appState.showError(error)
                     }
                 }
             }

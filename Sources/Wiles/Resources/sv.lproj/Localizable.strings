@@ -169,6 +169,7 @@
 "iCloudDrive" = "iCloud Drive";
 "ifFileIn" = "If file in:";
 "inspectArchive" = "Granska arkiv...";
+"itemAlreadyInDestination" = "Det här objektet finns redan på den platsen.";
 "itemsSelectedSuffix" = "objekt markerade";
 "kind" = "Kind";
 "language" = "Language";

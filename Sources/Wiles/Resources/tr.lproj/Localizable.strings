@@ -169,6 +169,7 @@
 "iCloudDrive" = "iCloud Drive";
 "ifFileIn" = "If file in:";
 "inspectArchive" = "Arşiv İçeriğini İncele...";
+"itemAlreadyInDestination" = "Bu öğe zaten bu konumda.";
 "itemsSelectedSuffix" = "öğe seçildi";
 "kind" = "Kind";
 "language" = "Language";

@@ -15,6 +15,7 @@ public struct AppStateCoreTests {
         testGridColumnCount()
         testStatusText()
         testShowError()
+        AppStateCoreExtraTests.run()
         testAddSmartFolder()
         testRemoveSmartFolder()
         await testFreeSpaceText()

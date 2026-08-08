@@ -370,7 +370,7 @@ extension AppState {
                         _ = try FileSystemService.moveItem(at: droppedURL, toFolder: targetFolder)
                         self.refreshCurrentDirectory()
                     } catch {
-                        self.showError(error.localizedDescription)
+                        self.showError(error)
                     }
                 }
             }

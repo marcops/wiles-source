@@ -193,7 +193,7 @@ struct PathBarView: View {
                     do {
                         _ = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
                     } catch {
-                        appState.showError(error.localizedDescription)
+                        appState.showError(error)
                     }
                     appState.refreshCurrentDirectory()
                 }

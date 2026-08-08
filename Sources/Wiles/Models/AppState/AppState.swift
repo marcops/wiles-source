@@ -30,6 +30,17 @@ public final class AppState {
         modal.showError(message)
     }
 
+    /// Prefer this over `showError(error.localizedDescription)` for errors that can come from
+    /// `FileSystemService` operations: known `WilesError` cases get a real localized message via
+    /// `appState.tr(...)` instead of surfacing an unlocalized system/English string.
+    public func showError(_ error: Error) {
+        if case .itemAlreadyInDestination = error as? WilesError {
+            showError(tr(.itemAlreadyInDestination))
+        } else {
+            showError(error.localizedDescription)
+        }
+    }
+
     // MARK: - Operational State
     public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
 

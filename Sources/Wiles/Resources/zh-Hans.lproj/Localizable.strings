@@ -169,6 +169,7 @@
 "iCloudDrive" = "iCloud 云盘";
 "ifFileIn" = "If file in:";
 "inspectArchive" = "查看压缩包内容...";
+"itemAlreadyInDestination" = "该项目已在该位置。";
 "itemsSelectedSuffix" = "个项目已选择";
 "kind" = "Kind";
 "language" = "Language";
