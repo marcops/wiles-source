@@ -26,14 +26,10 @@ else
   echo "OK"
 fi
 
-section "swift test (unit tests only, with code coverage)"
-# WilesUITests requires a target application path the local `swift test` harness doesn't provide
-# (that's an XCUITest/Xcode-runner requirement, not something wrong with the app) — it always
-# fails here regardless of app correctness, so it would block every release. Unit tests
-# (WilesTests) are the ones that actually validate app logic; filter to just those.
+section "swift test (unit tests — WilesTests, with code coverage)"
 TEST_LOG="$(mktemp)"
 if ! swift test --enable-code-coverage --filter WilesTests 2>&1 | tee "$TEST_LOG"; then
-  echo "FAIL: tests did not pass"
+  echo "FAIL: unit tests did not pass"
   FAILED=1
 else
   echo "OK"
@@ -47,6 +43,19 @@ else
   fi
 fi
 scripts/test_timing.sh "$TEST_LOG"
+
+section "xcodebuild UI tests (WilesUITests — launches Wiles.app and controls the screen)"
+if ! xcodebuild test \
+    -scheme Wiles \
+    -only-testing:WilesUITests/WilesLaunchUITests \
+    -skip-testing:WilesTests \
+    -destination 'platform=macOS,arch=arm64' \
+    2>&1 | tee /tmp/wiles_uitest.log | grep -E 'Test Case|passed|failed|error:'; then
+  echo "FAIL: UI tests did not pass"
+  FAILED=1
+else
+  echo "OK"
+fi
 
 section "SwiftLint (required — never releases with lint non-zero)"
 if ! command -v swiftlint >/dev/null 2>&1; then
