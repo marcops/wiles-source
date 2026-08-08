@@ -68,6 +68,40 @@ public struct ArchiveTests {
         runCorruptArchiveErrorPathTests()
         runSourcesOutsideDestinationTests()
         runFolderStructurePreservationTests()
+        runEmptyURLsAndProcessFailureTests()
+    }
+
+    // Covers compressToZIP's "guard !urls.isEmpty else { return }" no-op branch, and
+    // runCompressionProcess's error-throwing branch when the underlying `ditto` process exits
+    // non-zero (a destination directory it can't write into).
+    private static func runEmptyURLsAndProcessFailureTests() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // NEG/POS: compressToZIP with an empty urls array silently no-ops instead of throwing.
+        var emptyURLsPassed = true
+        do {
+            try ArchiveService.compressToZIP(urls: [], in: dir)
+        } catch {
+            emptyURLsPassed = false
+        }
+        TestReporter.report("ZipArchive", "POS: compressToZIP with an empty urls array is a safe no-op that does not throw", result: emptyURLsPassed)
+
+        // NEG: compressToZIP throws when the underlying ditto process fails (a read-only destination folder).
+        let sourceFile = dir.appendingPathComponent("source_for_failure.txt")
+        try? "content".write(to: sourceFile, atomically: true, encoding: .utf8)
+        let readOnlyDest = dir.appendingPathComponent("ReadOnlyDest")
+        try? FileManager.default.createDirectory(at: readOnlyDest, withIntermediateDirectories: true)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: readOnlyDest.path)
+        var processFailurePassed = false
+        do {
+            try ArchiveService.compressToZIP(urls: [sourceFile], in: readOnlyDest)
+        } catch {
+            processFailurePassed = true
+        }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyDest.path)
+        TestReporter.report("ZipArchive", "NEG: compressToZIP throws when the underlying ditto process fails (read-only destination)", result: processFailurePassed)
     }
 
     /// Regression coverage for the -j/no -r fix: compressing a folder that contains a nested

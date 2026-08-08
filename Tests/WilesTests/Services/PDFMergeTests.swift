@@ -26,6 +26,28 @@ public struct PDFMergeTests {
         try? "not an image or pdf".write(to: unsupportedFile, atomically: true, encoding: .utf8)
 
         await runScenarios(tempDir: tempDir, imgFile: imgFile, unsupportedFile: unsupportedFile)
+        await runWriteFailureScenario(imgFile: imgFile)
+    }
+
+    // Covers mergeFiles' "guard outputPDF.write(to: destURL) else { throw ... }" branch: a
+    // destination folder the process can't write into makes PDFDocument.write(to:) fail even though
+    // page assembly itself succeeds.
+    private static func runWriteFailureScenario(imgFile: URL) async {
+        let readOnlyDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: readOnlyDir, withIntermediateDirectories: true)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: readOnlyDir.path)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyDir.path)
+            try? FileManager.default.removeItem(at: readOnlyDir)
+        }
+
+        var threw = false
+        do {
+            _ = try await PDFMergeService.mergeFiles(urls: [imgFile], in: readOnlyDir, outputName: "WontWrite.pdf")
+        } catch {
+            threw = true
+        }
+        TestReporter.report("PDFMerge", "NEG: mergeFiles throws when writing the merged PDF to a read-only destination folder fails", result: threw)
     }
 
     private static func runScenarios(tempDir: URL, imgFile: URL, unsupportedFile: URL) async {

@@ -16,6 +16,7 @@ public struct DuplicateDetectionTests {
         await testThreeIdenticalFilesFormOneGroupOfThree()
         await testSingleUniqueFileFormsNoGroup()
         await testCancellingCallerTaskStopsScanBeforeCompletion()
+        await testUnreadableFilesAreSkippedDuringHashing()
     }
 
     private static func tempDir() -> URL {
@@ -241,6 +242,31 @@ public struct DuplicateDetectionTests {
         report(
             "DuplicateDetection",
             "POS: cancelling the caller's task before the scan completes propagates to the detached scan task, yielding an empty (not partial-wrong or hung) result",
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
+        )
+    }
+
+    // Covers computePartialHash's "guard let handle = try? FileHandle(forReadingFrom: url) else {
+    // return nil }" branch: a same-size candidate that can't be opened for reading (permissions
+    // revoked) must be silently excluded from the partial-hash map rather than crashing the scan.
+    private static func testUnreadableFilesAreSkippedDuringHashing() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let content = "same size payload for unreadable-file coverage test"
+        let readableFile = dir.appendingPathComponent("readable.txt")
+        let unreadableFile = dir.appendingPathComponent("unreadable.txt")
+        try? content.write(to: readableFile, atomically: true, encoding: .utf8)
+        try? content.write(to: unreadableFile, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: unreadableFile.path)
+
+        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: unreadableFile.path)
+
+        report(
+            "DuplicateDetection",
+            "NEG: a same-size file that can't be opened for reading is excluded from hashing instead of crashing the scan",
             result: result.groups.isEmpty && result.totalReclaimableBytes == 0
         )
     }

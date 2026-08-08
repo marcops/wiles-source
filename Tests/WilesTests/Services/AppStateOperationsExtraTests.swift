@@ -13,15 +13,17 @@ public struct AppStateOperationsExtraTests {
         await testUndoRedoLastAction()
         await testDownloadFromiCloudFailure()
         await testCompressSelectedToZIPWithPassword()
+        await testPasteToCurrentDirectoryEdgeCases()
+        await runFailureTests()
     }
 
-    private static func makeFile(named name: String, in dir: URL, content: String = "content") -> URL {
+    static func makeFile(named name: String, in dir: URL, content: String = "content") -> URL {
         let url = dir.appendingPathComponent(name)
         try? content.write(to: url, atomically: true, encoding: .utf8)
         return url
     }
 
-    private static func makeTempDir() -> URL {
+    static func makeTempDir() -> URL {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
@@ -33,10 +35,38 @@ public struct AppStateOperationsExtraTests {
     /// leftover record points at a file that's about to vanish, and undoing it later (from whatever
     /// test happens to touch the shared singleton next) fails forever under that service's
     /// retry-on-failure semantics, hanging the suite.
-    private static func drainUndoRedoService() async {
+    static func drainUndoRedoService() async {
         for _ in 0..<10 where UndoRedoService.shared.canUndo() {
             _ = try? await UndoRedoService.shared.undo()
         }
+    }
+
+    /// Shared bounded-polling helper matching the 20 x 200ms budget used throughout this file.
+    static func pollUntilTrue(_ condition: () -> Bool) async -> Bool {
+        for _ in 0..<20 {
+            if condition() { return true }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        return condition()
+    }
+
+    // Shared setup: a chmod 555 parent forces fm.removeItem to throw, with no system UI.
+    static func expectErrorFromReadOnlyParent(fileName: String, action: (AppState) -> Void) async -> Bool {
+        let dir = makeTempDir()
+        let fileURL = makeFile(named: fileName, in: dir, content: "secret data")
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path)
+            try? FileManager.default.removeItem(at: dir)
+        }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: dir.path)
+
+        let appState = AppState()
+        appState.modal.errorMessage = nil
+        appState.navigation.currentURL = dir
+        appState.selectedURLs = [fileURL]
+        action(appState)
+
+        return await pollUntilTrue { appState.modal.errorMessage != nil }
     }
 
     // deletePermanentlySelected() moved its shred call into a Task.detached (see
@@ -339,7 +369,47 @@ public struct AppStateOperationsExtraTests {
         )
     }
 
-    private static func report(_ category: String, _ name: String, result: Bool) {
+    // Nil-clipboard pasteboard fallback + executePaste()'s catch branch (missing cut source).
+    private static func testPasteToCurrentDirectoryEdgeCases() async {
+        let sourceDir = makeTempDir()
+        let destDir = makeTempDir()
+        defer {
+            try? FileManager.default.removeItem(at: sourceDir)
+            try? FileManager.default.removeItem(at: destDir)
+        }
+        let pb = NSPasteboard.general
+        defer { pb.clearContents() }
+
+        let sourceFile = makeFile(named: "fallback-paste.txt", in: sourceDir, content: "fallback content")
+        FileSystemService.writeToPasteboard(urls: [sourceFile])
+        let appState = AppState()
+        appState.navigateTo(destDir)
+        appState.clipboard = nil
+        appState.pasteToCurrentDirectory()
+        let destFile = destDir.appendingPathComponent("fallback-paste.txt")
+        let copied = await pollUntilTrue { FileManager.default.fileExists(atPath: destFile.path) }
+        report(
+            "AppState+Operations",
+            "POS: pasteToCurrentDirectory() with a nil clipboard falls back to copying URLs found on the system pasteboard",
+            result: copied
+        )
+        await drainUndoRedoService()
+
+        let missingFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-cut-\(UUID().uuidString).txt")
+        let appState2 = AppState()
+        appState2.modal.errorMessage = nil
+        appState2.navigateTo(destDir)
+        appState2.clipboard = ClipboardState(urls: [missingFile], action: .cut)
+        appState2.pasteToCurrentDirectory()
+        let errorShown = await pollUntilTrue { appState2.modal.errorMessage != nil }
+        report(
+            "AppState+Operations",
+            "NEG: pasteToCurrentDirectory() reports an error when the clipboard's cut source no longer exists on disk",
+            result: errorShown
+        )
+    }
+
+    static func report(_ category: String, _ name: String, result: Bool) {
         TestReporter.report(category, name, result: result)
     }
 }

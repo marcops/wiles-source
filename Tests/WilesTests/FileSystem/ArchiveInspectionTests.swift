@@ -48,6 +48,39 @@ public struct ArchiveInspectionTests {
 
         await runMultiEntryAndSpecialCharTests()
         await runDeepNestingAndMissingArchiveTests()
+        await runArchiveEntryItemIdAndDestinationFailureTests()
+    }
+
+    // POS: ArchiveEntryItem.id (Identifiable conformance) returns the entry's path.
+    // NEG: extractSingleEntry throws when the destination folder does not exist, so the
+    // FileHandle(forWritingTo:) open fails right after the file is (unsuccessfully) created.
+    private static func runArchiveEntryItemIdAndDestinationFailureTests() async {
+        let fileEntry = ArchiveEntryItem(path: "some/nested/file.txt")
+        TestReporter.report("ArchiveInspection", "POS: ArchiveEntryItem.id returns the entry's path", result: fileEntry.id == "some/nested/file.txt")
+
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let fileToZip = root.appendingPathComponent("handle_fail_source.txt")
+        try? "handle fail content".write(to: fileToZip, atomically: true, encoding: .utf8)
+        try? ArchiveService.compressToZIP(urls: [fileToZip], in: root)
+        let zipURL = root.appendingPathComponent("handle_fail_source.zip")
+
+        // Deliberately not created on disk, so FileHandle(forWritingTo:) fails to open it.
+        let missingDestFolder = root.appendingPathComponent("does_not_exist_dest")
+
+        var destinationFailureThrew = false
+        do {
+            _ = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: "handle_fail_source.txt", to: missingDestFolder)
+        } catch {
+            destinationFailureThrew = true
+        }
+        TestReporter.report(
+            "ArchiveInspection",
+            "NEG: extractSingleEntry throws when the destination folder does not exist (FileHandle open fails)",
+            result: destinationFailureThrew
+        )
     }
 
     private static func runBasicListEntriesTest() async {

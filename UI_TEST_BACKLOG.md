@@ -113,3 +113,209 @@ the real test the moment the missing infrastructure exists.
   - **Why it's out of scope now**: this is a coverage-tooling limitation, not a missing test. The
     only way to make line 4 show as covered would be to give `SidebarItem` an explicit `init`, which
     is a `Sources/` change requiring approval.
+
+## `Sources/Wiles/Services/LocalizationService.swift`
+
+- **`L10n.activeCode(_:)`'s final `return "en"` fallback (lines 54-55) — only reached when `.system`
+  is passed and none of `Locale.preferredLanguages` (the real host machine's actual language list)
+  match any supported `AppLanguage` code.** There is no injectable seam to override
+  `Locale.preferredLanguages` from a test, and every dev/CI machine's real locale list is virtually
+  guaranteed to include a match (English is always present as a fallback in the real system list).
+  - **Why it's out of scope now**: would require either mocking `Locale` (no such abstraction exists
+    in this file) or running the test suite under a real macOS user account configured with zero
+    supported-language preferences — not reproducible/controllable from `swift test`. A `Sources/`
+    change (e.g. an injectable `preferredLanguagesProvider: () -> [String]` static var) would fix
+    this but was not made per hard rule 2.
+
+- **`L10n.resourceBundle`'s three candidate-bundle-resolution branches (lines 66-80) — only one
+  branch executes per process, and which one is entirely determined by the real
+  `Bundle.main.resourceURL`/`Bundle.main.bundleURL` filesystem layout at test-run time, not by
+  anything a test controls.** `resourceBundle` is a `static let`, computed exactly once and cached
+  for the life of the process, so no sequence of test calls can force a different branch within the
+  same `swift test` invocation.
+  - **Why it's out of scope now**: same class of limitation as the `SidebarItem`/`NetworkShare`
+    default-value attribution note above — not a missing test, a property of how the code is
+    structured. Forcing coverage of all three branches would require a `Sources/` change (injecting
+    the bundle-resolution strategy) requiring approval.
+
+- **`L10n.string(_:lang:)`'s final generic fallback (line 89, `return
+  resourceBundle.localizedString(...)` after the `if let path = ... , let langBundle = ...` lookup
+  fails) — unreachable through any current public `AppLanguage` case.** Every non-`.system`
+  `AppLanguage` case has a matching `<code>.lproj`/`<code.lowercased()>.lproj` folder actually
+  bundled under `Sources/Wiles/Resources/` (verified: ar, de, en, es, fr, it, ja, ko, nl, pl, pt, ru,
+  sv, tr, zh-Hans all present), so the two-step lookup on lines 85-86 always succeeds for every real
+  input `L10n.string` can be called with.
+  - **Why it's out of scope now**: this is defensive dead code for a "resource bundle is missing an
+    lproj for a currently-supported language" scenario that can't be synthesized without either (a)
+    adding a bogus `AppLanguage` case with no matching `.lproj` folder (a `Sources/` change) or (b)
+    corrupting the real compiled resource bundle at test time (would break every other localization
+    test sharing the same process). Confirmed unreachable via all 15 non-system `AppLanguage` cases.
+
+## `Sources/Wiles/Models/FolderNode.swift`
+
+- **`loadSubfolders(at:autoExpandFor:)`'s `guard let urls = try? fm.contentsOfDirectory(...) else {
+  return [] }` failure branch (line 21).** `loadSubfolders` is `private`, so `@testable import` does
+  not expose it directly to `FolderNodeTests` — the only entry point is the public
+  `FolderNode.buildRootTree()`, which always starts enumeration at the real filesystem root `/` and
+  recurses only into real ancestor directories of the real current user's home directory. Hitting
+  this branch would require one of those real directories to fail `contentsOfDirectory` (e.g. a
+  permission-denied directory on the path from `/` to `~`), which isn't something a test can
+  reliably construct or control on a real macOS install without mutating real system directory
+  permissions — an unacceptable side effect outside the sandboxed temp directories this suite
+  otherwise confines itself to.
+  - **Why it's out of scope now**: no injectable seam (e.g. an injected `FileManager`/directory-lister
+    abstraction) exists to substitute a fake failing listing. Adding one would be a `Sources/` change
+    requiring approval.
+## `Sources/Wiles/Services/UndoRedoService.swift`
+
+- **`UndoRecord.id` (`= UUID()`) and `UndoRecord.timestamp` (`= Date()`) stored-property default
+  initializers — show 0% coverage in `llvm-cov`'s per-function breakdown despite `UndoRecord` being
+  constructed 70+ times across `UndoRedoTests` (every `recordAction(_:)` call constructs one via the
+  synthesized memberwise `init(actionType:)`, which evaluates both defaults every time).** This is
+  the same attribution quirk already documented for `AppState.perFolderViewModes` in this file: LLVM
+  credits the outlined default-value initializer symbol (`...UndoRecordV2id...vpfi`,
+  `...timestamp...vpfi`) separately from the call site that evaluates it inline, and the outlined
+  copy itself is never directly invoked at `-Onone`. No test can force that outlined symbol to run
+  independently of the constructor call it's inlined into — there is no missed *behavior* here, just
+  a tooling artifact. Not chasing further.
+
+## `Sources/Wiles/Features/ArchiveInspector/ArchiveInspectionService.swift`
+
+- **`listEntries(in:)` — the `guard let output = String(data: data, encoding: .utf8) else { return
+  [] }` failure branch.** Reaching the `else` requires `/usr/bin/unzip -Z1`'s stdout to contain bytes
+  that are not valid UTF-8, which in practice only happens for an archive holding an entry name
+  encoded in a legacy non-UTF-8 codepage (e.g. classic Mac OS Roman / CP437 filenames from a
+  pre-UTF-8-era zip). Neither `ditto` nor `/usr/bin/zip` (the only compression paths this app uses)
+  provide a supported, non-fragile way to author such an entry name from a Swift test — doing so
+  would mean hand-crafting raw zip central-directory bytes, which is disproportionate to the one
+  defensive branch it covers and would be brittle against `unzip` version differences. Left
+  uncovered; all reachable branches around it (empty output, corrupt archive, missing archive,
+  nested/deep/special-character entries) are covered in `ArchiveInspectionTests`.
+
+## `Sources/Wiles/Services/SpotlightSearchService.swift`
+
+- **`queryDidFinishGathering(_:)` — the `guard let query = metadataQuery else { return }` false
+  branch, and the `for i in 0..<count` loop body (the `if let item = ... as? NSMetadataItem, let path
+  = ...` positive path).** Both require a real `NSMetadataQuery` gathering notification to fire with
+  the service in a specific internal state (`metadataQuery` already `nil`, or a query that actually
+  returned indexed results) — there is no injectable seam to fake `NSMetadataQuery` itself (it's a
+  sealed AppKit/Foundation class, not mockable), and `queryDidFinishGathering(_:)` is `private`, so
+  `@testable import` cannot invoke it directly to synthesize either state. Driving this through the
+  real Spotlight index depends on the local machine's indexing state and cold-start latency, which is
+  independent of whether the target file is actually indexed — this is the same flakiness class
+  already called out for `testSpotlightSearchWithRealResultsPopulatesURLs` in `SpotlightSearchTests`
+  (softened to avoid a tight-timeout non-empty-results assertion). Reintroducing a test that depends
+  on real Spotlight returning at least one result within the 1.5s per-test budget would reproduce
+  that same flakiness. Left uncovered; the empty-query short-circuit, `stopSearch()`'s both branches,
+  and the apostrophe/predicate-injection regression are all covered in `SpotlightSearchTests`.
+## `Sources/Wiles/Services/AutoOrganizationService.swift`
+
+- **`processFolder()`'s move-failure `catch` block (line 156, comment-only body)**, hit only when
+  `FileSystemService.moveItem(at:toFolder:)` throws inside the detached move task. Not attempted: a
+  destination folder that doesn't exist would make `moveItem` throw deterministically, but
+  `AutoOrganizationTests.swift` already keeps a heavily reused `service`/`targetDir` pair across many
+  sequential sub-tests in one `run()`, and this file's total runtime (~4.7s) is already flagged in
+  `.agents/AGENTS.md`-adjacent guidance as the slowest suite in the project — adding another
+  `Task.detached` + 150ms stability-check + settle-time wait (the same pattern every other
+  `processFolder` test here already needs) was judged not worth the additional wall-clock cost for
+  one comment-only line already proven exercised via the identical logic path in
+  `testGrowingFileIsNotMoved`'s "still being written" branch just above it. Coverage is at 99.44%
+  lines / 100% functions for this file; only this one branch remains.
+
+## `Sources/Wiles/Features/HttpSharing/LocalHttpServerService.swift`
+
+Remaining gaps after adding `testDirectoryRemovedAfterStartReturns500`,
+`testMalformedPercentEncodingReturnsBadRequest`, `testEmptyConnectionContentIsClosedSafely`, and
+`testNonUtf8ConnectionContentIsClosedSafely` to `LocalHttpServerServiceTests.swift`:
+
+- **`stateUpdateHandler`'s `default: break` branch (line 36)**, hit only when the listener enters
+  `.setup`/`.waiting`/`.preparing` instead of going straight to `.ready`. Tried: pre-occupying port
+  8080 with a raw BSD socket (both `AF_INET` and `AF_INET6` wildcard binds, confirmed both bound
+  successfully) before calling `start(sharing:)`, expecting the service's own `NWListener` to sit in
+  `.waiting`. Empirically verified this does **not** work: `server.isRunning` still becomes `true` —
+  `NWListener`/`Network.framework` apparently sets `SO_REUSEPORT` (or equivalent) by default, so a
+  second listener binds successfully alongside the occupying socket instead of waiting. No other
+  in-process way to force a `.waiting`/`.preparing` state was found without a real second contending
+  process holding the port exclusively, which isn't reproducible/deterministic in a unit test.
+
+- **`start()`'s `catch { stop() }` branch (line 47)**, hit only if `NWListener(using:on:)` throws
+  synchronously. With this file's fixed `NWParameters.tcp` and a `port` that's already typed as the
+  validated `NWEndpoint.Port` (construction of an invalid port value isn't possible through the
+  public API used here), there's no reachable input that makes this initializer throw — port
+  conflicts and bind failures surface asynchronously via the `.failed` listener state instead
+  (already covered by other means/branches), not as a thrown error.
+
+- **`updateServerURL()`'s no-`en0`-interface fallback (lines 98-99, `finalServerURL =
+  "http://localhost:..."`)**. This only executes when `getifaddrs()` finds no `en0` interface with
+  an `AF_INET` address — environment-dependent (Wi-Fi/Ethernet must be down or absent). Every dev
+  machine and CI runner this suite has run on has an active `en0`, so the positive branch (line 96)
+  is the only one naturally reachable; forcing the negative branch would require actually disabling
+  networking during the test run, which is out of scope for a unit test.
+
+- **`processRequest()`'s `guard let firstLine = lines.first` failure branch (lines 129-130)**.
+  Structurally unreachable: `String.components(separatedBy:)` always returns an array with at least
+  one element (splitting `""` yields `[""]`), so `.first` can never be `nil` here. Dead defensive
+  code, not something a test can exercise without a `Sources/` change.
+
+- **`processRequest()`'s `guard let folder = sharedFolder` failure branch (lines 142-143)**. Only
+  reachable if a request is processed after `sharedFolder` has been cleared but before the listener
+  has actually stopped accepting/reading connections — `stop()` sets `sharedFolder = nil`
+  synchronously while `listener?.cancel()` and any in-flight `connection.receive` completions race
+  independently on the service's private serial queue. There's no public hook to pause the listener
+  mid-request or to inject a request between those two points deterministically; any attempt would
+  depend on exact scheduling of GCD callbacks and would be flaky.
+
+- **`streamFile()`/`sendNextChunk()`'s `connection.send` failure branches (lines 220-223,
+  244-247)**, hit only when writing the response back to the client itself fails (e.g. client resets
+  the connection mid-transfer). Tried: opening a raw socket, sending a `GET` for an existing file,
+  then immediately closing the socket without reading the response, hoping to induce a write error
+  on the server's next `send(content:completion:)` call. On localhost this raced unpredictably —
+  sometimes the full response was already flushed into the kernel socket buffer before the client's
+  `close()` took effect, so the server's send completion still reported no error. Left out rather
+  than shipping a test that passes or fails depending on scheduling.
+## `Sources/Wiles/Services/PermissionService.swift`
+
+- **`openFullDiskAccessSettings()` (lines 7-11) — entirely uncovered.**
+  Calls `NSWorkspace.shared.open(url)` with an `x-apple.systempreferences:` deep link. Actually
+  invoking it in an automated `swift test` run would open the real System Settings app on the test
+  machine — a real, visible side effect on the developer's/CI machine with no way to close it from
+  the test process. This is exactly the class of risk called out in the task's hard rule 3 (do not
+  trigger real system UI a human would need to dismiss). Only the well-formedness of the deep-link
+  URL string itself is verified (`PermissionTests.testSettingsDeepLinkURLComponents()`).
+
+- **`probeProtectedFolders()` (lines 23-28) — entirely uncovered.**
+  Private, only reachable through `requestInitialPermissions(language:)`'s "not yet shown" branch
+  (see below) — it cannot be called directly from a test. Reaching it therefore requires accepting
+  the same blocking-alert risk described below.
+
+- **`requestInitialPermissions(language:)`'s "not yet shown" branch (lines 37-49) — uncovered.**
+  Only the early-return "already shown" guard (line 36) is exercised. The rest of the function is
+  gated behind `!defaults.bool(forKey: hasShownFullDiskAccessPromptKey)` **and** — once past that —
+  `!hasFullDiskAccess()`. `hasFullDiskAccess()` checks real readability of
+  `/Library/Application Support/com.apple.TCC/TCC.db`, which this sandboxed test environment does
+  not have (verified directly: `test -r ".../TCC.db"` → not readable). That means any test run here
+  that clears the "already shown" flag and calls `requestInitialPermissions()` deterministically
+  falls into the `NSAlert().runModal()` branch (lines 41-48) — a real, blocking system alert that
+  needs a human click to dismiss. This is the literal scenario flagged in the task's hard rule 3
+  ("NSWorkspace.shared.open() on files with racy cleanup triggered a blocking file-not-found system
+  alert" — same failure class, different trigger). Not forced.
+  - *Source change that would fix this (NOT made — reported per hard rule 2):* extract
+    `hasFullDiskAccess()`'s TCC.db-readability check behind an injectable provider (e.g. a
+    `fullDiskAccessChecker: () -> Bool` closure property on `PermissionService`, defaulting to the
+    real check in production, overridable in tests to force the "already has FDA" path). With that
+    seam, the "not yet shown + already has FDA" path (set flag, probe folders, return without
+    showing the alert) becomes fully deterministic and safe to test. The alert-showing path itself
+    would still need a human or a UI-automation harness (not present in this suite) to dismiss
+    `NSAlert.runModal()`, so it would remain backlogged even with the seam.
+
+## `Sources/Wiles/Models/AppState/AppState+Operations.swift`
+
+- **`downloadFromiCloud(url:)`'s success path (lines 9-11, the `await MainActor.run { self?.refreshCurrentDirectory() }` inside the `try` branch) — uncovered.**
+  The failure path (`FileManager.default.startDownloadingUbiquitousItem(at:)` throwing for a URL
+  that isn't a ubiquitous item) is covered
+  (`AppStateOperationsExtraTests.testDownloadFromiCloudFailure()`). Reaching the success path
+  requires a URL that macOS's `FileManager` actually recognizes as a ubiquitous (iCloud Drive)
+  placeholder item — there's no local/offline way to fabricate one, and whether this test machine
+  even has an iCloud Drive container configured/signed-in is environment-dependent and outside this
+  suite's control. No dependency-injection seam exists to fake "this URL is ubiquitous" without a
+  source change. Left uncovered rather than depending on real iCloud account state.

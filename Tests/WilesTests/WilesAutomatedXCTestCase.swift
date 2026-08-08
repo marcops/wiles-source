@@ -74,7 +74,7 @@ final class WilesAutomatedTests: XCTestCase {
         await DiskSpaceVisualizerFeatureTests.run()
         await DuplicateCleanerFeatureTests.run()
         await FileShredderFeatureTests.run()
-        HttpSharingFeatureTests.run()
+        await HttpSharingFeatureTests.run()
         ImageConverterFeatureTests.run()
         SmartFoldersFeatureTests.run()
     }

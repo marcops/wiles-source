@@ -17,6 +17,9 @@ public struct FileSystemSearchAndSortTests {
         await testSortBySize()
         await testDirectoriesAlwaysSortFirst()
         await testSetTagsRoundTrip()
+        await testDateFilterEdgeCases()
+        await testSizeFilterEdgeCases()
+        testDirectSearchFilterServiceGuardFailures()
     }
 
     private static func tempDir() -> URL {
@@ -166,6 +169,71 @@ public struct FileSystemSearchAndSortTests {
 
         let results = await load(at: dir, sort: .name, ascending: true)
         report("POS: folders always sort before files regardless of name-based ordering", result: results.first?.name == "zzz_folder")
+    }
+
+    // Covers matchesDateFilter's digit-parse guard failure (no numeric digits in the value) and the
+    // week/month/year unit branches of dateFilterSeconds, none of which the "today"/"yesterday"/hour
+    // tests elsewhere exercise.
+    private static func testDateFilterEdgeCases() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? "x".write(to: dir.appendingPathComponent("dated.txt"), atomically: true, encoding: .utf8)
+
+        let noDigits = await load(at: dir, query: "date:>=xh")
+        report("NEG: \"date:\" filter with no numeric digits in the value matches nothing", result: noDigits.isEmpty)
+
+        let byWeek = await load(at: dir, query: "date:>=1w")
+        report("POS: \"date:>=Nw\" applies the week unit without crashing", result: byWeek.isEmpty)
+
+        let byMonth = await load(at: dir, query: "date:>=1m")
+        report("POS: \"date:>=Nm\" applies the month unit without crashing", result: byMonth.isEmpty)
+
+        let byYear = await load(at: dir, query: "date:>=1y")
+        report("POS: \"date:>=Ny\" applies the year unit without crashing", result: byYear.isEmpty)
+    }
+
+    // Covers matchesSizeFilter's default (">=") operator branch — reached when the value has no
+    // explicit </<=/=/> prefix — and sizeFilterMultiplier's default (megabyte) branch, reached for
+    // any unit other than "k"/"b"/"g" (including no unit at all, or "m").
+    private static func testSizeFilterEdgeCases() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("no_operator.bin")
+        try? Data(repeating: 0, count: 500).write(to: file)
+
+        let defaultOperator = await load(at: dir, query: "size:500b")
+        report("POS: \"size:Nb\" with no explicit operator defaults to >= and matches an exact-size file",
+            result: defaultOperator.count == 1 && defaultOperator.first?.name == "no_operator.bin")
+
+        let defaultMultiplier = await load(at: dir, query: "size:>1m")
+        report("NEG: \"size:>Nm\" applies the default megabyte multiplier, excluding a 500-byte file", result: defaultMultiplier.isEmpty)
+    }
+
+    // Covers guard-failure branches reached only when resourceValues() itself fails or the file's
+    // content can't be decoded: matchesDateFilter/matchesSizeFilter's "resourceValues failed" guard,
+    // and matchesContent's size-check and UTF-8-decode guards. Calling SearchFilterService directly
+    // (rather than through loadDirectoryContents, which only ever sees real directory entries) lets a
+    // deliberately nonexistent URL reach these guards.
+    private static func testDirectSearchFilterServiceGuardFailures() {
+        let missingFile = tempDir().appendingPathComponent("missing.txt")
+        let dateResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "date:>=1d", regex: nil)
+        report("NEG: matchesSearch with a \"date:\" query on a nonexistent file returns false (resourceValues guard)", result: !dateResult)
+
+        let sizeResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "size:>1b", regex: nil)
+        report("NEG: matchesSearch with a \"size:\" query on a nonexistent file returns false (resourceValues guard)", result: !sizeResult)
+
+        let contentResultMissing = SearchFilterService.matchesSearch(fileURL: missingFile, query: "unicorn", regex: nil)
+        report("NEG: matchesSearch content-search fallback on a nonexistent file returns false (resourceValues guard)", result: !contentResultMissing)
+
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let invalidUTF8File = dir.appendingPathComponent("invalid_utf8.txt")
+        try? Data([0xFF, 0xFE, 0xFD, 0x80, 0x81]).write(to: invalidUTF8File)
+        let contentResultInvalid = SearchFilterService.matchesSearch(fileURL: invalidUTF8File, query: "unicorn", regex: nil)
+        report("NEG: matchesSearch content-search fallback on a file with invalid UTF-8 content returns false (decode guard)", result: !contentResultInvalid)
     }
 
     private static func testSetTagsRoundTrip() async {

@@ -10,8 +10,16 @@ public struct SymlinkTests {
         try? "Original Content".write(to: targetFile, atomically: true, encoding: .utf8)
 
         runBasicSymlinkCoverage(tempDir: tempDir, targetFile: targetFile)
+        runSymlinkModeIdentifiableCoverage()
 
         try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    // POS/NEG: SymlinkMode.id (Identifiable conformance) returns the raw value for both cases.
+    private static func runSymlinkModeIdentifiableCoverage() {
+        TestReporter.report("SymlinkService", "POS: SymlinkMode.absolute.id returns its rawValue", result: SymlinkMode.absolute.id == "Absolute")
+        let relativeIdIsDistinct = SymlinkMode.relative.id == "Relative" && SymlinkMode.relative.id != SymlinkMode.absolute.id
+        TestReporter.report("SymlinkService", "NEG: SymlinkMode.relative.id is not the .absolute rawValue", result: relativeIdIsDistinct)
     }
 
     private static func runBasicSymlinkCoverage(tempDir: URL, targetFile: URL) {

@@ -15,6 +15,27 @@ public struct ExifMetadataTests {
         testEmptyISOArrayYieldsNilISO()
         testIncompleteGPSDataYieldsNilGPSCoordinates()
         testDateTimeOnlyExtractsSuccessfully()
+        testDecodableImageWithNoRecognizedFieldsReturnsNil()
+    }
+
+    // NEG: image decodes successfully (props extraction succeeds) but carries none of the
+    // recognized TIFF/EXIF/GPS fields, so every derived value is nil and the function must hit
+    // its "all fields nil" short-circuit and return nil (distinct from the earlier guard failing
+    // to decode the image source at all).
+    private static func testDecodableImageWithNoRecognizedFieldsReturnsNil() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let tempFile = dir.appendingPathComponent("no_recognized_fields.jpg")
+
+        guard writeExifJPEG(to: tempFile, properties: [:], color: .yellow) else {
+            TestReporter.report("ExifMetadata", "NEG: decodable image with no recognized EXIF/TIFF/GPS fields returns nil", result: false)
+            return
+        }
+
+        let result = ExifMetadataService.extractExif(from: tempFile)
+        TestReporter.report("ExifMetadata", "NEG: decodable image with no recognized EXIF/TIFF/GPS fields returns nil", result: result == nil)
     }
 
     private static func testIncompleteGPSDataYieldsNilGPSCoordinates() {

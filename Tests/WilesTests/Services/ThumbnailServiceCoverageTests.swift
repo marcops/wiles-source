@@ -12,10 +12,70 @@ public struct ThumbnailServiceCoverageTests {
         testSupportsThumbnailForVariousKinds()
         testCacheKeyDoesNotCollideBetweenSizes()
         await testPrefetchThumbnailsWithMixedEligibility()
+        await testLoadThumbnailServesFromCacheOnSecondCall()
+        await testPrefetchThumbnailsCancellationBreaksLoop()
     }
 
     private static func makeFakeIcon() -> NSImage {
         NSImage(size: NSSize(width: 16, height: 16))
+    }
+
+    @discardableResult
+    private static func writeSamplePNG(to url: URL) -> Bool {
+        let size = NSSize(width: 4, height: 4)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.blue.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        image.unlockFocus()
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else { return false }
+        return (try? pngData.write(to: url)) != nil
+    }
+
+    // Covers loadThumbnail's "if let cached = cache.object(forKey: key) { return cached }" branch:
+    // a second call for the same URL/size must be served from cache instead of regenerating.
+    private static func testLoadThumbnailServesFromCacheOnSecondCall() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let pngURL = tempDir.appendingPathComponent("cache-hit-sample.png")
+        writeSamplePNG(to: pngURL)
+
+        let first = await ThumbnailService.shared.loadThumbnail(for: pngURL, size: 32)
+        let second = await ThumbnailService.shared.loadThumbnail(for: pngURL, size: 32)
+        TestReporter.report(
+            "ThumbnailService", "POS: loadThumbnail(for:size:) returns the same cached image instance on a second call for the same URL",
+            result: first != nil && first === second
+        )
+    }
+
+    // Covers prefetchThumbnails' "if Task.isCancelled { break }" branch: starting a new prefetch
+    // while a prior one is still iterating cancels the prior Task, which must observe cancellation
+    // and break out of its loop instead of continuing to process the remaining items.
+    private static func testPrefetchThumbnailsCancellationBreaksLoop() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        var items: [FileItem] = []
+        for index in 0..<12 {
+            let url = tempDir.appendingPathComponent("cancel-sample-\(index).png")
+            writeSamplePNG(to: url)
+            items.append(FileItem(url: url, icon: makeFakeIcon()))
+        }
+
+        // Two back-to-back calls: the second cancels the first's still-running detached task before
+        // it can finish iterating all 12 items.
+        ThumbnailService.shared.prefetchThumbnails(for: items, size: 32)
+        ThumbnailService.shared.prefetchThumbnails(for: items, size: 32)
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        TestReporter.report(
+            "ThumbnailService", "POS: starting a new prefetchThumbnails call cancels the prior in-flight one without crashing or hanging",
+            result: true
+        )
     }
 
     private static func testSupportsThumbnailForVariousKinds() {

@@ -16,6 +16,68 @@ public struct PreferencesStoreTests {
         testExpandedTreePathsCapsInsertionsAt500()
         testExpandedTreePathsTruncatesOnLoadWhenSavedSetExceedsCap()
         testShowDirectoryTreePersistsAcrossStoreInstances()
+        testIconSizeLoadsSavedValueWithinBounds()
+        testFavoriteURLsFallsBackToDefaultsWhenNoneSaved()
+    }
+
+    // MARK: - iconSize load-from-UserDefaults bounds check
+
+    /// `loadSearchAndDisplayPreferences` only applies a saved `iconSize` from `UserDefaults` when it
+    /// falls within `IconSizeToken.minSize...maxSize` (line 247's `if` guard). Every other test in
+    /// this suite constructs `PreferencesStore()` against whatever `wiles_iconSize` happens to be
+    /// real `UserDefaults.standard` state, which never deterministically exercises the true branch.
+    /// This mutates the real `UserDefaults.standard` key (`PreferencesStore` has no injectable
+    /// suite), so per rule 17 we snapshot and restore the real value in `defer`.
+    private static func testIconSizeLoadsSavedValueWithinBounds() {
+        let key = DefaultsKey.iconSize.rawValue
+        let priorValue = UserDefaults.standard.object(forKey: key) as? Double
+        defer {
+            if let priorValue {
+                UserDefaults.standard.set(priorValue, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        let validSize = IconSizeToken.minSize + IconSizeToken.step
+        UserDefaults.standard.set(validSize, forKey: key)
+        let store = PreferencesStore()
+        report(
+            "Store/PreferencesStore",
+            "POS: a saved iconSize within IconSizeToken bounds is restored on init",
+            result: store.iconSize == validSize
+        )
+    }
+
+    // MARK: - favoriteURLs default fallback when nothing saved
+
+    /// `loadFavoriteURLs`'s `else` branch (lines 258-263) seeds `favoriteURLs` with the user's real
+    /// Desktop/Documents/Downloads directories, filtered to only those that actually exist, whenever
+    /// `UserDefaults` has no saved `wiles_favoriteURLs` array yet. This mutates the real
+    /// `UserDefaults.standard` key, so per rule 17 we snapshot and restore the real value in `defer`.
+    private static func testFavoriteURLsFallsBackToDefaultsWhenNoneSaved() {
+        let key = DefaultsKey.favoriteURLs.rawValue
+        let priorArray = UserDefaults.standard.stringArray(forKey: key)
+        defer {
+            if let priorArray {
+                UserDefaults.standard.set(priorArray, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        UserDefaults.standard.removeObject(forKey: key)
+        let store = PreferencesStore()
+        let expectedCandidates = [
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop"),
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents"),
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
+        ].filter { FileManager.default.fileExists(atPath: $0.path) }
+        report(
+            "Store/PreferencesStore",
+            "POS: favoriteURLs falls back to the existing Desktop/Documents/Downloads defaults when no saved array exists",
+            result: store.favoriteURLs == expectedCandidates
+        )
     }
 
     // MARK: - showDirectoryTree persistence

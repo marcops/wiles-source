@@ -251,6 +251,13 @@ extension FileSystemTests {
         await nonAsteriskRegexTriggerCoverage()
         await nonExistentDirectoryCoverage()
         await setTagsNegativeCoverage()
+        userTrashCoverage()
+    }
+    // Covers URL.userTrash: the static let is only initialized on first access within the test
+    // process, so a dedicated access is required for its initializer expression to run at all.
+    private static func userTrashCoverage() {
+        let trash = URL.userTrash
+        TestReporter.report("FileSystem", "POS: URL.userTrash resolves to a non-empty file URL", result: !trash.path.isEmpty)
     }
     // Covers isFileHidden's fallback branch: a file hidden via the .isHiddenKey resource flag
     // (e.g. `chflags hidden`) rather than via a leading-dot filename.

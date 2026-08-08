@@ -41,6 +41,8 @@ public struct AutoOrganizationTests {
         await testHiddenFilesAreNeverProcessed(service: service, inputDir: inputDir, targetDir: targetDir)
         await testScheduleProcessFolderDebounces(service: service, inputDir: inputDir, targetDir: targetDir)
         testRuleMutationMethods(service: service, rule: rule)
+        testStartMonitoringPublicEntryPoint(service: service)
+        testProcessFolderOnNonexistentFolderReturnsEarly(service: service, targetDir: targetDir)
 
         // AutoOrganizationService.processFolder() records every real move it performs on the
         // process-wide UndoRedoService.shared singleton. Drain this test's own leaked records now,
@@ -55,24 +57,12 @@ public struct AutoOrganizationTests {
         try? FileManager.default.removeItem(at: baseTemp)
     }
 
-    /// Polls instead of a fixed sleep: processFolder()'s real work per matched file is the
-    /// 150ms size-stability check (AutoOrganizationService.stabilityCheckDelay), so a flat 300ms
-    /// sleep after every processFolder() call pays double that on every test. Polling exits as
-    /// soon as the move actually lands, while keeping the same 300ms ceiling as a safety net.
-    private static func waitUntil(timeout: UInt64 = 300_000_000, step: UInt64 = 20_000_000, _ condition: () -> Bool) async {
-        var waited: UInt64 = 0
-        while !condition(), waited < timeout {
-            try? await Task.sleep(nanoseconds: step)
-            waited += step
-        }
-    }
-
     private static func testActiveRuleExecution(service: AutoOrganizationService, matchingFile: URL, nonMatchingFile: URL, inputDir: URL, targetDir: URL) async {
         // Positive: Active Rule Execution
         service.processFolder(inputDir)
-        let movedPDF = targetDir.appendingPathComponent("invoice.pdf")
-        await waitUntil { FileManager.default.fileExists(atPath: movedPDF.path) }
+        try? await Task.sleep(nanoseconds: 300_000_000)
 
+        let movedPDF = targetDir.appendingPathComponent("invoice.pdf")
         let posOrgPassed = FileManager.default.fileExists(atPath: movedPDF.path)
         TestReporter.report("AutoOrganization", "POS: Rule routes matching .pdf file to destination", result: posOrgPassed)
 
@@ -90,8 +80,6 @@ public struct AutoOrganizationTests {
         service.rules = [disabledRule]
 
         service.processFolder(inputDir)
-        // NEG case: the file must still be there once the stability window has had time to
-        // elapse, so this one keeps a real wait rather than polling for a condition to become true.
         try? await Task.sleep(nanoseconds: 300_000_000)
 
         let disabledIntact = FileManager.default.fileExists(atPath: matchingFile2.path)
@@ -107,12 +95,11 @@ public struct AutoOrganizationTests {
         )
         service.rules = [containsRule]
         service.processFolder(inputDir)
-        let movedFile = targetDir.appendingPathComponent("draft_report.txt")
-        await waitUntil { FileManager.default.fileExists(atPath: movedFile.path) }
+        try? await Task.sleep(nanoseconds: 300_000_000)
         TestReporter.report(
             "AutoOrganization",
             "POS: .nameContains rule matches a substring anywhere in the filename",
-            result: FileManager.default.fileExists(atPath: movedFile.path)
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("draft_report.txt").path)
         )
     }
 
@@ -125,12 +112,11 @@ public struct AutoOrganizationTests {
         )
         service.rules = [prefixRule]
         service.processFolder(inputDir)
-        let movedFile = targetDir.appendingPathComponent("IMG_1234.jpg")
-        await waitUntil { FileManager.default.fileExists(atPath: movedFile.path) }
+        try? await Task.sleep(nanoseconds: 300_000_000)
         TestReporter.report(
             "AutoOrganization",
             "POS: .namePrefix rule matches case-insensitively",
-            result: FileManager.default.fileExists(atPath: movedFile.path)
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("IMG_1234.jpg").path)
         )
     }
 
@@ -153,8 +139,7 @@ public struct AutoOrganizationTests {
         service.rules = [pdfRule]
 
         service.processFolder(inputDir)
-        let movedFile = targetDir.appendingPathComponent("statement.pdf")
-        await waitUntil { FileManager.default.fileExists(atPath: movedFile.path) }
+        try? await Task.sleep(nanoseconds: 300_000_000)
 
         let dirStillInPlace = FileManager.default.fileExists(atPath: trapDir.path)
         var dirIsStillADirectory: ObjCBool = false
@@ -165,7 +150,7 @@ public struct AutoOrganizationTests {
         )
         TestReporter.report(
             "AutoOrganization", "POS: a real matching file alongside the trap directory is still moved correctly",
-            result: FileManager.default.fileExists(atPath: movedFile.path)
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("statement.pdf").path)
         )
 
         try? FileManager.default.removeItem(at: trapDir)
@@ -189,8 +174,7 @@ public struct AutoOrganizationTests {
         service.rules = [pdfRule]
 
         service.processFolder(inputDir)
-        let movedFile = targetDir.appendingPathComponent("visible-alongside-hidden.pdf")
-        await waitUntil { FileManager.default.fileExists(atPath: movedFile.path) }
+        try? await Task.sleep(nanoseconds: 300_000_000)
 
         TestReporter.report(
             "AutoOrganization", "NEG: a dotfile matching a rule's condition (e.g. \".secret.pdf\") is never moved",
@@ -199,7 +183,7 @@ public struct AutoOrganizationTests {
         )
         TestReporter.report(
             "AutoOrganization", "POS: a real matching file alongside the dotfile is still moved correctly",
-            result: FileManager.default.fileExists(atPath: movedFile.path)
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("visible-alongside-hidden.pdf").path)
         )
 
         try? FileManager.default.removeItem(at: hiddenMatchingFile)
@@ -295,5 +279,40 @@ public struct AutoOrganizationTests {
 
         service.deleteRule(id: rule.id)
         TestReporter.report("AutoOrganization", "POS: deleteRule() removes the rule with matching id", result: !service.rules.contains(where: { $0.id == rule.id }))
+    }
+
+    /// `startMonitoring()` is the public entry point apps call once at launch; it just forwards to
+    /// the same `restartMonitoring()` already exercised indirectly by every `service.rules = ...`
+    /// assignment above (via the property's `didSet`). No new async wait is introduced here — the
+    /// point of this test is only to execute `startMonitoring()`'s own two lines directly (they
+    /// were previously uncovered), and confirm the call is a safe, non-mutating no-op with respect
+    /// to the current rule list.
+    private static func testStartMonitoringPublicEntryPoint(service: AutoOrganizationService) {
+        let rulesBefore = service.rules
+        service.startMonitoring()
+        TestReporter.report(
+            "AutoOrganization", "POS: startMonitoring() can be called directly and leaves the current rules unchanged",
+            result: service.rules.map(\.id) == rulesBefore.map(\.id)
+        )
+    }
+
+    /// Covers the early-`return` branch in `processFolder()` when `contentsOfDirectory(at:...)`
+    /// throws because the source folder does not exist on disk (e.g. deleted between the watcher
+    /// firing and the scan running). Purely synchronous — no sleep needed since there's no
+    /// detached move task to wait on when the directory read itself fails.
+    private static func testProcessFolderOnNonexistentFolderReturnsEarly(service: AutoOrganizationService, targetDir: URL) {
+        let missingDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let rule = AutoOrganizationRule(
+            sourceURL: missingDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true
+        )
+        service.rules = [rule]
+
+        service.processFolder(missingDir)
+
+        TestReporter.report(
+            "AutoOrganization",
+            "NEG: processFolder() on a nonexistent source folder returns early without crashing and leaves rules intact",
+            result: service.rules.contains(where: { $0.id == rule.id })
+        )
     }
 }
