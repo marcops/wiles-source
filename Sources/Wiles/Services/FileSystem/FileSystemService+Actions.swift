@@ -24,8 +24,26 @@ extension FileSystemService {
 
     @discardableResult
     public static func copyItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
-        let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
+        let destURL = uniqueDestination(for: url.lastPathComponent, in: targetFolder)
         try FileManager.default.copyItem(at: url, to: destURL)
+        return destURL
+    }
+
+    /// Pasting a copy on top of a name that already exists in the destination should never fail
+    /// with a "couldn't be copied" error — like Finder, it should just find a free name. Appends
+    /// `_1`, `_2`, ... before the extension until the name is free.
+    private static func uniqueDestination(for name: String, in folder: URL) -> URL {
+        var destURL = folder.appendingPathComponent(name)
+        guard FileManager.default.fileExists(atPath: destURL.path) else { return destURL }
+
+        let ext = (name as NSString).pathExtension
+        let base = (name as NSString).deletingPathExtension
+        var counter = 1
+        repeat {
+            let candidateName = ext.isEmpty ? "\(base)_\(counter)" : "\(base)_\(counter).\(ext)"
+            destURL = folder.appendingPathComponent(candidateName)
+            counter += 1
+        } while FileManager.default.fileExists(atPath: destURL.path)
         return destURL
     }
 

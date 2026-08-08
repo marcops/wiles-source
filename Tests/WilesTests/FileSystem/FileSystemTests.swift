@@ -424,6 +424,24 @@ extension FileSystemTests {
             negCopyPassed = true
         }
         TestReporter.report("FileSystem", "NEG: copyItem to non-existent folder throws error", result: negCopyPassed)
+
+        // POS: copyItem onto an existing name auto-renames instead of throwing (matches Finder's
+        // "duplicate on paste" behavior instead of surfacing a "couldn't be copied" error).
+        var collisionRenamePassed = false
+        var secondCollisionRenamePassed = false
+        do {
+            let firstCopy = try FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
+            collisionRenamePassed = firstCopy.lastPathComponent == "copy_source_1.txt"
+                && FileManager.default.fileExists(atPath: copySource.path)
+
+            let secondCopy = try FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
+            secondCollisionRenamePassed = secondCopy.lastPathComponent == "copy_source_2.txt"
+        } catch {
+            print("copyItem collision error: \(error)")
+        }
+        TestReporter.report("FileSystem", "POS: copyItem onto an existing name auto-renames to name_1.ext", result: collisionRenamePassed)
+        TestReporter.report("FileSystem", "POS: copyItem onto name_1.ext auto-renames to name_2.ext on the next collision", result: secondCollisionRenamePassed)
+
         await runTrashCoverageExtra(tempDir: tempDir)
     }
 

@@ -30,6 +30,16 @@ struct FileColumnView: View {
             .background(ScrollerAutoHideSetter())
             .onAppear { loadInitialColumns() }
             .onChange(of: appState.navigation.currentURL) { _, _ in loadInitialColumns() }
+            .onChange(of: appState.fileSystem.items) { _, newItems in
+                // Column view keeps its own local snapshot per column instead of rendering
+                // `appState.fileSystem.items` directly (like Grid/List do), so an operation that
+                // changes the current folder's contents without changing `currentURL` (paste,
+                // delete, rename via another view, etc.) otherwise never reaches the visible
+                // column. `fileSystem.items` always tracks `navigation.currentURL`, so refresh
+                // whichever local column corresponds to that folder.
+                guard let index = columns.firstIndex(where: { $0.folderURL == appState.navigation.currentURL }) else { return }
+                columns[index].items = newItems
+            }
             .onChange(of: columns.count) { _, newCount in
                 if newCount > 0 {
                     proxy.scrollTo(newCount - 1, anchor: .trailing)
