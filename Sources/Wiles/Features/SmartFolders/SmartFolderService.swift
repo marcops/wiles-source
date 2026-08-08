@@ -68,15 +68,8 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
             guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
             query.stop()
             guard let results = query.results as? [NSMetadataItem] else { completion([]); return }
-            var items: [FileItem] = []
-            for res in results {
-                if let path = res.value(forAttribute: NSMetadataItemPathKey) as? String {
-                    let url = URL(fileURLWithPath: path)
-                    let icon = NSWorkspace.shared.icon(forFile: path)
-                    items.append(FileItem(url: url, icon: icon))
-                }
-            }
-            completion(items)
+            let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
+            Self.fetchFileItems(forPaths: paths, completion: completion)
         }
         metadataQuery.start()
         query = metadataQuery
@@ -103,17 +96,30 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
             guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
             query.stop()
             guard let results = query.results as? [NSMetadataItem] else { completion([]); return }
-            var items: [FileItem] = []
-            for res in results {
-                if let path = res.value(forAttribute: NSMetadataItemPathKey) as? String {
-                    let url = URL(fileURLWithPath: path)
-                    let icon = NSWorkspace.shared.icon(forFile: path)
-                    items.append(FileItem(url: url, icon: icon))
-                }
-            }
-            completion(items)
+            let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
+            Self.fetchFileItems(forPaths: paths, completion: completion)
         }
         metadataQuery.start()
         query = metadataQuery
+    }
+
+    /// Resolves `FileItem`s (including their `NSWorkspace` icon) for a Spotlight result set's paths
+    /// off the main thread. With large result sets, doing this icon lookup inline inside the
+    /// synchronous `NSMetadataQueryDidFinishGathering` callback caused a mild UI hitch; batching it
+    /// into a detached task and hopping back to the main actor once done keeps that work off the hot
+    /// path, mirroring the off-main pattern used for `/Volumes/` navigation in `AppState+Navigation.swift`.
+    private static func fetchFileItems(forPaths paths: [String], completion: @escaping @Sendable ([FileItem]) -> Void) {
+        Task.detached(priority: .userInitiated) {
+            var items: [FileItem] = []
+            items.reserveCapacity(paths.count)
+            for path in paths {
+                let url = URL(fileURLWithPath: path)
+                let icon = NSWorkspace.shared.icon(forFile: path)
+                items.append(FileItem(url: url, icon: icon))
+            }
+            await MainActor.run {
+                completion(items)
+            }
+        }
     }
 }
