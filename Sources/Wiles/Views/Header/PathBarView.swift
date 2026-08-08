@@ -160,22 +160,21 @@ struct PathBarView: View {
 
     private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {
         let isHome = item.url.standardizedFileURL == URL.userHome.standardizedFileURL
-        return Button { appState.navigateTo(item.url) } label: {
-            HStack(spacing: 4) {
-                if isHome { Image(systemName: "house.fill").font(.system(size: 11)) }
-                Text(item.name).font(.system(size: 12, weight: .medium))
-            }
-            .padding(.horizontal, 6)
-            .frame(height: 22)
-            .hoverHighlight(
-                isSelected: !isCollapsed && item.url == appState.navigation.currentURL,
-                hoverBackground: Color.accentColor.opacity(0.12),
-                selectedBackground: Color.accentColor.opacity(0.2),
-                cornerRadius: 4
-            )
-            .foregroundColor(isCollapsed || item.url == appState.navigation.currentURL ? .primary : .secondary)
+        return HStack(spacing: 4) {
+            if isHome { Image(systemName: "house.fill").font(.system(size: 11)) }
+            Text(item.name).font(.system(size: 12, weight: .medium))
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 6)
+        .frame(height: 22)
+        .hoverHighlight(
+            isSelected: !isCollapsed && item.url == appState.navigation.currentURL,
+            hoverBackground: Color.accentColor.opacity(0.12),
+            selectedBackground: Color.accentColor.opacity(0.2),
+            cornerRadius: 4
+        )
+        .foregroundColor(isCollapsed || item.url == appState.navigation.currentURL ? .primary : .secondary)
+        .contentShape(Rectangle())
+        .onTapGesture { appState.navigateTo(item.url) }
         .accessibilityLabel(item.name)
         .accessibilityHint(appState.tr(.folder))
         .accessibilityAddTraits(item.url == appState.navigation.currentURL ? [.isButton, .isSelected] : [.isButton])

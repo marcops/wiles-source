@@ -34,18 +34,18 @@ struct AboutSheet: View {
                     Text(appState.tr(.createdBy))
                         .font(.system(size: LayoutTokens.aboutTextFontSize, weight: .medium))
 
-                    Button {
+                    HStack(spacing: 6) {
+                        Image(systemName: "link")
+                        Text(AppConstants.githubDisplayString)
+                    }
+                    .foregroundColor(.accentColor)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
                         if let url = URL(string: AppConstants.githubURL) {
                             openURL(url)
                         }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "link")
-                            Text(AppConstants.githubDisplayString)
-                        }
-                        .foregroundColor(.accentColor)
                     }
-                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(.isButton)
                     .accessibilityLabel(AppConstants.githubDisplayString)
                     .onHover { isHovered in
                         if isHovered {
