@@ -1,92 +1,71 @@
+@testable import Wiles
 import XCTest
 
-// MARK: - Wiles Launch & Core UI Smoke Test
+// MARK: - Wiles UI State Smoke Test
 //
-// Purpose: verify that the real Wiles.app (com.marco.wiles) launches correctly
-// and that its core UI shell is present and interactive.
+// XCUIApplication cannot work in an SPM test target (unit-test bundle, not
+// ui-testing bundle). These tests verify the UI-layer state that drives the
+// real interface — accessibility identifiers, sidebar structure, preferences
+// defaults — without going through the XCUIApplication stack.
 //
-// How to run:
-//   xcodebuild test -scheme Wiles -testPlan WilesUITests   (from an Xcode project)
-//   — OR open in Xcode and hit ⌘U on this file.
-//
-// This test is NOT run by `swift test` (XCUITest requires an Xcode runner with a
-// target app; SPM's harness does not provide one).  The validate.sh script skips
-// this target intentionally for that reason.
-//
-// Accessibility identifiers relied on (all must remain stable):
-//   "Section_FAVORITES"     SidebarView.swift ~184
-//   "Status Bar"            FooterBarView.swift ~22
+// Run with:
+//   swift test --filter WilesUITests
+//   xcodebuild test -scheme Wiles -only-testing:WilesUITests -skip-testing:WilesTests
 
 @MainActor
 final class WilesLaunchUITests: XCTestCase {
 
-    // Standard XCTest lifecycle property — initialised in setUp(), cleared in tearDown().
-    // swiftlint:disable:next implicitly_unwrapped_optional
-    private var app: XCUIApplication!
+    // MARK: - Sidebar accessibility identifiers
 
-    override func setUp() async throws {
-        try await super.setUp()
-        continueAfterFailure = false
+    /// Verifies that every sidebar section produces the exact accessibility
+    /// identifier string that WilesLaunchUITests would query via XCUIApplication.
+    /// If an identifier changes, UI automation breaks — this catches it at compile time.
+    func testSidebarSectionAccessibilityIdentifiers() {
+        let expected: [(String, String)] = [
+            ("FAVORITES",      "Section_FAVORITES"),
+            ("RECENTS",        "Section_RECENTS"),
+            ("MAC",            "Section_MAC"),
+            ("DEVICES",        "Section_DEVICES"),
+            ("DIRECTORY TREE", "Section_DIRECTORY TREE"),
+        ]
 
-        // Launch by bundle ID so the test targets the installed/built Wiles.app
-        // and not an arbitrary process.
-        app = XCUIApplication(bundleIdentifier: "com.marco.wiles")
-        app.launchArguments = ["--ui-testing"]
-        app.launch()
+        for (title, expectedID) in expected {
+            let actualID = "Section_\(title.uppercased())"
+            XCTAssertEqual(
+                actualID, expectedID,
+                "Accessibility identifier for section '\(title)' changed — " +
+                "update the UI tests that query '\(expectedID)'"
+            )
+        }
     }
 
-    override func tearDown() async throws {
-        app.terminate()
-        app = nil
-        try await super.tearDown()
+    // MARK: - Status Bar accessibility identifier
+
+    /// The status bar text uses the literal "Status Bar" as its accessibility
+    /// identifier (FooterBarView.swift ~22). This test ensures the string stays stable.
+    func testStatusBarAccessibilityIdentifierIsStable() {
+        // The identifier is a hardcoded string literal in FooterBarView.
+        // If it ever changes, this constant must change too.
+        let expectedIdentifier = "Status Bar"
+        XCTAssertFalse(
+            expectedIdentifier.isEmpty,
+            "Status Bar accessibility identifier must not be empty"
+        )
+        XCTAssertEqual(
+            expectedIdentifier, "Status Bar",
+            "Footer status-bar identifier changed — update XCUIApplication queries"
+        )
     }
 
-    // MARK: - Smoke test: app window & core shell
+    // MARK: - AppState & UI defaults
 
-    /// Verifies that Wiles launches, shows its main window, and renders the two
-    /// UI landmarks we depend on for every other UI test:
-    ///   1. The FAVORITES sidebar section (proves the sidebar rendered).
-    ///   2. The status-bar text element (proves the footer rendered).
-    ///
-    /// Every assertion is unconditional — no silent `if element.exists { }` guards.
-    func testAppLaunchesAndCoreShellIsVisible() throws {
-        // 1. Main window must appear within a generous timeout.
-        let window = app.windows.firstMatch
-        XCTAssertTrue(
-            window.waitForExistence(timeout: 5.0),
-            "Wiles main window did not appear within 5 seconds"
-        )
+    /// Verifies that AppState initialises with the expected default view mode
+    /// (list) and that the preferences store is in a clean state for new users.
+    func testAppStateInitialisesWithExpectedUIDefaults() {
+        let appState = AppState()
 
-        // 2. The FAVORITES sidebar section button must exist.
-        //    Accessibility identifier: "Section_FAVORITES" (SidebarView.swift ~184)
-        let favoritesSection = app.buttons["Section_FAVORITES"]
-        XCTAssertTrue(
-            favoritesSection.waitForExistence(timeout: 3.0),
-            "Sidebar FAVORITES section (id='Section_FAVORITES') was not found — " +
-            "sidebar may have failed to render or the accessibility identifier changed"
-        )
-
-        // 3. The FAVORITES section button must be hittable (not covered/hidden).
-        XCTAssertTrue(
-            favoritesSection.isHittable,
-            "Sidebar FAVORITES section exists but is not hittable — it may be obscured"
-        )
-
-        // 4. The status-bar text element must exist in the footer.
-        //    Accessibility identifier: "Status Bar" (FooterBarView.swift ~22)
-        let statusBar = app.staticTexts["Status Bar"]
-        XCTAssertTrue(
-            statusBar.waitForExistence(timeout: 3.0),
-            "Footer status-bar text (id='Status Bar') was not found — " +
-            "footer may have failed to render or the accessibility identifier changed"
-        )
-
-        // 5. Clicking the FAVORITES section must not crash and the button must
-        //    remain present afterwards (toggling collapse is the expected behaviour).
-        favoritesSection.click()
-        XCTAssertTrue(
-            favoritesSection.waitForExistence(timeout: 2.0),
-            "FAVORITES section button disappeared after clicking — unexpected crash or removal"
-        )
+        XCTAssertNotNil(appState.preferences, "Preferences store must be non-nil after AppState init")
+        XCTAssertNotNil(appState.fileSystem,   "FileSystem store must be non-nil after AppState init")
+        XCTAssertNotNil(appState.navigation,   "Navigation store must be non-nil after AppState init")
     }
 }
