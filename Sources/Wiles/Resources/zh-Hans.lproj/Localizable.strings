@@ -354,3 +354,6 @@
 "defaultAppExplanation" = "将 Wiles 添加到文件夹右键菜单的“打开方式”中(双击行为已被访达独占)。";
 "defaultAppRegisteredConfirmation" = "Wiles 已添加到文件夹的“打开方式”菜单中。";
 "defaultAppRegistrationFailed" = "无法注册 Wiles。请重试，或检查系统设置 > 通用 > 登录项与扩展。";
+"adjustIconSizeHelp" = "调整图标大小(Cmd/Ctrl + 滚轮 或 Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "搜索筛选器(日期、类型、大小)";
+"errorAlertTitle" = "错误";

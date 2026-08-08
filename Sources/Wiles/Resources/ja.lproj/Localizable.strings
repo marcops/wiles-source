@@ -354,3 +354,6 @@
 "defaultAppExplanation" = "フォルダの右クリック「このアプリケーションで開く」メニューにWilesを追加します(ダブルクリックはFinder専用のため)。";
 "defaultAppRegisteredConfirmation" = "Wilesがフォルダの「このアプリケーションで開く」メニューに追加されました。";
 "defaultAppRegistrationFailed" = "Wilesを登録できませんでした。もう一度お試しいただくか、システム設定 > 一般 > ログイン項目と機能拡張を確認してください。";
+"adjustIconSizeHelp" = "アイコンサイズを調整(Cmd/Ctrl + ホイール または Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "検索フィルター(日付、種類、サイズ)";
+"errorAlertTitle" = "エラー";

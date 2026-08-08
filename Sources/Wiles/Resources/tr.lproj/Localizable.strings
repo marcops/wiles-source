@@ -354,3 +354,6 @@
 "defaultAppExplanation" = "Wiles'ı klasörlerin sağ tık \"Birlikte Aç\" menüsüne ekler (çift tıklama Finder'a ayrılmıştır).";
 "defaultAppRegisteredConfirmation" = "Wiles, klasörlerin \"Birlikte Aç\" menüsüne eklendi.";
 "defaultAppRegistrationFailed" = "Wiles kaydedilemedi. Tekrar deneyin veya Sistem Ayarları > Genel > Oturum Açma Öğeleri ve Uzantılar kısmını kontrol edin.";
+"adjustIconSizeHelp" = "Simge boyutunu ayarla (Cmd/Ctrl + Tekerlek veya Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "Arama Filtreleri (Tarih, Tür, Boyut)";
+"errorAlertTitle" = "Hata";

@@ -354,3 +354,6 @@
 "defaultAppExplanation" = "Adds Wiles to a folder's right-click \"Open With\" menu (macOS reserves double-click for Finder).";
 "defaultAppRegisteredConfirmation" = "Wiles was added to the \"Open With\" menu for folders.";
 "defaultAppRegistrationFailed" = "Couldn't register Wiles. Try again, or check System Settings > General > Login Items & Extensions.";
+"adjustIconSizeHelp" = "Adjust icon size (Cmd/Ctrl + Wheel or Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "Search Filters (Date, Type, Size)";
+"errorAlertTitle" = "Error";

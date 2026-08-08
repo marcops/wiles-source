@@ -354,3 +354,6 @@
 "defaultAppExplanation" = "Dodaje Wiles do menu „Otwórz za pomocą” (prawy klik) folderów (macOS rezerwuje dwuklik dla Findera).";
 "defaultAppRegisteredConfirmation" = "Wiles został dodany do menu „Otwórz za pomocą” dla folderów.";
 "defaultAppRegistrationFailed" = "Nie udało się zarejestrować Wiles. Spróbuj ponownie lub sprawdź Ustawienia systemowe > Ogólne > Elementy logowania i rozszerzenia.";
+"adjustIconSizeHelp" = "Dostosuj rozmiar ikon (Cmd/Ctrl + Kółko myszy lub Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "Filtry wyszukiwania (Data, Typ, Rozmiar)";
+"errorAlertTitle" = "Błąd";

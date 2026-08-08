@@ -38,7 +38,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
         )
 
         // Initial cd
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.terminalInitialCommandDelay) {
             terminalView.send(txt: "cd \"\(CopyPathService.escapeForTerminal(path))\"\r")
             terminalView.send(txt: "clear\r")
         }

@@ -354,3 +354,6 @@
 "defaultAppExplanation" = "Aggiunge Wiles al menu \"Apri con\" (clic destro) delle cartelle (macOS riserva il doppio clic al Finder).";
 "defaultAppRegisteredConfirmation" = "Wiles è stato aggiunto al menu \"Apri con\" delle cartelle.";
 "defaultAppRegistrationFailed" = "Impossibile registrare Wiles. Riprova oppure controlla Impostazioni di Sistema > Generali > Elementi di login ed estensioni.";
+"adjustIconSizeHelp" = "Regola la dimensione delle icone (Cmd/Ctrl + Rotellina o Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "Filtri di Ricerca (Data, Tipo, Dimensione)";
+"errorAlertTitle" = "Errore";
