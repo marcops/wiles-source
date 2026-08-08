@@ -339,3 +339,14 @@ don't improvise a layout that merely "looks plausible." General rules:
   selected a different tab). If a bigger tap target is genuinely needed for controls packed this
   tightly, increase the real `HStack`/`VStack` `spacing` between them first so there's slack to grow
   into, rather than letting hit regions silently overlap.
+
+## 34. Script Any Manual Command Sequence You Run More Than Once
+- Second time you chain the same multi-step shell sequence, make it a `scripts/*.sh` file and call
+  it by name instead of re-typing. Full description lives in each script's own header comment.
+- `scripts/push_and_relaunch.sh "<msg>" [--skip-commit]` — build+sign+relaunch, then commit+push.
+  Default to `--skip-commit` until told to commit (rule 10).
+- `scripts/validate.sh` — build+test+lint+format, exit 0 = clean.
+- `scripts/build_release.sh` — packages release `.zip`/`.dmg`/`.sha256`.
+- `scripts/release.sh` — validate → build_release → update Homebrew Cask → push.
+- `scripts/test_timing.sh` — slowest 10 tests.
+- `scripts/setup_test_ramdisk.sh` — mounts RAM disk for tests.

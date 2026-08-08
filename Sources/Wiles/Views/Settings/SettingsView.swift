@@ -7,7 +7,8 @@ import SwiftUI
 /// with, so it follows the exact same header/divider/content/divider/footer pattern as every other
 /// modal in the app (`HelpSheet`, `AboutSheet`, etc. — see AGENTS.md rule 30) with no extra work.
 struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
     var appState: AppState
 
     private enum Tab: CaseIterable, Identifiable {
@@ -101,8 +102,7 @@ struct SettingsView: View {
         .accessibilityLabel(Text(title(for: tab)))
     }
 
-    @ViewBuilder
-    private var content: some View {
+    @ViewBuilder private var content: some View {
         Group {
             switch selectedTab {
             case .general:
