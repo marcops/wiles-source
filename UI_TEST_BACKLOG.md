@@ -42,6 +42,16 @@ the real test the moment the missing infrastructure exists.
   exercised — dozens of `AppState()` constructions happen across the suite). Not chasing further;
   flagging in case it recurs for other properties with `UserDefaults ... ?? default` initializers.
 
+## `Sources/Wiles/Services/NetworkServerService.swift`
+
+- **`connectToServer(urlAddress:)` success path — the final `NSWorkspace.shared.open(url)` call.**
+  For any syntactically valid `smb://...` address, this attempts a real macOS network-share mount,
+  which can present real connection/credential system UI or hang waiting on real network I/O — the
+  same class of problem as `OpenWithService.open()` below. Only the two guard branches (empty address
+  no-ops, invalid URL throws) are covered in `NetworkServerServiceTests`.
+  - **Why it's out of scope now**: no injectable seam to swap in a fake opener; would need a
+    `Sources/` change (e.g. an injected `URLOpening` protocol) requiring approval.
+
 ## `Sources/Wiles/Services/OpenWithService.swift`
 
 - **`open(urls:with:)` — non-empty urls branch (the body after `guard !urls.isEmpty else { return }`).**
