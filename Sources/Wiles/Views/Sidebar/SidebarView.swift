@@ -51,6 +51,7 @@ struct SidebarView: View {
                 if appState.preferences.showFavorites && !favItems.isEmpty {
                     collapsibleSection(
                         title: appState.tr(.favorites),
+                        identifierKey: "FAVORITES",
                         isExpanded: $appState.preferences.isFavoritesExpanded,
                         items: favItems,
                         isFavoritesSection: true
@@ -68,6 +69,7 @@ struct SidebarView: View {
                     }()
                     collapsibleSection(
                         title: appState.tr(.networkAndCloud),
+                        identifierKey: "NETWORK",
                         isExpanded: $appState.preferences.isNetworkExpanded,
                         items: items,
                         isFavoritesSection: false
@@ -77,6 +79,7 @@ struct SidebarView: View {
                 if appState.preferences.showPlaces {
                     collapsibleSection(
                         title: appState.tr(.places),
+                        identifierKey: "PLACES",
                         isExpanded: $appState.preferences.isDevicesExpanded,
                         items: devices,
                         isFavoritesSection: false
@@ -86,7 +89,7 @@ struct SidebarView: View {
                 if appState.preferences.showDirectoryTree {
                     VStack(alignment: .leading, spacing: 4) {
                         if appState.preferences.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.directoryTree), isExpanded: $appState.preferences.isTreeExpanded)
+                            sectionHeader(title: appState.tr(.directoryTree), identifierKey: "DIRECTORY_TREE", isExpanded: $appState.preferences.isTreeExpanded)
                         }
                         if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTreeExpanded {
                             if let rootFolderNode {
@@ -103,7 +106,7 @@ struct SidebarView: View {
                 if appState.preferences.showTags {
                     VStack(alignment: .leading, spacing: 4) {
                         if appState.preferences.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.tags), isExpanded: $appState.preferences.isTagsExpanded)
+                            sectionHeader(title: appState.tr(.tags), identifierKey: "TAGS", isExpanded: $appState.preferences.isTagsExpanded)
                         }
                         if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTagsExpanded {
                             tagRow(tag: "Red", colorKey: .red)
@@ -120,7 +123,7 @@ struct SidebarView: View {
                 if !appState.smartFolders.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         if appState.preferences.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.smartFolders), isExpanded: $appState.preferences.isSmartFoldersExpanded)
+                            sectionHeader(title: appState.tr(.smartFolders), identifierKey: "SMART_FOLDERS", isExpanded: $appState.preferences.isSmartFoldersExpanded)
                         }
                         if !appState.preferences.showSidebarSectionTitles || appState.preferences.isSmartFoldersExpanded {
                             ForEach(appState.smartFolders) { folder in
@@ -160,7 +163,10 @@ struct SidebarView: View {
         }
     }
 
-    private func sectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
+    // `identifierKey` is a fixed, non-localized key (e.g. "FAVORITES") kept separate from the
+    // localized `title` shown on screen — accessibility identifiers must stay stable across
+    // languages so UI tests and automation don't break when the OS language changes.
+    private func sectionHeader(title: String, identifierKey: String, isExpanded: Binding<Bool>) -> some View {
         Button {
             withAnimation(MotionTokens.quickEase) {
                 isExpanded.wrappedValue.toggle()
@@ -181,7 +187,7 @@ struct SidebarView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("Section_\(title.uppercased())")
+        .accessibilityIdentifier("Section_\(identifierKey)")
         .accessibilityLabel(title)
         .accessibilityHint(appState.tr(.folder))
     }
@@ -212,10 +218,10 @@ struct SidebarView: View {
         .padding(.horizontal, 6)
     }
 
-    private func collapsibleSection(title: String, isExpanded: Binding<Bool>, items: [SidebarItem], isFavoritesSection: Bool = false) -> some View {
+    private func collapsibleSection(title: String, identifierKey: String, isExpanded: Binding<Bool>, items: [SidebarItem], isFavoritesSection: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if appState.preferences.showSidebarSectionTitles {
-                sectionHeader(title: title, isExpanded: isExpanded)
+                sectionHeader(title: title, identifierKey: identifierKey, isExpanded: isExpanded)
             }
             if !appState.preferences.showSidebarSectionTitles || isExpanded.wrappedValue {
                 ForEach(items) { item in

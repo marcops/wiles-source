@@ -27,6 +27,10 @@ public struct ImageConverterCoverageTests {
         testScalePresetTruncatesFractionalDimensions()
         testOutOfRangeQualityDoesNotThrow()
         testDestinationFileIsWrittenInSameDirectoryAsSource()
+        testImageFormatIdAndDisplayNameForAllCases()
+        testResizePresetIdAndDisplayNameForAllCases()
+        testCropPresetIdAndDisplayNameForAllCases()
+        ImageConverterCoverageExtraTests.run()
     }
 
     // MARK: - Fixtures
@@ -420,6 +424,29 @@ public struct ImageConverterCoverageTests {
             "POS: converted file is written into the same directory as the source file",
             result: dest.deletingLastPathComponent().path == source.deletingLastPathComponent().path
         )
+    }
+
+    // MARK: - Enum id / displayName
+
+    private static func testImageFormatIdAndDisplayNameForAllCases() {
+        let allNonEmpty = ImageFormat.allCases.allSatisfy { format in
+            format.id == format.rawValue && !format.displayName.isEmpty
+        }
+        report("ImageConverter", "POS: ImageFormat.id and displayName are populated for every case", result: allNonEmpty)
+    }
+
+    private static func testResizePresetIdAndDisplayNameForAllCases() {
+        let allNonEmpty = ResizePreset.allCases.allSatisfy { preset in
+            preset.id == preset.rawValue && !preset.displayName.isEmpty
+        }
+        report("ImageConverter", "POS: ResizePreset.id and displayName are populated for every case", result: allNonEmpty)
+    }
+
+    private static func testCropPresetIdAndDisplayNameForAllCases() {
+        let allNonEmpty = CropPreset.allCases.allSatisfy { preset in
+            preset.id == preset.rawValue && !preset.displayName.isEmpty
+        }
+        report("ImageConverter", "POS: CropPreset.id and displayName are populated for every case", result: allNonEmpty)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

@@ -18,6 +18,12 @@ public struct AppStateCoreTests {
         testAddSmartFolder()
         testRemoveSmartFolder()
         await testFreeSpaceText()
+        testSearchScopeID()
+        testStatusTextSelectedDirectoryHasNoSizeSuffix()
+        await testCompressSelectedToZIP()
+        await testCompressSelectedToZIPFailure()
+        await testCompressSelectedToZIPWithPasswordFailure()
+        await testExtractArchive()
     }
 
     private static func makeItem(named name: String, in dir: URL, contents: String = "content", isDirectory: Bool = false) -> FileItem {
@@ -333,6 +339,145 @@ public struct AppStateCoreTests {
         appState.navigation.currentURL = bogus
         let bogusText = await appState.loadFreeSpaceText()
         report("AppState", "NEG: loadFreeSpaceText() is nil when volumeAvailableCapacity can't be resolved for the URL", result: bogusText == nil)
+    }
+
+    private static func testSearchScopeID() {
+        report(
+            "AppState", "POS: SearchScope.id returns the case's rawValue for both cases",
+            result: SearchScope.name.id == "name" && SearchScope.content.id == "content"
+        )
+    }
+
+    private static func testStatusTextSelectedDirectoryHasNoSizeSuffix() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let dirItem = makeItem(named: "subdir", in: dir, isDirectory: true)
+        appState.fileSystem.items = [dirItem]
+        appState.selectedURLs = [dirItem.url]
+        report(
+            "AppState",
+            "NEG: statusText with a selected directory (zero file size) omits the parenthesized size suffix",
+            result: appState.statusText == "1 / 1"
+        )
+    }
+
+    private static func testCompressSelectedToZIP() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        appState.navigation.currentURL = dir
+        appState.selectedURLs = []
+        appState.compressSelectedToZIP()
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        let contentsAfterEmptySelection = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        report("AppState", "NEG: compressSelectedToZIP() with an empty selection creates no archive", result: contentsAfterEmptySelection.isEmpty)
+
+        let fileURL = dir.appendingPathComponent("toZip.txt")
+        try? "content".write(to: fileURL, atomically: true, encoding: .utf8)
+        appState.selectedURLs = [fileURL]
+        appState.compressSelectedToZIP()
+
+        let expectedZip = dir.appendingPathComponent("toZip.zip")
+        let zipExists = await waitUntil { FileManager.default.fileExists(atPath: expectedZip.path) }
+        report(
+            "AppState", "POS: compressSelectedToZIP() creates a zip archive of the selected item in the current directory",
+            result: zipExists
+        )
+    }
+
+    private static func testCompressSelectedToZIPFailure() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        // ditto -c (the single-file, no-password path compressSelectedToZIP() always takes) silently
+        // creates any missing destination directory itself, so a missing destination folder can't be
+        // used to force a failure here. A source URL that isn't backed by a real file on disk is what
+        // actually makes ditto fail ("Cannot get the real path for source").
+        let nonExistentSource = dir.appendingPathComponent("does-not-exist-\(UUID().uuidString).txt")
+
+        let appState = AppState()
+        appState.navigation.currentURL = dir
+        appState.selectedURLs = [nonExistentSource]
+        appState.modal.errorMessage = nil
+        appState.compressSelectedToZIP()
+
+        let gotError = await waitUntil { appState.modal.errorMessage != nil }
+        report(
+            "AppState",
+            "NEG: compressSelectedToZIP() surfaces an error via showError() when the selected source doesn't exist on disk",
+            result: gotError
+        )
+    }
+
+    private static func testCompressSelectedToZIPWithPasswordFailure() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let fileURL = dir.appendingPathComponent("source.txt")
+        try? "x".write(to: fileURL, atomically: true, encoding: .utf8)
+        let missingDestDir = dir.appendingPathComponent("missing-\(UUID().uuidString)")
+
+        let appState = AppState()
+        appState.navigation.currentURL = missingDestDir
+        appState.modal.errorMessage = nil
+        appState.compressSelectedToZIPWithPassword("hunter2", urls: [fileURL])
+
+        let gotError = await waitUntil { appState.modal.errorMessage != nil }
+        report(
+            "AppState",
+            "NEG: compressSelectedToZIPWithPassword() surfaces an error via showError() when the destination folder doesn't exist",
+            result: gotError
+        )
+    }
+
+    private static func testExtractArchive() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let sourceFile = dir.appendingPathComponent("payload.txt")
+        try? "payload".write(to: sourceFile, atomically: true, encoding: .utf8)
+        let zipURL = dir.appendingPathComponent("payload.zip")
+        try? ArchiveService.compressToZIP(urls: [sourceFile], in: dir)
+
+        let extractDir = dir.appendingPathComponent("extracted")
+        try? FileManager.default.createDirectory(at: extractDir, withIntermediateDirectories: true)
+
+        let appState = AppState()
+        appState.navigation.currentURL = extractDir
+        appState.modal.errorMessage = nil
+        appState.extractArchive(url: zipURL)
+
+        let expectedExtractedFile = extractDir.appendingPathComponent("payload.txt")
+        let extracted = await waitUntil { FileManager.default.fileExists(atPath: expectedExtractedFile.path) }
+        report("AppState", "POS: extractArchive() extracts the archive's contents into the current directory", result: extracted)
+
+        appState.modal.errorMessage = nil
+        let bogusZip = dir.appendingPathComponent("not-a-real-archive-\(UUID().uuidString).zip")
+        appState.extractArchive(url: bogusZip)
+
+        let gotError = await waitUntil { appState.modal.errorMessage != nil }
+        report(
+            "AppState", "NEG: extractArchive() with a nonexistent archive URL surfaces an error via showError()",
+            result: gotError
+        )
+    }
+
+    /// Polls `condition` every 100ms (up to `iterations` times) so tests exercising a fire-and-forget
+    /// `Task.detached` in `AppState` (compress/extract) don't need to hand-roll a wait loop each time.
+    private static func waitUntil(iterations: Int = 8, _ condition: () -> Bool) async -> Bool {
+        for _ in 0..<iterations {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            if condition() { return true }
+        }
+        return false
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

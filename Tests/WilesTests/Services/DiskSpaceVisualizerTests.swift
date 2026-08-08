@@ -17,6 +17,14 @@ public struct DiskSpaceVisualizerTests {
         await testPermissionDeniedSubdirectory()
         await testSingleLargeFileDominatesPercentage()
         await testDirectoryVsFileClassificationWithEqualZeroSizes()
+        testDiskUsageItemIdentity()
+    }
+
+    // POS: Identifiable.id mirrors the item's own url exactly (used by SwiftUI ForEach/List diffing).
+    private static func testDiskUsageItemIdentity() {
+        let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("sample.bin")
+        let item = DiskUsageItem(url: url, name: "sample.bin", size: 1024, percentage: 50.0, isDirectory: false, colorHue: 0.5)
+        TestReporter.report("DiskSpaceVisualizer", "POS: DiskUsageItem.id equals its url", result: item.id == url)
     }
 
     private static func testBasicUsageAndNonExistentFolder() async {

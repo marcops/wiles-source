@@ -210,6 +210,11 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
+    func testFileMetadataTooltipServiceTests() async {
+        await FileMetadataTooltipServiceTests.run()
+    }
+
+    @MainActor
     func testDirectoryCacheTests() {
         DirectoryCacheTests.run()
     }
@@ -265,8 +270,13 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testAppStateNavigationExtraTests() {
-        AppStateNavigationExtraTests.run()
+    func testAppStateNavigationExtraTests() async {
+        await AppStateNavigationExtraTests.run()
+    }
+
+    @MainActor
+    func testAppStateNavigateToVolumesTests() async {
+        await AppStateNavigateToVolumesTests.run()
     }
 
     @MainActor

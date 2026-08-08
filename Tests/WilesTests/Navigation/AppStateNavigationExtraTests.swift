@@ -4,7 +4,7 @@ import AppKit
 
 @MainActor
 public struct AppStateNavigationExtraTests {
-    public static func run() {
+    public static func run() async {
         testAddToRecentsPrependsAndDedups()
         testAddToRecentsCapsAt50()
         testAddToRecentsIgnoresRecentsVirtualURL()
@@ -16,6 +16,8 @@ public struct AppStateNavigationExtraTests {
         testGoUpAtRootDoesNotNavigate()
         testHistoryBackCapsAt200Entries()
         testHistoryForwardCapsAt200EntriesWhenDrainingHistoryBack()
+        testRefreshCurrentDirectoryUserInitiatedSetsLoadingWhenItemsAreEmpty()
+        await testGoUpAfterEnteringChildReselectsChildOncePendingSelectionResolves()
     }
 
     // MARK: - Helpers
@@ -263,6 +265,64 @@ public struct AppStateNavigationExtraTests {
             "Navigation/History",
             "POS: historyForward caps at 200 entries after draining a 200-entry historyBack (would be 200, cap has no effect on exceeding it here, but never grows past it)",
             result: appState.navigation.historyForward.count == 200
+        )
+    }
+
+    // MARK: - refreshCurrentDirectory(isUserInitiated:)
+
+    /// Covers the `isUserInitiated && fileSystem.items.isEmpty` branch that flips `fileSystem.isLoading`
+    /// to `true` synchronously, before the real async load kicks off. Uses a freshly-generated temp
+    /// directory path (never navigated to before) so `DirectoryCacheService` has no cached result that
+    /// could resolve synchronously and flip `isLoading` back to `false` before we observe it.
+    private static func testRefreshCurrentDirectoryUserInitiatedSetsLoadingWhenItemsAreEmpty() {
+        let appState = AppState()
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        appState.navigation.currentURL = dir
+        appState.fileSystem.items = []
+        appState.refreshCurrentDirectory(isUserInitiated: true)
+        report(
+            "Navigation/Refresh",
+            "POS: refreshCurrentDirectory(isUserInitiated: true) sets isLoading synchronously when items are empty",
+            result: appState.fileSystem.isLoading
+        )
+    }
+
+    // MARK: - applyLoadedItems pending-selection resolution
+
+    /// Drives the "leaving a child folder re-selects it once the parent's contents load" flow all the
+    /// way through the real async `refreshCurrentDirectory()` pipeline: navigate into a child folder,
+    /// `goUp()` back to the parent (which sets `selection.pendingSelectionURL` to the child via
+    /// `childToRestore`), then poll until the async load completes and `applyLoadedItems()` resolves
+    /// the pending selection against the freshly-loaded parent contents.
+    private static func testGoUpAfterEnteringChildReselectsChildOncePendingSelectionResolves() async {
+        let parent = tempDir()
+        let child = parent.appendingPathComponent("child")
+        try? FileManager.default.createDirectory(at: child, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+
+        let appState = AppState()
+        appState.navigateTo(child)
+        appState.goUp()
+
+        // The loaded FileItem's `url` carries a trailing slash (it's a real, existing directory), so
+        // compare standardized paths rather than the URLs directly (rule 20 — never compare raw
+        // URL/String values with `==` across code paths that may format them differently).
+        var resolved = false
+        for _ in 0..<15 {
+            if appState.selectedURLs.count == 1,
+               appState.selectedURLs.first?.standardizedFileURL.path == child.standardizedFileURL.path {
+                resolved = true
+                break
+            }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        report(
+            "Navigation/Refresh",
+            "POS: goUp() from a child folder re-selects that child once the parent's async load resolves the pending selection",
+            result: resolved
         )
     }
 }

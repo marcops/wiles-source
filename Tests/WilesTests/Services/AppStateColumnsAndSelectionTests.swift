@@ -14,6 +14,9 @@ public struct AppStateColumnsAndSelectionTests {
         testSetViewModeForFolder()
         testHandleSelectionSingleClick()
         testHandleSelectionExtend()
+        testAutoFitColumnWidth()
+        testPerformRenameNoOpCases()
+        testPerformRenameFailurePath()
     }
 
     private static func makeIcon() -> NSImage {
@@ -217,6 +220,71 @@ public struct AppStateColumnsAndSelectionTests {
 
         appState.handleSelection(for: itemB, extendSelection: true)
         report("AppState+Selection", "NEG: handleSelection() with extend toggling off the last item empties the selection", result: appState.selectedURLs.isEmpty)
+    }
+
+    private static func testAutoFitColumnWidth() {
+        let appState = AppState()
+        appState.listColumnStates = ListColumnState.defaults()
+        // Start from a known width that's guaranteed to differ from the auto-fit result below.
+        appState.setColumnWidth(.name, width: LayoutTokens.columnMinWidth)
+
+        appState.autoFitColumnWidth(.name)
+        let expected = max(LayoutTokens.columnMinWidth, ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState))
+        report(
+            "AppState+Columns",
+            "POS: autoFitColumnWidth() applies the width computed by ColumnAutoFitService, clamped via setColumnWidth()",
+            result: appState.columnWidth(for: .name) == expected
+        )
+
+        // No state entry for the column: setColumnWidth's internal guard makes this a no-op.
+        appState.listColumnStates.removeAll { $0.column == .size }
+        appState.autoFitColumnWidth(.size)
+        report(
+            "AppState+Columns",
+            "NEG: autoFitColumnWidth() is a no-op when the column has no existing state entry",
+            result: appState.listColumnStates.contains { $0.column == .size } == false
+        )
+    }
+
+    private static func testPerformRenameNoOpCases() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let item = makeItem(named: "original.txt", in: dir)
+
+        appState.performRename(item: item, newName: "   ")
+        report(
+            "AppState+Columns",
+            "NEG: performRename() with an all-whitespace name is a no-op and leaves the file untouched",
+            result: FileManager.default.fileExists(atPath: item.url.path)
+        )
+
+        appState.performRename(item: item, newName: item.name)
+        report(
+            "AppState+Columns",
+            "NEG: performRename() with the item's unchanged name is a no-op",
+            result: FileManager.default.fileExists(atPath: item.url.path)
+        )
+    }
+
+    private static func testPerformRenameFailurePath() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        appState.modal.errorMessage = nil
+        let item = makeItem(named: "source.txt", in: dir)
+        _ = makeItem(named: "taken.txt", in: dir)
+
+        appState.performRename(item: item, newName: "taken.txt")
+        report(
+            "AppState+Columns",
+            "NEG: performRename() surfaces an error via showError() when FileSystemService.renameItem() throws (destination name already taken)",
+            result: appState.modal.errorMessage != nil && FileManager.default.fileExists(atPath: item.url.path)
+        )
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

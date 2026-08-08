@@ -22,6 +22,36 @@ public struct NewFileTemplateTests {
         let defaultPos = defaultURL?.lastPathComponent == FileTemplate.json.defaultFileName
         TestReporter.report("NewFileTemplate", "NEG: Empty file name falls back to template default name", result: defaultPos)
 
+        testFileTemplateIDMatchesRawValue()
+        testCreateTemplateFileWithoutExtensionAppendsTemplateExtension(tempDir: tempDir)
+        testCreateTemplateFileGeneratesUniqueNameWhenFileAlreadyExists(tempDir: tempDir)
+
         try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    // POS: FileTemplate's Identifiable `id` mirrors its rawValue for every case
+    private static func testFileTemplateIDMatchesRawValue() {
+        let allMatch = FileTemplate.allCases.allSatisfy { $0.id == $0.rawValue }
+        TestReporter.report("NewFileTemplate", "POS: FileTemplate.id matches rawValue for every case", result: allMatch)
+    }
+
+    // POS: a file name with no extension at all gets the template's extension appended
+    // (covers the `!targetURL.pathExtension.isEmpty == false` branch, which is true when there's no extension)
+    private static func testCreateTemplateFileWithoutExtensionAppendsTemplateExtension(tempDir: URL) {
+        let url = try? NewFileTemplateService.createTemplateFile(in: tempDir, fileName: "NoExtensionName", template: .python)
+        let matches = url?.pathExtension == FileTemplate.python.rawValue && url?.lastPathComponent == "NoExtensionName.py"
+        TestReporter.report("NewFileTemplate", "POS: createTemplateFile appends template extension when file name has none", result: matches)
+    }
+
+    // POS: creating a file with the same name twice (then a third time) exercises generateUniqueURL's
+    // repeat-while loop, producing "Name 2.ext" then "Name 3.ext" instead of overwriting the original.
+    private static func testCreateTemplateFileGeneratesUniqueNameWhenFileAlreadyExists(tempDir: URL) {
+        let first = try? NewFileTemplateService.createTemplateFile(in: tempDir, fileName: "Duplicate.txt", template: .text)
+        let second = try? NewFileTemplateService.createTemplateFile(in: tempDir, fileName: "Duplicate.txt", template: .text)
+        let third = try? NewFileTemplateService.createTemplateFile(in: tempDir, fileName: "Duplicate.txt", template: .text)
+
+        let names = [first, second, third].compactMap { $0?.lastPathComponent }
+        let expected = ["Duplicate.txt", "Duplicate 2.txt", "Duplicate 3.txt"]
+        TestReporter.report("NewFileTemplate", "POS: createTemplateFile generates unique incrementing names when the file already exists", result: names == expected)
     }
 }

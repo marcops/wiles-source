@@ -124,6 +124,13 @@ public struct AutoOrganizationRuleAndListColumnTests {
             "NEG: non-name columns report isAlwaysVisible == false",
             result: ListColumn.allCases.filter { $0 != .name }.allSatisfy { $0.isAlwaysVisible == false }
         )
+
+        // POS: Identifiable.id mirrors rawValue exactly for every case (used by SwiftUI ForEach/Picker).
+        report(
+            "ListColumnSettings",
+            "POS: ListColumn.id equals rawValue for every case",
+            result: ListColumn.allCases.allSatisfy { $0.id == $0.rawValue }
+        )
     }
 
     private static func testListColumnDefaultWidths() {

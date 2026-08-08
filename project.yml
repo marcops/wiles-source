@@ -17,7 +17,10 @@ targets:
     platform: macOS
     sources: []
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.marco.wiles
+      # Deliberately NOT com.marco.wiles: that's the real, daily-use app's bundle id, and
+      # UserDefaults.standard is scoped by it. Sharing it here would mean UI test runs read/write
+      # your actual saved app settings (favorites, sidebar layout, etc.) instead of starting clean.
+      PRODUCT_BUNDLE_IDENTIFIER: com.marco.wiles.uitest
       PRODUCT_NAME: Wiles
       CODE_SIGN_IDENTITY: "-"
       GENERATE_INFOPLIST_FILE: YES
