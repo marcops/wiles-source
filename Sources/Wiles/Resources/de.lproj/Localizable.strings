@@ -351,3 +351,6 @@
 "defaultAppExplanation" = "Fügt Wiles dem Rechtsklick-Menü „Öffnen mit“ für Ordner hinzu (macOS reserviert den Doppelklick für den Finder).";
 "defaultAppRegisteredConfirmation" = "Wiles wurde dem Menü „Öffnen mit“ für Ordner hinzugefügt.";
 "defaultAppRegistrationFailed" = "Wiles konnte nicht registriert werden. Versuche es erneut oder prüfe Systemeinstellungen > Allgemein > Anmeldeobjekte & Erweiterungen.";
+"adjustIconSizeHelp" = "Symbolgröße anpassen (Cmd/Ctrl + Mausrad oder Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "Suchfilter (Datum, Typ, Größe)";
+"errorAlertTitle" = "Fehler";

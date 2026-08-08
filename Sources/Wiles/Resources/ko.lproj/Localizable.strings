@@ -351,3 +351,6 @@
 "defaultAppExplanation" = "폴더 우클릭 \"다음으로 열기\" 메뉴에 Wiles를 추가합니다(더블 클릭은 Finder 전용이기 때문입니다).";
 "defaultAppRegisteredConfirmation" = "Wiles가 폴더의 \"다음으로 열기\" 메뉴에 추가되었습니다.";
 "defaultAppRegistrationFailed" = "Wiles를 등록하지 못했습니다. 다시 시도하거나 시스템 설정 > 일반 > 로그인 항목 및 확장 프로그램을 확인하세요.";
+"adjustIconSizeHelp" = "아이콘 크기 조정(Cmd/Ctrl + 휠 또는 Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "검색 필터(날짜, 유형, 크기)";
+"errorAlertTitle" = "오류";

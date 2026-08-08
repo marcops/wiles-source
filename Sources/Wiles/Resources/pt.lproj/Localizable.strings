@@ -354,3 +354,6 @@
 "defaultAppExplanation" = "Adiciona o Wiles ao menu \"Abrir Com\" (clique direito) das pastas (o macOS reserva o duplo clique para o Finder).";
 "defaultAppRegisteredConfirmation" = "O Wiles foi adicionado ao menu \"Abrir Com\" das pastas.";
 "defaultAppRegistrationFailed" = "Não foi possível registrar o Wiles. Tente novamente ou verifique Ajustes do Sistema > Geral > Itens de Login e Extensões.";
+"adjustIconSizeHelp" = "Ajustar tamanho dos ícones (Cmd/Ctrl + Wheel ou Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "Filtros de Pesquisa (Data, Tipo, Tamanho)";
+"errorAlertTitle" = "Erro";

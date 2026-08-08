@@ -83,7 +83,7 @@ struct HeaderBarView: View {
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
                         isSearchFocused = true
                     }
                 }
@@ -175,7 +175,7 @@ struct HeaderBarView: View {
                 .foregroundColor(.secondary)
         }
         .menuStyle(.borderlessButton)
-        .help("Search Filters (Date, Type, Size)")
+        .help(appState.tr(.searchFiltersHelp))
     }
 
     private var searchButton: some View {

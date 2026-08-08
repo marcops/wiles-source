@@ -351,3 +351,6 @@
 "defaultAppExplanation" = "يضيف Wiles إلى قائمة \"فتح باستخدام\" بالنقر بزر الماوس الأيمن على المجلدات (النقر المزدوج محجوز حصريًا لـ Finder).";
 "defaultAppRegisteredConfirmation" = "تمت إضافة Wiles إلى قائمة \"فتح باستخدام\" للمجلدات.";
 "defaultAppRegistrationFailed" = "تعذر تسجيل Wiles. حاول مرة أخرى أو تحقق من إعدادات النظام > عام > عناصر تسجيل الدخول والامتدادات.";
+"adjustIconSizeHelp" = "ضبط حجم الأيقونات (Cmd/Ctrl + عجلة الماوس أو Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "عوامل تصفية البحث (التاريخ، النوع، الحجم)";
+"errorAlertTitle" = "خطأ";

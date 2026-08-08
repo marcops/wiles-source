@@ -351,3 +351,6 @@
 "defaultAppExplanation" = "Voegt Wiles toe aan het rechtermuisknop-menu \"Open met\" voor mappen (macOS reserveert dubbelklikken voor Finder).";
 "defaultAppRegisteredConfirmation" = "Wiles is toegevoegd aan het \"Open met\"-menu voor mappen.";
 "defaultAppRegistrationFailed" = "Wiles registreren is mislukt. Probeer het opnieuw of controleer Systeeminstellingen > Algemeen > Aanmeldingsitems en extensies.";
+"adjustIconSizeHelp" = "Pictogramgrootte aanpassen (Cmd/Ctrl + Scrollwiel of Cmd/Ctrl + +/-)";
+"searchFiltersHelp" = "Zoekfilters (Datum, Type, Grootte)";
+"errorAlertTitle" = "Fout";

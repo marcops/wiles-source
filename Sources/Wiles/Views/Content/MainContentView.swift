@@ -142,7 +142,7 @@ struct MainContentView: View {
         } message: {
             Text(appState.tr(.moveToTrashConfirm))
         }
-        .alert("Error", isPresented: $appState.modal.showErrorAlert) {
+        .alert(appState.tr(.errorAlertTitle), isPresented: $appState.modal.showErrorAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(appState.modal.errorMessage ?? "An error occurred.")
@@ -316,7 +316,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             guard delta != 0 else { return event }
 
             accumulatedScrollDelta += delta
-            let stepMagnitude = 4.0
+            let stepMagnitude = IconSizeToken.scrollWheelStep
             while abs(accumulatedScrollDelta) >= stepMagnitude {
                 let step = accumulatedScrollDelta > 0 ? stepMagnitude : -stepMagnitude
                 appState.preferences.iconSize = min(IconSizeToken.maxSize, max(IconSizeToken.minSize, appState.preferences.iconSize + step))

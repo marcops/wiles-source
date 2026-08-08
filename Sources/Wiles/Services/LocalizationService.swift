@@ -444,5 +444,8 @@ public struct L10n {
         case defaultAppExplanation
         case defaultAppRegisteredConfirmation
         case defaultAppRegistrationFailed
+        case adjustIconSizeHelp
+        case searchFiltersHelp
+        case errorAlertTitle
     }
 }
