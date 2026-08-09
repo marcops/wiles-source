@@ -15,102 +15,144 @@ struct FileListView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollViewReader { proxy in
-                ScrollView([.horizontal, .vertical]) {
-                    ZStack(alignment: .topLeading) {
-                            Color.clear.frame(height: 1).id("top")
-                            SelectionRectangleOverlay(
-                                appState: appState,
-                                coordinateSpaceName: "listContainer",
-                                minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness,
-                                selectionRect: $selectionRect
-                            )
+            listScrollArea(geometry: geometry)
+        }
+    }
 
-                        Group {
-                            if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
-                                EmptyDirectoryView(appState: appState)
-                            } else {
-                                VStack(spacing: 0) {
-                                    FileListHeaderView(appState: appState)
+    @ViewBuilder
+    private func listScrollArea(geometry: GeometryProxy) -> some View {
+        ScrollViewReader { proxy in
+            listScrollViewReaderContent(geometry: geometry, proxy: proxy)
+        }
+        .onChange(of: geometry.size.width) { _, newWidth in
+            FileListHeaderView.adjustNameColumnWidth(for: newWidth, appState: appState)
+            lastWindowWidth = newWidth
+        }
+        .onAppear {
+            lastWindowWidth = geometry.size.width
+            FileListHeaderView.adjustNameColumnWidth(for: geometry.size.width, appState: appState)
+        }
+        .background(backgroundContextMenuLayer)
+    }
 
-                                    LazyVStack(spacing: 2) {
-                                        let paginate = appState.fileSystem.items.count > LayoutTokens.paginationThreshold
-                                        let visibleItems = paginate ? Array(appState.fileSystem.items.prefix(visibleLimit)) : appState.fileSystem.items
-
-                                        ForEach(visibleItems) { item in
-                                            listRow(for: item)
-                                                .transition(.opacity)
-                                        }
-                                        .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
-                                        if paginate && visibleLimit < appState.fileSystem.items.count {
-                                            ProgressView()
-                                                .frame(height: 30)
-                                                .onAppear {
-                                                    visibleLimit = min(appState.fileSystem.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                                }
-                                        }
-                                    }
-                                    .padding(.horizontal, 10)
-                                    .padding(.bottom, 10)
-                                    .onAppear {
-                                        if appState.fileSystem.items.count > 500 {
-                                            ThumbnailService.shared.prefetchThumbnails(for: appState.fileSystem.items, size: 36)
-                                        }
-                                    }
-                                }
-                                .frame(width: max(geometry.size.width, FileListHeaderView.totalColumnsWidth(appState)), alignment: .leading)
-                            }
-                        }
-                        .id(appState.navigation.currentURL)
-                        .transition(.opacity)
-
-                        SelectionRectangleOverlay.rectangleOverlay(selectionRect)
-                    }
-                .coordinateSpace(name: "listContainer")
-                .onPreferenceChange(ListCellFrameKey.self) { frames in
-                    appState.selection.listCellFrames = frames
+    /// The full-pane right-click surface: clears selection/rename on background right-click and
+    /// shows the shared background context menu. Extracted so it's a computed property (not a
+    /// closure) and doesn't count toward `closure_body_length` on the enclosing view chain.
+    private var backgroundContextMenuLayer: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .overlay(
+                RightClickDetector {
+                    appState.selectedURLs.removeAll()
+                    windowUIState.renameItem = nil
                 }
-                .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
-                .background(ScrollerAutoHideSetter())
-                }
-            .onChange(of: appState.navigation.currentURL) { _, _ in
-                visibleLimit = LayoutTokens.paginationThreshold
-            }
-            .onChange(of: appState.fileSystem.items) { _, newItems in
-                if newItems.count > 500 {
-                    ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
-                }
-            }
-            .onChange(of: appState.searchQuery) { _, newValue in
-                if newValue.isEmpty {
-                    withAnimation(MotionTokens.mediumEase) {
-                        proxy.scrollTo("top", anchor: .top)
-                    }
-                }
-            }
-            .background(ScrollerAutoHideSetter())
-            }
-            .onChange(of: geometry.size.width) { _, newWidth in
-                FileListHeaderView.adjustNameColumnWidth(for: newWidth, appState: appState)
-                lastWindowWidth = newWidth
-            }
-            .onAppear {
-                lastWindowWidth = geometry.size.width
-                FileListHeaderView.adjustNameColumnWidth(for: geometry.size.width, appState: appState)
-            }
-            .background(
-                Color.clear
-                    .contentShape(Rectangle())
-                    .overlay(
-                        RightClickDetector {
-                            appState.selectedURLs.removeAll()
-                            windowUIState.renameItem = nil
-                        }
-                    )
-                    .contextMenu {
-                        SharedBackgroundContextMenu(appState: appState)
-                    }
             )
+            .contextMenu {
+                SharedBackgroundContextMenu(appState: appState)
+            }
+    }
+
+    @ViewBuilder
+    private func listScrollViewReaderContent(geometry: GeometryProxy, proxy: ScrollViewProxy) -> some View {
+        ScrollView([.horizontal, .vertical]) {
+            listScrollViewBody(geometry: geometry)
+        }
+        .onChange(of: appState.navigation.currentURL) { _, _ in
+            visibleLimit = LayoutTokens.paginationThreshold
+        }
+        .onChange(of: appState.fileSystem.items) { _, newItems in
+            if newItems.count > 500 {
+                ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
+            }
+        }
+        .onChange(of: appState.searchQuery) { _, newValue in
+            if newValue.isEmpty {
+                withAnimation(MotionTokens.mediumEase) {
+                    proxy.scrollTo("top", anchor: .top)
+                }
+            }
+        }
+        .background(ScrollerAutoHideSetter())
+    }
+
+    @ViewBuilder
+    private func listScrollViewBody(geometry: GeometryProxy) -> some View {
+        ZStack(alignment: .topLeading) {
+            listZStackContent(geometry: geometry)
+        }
+        .coordinateSpace(name: "listContainer")
+        .onPreferenceChange(ListCellFrameKey.self) { frames in
+            appState.selection.listCellFrames = frames
+        }
+        .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
+        .background(ScrollerAutoHideSetter())
+    }
+
+    @ViewBuilder
+    private func listZStackContent(geometry: GeometryProxy) -> some View {
+        Color.clear.frame(height: 1).id("top")
+        SelectionRectangleOverlay(
+            appState: appState,
+            coordinateSpaceName: "listContainer",
+            minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness,
+            selectionRect: $selectionRect
+        )
+
+        Group {
+            listItemsGroup(geometry: geometry)
+        }
+        .id(appState.navigation.currentURL)
+        .transition(.opacity)
+
+        SelectionRectangleOverlay.rectangleOverlay(selectionRect)
+    }
+
+    @ViewBuilder
+    private func listItemsGroup(geometry: GeometryProxy) -> some View {
+        if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
+            EmptyDirectoryView(appState: appState)
+        } else {
+            listVStackContent
+                .frame(width: max(geometry.size.width, FileListHeaderView.totalColumnsWidth(appState)), alignment: .leading)
+        }
+    }
+
+    private var listVStackContent: some View {
+        VStack(spacing: 0) {
+            FileListHeaderView(appState: appState)
+            listLazyVStack
+        }
+    }
+
+    private var listLazyVStack: some View {
+        let paginate = appState.fileSystem.items.count > LayoutTokens.paginationThreshold
+        let visibleItems = paginate ? Array(appState.fileSystem.items.prefix(visibleLimit)) : appState.fileSystem.items
+
+        return LazyVStack(spacing: 2) {
+            listRows(visibleItems: visibleItems, paginate: paginate)
+        }
+        .padding(.horizontal, 10)
+        .padding(.bottom, 10)
+        .onAppear {
+            if appState.fileSystem.items.count > 500 {
+                ThumbnailService.shared.prefetchThumbnails(for: appState.fileSystem.items, size: 36)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func listRows(visibleItems: [FileItem], paginate: Bool) -> some View {
+        ForEach(visibleItems) { item in
+            listRow(for: item)
+                .transition(.opacity)
+        }
+        .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
+        if paginate && visibleLimit < appState.fileSystem.items.count {
+            ProgressView()
+                .frame(height: 30)
+                .onAppear {
+                    visibleLimit = min(appState.fileSystem.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                }
         }
     }
 
@@ -149,33 +191,42 @@ struct FileListView: View {
         HStack(alignment: .center, spacing: 8) {
             FileItemIconView(item: item, size: listIconSize, isOpenTargeted: dropTargetedURL == item.url)
             ICloudStatusBadgeView(item: item)
-            if windowUIState.renameItem?.url == item.url {
-                InlineRenameField(item: item, appState: appState, windowUIState: windowUIState, font: .system(size: 13, weight: isSel ? .semibold : .regular))
-            } else {
-                SelectionAwareNameText(
-                    name: item.name,
-                    isSelected: isSel,
-                    font: .system(size: 13, weight: isSel ? .semibold : .regular),
-                    nsFont: .systemFont(ofSize: 13, weight: isSel ? .semibold : .regular),
-                    color: isSel ? .white : .primary,
-                    collapsedLineLimit: 1,
-                    middleTruncate: appState.preferences.middleTruncateNames
-                )
-            }
-
-            if appState.preferences.showTags && !item.tags.isEmpty {
-                HStack(alignment: .center, spacing: -2) {
-                    ForEach(item.tags, id: \.self) { tag in
-                        Circle()
-                            .fill(colorForTag(tag))
-                            .frame(width: 8, height: 8)
-                            .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
-                    }
-                }
-                .offset(y: appState.isCompactMode ? 1 : 0)
-            }
+            nameOrRenameField(for: item, isSel: isSel)
+            tagsIndicator(for: item)
         }
         .frame(width: appState.columnWidth(for: .name), alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func nameOrRenameField(for item: FileItem, isSel: Bool) -> some View {
+        if windowUIState.renameItem?.url == item.url {
+            InlineRenameField(item: item, appState: appState, windowUIState: windowUIState, font: .system(size: 13, weight: isSel ? .semibold : .regular))
+        } else {
+            SelectionAwareNameText(
+                name: item.name,
+                isSelected: isSel,
+                font: .system(size: 13, weight: isSel ? .semibold : .regular),
+                nsFont: .systemFont(ofSize: 13, weight: isSel ? .semibold : .regular),
+                color: isSel ? .white : .primary,
+                collapsedLineLimit: 1,
+                middleTruncate: appState.preferences.middleTruncateNames
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func tagsIndicator(for item: FileItem) -> some View {
+        if appState.preferences.showTags && !item.tags.isEmpty {
+            HStack(alignment: .center, spacing: -2) {
+                ForEach(item.tags, id: \.self) { tag in
+                    Circle()
+                        .fill(colorForTag(tag))
+                        .frame(width: 8, height: 8)
+                        .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
+                }
+            }
+            .offset(y: appState.isCompactMode ? 1 : 0)
+        }
     }
 
     private func listRow(for item: FileItem) -> some View {
