@@ -17,17 +17,28 @@ Ajustar a descricaoo no help. Esta referenciando o gnome, tem que ser melhor igu
 E o sobre tambem.
 ou seja ajustar sobre, readme publico e o help
 
-PENDENCIAS
+
+Na propriedades da pasta/arquivo se o tema e escuro, no meio tem que ser fundo escuto tambem como nosso padrao e nao claro como esta
+
+
+scroll nao funciona nas propriedades do arquivo com o mouse (mover para cima e para baixo) e nem no shortcut view dentro do menu help -> atalhos revisa todas as telas se nao tem este mesmo problema, e antes de arrumar avisa quais tem e precisa arrumar
 
 
 Adicionar na configuração, de quanto em quanto tempo o aplicar regras vai rodar. - no settings.
 Revisar se eh uma thread separada.
 
 
-Na propriedades da pasta/arquivo se o tema e escuro, no meio tem que ser fundo escuto tambem como nosso padrao e nao claro como esta
+no gridview ajustar para 2 linha se o texto for grande e se for muito grande fica o inicio 3 pontos e o resto do texto do final ou seja mesma quantidade de caracter no inicio e final  e 3 pontos no meio, o icone nao pode mexer ou seja a aparencia tem que ser a mesma com texto pequeno de 1 linha ou de 2.
+este comportamento tem que ser para todos ou seja, se eu estiver na lista e nao tem espaco para o nome inteiro tem que calcular e mostrar inicio 3 pontos e o fim.
+mesma coisa para o column view
+
+igual no IFINDER
+
+Adiciona isto como um item no settings, visualizacao de texto ou algo assim estilo xxxx, nao sei acha um nome bom 
+default e igual ao ifinder
 
 
-scroll nao funciona nas propriedades do arquivo com o mouse (mover para cima e para baixo) e nem no shortcut view dentro do menu help -> atalhos revisa todas as telas se nao tem este mesmo problema, e antes de arrumar avisa quais tem e precisa arrumar
+PENDENCIAS
 
 
 
@@ -51,7 +62,10 @@ no localhttpserverService, extrair o HTML
         }
     }
 
-ajustar antes para 2 linha se o texto for grande
+
+
+
+
 se seria clicar 2x no texto ou 
 Se der duplo clique espaçado  (1s de delay entre eles ate 3s) fazer renome
 
