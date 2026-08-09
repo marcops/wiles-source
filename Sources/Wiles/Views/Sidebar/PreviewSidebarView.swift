@@ -48,40 +48,9 @@ struct PreviewSidebarView: View {
 
                 Divider()
 
-                VStack(alignment: .leading, spacing: 10) {
-                    propertyRow(label: appState.tr(.kind), value: detailedProps?.kind ?? (item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()))
-                    propertyRow(label: appState.tr(.size), value: item.formattedSize)
-                    if let dims = detailedProps?.dimensions {
-                        propertyRow(label: appState.tr(.dimensions), value: dims)
-                    }
-                    if let dur = detailedProps?.duration {
-                        propertyRow(label: appState.tr(.duration), value: dur)
-                    }
-                    propertyRow(label: appState.tr(.dateModified), value: item.formattedDate)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                propertyRows(for: item)
 
-                if !item.isDirectory, let content = previewContent {
-                    let ext = item.fileExtension.lowercased()
-                    if ["swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "md", "txt"].contains(ext) {
-                        Divider()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(appState.tr(.codePreview))
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.secondary)
-                            ScrollView(.vertical) {
-                                Text(SyntaxHighlighterService.highlightCode(content: content, fileExtension: ext))
-                                    .font(.system(size: 10, design: .monospaced))
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                                    .padding(6)
-                            }
-                            .frame(maxHeight: 160)
-                            .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
-                            .cornerRadius(6)
-                        }
-                    }
-                }
+                codePreview(for: item)
 
                 Spacer()
 
@@ -92,6 +61,46 @@ struct PreviewSidebarView: View {
             }
             .task(id: item.url) {
                 previewContent = item.isDirectory ? nil : await Self.loadPreviewContent(url: item.url)
+            }
+        }
+    }
+
+    private func propertyRows(for item: FileItem) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            propertyRow(label: appState.tr(.kind), value: detailedProps?.kind ?? (item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()))
+            propertyRow(label: appState.tr(.size), value: item.formattedSize)
+            if let dims = detailedProps?.dimensions {
+                propertyRow(label: appState.tr(.dimensions), value: dims)
+            }
+            if let dur = detailedProps?.duration {
+                propertyRow(label: appState.tr(.duration), value: dur)
+            }
+            propertyRow(label: appState.tr(.dateModified), value: item.formattedDate)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func codePreview(for item: FileItem) -> some View {
+        if !item.isDirectory, let content = previewContent {
+            let ext = item.fileExtension.lowercased()
+            if ["swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "md", "txt"].contains(ext) {
+                Divider()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(appState.tr(.codePreview))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    ScrollView(.vertical) {
+                        Text(SyntaxHighlighterService.highlightCode(content: content, fileExtension: ext))
+                            .font(.system(size: 10, design: .monospaced))
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .padding(6)
+                    }
+                    .frame(maxHeight: 160)
+                    .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+                    .cornerRadius(6)
+                }
             }
         }
     }

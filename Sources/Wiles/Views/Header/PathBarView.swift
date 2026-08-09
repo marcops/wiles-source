@@ -80,37 +80,7 @@ struct PathBarView: View {
     private var breadcrumbMode: some View {
         HStack(spacing: 0) {
             GeometryReader { outerGeo in
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 2) {
-                            if isHovering {
-                                ForEach(pathSegments) { item in
-                                    breadcrumbPill(for: item)
-                                        .id(item.id)
-                                    if item.url != appState.navigation.currentURL.standardizedFileURL {
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundColor(.secondary.opacity(0.6))
-                                    }
-                                }
-                            } else if let last = pathSegments.last {
-                                breadcrumbPill(for: last, isCollapsed: true)
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                        .frame(height: 28)
-                    }
-                    .onChange(of: isHovering) { _, hovering in
-                        // fullBreadcrumbWidth comes from the always-rendered hidden measurer
-                        // below, so it's already known by the time this fires — no race with
-                        // the ForEach switching content in this same transition.
-                        guard hovering, breadcrumbContentWidth > outerGeo.size.width,
-                              let lastID = pathSegments.last?.id else { return }
-                        DispatchQueue.main.async {
-                            proxy.scrollTo(lastID, anchor: .trailing)
-                        }
-                    }
-                }
+                breadcrumbScrollView(outerGeo: outerGeo)
             }
             .background(hiddenFullBreadcrumbMeasurer)
 
@@ -124,6 +94,48 @@ struct PathBarView: View {
         .onTapGesture(count: 2) {
             appState.navigation.pathText = appState.navigation.currentURL.path
             windowUIState.isEditingPath = true
+        }
+    }
+
+    private func breadcrumbScrollView(outerGeo: GeometryProxy) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                breadcrumbPillRow
+                    .padding(.horizontal, 4)
+                    .frame(height: 28)
+            }
+            .onChange(of: isHovering) { _, hovering in
+                handleHoverChange(hovering: hovering, outerWidth: outerGeo.size.width, proxy: proxy)
+            }
+        }
+    }
+
+    @ViewBuilder private var breadcrumbPillRow: some View {
+        HStack(spacing: 2) {
+            if isHovering {
+                ForEach(pathSegments) { item in
+                    breadcrumbPill(for: item)
+                        .id(item.id)
+                    if item.url != appState.navigation.currentURL.standardizedFileURL {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary.opacity(0.6))
+                    }
+                }
+            } else if let last = pathSegments.last {
+                breadcrumbPill(for: last, isCollapsed: true)
+            }
+        }
+    }
+
+    // fullBreadcrumbWidth comes from the always-rendered hidden measurer below, so it's already
+    // known by the time this fires — no race with the ForEach switching content in this same
+    // transition.
+    private func handleHoverChange(hovering: Bool, outerWidth: CGFloat, proxy: ScrollViewProxy) {
+        guard hovering, breadcrumbContentWidth > outerWidth,
+              let lastID = pathSegments.last?.id else { return }
+        DispatchQueue.main.async {
+            proxy.scrollTo(lastID, anchor: .trailing)
         }
     }
 

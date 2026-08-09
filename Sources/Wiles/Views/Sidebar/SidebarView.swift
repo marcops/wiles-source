@@ -39,99 +39,9 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var appState = appState
 
-        let favItems = appState.preferences.favoriteURLs.map { sidebarItem(for: $0) }
-
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                if appState.preferences.showRecents {
-                    let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
-                    sidebarRow(for: recentsItem, sectionKey: "Recents")
-                }
-
-                if appState.preferences.showFavorites && !favItems.isEmpty {
-                    collapsibleSection(
-                        title: appState.tr(.favorites),
-                        identifierKey: "FAVORITES",
-                        isExpanded: $appState.preferences.isFavoritesExpanded,
-                        items: favItems,
-                        isFavoritesSection: true
-                    )
-                }
-
-                if appState.preferences.showNetworkAndCloud {
-                    let items: [SidebarItem] = {
-                        let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
-                            SidebarItem(name: $0.name, iconName: "network", url: $0.url)
-                        }
-                        var list = [SidebarItem(name: "Network", iconName: "network", url: URL(fileURLWithPath: "/Network"))]
-                        list.append(contentsOf: networkShares)
-                        return list
-                    }()
-                    collapsibleSection(
-                        title: appState.tr(.networkAndCloud),
-                        identifierKey: "NETWORK",
-                        isExpanded: $appState.preferences.isNetworkExpanded,
-                        items: items,
-                        isFavoritesSection: false
-                    )
-                }
-
-                if appState.preferences.showPlaces {
-                    collapsibleSection(
-                        title: appState.tr(.places),
-                        identifierKey: "PLACES",
-                        isExpanded: $appState.preferences.isDevicesExpanded,
-                        items: devices,
-                        isFavoritesSection: false
-                    )
-                }
-
-                if appState.preferences.showDirectoryTree {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if appState.preferences.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.directoryTree), identifierKey: "DIRECTORY_TREE", isExpanded: $appState.preferences.isTreeExpanded)
-                        }
-                        if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTreeExpanded {
-                            if let rootFolderNode {
-                                DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
-                            } else {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .padding(.horizontal, 12)
-                            }
-                        }
-                    }
-                }
-
-                if appState.preferences.showTags {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if appState.preferences.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.tags), identifierKey: "TAGS", isExpanded: $appState.preferences.isTagsExpanded)
-                        }
-                        if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTagsExpanded {
-                            tagRow(tag: "Red", colorKey: .red)
-                            tagRow(tag: "Orange", colorKey: .orange)
-                            tagRow(tag: "Yellow", colorKey: .yellow)
-                            tagRow(tag: "Green", colorKey: .green)
-                            tagRow(tag: "Blue", colorKey: .blue)
-                            tagRow(tag: "Purple", colorKey: .purple)
-                            tagRow(tag: "Gray", colorKey: .gray)
-                        }
-                    }
-                }
-
-                if !appState.smartFolders.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if appState.preferences.showSidebarSectionTitles {
-                            sectionHeader(title: appState.tr(.smartFolders), identifierKey: "SMART_FOLDERS", isExpanded: $appState.preferences.isSmartFoldersExpanded)
-                        }
-                        if !appState.preferences.showSidebarSectionTitles || appState.preferences.isSmartFoldersExpanded {
-                            ForEach(appState.smartFolders) { folder in
-                                smartFolderRow(folder: folder)
-                            }
-                        }
-                    }
-                }
+                sidebarSectionsContent
             }
             .padding(.top, LayoutTokens.sidebarTrafficLightInset)
             .padding(.bottom, 12)
@@ -160,6 +70,105 @@ struct SidebarView: View {
                 .onTapGesture(count: 2) {
                     NSApp.keyWindow?.zoom(nil)
                 }
+        }
+    }
+
+    private var favoriteItems: [SidebarItem] {
+        appState.preferences.favoriteURLs.map { sidebarItem(for: $0) }
+    }
+
+    private var networkAndCloudItems: [SidebarItem] {
+        let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
+            SidebarItem(name: $0.name, iconName: "network", url: $0.url)
+        }
+        var list = [SidebarItem(name: "Network", iconName: "network", url: URL(fileURLWithPath: "/Network"))]
+        list.append(contentsOf: networkShares)
+        return list
+    }
+
+    @ViewBuilder private var sidebarSectionsContent: some View {
+        @Bindable var appState = appState
+
+        if appState.preferences.showRecents {
+            let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
+            sidebarRow(for: recentsItem, sectionKey: "Recents")
+        }
+        if appState.preferences.showFavorites && !favoriteItems.isEmpty {
+            collapsibleSection(
+                title: appState.tr(.favorites), identifierKey: "FAVORITES",
+                isExpanded: $appState.preferences.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true
+            )
+        }
+        if appState.preferences.showNetworkAndCloud {
+            collapsibleSection(
+                title: appState.tr(.networkAndCloud), identifierKey: "NETWORK",
+                isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false
+            )
+        }
+        if appState.preferences.showPlaces {
+            collapsibleSection(
+                title: appState.tr(.places), identifierKey: "PLACES",
+                isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false
+            )
+        }
+        if appState.preferences.showDirectoryTree {
+            directoryTreeSection(isExpanded: $appState.preferences.isTreeExpanded)
+        }
+        if appState.preferences.showTags {
+            tagsSection(isExpanded: $appState.preferences.isTagsExpanded)
+        }
+        if !appState.smartFolders.isEmpty {
+            smartFoldersSection(isExpanded: $appState.preferences.isSmartFoldersExpanded)
+        }
+    }
+
+    @ViewBuilder
+    private func directoryTreeSection(isExpanded: Binding<Bool>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if appState.preferences.showSidebarSectionTitles {
+                sectionHeader(title: appState.tr(.directoryTree), identifierKey: "DIRECTORY_TREE", isExpanded: isExpanded)
+            }
+            if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTreeExpanded {
+                if let rootFolderNode {
+                    DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
+                } else {
+                    ProgressView()
+                        .controlSize(.small)
+                        .padding(.horizontal, 12)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tagsSection(isExpanded: Binding<Bool>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if appState.preferences.showSidebarSectionTitles {
+                sectionHeader(title: appState.tr(.tags), identifierKey: "TAGS", isExpanded: isExpanded)
+            }
+            if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTagsExpanded {
+                tagRow(tag: "Red", colorKey: .red)
+                tagRow(tag: "Orange", colorKey: .orange)
+                tagRow(tag: "Yellow", colorKey: .yellow)
+                tagRow(tag: "Green", colorKey: .green)
+                tagRow(tag: "Blue", colorKey: .blue)
+                tagRow(tag: "Purple", colorKey: .purple)
+                tagRow(tag: "Gray", colorKey: .gray)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func smartFoldersSection(isExpanded: Binding<Bool>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if appState.preferences.showSidebarSectionTitles {
+                sectionHeader(title: appState.tr(.smartFolders), identifierKey: "SMART_FOLDERS", isExpanded: isExpanded)
+            }
+            if !appState.preferences.showSidebarSectionTitles || appState.preferences.isSmartFoldersExpanded {
+                ForEach(appState.smartFolders) { folder in
+                    smartFolderRow(folder: folder)
+                }
+            }
         }
     }
 
