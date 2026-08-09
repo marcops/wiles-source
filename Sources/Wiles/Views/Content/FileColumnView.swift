@@ -46,84 +46,106 @@ struct FileColumnView: View {
 
     private var columnBrowser: some View {
         ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: true) {
-                HStack(spacing: 0) {
-                    ForEach(Array(columns.enumerated()), id: \.element.id) { index, column in
-                        columnView(for: column, index: index)
-                            .id(index)
-                        Divider()
-                    }
+            columnBrowserContent(proxy: proxy)
+        }
+    }
+
+    @ViewBuilder
+    private func columnBrowserContent(proxy: ScrollViewProxy) -> some View {
+        ScrollView(.horizontal, showsIndicators: true) {
+            HStack(spacing: 0) {
+                ForEach(Array(columns.enumerated()), id: \.element.id) { index, column in
+                    columnView(for: column, index: index)
+                        .id(index)
+                    Divider()
                 }
             }
-            .background(ScrollerAutoHideSetter())
-            .onAppear { loadInitialColumns() }
-            .onChange(of: appState.navigation.currentURL) { _, _ in loadInitialColumns() }
-            .onChange(of: appState.fileSystem.items) { _, _ in
-                // Column view keeps its own local snapshot per column instead of rendering
-                // `appState.fileSystem.items` directly (like Grid/List do), so an operation that
-                // changes a folder's contents (paste, delete, rename via another view, etc.)
-                // otherwise never reaches the visible columns. `fileSystem.items` only ever
-                // reflects `navigation.currentURL`, but drilling right in Column view never
-                // changes `navigation.currentURL` — so a delete inside a drilled-in column (not
-                // the root) previously went unnoticed here entirely. Re-read every open column
-                // straight from disk instead of trying to map the single changed folder back to
-                // one column index.
-                refreshAllColumnsFromDisk()
+        }
+        .background(ScrollerAutoHideSetter())
+        .onAppear { loadInitialColumns() }
+        .onChange(of: appState.navigation.currentURL) { _, _ in loadInitialColumns() }
+        .onChange(of: appState.fileSystem.items) { _, _ in
+            // Column view keeps its own local snapshot per column instead of rendering
+            // `appState.fileSystem.items` directly (like Grid/List do), so an operation that
+            // changes a folder's contents (paste, delete, rename via another view, etc.)
+            // otherwise never reaches the visible columns. `fileSystem.items` only ever
+            // reflects `navigation.currentURL`, but drilling right in Column view never
+            // changes `navigation.currentURL` — so a delete inside a drilled-in column (not
+            // the root) previously went unnoticed here entirely. Re-read every open column
+            // straight from disk instead of trying to map the single changed folder back to
+            // one column index.
+            refreshAllColumnsFromDisk()
+        }
+        .onChange(of: columns.count) { _, newCount in
+            if newCount > 0 {
+                proxy.scrollTo(newCount - 1, anchor: .trailing)
             }
-            .onChange(of: columns.count) { _, newCount in
-                if newCount > 0 {
-                    proxy.scrollTo(newCount - 1, anchor: .trailing)
-                }
-            }
-            .onChange(of: appState.selection.columnViewDrillRightTrigger) { _, _ in
-                drillRightFromSelection()
-            }
-            .onChange(of: appState.selection.columnViewVerticalTrigger) { _, _ in
-                moveVerticalSelection(by: appState.selection.columnViewVerticalDirection)
-            }
-            .onChange(of: appState.selection.columnViewMoveLeftTrigger) { _, _ in
-                moveLeftFromSelection()
-            }
+        }
+        .onChange(of: appState.selection.columnViewDrillRightTrigger) { _, _ in
+            drillRightFromSelection()
+        }
+        .onChange(of: appState.selection.columnViewVerticalTrigger) { _, _ in
+            moveVerticalSelection(by: appState.selection.columnViewVerticalDirection)
+        }
+        .onChange(of: appState.selection.columnViewMoveLeftTrigger) { _, _ in
+            moveLeftFromSelection()
         }
     }
 
     private func columnView(for column: ColumnData, index: Int) -> some View {
-        return VStack(spacing: 0) {
-            columnHeader(title: column.folderURL.lastPathComponent.isEmpty ? "/" : column.folderURL.lastPathComponent)
-
-            ScrollView(.vertical, showsIndicators: true) {
-                LazyVStack(spacing: 1) {
-                    let paginate = column.items.count > LayoutTokens.paginationThreshold
-                    let visibleItems = paginate ? Array(column.items.prefix(column.visibleLimit)) : column.items
-
-                    ForEach(visibleItems) { item in
-                        FileColumnRowView(
-                            item: item,
-                            columnIndex: index,
-                            isSelected: appState.selectedURLs.contains(item.url),
-                            appState: appState,
-                            onSelect: {
-                                selectItem(item: item, columnIndex: index)
-                            }
-                        )
-                        .transition(.opacity)
-                    }
-                    .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
-                    if paginate && column.visibleLimit < column.items.count {
-                        ProgressView()
-                            .frame(height: 25)
-                            .onAppear {
-                                var col = column
-                                col.visibleLimit = min(col.items.count, col.visibleLimit + LayoutTokens.lazyLoadingBatchSize)
-                                columns[index] = col
-                            }
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            .background(ScrollerAutoHideSetter())
+        VStack(spacing: 0) {
+            columnHeader(title: columnTitle(for: column))
+            columnItemsScrollView(for: column, index: index)
         }
         .frame(width: 220)
+    }
+
+    private func columnTitle(for column: ColumnData) -> String {
+        column.folderURL.lastPathComponent.isEmpty ? "/" : column.folderURL.lastPathComponent
+    }
+
+    private func columnItemsScrollView(for column: ColumnData, index: Int) -> some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            columnItemsList(for: column, index: index)
+        }
+        .background(ScrollerAutoHideSetter())
+    }
+
+    @ViewBuilder
+    private func columnItemsList(for column: ColumnData, index: Int) -> some View {
+        LazyVStack(spacing: 1) {
+            let paginate = column.items.count > LayoutTokens.paginationThreshold
+            let visibleItems = paginate ? Array(column.items.prefix(column.visibleLimit)) : column.items
+
+            columnItemRows(visibleItems: visibleItems, paginate: paginate, column: column, index: index)
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func columnItemRows(visibleItems: [FileItem], paginate: Bool, column: ColumnData, index: Int) -> some View {
+        ForEach(visibleItems) { item in
+            FileColumnRowView(
+                item: item,
+                columnIndex: index,
+                isSelected: appState.selectedURLs.contains(item.url),
+                appState: appState,
+                onSelect: {
+                    selectItem(item: item, columnIndex: index)
+                }
+            )
+            .transition(.opacity)
+        }
+        .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
+        if paginate && column.visibleLimit < column.items.count {
+            ProgressView()
+                .frame(height: 25)
+                .onAppear {
+                    var col = column
+                    col.visibleLimit = min(col.items.count, col.visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+                    columns[index] = col
+                }
+        }
     }
 
     private func columnHeader(title: String) -> some View {

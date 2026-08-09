@@ -8,51 +8,25 @@ struct MainContentView: View {
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
 
     var body: some View {
+        ZStack {
+            mainSplitView
+            shortcutsHUDOverlay
+        }
+        .environment(windowUIState)
+        .focusedSceneValue(\.windowUIState, windowUIState)
+    }
+
+    /// The primary sidebar/content split plus its full modifier chain (window sizing, Quick Look,
+    /// rename-cancellation observers, all sheets/alerts, and the translucent background). Extracted
+    /// out of `body`'s `ZStack` closure so that closure stays trivially short — this is purely a
+    /// relocation: the modifier chain still attaches to `HSplitView` exactly as before, and the
+    /// `ZStack` still lays the shortcuts HUD on top of this content, unchanged.
+    private var mainSplitView: some View {
         @Bindable var appState = appState
         @Bindable var windowUIState = windowUIState
-        return ZStack {
-            HSplitView {
-            SidebarView(appState: appState)
-                .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: CGFloat(appState.preferences.sidebarWidth), maxWidth: LayoutTokens.sidebarMaxWidth, maxHeight: .infinity)
-                .background(sidebarWidthTracker)
-                .background(SplitViewDividerSetter(position: CGFloat(appState.preferences.sidebarWidth)))
-                .layoutPriority(0)
-            VStack(spacing: 0) {
-                HeaderBarView(appState: appState)
-                HSplitView {
-                    contentArea
-                        .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
-                        .background(contentTranslucentBackground)
-                    if appState.preferences.showDiskUsageSidebar {
-                        DiskUsageSidebarView(appState: appState)
-                            .frame(maxHeight: .infinity)
-                    } else if appState.preferences.showPreviewSidebar {
-                        PreviewSidebarView(appState: appState)
-                            .frame(maxHeight: .infinity)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                // Plain SwiftUI VStack, not VSplitView/NSSplitView: the latter animates a pane
-                // *resizing* smoothly but not adding/removing an arranged subview, which made the
-                // terminal's close animation snap instead of collapse. A real VStack properly
-                // animates insertion/removal with `.transition`, sliding down instead of shrinking
-                // toward center. The PTY process itself survives unmount via TerminalViewCache, so
-                // removing the view here doesn't crash or leave anything running orphaned.
-                if appState.preferences.showTerminalDrawer {
-                    Divider()
-                    IntegratedTerminalView(appState: appState)
-                        .frame(height: 200)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                if appState.preferences.showFooter {
-                    FooterBarView(appState: appState)
-                }
-            }
-            .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(.all, edges: .top)
-            .background(contentTranslucentBackground)
-            .layoutPriority(1)
+        return HSplitView {
+            sidebarPane
+            contentColumn
         }
         .ignoresSafeArea(.all, edges: .top)
         .frame(minWidth: effectiveWindowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
@@ -139,22 +113,87 @@ struct MainContentView: View {
         } message: {
             Text(appState.modal.errorMessage ?? "An error occurred.")
         }
-        .background(
-            ZStack {
-                TranslucentVisualEffectView(material: .underWindowBackground)
-                Color(NSColor.windowBackgroundColor)
-                    .opacity(appState.preferences.sidebarOverlayOpacity)
-                keyboardShortcutsHandler
-                GlobalKeyMonitor(appState: appState, windowUIState: windowUIState)
-            }
-        )
+        .background(mainBackgroundLayer)
+    }
+
+    private var mainBackgroundLayer: some View {
+        ZStack {
+            TranslucentVisualEffectView(material: .underWindowBackground)
+            Color(NSColor.windowBackgroundColor)
+                .opacity(appState.preferences.sidebarOverlayOpacity)
+            keyboardShortcutsHandler
+            GlobalKeyMonitor(appState: appState, windowUIState: windowUIState)
+        }
+    }
+
+    @ViewBuilder private var shortcutsHUDOverlay: some View {
+        @Bindable var windowUIState = windowUIState
         if windowUIState.showShortcutsHUD {
             ShortcutsHUDOverlay(appState: appState, isPresented: $windowUIState.showShortcutsHUD)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
         }
+    }
+
+    private var sidebarPane: some View {
+        SidebarView(appState: appState)
+            .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: CGFloat(appState.preferences.sidebarWidth), maxWidth: LayoutTokens.sidebarMaxWidth, maxHeight: .infinity)
+            .background(sidebarWidthTracker)
+            .background(SplitViewDividerSetter(position: CGFloat(appState.preferences.sidebarWidth)))
+            .layoutPriority(0)
+    }
+
+    private var contentColumn: some View {
+        VStack(spacing: 0) {
+            HeaderBarView(appState: appState)
+            contentAndInspectorRow
+            terminalDrawer
+            footer
         }
-        .environment(windowUIState)
-        .focusedSceneValue(\.windowUIState, windowUIState)
+        .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.all, edges: .top)
+        .background(contentTranslucentBackground)
+        .layoutPriority(1)
+    }
+
+    private var contentAndInspectorRow: some View {
+        HSplitView {
+            contentArea
+                .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
+                .background(contentTranslucentBackground)
+            inspectorPane
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder private var inspectorPane: some View {
+        if appState.preferences.showDiskUsageSidebar {
+            DiskUsageSidebarView(appState: appState)
+                .frame(maxHeight: .infinity)
+        } else if appState.preferences.showPreviewSidebar {
+            PreviewSidebarView(appState: appState)
+                .frame(maxHeight: .infinity)
+        }
+    }
+
+    // Plain SwiftUI VStack, not VSplitView/NSSplitView: the latter animates a pane
+    // *resizing* smoothly but not adding/removing an arranged subview, which made the
+    // terminal's close animation snap instead of collapse. A real VStack properly
+    // animates insertion/removal with `.transition`, sliding down instead of shrinking
+    // toward center. The PTY process itself survives unmount via TerminalViewCache, so
+    // removing the view here doesn't crash or leave anything running orphaned.
+    @ViewBuilder private var terminalDrawer: some View {
+        if appState.preferences.showTerminalDrawer {
+            Divider()
+            IntegratedTerminalView(appState: appState)
+                .frame(height: 200)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    @ViewBuilder private var footer: some View {
+        if appState.preferences.showFooter {
+            FooterBarView(appState: appState)
+        }
     }
 
     /// The window's own minimum width must grow to cover whichever trailing inspector pane
