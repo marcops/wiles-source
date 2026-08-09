@@ -28,7 +28,7 @@ public final class SystemAppearanceObserver {
             queue: .main
         ) { _ in
             Task { @MainActor in
-                SystemAppearanceObserver.shared.isDark = Self.currentIsDark()
+                Self.shared.isDark = Self.currentIsDark()
             }
         }
     }

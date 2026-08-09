@@ -8,7 +8,8 @@ public struct FileItemInteractionsModifier: ViewModifier {
     let onSelect: (() -> Void)?
     var onTargetedChanged: (Bool) -> Void
 
-    @Environment(WindowUIState.self) private var windowUIState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     /// Clicking an already-selected item should trigger rename, like Finder's "slow double-click" —
     /// but a genuine fast double-click (which opens the item) also re-fires this same single-tap
     /// handler for its second click, so a naive delay would pop up rename right after navigating
