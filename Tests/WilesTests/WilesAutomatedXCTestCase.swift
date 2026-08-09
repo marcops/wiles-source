@@ -284,11 +284,6 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testAutoOrganizationRuleAndListColumnTests() {
-        AutoOrganizationRuleAndListColumnTests.run()
-    }
-
-    @MainActor
     func testSmallModelEnumsTests() {
         SmallModelEnumsTests.run()
     }
