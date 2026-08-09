@@ -39,12 +39,20 @@ public final class AppState {
 
     public func addSmartFolder(_ folder: SmartFolder) {
         smartFolders.append(folder)
-        SmartFolderService.saveSmartFolders(smartFolders)
+        do {
+            try SmartFolderService.saveSmartFolders(smartFolders)
+        } catch {
+            showError(error.localizedDescription)
+        }
     }
 
     public func removeSmartFolder(_ folder: SmartFolder) {
         smartFolders.removeAll { $0.id == folder.id }
-        SmartFolderService.saveSmartFolders(smartFolders)
+        do {
+            try SmartFolderService.saveSmartFolders(smartFolders)
+        } catch {
+            showError(error.localizedDescription)
+        }
     }
 
     public static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
