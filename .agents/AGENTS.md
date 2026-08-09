@@ -386,16 +386,27 @@ don't improvise a layout that merely "looks plausible." General rules:
   assembled in Swift, then substituted into a single placeholder in the loaded template — never the
   whole document.
 
-## 37. Public `RELEASE_NOTES.md` — Keep Only the Last 5 Versions in Full, Then Consolidate
-- **Applies to `marcops/wiles` (public repo) `RELEASE_NOTES.md`.** Keep the 5 most recent version
-  entries in full detail (New Features, Bug Fixes, Security Fixes, Performance, Refinements — same
-  as today).
-- **On adding a 6th entry**: before adding the new version at the top, collapse everything older
-  than the (now) most recent 5 into a single trailing `## Earlier Versions` (or similarly named)
-  consolidated section. That consolidation lists **major features only** — one line per shipped
-  feature, no bug fixes, no perf notes, no minor refinements — across all the versions being
-  folded in. If a consolidated section already exists from a previous rotation, merge the newly
-  -demoted version's major features into it rather than creating a second one.
+## 37. Public `RELEASE_NOTES.md` — Hard Cap of 5 Full Versions, Then Consolidate
+- **Applies to `marcops/wiles` (public repo) `RELEASE_NOTES.md`.** At most the **5 most recent**
+  version entries ever stay in full detail (New Features, Bug Fixes, Security Fixes, Performance,
+  Refinements). This is a hard cap checked every time a version is added — never "wait until a 6th
+  shows up to think about it." The moment adding a new version would make the full-detail count
+  exceed 5, the oldest of the previously-full versions gets folded into the trailing consolidated
+  section in that same edit.
+- **Consolidated section** (`## Earlier Highlights`, at the bottom): one short line per version,
+  **major shipped features only** — no bug fixes, no security fixes, no perf notes, no refinements,
+  no "Quality & Testing" notes. If a version had no user-facing "New Features"/"Highlights" section
+  at all (pure bug-fix/polish/internal release), it gets no line — it simply isn't represented.
+  Never drop a real feature line just because the version is old — "old" is not a reason to cut it,
+  only "not a feature" is.
+- **Language, in both the full versions and the consolidated section**: plain, human language, not
+  developer language — see [[wiles-no-dev-jargon-in-marketing-copy]]. No implementation terms
+  (threads, caches, race conditions, API names, "the UI", framework names), no internal/CI-only
+  fixes with zero user-visible effect (those don't belong in a public changelog at all, drop them
+  outright), and no naming competitors (Finder, GNOME/Nautilus) — describe Wiles' own behavior.
+- **Trailing footer, always last**: the file always ends with a `## 💬 Feedback, Feature Requests &
+  Bug Reports` section (bug report + feature request issue links) — after the `## Earlier
+  Highlights` consolidated section, never before it.
 - **Why**: the file is public-facing marketing history, not a changelog archive — recent detail is
   useful to evaluate what just shipped, but a growing wall of old bug-fix bullets buries it. A short
   "what Wiles has grown into" summary at the bottom stays useful indefinitely.
