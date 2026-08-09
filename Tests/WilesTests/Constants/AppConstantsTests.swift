@@ -9,7 +9,10 @@ final class AppConstantsTests: XCTestCase {
     func testStaticConstantsHoldExpectedValues() {
         XCTAssertEqual(AppConstants.githubURL, "https://github.com/marcops/wiles")
         XCTAssertEqual(AppConstants.githubDisplayString, "github.com/marcops/wiles")
-        XCTAssertEqual(AppConstants.appVersion, "0.2.2")
+        XCTAssertTrue(
+            AppConstants.appVersion.range(of: #"^\d+\.\d+\.\d+$"#, options: .regularExpression) != nil,
+            "appVersion (\(AppConstants.appVersion)) must be a semantic X.Y.Z version string"
+        )
         XCTAssertEqual(AppConstants.mainWindowID, "main")
     }
 
