@@ -52,9 +52,9 @@ public struct SmallModelEnumsTests {
             report("AppAppearance", "POS: id equals rawValue for \(appearance)", result: appearance.id == appearance.rawValue)
         }
         report("AppAppearance", "NEG: garbage rawValue returns nil", result: AppAppearance(rawValue: "auto") == nil)
-        report("AppAppearance", "POS: .system maps to a nil colorScheme (follows OS)", result: AppAppearance.system.colorScheme == nil)
-        report("AppAppearance", "POS: .light maps to ColorScheme.light", result: AppAppearance.light.colorScheme == .light)
-        report("AppAppearance", "POS: .dark maps to ColorScheme.dark", result: AppAppearance.dark.colorScheme == .dark)
+        report("AppAppearance", "POS: .system maps to settingsSystemOption l10nKey", result: AppAppearance.system.l10nKey == .appearanceSystemOption)
+        report("AppAppearance", "POS: .light maps to appearanceLightOption l10nKey", result: AppAppearance.light.l10nKey == .appearanceLightOption)
+        report("AppAppearance", "POS: .dark maps to appearanceDarkOption l10nKey", result: AppAppearance.dark.l10nKey == .appearanceDarkOption)
     }
 
     private static func testFolderNodeEqualityAndHashing() {

@@ -155,16 +155,19 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {
         do {
             let urls = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
-            var html = "<html><head><title>Wiles - Shared Folder</title>"
-            html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'></head>"
-            html += "<body style='font-family: system-ui; max-width: 800px; margin: 0 auto; padding: 20px;'>"
-            html += "<h1>Shared: \(folder.lastPathComponent)</h1><hr/><ul>"
-            for url in urls.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+            let items = urls.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).map { url -> String in
                 let name = url.lastPathComponent
                 let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-                html += "<li style='margin-bottom: 8px;'><a href=\"/\(encoded)\" style='text-decoration: none; color: #0066cc;'>\(name)</a></li>"
+                return "<li style='margin-bottom: 8px;'><a href=\"/\(encoded)\" style='text-decoration: none; color: #0066cc;'>\(name)</a></li>"
+            }.joined()
+
+            guard let html = TemplateRenderingService.render(
+                resource: "SharedFolder",
+                replacements: ["FOLDER_NAME": folder.lastPathComponent, "ITEMS": items]
+            ) else {
+                sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Missing SharedFolder template".utf8))
+                return
             }
-            html += "</ul></body></html>"
             sendResponse(connection: connection, statusCode: HTTPStatus.ok, body: Data(html.utf8), contentType: "text/html")
         } catch {
             sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading directory".utf8))

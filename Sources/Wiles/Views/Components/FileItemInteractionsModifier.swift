@@ -8,6 +8,16 @@ public struct FileItemInteractionsModifier: ViewModifier {
     let onSelect: (() -> Void)?
     var onTargetedChanged: (Bool) -> Void
 
+    @Environment(WindowUIState.self) private var windowUIState
+    /// Clicking an already-selected item should trigger rename, like Finder's "slow double-click" —
+    /// but a genuine fast double-click (which opens the item) also re-fires this same single-tap
+    /// handler for its second click, so a naive delay would pop up rename right after navigating
+    /// away. Bumping this counter in the double-click handler invalidates any rename scheduled by
+    /// the click that was actually part of it, regardless of which handler happens to run first —
+    /// both fire synchronously within the same gesture-recognition pass, well before the delay below
+    /// elapses.
+    @State private var renameRequestGeneration = 0
+
     public init(
         item: FileItem,
         appState: AppState,
@@ -25,15 +35,18 @@ public struct FileItemInteractionsModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .onTapGesture(count: 2) {
+                renameRequestGeneration += 1
                 appState.navigateTo(item.url)
             }
             .simultaneousGesture(
                 TapGesture().onEnded {
+                    let wasAlreadySelected = appState.selectedURLs.count == 1 && appState.selectedURLs.contains(item.url)
                     if let onSelect {
                         onSelect()
                     } else {
                         appState.handleSelection(for: item)
                     }
+                    scheduleRenameIfAlreadySelected(wasAlreadySelected)
                 }
             )
             .onDrag {
@@ -58,6 +71,20 @@ public struct FileItemInteractionsModifier: ViewModifier {
                 }
             )
             .fileItemContextMenu(for: item, appState: appState)
+    }
+
+    /// Clicking an item that's already the sole selection triggers rename after a short delay,
+    /// matching Finder's "click, pause, click again" — the delay lets a genuine fast double-click
+    /// (which opens the item instead) invalidate this via `renameRequestGeneration`.
+    private func scheduleRenameIfAlreadySelected(_ wasAlreadySelected: Bool) {
+        renameRequestGeneration += 1
+        guard wasAlreadySelected else { return }
+        let myGeneration = renameRequestGeneration
+        Task {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard myGeneration == renameRequestGeneration else { return }
+            windowUIState.renameItem = item
+        }
     }
 }
 

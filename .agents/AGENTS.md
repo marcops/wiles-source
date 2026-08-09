@@ -370,3 +370,18 @@ don't improvise a layout that merely "looks plausible." General rules:
   constructive half is actually going to happen. Prefer erroring out over guessing.
 - **Every fix for a data-loss bug must ship with a red→green regression test** (rule 28) that
   proves the old code actually destroyed data and the new code doesn't — not just "doesn't throw."
+
+## 36. No Embedded Text/Templates/HTML/Markup in Swift Source
+- **Never build multi-line text blobs — HTML, XML, Markdown, templated document formats — via
+  string concatenation or interpolation inside a `.swift` file.** Any real content document longer
+  than a one-line string belongs in its own resource file under `Resources/` (e.g. an `.html`
+  template), loaded at runtime and populated via placeholder substitution — never assembled
+  line-by-line in Swift.
+- **Real example this rule is written from**: `LocalHttpServerService.serveDirectoryListing`
+  hand-built an entire HTML page via `var html = "..."; html += "..."` chains directly in Swift.
+  This mixes markup-authoring concerns into application logic, makes the markup impossible to
+  preview/edit as HTML, and doesn't scale past one hardcoded page.
+- **Concretely**: static markup/structure (page chrome, styles, wrapper tags) lives in a template
+  resource file; only genuinely dynamic fragments (e.g. a generated list of `<li>` rows) get
+  assembled in Swift, then substituted into a single placeholder in the loaded template — never the
+  whole document.
