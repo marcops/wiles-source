@@ -1,5 +1,5 @@
-"aboutDescription" = "Un gestionnaire de fichiers natif de macOS, très rapide et conçu pour réunir le meilleur de GNOME Files et Finder.";
-"aboutWiles" = "À propos de Wiles";
+"aboutDescription" = "Le gestionnaire de fichiers qui manquait à macOS. Rapide, ciblé, et pensé dans les moindres détails.";
+"aboutWiles" = "À propos";
 "actConnectServer" = "Se connecter au serveur";
 "actCopyShortcut" = "Copier la sélection";
 "actCutShortcut" = "Couper la sélection";
@@ -216,7 +216,7 @@
 "orange" = "Orange";
 "originalName" = "Nom d'origine";
 "others" = "Autres";
-"overviewDesc" = "Wiles est un gestionnaire de fichiers macOS natif et performant.";
+"overviewDesc" = "Wiles est un gestionnaire de fichiers entièrement natif pour macOS, conçu de A à Z pour donner l'impression d'avoir toujours fait partie de votre Mac. Chaque interaction, qu'il s'agisse d'ouvrir un dossier ou de renommer mille fichiers à la fois, est pensée pour paraître instantanée.";
 "owner" = "Propriétaire";
 "parentFolder" = "Dossier parent";
 "password" = "Mot de passe";

@@ -1,5 +1,5 @@
-"aboutDescription" = "A fast, native macOS file manager designed to bridge the best of GNOME Files (Nautilus) and macOS Finder.";
-"aboutWiles" = "About Wiles";
+"aboutDescription" = "De bestandsbeheerder die macOS altijd al had moeten hebben. Snel, gefocust en tot in de puntjes doordacht.";
+"aboutWiles" = "Over";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -216,7 +216,7 @@
 "orange" = "Orange";
 "originalName" = "Original Name";
 "others" = "Anderen";
-"overviewDesc" = "Wiles is a high-performance, native macOS file manager built with Apple's AppKit and SwiftUI frameworks. It seamlessly bridges GNOME Files (Nautilus) workflow efficiency with macOS Finder's power features.";
+"overviewDesc" = "Wiles is een volledig native bestandsbeheerder voor macOS, helemaal opnieuw gebouwd om aan te voelen alsof hij altijd al bij je Mac hoorde. Elke actie, van het openen van een map tot het in één keer hernoemen van duizend bestanden, is ontworpen om direct aan te voelen.";
 "owner" = "Owner";
 "parentFolder" = "Parent Folder";
 "password" = "Wachtwoord";

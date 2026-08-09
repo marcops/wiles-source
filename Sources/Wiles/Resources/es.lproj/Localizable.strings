@@ -1,5 +1,5 @@
-"aboutDescription" = "Un administrador de archivos nativo de macOS, súper rápido y diseñado para unir lo mejor de GNOME Files y Finder.";
-"aboutWiles" = "Acerca de Wiles";
+"aboutDescription" = "El administrador de archivos que le faltaba a macOS. Rápido, enfocado y cuidado en cada detalle.";
+"aboutWiles" = "Acerca de";
 "actConnectServer" = "Conectarse al Servidor";
 "actCopyShortcut" = "Copiar Seleccionado";
 "actCutShortcut" = "Cortar Seleccionado";
@@ -216,7 +216,7 @@
 "orange" = "Naranja";
 "originalName" = "Nombre Original";
 "others" = "Otros";
-"overviewDesc" = "Wiles es un administrador de archivos nativo de alto rendimiento para macOS construído con AppKit y SwiftUI.";
+"overviewDesc" = "Wiles es un administrador de archivos totalmente nativo para macOS, creado desde cero para sentirse parte de tu Mac. Cada interacción, desde abrir una carpeta hasta renombrar mil archivos a la vez, está diseñada para sentirse instantánea.";
 "owner" = "Propietario";
 "parentFolder" = "Carpeta Superior";
 "password" = "Contraseña";

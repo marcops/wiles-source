@@ -1,5 +1,5 @@
-"aboutDescription" = "Um gerenciador de arquivos nativo do macOS, super rápido e projetado para unir o melhor do GNOME Files e Finder.";
-"aboutWiles" = "Sobre o Wiles";
+"aboutDescription" = "O gerenciador de arquivos que faltava no macOS. Rápido, focado e pensado em cada detalhe.";
+"aboutWiles" = "Sobre";
 "actConnectServer" = "Conectar ao Servidor";
 "actCopyShortcut" = "Copiar Selecionado";
 "actCutShortcut" = "Recortar Selecionado";
@@ -218,7 +218,7 @@
 "orange" = "Laranja";
 "originalName" = "Nome Original";
 "others" = "Outros";
-"overviewDesc" = "O Wiles é um gerenciador de arquivos nativo de alto desempenho para macOS construído com AppKit e SwiftUI. Ele une a eficiência do GNOME Files (Nautilus) aos recursos do macOS Finder.";
+"overviewDesc" = "O Wiles é um gerenciador de arquivos totalmente nativo do macOS, construído do zero para parecer que sempre fez parte do seu Mac. Cada interação, de abrir uma pasta a renomear mil arquivos de uma vez, foi projetada para parecer instantânea.";
 "owner" = "Proprietário";
 "parentFolder" = "Pasta Superior";
 "password" = "Senha";

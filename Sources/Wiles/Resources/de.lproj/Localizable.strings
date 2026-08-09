@@ -1,5 +1,5 @@
-"aboutDescription" = "Ein nativer macOS-Dateimanager, sehr schnell und entwickelt, um das Beste aus GNOME Files und Finder zu vereinen.";
-"aboutWiles" = "Über Wiles";
+"aboutDescription" = "Der Dateimanager, der macOS gefehlt hat. Schnell, fokussiert und bis ins letzte Detail durchdacht.";
+"aboutWiles" = "Über";
 "actConnectServer" = "Mit Server verbinden";
 "actCopyShortcut" = "Auswahl kopieren";
 "actCutShortcut" = "Auswahl ausschneiden";
@@ -216,7 +216,7 @@
 "orange" = "Orange";
 "originalName" = "Originalname";
 "others" = "Andere";
-"overviewDesc" = "Wiles ist ein leistungsstarker, nativer macOS-Dateimanager.";
+"overviewDesc" = "Wiles ist ein vollständig nativer Dateimanager für macOS, von Grund auf so entwickelt, dass er sich anfühlt, als hätte er schon immer zu deinem Mac gehört. Jede Interaktion, vom Öffnen eines Ordners bis zum Umbenennen von tausend Dateien auf einmal, fühlt sich sofort an.";
 "owner" = "Eigentümer";
 "parentFolder" = "Übergeordneter Ordner";
 "password" = "Passwort";
