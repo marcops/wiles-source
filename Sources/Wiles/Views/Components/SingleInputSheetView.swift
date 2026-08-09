@@ -32,44 +32,54 @@ struct SingleInputSheetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
-                if let iconName = iconName {
-                    Image(systemName: iconName)
-                        .font(.system(size: 20))
-                        .foregroundColor(.accentColor)
-                }
-                Text(title)
-                    .font(.system(size: 15, weight: .bold))
-            }
-
-            TextField("", text: $textValue)
-                .textFieldStyle(.roundedBorder)
-                .focused($isFocused)
-                .accessibilityLabel(title)
-                .onSubmit { submit() }
-
-            HStack(spacing: 12) {
-                Spacer()
-                Button(cancelTitle) {
-                    onCancel()
-                }
-                .keyboardShortcut(.escape, modifiers: [])
-                .accessibilityLabel(cancelTitle)
-
-                Button(actionButtonTitle) {
-                    submit()
-                }
-                .buttonStyle(.borderedProminent)
-                .accessibilityLabel(actionButtonTitle)
-                .keyboardShortcut(.return, modifiers: [])
-                .disabled(textValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
+            titleRow
+            inputField
+            actionButtons
         }
         .padding(20)
         .frame(width: 340)
         .onAppear {
             textValue = initialValue
             isFocused = true
+        }
+    }
+
+    private var titleRow: some View {
+        HStack(spacing: 8) {
+            if let iconName = iconName {
+                Image(systemName: iconName)
+                    .font(.system(size: 20))
+                    .foregroundColor(.accentColor)
+            }
+            Text(title)
+                .font(.system(size: 15, weight: .bold))
+        }
+    }
+
+    private var inputField: some View {
+        TextField("", text: $textValue)
+            .textFieldStyle(.roundedBorder)
+            .focused($isFocused)
+            .accessibilityLabel(title)
+            .onSubmit { submit() }
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            Spacer()
+            Button(cancelTitle) {
+                onCancel()
+            }
+            .keyboardShortcut(.escape, modifiers: [])
+            .accessibilityLabel(cancelTitle)
+
+            Button(actionButtonTitle) {
+                submit()
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityLabel(actionButtonTitle)
+            .keyboardShortcut(.return, modifiers: [])
+            .disabled(textValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 
