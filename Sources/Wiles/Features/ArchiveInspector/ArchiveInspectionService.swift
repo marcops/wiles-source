@@ -1,25 +1,6 @@
 import Foundation
 import AppKit
 
-public struct ArchiveEntryItem: Identifiable, Sendable {
-    public var id: String { path }
-    public let path: String
-    public let isDirectory: Bool
-    public let name: String
-
-    public init(path: String) {
-        self.path = path
-        self.isDirectory = path.hasSuffix("/")
-        let clean = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        self.name = (clean as NSString).lastPathComponent
-    }
-}
-
-public protocol ArchiveInspectionServiceProtocol: Sendable {
-    static func listEntries(in archiveURL: URL) async -> [ArchiveEntryItem]
-    static func extractSingleEntry(from archiveURL: URL, entryPath: String, to destinationFolder: URL) async throws -> URL
-}
-
 public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable {
     public static func listEntries(in archiveURL: URL) async -> [ArchiveEntryItem] {
         return await Task.detached(priority: .userInitiated) {
