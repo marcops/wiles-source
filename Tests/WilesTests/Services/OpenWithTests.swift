@@ -2,30 +2,6 @@
 import Foundation
 import AppKit
 
-/// Records calls instead of touching the real OS — see `WorkspaceOpening`. This is what makes
-/// `OpenWithService.open(urls:with:)`'s real call site finally safe to exercise: no real file needs
-/// to exist, nothing can present a blocking system alert.
-@MainActor
-private final class FakeWorkspaceOpener: WorkspaceOpening {
-    private(set) var openedURLPairs: [(urls: [URL], applicationURL: URL)] = []
-    private(set) var openedSingleURLs: [URL] = []
-
-    func open(
-        _ urls: [URL],
-        withApplicationAt applicationURL: URL,
-        configuration: NSWorkspace.OpenConfiguration,
-        completionHandler: (@Sendable (NSRunningApplication?, Error?) -> Void)?
-    ) {
-        openedURLPairs.append((urls, applicationURL))
-        completionHandler?(nil, nil)
-    }
-
-    func open(_ url: URL) -> Bool {
-        openedSingleURLs.append(url)
-        return true
-    }
-}
-
 @MainActor
 public struct OpenWithTests {
     public static func run() {
@@ -62,7 +38,7 @@ public struct OpenWithTests {
     // NSWorkspace.shared.open(...) call site — now safe to exercise for real via the injected
     // WorkspaceOpening seam (see WorkspaceOpening.swift) instead of touching the actual OS.
     private static func testOpenWithNonEmptyURLsCallsThroughToTheInjectedOpener() {
-        let fake = FakeWorkspaceOpener()
+        let fake = OpenWithFakeWorkspaceOpener()
         let previousOpener = OpenWithService.opener
         OpenWithService.opener = fake
         defer { OpenWithService.opener = previousOpener }
