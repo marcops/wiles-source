@@ -1,7 +1,6 @@
-- selecionei uma pasta para editar nome, entrei em outra pasta e continuou selecionada edição do nome
 - pasta inteligente criada sumiu
-- pasta nos favoritos, troquei a localização raiz e não abriu mais nos favoritos
 - regras de organização não deixa selecionar qualquer pasta apenas as principais (ex: download, documentos e etc)
+- se eu quero mover 1 arquivo o PATH BAR tem que abrir, e eu posso entrar dai nos diretorios ir direto para 1 deles.
 
 
 o gridview tem que mostrar 2 linhas igual o ifinder se o texto for muito grande, e se for maior que isto ai sim coloca os 3 ppontos
