@@ -34,6 +34,6 @@ public final class SystemAppearanceObserver {
     }
 
     private static func currentIsDark() -> Bool {
-        NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     }
 }

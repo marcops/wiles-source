@@ -136,8 +136,7 @@ struct FileGridView: View {
     /// invisible placeholder `FileGridCardItemView` leaves in the label's normal spot. Sized to the
     /// label's own last-measured width (`LabelWidthKey`) instead of always spanning the full card,
     /// so it starts out matching the collapsed label exactly and grows from there.
-    @ViewBuilder
-    private var renameFieldOverlay: some View {
+    @ViewBuilder private var renameFieldOverlay: some View {
         if let renameItem = windowUIState.renameItem,
            let item = appState.fileSystem.items.first(where: { $0.url == renameItem.url }),
            let cellFrame = appState.selection.gridCellFrames[renameItem.url] {

@@ -11,6 +11,11 @@ public struct SelectionStoreTests {
 
         store.columnViewDrillRightTrigger += 1
         report("Store/SelectionStore", "POS: columnViewDrillRightTrigger increments", result: store.columnViewDrillRightTrigger == 1)
+
+        report("Store/SelectionStore", "POS: gridLabelWidths starts empty", result: store.gridLabelWidths.isEmpty)
+        let url = URL(fileURLWithPath: "/tmp/wiles-selection-store-test-item")
+        store.gridLabelWidths[url] = 42.0
+        report("Store/SelectionStore", "POS: gridLabelWidths holds the value it was set to", result: store.gridLabelWidths[url] == 42.0)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {
