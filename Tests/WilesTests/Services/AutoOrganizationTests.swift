@@ -57,12 +57,22 @@ public struct AutoOrganizationTests {
         try? FileManager.default.removeItem(at: baseTemp)
     }
 
+    /// The service's own pipeline (folder scan → 150ms size-stability check → move) can take longer
+    /// than any single fixed sleep under load, which made tests waiting on a flat `Task.sleep` flaky
+    /// — poll for the expected outcome instead, up to a generous ceiling.
+    private static func waitUntil(timeoutSeconds: Double = 2.0, _ condition: () -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+        while !condition() && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+    }
+
     private static func testActiveRuleExecution(service: AutoOrganizationService, matchingFile: URL, nonMatchingFile: URL, inputDir: URL, targetDir: URL) async {
         // Positive: Active Rule Execution
         service.processFolder(inputDir)
-        try? await Task.sleep(nanoseconds: 300_000_000)
-
         let movedPDF = targetDir.appendingPathComponent("invoice.pdf")
+        await waitUntil { FileManager.default.fileExists(atPath: movedPDF.path) }
+
         let posOrgPassed = FileManager.default.fileExists(atPath: movedPDF.path)
         TestReporter.report("AutoOrganization", "POS: Rule routes matching .pdf file to destination", result: posOrgPassed)
 
@@ -174,7 +184,8 @@ public struct AutoOrganizationTests {
         service.rules = [pdfRule]
 
         service.processFolder(inputDir)
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        let movedVisibleFile = targetDir.appendingPathComponent("visible-alongside-hidden.pdf")
+        await waitUntil { FileManager.default.fileExists(atPath: movedVisibleFile.path) }
 
         TestReporter.report(
             "AutoOrganization", "NEG: a dotfile matching a rule's condition (e.g. \".secret.pdf\") is never moved",
