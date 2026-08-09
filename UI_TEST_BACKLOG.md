@@ -36,6 +36,17 @@ and write the real test the moment the missing infrastructure exists.
 - **What it needs**: An XCUITest that opens the delete confirmation, presses Return, and asserts the
   file was moved to Trash (not opened/renamed).
 
+## `InlineRenameField` — direct-in-view rename (replaces the old `RenameSheetView` modal)
+- **File**: `Sources/Wiles/Views/Components/InlineRenameField.swift`, wired into
+  `FileGridCardItemView`/`FileListView`/`FileColumnRowView` via `windowUIState.renameItem`.
+- **What's missing**: Needs a focused `TextField` receiving real keyboard input (typed text, Return
+  to commit, Escape to cancel, newline-stripping on paste) and focus-loss-commits-on-click-away —
+  none of that is reachable without real AppKit event delivery/focus, same class of gap as
+  `FileItemInteractionsModifier` above.
+- **What it needs**: XCUITest coverage per view (Grid/List/Column): trigger rename, type a new name,
+  commit via Return — assert the file was actually renamed on disk; trigger rename, press Escape —
+  assert the original name is unchanged; verify clicking away from the field also commits.
+
 ## List/Grid smooth row-removal animation
 - **Files**: `Sources/Wiles/Views/Content/FileListView.swift`, `Sources/Wiles/Views/Content/FileGridView.swift`
 - **What's missing**: The Finder-style "remaining rows slide up" effect is driven by

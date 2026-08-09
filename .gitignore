@@ -6,3 +6,4 @@ Packages/
 *.xcworkspace
 Wiles.app/
 .claude/worktrees/
+dist/
