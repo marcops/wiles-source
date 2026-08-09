@@ -1,13 +1,5 @@
 import SwiftUI
 
-enum RenameTabMode: String, CaseIterable, Identifiable {
-    case findReplace = "Find & Replace"
-    case prefixSuffix = "Prefix & Suffix"
-    case sequence = "Sequence"
-
-    var id: String { rawValue }
-}
-
 struct BatchRenameSheetView: View {
     let items: [FileItem]
     var appState: AppState

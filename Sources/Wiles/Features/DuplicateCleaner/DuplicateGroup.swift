@@ -11,8 +11,3 @@ public struct DuplicateGroup: Identifiable, Sendable {
         return fileSize * Int64(items.count - 1)
     }
 }
-
-public struct DuplicateScanResult: Sendable {
-    public let groups: [DuplicateGroup]
-    public let totalReclaimableBytes: Int64
-}
