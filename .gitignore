@@ -5,3 +5,4 @@ Packages/
 *.xcodeproj
 *.xcworkspace
 Wiles.app/
+.claude/worktrees/
