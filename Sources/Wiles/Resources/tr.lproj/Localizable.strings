@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "Davranış";
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Saydamlık";
+"middleTruncateNames" = "Uzun Adları Ortadan Kısalt";
 "settingsSidebarSectionsSection" = "Kenar Çubuğu Bölümleri";
 "settingsViewSection" = "Görünüm";
 "appearanceSystemOption" = "Sistem";

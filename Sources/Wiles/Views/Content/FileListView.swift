@@ -150,8 +150,10 @@ struct FileListView: View {
                 name: item.name,
                 isSelected: isSel,
                 font: .system(size: 13, weight: isSel ? .semibold : .regular),
+                nsFont: .systemFont(ofSize: 13, weight: isSel ? .semibold : .regular),
                 color: isSel ? .white : .primary,
-                collapsedLineLimit: 1
+                collapsedLineLimit: 1,
+                middleTruncate: appState.preferences.middleTruncateNames
             )
 
             if appState.preferences.showTags && !item.tags.isEmpty {

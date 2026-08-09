@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "Поведение";
 "settingsThemeSection" = "Тема";
 "settingsTranslucencySection" = "Прозрачность";
+"middleTruncateNames" = "Сокращать длинные имена в середине";
 "settingsSidebarSectionsSection" = "Разделы боковой панели";
 "settingsViewSection" = "Вид";
 "appearanceSystemOption" = "Системная";

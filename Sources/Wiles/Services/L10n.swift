@@ -401,6 +401,7 @@ public struct L10n {
         case settingsBehaviorSection
         case settingsThemeSection
         case settingsTranslucencySection
+        case middleTruncateNames
         case settingsSidebarSectionsSection
         case settingsViewSection
         case appearanceSystemOption

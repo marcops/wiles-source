@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "Comportamento";
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Trasparenza";
+"middleTruncateNames" = "Tronca i nomi lunghi al centro";
 "settingsSidebarSectionsSection" = "Sezioni della barra laterale";
 "settingsViewSection" = "Vista";
 "appearanceSystemOption" = "Sistema";

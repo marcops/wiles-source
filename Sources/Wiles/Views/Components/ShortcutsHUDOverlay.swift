@@ -152,6 +152,7 @@ struct ShortcutsHUDOverlay: View {
             .padding(.trailing, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .contentShape(Rectangle())
     }
 
     private func navigationShortcuts(for mode: NavigationMode) -> [(String, String)] {

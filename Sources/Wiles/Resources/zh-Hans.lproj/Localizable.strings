@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "行为";
 "settingsThemeSection" = "主题";
 "settingsTranslucencySection" = "透明度";
+"middleTruncateNames" = "在中间截断长文件名";
 "settingsSidebarSectionsSection" = "侧边栏部分";
 "settingsViewSection" = "显示";
 "appearanceSystemOption" = "系统";

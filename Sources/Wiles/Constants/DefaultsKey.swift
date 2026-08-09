@@ -20,6 +20,7 @@ enum DefaultsKey: String {
     case isTreeExpanded = "wiles_isTreeExpanded"
     case lastOpenedFolder = "wiles_lastOpenedFolder"
     case listColumnStates = "wiles_listColumnStates"
+    case middleTruncateNames = "wiles_middleTruncateNames"
     case navigationMode = "wiles_navigationMode"
     case perFolderViewModes = "wiles_perFolderViewModes"
     case recentConnectServers = "wiles_recentConnectServers"

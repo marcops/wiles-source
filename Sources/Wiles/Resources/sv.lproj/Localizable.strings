@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "Beteende";
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Genomskinlighet";
+"middleTruncateNames" = "Korta av långa namn i mitten";
 "settingsSidebarSectionsSection" = "Sidopanelsavsnitt";
 "settingsViewSection" = "Vy";
 "appearanceSystemOption" = "System";

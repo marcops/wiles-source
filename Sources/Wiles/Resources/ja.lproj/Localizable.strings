@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "動作";
 "settingsThemeSection" = "テーマ";
 "settingsTranslucencySection" = "透明度";
+"middleTruncateNames" = "長い名前を中央で省略";
 "settingsSidebarSectionsSection" = "サイドバーのセクション";
 "settingsViewSection" = "表示";
 "appearanceSystemOption" = "システム";

@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "Behavior";
 "settingsThemeSection" = "Theme";
 "settingsTranslucencySection" = "Translucency";
+"middleTruncateNames" = "Middle-Truncate Long Names";
 "settingsSidebarSectionsSection" = "Sidebar Sections";
 "settingsViewSection" = "View";
 "appearanceSystemOption" = "System";

@@ -123,8 +123,11 @@ struct FilePropertiesSheet: View {
                     }
                 }
                 .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(NSColor.windowBackgroundColor))
+            .contentShape(Rectangle())
 
             Divider()
 

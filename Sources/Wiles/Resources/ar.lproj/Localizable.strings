@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "السلوك";
 "settingsThemeSection" = "السمة";
 "settingsTranslucencySection" = "الشفافية";
+"middleTruncateNames" = "اختصار الأسماء الطويلة من المنتصف";
 "settingsSidebarSectionsSection" = "أقسام الشريط الجانبي";
 "settingsViewSection" = "العرض";
 "appearanceSystemOption" = "النظام";

@@ -14,6 +14,7 @@ struct AdvancedSettingsView: View {
                 Toggle(appState.tr(showHiddenFilesKey), isOn: $appState.preferences.showHiddenFiles)
                     .onChange(of: appState.preferences.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
                 Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
+                Toggle(appState.tr(.middleTruncateNames), isOn: $appState.preferences.middleTruncateNames)
             }
 
             defaultAppSection

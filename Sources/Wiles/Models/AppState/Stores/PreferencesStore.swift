@@ -87,6 +87,11 @@ public final class PreferencesStore {
     public var showTags: Bool = false {
         didSet { UserDefaults.standard.set(showTags, forKey: DefaultsKey.showTags.rawValue) }
     }
+    /// Finder-style middle-ellipsis truncation for long file names (Grid, List, Column) instead of
+    /// the default end-only truncation. Defaults on, matching Finder's own behavior.
+    public var middleTruncateNames: Bool = true {
+        didSet { UserDefaults.standard.set(middleTruncateNames, forKey: DefaultsKey.middleTruncateNames.rawValue) }
+    }
     public var showFooter: Bool = true {
         didSet { UserDefaults.standard.set(showFooter, forKey: DefaultsKey.showFooter.rawValue) }
     }
@@ -239,6 +244,7 @@ public final class PreferencesStore {
         loadEnum(.searchScope, into: \.searchScope, from: defaults)
         loadBool(.searchEverywhere, into: \.searchEverywhere, from: defaults)
         loadBool(.showTags, into: \.showTags, from: defaults)
+        loadBool(.middleTruncateNames, into: \.middleTruncateNames, from: defaults)
         loadBool(.showFooter, into: \.showFooter, from: defaults)
         loadBool(.showTerminalDrawer, into: \.showTerminalDrawer, from: defaults)
         loadBool(.showPreviewSidebar, into: \.showPreviewSidebar, from: defaults)

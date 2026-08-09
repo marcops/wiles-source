@@ -65,13 +65,17 @@ struct FileGridCardItemView: View {
     private func cardLabel(isSel: Bool) -> some View {
         let fontSize = max(8.0, min(12.0, Double(iconSize) * 0.22))
         let fontWeight: Font.Weight = isSel ? .semibold : .regular
+        let nsWeight: NSFont.Weight = isSel ? .semibold : .regular
         return SelectionAwareNameText(
             name: item.name,
             isSelected: isSel,
             font: .system(size: fontSize, weight: fontWeight),
+            nsFont: .systemFont(ofSize: fontSize, weight: nsWeight),
             color: isSel ? .white : .primary,
             collapsedLineLimit: 2,
-            alignment: .center
+            availableWidth: cardWidth - 12, // cardWidth minus the 6pt horizontal padding below × 2
+            alignment: .center,
+            middleTruncate: appState.preferences.middleTruncateNames
         )
             .padding(.horizontal, 6)
             .padding(.vertical, 2)

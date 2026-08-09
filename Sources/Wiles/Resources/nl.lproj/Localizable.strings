@@ -350,6 +350,7 @@
 "settingsBehaviorSection" = "Gedrag";
 "settingsThemeSection" = "Thema";
 "settingsTranslucencySection" = "Doorschijnendheid";
+"middleTruncateNames" = "Lange namen in het midden inkorten";
 "settingsSidebarSectionsSection" = "Zijbalksecties";
 "settingsViewSection" = "Beeld";
 "appearanceSystemOption" = "Systeem";
