@@ -1,18 +1,5 @@
 import Foundation
 
-public enum UndoActionType: Sendable {
-    case rename(oldURL: URL, newURL: URL)
-    case move(sourceURL: URL, destinationURL: URL)
-    case create(url: URL)
-    case trash(originalURL: URL, trashedURL: URL)
-}
-
-public struct UndoRecord: Sendable {
-    public let id = UUID()
-    let actionType: UndoActionType
-    let timestamp = Date()
-}
-
 @MainActor
 public final class UndoRedoService {
     public static let shared = UndoRedoService()

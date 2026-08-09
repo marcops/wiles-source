@@ -1,18 +1,6 @@
 import Foundation
 import AppKit
 
-public enum PathCopyVariant: String, CaseIterable, Sendable {
-    case absolute
-    case relative
-    case fileURL
-    case terminalEscaped
-}
-
-@MainActor
-public protocol CopyPathServiceProtocol: Sendable {
-    static func copy(urls: [URL], variant: PathCopyVariant, relativeTo base: URL?)
-}
-
 public final class CopyPathService: CopyPathServiceProtocol, Sendable {
     @MainActor
     public static func copy(urls: [URL], variant: PathCopyVariant, relativeTo base: URL? = nil) {
