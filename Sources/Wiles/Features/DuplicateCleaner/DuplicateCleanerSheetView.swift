@@ -125,30 +125,34 @@ public struct DuplicateCleanerSheetView: View {
             }
 
             ForEach(group.items) { item in
-                HStack(spacing: 8) {
-                    Toggle("", isOn: Binding(
-                        get: { selectedURLsToTrash.contains(item.url) },
-                        set: { isChecked in
-                            if isChecked { selectedURLsToTrash.insert(item.url) } else { selectedURLsToTrash.remove(item.url) }
-                        }
-                    ))
-                    .labelsHidden()
-
-                    Image(nsImage: item.icon)
-                        .resizable()
-                        .frame(width: 16, height: 16)
-
-                    Text(item.url.path)
-                        .font(.system(size: 11, design: .monospaced))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer()
-                }
+                duplicateItemRow(item)
             }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color(NSColor.controlBackgroundColor)))
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.2), lineWidth: 1))
+    }
+
+    private func duplicateItemRow(_ item: FileItem) -> some View {
+        HStack(spacing: 8) {
+            Toggle("", isOn: Binding(
+                get: { selectedURLsToTrash.contains(item.url) },
+                set: { isChecked in
+                    if isChecked { selectedURLsToTrash.insert(item.url) } else { selectedURLsToTrash.remove(item.url) }
+                }
+            ))
+            .labelsHidden()
+
+            Image(nsImage: item.icon)
+                .resizable()
+                .frame(width: 16, height: 16)
+
+            Text(item.url.path)
+                .font(.system(size: 11, design: .monospaced))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer()
+        }
     }
 
     private var footerBar: some View {
