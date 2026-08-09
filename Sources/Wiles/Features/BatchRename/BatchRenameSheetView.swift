@@ -35,71 +35,89 @@ struct BatchRenameSheetView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            HStack {
-                Text("\(appState.tr(.batchRename)) (\(items.count))")
-                    .font(.system(size: 15, weight: .bold))
-                Spacer()
-            }
-
-            Picker("", selection: $tabMode) {
-                Text(appState.tr(.find)).tag(RenameTabMode.findReplace)
-                Text(appState.tr(.prefix)).tag(RenameTabMode.prefixSuffix)
-                Text(appState.tr(.sequenceNumbering)).tag(RenameTabMode.sequence)
-            }
-            .pickerStyle(.segmented)
-
+            titleRow
+            modePicker
             modeInputView
-
             Divider()
-
-            Text(appState.tr(.preview))
-                .font(.system(size: 13, weight: .semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            ScrollView {
-                VStack(spacing: 4) {
-                    ForEach(previews, id: \.original.url) { pair in
-                        HStack {
-                            Text(pair.original.name)
-                                .font(.system(size: 12))
-                                .lineLimit(1)
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-
-                            Text(pair.newName)
-                                .font(.system(size: 12, weight: .medium))
-                                .lineLimit(1)
-                                .foregroundColor(pair.original.name == pair.newName ? .secondary : .accentColor)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.vertical, 2)
-                        Divider()
-                    }
-                }
-            }
-            .frame(height: 140)
-
-            HStack(spacing: 12) {
-                Spacer()
-                Button(appState.tr(.cancel)) {
-                    dismiss()
-                }
-                .keyboardShortcut(.escape, modifiers: [])
-
-                Button(appState.tr(.apply)) {
-                    appState.performBatchRename(items: items, mode: currentMode)
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.return, modifiers: [])
-            }
+            previewLabel
+            previewList
+            actionButtons
         }
         .padding(20)
         .frame(width: 480, height: 380)
+    }
+
+    private var titleRow: some View {
+        HStack {
+            Text("\(appState.tr(.batchRename)) (\(items.count))")
+                .font(.system(size: 15, weight: .bold))
+            Spacer()
+        }
+    }
+
+    private var modePicker: some View {
+        Picker("", selection: $tabMode) {
+            Text(appState.tr(.find)).tag(RenameTabMode.findReplace)
+            Text(appState.tr(.prefix)).tag(RenameTabMode.prefixSuffix)
+            Text(appState.tr(.sequenceNumbering)).tag(RenameTabMode.sequence)
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var previewLabel: some View {
+        Text(appState.tr(.preview))
+            .font(.system(size: 13, weight: .semibold))
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var previewList: some View {
+        ScrollView {
+            VStack(spacing: 4) {
+                ForEach(previews, id: \.original.url) { pair in
+                    previewRow(pair)
+                    Divider()
+                }
+            }
+        }
+        .frame(height: 140)
+    }
+
+    private func previewRow(_ pair: (original: FileItem, newName: String)) -> some View {
+        HStack {
+            Text(pair.original.name)
+                .font(.system(size: 12))
+                .lineLimit(1)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "arrow.right")
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+
+            Text(pair.newName)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
+                .foregroundColor(pair.original.name == pair.newName ? .secondary : .accentColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            Spacer()
+            Button(appState.tr(.cancel)) {
+                dismiss()
+            }
+            .keyboardShortcut(.escape, modifiers: [])
+
+            Button(appState.tr(.apply)) {
+                appState.performBatchRename(items: items, mode: currentMode)
+                dismiss()
+            }
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut(.return, modifiers: [])
+        }
     }
 
     @ViewBuilder private var modeInputView: some View {
