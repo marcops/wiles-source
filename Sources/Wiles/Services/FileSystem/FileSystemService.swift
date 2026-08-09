@@ -38,42 +38,46 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
 
     private static func loadRealDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
         await Task.detached(priority: .userInitiated) {
-            let fm = FileManager.default
-            // Prefetching creationDateKey/contentAccessDateKey/effectiveIconKey here — not just the
-            // keys FileItem strictly needs for its primary fields — means FileItem's own
-            // resourceValues(forKeys:) call below hits URL's warm resource cache for all of them
-            // instead of triggering a fresh per-file stat/IPC call for whichever ones were missing.
-            // effectiveIconKey in particular replaces a blocking NSWorkspace.icon(forFile:) call per
-            // file (a LaunchServices IPC round trip) with one bulk-fetched alongside everything else.
-            var keys: [URLResourceKey] = [
-                .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
-                .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
-                .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
-                .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
-            ]
-            if options.showTags {
-                keys.append(.tagNamesKey)
-                keys.append(.labelColorKey)
-            }
-            guard let fileURLs = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsSubdirectoryDescendants]) else {
-                return []
-            }
-
-            let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
-            var items: [FileItem] = []
-            for fileURL in fileURLs {
-                if Task.isCancelled { break }
-                if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) { continue }
-                if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
-
-                items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
-            }
-            let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
-            if options.searchQuery.isEmpty {
-                DirectoryCacheService.shared.cacheDirectory(DirectoryLoadResult(items: sortedItems), for: url)
-            }
-            return sortedItems
+            loadRealDirectoryContentsSync(at: url, options: options)
         }.value
+    }
+
+    private static func loadRealDirectoryContentsSync(at url: URL, options: DirectoryLoadOptions) -> [FileItem] {
+        let fm = FileManager.default
+        // Prefetching creationDateKey/contentAccessDateKey/effectiveIconKey here — not just the
+        // keys FileItem strictly needs for its primary fields — means FileItem's own
+        // resourceValues(forKeys:) call below hits URL's warm resource cache for all of them
+        // instead of triggering a fresh per-file stat/IPC call for whichever ones were missing.
+        // effectiveIconKey in particular replaces a blocking NSWorkspace.icon(forFile:) call per
+        // file (a LaunchServices IPC round trip) with one bulk-fetched alongside everything else.
+        var keys: [URLResourceKey] = [
+            .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
+            .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
+            .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
+            .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
+        ]
+        if options.showTags {
+            keys.append(.tagNamesKey)
+            keys.append(.labelColorKey)
+        }
+        guard let fileURLs = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsSubdirectoryDescendants]) else {
+            return []
+        }
+
+        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
+        var items: [FileItem] = []
+        for fileURL in fileURLs {
+            if Task.isCancelled { break }
+            if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) { continue }
+            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
+
+            items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+        }
+        let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
+        if options.searchQuery.isEmpty {
+            DirectoryCacheService.shared.cacheDirectory(DirectoryLoadResult(items: sortedItems), for: url)
+        }
+        return sortedItems
     }
 
     /// Recursively enumerates every file under `root` (used when the user turns on "search
@@ -97,53 +101,62 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         onBatch: @escaping @Sendable ([FileItem]) -> Void
     ) async {
         await Task.detached(priority: .userInitiated) {
-            let fm = FileManager.default
-            var keys: [URLResourceKey] = [
-                .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
-                .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
-                .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
-                .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
-            ]
-            if options.showTags {
-                keys.append(.tagNamesKey)
-                keys.append(.labelColorKey)
-            }
-            var enumeratorOptions: FileManager.DirectoryEnumerationOptions = [.skipsPackageDescendants]
-            if !includeHidden { enumeratorOptions.insert(.skipsHiddenFiles) }
-            // Without an `errorHandler`, `FileManager.enumerator` silently aborts the ENTIRE walk
-            // the first time it hits a directory it can't read — and the home folder tree is full
-            // of those on modern macOS without Full Disk Access (`~/Library/Mail`,
-            // `~/Library/Containers`, various TCC-protected caches). That would make a recursive
-            // search stop dead at whatever protected folder it happens to reach first, long before
-            // getting to folders like `~/Documents` that come later in enumeration order. Returning
-            // `true` here tells it to skip the unreadable item and keep walking everything else.
-            guard let enumerator = fm.enumerator(
-                at: root,
-                includingPropertiesForKeys: keys,
-                options: enumeratorOptions,
-                errorHandler: { _, _ in true }
-            ) else {
-                onBatch([])
-                return
-            }
-
-            let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
-            var items: [FileItem] = []
-            var lastReportedCount = 0
-            while let fileURL = enumerator.nextObject() as? URL {
-                if Task.isCancelled { break }
-                if !includeHidden && isFileHidden(fileURL: fileURL, showHidden: false) { continue }
-                if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
-
-                items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
-                if items.count - lastReportedCount >= LayoutTokens.recursiveSearchBatchSize {
-                    onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
-                    lastReportedCount = items.count
-                }
-                if items.count >= LayoutTokens.recursiveSearchResultLimit { break }
-            }
-            onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
+            performRecursiveSearch(at: root, options: options, includeHidden: includeHidden, onBatch: onBatch)
         }.value
+    }
+
+    private static func performRecursiveSearch(
+        at root: URL,
+        options: DirectoryLoadOptions,
+        includeHidden: Bool,
+        onBatch: @escaping @Sendable ([FileItem]) -> Void
+    ) {
+        let fm = FileManager.default
+        var keys: [URLResourceKey] = [
+            .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
+            .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
+            .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
+            .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
+        ]
+        if options.showTags {
+            keys.append(.tagNamesKey)
+            keys.append(.labelColorKey)
+        }
+        var enumeratorOptions: FileManager.DirectoryEnumerationOptions = [.skipsPackageDescendants]
+        if !includeHidden { enumeratorOptions.insert(.skipsHiddenFiles) }
+        // Without an `errorHandler`, `FileManager.enumerator` silently aborts the ENTIRE walk
+        // the first time it hits a directory it can't read — and the home folder tree is full
+        // of those on modern macOS without Full Disk Access (`~/Library/Mail`,
+        // `~/Library/Containers`, various TCC-protected caches). That would make a recursive
+        // search stop dead at whatever protected folder it happens to reach first, long before
+        // getting to folders like `~/Documents` that come later in enumeration order. Returning
+        // `true` here tells it to skip the unreadable item and keep walking everything else.
+        guard let enumerator = fm.enumerator(
+            at: root,
+            includingPropertiesForKeys: keys,
+            options: enumeratorOptions,
+            errorHandler: { _, _ in true }
+        ) else {
+            onBatch([])
+            return
+        }
+
+        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
+        var items: [FileItem] = []
+        var lastReportedCount = 0
+        while let fileURL = enumerator.nextObject() as? URL {
+            if Task.isCancelled { break }
+            if !includeHidden && isFileHidden(fileURL: fileURL, showHidden: false) { continue }
+            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
+
+            items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+            if items.count - lastReportedCount >= LayoutTokens.recursiveSearchBatchSize {
+                onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
+                lastReportedCount = items.count
+            }
+            if items.count >= LayoutTokens.recursiveSearchResultLimit { break }
+        }
+        onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
     }
 
     private static func isFileHidden(fileURL: URL, showHidden: Bool) -> Bool {

@@ -15,38 +15,7 @@ public final class DuplicateDetectionService: Sendable {
         // detached task, and the detached task now throws `CancellationError` promptly
         // instead of running to completion.
         let scanTask = Task.detached(priority: .userInitiated) { () throws -> DuplicateScanResult in
-            let fm = FileManager.default
-            guard let enumerator = fm.enumerator(
-                at: folderURL,
-                includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
-                options: [.skipsHiddenFiles]
-            ) else {
-                return DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
-            }
-
-            var sizeMap: [Int64: [URL]] = [:]
-
-            while let fileURL = enumerator.nextObject() as? URL {
-                try Task.checkCancellation()
-                guard let resourceValues = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
-                      let isDir = resourceValues.isDirectory, !isDir,
-                      let size = resourceValues.fileSize, size > 0 else {
-                    continue
-                }
-                sizeMap[Int64(size), default: []].append(fileURL)
-            }
-
-            let candidateGroups = sizeMap.filter { $0.value.count > 1 }
-            var finalGroups: [DuplicateGroup] = []
-            var totalReclaimable: Int64 = 0
-
-            for (size, urls) in candidateGroups {
-                let (groups, reclaimable) = try Self.confirmedDuplicateGroups(among: urls, size: size)
-                finalGroups.append(contentsOf: groups)
-                totalReclaimable += reclaimable
-            }
-
-            return DuplicateScanResult(groups: finalGroups, totalReclaimableBytes: totalReclaimable)
+            try Self.scanForDuplicateGroups(in: folderURL)
         }
 
         return await withTaskCancellationHandler {
@@ -54,6 +23,41 @@ public final class DuplicateDetectionService: Sendable {
         } onCancel: {
             scanTask.cancel()
         }
+    }
+
+    private static func scanForDuplicateGroups(in folderURL: URL) throws -> DuplicateScanResult {
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(
+            at: folderURL,
+            includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
+        }
+
+        var sizeMap: [Int64: [URL]] = [:]
+
+        while let fileURL = enumerator.nextObject() as? URL {
+            try Task.checkCancellation()
+            guard let resourceValues = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
+                  let isDir = resourceValues.isDirectory, !isDir,
+                  let size = resourceValues.fileSize, size > 0 else {
+                continue
+            }
+            sizeMap[Int64(size), default: []].append(fileURL)
+        }
+
+        let candidateGroups = sizeMap.filter { $0.value.count > 1 }
+        var finalGroups: [DuplicateGroup] = []
+        var totalReclaimable: Int64 = 0
+
+        for (size, urls) in candidateGroups {
+            let (groups, reclaimable) = try Self.confirmedDuplicateGroups(among: urls, size: size)
+            finalGroups.append(contentsOf: groups)
+            totalReclaimable += reclaimable
+        }
+
+        return DuplicateScanResult(groups: finalGroups, totalReclaimableBytes: totalReclaimable)
     }
 
     /// Same-size candidates with a matching *partial* (first-4KB) hash are not yet proven

@@ -3,38 +3,41 @@ import Foundation
 public final class BatchRenameService {
     public static func previewNewNames(items: [FileItem], mode: BatchRenameMode) -> [(original: FileItem, newName: String)] {
         return items.enumerated().map { index, item in
-            let ext = item.fileExtension
-            let extWithDot = ext.isEmpty ? "" : ".\(ext)"
-            let baseName = item.isDirectory ? item.name : item.url.deletingPathExtension().lastPathComponent
-
-            let newBaseName: String
-            switch mode {
-            case .replace(let find, let replaceWith):
-                if find.isEmpty {
-                    newBaseName = baseName
-                } else {
-                    newBaseName = baseName.replacingOccurrences(of: find, with: replaceWith)
-                }
-            case .addPrefixSuffix(let prefix, let suffix):
-                newBaseName = "\(prefix)\(baseName)\(suffix)"
-            case .sequenceNumber(let prefix, let startNumber, let paddingDigits):
-                let num = startNumber + index
-                let formattedNum = String(format: "%0\(paddingDigits)d", num)
-                newBaseName = prefix.isEmpty ? formattedNum : "\(prefix)_\(formattedNum)"
-            case .regex(let pattern, let template):
-                if pattern.isEmpty {
-                    newBaseName = baseName
-                } else if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
-                    let range = NSRange(location: 0, length: baseName.utf16.count)
-                    newBaseName = regex.stringByReplacingMatches(in: baseName, options: [], range: range, withTemplate: template)
-                } else {
-                    newBaseName = baseName
-                }
-            }
-
-            let finalName = item.isDirectory ? newBaseName : "\(newBaseName)\(extWithDot)"
-            return (original: item, newName: finalName)
+            (original: item, newName: renamedName(for: item, index: index, mode: mode))
         }
+    }
+
+    private static func renamedName(for item: FileItem, index: Int, mode: BatchRenameMode) -> String {
+        let ext = item.fileExtension
+        let extWithDot = ext.isEmpty ? "" : ".\(ext)"
+        let baseName = item.isDirectory ? item.name : item.url.deletingPathExtension().lastPathComponent
+
+        let newBaseName: String
+        switch mode {
+        case .replace(let find, let replaceWith):
+            if find.isEmpty {
+                newBaseName = baseName
+            } else {
+                newBaseName = baseName.replacingOccurrences(of: find, with: replaceWith)
+            }
+        case .addPrefixSuffix(let prefix, let suffix):
+            newBaseName = "\(prefix)\(baseName)\(suffix)"
+        case .sequenceNumber(let prefix, let startNumber, let paddingDigits):
+            let num = startNumber + index
+            let formattedNum = String(format: "%0\(paddingDigits)d", num)
+            newBaseName = prefix.isEmpty ? formattedNum : "\(prefix)_\(formattedNum)"
+        case .regex(let pattern, let template):
+            if pattern.isEmpty {
+                newBaseName = baseName
+            } else if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+                let range = NSRange(location: 0, length: baseName.utf16.count)
+                newBaseName = regex.stringByReplacingMatches(in: baseName, options: [], range: range, withTemplate: template)
+            } else {
+                newBaseName = baseName
+            }
+        }
+
+        return item.isDirectory ? newBaseName : "\(newBaseName)\(extWithDot)"
     }
 
     public static func performBatchRename(items: [FileItem], mode: BatchRenameMode) throws -> [URL] {
