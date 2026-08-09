@@ -1,41 +1,6 @@
 import Foundation
 import AppKit
 
-public struct DiskUsageItem: Identifiable, Sendable {
-    public var id: URL { url }
-    public let url: URL
-    let name: String
-    public let size: Int64
-    public let formattedSize: String
-    public let percentage: Double
-    public let isDirectory: Bool
-    public let colorHue: Double
-
-    public init(url: URL, name: String, size: Int64, percentage: Double, isDirectory: Bool, colorHue: Double) {
-        self.url = url
-        self.name = name
-        self.size = size
-        self.formattedSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
-        self.percentage = percentage
-        self.isDirectory = isDirectory
-        self.colorHue = colorHue
-    }
-}
-
-public struct DiskUsageReport: Sendable {
-    public let totalSize: Int64
-    public let formattedTotalSize: String
-    public let topItems: [DiskUsageItem]
-    public let othersItem: DiskUsageItem?
-
-    public init(totalSize: Int64, topItems: [DiskUsageItem], othersItem: DiskUsageItem?) {
-        self.totalSize = totalSize
-        self.formattedTotalSize = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
-        self.topItems = topItems
-        self.othersItem = othersItem
-    }
-}
-
 public final class DiskSpaceVisualizerService {
     /// Guardrail: stop enumerating a folder's contents after this many files to keep scans fast.
     private static let maxScannedFileCount = 5000
