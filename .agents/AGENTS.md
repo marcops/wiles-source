@@ -385,3 +385,17 @@ don't improvise a layout that merely "looks plausible." General rules:
   resource file; only genuinely dynamic fragments (e.g. a generated list of `<li>` rows) get
   assembled in Swift, then substituted into a single placeholder in the loaded template — never the
   whole document.
+
+## 37. Public `RELEASE_NOTES.md` — Keep Only the Last 5 Versions in Full, Then Consolidate
+- **Applies to `marcops/wiles` (public repo) `RELEASE_NOTES.md`.** Keep the 5 most recent version
+  entries in full detail (New Features, Bug Fixes, Security Fixes, Performance, Refinements — same
+  as today).
+- **On adding a 6th entry**: before adding the new version at the top, collapse everything older
+  than the (now) most recent 5 into a single trailing `## Earlier Versions` (or similarly named)
+  consolidated section. That consolidation lists **major features only** — one line per shipped
+  feature, no bug fixes, no perf notes, no minor refinements — across all the versions being
+  folded in. If a consolidated section already exists from a previous rotation, merge the newly
+  -demoted version's major features into it rather than creating a second one.
+- **Why**: the file is public-facing marketing history, not a changelog archive — recent detail is
+  useful to evaluate what just shipped, but a growing wall of old bug-fix bullets buries it. A short
+  "what Wiles has grown into" summary at the bottom stays useful indefinitely.
