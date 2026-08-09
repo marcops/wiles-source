@@ -1,10 +1,5 @@
 import Foundation
 
-public enum ClipboardAction: Sendable {
-    case cut
-    case copy
-}
-
 public struct ClipboardState: Sendable {
     public let urls: [URL]
     public let action: ClipboardAction
