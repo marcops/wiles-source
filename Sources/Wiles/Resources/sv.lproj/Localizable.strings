@@ -251,6 +251,9 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "Filinnehåll";
 "searchByName" = "Filnamn";
+"searchEverywhere" = "Hela Mac";
+"searchEverywhereHelp" = "Sök rekursivt i hela hemmappen istället för bara den här";
+"searchIncludeHiddenFolders" = "Inkludera dolda mappar";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Sökområde";
 "secureShred" = "Förstör Fil Säkert...";

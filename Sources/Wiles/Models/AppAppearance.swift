@@ -7,14 +7,6 @@ public enum AppAppearance: String, CaseIterable, Identifiable, Hashable, Equatab
 
     public var id: String { rawValue }
 
-    public var colorScheme: ColorScheme? {
-        switch self {
-        case .system: return nil
-        case .light: return .light
-        case .dark: return .dark
-        }
-    }
-
     /// Localized label for the Settings/menu appearance picker (the raw values above stay in
     /// English since they're persisted verbatim to `UserDefaults` via `DefaultsKey.appAppearance`).
     public var l10nKey: L10n.Key {

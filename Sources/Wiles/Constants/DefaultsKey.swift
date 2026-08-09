@@ -24,6 +24,7 @@ enum DefaultsKey: String {
     case perFolderViewModes = "wiles_perFolderViewModes"
     case recentConnectServers = "wiles_recentConnectServers"
     case recentOpenedURLs = "wiles_recentOpenedURLs"
+    case searchEverywhere = "wiles_searchEverywhere"
     case searchScope = "wiles_searchScope"
     case showDirectoryTree = "wiles_showDirectoryTree"
     case showDiskUsageSidebar = "wiles_showDiskUsageSidebar"

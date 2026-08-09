@@ -41,17 +41,11 @@ struct FileColumnRowView: View {
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
         .accessibilityValue(item.formattedSize)
-        .onTapGesture(count: 2) {
-            appState.navigateTo(item.url)
-        }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                onSelect()
-            }
+        .fileItemInteractions(
+            item: item,
+            appState: appState,
+            onSelect: onSelect,
+            onTargetedChanged: { targeted in isDropTargeted = targeted }
         )
-        .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState) { targeted in
-            isDropTargeted = targeted
-        }
-        .fileItemInteractions(item: item, appState: appState)
     }
 }

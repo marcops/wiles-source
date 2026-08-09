@@ -253,6 +253,9 @@
 "scanningFolderSize" = "Analisando tamanho da pasta...";
 "searchByContent" = "Conteúdo do Arquivo";
 "searchByName" = "Nome do Arquivo";
+"searchEverywhere" = "Todo o Mac";
+"searchEverywhereHelp" = "Buscar recursivamente em toda a sua pasta pessoal em vez de apenas esta";
+"searchIncludeHiddenFolders" = "Incluir Pastas Ocultas";
 "searchPlaceholder" = "Buscar em";
 "searchScope" = "Escopo de Busca";
 "secureShred" = "Triturar Arquivo com Segurança...";

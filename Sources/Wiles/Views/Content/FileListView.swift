@@ -26,7 +26,7 @@ struct FileListView: View {
 
                         Group {
                             if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
-                                emptyStateView
+                                EmptyDirectoryView(appState: appState)
                             } else {
                                 VStack(spacing: 0) {
                                     FileListHeaderView(appState: appState)
@@ -37,7 +37,9 @@ struct FileListView: View {
 
                                         ForEach(visibleItems) { item in
                                             listRow(for: item)
+                                                .transition(.opacity)
                                         }
+                                        .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
                                         if paginate && visibleLimit < appState.fileSystem.items.count {
                                             ProgressView()
                                                 .frame(height: 30)
@@ -109,18 +111,6 @@ struct FileListView: View {
         }
     }
 
-    private var emptyStateView: some View {
-        VStack(spacing: 12) {
-            Spacer().frame(height: 80)
-            Image(systemName: appState.isSearching ? "magnifyingglass" : "folder")
-                .font(.system(size: 48)).foregroundColor(.secondary.opacity(0.5))
-            Text(appState.isSearching ? appState.tr(.noResultsFound) : appState.tr(.folderIsEmpty))
-                .font(.system(size: 16, weight: .medium)).foregroundColor(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, minHeight: 300)
-    }
-
     private var listIconSize: CGFloat {
         max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.preferences.iconSize) * LayoutTokens.listIconScaleMultiplier))
     }
@@ -179,17 +169,6 @@ struct FileListView: View {
         .frame(width: appState.columnWidth(for: .name), alignment: .leading)
     }
 
-    private func dragProvider(for item: FileItem) -> NSItemProvider {
-        if !appState.selectedURLs.contains(item.url) {
-            appState.selectedURLs = [item.url]
-        }
-        let provider = NSItemProvider()
-        for fileURL in appState.selectedURLs {
-            provider.registerObject(fileURL as NSURL, visibility: .all)
-        }
-        return provider
-    }
-
     private func listRow(for item: FileItem) -> some View {
         let isSel = appState.selectedURLs.contains(item.url)
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
@@ -219,19 +198,10 @@ struct FileListView: View {
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
         .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .accessibilityValue(item.formattedSize)
-        .rowInteractions(item: item, appState: appState, dragProvider: { dragProvider(for: item) }, onTargetedChanged: { targeted in
-            dropTargetedURL = targeted ? item.url : nil
-        })
-    }
-}
-
-private extension View {
-    func rowInteractions(
-        item: FileItem,
-        appState: AppState,
-        dragProvider: @escaping () -> NSItemProvider,
-        onTargetedChanged: @escaping (Bool) -> Void = { _ in }
-    ) -> some View {
-        modifier(FileRowInteractionsModifier(item: item, appState: appState, dragProvider: dragProvider, onTargetedChanged: onTargetedChanged))
+        .fileItemInteractions(
+            item: item,
+            appState: appState,
+            onTargetedChanged: { targeted in dropTargetedURL = targeted ? item.url : nil }
+        )
     }
 }

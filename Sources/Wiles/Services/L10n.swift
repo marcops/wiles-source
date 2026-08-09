@@ -355,6 +355,9 @@ public struct L10n {
         case searchScope
         case searchByName
         case searchByContent
+        case searchEverywhere
+        case searchEverywhereHelp
+        case searchIncludeHiddenFolders
         case inspectArchive
         case permissionDeniedNotice
         case emptyFolder

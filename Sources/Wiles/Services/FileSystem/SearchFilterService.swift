@@ -3,6 +3,18 @@ import Foundation
 /// Parses and evaluates the search-bar query language (plain text, `r:` regex, and
 /// `date:`/`size:`/`kind:`/`ext:`/`tag:` filter tokens) against candidate file URLs.
 public struct SearchFilterService: Sendable {
+    /// `hidden:true` is a global search setting, not a per-file predicate like `date:`/`kind:`/
+    /// `tag:`, so it can't be evaluated inside `matchesToken` — it has to be pulled out of the
+    /// query before the remaining tokens are matched against each candidate file (otherwise it'd
+    /// fall through to a literal filename-contains-"hidden:true" text match). Returns the query
+    /// with that token stripped, plus whether it was present.
+    public static func extractHiddenFlag(from query: String) -> (query: String, includeHidden: Bool) {
+        let tokens = query.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        guard tokens.contains(where: { $0.lowercased() == "hidden:true" }) else { return (query, false) }
+        let remaining = tokens.filter { $0.lowercased() != "hidden:true" }.joined(separator: " ")
+        return (remaining, true)
+    }
+
     public static func parseSearchRegex(query: String) -> NSRegularExpression? {
         guard !query.isEmpty else { return nil }
         let pattern: String

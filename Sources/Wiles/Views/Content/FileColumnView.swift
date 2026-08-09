@@ -9,6 +9,42 @@ struct FileColumnView: View {
     @State private var loadTask: Task<Void, Never>?
 
     var body: some View {
+        if appState.isSearching && !appState.searchQuery.isEmpty {
+            // A search (especially "Whole Mac") has no meaningful drill-down hierarchy — results
+            // can come from anywhere under the home folder — so Column view falls back to a
+            // single flat results column bound directly to `appState.fileSystem.items`, the exact
+            // same data source List/Grid already render from. This is what was missing before:
+            // Column view's normal browsing mode never touched `appState.fileSystem.items` at
+            // all (see `loadInitialColumns`/`refreshAllColumnsFromDisk` below, which always
+            // re-read straight from disk instead), so it silently showed nothing during a search.
+            searchResultsColumn
+        } else {
+            columnBrowser
+        }
+    }
+
+    private var searchResultsColumn: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            LazyVStack(spacing: 1) {
+                ForEach(appState.fileSystem.items) { item in
+                    FileColumnRowView(
+                        item: item,
+                        columnIndex: 0,
+                        isSelected: appState.selectedURLs.contains(item.url),
+                        appState: appState,
+                        onSelect: { appState.handleSelection(for: item) }
+                    )
+                    .transition(.opacity)
+                }
+                .animation(MotionTokens.smoothEase, value: appState.fileSystem.items.map(\.url))
+            }
+            .padding(.vertical, 4)
+        }
+        .frame(maxWidth: .infinity)
+        .background(ScrollerAutoHideSetter())
+    }
+
+    private var columnBrowser: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: true) {
                 HStack(spacing: 0) {
@@ -22,15 +58,17 @@ struct FileColumnView: View {
             .background(ScrollerAutoHideSetter())
             .onAppear { loadInitialColumns() }
             .onChange(of: appState.navigation.currentURL) { _, _ in loadInitialColumns() }
-            .onChange(of: appState.fileSystem.items) { _, newItems in
+            .onChange(of: appState.fileSystem.items) { _, _ in
                 // Column view keeps its own local snapshot per column instead of rendering
                 // `appState.fileSystem.items` directly (like Grid/List do), so an operation that
-                // changes the current folder's contents without changing `currentURL` (paste,
-                // delete, rename via another view, etc.) otherwise never reaches the visible
-                // column. `fileSystem.items` always tracks `navigation.currentURL`, so refresh
-                // whichever local column corresponds to that folder.
-                guard let index = columns.firstIndex(where: { $0.folderURL == appState.navigation.currentURL }) else { return }
-                columns[index].items = newItems
+                // changes a folder's contents (paste, delete, rename via another view, etc.)
+                // otherwise never reaches the visible columns. `fileSystem.items` only ever
+                // reflects `navigation.currentURL`, but drilling right in Column view never
+                // changes `navigation.currentURL` — so a delete inside a drilled-in column (not
+                // the root) previously went unnoticed here entirely. Re-read every open column
+                // straight from disk instead of trying to map the single changed folder back to
+                // one column index.
+                refreshAllColumnsFromDisk()
             }
             .onChange(of: columns.count) { _, newCount in
                 if newCount > 0 {
@@ -68,7 +106,9 @@ struct FileColumnView: View {
                                 selectItem(item: item, columnIndex: index)
                             }
                         )
+                        .transition(.opacity)
                     }
+                    .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
                     if paginate && column.visibleLimit < column.items.count {
                         ProgressView()
                             .frame(height: 25)
@@ -119,6 +159,29 @@ struct FileColumnView: View {
                 self.columns = [ColumnData(folderURL: targetURL, items: rootItems, selectedURL: nil)]
                 self.activeColumnIndex = 0
                 self.appState.selectedURLs.removeAll()
+            }
+        }
+    }
+
+    private func refreshAllColumnsFromDisk() {
+        let snapshot = columns
+        Task {
+            for (index, column) in snapshot.enumerated() {
+                let items = await FileSystemService.loadDirectoryContents(
+                    at: column.folderURL,
+                    options: DirectoryLoadOptions(
+                        showHidden: appState.preferences.showHiddenFiles,
+                        showTags: appState.preferences.showTags,
+                        searchQuery: column.folderURL == appState.navigation.currentURL ? appState.searchQuery : "",
+                        sortOption: appState.preferences.sortOption,
+                        sortAscending: appState.preferences.sortAscending,
+                        showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)
+                    )
+                )
+                await MainActor.run {
+                    guard index < columns.count, columns[index].folderURL == column.folderURL else { return }
+                    columns[index].items = items
+                }
             }
         }
     }

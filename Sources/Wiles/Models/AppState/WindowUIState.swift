@@ -44,5 +44,18 @@ public final class WindowUIState {
     public var selectedFavoriteURL: URL?
     public var isEditingPath: Bool = false
 
+    /// True while any sheet or alert owned by this window is on screen. `GlobalKeyMonitor` checks
+    /// this before acting on a keypress so a Return/Delete meant for the presented alert's own
+    /// button doesn't also fall through to the file list underneath (e.g. opening/renaming the
+    /// selected item while a delete confirmation is up).
+    public var isAnyModalPresented: Bool {
+        showBatchRenameSheet || showNewFolderSheet || showNewFileSheet || showEmptyTrashAlert
+            || showDeleteConfirmAlert || showConnectToServerSheet || showAutoOrganizationSheet
+            || showDuplicateCleanerSheet || showHttpShareSheet || showSaveSmartFolderSheet
+            || showPasswordCompressSheet || showArchiveInspectionSheet || showHelpSheet
+            || showAboutSheet || showSettingsSheet || showShortcutsHUD
+            || propertiesItem != nil || imageConverterItem != nil || symlinkItem != nil
+    }
+
     public init() {}
 }

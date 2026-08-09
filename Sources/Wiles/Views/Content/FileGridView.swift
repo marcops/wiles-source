@@ -56,7 +56,9 @@ struct FileGridView: View {
                                                 }
                                             }
                                         )
+                                        .transition(.opacity)
                                     }
+                                    .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
                                     if paginate && visibleLimit < appState.fileSystem.items.count {
                                         ProgressView()
                                             .frame(height: 50)

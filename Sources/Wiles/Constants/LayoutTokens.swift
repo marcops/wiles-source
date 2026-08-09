@@ -54,4 +54,8 @@ public enum LayoutTokens {
     // Lazy Loading
     public static let lazyLoadingBatchSize: Int = 100
     public static let paginationThreshold: Int = 500
+
+    // Recursive Search
+    public static let recursiveSearchResultLimit: Int = 2000
+    public static let recursiveSearchBatchSize: Int = 40
 }

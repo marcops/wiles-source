@@ -76,6 +76,76 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         }.value
     }
 
+    /// Recursively enumerates every file under `root` (used when the user turns on "search
+    /// everywhere" instead of the default single-folder, non-recursive search) and filters each
+    /// one through the same `SearchFilterService` predicate as a normal folder listing. Capped at
+    /// `LayoutTokens.recursiveSearchResultLimit` so a query with very broad matches over the whole
+    /// home directory can't grow the result list — and the walk time — without bound.
+    ///
+    /// `includeHidden` is deliberately separate from `options.showHidden` (which only governs a
+    /// normal single-folder listing) — hidden folders default to excluded here regardless of that
+    /// setting, since walking into every dotfile/cache folder under the home directory is both
+    /// slow and rarely what a "search everywhere" query is looking for.
+    ///
+    /// `onBatch` is invoked periodically (every `LayoutTokens.recursiveSearchBatchSize` matches,
+    /// and once more with the final result) with the sorted matches found so far, so the UI can
+    /// stream results in as they're found instead of blocking on the full walk.
+    public static func loadRecursiveSearchResults(
+        at root: URL,
+        options: DirectoryLoadOptions,
+        includeHidden: Bool,
+        onBatch: @escaping @Sendable ([FileItem]) -> Void
+    ) async {
+        await Task.detached(priority: .userInitiated) {
+            let fm = FileManager.default
+            var keys: [URLResourceKey] = [
+                .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
+                .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
+                .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
+                .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
+            ]
+            if options.showTags {
+                keys.append(.tagNamesKey)
+                keys.append(.labelColorKey)
+            }
+            var enumeratorOptions: FileManager.DirectoryEnumerationOptions = [.skipsPackageDescendants]
+            if !includeHidden { enumeratorOptions.insert(.skipsHiddenFiles) }
+            // Without an `errorHandler`, `FileManager.enumerator` silently aborts the ENTIRE walk
+            // the first time it hits a directory it can't read — and the home folder tree is full
+            // of those on modern macOS without Full Disk Access (`~/Library/Mail`,
+            // `~/Library/Containers`, various TCC-protected caches). That would make a recursive
+            // search stop dead at whatever protected folder it happens to reach first, long before
+            // getting to folders like `~/Documents` that come later in enumeration order. Returning
+            // `true` here tells it to skip the unreadable item and keep walking everything else.
+            guard let enumerator = fm.enumerator(
+                at: root,
+                includingPropertiesForKeys: keys,
+                options: enumeratorOptions,
+                errorHandler: { _, _ in true }
+            ) else {
+                onBatch([])
+                return
+            }
+
+            let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
+            var items: [FileItem] = []
+            var lastReportedCount = 0
+            while let fileURL = enumerator.nextObject() as? URL {
+                if Task.isCancelled { break }
+                if !includeHidden && isFileHidden(fileURL: fileURL, showHidden: false) { continue }
+                if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
+
+                items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+                if items.count - lastReportedCount >= LayoutTokens.recursiveSearchBatchSize {
+                    onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
+                    lastReportedCount = items.count
+                }
+                if items.count >= LayoutTokens.recursiveSearchResultLimit { break }
+            }
+            onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
+        }.value
+    }
+
     private static func isFileHidden(fileURL: URL, showHidden: Bool) -> Bool {
         if showHidden { return false }
         if fileURL.lastPathComponent.hasPrefix(".") { return true }

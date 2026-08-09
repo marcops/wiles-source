@@ -251,6 +251,9 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "ファイル内容";
 "searchByName" = "ファイル名";
+"searchEverywhere" = "Mac全体";
+"searchEverywhereHelp" = "このフォルダだけでなく、ホームフォルダ全体を再帰的に検索します";
+"searchIncludeHiddenFolders" = "隠しフォルダを含める";
 "searchPlaceholder" = "Search in";
 "searchScope" = "検索範囲";
 "secureShred" = "ファイルを完全に消去...";

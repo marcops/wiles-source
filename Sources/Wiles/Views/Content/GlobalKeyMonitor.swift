@@ -38,6 +38,9 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
                 return event
             }
+            if windowUIState.isAnyModalPresented {
+                return event
+            }
 
             if event.type == .scrollWheel {
                 return handleScrollEvent(event, appState: appState)

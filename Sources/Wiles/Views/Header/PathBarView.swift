@@ -28,7 +28,14 @@ struct PathBarView: View {
         var cur = appState.navigation.currentURL.standardizedFileURL
         var depth = 0
         while depth < 50 {
-            let name = cur.path == "/" ? appState.tr(.root) : cur.lastPathComponent
+            let name: String
+            if cur.path == "/" {
+                name = appState.tr(.root)
+            } else if cur.standardizedFileURL == URL.userTrash.standardizedFileURL {
+                name = appState.tr(.sidebarTrash)
+            } else {
+                name = cur.lastPathComponent
+            }
             res.insert((name: name, url: cur), at: 0)
             if cur.path == "/" || cur.path.isEmpty { break }
             let parent = cur.deletingLastPathComponent()

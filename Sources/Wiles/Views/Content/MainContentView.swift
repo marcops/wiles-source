@@ -114,17 +114,19 @@ struct MainContentView: View {
             }
         }
         .alert(appState.tr(.emptyTrash) + "?", isPresented: $windowUIState.showEmptyTrashAlert) {
-            Button(appState.tr(.emptyTrash), role: .destructive) {
+            Button(appState.tr(.emptyTrash)) {
                 appState.performEmptyTrash()
             }
+            .keyboardShortcut(.defaultAction)
             Button(appState.tr(.cancel), role: .cancel) {}
         } message: {
             Text(appState.tr(.emptyTrashConfirm))
         }
         .alert(appState.tr(.moveToTrash) + "?", isPresented: $windowUIState.showDeleteConfirmAlert) {
-            Button(appState.tr(.moveToTrash), role: .destructive) {
+            Button(appState.tr(.moveToTrash)) {
                 appState.performDeleteSelected()
             }
+            .keyboardShortcut(.defaultAction)
             Button(appState.tr(.cancel), role: .cancel) {}
         } message: {
             Text(appState.tr(.moveToTrashConfirm))

@@ -106,6 +106,7 @@ extension AppState {
         let query = searchQuery
         let sort = preferences.sortOption
         let asc = preferences.sortAscending
+        let searchEverywhere = preferences.searchEverywhere && !query.isEmpty
 
         startDirectoryMonitoring(for: target)
 
@@ -117,15 +118,24 @@ extension AppState {
         // spawn an unstructured Task with no cancellation, letting a stale result race a fresher one.
         refreshTask?.cancel()
         refreshTask = Task {
-            let loaded = await FileSystemService.loadDirectoryContents(
-                at: target,
-                options: DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: query, sortOption: sort, sortAscending: asc, showOwnerGroup: ownerGroup)
-            )
-            guard !Task.isCancelled else { return }
-            if self.navigation.currentURL == target && self.searchQuery == query {
-                await MainActor.run {
-                    self.applyLoadedItems(loaded, target: target)
-                    self.refreshTrashSizeIfNeeded(target: target)
+            let (strippedQuery, includeHidden) = SearchFilterService.extractHiddenFlag(from: query)
+            let options = DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: strippedQuery, sortOption: sort, sortAscending: asc, showOwnerGroup: ownerGroup)
+            if searchEverywhere {
+                await FileSystemService.loadRecursiveSearchResults(at: .userHome, options: options, includeHidden: includeHidden) { [weak self] batch in
+                    Task { @MainActor in
+                        guard let self, !Task.isCancelled else { return }
+                        guard self.navigation.currentURL == target && self.searchQuery == query else { return }
+                        self.applyLoadedItems(batch, target: target)
+                    }
+                }
+            } else {
+                let loaded = await FileSystemService.loadDirectoryContents(at: target, options: options)
+                guard !Task.isCancelled else { return }
+                if self.navigation.currentURL == target && self.searchQuery == query {
+                    await MainActor.run {
+                        self.applyLoadedItems(loaded, target: target)
+                        self.refreshTrashSizeIfNeeded(target: target)
+                    }
                 }
             }
         }

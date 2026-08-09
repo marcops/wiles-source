@@ -82,5 +82,6 @@ public final class AutomatedTestService {
         StateAndTaskModelsTests.run()
         await DirectoryMonitorTests.run()
         FileItemFormattingTests.run()
+        WindowUIStateTests.run()
     }
 }

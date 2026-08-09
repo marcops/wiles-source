@@ -251,6 +251,9 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "محتوى الملف";
 "searchByName" = "اسم الملف";
+"searchEverywhere" = "كل الـMac";
+"searchEverywhereHelp" = "البحث بشكل متكرر في المجلد الرئيسي بالكامل بدلاً من هذا المجلد فقط";
+"searchIncludeHiddenFolders" = "تضمين المجلدات المخفية";
 "searchPlaceholder" = "Search in";
 "searchScope" = "نطاق البحث";
 "secureShred" = "إتلاف الملف بأمان...";

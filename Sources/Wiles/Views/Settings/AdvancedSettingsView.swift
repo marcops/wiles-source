@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// "Advanced" tab of `SettingsView`: lower-frequency display toggles (hidden files, tag dots,
+/// "Advanced" tab of `SettingsView`: lower-frequency display toggles (hidden files,
 /// compact row density) that used to be plain `Toggle`s scattered in the View menu
 /// (`viewMenuCommands` in `WilesApp.swift`).
 struct AdvancedSettingsView: View {
@@ -13,7 +13,6 @@ struct AdvancedSettingsView: View {
             Section(appState.tr(.settingsViewSection)) {
                 Toggle(appState.tr(showHiddenFilesKey), isOn: $appState.preferences.showHiddenFiles)
                     .onChange(of: appState.preferences.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
-                Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
                 Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
             }
 

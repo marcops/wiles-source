@@ -9,6 +9,7 @@ public struct WindowUIStateTests {
     public static func run() {
         testDefaults()
         testMutation()
+        testIsAnyModalPresented()
     }
 
     private static func testDefaults() {
@@ -57,6 +58,36 @@ public struct WindowUIStateTests {
         report("Models/WindowUIState", "POS: showSettingsSheet holds the value it was set to", result: state.showSettingsSheet)
 
         report("Models/WindowUIState", "POS: two separate instances don't share mutable state", result: WindowUIState().propertiesItem == nil && state.propertiesItem == item)
+    }
+
+    /// `isAnyModalPresented` gates `GlobalKeyMonitor` so a Return/Delete keypress meant for an
+    /// alert's own default button doesn't fall through to the file list underneath (e.g. opening
+    /// the selected item while a delete confirmation is up). Every flag it aggregates must flip
+    /// the computed property, and it must go back to false once everything is dismissed.
+    private static func testIsAnyModalPresented() {
+        let state = WindowUIState()
+        report("Models/WindowUIState", "NEG: isAnyModalPresented is false on a fresh instance", result: !state.isAnyModalPresented)
+
+        state.showDeleteConfirmAlert = true
+        report("Models/WindowUIState", "POS: isAnyModalPresented is true while showDeleteConfirmAlert is set", result: state.isAnyModalPresented)
+        state.showDeleteConfirmAlert = false
+        report("Models/WindowUIState", "NEG: isAnyModalPresented returns to false after the alert is dismissed", result: !state.isAnyModalPresented)
+
+        state.showSettingsSheet = true
+        report("Models/WindowUIState", "POS: isAnyModalPresented is true while showSettingsSheet is set", result: state.isAnyModalPresented)
+        state.showSettingsSheet = false
+
+        let item = FileItem(url: URL(fileURLWithPath: "/tmp/wiles-window-ui-state-modal-test-item"))
+        state.propertiesItem = item
+        report("Models/WindowUIState", "POS: isAnyModalPresented is true while propertiesItem is set", result: state.isAnyModalPresented)
+        state.propertiesItem = nil
+        report("Models/WindowUIState", "NEG: isAnyModalPresented is false once propertiesItem is cleared", result: !state.isAnyModalPresented)
+
+        report("Models/WindowUIState", "NEG: renameItem alone does not count as a blocking modal (inline rename, not a sheet)", result: {
+            state.renameItem = item
+            defer { state.renameItem = nil }
+            return !state.isAnyModalPresented
+        }())
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

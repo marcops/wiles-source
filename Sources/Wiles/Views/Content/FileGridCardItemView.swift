@@ -17,10 +17,14 @@ struct FileGridCardItemView: View {
         let isCut = appState.clipboard?.isCut(url: item.url) ?? false
 
         return mainContent(isSel: isSel, isCut: isCut)
-            .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState) { targeted in
-                withAnimation(MotionTokens.quickEase) { isDropTargeted = targeted }
-            }
-            .fileItemInteractions(item: item, appState: appState, onRightClick: onRightClick)
+            .fileItemInteractions(
+                item: item,
+                appState: appState,
+                onRightClick: onRightClick,
+                onTargetedChanged: { targeted in
+                    withAnimation(MotionTokens.quickEase) { isDropTargeted = targeted }
+                }
+            )
     }
 
     private func mainContent(isSel: Bool, isCut: Bool) -> some View {
@@ -45,8 +49,6 @@ struct FileGridCardItemView: View {
             .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
             .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
             .accessibilityValue(item.formattedSize)
-            .onTapGesture(count: 2) { appState.navigateTo(item.url) }
-            .simultaneousGesture(TapGesture().onEnded { appState.handleSelection(for: item) })
     }
 
     private func cardVStack(isSel: Bool) -> some View {

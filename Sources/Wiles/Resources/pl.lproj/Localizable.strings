@@ -251,6 +251,9 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "Zawartość pliku";
 "searchByName" = "Nazwa pliku";
+"searchEverywhere" = "Cały Mac";
+"searchEverywhereHelp" = "Przeszukaj rekurencyjnie cały folder domowy zamiast tylko tego";
+"searchIncludeHiddenFolders" = "Uwzględnij ukryte foldery";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Zakres wyszukiwania";
 "secureShred" = "Bezpiecznie Zniszcz Plik...";

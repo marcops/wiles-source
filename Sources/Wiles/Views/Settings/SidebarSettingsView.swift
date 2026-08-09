@@ -18,6 +18,7 @@ struct SidebarSettingsView: View {
                 Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
                 Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
                 Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
+                Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
             }
         }
         .formStyle(.grouped)

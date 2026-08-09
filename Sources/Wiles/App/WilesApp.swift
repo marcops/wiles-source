@@ -15,10 +15,31 @@ struct WilesApp: App {
         NSWindow.allowsAutomaticWindowTabbing = false
     }
 
+    /// Never `nil` — "System" resolves to a concrete `.light`/`.dark` via `SystemAppearanceObserver`
+    /// instead of passing `nil` to `.preferredColorScheme`, since `nil` doesn't reliably propagate
+    /// back to an already-open window (see `SystemAppearanceObserver`'s doc comment).
+    private var resolvedColorScheme: ColorScheme {
+        switch appState.preferences.appAppearance {
+        case .system: return SystemAppearanceObserver.shared.isDark ? .dark : .light
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
     var body: some Scene {
         WindowGroup(AppConstants.appName, id: AppConstants.mainWindowID) {
             MainContentView(appState: appState)
-                .preferredColorScheme(appState.preferences.appAppearance.colorScheme)
+                .preferredColorScheme(resolvedColorScheme)
+                .onChange(of: resolvedColorScheme, initial: true) { _, newValue in
+                    // Belt-and-suspenders: force it explicitly too, since `resolvedColorScheme` is
+                    // always concrete now, this is the same code path already proven to propagate
+                    // live (explicit Light/Dark selection).
+                    let appearance = NSAppearance(named: newValue == .dark ? .darkAqua : .aqua)
+                    NSApplication.shared.appearance = appearance
+                    for window in NSApplication.shared.windows {
+                        window.appearance = appearance
+                    }
+                }
                 .onAppear {
                     NSApplication.shared.activate(ignoringOtherApps: true)
                     let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ??
@@ -168,6 +189,7 @@ struct WilesApp: App {
                 Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
                 Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
                 Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
+                Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
             }
             Divider()
             Picker(selection: $appState.preferences.viewMode) {

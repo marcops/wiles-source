@@ -39,10 +39,8 @@ struct PreviewSidebarView: View {
     @ViewBuilder private var singleSelectionView: some View {
         if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
             VStack(alignment: .center, spacing: 16) {
-                Image(nsImage: item.icon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 120, height: 120)
+                FileItemIconView(item: item, size: 120)
+                    .id(item.url)
 
                 Text(item.name)
                     .font(.headline)

@@ -97,6 +97,8 @@ struct HeaderBarView: View {
                     }
                 }
 
+            searchEverywhereToggle
+
             searchFilterMenu
 
             if !appState.searchQuery.isEmpty {
@@ -126,6 +128,7 @@ struct HeaderBarView: View {
                 Text(appState.tr(.searchByName)).tag(SearchScope.name)
                 Text(appState.tr(.searchByContent)).tag(SearchScope.content)
             }
+            Toggle(appState.tr(.searchIncludeHiddenFolders), isOn: includeHiddenFoldersBinding)
             Divider()
             Button("Modified Today (date:today)") {
                 appState.searchQuery = "date:today"
@@ -178,6 +181,23 @@ struct HeaderBarView: View {
         .help(appState.tr(.searchFiltersHelp))
     }
 
+    /// Mirrors the `hidden:true` token in `appState.searchQuery` — same query-language convention
+    /// as `date:`/`kind:`/`size:` used elsewhere in this menu, defaulting off (hidden folders are
+    /// excluded from search unless explicitly requested).
+    private var includeHiddenFoldersBinding: Binding<Bool> {
+        Binding(
+            get: { SearchFilterService.extractHiddenFlag(from: appState.searchQuery).includeHidden },
+            set: { newValue in
+                let (strippedQuery, _) = SearchFilterService.extractHiddenFlag(from: appState.searchQuery)
+                if newValue {
+                    appState.searchQuery = strippedQuery.isEmpty ? "hidden:true" : "\(strippedQuery) hidden:true"
+                } else {
+                    appState.searchQuery = strippedQuery
+                }
+            }
+        )
+    }
+
     private var searchButton: some View {
         Button {
             withAnimation { appState.toggleSearching() }
@@ -188,6 +208,27 @@ struct HeaderBarView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain).help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")
+    }
+
+    private var searchEverywhereToggle: some View {
+        @Bindable var appState = appState
+        return Button {
+            appState.preferences.searchEverywhere.toggle()
+            appState.refreshCurrentDirectory()
+        } label: {
+            Text(appState.tr(.searchEverywhere)).font(.system(size: 11, weight: .medium))
+                .padding(.horizontal, 6)
+                .frame(height: 22)
+                .foregroundColor(appState.preferences.searchEverywhere ? .white : .primary)
+                .background(appState.preferences.searchEverywhere ? Color.accentColor : Color(NSColor.controlColor))
+                .cornerRadius(5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(appState.tr(.searchEverywhereHelp))
+        .accessibilityLabel(appState.tr(.searchEverywhere))
+        .accessibilityHint(appState.tr(.searchEverywhereHelp))
+        .accessibilityAddTraits(appState.preferences.searchEverywhere ? [.isButton, .isSelected] : [.isButton])
     }
 
     private func iconName(for mode: ViewMode) -> String {
