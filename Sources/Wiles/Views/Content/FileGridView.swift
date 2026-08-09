@@ -117,6 +117,7 @@ struct FileGridView: View {
                     .overlay(
                         RightClickDetector {
                             appState.selectedURLs.removeAll()
+                            windowUIState.renameItem = nil
                         }
                     )
                     .contextMenu {

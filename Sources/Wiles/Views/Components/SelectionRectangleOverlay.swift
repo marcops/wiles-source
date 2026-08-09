@@ -16,6 +16,8 @@ struct SelectionRectangleOverlay: View {
     var minWidth: CGFloat?
     @Binding var selectionRect: CGRect?
 
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var dragStartPoint: CGPoint?
 
     private var cellFrames: [URL: CGRect] {
@@ -27,9 +29,14 @@ struct SelectionRectangleOverlay: View {
             .frame(minWidth: minWidth)
             .contentShape(Rectangle())
             .gesture(dragGesture)
-            .onTapGesture { appState.selectedURLs.removeAll() }
-            .overlay(RightClickDetector { appState.selectedURLs.removeAll() })
+            .onTapGesture { deselectAll() }
+            .overlay(RightClickDetector { deselectAll() })
             .contextMenu { SharedBackgroundContextMenu(appState: appState) }
+    }
+
+    private func deselectAll() {
+        appState.selectedURLs.removeAll()
+        windowUIState.renameItem = nil
     }
 
     /// Visual marquee rectangle for the current `selectionRect`, drawn separately by the caller

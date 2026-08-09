@@ -104,6 +104,7 @@ struct FileListView: View {
                     .overlay(
                         RightClickDetector {
                             appState.selectedURLs.removeAll()
+                            windowUIState.renameItem = nil
                         }
                     )
                     .contextMenu {
