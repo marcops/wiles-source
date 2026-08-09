@@ -29,7 +29,7 @@ section() {
 }
 
 section "swift build -c release (zero warnings required)"
-swift build -c release 2>&1 | tee /tmp/wiles_build.log
+swift build -c release --arch arm64 2>&1 | tee /tmp/wiles_build.log
 if grep -qi "warning:" /tmp/wiles_build.log; then
   echo "FAIL: build produced warnings:"
   grep -i "warning:" /tmp/wiles_build.log

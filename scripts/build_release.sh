@@ -23,8 +23,8 @@ APP_DIR="$DIST_DIR/Wiles.app"
 rm -rf "$APP_DIR"
 mkdir -p "$DIST_DIR" "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
-echo "==> 1. Building release binary (swift build -c release)..."
-swift build -c release
+echo "==> 1. Building release binary (swift build -c release --arch arm64)..."
+swift build -c release --arch arm64
 
 BIN_PATH=""
 if [[ -f ".build/arm64-apple-macosx/release/Wiles" ]]; then
