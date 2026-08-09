@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "Ajuster la taille des icônes (Cmd/Ctrl + Molette ou Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Filtres de Recherche (Date, Type, Taille)";
 "errorAlertTitle" = "Erreur";
+"copyLinkAccessibilityLabel" = "Copier le lien";
+"copyLinkAccessibilityHint" = "Copie l'adresse de partage dans le presse-papiers";
+"loadingEntries" = "Chargement des éléments...";
+"noArchiveEntriesFound" = "Aucun élément trouvé ou l'archive n'a pas pu être lue.";
+"extractEntryHint" = "Extrait ce fichier vers le dossier actuel";
+"archiveFileEntry" = "Fichier";

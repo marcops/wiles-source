@@ -25,7 +25,7 @@ struct ArchiveInspectionSheetView: View {
             if isLoading {
                 VStack {
                     ProgressView()
-                    Text("Loading entries...")
+                    Text(appState.tr(.loadingEntries))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -35,7 +35,7 @@ struct ArchiveInspectionSheetView: View {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.title2)
                         .foregroundColor(.secondary)
-                    Text("No entries found or the archive could not be read.")
+                    Text(appState.tr(.noArchiveEntriesFound))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -45,8 +45,11 @@ struct ArchiveInspectionSheetView: View {
                     HStack {
                         Image(systemName: entry.isDirectory ? "folder.fill" : "doc.fill")
                             .foregroundColor(entry.isDirectory ? .accentColor : .secondary)
+                            .accessibilityHidden(true)
                         Text(entry.path)
                             .font(.system(size: 12))
+                            .accessibilityLabel(entry.path)
+                            .accessibilityHint(entry.isDirectory ? appState.tr(.folder) : appState.tr(.archiveFileEntry))
                         Spacer()
                         if !entry.isDirectory {
                             Button(appState.tr(.extractArchive)) {
@@ -65,6 +68,8 @@ struct ArchiveInspectionSheetView: View {
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
+                            .accessibilityLabel(appState.tr(.extractArchive))
+                            .accessibilityHint(appState.tr(.extractEntryHint))
                         }
                     }
                 }
@@ -80,7 +85,7 @@ struct ArchiveInspectionSheetView: View {
             }
         }
         .padding()
-        .frame(width: 450, height: 400)
+        .frame(width: LayoutTokens.archiveInspectionSheetWidth, height: LayoutTokens.archiveInspectionSheetHeight)
         .task {
             entries = await ArchiveInspectionService.listEntries(in: archiveURL)
             isLoading = false

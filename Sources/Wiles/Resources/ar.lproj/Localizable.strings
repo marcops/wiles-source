@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "ضبط حجم الأيقونات (Cmd/Ctrl + عجلة الماوس أو Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "عوامل تصفية البحث (التاريخ، النوع، الحجم)";
 "errorAlertTitle" = "خطأ";
+"copyLinkAccessibilityLabel" = "نسخ الرابط";
+"copyLinkAccessibilityHint" = "ينسخ عنوان المشاركة إلى الحافظة";
+"loadingEntries" = "جارٍ تحميل العناصر...";
+"noArchiveEntriesFound" = "لم يتم العثور على عناصر أو تعذّرت قراءة الأرشيف.";
+"extractEntryHint" = "يستخرج هذا الملف إلى المجلد الحالي";
+"archiveFileEntry" = "ملف";

@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "Adjust icon size (Cmd/Ctrl + Wheel or Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Search Filters (Date, Type, Size)";
 "errorAlertTitle" = "Error";
+"copyLinkAccessibilityLabel" = "Copy link";
+"copyLinkAccessibilityHint" = "Copies the sharing address to the clipboard";
+"loadingEntries" = "Loading entries...";
+"noArchiveEntriesFound" = "No entries found or the archive could not be read.";
+"extractEntryHint" = "Extracts this file to the current folder";
+"archiveFileEntry" = "File";

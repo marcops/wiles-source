@@ -392,5 +392,13 @@ public struct L10n {
         case adjustIconSizeHelp
         case searchFiltersHelp
         case errorAlertTitle
+
+        // MARK: - HttpShareSheet & ArchiveInspectionSheetView (localization + accessibility audit)
+        case copyLinkAccessibilityLabel
+        case copyLinkAccessibilityHint
+        case loadingEntries
+        case noArchiveEntriesFound
+        case extractEntryHint
+        case archiveFileEntry
     }
 }

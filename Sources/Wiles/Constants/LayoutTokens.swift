@@ -51,6 +51,14 @@ public enum LayoutTokens {
     public static let aboutTitleFontSize: CGFloat = 24.0
     public static let aboutTextFontSize: CGFloat = 13.0
 
+    // HTTP Share Sheet
+    public static let httpShareSheetWidth: CGFloat = 400.0
+    public static let httpShareSheetHeight: CGFloat = 320.0
+
+    // Archive Inspection Sheet
+    public static let archiveInspectionSheetWidth: CGFloat = 450.0
+    public static let archiveInspectionSheetHeight: CGFloat = 400.0
+
     // Lazy Loading
     public static let lazyLoadingBatchSize: Int = 100
     public static let paginationThreshold: Int = 500

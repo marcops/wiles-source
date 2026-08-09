@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "アイコンサイズを調整(Cmd/Ctrl + ホイール または Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "検索フィルター(日付、種類、サイズ)";
 "errorAlertTitle" = "エラー";
+"copyLinkAccessibilityLabel" = "リンクをコピー";
+"copyLinkAccessibilityHint" = "共有アドレスをクリップボードにコピーします";
+"loadingEntries" = "項目を読み込み中...";
+"noArchiveEntriesFound" = "項目が見つからないか、アーカイブを読み取れませんでした。";
+"extractEntryHint" = "このファイルを現在のフォルダに展開します";
+"archiveFileEntry" = "ファイル";
