@@ -1,21 +1,6 @@
 import Foundation
 import ImageIO
 
-public struct ExifMetadata: Sendable, Equatable {
-    public let cameraMake: String?
-    public let cameraModel: String?
-    public let lensModel: String?
-    public let iso: String?
-    public let aperture: String?
-    public let focalLength: String?
-    public let dateTimeOriginal: String?
-    public let gpsCoordinates: String?
-}
-
-public protocol ExifMetadataServiceProtocol: Sendable {
-    static func extractExif(from url: URL) -> ExifMetadata?
-}
-
 public final class ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
     public static func extractExif(from url: URL) -> ExifMetadata? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
