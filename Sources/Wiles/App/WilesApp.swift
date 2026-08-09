@@ -10,22 +10,9 @@ struct WilesApp: App {
     private var windowUIState
 
     init() {
-        Self.terminateOtherRunningInstances()
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
         NSWindow.allowsAutomaticWindowTabbing = false
-    }
-
-    /// Wiles is single-instance: launching it while another copy is already running (e.g. a
-    /// freshly rebuilt debug binary while an older one is still open) closes that other one first,
-    /// instead of ending up with two instances fighting over the same windows/state.
-    private static func terminateOtherRunningInstances() {
-        guard let bundleID = Bundle.main.bundleIdentifier else { return }
-        let currentPID = ProcessInfo.processInfo.processIdentifier
-        for app in NSWorkspace.shared.runningApplications
-        where app.bundleIdentifier == bundleID && app.processIdentifier != currentPID {
-            app.terminate()
-        }
     }
 
     /// Never `nil` — "System" resolves to a concrete `.light`/`.dark` via `SystemAppearanceObserver`
