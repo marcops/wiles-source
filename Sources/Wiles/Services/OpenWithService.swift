@@ -2,28 +2,6 @@ import Foundation
 import AppKit
 import UniformTypeIdentifiers
 
-public struct ApplicationApp: Identifiable, Sendable {
-    public let id: String
-    public let name: String
-    public let icon: NSImage
-    public let url: URL
-
-    public init(id: String, name: String, icon: NSImage, url: URL) {
-        self.id = id
-        self.name = name
-        self.icon = icon
-        self.url = url
-    }
-}
-
-@MainActor
-public protocol OpenWithServiceProtocol: Sendable {
-    static func availableApplications(for url: URL) -> [ApplicationApp]
-    static func open(urls: [URL], with applicationURL: URL)
-    static func chooseOtherApplication(toOpen urls: [URL])
-    static func setDefaultApplication(for fileExtension: String, applicationURL: URL)
-}
-
 public final class OpenWithService: OpenWithServiceProtocol, Sendable {
     /// Injectable seam for tests — see `WorkspaceOpening`. Defaults to the real `NSWorkspace`.
     @MainActor public static var opener: any WorkspaceOpening = RealWorkspaceOpener()

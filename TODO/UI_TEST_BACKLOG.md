@@ -4,6 +4,25 @@ Items logged here per `.agents/AGENTS.md` rule 28: genuinely not unit-testable t
 infrastructure this project has, with what's missing and why. Pull an item off this list and write
 the real test the moment the missing infrastructure exists.
 
+## `Sources/Wiles/Models/AppState/AppState+Navigation.swift`
+
+- **`completeNavigation`'s non-directory branch (`NSWorkspace.shared.open(url)`) — removed after
+  causing a real problem, not just left uncovered.**
+  A test (`AppStateNavigateToFileTests`, added 2026-08-08) tried to cover this by calling
+  `navigateTo()` on a real file with an extension with no registered app handler, assuming
+  `NSWorkspace.shared.open` would silently no-op for an unhandled extension. It does not: macOS
+  shows a real "There is no application set to open the document ... /sample.wilesnohandlertest"
+  modal dialog that blocks the test run and requires a human to click it away — every `swift test`
+  invocation, including CI, would hang on an unattended dialog. The test (and its registration in
+  `WilesAutomatedXCTestCase.swift`/`AutomatedTestService.swift`) was deleted rather than left in.
+  There is no dependency-injection seam to fake "this file was opened" without a source change.
+  - *Source change that would fix this (NOT made — reported per hard rule 2):* extract the
+    `NSWorkspace.shared.open(url)` call behind an injectable provider (e.g. a
+    `fileOpener: (URL) -> Void` closure property on `AppState`, defaulting to the real
+    `NSWorkspace` call in production, overridable in tests to just record the URL it was called
+    with). With that seam, the branch itself (does it correctly skip updating `currentURL`/history/
+    selection for a non-directory target) becomes testable without ever touching the real OS.
+
 ## `Sources/Wiles/Models/AppState/AppState.swift`
 
 - **`performEmptyTrash()` (lines 261-292) — entirely uncovered.**
@@ -283,6 +302,21 @@ Remaining gaps after adding `testDirectoryRemovedAfterStartReturns500`,
     showing the alert) becomes fully deterministic and safe to test. The alert-showing path itself
     would still need a human or a UI-automation harness (not present in this suite) to dismiss
     `NSAlert.runModal()`, so it would remain backlogged even with the seam.
+
+## `Sources/Wiles/Views/Content/FileColumnView.swift`
+
+- **`.onChange(of: appState.fileSystem.items)` row-sync handler (added 2026-08-08) — uncovered.**
+  Column view keeps its own local `columns: [ColumnData]` snapshot per drilled-into folder instead
+  of rendering `appState.fileSystem.items` directly like Grid/List do. This handler re-syncs
+  whichever local column matches `appState.navigation.currentURL` whenever `fileSystem.items`
+  changes, fixing a bug where pasting/creating/deleting a file while Column view was active and
+  `currentURL` didn't change (e.g. paste into the currently-open folder) silently didn't appear
+  until the user re-navigated. The closure lives inline in `FileColumnView`'s SwiftUI `body` — there
+  is no seam to invoke it directly from `WilesTests` (no ViewInspector or XCUITest harness in this
+  suite), so its branch (finding the matching column index, updating `.items`) can't be exercised as
+  a pure function today. No dependency-injection change would fix this without either adopting a
+  UI-inspection test library or extracting the sync logic into a testable free function that the
+  view merely calls (the latter is a reasonable follow-up if this class of Column-view bug recurs).
 
 ## `Sources/Wiles/Models/AppState/AppState+Operations.swift`
 
