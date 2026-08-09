@@ -26,6 +26,7 @@ opt_in_rules:
   - last_where
   - contains_over_first_not_nil
   - redundant_type_annotation
+  - closure_body_length
 
 analyzer_rules:
   - unused_declaration
@@ -42,6 +43,13 @@ line_length:
 type_body_length:
   warning: 440
   error: 600
+
+# AGENTS.md rule 7: closures MUST NOT exceed 25 lines. validate.sh runs `swiftlint lint --strict`,
+# which fails the build on ANY warning, not just errors — so `warning: 25` is the real, effective
+# gate already; `error: 40` only changes the printed severity label, not whether it blocks.
+closure_body_length:
+  warning: 25
+  error: 40
 
 file_length:
   warning: 500
