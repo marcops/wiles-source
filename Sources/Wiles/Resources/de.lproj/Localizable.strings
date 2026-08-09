@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "Symbolgröße anpassen (Cmd/Ctrl + Mausrad oder Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Suchfilter (Datum, Typ, Größe)";
 "errorAlertTitle" = "Fehler";
+"copyLinkAccessibilityLabel" = "Link kopieren";
+"copyLinkAccessibilityHint" = "Kopiert die Freigabeadresse in die Zwischenablage";
+"loadingEntries" = "Einträge werden geladen...";
+"noArchiveEntriesFound" = "Keine Einträge gefunden oder das Archiv konnte nicht gelesen werden.";
+"extractEntryHint" = "Entpackt diese Datei in den aktuellen Ordner";
+"archiveFileEntry" = "Datei";

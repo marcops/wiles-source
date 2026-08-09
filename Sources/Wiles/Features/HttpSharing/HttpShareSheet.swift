@@ -50,10 +50,12 @@ struct HttpShareSheet: View {
                                 Image(systemName: "doc.on.doc")
                             }
                             .help(appState.tr(.copyContent))
+                            .accessibilityLabel(appState.tr(.copyLinkAccessibilityLabel))
+                            .accessibilityHint(appState.tr(.copyLinkAccessibilityHint))
                         }
                     }
 
-                    Text("Anyone on your Wi-Fi network can access this folder by visiting the address above.")
+                    Text(appState.tr(.wifiShareNotice))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -64,7 +66,7 @@ struct HttpShareSheet: View {
                         .font(.system(size: 40))
                         .foregroundColor(.secondary)
 
-                    Text("Starting Server...")
+                    Text(appState.tr(.startingServer))
                         .font(.headline)
                 }
             }
@@ -81,7 +83,7 @@ struct HttpShareSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 400, height: 320)
+        .frame(width: LayoutTokens.httpShareSheetWidth, height: LayoutTokens.httpShareSheetHeight)
         .onAppear {
             serverService.start(sharing: folderURL)
         }

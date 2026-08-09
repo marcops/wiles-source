@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "Justera ikonstorlek (Cmd/Ctrl + Scrollhjul eller Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Sökfilter (Datum, Typ, Storlek)";
 "errorAlertTitle" = "Fel";
+"copyLinkAccessibilityLabel" = "Kopiera länk";
+"copyLinkAccessibilityHint" = "Kopierar delningsadressen till urklipp";
+"loadingEntries" = "Läser in objekt...";
+"noArchiveEntriesFound" = "Inga objekt hittades eller så gick arkivet inte att läsa.";
+"extractEntryHint" = "Packar upp den här filen till aktuell mapp";
+"archiveFileEntry" = "Fil";

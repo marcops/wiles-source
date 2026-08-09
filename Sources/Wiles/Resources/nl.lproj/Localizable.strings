@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "Pictogramgrootte aanpassen (Cmd/Ctrl + Scrollwiel of Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Zoekfilters (Datum, Type, Grootte)";
 "errorAlertTitle" = "Fout";
+"copyLinkAccessibilityLabel" = "Link kopiëren";
+"copyLinkAccessibilityHint" = "Kopieert het deeladres naar het klembord";
+"loadingEntries" = "Items laden...";
+"noArchiveEntriesFound" = "Geen items gevonden of het archief kon niet worden gelezen.";
+"extractEntryHint" = "Pakt dit bestand uit naar de huidige map";
+"archiveFileEntry" = "Bestand";

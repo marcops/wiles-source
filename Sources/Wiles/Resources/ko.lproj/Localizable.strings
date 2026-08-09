@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "아이콘 크기 조정(Cmd/Ctrl + 휠 또는 Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "검색 필터(날짜, 유형, 크기)";
 "errorAlertTitle" = "오류";
+"copyLinkAccessibilityLabel" = "링크 복사";
+"copyLinkAccessibilityHint" = "공유 주소를 클립보드에 복사합니다";
+"loadingEntries" = "항목을 불러오는 중...";
+"noArchiveEntriesFound" = "항목을 찾을 수 없거나 압축 파일을 읽을 수 없습니다.";
+"extractEntryHint" = "이 파일을 현재 폴더에 압축 해제합니다";
+"archiveFileEntry" = "파일";

@@ -364,3 +364,9 @@
 "adjustIconSizeHelp" = "Simge boyutunu ayarla (Cmd/Ctrl + Tekerlek veya Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Arama Filtreleri (Tarih, Tür, Boyut)";
 "errorAlertTitle" = "Hata";
+"copyLinkAccessibilityLabel" = "Bağlantıyı kopyala";
+"copyLinkAccessibilityHint" = "Paylaşım adresini panoya kopyalar";
+"loadingEntries" = "Öğeler yükleniyor...";
+"noArchiveEntriesFound" = "Öğe bulunamadı veya arşiv okunamadı.";
+"extractEntryHint" = "Bu dosyayı geçerli klasöre çıkarır";
+"archiveFileEntry" = "Dosya";
