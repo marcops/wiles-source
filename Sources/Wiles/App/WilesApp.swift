@@ -28,46 +28,7 @@ struct WilesApp: App {
 
     var body: some Scene {
         WindowGroup(AppConstants.appName, id: AppConstants.mainWindowID) {
-            MainContentView(appState: appState)
-                .preferredColorScheme(resolvedColorScheme)
-                .onChange(of: resolvedColorScheme, initial: true) { _, newValue in
-                    // Belt-and-suspenders: force it explicitly too, since `resolvedColorScheme` is
-                    // always concrete now, this is the same code path already proven to propagate
-                    // live (explicit Light/Dark selection).
-                    let appearance = NSAppearance(named: newValue == .dark ? .darkAqua : .aqua)
-                    NSApplication.shared.appearance = appearance
-                    for window in NSApplication.shared.windows {
-                        window.appearance = appearance
-                    }
-                }
-                .onAppear {
-                    NSApplication.shared.activate(ignoringOtherApps: true)
-                    let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ??
-                                  Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png") ??
-                                  Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png")
-
-                    if let iconImage = NSImage(contentsOf: iconURL) {
-                        NSApplication.shared.applicationIconImage = iconImage
-                    }
-                    // `appState` is shared by every window — every sheet/overlay toggle on it would
-                    // show in every open window at once if it lived there. All window-scoped sheets/
-                    // alerts/HUDs live on `WindowUIState` instead (one instance per window, published
-                    // to these menu commands via `.focusedSceneValue`/`@FocusedValue` — see
-                    // `WindowUIState.swift` and `WindowUIStateKey` in `MainContentView.swift`).
-                    // `isRestorable = false` keeps each launch starting clean instead of macOS
-                    // silently restoring however many windows were open at last quit.
-                    for window in NSApplication.shared.windows {
-                        window.tabbingMode = .disallowed
-                        window.isMovableByWindowBackground = false
-                        window.setFrameAutosaveName("WilesMainWindow")
-                        window.isRestorable = false
-                    }
-                    if !CommandLine.arguments.contains("--ui-testing") {
-                        PermissionService.requestInitialPermissions(language: appState.preferences.appLanguage)
-                    }
-                    appState.refreshCurrentDirectory()
-                    AutoOrganizationService.shared.startMonitoring()
-                }
+            mainWindowContent
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -79,6 +40,49 @@ struct WilesApp: App {
             CommandMenu(appState.tr(.toolsMenuTitle)) { toolsMenuCommands }
             helpMenuCommands
         }
+    }
+
+    @ViewBuilder private var mainWindowContent: some View {
+        MainContentView(appState: appState)
+            .preferredColorScheme(resolvedColorScheme)
+            .onChange(of: resolvedColorScheme, initial: true) { _, newValue in
+                // Belt-and-suspenders: force it explicitly too, since `resolvedColorScheme` is
+                // always concrete now, this is the same code path already proven to propagate
+                // live (explicit Light/Dark selection).
+                let appearance = NSAppearance(named: newValue == .dark ? .darkAqua : .aqua)
+                NSApplication.shared.appearance = appearance
+                for window in NSApplication.shared.windows {
+                    window.appearance = appearance
+                }
+            }
+            .onAppear {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ??
+                              Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png") ??
+                              Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png")
+
+                if let iconImage = NSImage(contentsOf: iconURL) {
+                    NSApplication.shared.applicationIconImage = iconImage
+                }
+                // `appState` is shared by every window — every sheet/overlay toggle on it would
+                // show in every open window at once if it lived there. All window-scoped sheets/
+                // alerts/HUDs live on `WindowUIState` instead (one instance per window, published
+                // to these menu commands via `.focusedSceneValue`/`@FocusedValue` — see
+                // `WindowUIState.swift` and `WindowUIStateKey` in `MainContentView.swift`).
+                // `isRestorable = false` keeps each launch starting clean instead of macOS
+                // silently restoring however many windows were open at last quit.
+                for window in NSApplication.shared.windows {
+                    window.tabbingMode = .disallowed
+                    window.isMovableByWindowBackground = false
+                    window.setFrameAutosaveName("WilesMainWindow")
+                    window.isRestorable = false
+                }
+                if !CommandLine.arguments.contains("--ui-testing") {
+                    PermissionService.requestInitialPermissions(language: appState.preferences.appLanguage)
+                }
+                appState.refreshCurrentDirectory()
+                AutoOrganizationService.shared.startMonitoring()
+            }
     }
 
     @CommandsBuilder private var appMenuCommands: some Commands {
@@ -175,41 +179,45 @@ struct WilesApp: App {
     // toggling them in Settings updates the UI live with zero behavior change.
     @CommandsBuilder private var viewMenuCommands: some Commands {
         CommandGroup(after: .sidebar) {
+            sidebarViewMenuItems
+        }
+    }
+
+    @ViewBuilder private var sidebarViewMenuItems: some View {
+        Divider()
+        Toggle(appState.tr(appState.preferences.showTerminalDrawer ? .hideTerminal : .showTerminal), isOn: $appState.preferences.showTerminalDrawer)
+            .keyboardShortcut("j", modifiers: .command)
+        Toggle(appState.tr(appState.preferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $appState.preferences.showPreviewSidebar)
+            .keyboardShortcut("p", modifiers: [.command, .shift])
+        Toggle(appState.tr(appState.preferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar), isOn: $appState.preferences.showDiskUsageSidebar)
+            .keyboardShortcut("d", modifiers: [.command, .shift])
+        Menu(appState.tr(.sidebarMenuTitle)) {
+            Toggle(appState.tr(.showFavorites), isOn: $appState.preferences.showFavorites)
+            Toggle(appState.tr(.showPlaces), isOn: $appState.preferences.showPlaces)
+            Toggle(appState.tr(.showRecents), isOn: $appState.preferences.showRecents)
+            Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
+            Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
+            Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
+            Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
+        }
+        Divider()
+        Picker(selection: $appState.preferences.viewMode) {
+            Text(appState.tr(.gridView)).tag(ViewMode.grid)
+            Text(appState.tr(.listView)).tag(ViewMode.list)
+            Text(appState.tr(.columnView)).tag(ViewMode.column)
+        } label: {
+            Label(appState.tr(.viewMode), systemImage: "square.grid.2x2")
+        }
+        Menu {
+            Picker(appState.tr(.sortBy), selection: $appState.preferences.sortOption) {
+                ForEach(SortOption.allCases) { opt in Text(appState.tr(opt.l10nKey)).tag(opt) }
+            }
+            .onChange(of: appState.preferences.sortOption) { _, _ in appState.refreshCurrentDirectory() }
             Divider()
-            Toggle(appState.tr(appState.preferences.showTerminalDrawer ? .hideTerminal : .showTerminal), isOn: $appState.preferences.showTerminalDrawer)
-                .keyboardShortcut("j", modifiers: .command)
-            Toggle(appState.tr(appState.preferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $appState.preferences.showPreviewSidebar)
-                .keyboardShortcut("p", modifiers: [.command, .shift])
-            Toggle(appState.tr(appState.preferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar), isOn: $appState.preferences.showDiskUsageSidebar)
-                .keyboardShortcut("d", modifiers: [.command, .shift])
-            Menu(appState.tr(.sidebarMenuTitle)) {
-                Toggle(appState.tr(.showFavorites), isOn: $appState.preferences.showFavorites)
-                Toggle(appState.tr(.showPlaces), isOn: $appState.preferences.showPlaces)
-                Toggle(appState.tr(.showRecents), isOn: $appState.preferences.showRecents)
-                Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
-                Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
-                Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
-                Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
-            }
-            Divider()
-            Picker(selection: $appState.preferences.viewMode) {
-                Text(appState.tr(.gridView)).tag(ViewMode.grid)
-                Text(appState.tr(.listView)).tag(ViewMode.list)
-                Text(appState.tr(.columnView)).tag(ViewMode.column)
-            } label: {
-                Label(appState.tr(.viewMode), systemImage: "square.grid.2x2")
-            }
-            Menu {
-                Picker(appState.tr(.sortBy), selection: $appState.preferences.sortOption) {
-                    ForEach(SortOption.allCases) { opt in Text(appState.tr(opt.l10nKey)).tag(opt) }
-                }
-                .onChange(of: appState.preferences.sortOption) { _, _ in appState.refreshCurrentDirectory() }
-                Divider()
-                Toggle(appState.tr(.ascending), isOn: $appState.preferences.sortAscending)
-                    .onChange(of: appState.preferences.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
-            } label: {
-                Label(appState.tr(.sortBy), systemImage: "arrow.up.arrow.down")
-            }
+            Toggle(appState.tr(.ascending), isOn: $appState.preferences.sortAscending)
+                .onChange(of: appState.preferences.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
+        } label: {
+            Label(appState.tr(.sortBy), systemImage: "arrow.up.arrow.down")
         }
     }
 
