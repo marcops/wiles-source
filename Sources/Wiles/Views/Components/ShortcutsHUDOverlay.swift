@@ -26,36 +26,7 @@ struct ShortcutsHUDOverlay: View {
                     }
                 }
 
-            VStack(spacing: 16) {
-                header
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
-                modeTabRow
-                    .padding(.horizontal, 20)
-                Divider()
-                shortcutColumns
-                Divider()
-                footer
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
-            }
-            .frame(minWidth: 350, maxWidth: 450, minHeight: 390, maxHeight: 510)
-            .background(
-                ZStack {
-                    TranslucentVisualEffectView(material: .hudWindow)
-                    Color(NSColor.windowBackgroundColor).opacity(0.85)
-                }
-            )
-            // A single `.clipShape` for the whole composited card (content + background layers)
-            // instead of separate `.cornerRadius()` calls on each background layer — mismatched
-            // per-layer corner clipping is what caused the rounded top area (where the header sits)
-            // to render inconsistently against the rest of the card.
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.25), radius: 15, x: 0, y: 8)
+            cardView
             Button("") {
                 withAnimation(MotionTokens.snappySpring) {
                     isPresented = false
@@ -65,6 +36,39 @@ struct ShortcutsHUDOverlay: View {
             .hidden()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder private var cardView: some View {
+        VStack(spacing: 16) {
+            header
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+            modeTabRow
+                .padding(.horizontal, 20)
+            Divider()
+            shortcutColumns
+            Divider()
+            footer
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+        }
+        .frame(minWidth: 350, maxWidth: 450, minHeight: 390, maxHeight: 510)
+        .background(
+            ZStack {
+                TranslucentVisualEffectView(material: .hudWindow)
+                Color(NSColor.windowBackgroundColor).opacity(0.85)
+            }
+        )
+        // A single `.clipShape` for the whole composited card (content + background layers)
+        // instead of separate `.cornerRadius()` calls on each background layer — mismatched
+        // per-layer corner clipping is what caused the rounded top area (where the header sits)
+        // to render inconsistently against the rest of the card.
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.25), radius: 15, x: 0, y: 8)
     }
 
     private var header: some View {

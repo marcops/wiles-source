@@ -19,35 +19,7 @@ struct AutoOrganizationSheet: View {
         VStack(spacing: 0) {
             headerView
             Divider()
-
-            VStack(spacing: 20) {
-                if rules.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "folder.badge.gearshape")
-                            .font(.system(size: 40))
-                            .foregroundColor(.secondary)
-                        Text(appState.tr(.noAutoOrgRules))
-                            .font(.headline)
-                        Text(appState.tr(.noAutoOrgRulesDesc))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                        ForEach(rules) { rule in
-                            ruleRow(rule)
-                        }
-                    }
-                    .listStyle(.inset)
-                }
-
-                Divider()
-
-                newRuleSection
-            }
-            .padding(20)
-
+            contentArea
             Divider()
             footerView
         }
@@ -64,6 +36,40 @@ struct AutoOrganizationSheet: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder private var contentArea: some View {
+        VStack(spacing: 20) {
+            if rules.isEmpty {
+                emptyRulesView
+            } else {
+                List {
+                    ForEach(rules) { rule in
+                        ruleRow(rule)
+                    }
+                }
+                .listStyle(.inset)
+            }
+
+            Divider()
+
+            newRuleSection
+        }
+        .padding(20)
+    }
+
+    @ViewBuilder private var emptyRulesView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "folder.badge.gearshape")
+                .font(.system(size: 40))
+                .foregroundColor(.secondary)
+            Text(appState.tr(.noAutoOrgRules))
+                .font(.headline)
+            Text(appState.tr(.noAutoOrgRulesDesc))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var headerView: some View {
@@ -86,98 +92,117 @@ struct AutoOrganizationSheet: View {
 
     private func ruleRow(_ rule: AutoOrganizationRule) -> some View {
         HStack {
-            Toggle("", isOn: Binding(
-                get: { rule.isEnabled },
-                set: { newVal in
-                    var updated = rule
-                    updated.isEnabled = newVal
-                    AutoOrganizationService.shared.updateRule(updated)
-                    rules = AutoOrganizationService.shared.rules
-                }
-            ))
-            .labelsHidden()
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
-                    Image(systemName: "folder")
-                        .foregroundColor(.blue)
-                    Text(rule.sourceURL.lastPathComponent)
-                        .fontWeight(.semibold)
-                    Image(systemName: "arrow.right")
-                        .foregroundColor(.secondary)
-                    Image(systemName: "folder")
-                        .foregroundColor(.green)
-                    Text(rule.destinationURL.lastPathComponent)
-                        .fontWeight(.semibold)
-                }
-                Text(String(format: appState.tr(.autoOrgRuleCondition), displayName(for: rule.conditionType), rule.conditionValue))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
+            ruleEnabledToggle(rule)
+            ruleSummary(rule)
             Spacer()
-
-            Button {
-                AutoOrganizationService.shared.deleteRule(id: rule.id)
-                rules = AutoOrganizationService.shared.rules
-            } label: {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
-            }
-            .buttonStyle(.plain)
+            ruleDeleteButton(rule)
         }
         .padding(.vertical, 4)
+    }
+
+    private func ruleEnabledToggle(_ rule: AutoOrganizationRule) -> some View {
+        Toggle("", isOn: Binding(
+            get: { rule.isEnabled },
+            set: { newVal in
+                var updated = rule
+                updated.isEnabled = newVal
+                AutoOrganizationService.shared.updateRule(updated)
+                rules = AutoOrganizationService.shared.rules
+            }
+        ))
+        .labelsHidden()
+    }
+
+    private func ruleSummary(_ rule: AutoOrganizationRule) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "folder")
+                    .foregroundColor(.blue)
+                Text(rule.sourceURL.lastPathComponent)
+                    .fontWeight(.semibold)
+                Image(systemName: "arrow.right")
+                    .foregroundColor(.secondary)
+                Image(systemName: "folder")
+                    .foregroundColor(.green)
+                Text(rule.destinationURL.lastPathComponent)
+                    .fontWeight(.semibold)
+            }
+            Text(String(format: appState.tr(.autoOrgRuleCondition), displayName(for: rule.conditionType), rule.conditionValue))
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private func ruleDeleteButton(_ rule: AutoOrganizationRule) -> some View {
+        Button {
+            AutoOrganizationService.shared.deleteRule(id: rule.id)
+            rules = AutoOrganizationService.shared.rules
+        } label: {
+            Image(systemName: "trash")
+                .foregroundColor(.red)
+        }
+        .buttonStyle(.plain)
     }
 
     private var newRuleSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(appState.tr(.addNewRule))
                 .font(.headline)
-
-            HStack {
-                Text(appState.tr(.ifFileIn))
-                    .frame(width: 100, alignment: .trailing)
-
-                Button(sourceURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
-                    folderPickerTarget = .source
-                }
-                .frame(width: 120)
-
-                Picker("", selection: $conditionType) {
-                    ForEach(RuleConditionType.allCases) { type in
-                        Text(displayName(for: type)).tag(type)
-                    }
-                }
-                .frame(width: 140)
-
-                TextField(appState.tr(.ruleValuePlaceholder), text: $conditionValue)
-                    .textFieldStyle(.roundedBorder)
-            }
-
-            HStack {
-                Text(appState.tr(.moveTo))
-                    .frame(width: 100, alignment: .trailing)
-                Button(destinationURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
-                    folderPickerTarget = .destination
-                }
-                .frame(width: 120)
-
-                Spacer()
-
-                Button(appState.tr(.addRule)) {
-                    guard let src = sourceURL, let dest = destinationURL, !conditionValue.isEmpty else { return }
-                    let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: conditionValue)
-                    AutoOrganizationService.shared.addRule(rule)
-                    rules = AutoOrganizationService.shared.rules
-                    conditionValue = ""
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(sourceURL == nil || destinationURL == nil || conditionValue.isEmpty)
-            }
+            newRuleConditionRow
+            newRuleDestinationRow
         }
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
+    }
+
+    private var newRuleConditionRow: some View {
+        HStack {
+            Text(appState.tr(.ifFileIn))
+                .frame(width: 100, alignment: .trailing)
+
+            Button(sourceURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
+                folderPickerTarget = .source
+            }
+            .frame(width: 120)
+
+            Picker("", selection: $conditionType) {
+                ForEach(RuleConditionType.allCases) { type in
+                    Text(displayName(for: type)).tag(type)
+                }
+            }
+            .frame(width: 140)
+
+            TextField(appState.tr(.ruleValuePlaceholder), text: $conditionValue)
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    private var newRuleDestinationRow: some View {
+        HStack {
+            Text(appState.tr(.moveTo))
+                .frame(width: 100, alignment: .trailing)
+            Button(destinationURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
+                folderPickerTarget = .destination
+            }
+            .frame(width: 120)
+
+            Spacer()
+
+            Button(appState.tr(.addRule)) {
+                addRule()
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(sourceURL == nil || destinationURL == nil || conditionValue.isEmpty)
+        }
+    }
+
+    private func addRule() {
+        guard let src = sourceURL, let dest = destinationURL, !conditionValue.isEmpty else { return }
+        let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: conditionValue)
+        AutoOrganizationService.shared.addRule(rule)
+        rules = AutoOrganizationService.shared.rules
+        conditionValue = ""
     }
 
     /// `RuleConditionType.rawValue` is the persisted/matched identifier (`Codable`), always

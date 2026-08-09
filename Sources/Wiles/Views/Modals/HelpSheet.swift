@@ -151,43 +151,34 @@ struct HelpSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(appState.tr(.navProfilesTitle))
                 .font(.system(size: 14, weight: .semibold))
-
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 6))
-                            .foregroundColor(.accentColor)
-                        Text(appState.tr(.gnomeModeTitle))
-                            .font(.system(size: 12, weight: .bold))
-                    }
-                    Text(appState.tr(.gnomeModeDesc))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 6))
-                            .foregroundColor(.accentColor)
-                        Text(appState.tr(.macModeTitle))
-                            .font(.system(size: 12, weight: .bold))
-                    }
-                    Text(appState.tr(.macModeDesc))
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-            }
+            navigationModeCards
         }
+    }
+
+    private var navigationModeCards: some View {
+        HStack(alignment: .top, spacing: 12) {
+            navModeCard(title: appState.tr(.gnomeModeTitle), desc: appState.tr(.gnomeModeDesc))
+            navModeCard(title: appState.tr(.macModeTitle), desc: appState.tr(.macModeDesc))
+        }
+    }
+
+    private func navModeCard(title: String, desc: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Image(systemName: "circle.fill")
+                    .font(.system(size: 6))
+                    .foregroundColor(.accentColor)
+                Text(title)
+                    .font(.system(size: 12, weight: .bold))
+            }
+            Text(desc)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
     }
 
     private var footerView: some View {
