@@ -11,8 +11,48 @@ public struct SymlinkTests {
 
         runBasicSymlinkCoverage(tempDir: tempDir, targetFile: targetFile)
         runSymlinkModeIdentifiableCoverage()
+        runSameFolderSameNameRegressionCoverage()
 
         try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    // NEG (data-loss regression): createSymlink's "remove existing destination before creating
+    // the symlink" branch used to be unconditional — if the caller creates a symlink in the same
+    // folder as its own target, using the target's own filename as the symlink name, destinationURL
+    // resolves to the exact same path as targetURL. The old code then did
+    // `removeItem(at: destinationURL)` — permanently deleting the real source file — before calling
+    // `createSymbolicLink`, which then failed anyway because the target no longer existed. This
+    // must be a safe abort instead: the source file must still exist afterward, with its original
+    // contents intact, and a clear error must be thrown.
+    private static func runSameFolderSameNameRegressionCoverage() {
+        let regressionDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: regressionDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: regressionDir) }
+
+        let sourceFile = regressionDir.appendingPathComponent("dont_delete_me.txt")
+        let originalContent = "precious user data \(UUID().uuidString)"
+        try? originalContent.write(to: sourceFile, atomically: true, encoding: .utf8)
+
+        var threwError = false
+        do {
+            _ = try SymlinkService.createSymlink(
+                targetURL: sourceFile,
+                destinationFolder: regressionDir,
+                symlinkName: sourceFile.lastPathComponent,
+                mode: .absolute
+            )
+        } catch {
+            threwError = true
+        }
+
+        let stillExists = FileManager.default.fileExists(atPath: sourceFile.path)
+        let contentIntact = (try? String(contentsOf: sourceFile)) == originalContent
+        let stillARegularFile = (try? FileManager.default.destinationOfSymbolicLink(atPath: sourceFile.path)) == nil
+        TestReporter.report(
+            "SymlinkService",
+            "NEG: createSymlink whose destination resolves to the same path as its own target never deletes the source (regression: used to permanently destroy it)",
+            result: threwError && stillExists && contentIntact && stillARegularFile
+        )
     }
 
     // POS/NEG: SymlinkMode.id (Identifiable conformance) returns the raw value for both cases.
