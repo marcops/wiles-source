@@ -4,43 +4,34 @@ OK - Não esta traduzido regras de organização automática
 OK - com o botao direito abre o menu servicoes, so ele tem icone, tira. para ficarem todos iguais 
 OK - alguns itens do menu do botao direito do mouse nao estao traduzidos.
 OK - Tirar o visualizador de disco do menu do mouse
+ok - o mostrar etiquetas tem que estar no settings dentro da configuracao do sidebar, bem como no menu do sidebar, ele tem que ter mostrar ou nao tags.
+OK - Ao mover para lixeira o cursos não seleciona o botão de excluir ou cancelar  para excluir
+ok -  Na lista se eu excluir 1 arquivo ou no comum View - quero o efeito suave de subindo igual o Finder.
+OK - Na busca ter opção de selecionar somente na pasta ou em todo usuário
+ok -  Na pré visualização ao invés de mostrar o ícone  deve mostrar no PDF/txt a 1ªpag , no jpeg ou png como ja temos parcial nas view
+ok- Lixeira nao esta abrindo esta so colocando .trash
 
+ok -  se eu seleciono o tema claro ou escuro no settings ele muda tudo , mas se eu estou no tema branco e meu mac e tema escuro e eu seleciono sistema, ele muda o settings mas a janela que esta atras nao, so se eu seleciono escuro ou branco, o system nao muda
 
-#pendente
-o mostrar etiquetas tem que estar no settings dentro da configuracao do sidebar, bem como no menu, ele tem que ter mostrar ou nao tags.
+Ajustar a descricaoo no help. Esta referenciando o gnome, tem que ser melhor igual ao readme que ajustamos com MARKETING. ou melhor ajustar o readme publico tambem que paramos no meio, todos eles devem trazer que somos um explorer unico bem polido que era o que faltava no mac, etc e nao referenciar os outros somos melhores que eles todos.
+E o sobre tambem.
+ou seja ajustar sobre, readme publico e o help
 
-Ao mover para lixeira o cursos não seleciona o botão de excluir ou cancelar  para excluir
+PENDENCIAS
 
-Na lista se eu excluir 1 arquivo ou no comum View - quero o efeito suave de subindo igual o Finder.
-
-Na propriedades da pasta/arquivo tirar scroll e fundo preto padrão
-
-Se der duplo clique espaçado fazer renome
-
-Na busca ter opção de selecionar somente na pasta ou em todo usuário
-
-jpeg com e não esta gerando imagem thumbmail
-
-Ver quando roda as regras de. Moer o arquivo
-
-Na pré visualização ao invés de mostrar o ícone  deve mostrar no PDF/txt a 1ªpag , no jpeg ou png a imagem
-
-Lixeira nao esta abrindo esta so colocando .trash
-
-Ajustar a descreio no help. Esta referenciando o gnome, tem que ser melhor igual ao readme que ajustamos com MARKETING.
-E o sobre
 
 Adicionar na configuração, de quanto em quanto tempo o aplicar regras vai rodar. - no settings.
 Revisar se eh uma thread separada.
 
 
+Na propriedades da pasta/arquivo se o tema e escuro, no meio tem que ser fundo escuto tambem como nosso padrao e nao claro como esta
+
+
 scroll nao funciona nas propriedades do arquivo com o mouse (mover para cima e para baixo) e nem no shortcut view dentro do menu help -> atalhos revisa todas as telas se nao tem este mesmo problema, e antes de arrumar avisa quais tem e precisa arrumar
 
 
-bug grave, parou de pegar eu digitando, tanto na busca quando no nova pasta, o que eu fiz a principio foi abrir a busca para digitar e fiz resize depois disso nao pegou mais eu digitando nada na busca, nao consigo gitira rmais na busca
 
-
-no localhttpserverService, estrair o HTML
+no localhttpserverService, extrair o HTML
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {
         do {
             let urls = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
@@ -60,8 +51,27 @@ no localhttpserverService, estrair o HTML
         }
     }
 
+ajustar antes para 2 linha se o texto for grande
+se seria clicar 2x no texto ou 
+Se der duplo clique espaçado  (1s de delay entre eles ate 3s) fazer renome
+
+
 teste intermitente (falha às vezes, não relacionado a nenhuma mudança - reproduzido isolado 2026-08-08): AutoOrganization — alterna entre falhar em
 "POS: Rule routes matching .pdf file to destination" e "POS: a real matching file alongside the dotfile is still moved correctly".
 Parece timing (o teste espera o tamanho do arquivo parar de mudar / debounce antes de mover). Rever amanhã.
 
-no localhttpserverService, estrair o HTML
+
+
+bug grave, parou de pegar eu digitando, tanto na busca quando no nova pasta, o que eu fiz a principio foi abrir a busca para digitar e fiz resize depois disso nao pegou mais eu digitando nada na busca, nao consigo gitira rmais na busca
+
+
+### `ArchiveInspectionService.swift:35` — `readDataToEndOfFile()` buffers subprocess stdout in one shot
+**Priority: Low** — archive *listings* are small text output even for large archives; the risk
+is theoretical unless someone opens an archive with an enormous entry count.
+**Complexity: Moderate** — would need a streaming reader instead of a one-shot read; not worth
+it unless it's an actual reported problem. Note: as of 2026-08-08, `listEntries` no longer shells
+out to `unzip`/`Process` at all (it parses the ZIP central directory directly via
+`ZIPCentralDirectoryReader` — see `ArchiveInspectionService.swift`'s `listEntries`), so this
+specific line/finding may already be stale; only `extractSingleEntry` still uses `Process`, and
+its `try process.run()` is already non-silent (not what this finding was about). Re-verify line
+numbers before picking this up.
