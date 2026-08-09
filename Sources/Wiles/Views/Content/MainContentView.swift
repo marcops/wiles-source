@@ -72,7 +72,7 @@ struct MainContentView: View {
         }
         .ignoresSafeArea(.all, edges: .top)
         .frame(minWidth: effectiveWindowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
-        .quickLookPreview($appState.quickLookURL)
+        .quickLookPreview($windowUIState.quickLookURL)
         .sheet(item: $windowUIState.propertiesItem) { item in
             FilePropertiesSheet(item: item, appState: appState)
         }
@@ -357,10 +357,10 @@ struct GlobalKeyMonitor: NSViewRepresentable {
 
         private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
             if let arrowCode = ArrowKey(code: code) {
-                if isCmd, let fav = appState.selectedFavoriteURL,
+                if isCmd, let fav = windowUIState.selectedFavoriteURL,
                     fav.standardizedFileURL == appState.navigation.currentURL.standardizedFileURL,
                     arrowCode == .up || arrowCode == .down {
-                    appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1)
+                    appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1, windowUIState: windowUIState)
                     return true
                 }
                 let isShift = NSEvent.modifierFlags.contains(.shift)

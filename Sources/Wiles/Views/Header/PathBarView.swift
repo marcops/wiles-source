@@ -17,6 +17,8 @@ private struct BreadcrumbContentWidthKey: PreferenceKey {
 
 struct PathBarView: View {
     var appState: AppState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @FocusState private var isFocused: Bool
     @State private var isHovering = false
     @State private var breadcrumbContentWidth: CGFloat = 0
@@ -41,13 +43,13 @@ struct PathBarView: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            if appState.isEditingPath {
+            if windowUIState.isEditingPath {
                 textFieldMode
             } else {
                 breadcrumbMode
             }
         }
-        .animation(MotionTokens.quickEase, value: appState.isEditingPath)
+        .animation(MotionTokens.quickEase, value: windowUIState.isEditingPath)
     }
 
     private var textFieldMode: some View {
@@ -60,15 +62,15 @@ struct PathBarView: View {
                 .onSubmit {
                     let url = URL(fileURLWithPath: (appState.navigation.pathText as NSString).expandingTildeInPath)
                     appState.navigateTo(url)
-                    appState.isEditingPath = false
+                    windowUIState.isEditingPath = false
                 }
                 .onExitCommand {
                     appState.navigation.pathText = appState.navigation.currentURL.path
-                    appState.isEditingPath = false
+                    windowUIState.isEditingPath = false
                 }
                 .onChange(of: isFocused) { _, focused in
                     if !focused {
-                        appState.isEditingPath = false
+                        windowUIState.isEditingPath = false
                     }
                 }
         }
@@ -77,7 +79,7 @@ struct PathBarView: View {
         .background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.6), lineWidth: 1.5))
         .background(ClickOutsideDetector {
-            appState.isEditingPath = false
+            windowUIState.isEditingPath = false
         })
         .onAppear { isFocused = true }
     }
@@ -128,7 +130,7 @@ struct PathBarView: View {
         }
         .onTapGesture(count: 2) {
             appState.navigation.pathText = appState.navigation.currentURL.path
-            appState.isEditingPath = true
+            windowUIState.isEditingPath = true
         }
     }
 

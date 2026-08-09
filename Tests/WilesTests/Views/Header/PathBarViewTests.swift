@@ -8,9 +8,10 @@ public struct PathBarViewTests {
         let view = PathBarView(appState: appState)
         report("View/PathBarView", "POS: PathBarView constructs pathSegments for root directory", result: !view.pathSegments.isEmpty)
 
-        appState.isEditingPath = true
+        let windowUIState = WindowUIState()
+        windowUIState.isEditingPath = true
         let editingView = PathBarView(appState: appState)
-        report("View/PathBarView", "POS: PathBarView honors isEditingPath mode", result: editingView.appState.isEditingPath)
+        report("View/PathBarView", "POS: PathBarView honors isEditingPath mode", result: editingView.appState === appState && windowUIState.isEditingPath)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

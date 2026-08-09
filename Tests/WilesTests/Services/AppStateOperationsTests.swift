@@ -85,14 +85,15 @@ public struct AppStateOperationsTests {
 
     private static func testTriggerQuickLookForSelected() {
         let appState = AppState()
+        let windowUIState = WindowUIState()
         appState.selectedURLs = []
-        appState.triggerQuickLookForSelected()
-        report("AppState+Operations", "NEG: triggerQuickLookForSelected() with no selection leaves quickLookURL nil", result: appState.quickLookURL == nil)
+        appState.triggerQuickLookForSelected(windowUIState: windowUIState)
+        report("AppState+Operations", "NEG: triggerQuickLookForSelected() with no selection leaves quickLookURL nil", result: windowUIState.quickLookURL == nil)
 
         let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("ql-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
-        appState.triggerQuickLookForSelected()
-        report("AppState+Operations", "POS: triggerQuickLookForSelected() sets quickLookURL to the selected item", result: appState.quickLookURL == url)
+        appState.triggerQuickLookForSelected(windowUIState: windowUIState)
+        report("AppState+Operations", "POS: triggerQuickLookForSelected() sets quickLookURL to the selected item", result: windowUIState.quickLookURL == url)
     }
 
     private static func testOpenPropertiesForSelected() {
@@ -122,11 +123,12 @@ public struct AppStateOperationsTests {
 
     private static func testStartEditingPath() {
         let appState = AppState()
-        appState.startEditingPath()
+        let windowUIState = WindowUIState()
+        appState.startEditingPath(windowUIState: windowUIState)
         report(
             "AppState+Operations",
             "POS: startEditingPath() copies currentURL.path into pathText and enables editing",
-            result: appState.navigation.pathText == appState.navigation.currentURL.path && appState.isEditingPath == true
+            result: appState.navigation.pathText == appState.navigation.currentURL.path && windowUIState.isEditingPath == true
         )
     }
 

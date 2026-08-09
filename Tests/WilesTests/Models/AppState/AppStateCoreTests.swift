@@ -110,37 +110,38 @@ public struct AppStateCoreTests {
         let appState = AppState()
         appState.preferences.favoriteURLs = [favA, favB, favC]
         appState.navigation.currentURL = favB
-        appState.selectedFavoriteURL = favB
+        let windowUIState = WindowUIState()
+        windowUIState.selectedFavoriteURL = favB
 
-        appState.moveSelectedFavorite(offset: -1)
+        appState.moveSelectedFavorite(offset: -1, windowUIState: windowUIState)
         report(
             "AppState", "POS: moveSelectedFavorite(-1) swaps the selected favorite with the one before it",
             result: appState.preferences.favoriteURLs == [favB, favA, favC]
         )
 
-        appState.moveSelectedFavorite(offset: 1)
+        appState.moveSelectedFavorite(offset: 1, windowUIState: windowUIState)
         report(
             "AppState", "POS: moveSelectedFavorite(1) swaps back, restoring original order",
             result: appState.preferences.favoriteURLs == [favA, favB, favC]
         )
 
-        testMoveSelectedFavoriteOutOfBoundsAndStaleSelection(appState: appState, favA: favA, favB: favB, favC: favC)
+        testMoveSelectedFavoriteOutOfBoundsAndStaleSelection(appState: appState, windowUIState: windowUIState, favA: favA, favB: favB, favC: favC)
     }
 
-    private static func testMoveSelectedFavoriteOutOfBoundsAndStaleSelection(appState: AppState, favA: URL, favB: URL, favC: URL) {
+    private static func testMoveSelectedFavoriteOutOfBoundsAndStaleSelection(appState: AppState, windowUIState: WindowUIState, favA: URL, favB: URL, favC: URL) {
         // NEG: moving the first favorite up (out of bounds) is a no-op.
-        appState.selectedFavoriteURL = favA
+        windowUIState.selectedFavoriteURL = favA
         appState.navigation.currentURL = favA
-        appState.moveSelectedFavorite(offset: -1)
+        appState.moveSelectedFavorite(offset: -1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite(-1) on the first favorite does not change order (out of bounds)",
             result: appState.preferences.favoriteURLs == [favA, favB, favC]
         )
 
         // NEG: moving the last favorite down (out of bounds) is a no-op.
-        appState.selectedFavoriteURL = favC
+        windowUIState.selectedFavoriteURL = favC
         appState.navigation.currentURL = favC
-        appState.moveSelectedFavorite(offset: 1)
+        appState.moveSelectedFavorite(offset: 1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite(1) on the last favorite does not change order (out of bounds)",
             result: appState.preferences.favoriteURLs == [favA, favB, favC]
@@ -148,17 +149,17 @@ public struct AppStateCoreTests {
 
         // NEG: selectedFavoriteURL no longer matching currentURL (navigated away) blocks the move —
         // this is what stops a stale selection from reordering favorites after the user moved on.
-        appState.selectedFavoriteURL = favB
+        windowUIState.selectedFavoriteURL = favB
         appState.navigation.currentURL = favC
-        appState.moveSelectedFavorite(offset: -1)
+        appState.moveSelectedFavorite(offset: -1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite() is a no-op when selectedFavoriteURL doesn't match currentURL",
             result: appState.preferences.favoriteURLs == [favA, favB, favC]
         )
 
         // NEG: no favorite selected at all.
-        appState.selectedFavoriteURL = nil
-        appState.moveSelectedFavorite(offset: 1)
+        windowUIState.selectedFavoriteURL = nil
+        appState.moveSelectedFavorite(offset: 1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite() is a no-op when selectedFavoriteURL is nil",
             result: appState.preferences.favoriteURLs == [favA, favB, favC]

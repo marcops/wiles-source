@@ -56,7 +56,6 @@ public final class AppState {
 
     public static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
 
-    public var isEditingPath: Bool = false
     public var searchQuery: String = "" {
         didSet {
             refreshCurrentDirectory()
@@ -78,14 +77,12 @@ public final class AppState {
     static let trashSizeCheckInterval: TimeInterval = 30
 
     public var selectedURLs: Set<URL> = []
-    public var quickLookURL: URL?
     public var clipboard: ClipboardState?
     public var navigationMode: NavigationMode = .gnome {
         didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
     }
 
     public var trashSizeString: String = ""
-    public var selectedFavoriteURL: URL?
     public var isTrashUpdating: Bool = false
 
     public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: DefaultsKey.isCompactMode.rawValue) {
@@ -175,8 +172,8 @@ public final class AppState {
         return preferences.favoriteURLs.contains(where: { $0.standardizedFileURL == std })
     }
 
-    public func moveSelectedFavorite(offset: Int) {
-        guard let selected = selectedFavoriteURL?.standardizedFileURL,
+    public func moveSelectedFavorite(offset: Int, windowUIState: WindowUIState) {
+        guard let selected = windowUIState.selectedFavoriteURL?.standardizedFileURL,
               selected == navigation.currentURL.standardizedFileURL,
               let index = preferences.favoriteURLs.firstIndex(where: { $0.standardizedFileURL == selected }) else { return }
         let newIndex = index + offset

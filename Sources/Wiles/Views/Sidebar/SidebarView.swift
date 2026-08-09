@@ -392,7 +392,7 @@ private struct SidebarRowView: View {
         .onTapGesture {
             onLeftClick()
             appState.navigateTo(item.url)
-            appState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
+            windowUIState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
         }
         .padding(.horizontal, 8)
         .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
