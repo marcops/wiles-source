@@ -79,40 +79,11 @@ struct HeaderBarView: View {
     private var searchField: some View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
-            TextField("\(appState.tr(.searchPlaceholder)) \(appState.navigation.currentURL.lastPathComponent)...", text: $appState.searchQuery)
-                .textFieldStyle(.plain)
-                .focused($isSearchFocused)
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
-                        isSearchFocused = true
-                    }
-                }
-                .onSubmit {
-                    NSApp.keyWindow?.makeFirstResponder(nil)
-                }
-                .onExitCommand {
-                    withAnimation(MotionTokens.quickEase) {
-                        appState.isSearching = false
-                        appState.searchQuery = ""
-                    }
-                }
-
+            searchTextField
             searchEverywhereToggle
-
             searchFilterMenu
-
             if !appState.searchQuery.isEmpty {
-                Button { windowUIState.showSaveSmartFolderSheet = true } label: {
-                    Image(systemName: "folder.badge.plus")
-                        .foregroundColor(.accentColor)
-                }
-                .buttonStyle(.plain)
-                .help(appState.tr(.saveAsSmartFolder))
-
-                Button { appState.searchQuery = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
+                searchQueryActionButtons
             }
         }
         .padding(.horizontal, 10)
@@ -121,57 +92,44 @@ struct HeaderBarView: View {
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.6), lineWidth: 1.5))
     }
 
-    private var searchFilterMenu: some View {
+    private var searchTextField: some View {
         @Bindable var appState = appState
-        return Menu {
-            Picker(appState.tr(.searchScope), selection: $appState.preferences.searchScope) {
-                Text(appState.tr(.searchByName)).tag(SearchScope.name)
-                Text(appState.tr(.searchByContent)).tag(SearchScope.content)
+        return TextField("\(appState.tr(.searchPlaceholder)) \(appState.navigation.currentURL.lastPathComponent)...", text: $appState.searchQuery)
+            .textFieldStyle(.plain)
+            .focused($isSearchFocused)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
+                    isSearchFocused = true
+                }
             }
-            Toggle(appState.tr(.searchIncludeHiddenFolders), isOn: includeHiddenFoldersBinding)
-            Divider()
-            Button("Modified Today (date:today)") {
-                appState.searchQuery = "date:today"
-                appState.refreshCurrentDirectory()
+            .onSubmit {
+                NSApp.keyWindow?.makeFirstResponder(nil)
             }
-            Button(appState.tr(.filterModified7Days)) {
-                appState.searchQuery = "date:7d"
-                appState.refreshCurrentDirectory()
+            .onExitCommand {
+                withAnimation(MotionTokens.quickEase) {
+                    appState.isSearching = false
+                    appState.searchQuery = ""
+                }
             }
-            Button("Modified Past 30 Days (date:30d)") {
-                appState.searchQuery = "date:30d"
-                appState.refreshCurrentDirectory()
-            }
+    }
 
-            Divider()
+    @ViewBuilder private var searchQueryActionButtons: some View {
+        Button { windowUIState.showSaveSmartFolderSheet = true } label: {
+            Image(systemName: "folder.badge.plus")
+                .foregroundColor(.accentColor)
+        }
+        .buttonStyle(.plain)
+        .help(appState.tr(.saveAsSmartFolder))
 
-            Button(appState.tr(.filterImages)) {
-                appState.searchQuery = "kind:image"
-                appState.refreshCurrentDirectory()
-            }
-            Button(appState.tr(.filterDocuments)) {
-                appState.searchQuery = "kind:doc"
-                appState.refreshCurrentDirectory()
-            }
-            Button(appState.tr(.filterCodeFiles)) {
-                appState.searchQuery = "kind:code"
-                appState.refreshCurrentDirectory()
-            }
-            Button(appState.tr(.filterPDFs)) {
-                appState.searchQuery = "kind:pdf"
-                appState.refreshCurrentDirectory()
-            }
-            Button(appState.tr(.filterFolders)) {
-                appState.searchQuery = "kind:folder"
-                appState.refreshCurrentDirectory()
-            }
+        Button { appState.searchQuery = "" } label: {
+            Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
+        }
+        .buttonStyle(.plain)
+    }
 
-            Divider()
-
-            Button(appState.tr(.filterLargeFiles)) {
-                appState.searchQuery = "size:>100m"
-                appState.refreshCurrentDirectory()
-            }
+    private var searchFilterMenu: some View {
+        Menu {
+            searchFilterMenuContent
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .font(.system(size: 12))
@@ -179,6 +137,62 @@ struct HeaderBarView: View {
         }
         .menuStyle(.borderlessButton)
         .help(appState.tr(.searchFiltersHelp))
+    }
+
+    @ViewBuilder private var searchFilterMenuContent: some View {
+        @Bindable var appState = appState
+        Picker(appState.tr(.searchScope), selection: $appState.preferences.searchScope) {
+            Text(appState.tr(.searchByName)).tag(SearchScope.name)
+            Text(appState.tr(.searchByContent)).tag(SearchScope.content)
+        }
+        Toggle(appState.tr(.searchIncludeHiddenFolders), isOn: includeHiddenFoldersBinding)
+        Divider()
+        dateFilterButtons
+        Divider()
+        kindFilterButtons
+        Divider()
+        Button(appState.tr(.filterLargeFiles)) {
+            appState.searchQuery = "size:>100m"
+            appState.refreshCurrentDirectory()
+        }
+    }
+
+    @ViewBuilder private var dateFilterButtons: some View {
+        Button("Modified Today (date:today)") {
+            appState.searchQuery = "date:today"
+            appState.refreshCurrentDirectory()
+        }
+        Button(appState.tr(.filterModified7Days)) {
+            appState.searchQuery = "date:7d"
+            appState.refreshCurrentDirectory()
+        }
+        Button("Modified Past 30 Days (date:30d)") {
+            appState.searchQuery = "date:30d"
+            appState.refreshCurrentDirectory()
+        }
+    }
+
+    @ViewBuilder private var kindFilterButtons: some View {
+        Button(appState.tr(.filterImages)) {
+            appState.searchQuery = "kind:image"
+            appState.refreshCurrentDirectory()
+        }
+        Button(appState.tr(.filterDocuments)) {
+            appState.searchQuery = "kind:doc"
+            appState.refreshCurrentDirectory()
+        }
+        Button(appState.tr(.filterCodeFiles)) {
+            appState.searchQuery = "kind:code"
+            appState.refreshCurrentDirectory()
+        }
+        Button(appState.tr(.filterPDFs)) {
+            appState.searchQuery = "kind:pdf"
+            appState.refreshCurrentDirectory()
+        }
+        Button(appState.tr(.filterFolders)) {
+            appState.searchQuery = "kind:folder"
+            appState.refreshCurrentDirectory()
+        }
     }
 
     /// Mirrors the `hidden:true` token in `appState.searchQuery` — same query-language convention
@@ -250,40 +264,9 @@ struct HeaderBarView: View {
     private var viewSwitcher: some View {
         HStack(spacing: 2) {
             if viewSwitcherExpanded {
-                ForEach(ViewMode.allCases) { mode in
-                    Button {
-                        withAnimation(MotionTokens.snappySpring) {
-                            appState.preferences.viewMode = mode
-                            viewSwitcherExpanded = false
-                        }
-                    } label: {
-                        Image(systemName: iconName(for: mode)).font(.system(size: 12))
-                            .frame(width: 26, height: 24)
-                            .background(appState.preferences.viewMode == mode ? Color.accentColor : Color.clear)
-                            .foregroundColor(appState.preferences.viewMode == mode ? .white : .primary)
-                            .cornerRadius(4)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier(accessibilityID(for: mode))
-                    .transition(.scale(scale: 0.7).combined(with: .opacity))
-                }
+                expandedViewModeButtons
             } else {
-                Button {
-                    withAnimation(MotionTokens.snappySpring) {
-                        viewSwitcherExpanded = true
-                    }
-                } label: {
-                    Image(systemName: iconName(for: appState.preferences.viewMode)).font(.system(size: 12))
-                        .frame(width: 26, height: 24)
-                        .background(Color.clear)
-                        .foregroundColor(.primary)
-                        .cornerRadius(4)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("View Mode")
-                .transition(.scale(scale: 0.7).combined(with: .opacity))
+                collapsedViewModeButton
             }
         }
         .padding(2)
@@ -291,6 +274,45 @@ struct HeaderBarView: View {
         .background(ClickOutsideDetector {
             if viewSwitcherExpanded { viewSwitcherExpanded = false }
         })
+    }
+
+    private var expandedViewModeButtons: some View {
+        ForEach(ViewMode.allCases) { mode in
+            Button {
+                withAnimation(MotionTokens.snappySpring) {
+                    appState.preferences.viewMode = mode
+                    viewSwitcherExpanded = false
+                }
+            } label: {
+                Image(systemName: iconName(for: mode)).font(.system(size: 12))
+                    .frame(width: 26, height: 24)
+                    .background(appState.preferences.viewMode == mode ? Color.accentColor : Color.clear)
+                    .foregroundColor(appState.preferences.viewMode == mode ? .white : .primary)
+                    .cornerRadius(4)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(accessibilityID(for: mode))
+            .transition(.scale(scale: 0.7).combined(with: .opacity))
+        }
+    }
+
+    private var collapsedViewModeButton: some View {
+        Button {
+            withAnimation(MotionTokens.snappySpring) {
+                viewSwitcherExpanded = true
+            }
+        } label: {
+            Image(systemName: iconName(for: appState.preferences.viewMode)).font(.system(size: 12))
+                .frame(width: 26, height: 24)
+                .background(Color.clear)
+                .foregroundColor(.primary)
+                .cornerRadius(4)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("View Mode")
+        .transition(.scale(scale: 0.7).combined(with: .opacity))
     }
 
 }

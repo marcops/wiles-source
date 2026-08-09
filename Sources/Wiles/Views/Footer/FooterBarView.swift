@@ -14,38 +14,12 @@ struct FooterBarView: View {
         @Bindable var appState = appState
 
         HStack(spacing: 12) {
-            // Status text (item counts, total/selection sizes, free disk space)
-            HStack(spacing: 4) {
-                Text(appState.statusText)
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(.secondary)
-                    .accessibilityIdentifier("Status Bar")
-
-                if let freeSpace = freeSpaceText {
-                    Text("•")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary.opacity(0.6))
-                    Text(freeSpace)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(.secondary)
-                }
-            }
-            .lineLimit(1)
+            statusSection
 
             Spacer()
 
             if appState.fileSystem.isLoading {
-                HStack(spacing: 4) {
-                    ProgressView()
-                        .controlSize(.mini)
-                    Text(appState.tr(.refresh))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(Color.primary.opacity(0.05))
-                .cornerRadius(4)
+                loadingIndicator
             }
 
             if !BackgroundOperationsService.shared.activeTasks.isEmpty {
@@ -56,18 +30,7 @@ struct FooterBarView: View {
 
             Divider().frame(height: 12)
 
-            // Terminal toggle button
-            Button {
-                withAnimation(.easeInOut(duration: 0.25)) { appState.preferences.showTerminalDrawer.toggle() }
-            } label: {
-                Image(systemName: "terminal")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(appState.preferences.showTerminalDrawer ? .accentColor : .secondary)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(appState.tr(.actToggleTerminal))
-            .accessibilityHint(appState.tr(.actToggleTerminal))
-            .help(appState.tr(.actToggleTerminal))
+            terminalToggleButton
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 4)
@@ -75,6 +38,54 @@ struct FooterBarView: View {
         .task(id: appState.navigation.currentURL) {
             freeSpaceText = await appState.loadFreeSpaceText()
         }
+    }
+
+    // Status text (item counts, total/selection sizes, free disk space)
+    private var statusSection: some View {
+        HStack(spacing: 4) {
+            Text(appState.statusText)
+                .font(.system(size: 11, weight: .regular))
+                .foregroundColor(.secondary)
+                .accessibilityIdentifier("Status Bar")
+
+            if let freeSpace = freeSpaceText {
+                Text("•")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary.opacity(0.6))
+                Text(freeSpace)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .lineLimit(1)
+    }
+
+    private var loadingIndicator: some View {
+        HStack(spacing: 4) {
+            ProgressView()
+                .controlSize(.mini)
+            Text(appState.tr(.refresh))
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(4)
+    }
+
+    private var terminalToggleButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.25)) { appState.preferences.showTerminalDrawer.toggle() }
+        } label: {
+            Image(systemName: "terminal")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(appState.preferences.showTerminalDrawer ? .accentColor : .secondary)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(appState.tr(.actToggleTerminal))
+        .accessibilityHint(appState.tr(.actToggleTerminal))
+        .help(appState.tr(.actToggleTerminal))
     }
 
     /// Collapses down to just an icon; hovering near it reveals the slider to adjust icon size.
