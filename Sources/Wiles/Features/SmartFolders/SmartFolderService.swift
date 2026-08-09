@@ -84,7 +84,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     /// synchronous `NSMetadataQueryDidFinishGathering` callback caused a mild UI hitch; batching it
     /// into a detached task and hopping back to the main actor once done keeps that work off the hot
     /// path, mirroring the off-main pattern used for `/Volumes/` navigation in `AppState+Navigation.swift`.
-    private static func fetchFileItems(forPaths paths: [String], completion: @escaping @Sendable ([FileItem]) -> Void) {
+    private nonisolated static func fetchFileItems(forPaths paths: [String], completion: @escaping @Sendable ([FileItem]) -> Void) {
         Task.detached(priority: .userInitiated) {
             var items: [FileItem] = []
             items.reserveCapacity(paths.count)
