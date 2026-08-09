@@ -77,16 +77,15 @@ struct FileGridCardItemView: View {
         let nsWeight: NSFont.Weight = isSel ? .semibold : .regular
         let nsFont = NSFont.systemFont(ofSize: fontSize, weight: nsWeight)
         // Same height a normal 2-line label occupies, so the icon above never shifts when entering
-        // rename — the actual field is a same-size overlay free to render taller than this.
+        // rename. A LazyVGrid cell clips its own content to its allocated row height, so the actual
+        // growing field can't live here — this is just an invisible placeholder reserving the
+        // label's usual space; `FileGridView` renders the real field as a grid-level overlay
+        // (outside any cell) positioned over this same spot via `CellFrameKey`.
         let normalLabelHeight = (nsFont.ascender - nsFont.descender + nsFont.leading) * 2 + 4
 
         if windowUIState.renameItem?.url == item.url {
             Color.clear
                 .frame(width: cardWidth - 12, height: normalLabelHeight)
-                .overlay(alignment: .top) {
-                    InlineRenameField(item: item, appState: appState, windowUIState: windowUIState, font: .system(size: fontSize, weight: fontWeight), alignment: .center)
-                        .frame(width: cardWidth - 12)
-                }
         } else {
             SelectionAwareNameText(
                 name: item.name,
@@ -103,6 +102,11 @@ struct FileGridCardItemView: View {
                 .padding(.vertical, 2)
                 .background(isSel ? Color.accentColor : Color.clear)
                 .cornerRadius(4)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(key: LabelWidthKey.self, value: [item.url: geo.size.width])
+                    }
+                )
         }
     }
 

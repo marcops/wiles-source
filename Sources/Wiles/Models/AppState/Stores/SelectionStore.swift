@@ -19,6 +19,9 @@ public final class SelectionStore {
     public var gridCellFrames: [URL: CGRect] = [:]
     /// Cell frames from the List View — see `gridCellFrames`.
     public var listCellFrames: [URL: CGRect] = [:]
+    /// The rendered width of each Grid card's name label while NOT being renamed — captured so the
+    /// rename field that replaces it can reuse that exact width instead of guessing/forcing one.
+    public var gridLabelWidths: [URL: CGFloat] = [:]
 
     /// Set when navigating up/back to a parent directory, so the child folder just left gets reselected instead of the first item.
     public var pendingSelectionURL: URL?
