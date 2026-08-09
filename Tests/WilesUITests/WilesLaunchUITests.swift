@@ -27,6 +27,7 @@ final class WilesLaunchUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--ui-testing"]
         app.launch()
+        app.activate()
     }
 
     override func tearDownWithError() throws {
@@ -52,7 +53,14 @@ final class WilesLaunchUITests: XCTestCase {
 
         // 2. FAVORITES sidebar section must be present.
         //    id: "Section_FAVORITES" — SidebarView.swift ~184
-        let favorites = app.buttons["Section_FAVORITES"]
+        //    `.firstMatch` on the identifier query (not the bare subscript) because SwiftUI can
+        //    transiently keep two "Section_FAVORITES" elements alive in the accessibility snapshot
+        //    right after launch (old + new render of the section header during initial layout).
+        //    The bare `app.buttons["..."]` resolves to a single-element query that throws
+        //    "Multiple matching elements found" once that happens; `.firstMatch` waits for/returns
+        //    whichever one currently resolves, which is what both waitForExistence and isHittable
+        //    below actually need.
+        let favorites = app.buttons.matching(identifier: "Section_FAVORITES").firstMatch
         XCTAssertTrue(
             favorites.waitForExistence(timeout: 3.0),
             "Sidebar FAVORITES section (id='Section_FAVORITES') not found — " +
