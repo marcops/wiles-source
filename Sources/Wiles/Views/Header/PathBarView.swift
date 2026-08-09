@@ -1,20 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct PathSegment: Identifiable, Hashable {
-    var id: String { url.path }
-    let name: String
-    let url: URL
-    let isFirst: Bool
-}
-
-private struct BreadcrumbContentWidthKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
 struct PathBarView: View {
     var appState: AppState
     @Environment(WindowUIState.self)

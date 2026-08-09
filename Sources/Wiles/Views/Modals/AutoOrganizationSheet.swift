@@ -203,10 +203,3 @@ struct AutoOrganizationSheet: View {
         .padding(.vertical, 12)
     }
 }
-
-private enum FolderPickerTarget: Identifiable {
-    case source
-    case destination
-
-    var id: Self { self }
-}
