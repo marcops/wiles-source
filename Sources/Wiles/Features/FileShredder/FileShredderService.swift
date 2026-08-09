@@ -11,14 +11,27 @@ public struct FileShredderService: Sendable {
     }
 
     /// Secure shredding: Overwrites bytes with zeros before removing file
-    public static func shredFiles(urls: [URL]) async throws {
+    /// - Parameter resourceValuesProvider: Reads the `.fileSizeKey`/`.isDirectoryKey` attributes used
+    ///   to decide whether to zero-overwrite before deleting. Defaults to the real
+    ///   `URL.resourceValues(forKeys:)`; tests can inject a throwing provider to deterministically
+    ///   simulate an attribute-read failure (e.g. permission errors) without needing real filesystem
+    ///   ACL manipulation. Production callers should never pass this.
+    public static func shredFiles(
+        urls: [URL],
+        resourceValuesProvider: @Sendable (URL) throws -> URLResourceValues = { try $0.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]) }
+    ) async throws {
         let fm = FileManager.default
         for url in urls {
             try Task.checkCancellation()
             guard fm.fileExists(atPath: url.path) else { continue }
 
-            if let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
-               let isDir = values.isDirectory, !isDir,
+            // Deliberately not `try?`: if we can't read the file's attributes, we don't know
+            // whether it's a non-empty regular file that needs zero-overwriting. Silently falling
+            // through to a plain `removeItem` would delete the file without zeroing it while the
+            // caller still believes the secure shred succeeded. Abort this item and let the error
+            // propagate so the caller can surface it to the user instead.
+            let values = try resourceValuesProvider(url)
+            if let isDir = values.isDirectory, !isDir,
                let fileSize = values.fileSize, fileSize > 0 {
 
                 // Overwrite file with zero bytes in background
