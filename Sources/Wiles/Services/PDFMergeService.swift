@@ -2,10 +2,6 @@ import Foundation
 import AppKit
 import PDFKit
 
-public protocol PDFMergeServiceProtocol: Sendable {
-    static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String?) async throws -> URL
-}
-
 public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
     /// Not @MainActor, and the heavy work runs inside Task.detached: looping over files calling
     /// NSImage(contentsOf:) synchronously decompresses each image's full bitmap into RAM — for
