@@ -46,6 +46,11 @@ and write the real test the moment the missing infrastructure exists.
 - **What it needs**: XCUITest coverage per view (Grid/List/Column): trigger rename, type a new name,
   commit via Return — assert the file was actually renamed on disk; trigger rename, press Escape —
   assert the original name is unchanged; verify clicking away from the field also commits.
+- **Not here**: the "navigate away while renaming leaves the rename stuck forever" bug is fixed and
+  has a real unit test — `WindowUIState.cancelRenameIfNavigated(from:to:)`, tested in
+  `WindowUIStateTests.testCancelRenameIfNavigated()` using a real `AppState.navigateTo()` call. Only
+  the one-line `.onChange` wiring in `MainContentView.swift` that invokes it is untested (genuine
+  SwiftUI-lifecycle-only wiring, not logic).
 
 ## `AppState` and `AppState+*` extensions / `Stores/NavigationStore.swift` — deliberately deferred
 - **Files**: `Sources/Wiles/Models/AppState/AppState.swift`, `AppState+ColumnsAndActions.swift`,

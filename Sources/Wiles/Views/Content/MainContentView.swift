@@ -57,6 +57,12 @@ struct MainContentView: View {
         .ignoresSafeArea(.all, edges: .top)
         .frame(minWidth: effectiveWindowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
         .quickLookPreview($windowUIState.quickLookURL)
+        .onChange(of: appState.navigation.currentURL) { oldURL, newURL in
+            windowUIState.cancelRenameIfNavigated(from: oldURL, to: newURL)
+        }
+        .onChange(of: appState.selectedURLs) { _, newSelection in
+            windowUIState.cancelRenameIfSelectionChanged(selectedURLs: newSelection)
+        }
         .sheet(item: $windowUIState.propertiesItem) { item in
             FilePropertiesSheet(item: item, appState: appState)
         }

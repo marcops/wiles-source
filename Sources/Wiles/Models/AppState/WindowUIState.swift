@@ -58,4 +58,27 @@ public final class WindowUIState {
     }
 
     public init() {}
+
+    /// Cancels an active in-place rename in response to a folder navigation. The row rendering
+    /// `InlineRenameField` belongs to whatever folder was current when rename began; once
+    /// navigation moves elsewhere that row unmounts without ever running the field's own
+    /// commit/cancel path, so a stale `renameItem` is left pointing at an item no longer on
+    /// screen. `MainContentView` calls this from `.onChange(of: appState.navigation.currentURL)`.
+    public func cancelRenameIfNavigated(from oldURL: URL, to newURL: URL) {
+        guard oldURL != newURL else { return }
+        renameItem = nil
+    }
+
+    /// Cancels an active in-place rename when the selection changes to something other than the
+    /// item being renamed. Clicking a different item's icon/row selects it via a plain
+    /// `.onTapGesture` (rule 33 — custom tappable content, not a real `Button`/focusable control),
+    /// which never shifts SwiftUI's `@FocusState` away from `InlineRenameField`'s `TextField`.
+    /// `InlineRenameField` only commits/cancels on focus loss, so without this, clicking another
+    /// item left the rename field showing on the old item while a different item became selected.
+    /// `MainContentView` calls this from `.onChange(of: appState.selectedURLs)`.
+    public func cancelRenameIfSelectionChanged(selectedURLs: Set<URL>) {
+        guard let renameItem else { return }
+        guard selectedURLs != [renameItem.url] else { return }
+        self.renameItem = nil
+    }
 }
