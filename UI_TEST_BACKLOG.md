@@ -47,6 +47,20 @@ and write the real test the moment the missing infrastructure exists.
   commit via Return — assert the file was actually renamed on disk; trigger rename, press Escape —
   assert the original name is unchanged; verify clicking away from the field also commits.
 
+## `AppState` and `AppState+*` extensions / `Stores/NavigationStore.swift` — deliberately deferred
+- **Files**: `Sources/Wiles/Models/AppState/AppState.swift`, `AppState+ColumnsAndActions.swift`,
+  `AppState+Selection.swift`, `AppState+Operations.swift`, `AppState+Navigation.swift`, and
+  `Sources/Wiles/Models/AppState/Stores/NavigationStore.swift`.
+- **Why this is here**: not a "not unit-testable" gap like the rest of this file — a prior audit
+  flagged these as missing dedicated 1-to-1 test coverage, but the project maintainer has a standing
+  preference to hold off writing `AppState`/`NavigationStore` tests until the underlying behavior has
+  been manually reviewed first (see the "Wiles defer tests until reviewed" project note). Logged here
+  instead of silently skipped, per the same rule 28 discipline as the rest of this backlog.
+- **What it needs**: once manually reviewed, dedicated test files following the existing
+  `Tests/WilesTests/Models/AppState/AppState*Tests.swift` / `Stores/*StoreTests.swift` pattern -
+  `NavigationStore.swift` in particular has no `NavigationStoreTests.swift` counterpart yet, unlike
+  `FileSystemStore`, `ModalStore`, `PreferencesStore`, and `SelectionStore`, which already do.
+
 ## List/Grid smooth row-removal animation
 - **Files**: `Sources/Wiles/Views/Content/FileListView.swift`, `Sources/Wiles/Views/Content/FileGridView.swift`
 - **What's missing**: The Finder-style "remaining rows slide up" effect is driven by
