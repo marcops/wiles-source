@@ -1,6 +1,12 @@
 @testable import Wiles
 import Foundation
 
+// swiftlint:disable force_try
+// This harness's helper functions are non-throwing by convention (see TestReporter.report call
+// sites throughout). A saveSmartFolders failure here means the test fixture itself is broken, not
+// a real error path to assert against — force_try's "not fine for production code" rationale
+// doesn't apply to test setup/teardown, so it's disabled file-wide rather than threading `throws`
+// through every helper.
 @MainActor
 public struct SmartFolderTests {
     public static func run() {
@@ -172,3 +178,4 @@ public struct SmartFolderTests {
         try! SmartFolderService.saveSmartFolders([])
     }
 }
+// swiftlint:enable force_try
