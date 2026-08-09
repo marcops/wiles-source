@@ -410,3 +410,18 @@ don't improvise a layout that merely "looks plausible." General rules:
 - **Why**: the file is public-facing marketing history, not a changelog archive — recent detail is
   useful to evaluate what just shipped, but a growing wall of old bug-fix bullets buries it. A short
   "what Wiles has grown into" summary at the bottom stays useful indefinitely.
+
+## 38. MANDATORY: Full Rule Self-Audit Before Every Commit, on the Actual Diff
+- **Before every single `git commit` in this repo** (source or public), run `scripts/validate.sh`
+  (build/tests/lint/format — rule 34) **and** perform an explicit self-audit of `git diff` (staged +
+  unstaged) against this entire file — not just rule 29's 22-point Deep Audit checklist, but every
+  rule above it too: KISS/YAGNI/DRY/SRP (rule 1), memory/retain-cycle safety (rule 4), localization
+  and magic-number rules (5, 6, 19), file-organization rules (14–16), and every UI-pattern rule (22,
+  23, 27, 30–33) that applies to whatever the diff touches. This is scoped to **new and changed code
+  in the diff**, not a full-repo re-audit every time — but every line touched gets checked, not just
+  the lines directly related to the task at hand.
+- **State the audit result explicitly before committing** — which rules were checked, and either
+  "clean" or what was fixed as a result. Do not silently skip this and go straight to `git commit`.
+  If a violation is found, fix it in the same commit rather than committing it and fixing later.
+- **This is the same checklist a `/code-review` pass would apply** — running it yourself before
+  committing is what keeps that pass from finding anything.
