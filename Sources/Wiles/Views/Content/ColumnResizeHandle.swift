@@ -59,15 +59,6 @@ struct ColumnResizeHandle: View {
 
 // MARK: - Cursor modifier helper
 
-private struct CursorModifier: ViewModifier {
-    let cursor: NSCursor
-    func body(content: Content) -> some View {
-        content.onHover { inside in
-            if inside { cursor.push() } else { NSCursor.pop() }
-        }
-    }
-}
-
 private extension View {
     func cursor(_ cursor: NSCursor) -> some View {
         modifier(CursorModifier(cursor: cursor))

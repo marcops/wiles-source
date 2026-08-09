@@ -2,13 +2,6 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-struct ListCellFrameKey: PreferenceKey {
-    nonisolated(unsafe) static var defaultValue: [URL: CGRect] = [:]
-    static func reduce(value: inout [URL: CGRect], nextValue: () -> [URL: CGRect]) {
-        value.merge(nextValue()) { $1 }
-    }
-}
-
 struct FileListView: View {
     var appState: AppState
 
@@ -229,35 +222,6 @@ struct FileListView: View {
         .rowInteractions(item: item, appState: appState, dragProvider: { dragProvider(for: item) }, onTargetedChanged: { targeted in
             dropTargetedURL = targeted ? item.url : nil
         })
-    }
-}
-
-private struct FileRowInteractionsModifier: ViewModifier {
-    let item: FileItem
-    var appState: AppState
-    let dragProvider: () -> NSItemProvider
-    var onTargetedChanged: (Bool) -> Void = { _ in }
-
-    func body(content: Content) -> some View {
-        content
-            .onTapGesture(count: 2) {
-                appState.navigateTo(item.url)
-            }
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    appState.handleSelection(for: item)
-                }
-            )
-            .onDrag(dragProvider)
-            .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState, onTargetedChanged: onTargetedChanged)
-            .overlay(
-                RightClickDetector {
-                    if !appState.selectedURLs.contains(item.url) {
-                        appState.selectedURLs = [item.url]
-                    }
-                }
-            )
-            .fileItemContextMenu(for: item, appState: appState)
     }
 }
 

@@ -1,14 +1,6 @@
 import SwiftUI
 import AppKit
 
-struct ColumnData: Identifiable {
-    let id = UUID()
-    let folderURL: URL
-    var items: [FileItem]
-    var selectedURL: URL?
-    var visibleLimit: Int = LayoutTokens.paginationThreshold
-}
-
 struct FileColumnView: View {
     var appState: AppState
 
@@ -211,60 +203,5 @@ struct FileColumnView: View {
         if columnIndex + 1 < columns.count {
             columns.removeSubrange((columnIndex + 1)...)
         }
-    }
-}
-
-struct FileColumnRowView: View {
-    let item: FileItem
-    let columnIndex: Int
-    let isSelected: Bool
-    var appState: AppState
-    let onSelect: () -> Void
-
-    @State private var isDropTargeted = false
-
-    var body: some View {
-        HStack(spacing: 8) {
-            FileItemIconView(item: item, size: 16, isOpenTargeted: isDropTargeted)
-            ICloudStatusBadgeView(item: item)
-
-            SelectionAwareNameText(
-                name: item.name,
-                isSelected: isSelected,
-                font: .system(size: 12, weight: isSelected ? .semibold : .regular),
-                color: isSelected ? .white : .primary,
-                collapsedLineLimit: 1
-            )
-            .fileMetadataTooltip(item)
-
-            Spacer()
-
-            if item.isDirectory {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary.opacity(0.5))
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .hoverHighlight(isSelected: isSelected, cornerRadius: 4)
-        .padding(.horizontal, 4)
-        .contentShape(Rectangle())
-        .accessibilityLabel(item.name)
-        .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
-        .accessibilityValue(item.formattedSize)
-        .onTapGesture(count: 2) {
-            appState.navigateTo(item.url)
-        }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                onSelect()
-            }
-        )
-        .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState) { targeted in
-            isDropTargeted = targeted
-        }
-        .fileItemInteractions(item: item, appState: appState)
     }
 }
