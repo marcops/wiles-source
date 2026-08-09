@@ -29,6 +29,9 @@
 "autoOrganization" = "Reguły Automatycznej Organizacji...";
 "autoOrganizationSubtitle" = "Automatycznie przenosi pliki między folderami na podstawie zdefiniowanych reguł";
 "autoOrgRuleCondition" = "Jeśli %@ to '%@'";
+"ruleConditionExtensionEquals" = "Rozszerzenie Równe";
+"ruleConditionNameContains" = "Nazwa Zawiera";
+"ruleConditionNamePrefix" = "Nazwa Zaczyna Się Od";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "zadań w tle";
@@ -62,7 +65,7 @@
 "createLink" = "Utwórz Dowiązanie";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Utwórz Dowiązanie Symboliczne";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "Utwórz Dowiązanie Symboliczne...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "Data wykonania";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "Usuń Natychmiast";
 "desktop" = "Biurko";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "Nazwa pliku";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Zakres wyszukiwania";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "Bezpiecznie Zniszcz Plik...";
 "selectAll" = "Zaznacz wszystko";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "Inna...";

@@ -29,6 +29,9 @@
 "autoOrganization" = "Regole di Organizzazione Automatica...";
 "autoOrganizationSubtitle" = "Sposta automaticamente i file tra le cartelle in base alle regole che definisci";
 "autoOrgRuleCondition" = "Se %@ è '%@'";
+"ruleConditionExtensionEquals" = "Estensione Uguale a";
+"ruleConditionNameContains" = "Nome Contiene";
+"ruleConditionNamePrefix" = "Nome Inizia Con";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "attività in background";
@@ -62,7 +65,7 @@
 "createLink" = "Crea Collegamento";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Crea Collegamento Simbolico";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "Crea Collegamento Simbolico...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "Data foto";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "Elimina Immediatamente";
 "desktop" = "Scrivania";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "Nome file";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Ambito di ricerca";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "Distruggi File in Modo Sicuro...";
 "selectAll" = "Seleziona tutto";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "Altro...";

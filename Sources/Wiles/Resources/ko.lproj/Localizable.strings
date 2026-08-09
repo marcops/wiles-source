@@ -29,6 +29,9 @@
 "autoOrganization" = "자동 정리 규칙...";
 "autoOrganizationSubtitle" = "사용자가 정의한 규칙에 따라 폴더 간에 파일을 자동으로 이동합니다";
 "autoOrgRuleCondition" = "%@ 이(가) '%@'인 경우";
+"ruleConditionExtensionEquals" = "확장자 일치";
+"ruleConditionNameContains" = "이름 포함";
+"ruleConditionNamePrefix" = "이름으로 시작";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "백그라운드 작업";
@@ -62,7 +65,7 @@
 "createLink" = "링크 생성";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "심볼릭 링크 생성";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "심볼릭 링크 생성...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "촬영 날짜";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "즉시 삭제";
 "desktop" = "데스크탑";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "파일 이름";
 "searchPlaceholder" = "Search in";
 "searchScope" = "검색 범위";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "파일 완전 삭제...";
 "selectAll" = "전체 선택";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "기타...";

@@ -29,6 +29,9 @@
 "autoOrganization" = "Otomatik Düzenleme Kuralları...";
 "autoOrganizationSubtitle" = "Tanımladığınız kurallara göre dosyaları klasörler arasında otomatik olarak taşır";
 "autoOrgRuleCondition" = "%@ '%@' ise";
+"ruleConditionExtensionEquals" = "Uzantı Eşittir";
+"ruleConditionNameContains" = "Ad İçerir";
+"ruleConditionNamePrefix" = "Ad İle Başlar";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "arka plan görevi";
@@ -62,7 +65,7 @@
 "createLink" = "Bağlantı Oluştur";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Sembolik Bağlantı Oluştur";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "Sembolik Bağlantı Oluştur...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "Çekim Tarihi";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "Hemen Sil";
 "desktop" = "Masaüstü";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "Dosya Adı";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Arama Kapsamı";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "Dosyayı Güvenli Şekilde Yok Et...";
 "selectAll" = "Tümünü Seç";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "Diğer...";

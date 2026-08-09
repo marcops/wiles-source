@@ -29,6 +29,9 @@
 "autoOrganization" = "Regeln für automatische Organisation...";
 "autoOrganizationSubtitle" = "Verschiebt Dateien automatisch zwischen Ordnern basierend auf von dir definierten Regeln";
 "autoOrgRuleCondition" = "Wenn %@ '%@' ist";
+"ruleConditionExtensionEquals" = "Erweiterung Ist";
+"ruleConditionNameContains" = "Name Enthält";
+"ruleConditionNamePrefix" = "Name Beginnt Mit";
 "back" = "Zurück";
 "backgroundOperations" = "Hintergrundoperationen";
 "backgroundTasksSuffix" = "Hintergrundaufgaben";

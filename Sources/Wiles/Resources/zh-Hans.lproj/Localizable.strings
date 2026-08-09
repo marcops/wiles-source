@@ -29,6 +29,9 @@
 "autoOrganization" = "自动整理规则…";
 "autoOrganizationSubtitle" = "根据您定义的规则在文件夹之间自动移动文件";
 "autoOrgRuleCondition" = "如果 %@ 为 '%@'";
+"ruleConditionExtensionEquals" = "扩展名等于";
+"ruleConditionNameContains" = "名称包含";
+"ruleConditionNamePrefix" = "名称开头为";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "个后台任务";
@@ -62,7 +65,7 @@
 "createLink" = "创建链接";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "创建符号链接";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "创建符号链接...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "拍摄日期";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "立即删除";
 "desktop" = "桌面";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "文件名";
 "searchPlaceholder" = "Search in";
 "searchScope" = "搜索范围";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "安全粉碎文件...";
 "selectAll" = "全选";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "其他...";

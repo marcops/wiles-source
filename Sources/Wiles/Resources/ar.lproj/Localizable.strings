@@ -29,6 +29,9 @@
 "autoOrganization" = "قواعد التنظيم التلقائي...";
 "autoOrganizationSubtitle" = "ينقل الملفات تلقائيًا بين المجلدات استنادًا إلى القواعد التي تحددها";
 "autoOrgRuleCondition" = "إذا كان %@ هو '%@'";
+"ruleConditionExtensionEquals" = "الامتداد يساوي";
+"ruleConditionNameContains" = "الاسم يحتوي على";
+"ruleConditionNamePrefix" = "الاسم يبدأ بـ";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "مهام في الخلفية";
@@ -62,7 +65,7 @@
 "createLink" = "إنشاء رابط";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "إنشاء رابط رمزي";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "إنشاء رابط رمزي...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "تاريخ الالتقاط";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "حذف فورًا";
 "desktop" = "سطح المكتب";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "اسم الملف";
 "searchPlaceholder" = "Search in";
 "searchScope" = "نطاق البحث";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "إتلاف الملف بأمان...";
 "selectAll" = "تحديد الكل";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "آخر...";

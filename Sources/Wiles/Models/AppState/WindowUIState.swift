@@ -28,6 +28,7 @@ public final class WindowUIState {
     public var showDeleteConfirmAlert: Bool = false
     public var showConnectToServerSheet: Bool = false
     public var showAutoOrganizationSheet: Bool = false
+    public var showDuplicateCleanerSheet: Bool = false
     public var showHttpShareSheet: Bool = false
     public var httpShareFolderURL: URL?
     public var showShortcutsHUD: Bool = false

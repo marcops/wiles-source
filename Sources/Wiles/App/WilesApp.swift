@@ -210,6 +210,7 @@ struct WilesApp: App {
 
     @ViewBuilder private var toolsMenuCommands: some View {
         Button(appState.tr(.autoOrganization) + "...") { windowUIState?.showAutoOrganizationSheet = true }
+        Button(appState.tr(.findDuplicates)) { windowUIState?.showDuplicateCleanerSheet = true }
         Divider()
         Menu(appState.tr(.copyPath)) {
             Button(appState.tr(.copyPathAbsolute)) {

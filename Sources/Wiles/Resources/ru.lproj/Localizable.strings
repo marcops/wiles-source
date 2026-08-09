@@ -29,6 +29,9 @@
 "autoOrganization" = "Правила автоматической организации...";
 "autoOrganizationSubtitle" = "Автоматически перемещает файлы между папками на основе заданных вами правил";
 "autoOrgRuleCondition" = "Если %@ равно '%@'";
+"ruleConditionExtensionEquals" = "Расширение Равно";
+"ruleConditionNameContains" = "Имя Содержит";
+"ruleConditionNamePrefix" = "Имя Начинается С";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "фоновых задач";
@@ -62,7 +65,7 @@
 "createLink" = "Создать Ссылку";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Создать Символическую Ссылку";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "Создать Символическую Ссылку...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "Дата съемки";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "Удалить Немедленно";
 "desktop" = "Рабочий стол";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "Имя файла";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Область поиска";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "Безопасно Уничтожить Файл...";
 "selectAll" = "Выбрать все";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "Другое...";

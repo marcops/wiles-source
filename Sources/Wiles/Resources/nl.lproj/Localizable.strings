@@ -29,6 +29,9 @@
 "autoOrganization" = "Regels voor Automatische Organisatie...";
 "autoOrganizationSubtitle" = "Verplaatst bestanden automatisch tussen mappen op basis van de regels die je instelt";
 "autoOrgRuleCondition" = "Als %@ '%@' is";
+"ruleConditionExtensionEquals" = "Extensie Is Gelijk Aan";
+"ruleConditionNameContains" = "Naam Bevat";
+"ruleConditionNamePrefix" = "Naam Begint Met";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "achtergrondtaken";
@@ -62,7 +65,7 @@
 "createLink" = "Link Maken";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Symbolische Link Maken";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "Symbolische Link Maken...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "Opnamedatum";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "Onmiddellijk Verwijderen";
 "desktop" = "Bureaublad";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "Bestandsnaam";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Zoekbereik";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "Bestand Veilig Vernietigen...";
 "selectAll" = "Selecteer alles";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "Ander...";

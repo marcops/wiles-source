@@ -110,7 +110,7 @@ struct AutoOrganizationSheet: View {
                     Text(rule.destinationURL.lastPathComponent)
                         .fontWeight(.semibold)
                 }
-                Text(String(format: appState.tr(.autoOrgRuleCondition), rule.conditionType.rawValue, rule.conditionValue))
+                Text(String(format: appState.tr(.autoOrgRuleCondition), displayName(for: rule.conditionType), rule.conditionValue))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -145,7 +145,7 @@ struct AutoOrganizationSheet: View {
 
                 Picker("", selection: $conditionType) {
                     ForEach(RuleConditionType.allCases) { type in
-                        Text(type.rawValue).tag(type)
+                        Text(displayName(for: type)).tag(type)
                     }
                 }
                 .frame(width: 140)
@@ -178,6 +178,16 @@ struct AutoOrganizationSheet: View {
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
+    }
+
+    /// `RuleConditionType.rawValue` is the persisted/matched identifier (`Codable`), always
+    /// English — never display it directly. This maps each case to its localized display string.
+    private func displayName(for type: RuleConditionType) -> String {
+        switch type {
+        case .extensionEquals: return appState.tr(.ruleConditionExtensionEquals)
+        case .nameContains: return appState.tr(.ruleConditionNameContains)
+        case .namePrefix: return appState.tr(.ruleConditionNamePrefix)
+        }
     }
 
     private var footerView: some View {

@@ -317,6 +317,9 @@ public struct L10n {
         case autoOrganization
         case autoOrganizationSubtitle
         case autoOrgRuleCondition
+        case ruleConditionExtensionEquals
+        case ruleConditionNameContains
+        case ruleConditionNamePrefix
         case noAutoOrgRules
         case noAutoOrgRulesDesc
         case addNewRule

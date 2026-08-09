@@ -29,6 +29,9 @@
 "autoOrganization" = "Regler för Automatisk Organisering...";
 "autoOrganizationSubtitle" = "Flyttar filer automatiskt mellan mappar baserat på regler du anger";
 "autoOrgRuleCondition" = "Om %@ är '%@'";
+"ruleConditionExtensionEquals" = "Filändelse Är";
+"ruleConditionNameContains" = "Namn Innehåller";
+"ruleConditionNamePrefix" = "Namn Börjar Med";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "bakgrundsuppgifter";
@@ -62,7 +65,7 @@
 "createLink" = "Skapa Länk";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Skapa Symbolisk Länk";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "Skapa Symbolisk Länk...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "Fotodatum";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "Ta Bort Omedelbart";
 "desktop" = "Skrivbord";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "Filnamn";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Sökområde";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "Förstör Fil Säkert...";
 "selectAll" = "Markera alla";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "Annan...";

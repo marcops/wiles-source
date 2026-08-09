@@ -103,3 +103,16 @@ nesting:
   function_level:
     warning: 3
     error: 3
+
+custom_rules:
+  one_type_per_file:
+    name: "One Type Per File"
+    # Must only fire when a SECOND top-level type declaration exists in the same file — a plain
+    # "match every type declaration" regex (the previous version of this rule) flagged every file
+    # that has even one type, since regex custom_rules report every match with no built-in
+    # per-file counting. This pattern instead requires two type declarations to both be present,
+    # anchored at column 0 (no leading whitespace) so nested/private helper types declared inside
+    # another type never trigger it — only two genuinely top-level types in the same file do.
+    regex: '(^|\n)((?:public |internal |private |fileprivate |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor) \w+)[\s\S]*?\n((?:public |internal |private |fileprivate |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor) \w+)'
+    message: "Only one top-level type is allowed per file — this file declares more than one."
+    severity: error

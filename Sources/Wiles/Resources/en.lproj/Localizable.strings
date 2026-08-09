@@ -29,6 +29,9 @@
 "autoOrganization" = "Auto-Organization Rules...";
 "autoOrganizationSubtitle" = "Automatically move files between folders based on rules you define";
 "autoOrgRuleCondition" = "If %@ is '%@'";
+"ruleConditionExtensionEquals" = "Extension Equals";
+"ruleConditionNameContains" = "Name Contains";
+"ruleConditionNamePrefix" = "Name Starts With";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "background tasks";

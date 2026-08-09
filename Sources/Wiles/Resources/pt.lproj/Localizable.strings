@@ -31,6 +31,9 @@
 "autoOrganization" = "Regras de Organização Automática...";
 "autoOrganizationSubtitle" = "Mova arquivos automaticamente entre pastas com base em regras que você define";
 "autoOrgRuleCondition" = "Se %@ for '%@'";
+"ruleConditionExtensionEquals" = "Extensão Igual a";
+"ruleConditionNameContains" = "Nome Contém";
+"ruleConditionNamePrefix" = "Nome Começa Com";
 "back" = "Voltar";
 "backgroundOperations" = "Operações em Segundo Plano";
 "backgroundTasksSuffix" = "tarefas em segundo plano";

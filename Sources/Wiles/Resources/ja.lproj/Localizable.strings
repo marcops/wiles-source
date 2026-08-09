@@ -29,6 +29,9 @@
 "autoOrganization" = "自動整理ルール...";
 "autoOrganizationSubtitle" = "定義したルールに基づいてファイルをフォルダ間で自動的に移動します";
 "autoOrgRuleCondition" = "%@ が '%@' の場合";
+"ruleConditionExtensionEquals" = "拡張子が一致";
+"ruleConditionNameContains" = "名前を含む";
+"ruleConditionNamePrefix" = "名前で始まる";
 "back" = "Back";
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "バックグラウンドタスク";
@@ -62,7 +65,7 @@
 "createLink" = "リンクを作成";
 "createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "シンボリックリンクを作成";
-"createSymlink" = "Create Symlink...";
+"createSymlink" = "シンボリックリンクを作成...";
 "created" = "Created";
 "createdBy" = "Created by Marco PS";
 "cropPreset" = "Aspect Ratio Crop";
@@ -70,7 +73,7 @@
 "dateModified" = "Date Modified";
 "dateTaken" = "撮影日時";
 "defaultFolderName" = "New Folder";
-"deleteImmediately" = "Delete Immediately";
+"deleteImmediately" = "今すぐ削除";
 "desktop" = "デスクトップ";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -250,7 +253,7 @@
 "searchByName" = "ファイル名";
 "searchPlaceholder" = "Search in";
 "searchScope" = "検索範囲";
-"secureShred" = "Secure Shred File...";
+"secureShred" = "ファイルを完全に消去...";
 "selectAll" = "すべて選択";
 "selectFolder" = "Select Folder...";
 "selectOtherApp" = "その他...";

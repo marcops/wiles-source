@@ -91,6 +91,9 @@ struct MainContentView: View {
         .sheet(isPresented: $windowUIState.showAutoOrganizationSheet) {
             AutoOrganizationSheet(appState: appState)
         }
+        .sheet(isPresented: $windowUIState.showDuplicateCleanerSheet) {
+            DuplicateCleanerSheetView(appState: appState)
+        }
         .sheet(isPresented: $windowUIState.showHttpShareSheet) {
             if let url = windowUIState.httpShareFolderURL {
                 HttpShareSheet(appState: appState, folderURL: url)

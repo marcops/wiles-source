@@ -81,9 +81,6 @@ struct SharedBackgroundContextMenu: View {
             windowUIState.httpShareFolderURL = appState.navigation.currentURL
             windowUIState.showHttpShareSheet = true
         }
-        Button("\(appState.tr(.diskUsageVisualizer))... (Shift+Cmd+D)") {
-            appState.preferences.showDiskUsageSidebar = true
-        }
         Divider()
         Button(appState.tr(.folderProperties)) {
             let fileItem = FileItem(url: appState.navigation.currentURL, icon: NSWorkspace.shared.icon(forFile: appState.navigation.currentURL.path))
@@ -242,19 +239,19 @@ struct SharedFileItemContextMenu: View {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.deleteSelected(windowUIState: windowUIState)
         }
-        Button("Delete Immediately (Opt+Cmd+Del)", role: .destructive) {
+        Button("\(appState.tr(.deleteImmediately)) (Opt+Cmd+Del)", role: .destructive) {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.deletePermanentlySelected()
         }
-        Button("Secure Shred File...", role: .destructive) {
+        Button(appState.tr(.secureShred), role: .destructive) {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.shredSelected()
         }
-        Button("Create Symlink...") {
+        Button(appState.tr(.createSymlink)) {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             windowUIState.symlinkItem = item
         }
-        Button("AirDrop...") {
+        Button("\(appState.tr(.airDrop))...") {
             if let airDrop = NSSharingService(named: .sendViaAirDrop) {
                 airDrop.perform(withItems: [item.url])
             }
@@ -263,6 +260,7 @@ struct SharedFileItemContextMenu: View {
         ShareLink(item: item.url) {
             Text(appState.tr(.services))
         }
+        .labelStyle(.titleOnly)
         if appState.preferences.showTags {
             Menu(appState.tr(.tags)) {
                 let predefinedTags = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Gray"]
