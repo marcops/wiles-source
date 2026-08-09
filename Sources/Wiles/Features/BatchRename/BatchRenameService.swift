@@ -38,6 +38,14 @@ public final class BatchRenameService {
     }
 
     public static func performBatchRename(items: [FileItem], mode: BatchRenameMode) throws -> [URL] {
+        // previewNewNames silently falls back to the original base name for an invalid regex
+        // pattern (that fallback is fine for the live preview text), but actually performing the
+        // rename must not pretend the user didn't ask for anything - validate the pattern up front
+        // and abort with a real error instead of silently no-op-renaming every item.
+        if case .regex(let pattern, _) = mode, !pattern.isEmpty, (try? NSRegularExpression(pattern: pattern, options: [])) == nil {
+            throw WilesError.operationFailed(reason: "Invalid rename pattern: \(pattern)")
+        }
+
         let previews = previewNewNames(items: items, mode: mode)
         var renamedURLs: [URL] = []
 
