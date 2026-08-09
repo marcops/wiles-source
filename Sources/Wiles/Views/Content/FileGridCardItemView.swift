@@ -10,6 +10,8 @@ struct FileGridCardItemView: View {
     let cardHeight: CGFloat
     let onRightClick: () -> Void
 
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var isDropTargeted = false
 
     var body: some View {
@@ -30,6 +32,7 @@ struct FileGridCardItemView: View {
     private func mainContent(isSel: Bool, isCut: Bool) -> some View {
         let borderStroke = isDropTargeted ? Color.accentColor : (isSel ? Color.accentColor : Color.clear)
         let strokeWidth: CGFloat = isDropTargeted ? 3 : 2
+        let isRenaming = windowUIState.renameItem?.url == item.url
 
         return cardVStack(isSel: isSel)
             .frame(width: cardWidth, height: cardHeight, alignment: .top)
@@ -42,7 +45,12 @@ struct FileGridCardItemView: View {
                     Color.clear.preference(key: CellFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])
                 }
             )
-            .zIndex(isSel ? 1 : 0)
+            // Renaming must never resize this cell — that would reflow every other card in the
+            // grid. The card's own footprint stays fixed at cardHeight; the growing rename field
+            // is a same-size-as-normal-label placeholder with an overlay on top, so it renders at
+            // its natural (possibly much taller) size without contributing to this view's own
+            // layout size, floating above whatever is below it instead of pushing it away.
+            .zIndex(isRenaming ? 2 : (isSel ? 1 : 0))
             .contentShape(Rectangle())
             .fileMetadataTooltip(item)
             .accessibilityLabel(item.name)
@@ -62,25 +70,40 @@ struct FileGridCardItemView: View {
         }
     }
 
+    @ViewBuilder
     private func cardLabel(isSel: Bool) -> some View {
         let fontSize = max(8.0, min(12.0, Double(iconSize) * 0.22))
         let fontWeight: Font.Weight = isSel ? .semibold : .regular
         let nsWeight: NSFont.Weight = isSel ? .semibold : .regular
-        return SelectionAwareNameText(
-            name: item.name,
-            isSelected: isSel,
-            font: .system(size: fontSize, weight: fontWeight),
-            nsFont: .systemFont(ofSize: fontSize, weight: nsWeight),
-            color: isSel ? .white : .primary,
-            collapsedLineLimit: 2,
-            availableWidth: cardWidth - 12, // cardWidth minus the 6pt horizontal padding below × 2
-            alignment: .center,
-            middleTruncate: appState.preferences.middleTruncateNames
-        )
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(isSel ? Color.accentColor : Color.clear)
-            .cornerRadius(4)
+        let nsFont = NSFont.systemFont(ofSize: fontSize, weight: nsWeight)
+        // Same height a normal 2-line label occupies, so the icon above never shifts when entering
+        // rename — the actual field is a same-size overlay free to render taller than this.
+        let normalLabelHeight = (nsFont.ascender - nsFont.descender + nsFont.leading) * 2 + 4
+
+        if windowUIState.renameItem?.url == item.url {
+            Color.clear
+                .frame(width: cardWidth - 12, height: normalLabelHeight)
+                .overlay(alignment: .top) {
+                    InlineRenameField(item: item, appState: appState, windowUIState: windowUIState, font: .system(size: fontSize, weight: fontWeight), alignment: .center)
+                        .frame(width: cardWidth - 12)
+                }
+        } else {
+            SelectionAwareNameText(
+                name: item.name,
+                isSelected: isSel,
+                font: .system(size: fontSize, weight: fontWeight),
+                nsFont: .systemFont(ofSize: fontSize, weight: nsWeight),
+                color: isSel ? .white : .primary,
+                collapsedLineLimit: 2,
+                availableWidth: cardWidth - 12, // cardWidth minus the 6pt horizontal padding below × 2
+                alignment: .center,
+                middleTruncate: appState.preferences.middleTruncateNames
+            )
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(isSel ? Color.accentColor : Color.clear)
+                .cornerRadius(4)
+        }
     }
 
     private var tagsView: some View {

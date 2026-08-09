@@ -62,7 +62,6 @@ final class WilesAutomatedTests: XCTestCase {
         PathBarViewTests.run()
         MainContentViewTests.run()
         OperationsPopoverViewTests.run()
-        RenameSheetViewTests.run()
         ShortcutsHUDOverlayTests.run()
         SingleInputSheetViewTests.run()
     }

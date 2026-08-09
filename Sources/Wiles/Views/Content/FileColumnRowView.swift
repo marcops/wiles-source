@@ -8,6 +8,8 @@ struct FileColumnRowView: View {
     var appState: AppState
     let onSelect: () -> Void
 
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var isDropTargeted = false
 
     var body: some View {
@@ -15,16 +17,20 @@ struct FileColumnRowView: View {
             FileItemIconView(item: item, size: 16, isOpenTargeted: isDropTargeted)
             ICloudStatusBadgeView(item: item)
 
-            SelectionAwareNameText(
-                name: item.name,
-                isSelected: isSelected,
-                font: .system(size: 12, weight: isSelected ? .semibold : .regular),
-                nsFont: .systemFont(ofSize: 12, weight: isSelected ? .semibold : .regular),
-                color: isSelected ? .white : .primary,
-                collapsedLineLimit: 1,
-                middleTruncate: appState.preferences.middleTruncateNames
-            )
-            .fileMetadataTooltip(item)
+            if windowUIState.renameItem?.url == item.url {
+                InlineRenameField(item: item, appState: appState, windowUIState: windowUIState, font: .system(size: 12, weight: isSelected ? .semibold : .regular))
+            } else {
+                SelectionAwareNameText(
+                    name: item.name,
+                    isSelected: isSelected,
+                    font: .system(size: 12, weight: isSelected ? .semibold : .regular),
+                    nsFont: .systemFont(ofSize: 12, weight: isSelected ? .semibold : .regular),
+                    color: isSelected ? .white : .primary,
+                    collapsedLineLimit: 1,
+                    middleTruncate: appState.preferences.middleTruncateNames
+                )
+                .fileMetadataTooltip(item)
+            }
 
             Spacer()
 

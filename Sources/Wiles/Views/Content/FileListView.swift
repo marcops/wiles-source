@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 struct FileListView: View {
     var appState: AppState
 
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var selectionRect: CGRect?
     @State private var lastWindowWidth: CGFloat?
     @State private var hoveredURL: URL?
@@ -146,15 +148,19 @@ struct FileListView: View {
         HStack(alignment: .center, spacing: 8) {
             FileItemIconView(item: item, size: listIconSize, isOpenTargeted: dropTargetedURL == item.url)
             ICloudStatusBadgeView(item: item)
-            SelectionAwareNameText(
-                name: item.name,
-                isSelected: isSel,
-                font: .system(size: 13, weight: isSel ? .semibold : .regular),
-                nsFont: .systemFont(ofSize: 13, weight: isSel ? .semibold : .regular),
-                color: isSel ? .white : .primary,
-                collapsedLineLimit: 1,
-                middleTruncate: appState.preferences.middleTruncateNames
-            )
+            if windowUIState.renameItem?.url == item.url {
+                InlineRenameField(item: item, appState: appState, windowUIState: windowUIState, font: .system(size: 13, weight: isSel ? .semibold : .regular))
+            } else {
+                SelectionAwareNameText(
+                    name: item.name,
+                    isSelected: isSel,
+                    font: .system(size: 13, weight: isSel ? .semibold : .regular),
+                    nsFont: .systemFont(ofSize: 13, weight: isSel ? .semibold : .regular),
+                    color: isSel ? .white : .primary,
+                    collapsedLineLimit: 1,
+                    middleTruncate: appState.preferences.middleTruncateNames
+                )
+            }
 
             if appState.preferences.showTags && !item.tags.isEmpty {
                 HStack(alignment: .center, spacing: -2) {

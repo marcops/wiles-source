@@ -83,9 +83,6 @@ struct MainContentView: View {
                 HttpShareSheet(appState: appState, folderURL: url)
             }
         }
-        .sheet(item: $windowUIState.renameItem) { item in
-            RenameSheetView(item: item, appState: appState)
-        }
         .sheet(item: $windowUIState.imageConverterItem) { item in
             ImageConverterSheetView(item: item, appState: appState)
         }
