@@ -141,7 +141,7 @@ struct SidebarRowView: View {
                 guard let url = url else { return }
                 Task { @MainActor in
                     do {
-                        _ = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
+                        _ = try appState.moveItem(at: url, toFolder: targetFolder)
                         appState.refreshCurrentDirectory()
                     } catch {
                         appState.showError(error)

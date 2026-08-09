@@ -277,7 +277,7 @@ extension AppState {
                 guard let droppedURL = droppedURL, droppedURL.standardizedFileURL != targetFolder.standardizedFileURL else { return }
                 Task { @MainActor in
                     do {
-                        _ = try FileSystemService.moveItem(at: droppedURL, toFolder: targetFolder)
+                        _ = try self.moveItem(at: droppedURL, toFolder: targetFolder)
                         self.refreshCurrentDirectory()
                     } catch {
                         self.showError(error)

@@ -49,8 +49,17 @@ extension AppState {
             for url in urls {
                 do {
                     if isCut {
+                        // Stays off @MainActor here (rule 29.16 — sequential bulk disk I/O must
+                        // not block the main actor across a whole paste of many files). The
+                        // shared AppState.moveItem(at:toFolder:) wrapper is @MainActor-isolated
+                        // (correct for the single-item drag-and-drop call sites, which already run
+                        // on MainActor), so it can't be reused for this loop — only the
+                        // MainActor-only favorites sync is shared via remapFavorites below.
                         let destURL = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
                         await UndoRedoService.shared.recordAction(.move(sourceURL: url, destinationURL: destURL))
+                        await MainActor.run { [weak self] in
+                            self?.remapFavorites(from: url, to: destURL)
+                        }
                     } else {
                         let destURL = try FileSystemService.copyItem(at: url, toFolder: targetFolder)
                         await UndoRedoService.shared.recordAction(.create(url: destURL))
