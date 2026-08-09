@@ -13,10 +13,21 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         return folders
     }
 
-    public static func saveSmartFolders(_ folders: [SmartFolder]) {
-        if let data = try? JSONEncoder().encode(folders) {
-            UserDefaults.standard.set(data, forKey: DefaultsKey.smartFolders.rawValue)
-        }
+    public static func saveSmartFolders(_ folders: [SmartFolder]) throws {
+        try saveSmartFolders(folders, encode: { try JSONEncoder().encode($0) })
+    }
+
+    /// Test-only seam: lets tests inject a throwing encoder to deterministically simulate an
+    /// encoding failure (`SmartFolder`'s fields can't actually fail to encode in practice, so
+    /// there's no real-world way to trigger this otherwise). Production code should always go
+    /// through `saveSmartFolders(_:)` above.
+    ///
+    /// Deliberately not `try?` on the encode call: swallowing an encode failure here used to make
+    /// the entire save silently a no-op - the caller believed the smart folder was saved/removed
+    /// when nothing was actually persisted. Propagate the error so the caller can surface it.
+    static func saveSmartFolders(_ folders: [SmartFolder], encode: ([SmartFolder]) throws -> Data) throws {
+        let data = try encode(folders)
+        UserDefaults.standard.set(data, forKey: DefaultsKey.smartFolders.rawValue)
     }
 
     public func executeQuery(for smartFolder: SmartFolder, completion: @escaping @Sendable ([FileItem]) -> Void) {

@@ -6,7 +6,7 @@ public struct SmartFoldersFeatureTests {
     public static func run() {
         let savedFolders = SmartFolderService.loadSavedSmartFolders()
         defer {
-            SmartFolderService.saveSmartFolders(savedFolders)
+            try? SmartFolderService.saveSmartFolders(savedFolders)
         }
 
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
@@ -19,12 +19,44 @@ public struct SmartFoldersFeatureTests {
 
         var currentFolders = savedFolders
         currentFolders.append(dummyFolder)
-        SmartFolderService.saveSmartFolders(currentFolders)
+        try? SmartFolderService.saveSmartFolders(currentFolders)
 
         let reloaded = SmartFolderService.loadSavedSmartFolders()
         report("Feature/SmartFolders", "POS: SmartFolderService persists and reloads new smart folder", result: reloaded.contains(where: { $0.id == dummyFolder.id }))
 
         testPredicateInjectionIsNeutralized()
+        testEncodingFailureThrowsInsteadOfSilentlyNoOpingSave()
+    }
+
+    /// Bug: saveSmartFolders used to encode with `try? JSONEncoder().encode(folders)` and, on
+    /// failure, just skip the `UserDefaults.standard.set` call - the save silently became a no-op
+    /// with no error surfaced to the caller. This proves that an encoding failure now throws, so
+    /// AppState.addSmartFolder/removeSmartFolder's existing showError path can surface it.
+    private static func testEncodingFailureThrowsInsteadOfSilentlyNoOpingSave() {
+        struct SimulatedEncodingFailure: Error {}
+
+        let beforeData = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue)
+
+        let folder = SmartFolder(name: "Should Not Persist", searchQuery: "kind:any", scopePath: "")
+        var didThrow = false
+        do {
+            try SmartFolderService.saveSmartFolders([folder], encode: { _ in throw SimulatedEncodingFailure() })
+        } catch {
+            didThrow = true
+        }
+
+        report(
+            "Feature/SmartFolders",
+            "NEG: saveSmartFolders throws instead of silently no-oping when encoding fails",
+            result: didThrow
+        )
+
+        let afterData = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue)
+        report(
+            "Feature/SmartFolders",
+            "NEG: persisted UserDefaults data is left unchanged when encoding fails",
+            result: afterData == beforeData
+        )
     }
 
     /// Fix 1(a): SmartFolderService.executeQuery/executeContentQuery build their NSPredicate
