@@ -19,7 +19,7 @@ public struct InlineRenameFieldTests {
     }
 
     private static func testKeypadEnterKeyCommits() {
-        report("View/InlineRenameField", "POS: the numeric-keypad Enter key (ETX, \\u{3}) is recognized as a commit character", result: InlineRenameField.isCommitCharacter("\u{3}"))
+        report("View/InlineRenameField", "POS: the keypad Enter key (ETX, \\u{3}) is recognized as a commit character", result: InlineRenameField.isCommitCharacter("\u{3}"))
     }
 
     private static func testOtherCharactersDoNotCommit() {
