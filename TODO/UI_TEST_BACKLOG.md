@@ -39,18 +39,28 @@ and write the real test the moment the missing infrastructure exists.
 ## `InlineRenameField` — direct-in-view rename (replaces the old `RenameSheetView` modal)
 - **File**: `Sources/Wiles/Views/Components/InlineRenameField.swift`, wired into
   `FileGridCardItemView`/`FileListView`/`FileColumnRowView` via `windowUIState.renameItem`.
-- **What's missing**: Needs a focused `TextField` receiving real keyboard input (typed text, Return
-  to commit, Escape to cancel, newline-stripping on paste) and focus-loss-commits-on-click-away —
-  none of that is reachable without real AppKit event delivery/focus, same class of gap as
-  `FileItemInteractionsModifier` above.
-- **What it needs**: XCUITest coverage per view (Grid/List/Column): trigger rename, type a new name,
-  commit via Return — assert the file was actually renamed on disk; trigger rename, press Escape —
+- **What's missing**: Escape-to-cancel and focus-loss-commits-on-click-away are pure AppKit
+  focus/event-delivery behavior with no extractable logic — not reachable without real AppKit
+  event delivery/focus, same class of gap as `FileItemInteractionsModifier` above.
+- **What it needs**: XCUITest coverage per view (Grid/List/Column): trigger rename, press Escape —
   assert the original name is unchanged; verify clicking away from the field also commits.
-- **Not here**: the "navigate away while renaming leaves the rename stuck forever" bug is fixed and
-  has a real unit test — `WindowUIState.cancelRenameIfNavigated(from:to:)`, tested in
-  `WindowUIStateTests.testCancelRenameIfNavigated()` using a real `AppState.navigateTo()` call. Only
-  the one-line `.onChange` wiring in `MainContentView.swift` that invokes it is untested (genuine
-  SwiftUI-lifecycle-only wiring, not logic).
+- **Not here**: the real reported "pressing Return/keypad-Enter does nothing" bug is fixed and has a
+  real unit test — the commit-key decision was extracted into the pure, testable
+  `InlineRenameField.isCommitCharacter(_:)`, tested in `InlineRenameFieldTests` (verified red against
+  the pre-fix logic, green against the fix). The "navigate away while renaming leaves the rename
+  stuck forever" bug is likewise fixed and unit-tested —
+  `WindowUIState.cancelRenameIfNavigated(from:to:)`, tested in
+  `WindowUIStateTests.testCancelRenameIfNavigated()` using a real `AppState.navigateTo()` call.
+
+## `GlobalKeyMonitor.KeyMonitorNSView` — keyboard-monitor lifecycle
+- **File**: `Sources/Wiles/Views/Content/GlobalKeyMonitor.swift`.
+- **Fixed and covered**: real reported bug — after a drag-and-drop to another app, all keyboard
+  input in Wiles died until relaunch. Root cause was a leaked `NSEvent.addLocalMonitorForEvents`
+  monitor (never removed on teardown), which per its `[weak self]`-returns-`nil` semantics swallows
+  every future keyDown/scrollWheel app-wide once the view is deallocated. This is pure AppKit
+  view-lifecycle/event-monitor behavior with no extractable pure logic, so it's covered by a real
+  XCUITest instead of a unit test — `GlobalKeyMonitorUITests.testKeyboardShortcutsSurviveClosingASecondWindow()`
+  (verified red against the pre-fix code, green against the fix).
 
 ## `AppState` and `AppState+*` extensions / `Stores/NavigationStore.swift` — deliberately deferred
 - **Files**: `Sources/Wiles/Models/AppState/AppState.swift`, `AppState+ColumnsAndActions.swift`,

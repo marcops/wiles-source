@@ -8,7 +8,7 @@ public enum AppConstants {
         Bundle.main.infoDictionary?["CFBundleName"] as? String ?? String()
     }
 
-    public static let appVersion = "0.3.1"
+    public static let appVersion = "0.3.2"
 
     /// Scene identifier for the main `WindowGroup`, so `openWindow(id:)` (used by the translated
     /// "New Window" File-menu command in `WilesApp.swift`) can target it explicitly.
