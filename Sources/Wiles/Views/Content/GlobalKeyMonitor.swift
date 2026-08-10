@@ -18,6 +18,15 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         nsView.windowUIState = windowUIState
     }
 
+    /// Regression fix for a real reported bug: after a window's content view hierarchy was torn
+    /// down (closing a second window, or SwiftUI rebuilding this view for any reason — window
+    /// churn during a cross-app drag is one real trigger), this view's `NSEvent` monitor was never
+    /// removed. Its handler captures `self` weakly and returns `nil` once `self` is gone, which
+    /// per `NSEvent.addLocalMonitorForEvents` semantics swallows that event app-wide for every
+    /// other monitor and the normal responder chain — so once leaked, every future keyDown/
+    /// scrollWheel anywhere in the app was silently eaten forever, until relaunch. Fixed by
+    /// removing the monitor on teardown, mirroring the sibling `ClickOutsideDetector.ClickView`,
+    /// which already did this correctly. See `GlobalKeyMonitorUITests` for the regression test.
     class KeyMonitorNSView: NSView {
         var appState: AppState?
         var windowUIState: WindowUIState?

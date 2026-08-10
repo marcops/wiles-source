@@ -66,6 +66,13 @@ struct InlineRenameField: View {
     }
 
     private func isCommitKeyPress(_ keyPress: KeyPress) -> Bool {
-        keyPress.key == .return || keyPress.key.character == "\u{3}"
+        Self.isCommitCharacter(keyPress.key.character)
+    }
+
+    /// The main Return key reports `"\r"`; the numeric-keypad Enter key reports the legacy ETX
+    /// character `"\u{3}"` instead — both must commit the rename. Extracted as a plain, testable
+    /// function since `KeyPress` itself has no public initializer a unit test could construct.
+    static func isCommitCharacter(_ character: Character) -> Bool {
+        character == "\r" || character == "\u{3}"
     }
 }

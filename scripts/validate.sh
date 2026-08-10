@@ -65,6 +65,7 @@ section "xcodebuild UI tests (WilesUITests — launches Wiles.app and controls t
 if ! xcodebuild test \
     -scheme Wiles \
     -only-testing:WilesUITests/WilesLaunchUITests \
+    -only-testing:WilesUITests/GlobalKeyMonitorUITests \
     -skip-testing:WilesTests \
     -destination 'platform=macOS,arch=arm64' \
     2>&1 | tee /tmp/wiles_uitest.log | grep -E 'Test Case|passed|failed|error:'; then

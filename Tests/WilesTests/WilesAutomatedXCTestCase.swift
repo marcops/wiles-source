@@ -60,6 +60,7 @@ final class WilesAutomatedTests: XCTestCase {
         FileItemIconViewTests.run()
         FooterBarViewTests.run()
         HeaderBarViewTests.run()
+        InlineRenameFieldTests.run()
         PathBarViewTests.run()
         MainContentViewTests.run()
         OperationsPopoverViewTests.run()
