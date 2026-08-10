@@ -1,6 +1,7 @@
 import SwiftUI
 import Observation
 
+// swiftlint:disable:next type_body_length
 @Observable
 @MainActor
 public final class AppState {
