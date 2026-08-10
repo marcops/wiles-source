@@ -34,19 +34,24 @@ struct InlineRenameField: View {
                 text = item.name
                 isFocused = true
             }
-            .onChange(of: text) { _, newValue in
-                // A vertical-axis TextField treats Return as a newline instead of submitting —
-                // filenames can never contain one, so any newline that appears (Return, or a
-                // pasted multi-line string) is treated as "commit now" and stripped immediately.
-                guard newValue.contains("\n") else { return }
-                text = newValue.replacingOccurrences(of: "\n", with: "")
+            .onKeyPress(phases: .down) { keyPress in
+                // A vertical-axis TextField treats Return as a newline instead of submitting, and
+                // relying on that newline showing up in the bound `text` (then stripping it) was
+                // unreliable — intercepting the key press directly here commits deterministically
+                // and prevents the newline from ever reaching the binding. Checked without a fixed
+                // `.onKeyPress(.return)` filter because the numeric-keypad Enter key reports as the
+                // legacy ETX character (`\u{3}`), not `.return` (`\r`) — filtering to only `.return`
+                // silently drops that key.
+                guard isCommitKeyPress(keyPress) else { return .ignored }
                 commit()
+                return .handled
             }
             .onChange(of: isFocused) { _, focused in
                 if !focused { commit() }
             }
             .onExitCommand { cancel() }
             .accessibilityLabel(appState.tr(.rename))
+            .accessibilityIdentifier("InlineRenameField")
     }
 
     private func commit() {
@@ -58,5 +63,9 @@ struct InlineRenameField: View {
     private func cancel() {
         guard windowUIState.renameItem?.url == item.url else { return }
         windowUIState.renameItem = nil
+    }
+
+    private func isCommitKeyPress(_ keyPress: KeyPress) -> Bool {
+        keyPress.key == .return || keyPress.key.character == "\u{3}"
     }
 }

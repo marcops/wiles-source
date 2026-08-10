@@ -33,6 +33,25 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             }
         }
 
+        override func viewWillMove(toWindow newWindow: NSWindow?) {
+            super.viewWillMove(toWindow: newWindow)
+            if newWindow == nil {
+                removeMonitor()
+            }
+        }
+
+        override func removeFromSuperview() {
+            super.removeFromSuperview()
+            removeMonitor()
+        }
+
+        private func removeMonitor() {
+            if let existingMonitor = monitor {
+                NSEvent.removeMonitor(existingMonitor)
+                monitor = nil
+            }
+        }
+
         private func processLocalEvent(_ event: NSEvent) -> NSEvent? {
             guard let appState = appState, let windowUIState = windowUIState else { return event }
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
