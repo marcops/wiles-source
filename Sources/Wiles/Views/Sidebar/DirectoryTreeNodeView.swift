@@ -5,8 +5,6 @@ struct DirectoryTreeNodeView: View {
     let node: FolderNode
     let depth: Int
     var appState: AppState
-    @Environment(WindowUIState.self)
-    private var windowUIState
     @State private var isRightClicked = false
 
     init(node: FolderNode, depth: Int = 0, appState: AppState) {
@@ -73,26 +71,7 @@ struct DirectoryTreeNodeView: View {
             RightClickDetector { isRightClicked = true }
         )
         .contextMenu {
-            Button(appState.tr(.open)) { appState.navigateTo(node.url) }
-            Menu(appState.tr(.copyPath)) {
-                Button(appState.tr(.copyPathAbsolute)) {
-                    CopyPathService.copy(urls: [node.url], variant: .absolute)
-                }
-                Button(appState.tr(.copyPathRelative)) {
-                    CopyPathService.copy(urls: [node.url], variant: .relative, relativeTo: appState.navigation.currentURL)
-                }
-                Button(appState.tr(.copyPathURL)) {
-                    CopyPathService.copy(urls: [node.url], variant: .fileURL)
-                }
-                Button(appState.tr(.copyPathTerminal)) {
-                    CopyPathService.copy(urls: [node.url], variant: .terminalEscaped)
-                }
-            }
-            Divider()
-            Button("\(appState.tr(.properties)) (Cmd+I)") {
-                let fileItem = FileItem(url: node.url, icon: NSWorkspace.shared.icon(forFile: node.url.path))
-                windowUIState.propertiesItem = fileItem
-            }
+            SidebarItemContextMenu(url: node.url, appState: appState)
         }
     }
 }

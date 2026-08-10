@@ -41,7 +41,12 @@ extension AppState {
     }
 
     public func autoFitColumnWidth(_ column: ListColumn) {
-        let newWidth = ColumnAutoFitService.calculateAutoFitWidth(for: column, in: self)
+        let newWidth = ColumnAutoFitService.calculateAutoFitWidth(
+            for: column,
+            items: fileSystem.items,
+            iconSize: preferences.iconSize,
+            language: preferences.appLanguage
+        )
         setColumnWidth(column, width: newWidth)
     }
 

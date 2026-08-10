@@ -229,7 +229,12 @@ public struct AppStateColumnsAndSelectionTests {
         appState.setColumnWidth(.name, width: LayoutTokens.columnMinWidth)
 
         appState.autoFitColumnWidth(.name)
-        let expected = max(LayoutTokens.columnMinWidth, ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState))
+        let expected = max(LayoutTokens.columnMinWidth, ColumnAutoFitService.calculateAutoFitWidth(
+            for: .name,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        ))
         report(
             "AppState+Columns",
             "POS: autoFitColumnWidth() applies the width computed by ColumnAutoFitService, clamped via setColumnWidth()",

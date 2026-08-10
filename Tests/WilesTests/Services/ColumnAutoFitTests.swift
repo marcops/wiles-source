@@ -36,7 +36,12 @@ public struct ColumnAutoFitTests {
         let item = makeFileItem(dir: dir, name: "a.txt")
         let appState = makeAppState(with: [item])
 
-        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .group, in: appState)
+        let width = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .group,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        )
         // Note: the localized header text itself (e.g. "Group" + padding) already exceeds
         // columnMinWidth (60pt), so short item content can never drive the result down to
         // exactly columnMinWidth here — the real invariant under test is that the floor is
@@ -56,7 +61,12 @@ public struct ColumnAutoFitTests {
         let item = makeFileItem(dir: dir, name: longName)
         let appState = makeAppState(with: [item])
 
-        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState)
+        let width = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .name,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        )
         let pos = width > LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
         TestReporter.report(
             "ColumnAutoFit", "POS: very long file name produces width above minimum but clamped at maximum",
@@ -74,7 +84,12 @@ public struct ColumnAutoFitTests {
 
         var allValid = true
         for column in ListColumn.allCases {
-            let width = ColumnAutoFitService.calculateAutoFitWidth(for: column, in: appState)
+            let width = ColumnAutoFitService.calculateAutoFitWidth(
+                for: column,
+                items: appState.fileSystem.items,
+                iconSize: appState.preferences.iconSize,
+                language: appState.preferences.appLanguage
+            )
             if !(width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth) {
                 allValid = false
             }
@@ -93,7 +108,12 @@ public struct ColumnAutoFitTests {
         let item = makeFileItem(dir: dir, name: "owner_test.txt")
         let appState = makeAppState(with: [item])
 
-        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .owner, in: appState)
+        let width = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .owner,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        )
         TestReporter.report(
             "ColumnAutoFit", "POS: .owner column produces a valid clamped width",
             result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
@@ -108,7 +128,12 @@ public struct ColumnAutoFitTests {
         let item = makeFileItem(dir: dir, name: "date_created_test.txt")
         let appState = makeAppState(with: [item])
 
-        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .dateCreated, in: appState)
+        let width = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .dateCreated,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        )
         TestReporter.report(
             "ColumnAutoFit", "POS: .dateCreated column produces a valid clamped width",
             result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
@@ -123,7 +148,12 @@ public struct ColumnAutoFitTests {
         let item = makeFileItem(dir: dir, name: "date_accessed_test.txt")
         let appState = makeAppState(with: [item])
 
-        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .dateAccessed, in: appState)
+        let width = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .dateAccessed,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        )
         TestReporter.report(
             "ColumnAutoFit", "POS: .dateAccessed column produces a valid clamped width",
             result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
@@ -148,8 +178,20 @@ public struct ColumnAutoFitTests {
         try? (taggedFile as NSURL).setResourceValue(["Red"], forKey: .tagNamesKey)
         let taggedItem = FileItem(url: taggedFile, icon: NSImage(size: NSSize(width: 16, height: 16)), fetchTags: true)
 
-        let untaggedWidth = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: makeAppState(with: [untaggedItem]))
-        let taggedWidth = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: makeAppState(with: [taggedItem]))
+        let untaggedAppState = makeAppState(with: [untaggedItem])
+        let taggedAppState = makeAppState(with: [taggedItem])
+        let untaggedWidth = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .name,
+            items: untaggedAppState.fileSystem.items,
+            iconSize: untaggedAppState.preferences.iconSize,
+            language: untaggedAppState.preferences.appLanguage
+        )
+        let taggedWidth = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .name,
+            items: taggedAppState.fileSystem.items,
+            iconSize: taggedAppState.preferences.iconSize,
+            language: taggedAppState.preferences.appLanguage
+        )
 
         // If the environment failed to persist the Finder tag (e.g. sandboxed temp volume),
         // fall back to asserting both widths are at least valid rather than a false failure.
@@ -174,7 +216,12 @@ public struct ColumnAutoFitTests {
         let appState = makeAppState(with: [item])
         appState.preferences.iconSize = 1.0 // scaled value falls below listIconMinSize, must clamp up
 
-        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState)
+        let width = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .name,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        )
         TestReporter.report(
             "ColumnAutoFit", "POS: extremely small iconSize is clamped to listIconMinSize without producing an invalid width",
             result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
@@ -190,7 +237,12 @@ public struct ColumnAutoFitTests {
         let appState = makeAppState(with: [item])
         appState.preferences.iconSize = 10_000.0 // scaled value far exceeds listIconMaxSize, must clamp down
 
-        let width = ColumnAutoFitService.calculateAutoFitWidth(for: .name, in: appState)
+        let width = ColumnAutoFitService.calculateAutoFitWidth(
+            for: .name,
+            items: appState.fileSystem.items,
+            iconSize: appState.preferences.iconSize,
+            language: appState.preferences.appLanguage
+        )
         TestReporter.report(
             "ColumnAutoFit", "POS: extremely large iconSize is clamped to listIconMaxSize without producing an invalid width",
             result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth

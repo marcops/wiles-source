@@ -329,7 +329,8 @@
 
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "볼륨 꺼내기";
-"sidebarTrash" = "Trash";"itemsCount" = "%d items";
+"sidebarTrash" = "Trash";
+"itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";

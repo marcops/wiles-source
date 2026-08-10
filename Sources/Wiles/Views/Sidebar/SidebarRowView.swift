@@ -122,28 +122,9 @@ struct SidebarRowView: View {
     }
 
     @ViewBuilder private var rowContextMenu: some View {
-        Button(appState.tr(.open)) { appState.navigateTo(item.url) }
-        Menu(appState.tr(.copyPath)) {
-            Button(appState.tr(.copyPathAbsolute)) {
-                CopyPathService.copy(urls: [item.url], variant: .absolute)
-            }
-            Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(urls: [item.url], variant: .relative, relativeTo: appState.navigation.currentURL)
-            }
-            Button(appState.tr(.copyPathURL)) {
-                CopyPathService.copy(urls: [item.url], variant: .fileURL)
-            }
-            Button(appState.tr(.copyPathTerminal)) {
-                CopyPathService.copy(urls: [item.url], variant: .terminalEscaped)
-            }
-        }
+        SidebarItemContextMenu(url: item.url, appState: appState)
         Divider()
         favoriteToggleButton
-        Divider()
-        Button("\(appState.tr(.properties)) (Cmd+I)") {
-            let fileItem = FileItem(url: item.url, icon: NSWorkspace.shared.icon(forFile: item.url.path))
-            windowUIState.propertiesItem = fileItem
-        }
         if isTrash {
             Divider()
             Button("\(appState.tr(.emptyTrash))...") {

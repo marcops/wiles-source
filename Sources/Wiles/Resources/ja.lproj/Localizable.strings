@@ -329,7 +329,8 @@
 
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "ボリュームを取り出す";
-"sidebarTrash" = "Trash";"itemsCount" = "%d items";
+"sidebarTrash" = "Trash";
+"itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";

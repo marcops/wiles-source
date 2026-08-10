@@ -12,10 +12,8 @@
 "actPasteShortcut" = "Colar Arquivos";
 "actQuickLook" = "Pré-visualização Quick Look";
 "actRedo" = "Refazer Operação";
-"actRefreshShortcut" = "Atualizar Diretório";
 "actSearch" = "Pesquisar no Diretório";
 "actTogglePreview" = "Alternar Barra de Pré-visualização";
-"actToggleStatusBar" = "Alternar Barra de Status";
 "actToggleTerminal" = "Alternar Terminal Integrado";
 "actUndo" = "Desfazer Operação";
 "activeSuffix" = "ativa(s)";
@@ -314,7 +312,6 @@
 "symlinkNameLabel" = "Nome do Symlink";
 "tabFeatures" = "Recursos e Ferramentas";
 "tabOverview" = "Visão Geral";
-"tabShortcuts" = "Atalhos";
 "tabSystem" = "Navegação e Sistema";
 "tags" = "Etiquetas";
 "targetFormat" = "Formato de Destino";

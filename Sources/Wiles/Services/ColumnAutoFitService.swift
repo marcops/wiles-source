@@ -5,21 +5,36 @@ import AppKit
 @MainActor
 public final class ColumnAutoFitService {
 
-    public static func calculateAutoFitWidth(for column: ListColumn, in appState: AppState) -> CGFloat {
-        let headerWidth = calculateHeaderWidth(for: column, appState: appState)
-        let itemsMax = appState.fileSystem.items.map { calculateItemWidth(for: $0, column: column, appState: appState) }.max() ?? 0
+    /// - Parameters:
+    ///   - items: The currently listed file items whose content widths are measured.
+    ///   - iconSize: The user's configured list icon size preference (pre-scale/pre-clamp), used only
+    ///     for the `.name` column's leading icon width.
+    ///   - language: The active app language, used to measure the localized column header/kind text.
+    public static func calculateAutoFitWidth(
+        for column: ListColumn,
+        items: [FileItem],
+        iconSize: Double,
+        language: AppLanguage
+    ) -> CGFloat {
+        let headerWidth = calculateHeaderWidth(for: column, language: language)
+        let itemsMax = items.map { calculateItemWidth(for: $0, column: column, iconSize: iconSize, language: language) }.max() ?? 0
         let maxRequired = max(headerWidth, itemsMax)
         return min(LayoutTokens.columnMaxWidth, max(LayoutTokens.columnMinWidth, maxRequired))
     }
 
-    private static func calculateHeaderWidth(for column: ListColumn, appState: AppState) -> CGFloat {
-        let title = appState.tr(localizationKey(for: column))
+    private static func calculateHeaderWidth(for column: ListColumn, language: AppLanguage) -> CGFloat {
+        let title = L10n.string(localizationKey(for: column), lang: language)
         let font = NSFont.systemFont(ofSize: 11, weight: .semibold)
         return measureText(title, font: font) + LayoutTokens.columnHeaderExtraPadding
     }
 
-    private static func calculateItemWidth(for item: FileItem, column: ListColumn, appState: AppState) -> CGFloat {
-        let spec = itemTextFontAndPadding(for: item, column: column, appState: appState)
+    private static func calculateItemWidth(
+        for item: FileItem,
+        column: ListColumn,
+        iconSize: Double,
+        language: AppLanguage
+    ) -> CGFloat {
+        let spec = itemTextFontAndPadding(for: item, column: column, iconSize: iconSize, language: language)
         return measureText(spec.text, font: spec.font) + spec.extraPadding
     }
 
@@ -32,19 +47,20 @@ public final class ColumnAutoFitService {
     private static func itemTextFontAndPadding(
         for item: FileItem,
         column: ListColumn,
-        appState: AppState
+        iconSize: Double,
+        language: AppLanguage
     ) -> ColumnTextSpec {
         let font12 = NSFont.systemFont(ofSize: 12, weight: .regular)
         let font13Bold = NSFont.systemFont(ofSize: 13, weight: .semibold)
 
         switch column {
         case .name:
-            let iconSize = max(
+            let clampedIconSize = max(
                 LayoutTokens.listIconMinSize,
-                min(LayoutTokens.listIconMaxSize, CGFloat(appState.preferences.iconSize) * LayoutTokens.listIconScaleMultiplier)
+                min(LayoutTokens.listIconMaxSize, CGFloat(iconSize) * LayoutTokens.listIconScaleMultiplier)
             )
             let tagExtra = item.tags.isEmpty ? 0 : LayoutTokens.columnNameTagExtraPadding
-            let extra = iconSize + LayoutTokens.columnNameIconSpacing + tagExtra + LayoutTokens.columnCellExtraPadding
+            let extra = clampedIconSize + LayoutTokens.columnNameIconSpacing + tagExtra + LayoutTokens.columnCellExtraPadding
             return ColumnTextSpec(text: item.name, font: font13Bold, extraPadding: extra)
         case .size:
             return ColumnTextSpec(text: item.formattedSize, font: font12, extraPadding: LayoutTokens.columnCellExtraPadding)
@@ -55,7 +71,7 @@ public final class ColumnAutoFitService {
         case .dateAccessed:
             return ColumnTextSpec(text: item.formattedDateAccessed, font: font12, extraPadding: LayoutTokens.columnCellExtraPadding)
         case .kind:
-            let kindText = item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()
+            let kindText = item.isDirectory ? L10n.string(.folder, lang: language) : item.fileExtension.uppercased()
             return ColumnTextSpec(text: kindText, font: font12, extraPadding: LayoutTokens.columnCellExtraPadding)
         case .owner:
             return ColumnTextSpec(text: item.ownerName, font: font12, extraPadding: LayoutTokens.columnCellExtraPadding)

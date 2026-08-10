@@ -24,7 +24,8 @@ struct FileColumnView: View {
     }
 
     private var searchResultsColumn: some View {
-        ScrollView(.vertical, showsIndicators: true) {
+        let paginate = appState.fileSystem.items.count > LayoutTokens.paginationThreshold
+        return ScrollView(.vertical, showsIndicators: true) {
             LazyVStack(spacing: 1) {
                 ForEach(appState.fileSystem.items) { item in
                     FileColumnRowView(
@@ -36,7 +37,7 @@ struct FileColumnView: View {
                     )
                     .transition(.opacity)
                 }
-                .animation(MotionTokens.smoothEase, value: appState.fileSystem.items.map(\.url))
+                .animation(paginate ? nil : MotionTokens.smoothEase, value: appState.fileSystem.items.map(\.url))
             }
             .padding(.vertical, 4)
         }
