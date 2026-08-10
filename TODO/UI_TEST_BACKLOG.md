@@ -74,3 +74,10 @@ and write the real test the moment the missing infrastructure exists.
   snapshot test or manual QA.
 - **What it needs**: Manual verification (delete 1 of several items in List and Grid, confirm the
   remaining rows animate into place) until this project has snapshot/animation-timing test infra.
+# UI Test Backlog
+
+Pending tests logged here per AGENTS.md rule 28/rule "defer tests until reviewed" — write these once the associated behavior has been manually reviewed by the user.
+
+- Localization-completeness test: assert every key present in `en.lproj/Localizable.strings` (or the union across all locales) exists in every other `*.lproj/Localizable.strings` file, and that no locale has orphaned keys absent from `L10n.Key` — would have caught pt.lproj's stray `actRefreshShortcut`/`actToggleStatusBar`/`tabShortcuts` entries (RESOLVE.md P3 item 3).
+- `ColumnAutoFitService.calculateAutoFitWidth(for:items:iconSize:language:)` unit test: assert width grows with longer item names/localized header text and clamps to `LayoutTokens.columnMinWidth`/`columnMaxWidth` — now trivially testable with plain `[FileItem]`/`Double`/`AppLanguage` inputs since RESOLVE.md P3 item 2 removed the `AppState` dependency; not written yet per standing "defer tests until reviewed" preference.
+- `SidebarItemContextMenu` (new shared Open/Copy Path/Properties menu extracted from `SidebarRowView`/`DirectoryTreeNodeView`, RESOLVE.md P3 item 1): a UI test asserting the menu triggers `appState.navigateTo(url)`, `CopyPathService.copy` with each variant, and sets `windowUIState.propertiesItem` for a given `url` — needs SwiftUI context-menu interaction infrastructure this project doesn't have yet; not written per standing "defer tests until reviewed" preference.
