@@ -17,3 +17,20 @@ extension FocusedValues {
         set { self[WindowUIStateKey.self] = newValue }
     }
 }
+
+/// Scalar mirror of `windowUIState.renameItem != nil`, published from inside `MainContentView.body`
+/// so reading `renameItem` there establishes an `@Observable` dependency and forces `body` (and thus
+/// this republish) to re-run when rename starts/ends. `Commands` scene rebuilding only reacts to an
+/// actual change in a published `FocusedValues` entry — reading a nested mutable property of the
+/// stable `windowUIState` object reference inside `WilesApp` does not, since `Commands` doesn't
+/// observe `@Observable` mutations on an already-published reference the way a `View.body` does.
+private struct IsRenamingActiveKey: FocusedValueKey {
+    typealias Value = Bool
+}
+
+extension FocusedValues {
+    var isRenamingActive: Bool? {
+        get { self[IsRenamingActiveKey.self] }
+        set { self[IsRenamingActiveKey.self] = newValue }
+    }
+}

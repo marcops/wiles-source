@@ -160,6 +160,7 @@ extension AppState {
     /// this is a no-op re-render when the cache already matched reality.
     private func applyLoadedItems(_ loaded: [FileItem], target: URL) {
         guard self.navigation.currentURL == target else { return }
+        guard self.fileSystem.renamingURL == nil else { return }
         if self.fileSystem.items != loaded {
             self.fileSystem.items = loaded
         }

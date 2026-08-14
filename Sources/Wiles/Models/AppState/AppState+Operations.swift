@@ -203,6 +203,35 @@ extension AppState {
         windowUIState.isEditingPath = true
     }
 
+    public func createNewFolderAndRename(windowUIState: WindowUIState) {
+        do {
+            let createdURL = try FileSystemService.createUniqueDirectory(
+                at: navigation.currentURL, baseName: tr(.defaultFolderName))
+            enterRenameForNewlyCreated(at: createdURL, windowUIState: windowUIState)
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    public func createNewFileAndRename(windowUIState: WindowUIState) {
+        do {
+            let createdURL = try NewFileTemplateService.createTemplateFile(
+                in: navigation.currentURL, fileName: "", template: .text)
+            enterRenameForNewlyCreated(at: createdURL, windowUIState: windowUIState)
+        } catch {
+            showError(error.localizedDescription)
+        }
+    }
+
+    private func enterRenameForNewlyCreated(at url: URL, windowUIState: WindowUIState) {
+        DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
+        fileSystem.renamingURL = url
+        let newItem = FileItem(url: url)
+        fileSystem.items.insert(newItem, at: 0)
+        selectedURLs = [url]
+        windowUIState.renameItem = newItem
+    }
+
     public func toggleSearching() {
         isSearching.toggle()
         if !isSearching { searchQuery = "" }

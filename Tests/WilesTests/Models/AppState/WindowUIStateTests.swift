@@ -24,8 +24,6 @@ public struct WindowUIStateTests {
             && state.passwordCompressURLs == nil
             && state.inspectArchiveURL == nil)
         report("Models/WindowUIState", "POS: fresh instance has all sheet/alert/HUD bools false", result: !state.showBatchRenameSheet
-            && !state.showNewFolderSheet
-            && !state.showNewFileSheet
             && !state.showEmptyTrashAlert
             && !state.showDeleteConfirmAlert
             && !state.showConnectToServerSheet

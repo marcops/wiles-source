@@ -14,6 +14,7 @@ struct MainContentView: View {
         }
         .environment(windowUIState)
         .focusedSceneValue(\.windowUIState, windowUIState)
+        .focusedSceneValue(\.isRenamingActive, windowUIState.renameItem != nil)
     }
 
     /// The primary sidebar/content split plus its full modifier chain (window sizing, Quick Look,
@@ -39,9 +40,6 @@ struct MainContentView: View {
         }
         .sheet(item: $windowUIState.propertiesItem) { item in
             FilePropertiesSheet(item: item, appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showNewFolderSheet) {
-            NewFolderSheet(appState: appState)
         }
         .sheet(isPresented: $windowUIState.showHelpSheet) {
             HelpSheet(appState: appState)
@@ -69,9 +67,6 @@ struct MainContentView: View {
         .sheet(isPresented: $windowUIState.showBatchRenameSheet) {
             let selectedItems = appState.fileSystem.items.filter { appState.selectedURLs.contains($0.url) }
             BatchRenameSheetView(items: selectedItems, appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showNewFileSheet) {
-            NewFileSheetView(appState: appState)
         }
         .sheet(isPresented: $windowUIState.showConnectToServerSheet) {
             ConnectToServerSheetView(appState: appState)

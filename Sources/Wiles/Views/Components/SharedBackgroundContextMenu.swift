@@ -8,10 +8,10 @@ struct SharedBackgroundContextMenu: View {
 
     var body: some View {
         Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
-            windowUIState.showNewFolderSheet = true
+            appState.createNewFolderAndRename(windowUIState: windowUIState)
         }
-        Button("\(appState.tr(.newFileTitle))...") {
-            windowUIState.showNewFileSheet = true
+        Button(appState.tr(.newFileTitle)) {
+            appState.createNewFileAndRename(windowUIState: windowUIState)
         }
         if appState.clipboard != nil {
             Button("\(appState.tr(.paste)) (Cmd+V)") {

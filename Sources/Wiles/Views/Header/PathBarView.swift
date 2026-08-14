@@ -52,6 +52,7 @@ struct PathBarView: View {
             TextField(appState.tr(.enterPathPlaceholder), text: $appState.navigation.pathText)
                 .textFieldStyle(.plain)
                 .focused($isFocused)
+                .accessibilityIdentifier("PathBarTextField")
                 .onSubmit {
                     let url = URL(fileURLWithPath: (appState.navigation.pathText as NSString).expandingTildeInPath)
                     appState.navigateTo(url)

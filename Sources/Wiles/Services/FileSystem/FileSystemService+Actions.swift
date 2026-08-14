@@ -68,6 +68,20 @@ extension FileSystemService {
         return newURL
     }
 
+    /// Like `createDirectory`, but appends " 2", " 3", ... to `baseName` until it finds a free
+    /// name — for the "New Folder" action, which creates immediately instead of prompting first.
+    @discardableResult
+    public static func createUniqueDirectory(at parentURL: URL, baseName: String) throws -> URL {
+        var candidate = parentURL.appendingPathComponent(baseName)
+        var counter = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = parentURL.appendingPathComponent("\(baseName) \(counter)")
+            counter += 1
+        }
+        try FileManager.default.createDirectory(at: candidate, withIntermediateDirectories: false)
+        return candidate
+    }
+
     public static func writeToPasteboard(urls: [URL]) {
         let pb = NSPasteboard.general
         pb.clearContents()

@@ -22,8 +22,6 @@ public final class WindowUIState {
     public var imageConverterItem: FileItem?
     public var symlinkItem: FileItem?
     public var showBatchRenameSheet: Bool = false
-    public var showNewFolderSheet: Bool = false
-    public var showNewFileSheet: Bool = false
     public var showEmptyTrashAlert: Bool = false
     public var showDeleteConfirmAlert: Bool = false
     public var showConnectToServerSheet: Bool = false
@@ -49,7 +47,7 @@ public final class WindowUIState {
     /// button doesn't also fall through to the file list underneath (e.g. opening/renaming the
     /// selected item while a delete confirmation is up).
     public var isAnyModalPresented: Bool {
-        showBatchRenameSheet || showNewFolderSheet || showNewFileSheet || showEmptyTrashAlert
+        showBatchRenameSheet || showEmptyTrashAlert
             || showDeleteConfirmAlert || showConnectToServerSheet || showAutoOrganizationSheet
             || showDuplicateCleanerSheet || showHttpShareSheet || showSaveSmartFolderSheet
             || showPasswordCompressSheet || showArchiveInspectionSheet || showHelpSheet

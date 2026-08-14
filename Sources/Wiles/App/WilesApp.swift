@@ -8,6 +8,8 @@ struct WilesApp: App {
     private var openWindow
     @FocusedValue(\.windowUIState)
     private var windowUIState
+    @FocusedValue(\.isRenamingActive)
+    private var isRenamingActive
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
@@ -123,8 +125,10 @@ struct WilesApp: App {
                 .keyboardShortcut("w", modifiers: .command)
         }
         CommandGroup(after: .newItem) {
-            Button(appState.tr(.newFolder)) { windowUIState?.showNewFolderSheet = true }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
+            Button(appState.tr(.newFolder)) {
+                if let windowUIState { appState.createNewFolderAndRename(windowUIState: windowUIState) }
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
             Divider()
             Button(appState.tr(.open)) { appState.openSelectedItem() }
                 .keyboardShortcut("o", modifiers: .command)
@@ -155,17 +159,28 @@ struct WilesApp: App {
                 .keyboardShortcut("z", modifiers: [.command, .shift])
         }
         CommandGroup(replacing: .pasteboard) {
-            Button(appState.tr(.cut)) { appState.cutSelected() }
-                .keyboardShortcut("x", modifiers: .command)
-                .disabled(appState.selectedURLs.isEmpty)
-            Button(appState.tr(.copy)) { appState.copySelected() }
-                .keyboardShortcut("c", modifiers: .command)
-                .disabled(appState.selectedURLs.isEmpty)
-            Button(appState.tr(.paste)) { appState.pasteToCurrentDirectory() }
-                .keyboardShortcut("v", modifiers: .command)
+            // While renaming, these keep their shortcut but forward to the system's standard text
+            // editing actions instead, so the rename field's own text gets cut/copied/pasted/selected.
+            let isRenaming = isRenamingActive ?? false
+            Button(appState.tr(.cut)) {
+                if isRenaming { NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil) } else { appState.cutSelected() }
+            }
+            .keyboardShortcut("x", modifiers: .command)
+            .disabled(!isRenaming && appState.selectedURLs.isEmpty)
+            Button(appState.tr(.copy)) {
+                if isRenaming { NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil) } else { appState.copySelected() }
+            }
+            .keyboardShortcut("c", modifiers: .command)
+            .disabled(!isRenaming && appState.selectedURLs.isEmpty)
+            Button(appState.tr(.paste)) {
+                if isRenaming { NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil) } else { appState.pasteToCurrentDirectory() }
+            }
+            .keyboardShortcut("v", modifiers: .command)
             Divider()
-            Button(appState.tr(.selectAll)) { appState.selectAllItems() }
-                .keyboardShortcut("a", modifiers: .command)
+            Button(appState.tr(.selectAll)) {
+                if isRenaming { NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil) } else { appState.selectAllItems() }
+            }
+            .keyboardShortcut("a", modifiers: .command)
             Divider()
             Button(appState.tr(.find)) { appState.toggleSearching() }
                 .keyboardShortcut("f", modifiers: .command)

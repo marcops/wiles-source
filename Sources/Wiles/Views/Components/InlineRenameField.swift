@@ -57,12 +57,20 @@ struct InlineRenameField: View {
     private func commit() {
         guard windowUIState.renameItem?.url == item.url else { return }
         windowUIState.renameItem = nil
+        endSuppressedRefreshIfNeeded()
         appState.performRename(item: item, newName: text)
     }
 
     private func cancel() {
         guard windowUIState.renameItem?.url == item.url else { return }
         windowUIState.renameItem = nil
+        endSuppressedRefreshIfNeeded()
+    }
+
+    private func endSuppressedRefreshIfNeeded() {
+        guard appState.fileSystem.renamingURL == item.url else { return }
+        appState.fileSystem.renamingURL = nil
+        appState.refreshCurrentDirectory()
     }
 
     private func isCommitKeyPress(_ keyPress: KeyPress) -> Bool {
