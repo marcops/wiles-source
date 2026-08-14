@@ -129,6 +129,9 @@ struct WilesApp: App {
                 if let windowUIState { appState.createNewFolderAndRename(windowUIState: windowUIState) }
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
+            Button(appState.tr(.newFileTitle)) {
+                if let windowUIState { appState.createNewFileAndRename(windowUIState: windowUIState) }
+            }
             Divider()
             Button(appState.tr(.open)) { appState.openSelectedItem() }
                 .keyboardShortcut("o", modifiers: .command)

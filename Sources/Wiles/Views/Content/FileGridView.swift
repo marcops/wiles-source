@@ -69,13 +69,7 @@ struct FileGridView: View {
                 ThumbnailService.shared.prefetchThumbnails(for: newItems, size: iconSize)
             }
         }
-        .onChange(of: appState.searchQuery) { _, newValue in
-            if newValue.isEmpty {
-                withAnimation(MotionTokens.mediumEase) {
-                    proxy.scrollTo("top", anchor: .top)
-                }
-            }
-        }
+        .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
         .background(ScrollerAutoHideSetter())
     }
 
@@ -85,7 +79,7 @@ struct FileGridView: View {
             gridZStackContent
         }
         .coordinateSpace(name: "gridContainer")
-        .onPreferenceChange(CellFrameKey.self) { frames in
+        .onPreferenceChange(URLFrameKey.self) { frames in
             appState.selection.gridCellFrames = frames
         }
         .onPreferenceChange(LabelWidthKey.self) { widths in
@@ -101,7 +95,8 @@ struct FileGridView: View {
         SelectionRectangleOverlay(
             appState: appState,
             coordinateSpaceName: "gridContainer",
-            selectionRect: $selectionRect
+            selectionRect: $selectionRect,
+            cellFramesProvider: { appState.selection.gridCellFrames }
         )
 
         Group {
@@ -168,7 +163,7 @@ struct FileGridView: View {
     /// Renders the active rename field as a grid-level overlay instead of inside its card's own
     /// `LazyVGrid` cell — a `LazyVGrid` clips each cell to its allocated row height, so a field that
     /// needs to grow taller than a normal 2-line label has nowhere to actually show that growth if
-    /// it lives inside the cell. Positioned using the same `CellFrameKey` frame tracking the grid
+    /// it lives inside the cell. Positioned using the same `URLFrameKey` frame tracking the grid
     /// already maintains for marquee-selection hit testing, so it lines up exactly over the
     /// invisible placeholder `FileGridCardItemView` leaves in the label's normal spot. Sized to the
     /// label's own last-measured width (`LabelWidthKey`) instead of always spanning the full card,

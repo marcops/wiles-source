@@ -42,7 +42,7 @@ struct FileGridCardItemView: View {
             .opacity(isCut ? 0.5 : 1.0)
             .background(
                 GeometryReader { geo in
-                    Color.clear.preference(key: CellFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])
+                    Color.clear.preference(key: URLFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])
                 }
             )
             // Renaming must never resize this cell — that would reflow every other card in the
@@ -80,7 +80,7 @@ struct FileGridCardItemView: View {
         // rename. A LazyVGrid cell clips its own content to its allocated row height, so the actual
         // growing field can't live here — this is just an invisible placeholder reserving the
         // label's usual space; `FileGridView` renders the real field as a grid-level overlay
-        // (outside any cell) positioned over this same spot via `CellFrameKey`.
+        // (outside any cell) positioned over this same spot via `URLFrameKey`.
         let normalLabelHeight = (nsFont.ascender - nsFont.descender + nsFont.leading) * 2 + 4
 
         if windowUIState.renameItem?.url == item.url {

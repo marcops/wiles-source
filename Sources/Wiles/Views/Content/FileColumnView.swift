@@ -4,9 +4,13 @@ import AppKit
 struct FileColumnView: View {
     var appState: AppState
 
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var columns: [ColumnData] = []
     @State private var activeColumnIndex: Int = 0
     @State private var loadTask: Task<Void, Never>?
+    @State private var columnCellFrames: [Int: [URL: CGRect]] = [:]
+    @State private var columnSelectionRects: [Int: CGRect] = [:]
 
     var body: some View {
         if appState.isSearching && !appState.searchQuery.isEmpty {
@@ -82,6 +86,9 @@ struct FileColumnView: View {
                 proxy.scrollTo(newCount - 1, anchor: .trailing)
             }
         }
+        .onChange(of: appState.fileSystem.renamingURL) { _, newURL in
+            insertNewlyCreatedItemIntoOwningColumn(newURL)
+        }
         .onChange(of: appState.selection.columnViewDrillRightTrigger) { _, _ in
             drillRightFromSelection()
         }
@@ -106,15 +113,44 @@ struct FileColumnView: View {
     }
 
     private func columnItemsScrollView(for column: ColumnData, index: Int) -> some View {
-        ScrollView(.vertical, showsIndicators: true) {
-            columnItemsList(for: column, index: index)
+        let coordinateSpaceName = "columnContainer-\(index)"
+        return ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: true) {
+                ZStack(alignment: .topLeading) {
+                    SelectionRectangleOverlay(
+                        appState: appState,
+                        coordinateSpaceName: coordinateSpaceName,
+                        minWidth: 220,
+                        selectionRect: selectionRectBinding(for: index),
+                        cellFramesProvider: { columnCellFrames[index] ?? [:] }
+                    )
+                    columnItemsList(for: column, index: index)
+                    SelectionRectangleOverlay.rectangleOverlay(columnSelectionRects[index])
+                }
+                .coordinateSpace(name: coordinateSpaceName)
+                .onPreferenceChange(URLFrameKey.self) { frames in
+                    columnCellFrames[index] = frames
+                }
+            }
+            .onChange(of: appState.fileSystem.renamingURL) { _, newURL in
+                guard let newURL, newURL.deletingLastPathComponent().standardizedFileURL == column.folderURL.standardizedFileURL else { return }
+                proxy.scrollTo("top", anchor: .top)
+            }
         }
         .background(ScrollerAutoHideSetter())
+    }
+
+    private func selectionRectBinding(for index: Int) -> Binding<CGRect?> {
+        Binding(
+            get: { columnSelectionRects[index] },
+            set: { columnSelectionRects[index] = $0 }
+        )
     }
 
     @ViewBuilder
     private func columnItemsList(for column: ColumnData, index: Int) -> some View {
         LazyVStack(spacing: 1) {
+            Color.clear.frame(height: 1).id("top")
             let paginate = column.items.count > LayoutTokens.paginationThreshold
             let visibleItems = paginate ? Array(column.items.prefix(column.visibleLimit)) : column.items
 
@@ -283,6 +319,15 @@ struct FileColumnView: View {
                 }
             }
         }
+    }
+
+    private func insertNewlyCreatedItemIntoOwningColumn(_ newURL: URL?) {
+        guard let newURL else { return }
+        guard let columnIndex = columns.firstIndex(where: {
+            $0.folderURL.standardizedFileURL == newURL.deletingLastPathComponent().standardizedFileURL
+        }) else { return }
+        guard !columns[columnIndex].items.contains(where: { $0.url == newURL }) else { return }
+        columns[columnIndex].items.insert(FileItem(url: newURL), at: 0)
     }
 
     private func truncateColumns(after columnIndex: Int) {

@@ -65,13 +65,7 @@ struct FileListView: View {
                 ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
             }
         }
-        .onChange(of: appState.searchQuery) { _, newValue in
-            if newValue.isEmpty {
-                withAnimation(MotionTokens.mediumEase) {
-                    proxy.scrollTo("top", anchor: .top)
-                }
-            }
-        }
+        .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
         .background(ScrollerAutoHideSetter())
     }
 
@@ -81,7 +75,7 @@ struct FileListView: View {
             listZStackContent(geometry: geometry)
         }
         .coordinateSpace(name: "listContainer")
-        .onPreferenceChange(ListCellFrameKey.self) { frames in
+        .onPreferenceChange(URLFrameKey.self) { frames in
             appState.selection.listCellFrames = frames
         }
         .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
@@ -95,7 +89,8 @@ struct FileListView: View {
             appState: appState,
             coordinateSpaceName: "listContainer",
             minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness,
-            selectionRect: $selectionRect
+            selectionRect: $selectionRect,
+            cellFramesProvider: { appState.selection.listCellFrames }
         )
 
         Group {
@@ -250,7 +245,7 @@ struct FileListView: View {
         .opacity(isCut ? 0.5 : 1.0)
         .background(
             GeometryReader { geo in
-                Color.clear.preference(key: ListCellFrameKey.self, value: [item.url: geo.frame(in: .named("listContainer"))])
+                Color.clear.preference(key: URLFrameKey.self, value: [item.url: geo.frame(in: .named("listContainer"))])
             }
         )
         .contentShape(Rectangle())

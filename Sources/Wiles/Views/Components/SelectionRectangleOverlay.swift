@@ -1,28 +1,19 @@
 import SwiftUI
 import AppKit
 
-/// Transparent hit-testing background for a file list/grid container: drives the drag-to-select
-/// marquee (reporting its current rect via `selectionRect` so the caller can draw it *above* the row
-/// content — this view must stay *below* the rows in z-order so row gestures still win), plus
-/// background tap-to-deselect, right-click-to-deselect, and the shared empty-area context menu.
-/// Matches selection against `appState.selection.gridCellFrames`/`listCellFrames` (populated by
-/// row-level preference-key frames), read only inside the drag-gesture handler — never from this
-/// view's `body` — so the caller (FileGridView/FileListView) never re-renders when a newly-visible
-/// lazy row updates the cell-frame dictionary during scrolling.
-/// Expects an ancestor `.coordinateSpace(name: coordinateSpaceName)`.
+// Drag-to-select marquee, background deselect, and the shared background context menu — used by List, Grid, and Column.
+// Draws the rect above the rows itself (this view must stay below them in z-order); needs an ancestor `.coordinateSpace(name: coordinateSpaceName)`.
 struct SelectionRectangleOverlay: View {
     var appState: AppState
     var coordinateSpaceName: String
     var minWidth: CGFloat?
     @Binding var selectionRect: CGRect?
+    // A closure, not a value, so it's only read on drag — never during body — to avoid re-rendering on every frame update.
+    var cellFramesProvider: () -> [URL: CGRect]
 
     @Environment(WindowUIState.self)
     private var windowUIState
     @State private var dragStartPoint: CGPoint?
-
-    private var cellFrames: [URL: CGRect] {
-        coordinateSpaceName == "gridContainer" ? appState.selection.gridCellFrames : appState.selection.listCellFrames
-    }
 
     var body: some View {
         Color(NSColor.controlBackgroundColor).opacity(0.001)
@@ -82,7 +73,7 @@ struct SelectionRectangleOverlay: View {
 
     private func applySelection(matching rect: CGRect) {
         var matched = Set<URL>()
-        for (url, frame) in cellFrames where frame.intersects(rect) {
+        for (url, frame) in cellFramesProvider() where frame.intersects(rect) {
             matched.insert(url)
         }
         let resolved: Set<URL>
