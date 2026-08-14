@@ -9,8 +9,6 @@ struct FileColumnView: View {
     @State private var columns: [ColumnData] = []
     @State private var activeColumnIndex: Int = 0
     @State private var loadTask: Task<Void, Never>?
-    @State private var columnCellFrames: [Int: [URL: CGRect]] = [:]
-    @State private var columnSelectionRects: [Int: CGRect] = [:]
 
     var body: some View {
         if appState.isSearching && !appState.searchQuery.isEmpty {
@@ -113,38 +111,30 @@ struct FileColumnView: View {
     }
 
     private func columnItemsScrollView(for column: ColumnData, index: Int) -> some View {
-        let coordinateSpaceName = "columnContainer-\(index)"
-        return ScrollViewReader { proxy in
+        ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: true) {
                 ZStack(alignment: .topLeading) {
-                    SelectionRectangleOverlay(
-                        appState: appState,
-                        coordinateSpaceName: coordinateSpaceName,
-                        minWidth: 220,
-                        selectionRect: selectionRectBinding(for: index),
-                        cellFramesProvider: { columnCellFrames[index] ?? [:] }
-                    )
+                    Color.clear
+                        .frame(minWidth: 220, minHeight: 1)
+                        .contentShape(Rectangle())
+                        .overlay(
+                            RightClickDetector {
+                                appState.selectedURLs.removeAll()
+                                windowUIState.renameItem = nil
+                            }
+                        )
+                        .contextMenu {
+                            SharedBackgroundContextMenu(appState: appState, targetFolderURL: column.folderURL)
+                        }
                     columnItemsList(for: column, index: index)
-                    SelectionRectangleOverlay.rectangleOverlay(columnSelectionRects[index])
-                }
-                .coordinateSpace(name: coordinateSpaceName)
-                .onPreferenceChange(URLFrameKey.self) { frames in
-                    columnCellFrames[index] = frames
                 }
             }
             .onChange(of: appState.fileSystem.renamingURL) { _, newURL in
                 guard let newURL, newURL.deletingLastPathComponent().standardizedFileURL == column.folderURL.standardizedFileURL else { return }
-                proxy.scrollTo("top", anchor: .top)
+                scrollToTopAnimated(proxy)
             }
         }
         .background(ScrollerAutoHideSetter())
-    }
-
-    private func selectionRectBinding(for index: Int) -> Binding<CGRect?> {
-        Binding(
-            get: { columnSelectionRects[index] },
-            set: { columnSelectionRects[index] = $0 }
-        )
     }
 
     @ViewBuilder
@@ -239,6 +229,10 @@ struct FileColumnView: View {
                 )
                 await MainActor.run {
                     guard index < columns.count, columns[index].folderURL == column.folderURL else { return }
+                    if let renamingURL = appState.fileSystem.renamingURL,
+                       renamingURL.deletingLastPathComponent().standardizedFileURL == column.folderURL.standardizedFileURL {
+                        return
+                    }
                     columns[index].items = items
                 }
             }

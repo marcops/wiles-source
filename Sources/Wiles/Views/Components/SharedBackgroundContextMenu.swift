@@ -3,15 +3,19 @@ import AppKit
 
 struct SharedBackgroundContextMenu: View {
     var appState: AppState
+    /// Overrides `appState.navigation.currentURL` as the New Folder/File creation location —
+    /// Column view passes the specific column that was right-clicked, since it can show several
+    /// folders at once, none of which need to be the current one.
+    var targetFolderURL: URL? = nil
     @Environment(WindowUIState.self)
     private var windowUIState
 
     var body: some View {
         Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
-            appState.createNewFolderAndRename(windowUIState: windowUIState)
+            appState.createNewFolderAndRename(in: targetFolderURL, windowUIState: windowUIState)
         }
         Button(appState.tr(.newFileTitle)) {
-            appState.createNewFileAndRename(windowUIState: windowUIState)
+            appState.createNewFileAndRename(in: targetFolderURL, windowUIState: windowUIState)
         }
         if appState.clipboard != nil {
             Button("\(appState.tr(.paste)) (Cmd+V)") {

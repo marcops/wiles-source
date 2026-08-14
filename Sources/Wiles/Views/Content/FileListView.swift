@@ -32,24 +32,7 @@ struct FileListView: View {
             lastWindowWidth = geometry.size.width
             FileListHeaderView.adjustNameColumnWidth(for: geometry.size.width, appState: appState)
         }
-        .background(backgroundContextMenuLayer)
-    }
-
-    /// The full-pane right-click surface: clears selection/rename on background right-click and
-    /// shows the shared background context menu. Extracted so it's a computed property (not a
-    /// closure) and doesn't count toward `closure_body_length` on the enclosing view chain.
-    private var backgroundContextMenuLayer: some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .overlay(
-                RightClickDetector {
-                    appState.selectedURLs.removeAll()
-                    windowUIState.renameItem = nil
-                }
-            )
-            .contextMenu {
-                SharedBackgroundContextMenu(appState: appState)
-            }
+        .background(BackgroundContextMenuLayer(appState: appState))
     }
 
     @ViewBuilder
@@ -57,14 +40,7 @@ struct FileListView: View {
         ScrollView([.horizontal, .vertical]) {
             listScrollViewBody(geometry: geometry)
         }
-        .onChange(of: appState.navigation.currentURL) { _, _ in
-            visibleLimit = LayoutTokens.paginationThreshold
-        }
-        .onChange(of: appState.fileSystem.items) { _, newItems in
-            if newItems.count > 500 {
-                ThumbnailService.shared.prefetchThumbnails(for: newItems, size: 36)
-            }
-        }
+        .resetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: $visibleLimit, thumbnailIconSize: 36)
         .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
         .background(ScrollerAutoHideSetter())
     }
@@ -128,11 +104,6 @@ struct FileListView: View {
         }
         .padding(.horizontal, 10)
         .padding(.bottom, 10)
-        .onAppear {
-            if appState.fileSystem.items.count > 500 {
-                ThumbnailService.shared.prefetchThumbnails(for: appState.fileSystem.items, size: 36)
-            }
-        }
     }
 
     @ViewBuilder

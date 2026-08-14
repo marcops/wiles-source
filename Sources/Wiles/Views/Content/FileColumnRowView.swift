@@ -45,11 +45,6 @@ struct FileColumnRowView: View {
         .hoverHighlight(isSelected: isSelected, cornerRadius: 4)
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(key: URLFrameKey.self, value: [item.url: geo.frame(in: .named("columnContainer-\(columnIndex)"))])
-            }
-        )
         .accessibilityLabel(item.name)
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])

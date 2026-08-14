@@ -35,25 +35,8 @@ struct FileGridView: View {
         ScrollViewReader { proxy in
             gridScrollViewReaderContent(geometry: geometry, proxy: proxy)
         }
-        .background(backgroundContextMenuLayer)
+        .background(BackgroundContextMenuLayer(appState: appState))
         .background(ScrollerAutoHideSetter())
-    }
-
-    /// The full-pane right-click surface: clears selection/rename on background right-click and
-    /// shows the shared background context menu. Extracted so it's a computed property (not a
-    /// closure) and doesn't count toward `closure_body_length` on the enclosing view chain.
-    private var backgroundContextMenuLayer: some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .overlay(
-                RightClickDetector {
-                    appState.selectedURLs.removeAll()
-                    windowUIState.renameItem = nil
-                }
-            )
-            .contextMenu {
-                SharedBackgroundContextMenu(appState: appState)
-            }
     }
 
     @ViewBuilder
@@ -61,14 +44,7 @@ struct FileGridView: View {
         ScrollView {
             gridScrollViewBody(geometry: geometry)
         }
-        .onChange(of: appState.navigation.currentURL) { _, _ in
-            visibleLimit = LayoutTokens.paginationThreshold
-        }
-        .onChange(of: appState.fileSystem.items) { _, newItems in
-            if newItems.count > 500 {
-                ThumbnailService.shared.prefetchThumbnails(for: newItems, size: iconSize)
-            }
-        }
+        .resetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: $visibleLimit, thumbnailIconSize: iconSize)
         .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
         .background(ScrollerAutoHideSetter())
     }
@@ -126,11 +102,6 @@ struct FileGridView: View {
             gridItems(visibleItems: visibleItems, paginate: paginate)
         }
         .padding(16)
-        .onAppear {
-            if appState.fileSystem.items.count > 500 {
-                ThumbnailService.shared.prefetchThumbnails(for: appState.fileSystem.items, size: iconSize)
-            }
-        }
     }
 
     @ViewBuilder

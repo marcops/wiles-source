@@ -203,33 +203,38 @@ extension AppState {
         windowUIState.isEditingPath = true
     }
 
-    public func createNewFolderAndRename(windowUIState: WindowUIState) {
+    public func createNewFolderAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
+        let targetFolder = folder ?? navigation.currentURL
         do {
             let createdURL = try FileSystemService.createUniqueDirectory(
-                at: navigation.currentURL, baseName: tr(.defaultFolderName))
-            enterRenameForNewlyCreated(at: createdURL, windowUIState: windowUIState)
+                at: targetFolder, baseName: tr(.defaultFolderName))
+            enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
         } catch {
             showError(error.localizedDescription)
         }
     }
 
-    public func createNewFileAndRename(windowUIState: WindowUIState) {
+    public func createNewFileAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
+        let targetFolder = folder ?? navigation.currentURL
         do {
             let createdURL = try NewFileTemplateService.createTemplateFile(
-                in: navigation.currentURL, fileName: "", template: .text)
-            enterRenameForNewlyCreated(at: createdURL, windowUIState: windowUIState)
+                in: targetFolder, fileName: "", template: .text)
+            enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
         } catch {
             showError(error.localizedDescription)
         }
     }
 
-    private func enterRenameForNewlyCreated(at url: URL, windowUIState: WindowUIState) {
-        DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
-        fileSystem.renamingURL = url
+    // Column view creates items in whichever column was right-clicked, not necessarily
+    // `navigation.currentURL` — only touch `fileSystem.items` when they're the same folder.
+    private func enterRenameForNewlyCreated(at url: URL, inFolder: URL, windowUIState: WindowUIState) {
         let newItem = FileItem(url: url)
-        fileSystem.items.insert(newItem, at: 0)
+        fileSystem.renamingURL = url
         selectedURLs = [url]
         windowUIState.renameItem = newItem
+        guard inFolder.standardizedFileURL == navigation.currentURL.standardizedFileURL else { return }
+        DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
+        fileSystem.items.insert(newItem, at: 0)
     }
 
     public func toggleSearching() {

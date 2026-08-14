@@ -32,7 +32,12 @@ struct InlineRenameField: View {
             )
             .onAppear {
                 text = item.name
-                isFocused = true
+                // Deferred a tick: right after a context-menu action (e.g. New Folder), the
+                // menu is still returning key focus to the window — requesting focus in the
+                // same run-loop turn loses that race and the field appears but isn't typable.
+                Task { @MainActor in
+                    isFocused = true
+                }
             }
             .onKeyPress(phases: .down) { keyPress in
                 // A vertical-axis TextField treats Return as a newline instead of submitting, and
