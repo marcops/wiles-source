@@ -46,6 +46,7 @@ struct FileGridView: View {
         }
         .resetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: $visibleLimit, thumbnailIconSize: iconSize)
         .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
+        .scrollToLastMovedSelection(appState: appState, proxy: proxy)
         .background(ScrollerAutoHideSetter())
     }
 

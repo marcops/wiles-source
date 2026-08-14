@@ -91,7 +91,7 @@ struct FileColumnView: View {
             drillRightFromSelection()
         }
         .onChange(of: appState.selection.columnViewVerticalTrigger) { _, _ in
-            moveVerticalSelection(by: appState.selection.columnViewVerticalDirection)
+            moveVerticalSelection(by: appState.selection.columnViewVerticalDirection, isShift: appState.selection.columnViewVerticalIsShift)
         }
         .onChange(of: appState.selection.columnViewMoveLeftTrigger) { _, _ in
             moveLeftFromSelection()
@@ -133,6 +133,7 @@ struct FileColumnView: View {
                 guard let newURL, newURL.deletingLastPathComponent().standardizedFileURL == column.folderURL.standardizedFileURL else { return }
                 scrollToTopAnimated(proxy)
             }
+            .scrollToLastMovedSelection(appState: appState, proxy: proxy)
         }
         .background(ScrollerAutoHideSetter())
     }
@@ -250,7 +251,7 @@ struct FileColumnView: View {
         }
     }
 
-    private func moveVerticalSelection(by offset: Int) {
+    private func moveVerticalSelection(by offset: Int, isShift: Bool) {
         guard activeColumnIndex < columns.count else { return }
         let col = columns[activeColumnIndex]
         guard !col.items.isEmpty else { return }
@@ -260,10 +261,28 @@ struct FileColumnView: View {
             selectItem(item: col.items[startIndex], columnIndex: activeColumnIndex)
             return
         }
-        let targetIndex = max(0, min(col.items.count - 1, currentIndex + offset))
-        let targetItem = col.items[targetIndex]
 
-        selectItem(item: targetItem, columnIndex: activeColumnIndex)
+        if isShift {
+            let anchorURL = appState.selection.keyboardSelectionAnchorURL ?? col.selectedURL
+            let anchorIndex = col.items.firstIndex(where: { $0.url == anchorURL }) ?? currentIndex
+            appState.selection.keyboardSelectionAnchorURL = col.items[anchorIndex].url
+
+            let selectedIndices = appState.selectedURLs.compactMap { url in col.items.firstIndex(where: { $0.url == url }) }
+            let cursorIndex = selectedIndices.max(by: { abs($0 - anchorIndex) < abs($1 - anchorIndex) }) ?? currentIndex
+
+            let newIndex = max(0, min(col.items.count - 1, cursorIndex + offset))
+            let lo = min(anchorIndex, newIndex)
+            let hi = max(anchorIndex, newIndex)
+            appState.selectedURLs = Set(col.items[lo...hi].map { $0.url })
+            columns[activeColumnIndex].selectedURL = col.items[newIndex].url
+            appState.selection.lastMovedURL = col.items[newIndex].url
+        } else {
+            let targetIndex = max(0, min(col.items.count - 1, currentIndex + offset))
+            let targetItem = col.items[targetIndex]
+            appState.selection.keyboardSelectionAnchorURL = targetItem.url
+            appState.selection.lastMovedURL = targetItem.url
+            selectItem(item: targetItem, columnIndex: activeColumnIndex)
+        }
     }
 
     private func moveLeftFromSelection() {
@@ -279,6 +298,7 @@ struct FileColumnView: View {
 
     private func selectItem(item: FileItem, columnIndex: Int, autoSelectFirst: Bool = false) {
         appState.selectedURLs = [item.url]
+        appState.selection.keyboardSelectionAnchorURL = item.url
         columns[columnIndex].selectedURL = item.url
 
         guard item.isDirectory else {

@@ -160,6 +160,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             case .up:
                 if appState.preferences.viewMode == .column {
                     appState.selection.columnViewVerticalDirection = -1
+                    appState.selection.columnViewVerticalIsShift = isShift
                     appState.selection.columnViewVerticalTrigger += 1
                 } else {
                     let offset = appState.preferences.viewMode == .grid ? -appState.selection.gridColumnCount : -1
@@ -168,6 +169,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             case .down:
                 if appState.preferences.viewMode == .column {
                     appState.selection.columnViewVerticalDirection = 1
+                    appState.selection.columnViewVerticalIsShift = isShift
                     appState.selection.columnViewVerticalTrigger += 1
                 } else {
                     let offset = appState.preferences.viewMode == .grid ? appState.selection.gridColumnCount : 1
@@ -230,19 +232,34 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             return false
         }
 
+        // `selectedURLs` is a `Set` (no stable order), so `.first` can only ever stand in for
+        // "the current item" when the set holds exactly one element — true for a plain move, but
+        // not once Shift has grown the selection to a range. For a Shift move, the moving end of
+        // that range is derived instead: whichever selected index sits farthest from the anchor.
         private func moveSelection(by offset: Int, isShift: Bool, appState: AppState) {
             let items = appState.fileSystem.items
             guard !items.isEmpty else { return }
-            let anchorURL = appState.selectedURLs.first
-            let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? -1
-            let newIndex = max(0, min(items.count - 1, anchorIndex + offset))
-            let newURL = items[newIndex].url
-            if isShift && anchorIndex >= 0 {
+
+            if isShift {
+                let anchorURL = appState.selection.keyboardSelectionAnchorURL ?? appState.selectedURLs.first
+                let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? 0
+                appState.selection.keyboardSelectionAnchorURL = items[anchorIndex].url
+
+                let selectedIndices = appState.selectedURLs.compactMap { url in items.firstIndex(where: { $0.url == url }) }
+                let cursorIndex = selectedIndices.max(by: { abs($0 - anchorIndex) < abs($1 - anchorIndex) }) ?? anchorIndex
+
+                let newIndex = max(0, min(items.count - 1, cursorIndex + offset))
                 let lo = min(anchorIndex, newIndex)
                 let hi = max(anchorIndex, newIndex)
                 appState.selectedURLs = Set(items[lo...hi].map { $0.url })
+                appState.selection.lastMovedURL = items[newIndex].url
             } else {
+                let currentIndex = items.firstIndex(where: { $0.url == appState.selectedURLs.first }) ?? -1
+                let newIndex = max(0, min(items.count - 1, currentIndex + offset))
+                let newURL = items[newIndex].url
+                appState.selection.keyboardSelectionAnchorURL = newURL
                 appState.selectedURLs = [newURL]
+                appState.selection.lastMovedURL = newURL
             }
         }
 

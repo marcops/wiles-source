@@ -11,6 +11,7 @@ extension AppState {
             }
         } else {
             selectedURLs = [item.url]
+            selection.keyboardSelectionAnchorURL = item.url
         }
     }
 }

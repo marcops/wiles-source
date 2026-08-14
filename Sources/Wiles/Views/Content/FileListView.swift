@@ -42,6 +42,7 @@ struct FileListView: View {
         }
         .resetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: $visibleLimit, thumbnailIconSize: 36)
         .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
+        .scrollToLastMovedSelection(appState: appState, proxy: proxy)
         .background(ScrollerAutoHideSetter())
     }
 
