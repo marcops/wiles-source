@@ -1,10 +1,10 @@
 import XCTest
 @testable import Wiles
 
-// Wires every existing hand-rolled test suite (Navigation/, FileSystem/, Services/, UI/)
-// into real XCTest test methods so `swift test`, code coverage, and Xcode's Test
-// navigator all see and run them. Each suite's own positive/negative assertions
-// are untouched — TestReporter.report now calls XCTFail on failure.
+/// Wires every existing hand-rolled test suite (Navigation/, FileSystem/, Services/, UI/)
+/// into real XCTest test methods so `swift test`, code coverage, and Xcode's Test
+/// navigator all see and run them. Each suite's own positive/negative assertions
+/// are untouched — TestReporter.report now calls XCTFail on failure.
 final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testNavigationTests() {

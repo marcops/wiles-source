@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ICloudTests {
@@ -13,7 +13,6 @@ public struct ICloudTests {
         TestReporter.report("iCloudStatus", "POS: FileItem parses isUbiquitous properties", result: item.isUbiquitous == false || item.isUbiquitous == true)
         TestReporter.report(
             "iCloudStatus", "POS: FileItem parses isUbiquitousNotDownloaded",
-            result: item.isUbiquitousNotDownloaded == false || item.isUbiquitousNotDownloaded == true
-        )
+            result: item.isUbiquitousNotDownloaded == false || item.isUbiquitousNotDownloaded == true)
     }
 }

@@ -12,8 +12,9 @@
 --importgrouping testable-bottom
 --semicolons never
 --trimwhitespace always
---commas always
+--trailing-commas never
 --elseposition same-line
 --guardelse auto
 --emptybraces spaced
 --ranges spaced
+--disable wrapMultilineStatementBraces

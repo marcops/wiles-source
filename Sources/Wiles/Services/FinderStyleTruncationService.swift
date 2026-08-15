@@ -29,8 +29,7 @@ public enum FinderStyleTruncationService {
         let attributed = NSAttributedString(string: text, attributes: [.font: font])
         let bounding = attributed.boundingRect(
             with: CGSize(width: maxWidth, height: .greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading]
-        )
+            options: [.usesLineFragmentOrigin, .usesFontLeading])
         let lineHeight = lineHeight(for: font)
         guard lineHeight > 0 else { return 1 }
         // Subtract a small epsilon before dividing so floating-point imprecision on a height that

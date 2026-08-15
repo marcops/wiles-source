@@ -1,11 +1,14 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct PreferencesStoreTests {
     public static func run() {
         let store = PreferencesStore()
-        report("Store/PreferencesStore", "POS: iconSize is within valid bounds", result: store.iconSize >= IconSizeToken.minSize && store.iconSize <= IconSizeToken.maxSize)
+        report(
+            "Store/PreferencesStore",
+            "POS: iconSize is within valid bounds",
+            result: store.iconSize >= IconSizeToken.minSize && store.iconSize <= IconSizeToken.maxSize)
 
         let initialHidden = store.showHiddenFiles
         defer { store.showHiddenFiles = initialHidden }
@@ -45,8 +48,7 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: a saved iconSize within IconSizeToken bounds is restored on init",
-            result: store.iconSize == validSize
-        )
+            result: store.iconSize == validSize)
     }
 
     // MARK: - favoriteURLs default fallback when nothing saved
@@ -76,8 +78,7 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: favoriteURLs falls back to the existing Desktop/Documents/Downloads defaults when no saved array exists",
-            result: store.favoriteURLs == expectedCandidates
-        )
+            result: store.favoriteURLs == expectedCandidates)
     }
 
     // MARK: - showDirectoryTree persistence
@@ -107,8 +108,7 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: showDirectoryTree persists to UserDefaults and is restored by a freshly-constructed PreferencesStore",
-            result: reloaded.showDirectoryTree == !defaultValue
-        )
+            result: reloaded.showDirectoryTree == !defaultValue)
 
         // Flip back and restore the real prior value so a real user's setting isn't clobbered.
         store.showDirectoryTree = defaultValue
@@ -137,15 +137,14 @@ public struct PreferencesStoreTests {
         let store = PreferencesStore()
         store.expandedTreePaths = []
 
-        let overCapInOneShot = Set((0..<600).map { "/tmp/wiles-test-onshot-\($0)-\(UUID().uuidString)" })
+        let overCapInOneShot = Set((0 ..< 600).map { "/tmp/wiles-test-onshot-\($0)-\(UUID().uuidString)" })
         store.expandedTreePaths = overCapInOneShot
         report(
             "Store/PreferencesStore",
             "NEG: assigning a 600-entry set to expandedTreePaths in one shot is rejected (reverts to the prior value) since it exceeds the 500 cap",
-            result: store.expandedTreePaths.isEmpty
-        )
+            result: store.expandedTreePaths.isEmpty)
 
-        for i in 0..<510 {
+        for i in 0 ..< 510 {
             var updated = store.expandedTreePaths
             updated.insert("/tmp/wiles-test-incremental-\(i)")
             store.expandedTreePaths = updated
@@ -153,8 +152,7 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: inserting one path at a time past the cap stops growing expandedTreePaths once it reaches 500",
-            result: store.expandedTreePaths.count == 500
-        )
+            result: store.expandedTreePaths.count == 500)
 
         // Restore in-memory + reschedule the pending debounced save with the real prior data (see doc comment above).
         store.expandedTreePaths = Set(priorArray ?? [])
@@ -175,20 +173,18 @@ public struct PreferencesStoreTests {
             }
         }
 
-        let oversizedSaved = (0..<600).map { "/tmp/wiles-test-saved-\($0)" }
+        let oversizedSaved = (0 ..< 600).map { "/tmp/wiles-test-saved-\($0)" }
         UserDefaults.standard.set(oversizedSaved, forKey: key)
 
         let store = PreferencesStore()
         report(
             "Store/PreferencesStore",
             "POS: loading a saved expandedTreePaths array of 600 entries truncates to the 500 cap on init",
-            result: store.expandedTreePaths.count == 500
-        )
+            result: store.expandedTreePaths.count == 500)
         report(
             "Store/PreferencesStore",
             "NEG: loading an oversized saved set does not silently drop to empty",
-            result: !store.expandedTreePaths.isEmpty
-        )
+            result: !store.expandedTreePaths.isEmpty)
 
         // The freshly-constructed store's didSet just scheduled a debounced save of the truncated
         // 500-entry set; overwrite with the real prior value so that pending write, whenever it fires,

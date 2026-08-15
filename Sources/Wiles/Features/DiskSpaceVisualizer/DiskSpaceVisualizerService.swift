@@ -1,7 +1,7 @@
-import Foundation
 import AppKit
+import Foundation
 
-public final class DiskSpaceVisualizerService {
+public enum DiskSpaceVisualizerService {
     /// Guardrail: stop enumerating a folder's contents after this many files to keep scans fast.
     private static let maxScannedFileCount = 5000
 
@@ -21,7 +21,10 @@ public final class DiskSpaceVisualizerService {
         // `CancellationError` promptly instead of running to completion.
         let scanTask = Task.detached(priority: .userInitiated) { () throws -> DiskUsageReport in
             let fm = FileManager.default
-            guard let contents = try? fm.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey], options: [.skipsHiddenFiles]) else {
+            guard let contents = try? fm.contentsOfDirectory(
+                at: folderURL,
+                includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
+                options: [.skipsHiddenFiles]) else {
                 return DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
             }
 
@@ -35,13 +38,13 @@ public final class DiskSpaceVisualizerService {
         }
 
         return await withTaskCancellationHandler {
-            (try? await scanTask.value) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
+            await (try? scanTask.value) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
         } onCancel: {
             scanTask.cancel()
         }
     }
 
-    private static func collectRawItems(in contents: [URL], fm: FileManager) throws -> [RawItem] {
+    private static func collectRawItems(in contents: [URL], fm _: FileManager) throws -> [RawItem] {
         var rawItems: [RawItem] = []
         for itemURL in contents {
             try Task.checkCancellation()
@@ -78,7 +81,13 @@ public final class DiskSpaceVisualizerService {
             let othersTotalSize = othersSlice.reduce(0) { $0 + $1.size }
             let pct = (Double(othersTotalSize) / Double(grandTotal)) * 100.0
             let dummyURL = folderURL.appendingPathComponent("Others (\(othersSlice.count))")
-            othersItem = DiskUsageItem(url: dummyURL, name: "Others (\(othersSlice.count) items)", size: othersTotalSize, percentage: pct, isDirectory: true, colorHue: 0.0)
+            othersItem = DiskUsageItem(
+                url: dummyURL,
+                name: "Others (\(othersSlice.count) items)",
+                size: othersTotalSize,
+                percentage: pct,
+                isDirectory: true,
+                colorHue: 0.0)
         }
 
         return DiskUsageReport(totalSize: grandTotal, topItems: formattedTopItems, othersItem: othersItem)
@@ -86,7 +95,8 @@ public final class DiskSpaceVisualizerService {
 
     private static func computeFolderSizeFast(folderURL: URL) throws -> Int64 {
         let fm = FileManager.default
-        guard let enumerator = fm.enumerator(at: folderURL, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) else {
+        guard let enumerator = fm.enumerator(at: folderURL, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles, .skipsPackageDescendants])
+        else {
             return 0
         }
         var total: Int64 = 0
@@ -97,7 +107,9 @@ public final class DiskSpaceVisualizerService {
                 total += Int64(fileSize)
             }
             count += 1
-            if count > maxScannedFileCount { break }
+            if count > maxScannedFileCount {
+                break
+            }
         }
         return total
     }

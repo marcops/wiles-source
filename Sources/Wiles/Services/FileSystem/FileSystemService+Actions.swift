@@ -1,9 +1,9 @@
-import Foundation
 import AppKit
+import Foundation
 
-extension FileSystemService {
+public extension FileSystemService {
     @discardableResult
-    public static func moveItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
+    static func moveItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
         let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
 
         // If the destination is the exact same path as the source (moving an item to the folder
@@ -23,7 +23,7 @@ extension FileSystemService {
     }
 
     @discardableResult
-    public static func copyItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
+    static func copyItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
         let destURL = uniqueDestination(for: url.lastPathComponent, in: targetFolder)
         try FileManager.default.copyItem(at: url, to: destURL)
         return destURL
@@ -48,21 +48,21 @@ extension FileSystemService {
     }
 
     @discardableResult
-    public static func moveToTrash(url: URL) throws -> URL {
+    static func moveToTrash(url: URL) throws -> URL {
         var trashedURL: NSURL?
         try FileManager.default.trashItem(at: url, resultingItemURL: &trashedURL)
         return (trashedURL as URL?) ?? url
     }
 
     @discardableResult
-    public static func renameItem(at url: URL, newName: String) throws -> URL {
+    static func renameItem(at url: URL, newName: String) throws -> URL {
         let destURL = url.deletingLastPathComponent().appendingPathComponent(newName)
         try FileManager.default.moveItem(at: url, to: destURL)
         return destURL
     }
 
     @discardableResult
-    public static func createDirectory(at parentURL: URL, name: String) throws -> URL {
+    static func createDirectory(at parentURL: URL, name: String) throws -> URL {
         let newURL = parentURL.appendingPathComponent(name)
         try FileManager.default.createDirectory(at: newURL, withIntermediateDirectories: false)
         return newURL
@@ -71,7 +71,7 @@ extension FileSystemService {
     /// Like `createDirectory`, but appends " 2", " 3", ... to `baseName` until it finds a free
     /// name — for the "New Folder" action, which creates immediately instead of prompting first.
     @discardableResult
-    public static func createUniqueDirectory(at parentURL: URL, baseName: String) throws -> URL {
+    static func createUniqueDirectory(at parentURL: URL, baseName: String) throws -> URL {
         var candidate = parentURL.appendingPathComponent(baseName)
         var counter = 2
         while FileManager.default.fileExists(atPath: candidate.path) {
@@ -82,18 +82,18 @@ extension FileSystemService {
         return candidate
     }
 
-    public static func writeToPasteboard(urls: [URL]) {
+    static func writeToPasteboard(urls: [URL]) {
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.writeObjects(urls as [NSURL])
     }
 
-    public static func readFromPasteboard() -> [URL]? {
+    static func readFromPasteboard() -> [URL]? {
         let pb = NSPasteboard.general
         return pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL]
     }
 
-    public static func copyFileContentToClipboard(url: URL) {
+    static func copyFileContentToClipboard(url: URL) {
         // Reading the file (up to 10MB) can stall for seconds on a slow or stalled
         // network/SMB mount. Perform the read off the main actor and round-trip only the
         // resulting string back, mirroring the /Volumes slow-mount pattern used by
@@ -113,11 +113,11 @@ extension FileSystemService {
         }
     }
 
-    public static func compressToZIP(urls: [URL], in destinationFolder: URL) throws {
+    static func compressToZIP(urls: [URL], in destinationFolder: URL) throws {
         try ZipArchiveService.compressToZIP(urls: urls, in: destinationFolder)
     }
 
-    public static func extractZIP(archiveURL: URL, to destinationFolder: URL) throws {
+    static func extractZIP(archiveURL: URL, to destinationFolder: URL) throws {
         try ZipArchiveService.extractZIP(archiveURL: archiveURL, to: destinationFolder)
     }
 }

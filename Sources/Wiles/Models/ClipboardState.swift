@@ -5,7 +5,7 @@ public struct ClipboardState: Sendable {
     public let action: ClipboardAction
 
     public init(urls: [URL], action: ClipboardAction) {
-        self.urls = urls.map { $0.standardizedFileURL }
+        self.urls = urls.map(\.standardizedFileURL)
         self.action = action
     }
 

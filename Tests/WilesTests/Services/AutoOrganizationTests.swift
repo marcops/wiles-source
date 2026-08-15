@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct AutoOrganizationTests {
@@ -25,8 +25,7 @@ public struct AutoOrganizationTests {
             destinationURL: targetDir,
             conditionType: .extensionEquals,
             conditionValue: "pdf",
-            isEnabled: true
-        )
+            isEnabled: true)
 
         let service = AutoOrganizationService.shared
         let oldRules = service.rules
@@ -49,7 +48,7 @@ public struct AutoOrganizationTests {
         // while the moved files still exist, so they don't poison later tests that also touch the
         // shared singleton — undoing a record after baseTemp is removed below would fail forever
         // under that service's retry-on-failure semantics, hanging whatever test runs next.
-        for _ in 0..<10 where UndoRedoService.shared.canUndo() {
+        for _ in 0 ..< 10 where UndoRedoService.shared.canUndo() {
             _ = try? await UndoRedoService.shared.undo()
         }
 
@@ -62,12 +61,17 @@ public struct AutoOrganizationTests {
     /// — poll for the expected outcome instead, up to a generous ceiling.
     private static func waitUntil(timeoutSeconds: Double = 2.0, _ condition: () -> Bool) async {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
-        while !condition() && Date() < deadline {
+        while !condition(), Date() < deadline {
             try? await Task.sleep(nanoseconds: 50_000_000)
         }
     }
 
-    private static func testActiveRuleExecution(service: AutoOrganizationService, matchingFile: URL, nonMatchingFile: URL, inputDir: URL, targetDir: URL) async {
+    private static func testActiveRuleExecution(
+        service: AutoOrganizationService,
+        matchingFile _: URL,
+        nonMatchingFile: URL,
+        inputDir: URL,
+        targetDir: URL) async {
         // Positive: Active Rule Execution
         service.processFolder(inputDir)
         let movedPDF = targetDir.appendingPathComponent("invoice.pdf")
@@ -101,16 +105,14 @@ public struct AutoOrganizationTests {
         let containsFile = inputDir.appendingPathComponent("draft_report.txt")
         try? "x".write(to: containsFile, atomically: true, encoding: .utf8)
         let containsRule = AutoOrganizationRule(
-            sourceURL: inputDir, destinationURL: targetDir, conditionType: .nameContains, conditionValue: "report", isEnabled: true
-        )
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .nameContains, conditionValue: "report", isEnabled: true)
         service.rules = [containsRule]
         service.processFolder(inputDir)
         try? await Task.sleep(nanoseconds: 300_000_000)
         TestReporter.report(
             "AutoOrganization",
             "POS: .nameContains rule matches a substring anywhere in the filename",
-            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("draft_report.txt").path)
-        )
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("draft_report.txt").path))
     }
 
     private static func testNamePrefixCondition(service: AutoOrganizationService, inputDir: URL, targetDir: URL) async {
@@ -118,16 +120,14 @@ public struct AutoOrganizationTests {
         let prefixFile = inputDir.appendingPathComponent("IMG_1234.jpg")
         try? "x".write(to: prefixFile, atomically: true, encoding: .utf8)
         let prefixRule = AutoOrganizationRule(
-            sourceURL: inputDir, destinationURL: targetDir, conditionType: .namePrefix, conditionValue: "img_", isEnabled: true
-        )
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .namePrefix, conditionValue: "img_", isEnabled: true)
         service.rules = [prefixRule]
         service.processFolder(inputDir)
         try? await Task.sleep(nanoseconds: 300_000_000)
         TestReporter.report(
             "AutoOrganization",
             "POS: .namePrefix rule matches case-insensitively",
-            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("IMG_1234.jpg").path)
-        )
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("IMG_1234.jpg").path))
     }
 
     /// Regression coverage for the N+1 fileExists fix: processFolder() now prefetches
@@ -144,8 +144,7 @@ public struct AutoOrganizationTests {
         try? "PDF".write(to: realFile, atomically: true, encoding: .utf8)
 
         let pdfRule = AutoOrganizationRule(
-            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true
-        )
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true)
         service.rules = [pdfRule]
 
         service.processFolder(inputDir)
@@ -156,12 +155,10 @@ public struct AutoOrganizationTests {
         FileManager.default.fileExists(atPath: trapDir.path, isDirectory: &dirIsStillADirectory)
         TestReporter.report(
             "AutoOrganization", "NEG: a directory whose name matches a rule's condition (e.g. \"archive.pdf/\") is never moved",
-            result: dirStillInPlace && dirIsStillADirectory.boolValue
-        )
+            result: dirStillInPlace && dirIsStillADirectory.boolValue)
         TestReporter.report(
             "AutoOrganization", "POS: a real matching file alongside the trap directory is still moved correctly",
-            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("statement.pdf").path)
-        )
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("statement.pdf").path))
 
         try? FileManager.default.removeItem(at: trapDir)
     }
@@ -179,8 +176,7 @@ public struct AutoOrganizationTests {
         try? "PDF".write(to: visibleMatchingFile, atomically: true, encoding: .utf8)
 
         let pdfRule = AutoOrganizationRule(
-            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true
-        )
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true)
         service.rules = [pdfRule]
 
         service.processFolder(inputDir)
@@ -190,12 +186,10 @@ public struct AutoOrganizationTests {
         TestReporter.report(
             "AutoOrganization", "NEG: a dotfile matching a rule's condition (e.g. \".secret.pdf\") is never moved",
             result: FileManager.default.fileExists(atPath: hiddenMatchingFile.path)
-                && !FileManager.default.fileExists(atPath: targetDir.appendingPathComponent(".secret.pdf").path)
-        )
+                && !FileManager.default.fileExists(atPath: targetDir.appendingPathComponent(".secret.pdf").path))
         TestReporter.report(
             "AutoOrganization", "POS: a real matching file alongside the dotfile is still moved correctly",
-            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("visible-alongside-hidden.pdf").path)
-        )
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("visible-alongside-hidden.pdf").path))
 
         try? FileManager.default.removeItem(at: hiddenMatchingFile)
     }
@@ -210,14 +204,13 @@ public struct AutoOrganizationTests {
         let growingFile = inputDir.appendingPathComponent("downloading.zip")
         FileManager.default.createFile(atPath: growingFile.path, contents: Data("start".utf8))
         let zipRule = AutoOrganizationRule(
-            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "zip", isEnabled: true
-        )
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "zip", isEnabled: true)
         service.rules = [zipRule]
 
         let writer = Task.detached(priority: .utility) {
             guard let handle = try? FileHandle(forWritingTo: growingFile) else { return }
             defer { try? handle.close() }
-            for _ in 0..<60 {
+            for _ in 0 ..< 60 {
                 handle.seekToEndOfFile()
                 handle.write(Data("chunk".utf8))
                 try? await Task.sleep(nanoseconds: 15_000_000)
@@ -232,8 +225,7 @@ public struct AutoOrganizationTests {
         let notYetInTarget = !FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("downloading.zip").path)
         TestReporter.report(
             "AutoOrganization", "NEG: processFolder() does not move a .zip file that's still actively growing",
-            result: stillInSourceWhileWriting && notYetInTarget
-        )
+            result: stillInSourceWhileWriting && notYetInTarget)
 
         await writer.value // let the writer finish so the file's size settles
         try? await Task.sleep(nanoseconds: 100_000_000) // let the filesystem settle after the last write
@@ -241,8 +233,7 @@ public struct AutoOrganizationTests {
         try? await Task.sleep(nanoseconds: 500_000_000)
         TestReporter.report(
             "AutoOrganization", "POS: processFolder() moves the same file once its size has stopped changing",
-            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("downloading.zip").path)
-        )
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("downloading.zip").path))
     }
 
     /// Regression coverage for the CPU-spin fix's other half: scheduleProcessFolder() (what the
@@ -253,8 +244,7 @@ public struct AutoOrganizationTests {
         let debouncedFile = inputDir.appendingPathComponent("debounced.pdf")
         try? "PDF".write(to: debouncedFile, atomically: true, encoding: .utf8)
         let pdfRule = AutoOrganizationRule(
-            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true
-        )
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true)
         service.rules = [pdfRule]
 
         // Simulate several rapid-fire .write events, as a large file being written would trigger.
@@ -265,16 +255,14 @@ public struct AutoOrganizationTests {
         try? await Task.sleep(nanoseconds: 150_000_000) // comfortably under the 500ms debounce interval
         TestReporter.report(
             "AutoOrganization", "NEG: scheduleProcessFolder() does not scan immediately (still debouncing)",
-            result: FileManager.default.fileExists(atPath: debouncedFile.path)
-        )
+            result: FileManager.default.fileExists(atPath: debouncedFile.path))
 
         // Past debounce (500ms) + the move's own stability check (150ms) + a generous margin for
         // system load (e.g. a concurrent build competing for CPU).
         try? await Task.sleep(nanoseconds: 900_000_000)
         TestReporter.report(
             "AutoOrganization", "POS: scheduleProcessFolder() eventually scans and moves the matching file once debouncing settles",
-            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("debounced.pdf").path)
-        )
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("debounced.pdf").path))
     }
 
     private static func testRuleMutationMethods(service: AutoOrganizationService, rule: AutoOrganizationRule) {
@@ -289,7 +277,10 @@ public struct AutoOrganizationTests {
         TestReporter.report("AutoOrganization", "POS: updateRule() replaces the rule with matching id", result: service.rules.first?.conditionValue == "docx")
 
         service.deleteRule(id: rule.id)
-        TestReporter.report("AutoOrganization", "POS: deleteRule() removes the rule with matching id", result: !service.rules.contains(where: { $0.id == rule.id }))
+        TestReporter.report(
+            "AutoOrganization",
+            "POS: deleteRule() removes the rule with matching id",
+            result: !service.rules.contains(where: { $0.id == rule.id }))
     }
 
     /// `startMonitoring()` is the public entry point apps call once at launch; it just forwards to
@@ -303,8 +294,7 @@ public struct AutoOrganizationTests {
         service.startMonitoring()
         TestReporter.report(
             "AutoOrganization", "POS: startMonitoring() can be called directly and leaves the current rules unchanged",
-            result: service.rules.map(\.id) == rulesBefore.map(\.id)
-        )
+            result: service.rules.map(\.id) == rulesBefore.map(\.id))
     }
 
     /// Covers the early-`return` branch in `processFolder()` when `contentsOfDirectory(at:...)`
@@ -314,8 +304,7 @@ public struct AutoOrganizationTests {
     private static func testProcessFolderOnNonexistentFolderReturnsEarly(service: AutoOrganizationService, targetDir: URL) {
         let missingDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let rule = AutoOrganizationRule(
-            sourceURL: missingDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true
-        )
+            sourceURL: missingDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true)
         service.rules = [rule]
 
         service.processFolder(missingDir)
@@ -323,7 +312,6 @@ public struct AutoOrganizationTests {
         TestReporter.report(
             "AutoOrganization",
             "NEG: processFolder() on a nonexistent source folder returns early without crashing and leaves rules intact",
-            result: service.rules.contains(where: { $0.id == rule.id })
-        )
+            result: service.rules.contains(where: { $0.id == rule.id }))
     }
 }

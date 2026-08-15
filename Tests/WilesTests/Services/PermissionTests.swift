@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public final class PermissionTests {
@@ -51,13 +51,19 @@ public final class PermissionTests {
         }
 
         defaults.removeObject(forKey: key)
-        TestReporter.report("Permission", "NEG: flag key absent after removeObject reads as false via bool(forKey:)", result: defaults.bool(forKey: key) == false)
+        TestReporter.report(
+            "Permission",
+            "NEG: flag key absent after removeObject reads as false via bool(forKey:)",
+            result: defaults.bool(forKey: key) == false)
 
         PermissionService.markFullDiskAccessPromptAsShown()
         TestReporter.report("Permission", "POS: markFullDiskAccessPromptAsShown sets the UserDefaults flag to true", result: defaults.bool(forKey: key) == true)
 
         PermissionService.resetInitialPermissionsFlag()
-        TestReporter.report("Permission", "POS: resetInitialPermissionsFlag removes the flag key entirely (object(forKey:) is nil)", result: defaults.object(forKey: key) == nil)
+        TestReporter.report(
+            "Permission",
+            "POS: resetInitialPermissionsFlag removes the flag key entirely (object(forKey:) is nil)",
+            result: defaults.object(forKey: key) == nil)
     }
 
     private static func testHasFullDiskAccessMatchesDirectCheck() {
@@ -83,12 +89,18 @@ public final class PermissionTests {
         let before = defaults.bool(forKey: key)
         PermissionService.requestInitialPermissions(language: .system)
         let after = defaults.bool(forKey: key)
-        TestReporter.report("Permission", "POS: requestInitialPermissions leaves the flag unchanged (still true) when already shown", result: before == true && after == true)
+        TestReporter.report(
+            "Permission",
+            "POS: requestInitialPermissions leaves the flag unchanged (still true) when already shown",
+            result: before == true && after == true)
     }
 
     private static func testSettingsDeepLinkURLComponents() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
-        TestReporter.report("Permission", "POS: settings deep link scheme parses as x-apple.systempreferences", result: url?.scheme == "x-apple.systempreferences")
+        TestReporter.report(
+            "Permission",
+            "POS: settings deep link scheme parses as x-apple.systempreferences",
+            result: url?.scheme == "x-apple.systempreferences")
         TestReporter.report("Permission", "POS: settings deep link query parses as Privacy_AllFiles", result: url?.query == "Privacy_AllFiles")
         TestReporter.report("Permission", "NEG: settings deep link scheme is not https", result: url?.scheme != "https")
     }
@@ -110,7 +122,6 @@ public final class PermissionTests {
         TestReporter.report(
             "Permission",
             "NEG: calling resetInitialPermissionsFlag twice on an already-absent key stays absent without crashing",
-            result: defaults.object(forKey: key) == nil
-        )
+            result: defaults.object(forKey: key) == nil)
     }
 }

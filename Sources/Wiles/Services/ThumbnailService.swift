@@ -2,9 +2,9 @@ import AppKit
 import QuickLookThumbnailing
 import UniformTypeIdentifiers
 
-// QLThumbnailRepresentation is a read-only result type we never mutate; mark it unchecked
-// Sendable so awaiting generateBestRepresentation(for:) can return it into MainActor context.
-extension QLThumbnailRepresentation: @retroactive @unchecked Sendable {}
+/// QLThumbnailRepresentation is a read-only result type we never mutate; mark it unchecked
+/// Sendable so awaiting generateBestRepresentation(for:) can return it into MainActor context.
+extension QLThumbnailRepresentation: @retroactive @unchecked Sendable { }
 
 /// Generates real image previews via QuickLookThumbnailing, replacing the generic file-type
 /// icon `NSWorkspace.icon(forFile:)` otherwise returns for every file regardless of its contents.
@@ -36,35 +36,36 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
         guard !item.fileExtension.isEmpty else { return false }
         guard let type = UTType(filenameExtension: item.fileExtension) else { return false }
         if type.conforms(to: .sourceCode) ||
-           type.conforms(to: .script) ||
-           type.conforms(to: .archive) ||
-           type.conforms(to: .folder) ||
-           type.conforms(to: .executable) {
+            type.conforms(to: .script) ||
+            type.conforms(to: .archive) ||
+            type.conforms(to: .folder) ||
+            type.conforms(to: .executable) {
             return false
         }
         return type.conforms(to: .image) ||
-               type.conforms(to: .movie) ||
-               type.conforms(to: .audiovisualContent) ||
-               type.conforms(to: .pdf) ||
-               type.conforms(to: .presentation)
+            type.conforms(to: .movie) ||
+            type.conforms(to: .audiovisualContent) ||
+            type.conforms(to: .pdf) ||
+            type.conforms(to: .presentation)
     }
 
-    public func cachedThumbnail(for url: URL, size: CGFloat) -> NSImage? {
+    public func cachedThumbnail(for url: URL, size _: CGFloat) -> NSImage? {
         cache.object(forKey: cacheKey(url: url))
     }
 
-    public func loadThumbnail(for url: URL, size: CGFloat) async -> NSImage? {
+    public func loadThumbnail(for url: URL, size _: CGFloat) async -> NSImage? {
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let key = cacheKey(url: url)
-        if let cached = cache.object(forKey: key) { return cached }
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
 
         let scale = NSScreen.main?.backingScaleFactor ?? 2.0
         let request = QLThumbnailGenerator.Request(
             fileAt: url,
             size: CGSize(width: Self.maxDimension, height: Self.maxDimension),
             scale: scale,
-            representationTypes: .thumbnail
-        )
+            representationTypes: .thumbnail)
         guard let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
             return nil
         }
@@ -82,7 +83,9 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
         prefetchTask?.cancel()
         prefetchTask = Task(priority: .userInitiated) { [weak self] in
             for item in eligibleItems {
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 _ = await self?.loadThumbnail(for: item.url, size: size)
             }
         }

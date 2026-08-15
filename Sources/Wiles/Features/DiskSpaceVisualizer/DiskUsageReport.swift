@@ -8,7 +8,7 @@ public struct DiskUsageReport: Sendable {
 
     public init(totalSize: Int64, topItems: [DiskUsageItem], othersItem: DiskUsageItem?) {
         self.totalSize = totalSize
-        self.formattedTotalSize = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
+        formattedTotalSize = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
         self.topItems = topItems
         self.othersItem = othersItem
     }

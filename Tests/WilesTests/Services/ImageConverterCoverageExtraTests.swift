@@ -1,8 +1,8 @@
-@testable import Wiles
-import Foundation
 import AppKit
 import CoreGraphics
+import Foundation
 import UniformTypeIdentifiers
+@testable import Wiles
 
 /// Continuation of `ImageConverterCoverageTests` — split out purely to stay under SwiftLint's
 /// 500-line file-length limit (see `AGENTS.md` rule 16's 1-to-1 file precedent already used for
@@ -28,8 +28,7 @@ public struct ImageConverterCoverageExtraTests {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         guard let context = CGContext(
             data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-            space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
+            space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
             fatalError("Failed to create CGContext for test fixture")
         }
         context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
@@ -65,16 +64,14 @@ public struct ImageConverterCoverageExtraTests {
         report(
             "ImageConverter",
             "POS: CustomCropRegion clamps an out-of-range normX to 1.0 and floors the derived normW",
-            result: region.normX == 1.0 && region.normW == 0.01 && region.normY == 0.5 && region.normH == 0.5
-        )
+            result: region.normX == 1.0 && region.normW == 0.01 && region.normY == 0.5 && region.normH == 0.5)
 
         // Negative normX/normY clamp to 0.0.
         let negativeRegion = CustomCropRegion(normX: -1.0, normY: -2.0, normW: 0.5, normH: 0.5)
         report(
             "ImageConverter",
             "NEG: CustomCropRegion clamps negative normX/normY to 0.0",
-            result: negativeRegion.normX == 0.0 && negativeRegion.normY == 0.0
-        )
+            result: negativeRegion.normX == 0.0 && negativeRegion.normY == 0.0)
     }
 
     private static func testCustomCropRegionClampsNormWidthAndHeightToRemainingSpace() {
@@ -83,16 +80,14 @@ public struct ImageConverterCoverageExtraTests {
         report(
             "ImageConverter",
             "POS: CustomCropRegion clamps oversized normW/normH to the remaining space from the origin",
-            result: region.normW == 0.5 && region.normH == 0.5
-        )
+            result: region.normW == 0.5 && region.normH == 0.5)
 
         // Negative normW/normH clamp up to the 0.01 floor.
         let flooredRegion = CustomCropRegion(normX: 0.2, normY: 0.3, normW: -5, normH: -5)
         report(
             "ImageConverter",
             "NEG: CustomCropRegion floors a negative normW/normH to 0.01",
-            result: flooredRegion.normW == 0.01 && flooredRegion.normH == 0.01
-        )
+            result: flooredRegion.normW == 0.01 && flooredRegion.normH == 0.01)
     }
 
     // MARK: - constrainedSize width-limited branch
@@ -111,8 +106,7 @@ public struct ImageConverterCoverageExtraTests {
         report(
             "ImageConverter",
             "POS: .max1080p on an ultra-wide image is width-constrained",
-            result: dims.width == 1920 && dims.height == 48
-        )
+            result: dims.width == 1920 && dims.height == 48)
     }
 
     // MARK: - Low-level rendering / writing failures

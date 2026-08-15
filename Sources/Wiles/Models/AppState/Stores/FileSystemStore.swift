@@ -10,7 +10,7 @@ public final class FileSystemStore {
     public var renamingURL: URL?
     private let directoryMonitor = DirectoryMonitor()
 
-    public init() {}
+    public init() { }
 
     public func startDirectoryMonitoring(for url: URL, refreshHandler: @escaping @Sendable () -> Void) {
         guard url.isFileURL else { return }

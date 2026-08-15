@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 import UniformTypeIdentifiers
 
 public final class OpenWithService: OpenWithServiceProtocol, Sendable {

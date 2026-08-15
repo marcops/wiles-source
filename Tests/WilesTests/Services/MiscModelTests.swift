@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct MiscModelTests {
@@ -63,7 +63,7 @@ public struct MiscModelTests {
         let children = root.children ?? []
         report("FolderNode", "POS: root has at least one visible top-level folder to inspect", result: !children.isEmpty)
 
-        let names = children.map { $0.name }
+        let names = children.map(\.name)
         let sortedNames = names.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
         report("FolderNode", "POS: root children are sorted by localizedStandardCompare ascending", result: names == sortedNames)
 
@@ -99,7 +99,10 @@ public struct MiscModelTests {
         // A root-level sibling that is NOT an ancestor of home should never have been recursed into.
         let firstHomeComponent = homeComponents[0]
         if let nonAncestorSibling = root.children?.first(where: { $0.name != firstHomeComponent }) {
-            report("FolderNode", "NEG: a root child unrelated to the home directory path is not auto-expanded (children stays nil)", result: nonAncestorSibling.children == nil)
+            report(
+                "FolderNode",
+                "NEG: a root child unrelated to the home directory path is not auto-expanded (children stays nil)",
+                result: nonAncestorSibling.children == nil)
         }
     }
 

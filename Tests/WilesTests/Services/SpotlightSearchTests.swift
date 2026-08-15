@@ -52,7 +52,7 @@ final class SpotlightSearchTests: XCTestCase {
         let home = FileManager.default.homeDirectoryForCurrentUser
 
         SpotlightSearchService.shared.searchFiles(matching: "Desktop", scopeURL: home) { results in
-            XCTAssertTrue(results.allSatisfy { $0.isFileURL })
+            XCTAssertTrue(results.allSatisfy(\.isFileURL))
             exp.fulfill()
         }
 

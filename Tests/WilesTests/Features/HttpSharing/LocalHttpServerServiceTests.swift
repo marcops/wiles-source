@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import Darwin
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct HttpSharingFeatureTests {
@@ -203,7 +203,10 @@ public struct HttpSharingFeatureTests {
            let httpResp = resp as? HTTPURLResponse {
             passed = httpResp.statusCode == 200
         }
-        report("Feature/HttpSharing", "POS: start(sharing:password:) with an empty string password does not require Authorization (treated as no password)", result: passed)
+        report(
+            "Feature/HttpSharing",
+            "POS: start(sharing:password:) with an empty string password does not require Authorization (treated as no password)",
+            result: passed)
 
         server.stop()
         await waitUntil { !server.isRunning }
@@ -288,7 +291,7 @@ public struct HttpSharingFeatureTests {
 
     private static func waitUntil(timeoutSeconds: Double = 1.0, _ condition: () -> Bool) async {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
-        while !condition() && Date() < deadline {
+        while !condition(), Date() < deadline {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
     }
@@ -331,8 +334,10 @@ public struct HttpSharingFeatureTests {
             let bytesRead = buf.withUnsafeMutableBufferPointer { ptr in
                 Darwin.recv(sock, ptr.baseAddress, ptr.count, 0)
             }
-            if bytesRead <= 0 { break }
-            data.append(contentsOf: buf[0..<bytesRead])
+            if bytesRead <= 0 {
+                break
+            }
+            data.append(contentsOf: buf[0 ..< bytesRead])
         }
         return data
     }

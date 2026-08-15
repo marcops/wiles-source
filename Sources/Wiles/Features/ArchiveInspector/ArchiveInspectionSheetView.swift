@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import GitBeacon
+import SwiftUI
 
 struct ArchiveInspectionSheetView: View {
     let archiveURL: URL

@@ -1,16 +1,16 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct SplitViewDividerSetter: NSViewRepresentable {
     let position: CGFloat
 
-    func makeNSView(context: Context) -> ApplierView {
+    func makeNSView(context _: Context) -> ApplierView {
         let view = ApplierView()
         view.position = position
         return view
     }
 
-    func updateNSView(_ nsView: ApplierView, context: Context) {
+    func updateNSView(_ nsView: ApplierView, context _: Context) {
         nsView.position = position
     }
 
@@ -18,7 +18,9 @@ struct SplitViewDividerSetter: NSViewRepresentable {
         var position: CGFloat = 0
         private var hasApplied = false
 
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+        override func hitTest(_: NSPoint) -> NSView? {
+            nil
+        }
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -39,7 +41,9 @@ struct SplitViewDividerSetter: NSViewRepresentable {
         private func enclosingSplitView() -> NSSplitView? {
             var view = superview
             while let current = view {
-                if let splitView = current as? NSSplitView { return splitView }
+                if let splitView = current as? NSSplitView {
+                    return splitView
+                }
                 view = current.superview
             }
             return nil

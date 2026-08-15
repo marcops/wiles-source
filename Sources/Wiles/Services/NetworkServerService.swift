@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 @MainActor
 public struct NetworkServerService {
@@ -10,11 +10,10 @@ public struct NetworkServerService {
         let trimmed = urlAddress.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        let fullAddress: String
-        if trimmed.contains("://") {
-            fullAddress = trimmed
+        let fullAddress: String = if trimmed.contains("://") {
+            trimmed
         } else {
-            fullAddress = "smb://\(trimmed)"
+            "smb://\(trimmed)"
         }
 
         guard let url = URL(string: fullAddress) else {

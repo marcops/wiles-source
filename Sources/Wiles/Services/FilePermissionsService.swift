@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 public final class FilePermissionsService: FilePermissionsServiceProtocol, Sendable {
     public static func getPermissions(for url: URL) -> POSIXPermissions? {

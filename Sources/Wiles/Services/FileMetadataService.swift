@@ -1,6 +1,6 @@
-import Foundation
-import CoreServices
 import AppKit
+import CoreServices
+import Foundation
 
 public actor FileMetadataService {
     public static let shared = FileMetadataService()
@@ -46,8 +46,7 @@ public actor FileMetadataService {
             posixPermissions: permsString,
             dimensions: dims,
             duration: duration,
-            kind: kind
-        )
+            kind: kind)
     }
 
     public func streamBatchProperties(for urls: [URL]) -> AsyncStream<DetailedFileProperties> {
@@ -59,7 +58,9 @@ public actor FileMetadataService {
                     // triggers onTermination below. Without this check, closing the properties
                     // sheet mid-scan would leave this loop reading disk metadata for the rest of
                     // the (possibly huge) URL list in the background, for nobody.
-                    if Task.isCancelled { break }
+                    if Task.isCancelled {
+                        break
+                    }
                     let props = fetchProperties(for: url)
                     continuation.yield(props)
                 }

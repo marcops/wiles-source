@@ -32,7 +32,7 @@ struct ImageConverterSheetView: View {
             Task.detached(priority: .userInitiated) {
                 let img = NSImage(contentsOf: url)
                 await MainActor.run {
-                    self.loadedNSImage = img
+                    loadedNSImage = img
                 }
             }
         }
@@ -113,7 +113,7 @@ struct ImageConverterSheetView: View {
             Text(appState.tr(.quality) + ":")
                 .font(.system(size: 12, weight: .semibold))
                 .frame(width: 130, alignment: .leading)
-            Slider(value: $quality, in: 0.1...1.0, step: 0.05)
+            Slider(value: $quality, in: 0.1 ... 1.0, step: 0.05)
             Text("\(Int(quality * 100))%")
                 .font(.system(size: 11, design: .monospaced))
                 .frame(width: 40)
@@ -134,8 +134,7 @@ struct ImageConverterSheetView: View {
                     targetFormat: targetFormat,
                     preset: preset,
                     cropPreset: cropPreset,
-                    quality: quality
-                )
+                    quality: quality)
                 dismiss()
             }
             .buttonStyle(.borderedProminent)

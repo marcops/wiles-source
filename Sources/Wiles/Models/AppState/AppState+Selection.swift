@@ -1,8 +1,8 @@
-import Foundation
 import AppKit
+import Foundation
 
-extension AppState {
-    public func handleSelection(for item: FileItem, extendSelection: Bool = false) {
+public extension AppState {
+    func handleSelection(for item: FileItem, extendSelection: Bool = false) {
         if extendSelection {
             if selectedURLs.contains(item.url) {
                 selectedURLs.remove(item.url)
@@ -15,7 +15,7 @@ extension AppState {
         }
     }
 
-    public func handleSelection(for item: FileItem) {
+    func handleSelection(for item: FileItem) {
         handleSelection(for: item, modifierFlags: NSEvent.modifierFlags)
     }
 
@@ -25,7 +25,7 @@ extension AppState {
     /// `Set` has no stable order, so `.first` would make the shift-click range drift to an
     /// arbitrary already-selected item (see `SelectionStore.keyboardSelectionAnchorURL`'s doc
     /// comment, and the same fix already applied to Shift+Arrow keyboard selection).
-    func handleSelection(for item: FileItem, modifierFlags flags: NSEvent.ModifierFlags) {
+    internal func handleSelection(for item: FileItem, modifierFlags flags: NSEvent.ModifierFlags) {
         if flags.contains(.command) {
             if selectedURLs.contains(item.url) {
                 selectedURLs.remove(item.url)
@@ -34,11 +34,11 @@ extension AppState {
             }
             selection.keyboardSelectionAnchorURL = item.url
         } else if flags.contains(.shift),
-            let anchorURL = selection.keyboardSelectionAnchorURL,
-            let anchorIdx = fileSystem.items.firstIndex(where: { $0.url == anchorURL }),
-            let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) {
-            let range = min(anchorIdx, curIdx)...max(anchorIdx, curIdx)
-            let rangeURLs = fileSystem.items[range].map { $0.url }
+                  let anchorURL = selection.keyboardSelectionAnchorURL,
+                  let anchorIdx = fileSystem.items.firstIndex(where: { $0.url == anchorURL }),
+                  let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) {
+            let range = min(anchorIdx, curIdx) ... max(anchorIdx, curIdx)
+            let rangeURLs = fileSystem.items[range].map(\.url)
             selectedURLs.formUnion(rangeURLs)
         } else {
             selectedURLs = [item.url]

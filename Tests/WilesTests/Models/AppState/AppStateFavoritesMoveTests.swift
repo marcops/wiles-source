@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 /// Split out of `AppStateCoreTests.swift` to keep that file under the `file_length`/
 /// `type_body_length` SwiftLint limits — these two tests cover the same "favorite survives an
@@ -33,8 +33,7 @@ public struct AppStateFavoritesMoveTests {
         report(
             "AppState",
             "POS: remapFavorites() rewrites the exact favorited URL to its new location when the favorited item itself moves",
-            result: appState.preferences.favoriteURLs.contains(movedFavoritedFolder) && !appState.preferences.favoriteURLs.contains(favoritedFolder)
-        )
+            result: appState.preferences.favoriteURLs.contains(movedFavoritedFolder) && !appState.preferences.favoriteURLs.contains(favoritedFolder))
         report("AppState", "NEG: remapFavorites() leaves unrelated favorites untouched", result: appState.preferences.favoriteURLs.contains(unrelated))
 
         // A favorite nested inside a moved ancestor folder must also be rewritten, preserving the
@@ -46,8 +45,7 @@ public struct AppStateFavoritesMoveTests {
         report(
             "AppState",
             "POS: remapFavorites() rewrites a favorite nested inside a moved ancestor folder, preserving its relative path",
-            result: appState.preferences.favoriteURLs == [expectedNestedAfterMove]
-        )
+            result: appState.preferences.favoriteURLs == [expectedNestedAfterMove])
 
         // A folder that merely shares a name prefix (not a real path-component ancestor) must not
         // be treated as containing the favorite - e.g. moving "Old" must not also match "OldStuff".
@@ -57,8 +55,7 @@ public struct AppStateFavoritesMoveTests {
         report(
             "AppState",
             "NEG: remapFavorites() does not touch a favorite under a differently-named folder that merely shares a string prefix",
-            result: appState.preferences.favoriteURLs == [similarlyNamedSibling]
-        )
+            result: appState.preferences.favoriteURLs == [similarlyNamedSibling])
     }
 
     /// End-to-end version of the fix, through the real public entry point every drag-and-drop call
@@ -81,7 +78,10 @@ public struct AppStateFavoritesMoveTests {
 
         let destURL = try? appState.moveItem(at: favoritedFolder, toFolder: destParent)
 
-        report("AppState", "POS: moveItem() actually moves the folder on disk", result: destURL != nil && FileManager.default.fileExists(atPath: destURL?.path ?? ""))
+        report(
+            "AppState",
+            "POS: moveItem() actually moves the folder on disk",
+            result: destURL != nil && FileManager.default.fileExists(atPath: destURL?.path ?? ""))
         report("AppState", "NEG: moveItem() leaves nothing behind at the old path", result: !FileManager.default.fileExists(atPath: favoritedFolder.path))
 
         guard let destURL else {
@@ -91,8 +91,7 @@ public struct AppStateFavoritesMoveTests {
         report(
             "AppState",
             "POS: moveItem() updates the favorite to the real new on-disk location, not just the old stale path",
-            result: appState.preferences.favoriteURLs == [destURL.standardizedFileURL]
-        )
+            result: appState.preferences.favoriteURLs == [destURL.standardizedFileURL])
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

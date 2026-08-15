@@ -438,3 +438,19 @@ don't improvise a layout that merely "looks plausible." General rules:
   If a violation is found, fix it in the same commit rather than committing it and fixing later.
 - **This is the same checklist a `/code-review` pass would apply** — running it yourself before
   committing is what keeps that pass from finding anything.
+
+## 41. Never Resolve a Lint/Format/Config Conflict Unilaterally — Ask, Every Time
+- When SwiftLint, SwiftFormat, the build, or any other enforced check disagrees with another one
+  (e.g. SwiftFormat rewrites code into a shape SwiftLint then flags), **stop and ask the user which
+  side should change** before editing any config (`.swiftlint.yml`, `.swiftformat`, CI workflow
+  thresholds) or adding any inline suppression. This includes `swiftlint:disable` (already banned)
+  **and** `swiftformat:disable`/`swiftformat:disable:next`/`swiftformat:disable:this` — a
+  format-disable comment is the same move in a different tool and is banned for the same reason.
+- Picking a resolution yourself — even one that looks technically reasonable — is a unilateral tech
+  decision (see the general rule against those) applied to tooling config instead of app code, and
+  it's just as forbidden. This applies per-instance: the user agreeing to a general strategy for one
+  conflict (e.g. "make SwiftFormat match SwiftLint") does not license silently reaching for a
+  suppression comment as the mechanism when a fix isn't a clean config change.
+- **Why**: this exact mistake was made twice in one session — once editing `.swiftformat` without
+  asking, once adding a `swiftformat:disable:this` directive without asking — after already being
+  corrected the first time.

@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Shared Open / Copy Path / Properties context menu content for a folder-like sidebar item.
 /// Used by both `SidebarRowView` and `DirectoryTreeNodeView`, which each present the same base

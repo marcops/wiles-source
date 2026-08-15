@@ -1,6 +1,6 @@
-import SwiftUI
-import SwiftTerm
 import AppKit
+import SwiftTerm
+import SwiftUI
 
 struct IntegratedTerminalView: NSViewRepresentable {
     var appState: AppState
@@ -19,8 +19,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
             executable: "/bin/zsh",
             args: ["-l"],
             environment: nil,
-            execName: nil
-        )
+            execName: nil)
 
         // Initial cd
         DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.terminalInitialCommandDelay) {
@@ -56,12 +55,12 @@ struct IntegratedTerminalView: NSViewRepresentable {
 
         init(_ parent: IntegratedTerminalView, initialPath: String) {
             self.parent = parent
-            self.lastPath = initialPath
+            lastPath = initialPath
         }
 
-        func sizeChanged(source: LocalProcessTerminalView, newCols: Int, newRows: Int) {}
-        func setTerminalTitle(source: LocalProcessTerminalView, title: String) {}
-        func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
-        func processTerminated(source: TerminalView, exitCode: Int32?) {}
+        func sizeChanged(source _: LocalProcessTerminalView, newCols _: Int, newRows _: Int) { }
+        func setTerminalTitle(source _: LocalProcessTerminalView, title _: String) { }
+        func hostCurrentDirectoryUpdate(source _: TerminalView, directory _: String?) { }
+        func processTerminated(source _: TerminalView, exitCode _: Int32?) { }
     }
 }

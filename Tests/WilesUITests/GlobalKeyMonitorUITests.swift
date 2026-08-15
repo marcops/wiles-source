@@ -1,6 +1,7 @@
 import XCTest
 
 // MARK: - GlobalKeyMonitor leak regression
+
 //
 // Real reported bug: dragging a file out of Wiles onto another app left the keyboard completely
 // dead everywhere in Wiles until relaunch. Root cause: `KeyMonitorNSView` (backing
@@ -24,7 +25,6 @@ import XCTest
 
 @MainActor
 final class GlobalKeyMonitorUITests: XCTestCase {
-
     // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
 
@@ -44,15 +44,13 @@ final class GlobalKeyMonitorUITests: XCTestCase {
     /// Opens a second window (Cmd+N), closes it (Cmd+W), then verifies Cmd+N still opens a third
     /// window — i.e. the app-wide keyDown monitor is still alive and dispatching, not swallowing
     /// every event because the second window's `KeyMonitorNSView` leaked its monitor on teardown.
-    func testKeyboardShortcutsSurviveClosingASecondWindow() throws {
+    func testKeyboardShortcutsSurviveClosingASecondWindow() {
         XCTAssertTrue(
             app.windows.firstMatch.waitForExistence(timeout: 5.0),
-            "Wiles main window did not appear within 5 seconds"
-        )
+            "Wiles main window did not appear within 5 seconds")
         XCTAssertTrue(
             waitForWindowCount(1),
-            "Test must start with exactly one window, found \(app.windows.count)"
-        )
+            "Test must start with exactly one window, found \(app.windows.count)")
 
         app.typeKey("n", modifierFlags: .command)
         XCTAssertTrue(waitForWindowCount(2), "Cmd+N did not open a second window")
@@ -64,8 +62,7 @@ final class GlobalKeyMonitorUITests: XCTestCase {
         XCTAssertTrue(
             waitForWindowCount(2),
             "Cmd+N stopped opening windows after closing the second window — GlobalKeyMonitor's " +
-            "NSEvent monitor leaked and is now swallowing all keyboard input app-wide"
-        )
+                "NSEvent monitor leaked and is now swallowing all keyboard input app-wide")
     }
 
     private func waitForWindowCount(_ count: Int, timeout: TimeInterval = 3.0) -> Bool {

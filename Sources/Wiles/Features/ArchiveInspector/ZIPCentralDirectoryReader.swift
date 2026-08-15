@@ -4,8 +4,8 @@ import Foundation
 /// decoded as UTF-8 without going through `/usr/bin/unzip`'s locale-dependent (and, on this
 /// system, broken) text conversion.
 enum ZIPCentralDirectoryReader {
-    private static let endOfCentralDirectorySignature: UInt32 = 0x0605_4b50
-    private static let centralDirectoryFileHeaderSignature: UInt32 = 0x0201_4b50
+    private static let endOfCentralDirectorySignature: UInt32 = 0x0605_4B50
+    private static let centralDirectoryFileHeaderSignature: UInt32 = 0x0201_4B50
     private static let endOfCentralDirectoryMinSize = 22
     private static let centralDirectoryFileHeaderMinSize = 46
 
@@ -22,7 +22,7 @@ enum ZIPCentralDirectoryReader {
 
             let nameStart = offset + centralDirectoryFileHeaderMinSize
             guard nameStart + nameLength <= data.count else { break }
-            let nameBytes = data.subdata(in: nameStart..<(nameStart + nameLength))
+            let nameBytes = data.subdata(in: nameStart ..< (nameStart + nameLength))
             if let name = String(data: nameBytes, encoding: .utf8) {
                 names.append(name)
             }

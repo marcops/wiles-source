@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FileItemFormattingTests {
@@ -49,9 +49,11 @@ public struct FileItemFormattingTests {
         report(
             "FileItem.formattedSize",
             "POS: a several-megabyte file's formatted size differs from a 500-byte file's formatted size",
-            result: smallItem.formattedSize != largeItem.formattedSize
-        )
-        report("FileItem.formattedSize", "POS: a several-megabyte file's formatted size reports it in MB (larger unit than bytes)", result: largeItem.formattedSize.contains("MB"))
+            result: smallItem.formattedSize != largeItem.formattedSize)
+        report(
+            "FileItem.formattedSize",
+            "POS: a several-megabyte file's formatted size reports it in MB (larger unit than bytes)",
+            result: largeItem.formattedSize.contains("MB"))
         report("FileItem.formattedSize", "NEG: a 500-byte file's formatted size is not reported in MB", result: !smallItem.formattedSize.contains("MB"))
     }
 
@@ -91,14 +93,15 @@ public struct FileItemFormattingTests {
         report(
             "FileItem.formattedDate",
             "POS: formattedDate for a file just created now includes the current (short-style) year",
-            result: item.formattedDate.contains(expectedYearToken)
-        )
+            result: item.formattedDate.contains(expectedYearToken))
         report(
             "FileItem.formattedDateCreated",
             "POS: formattedDateCreated for a file just created now includes the current (short-style) year",
-            result: item.formattedDateCreated.contains(expectedYearToken)
-        )
-        report("FileItem.formattedDate", "NEG: formattedDate is not the raw placeholder \"--\" for a real file with a modification date", result: item.formattedDate != "--")
+            result: item.formattedDateCreated.contains(expectedYearToken))
+        report(
+            "FileItem.formattedDate",
+            "NEG: formattedDate is not the raw placeholder \"--\" for a real file with a modification date",
+            result: item.formattedDate != "--")
     }
 
     private static func testFormattedDateAccessedHandlesNil() {
@@ -115,20 +118,17 @@ public struct FileItemFormattingTests {
         report(
             "FileItem.formattedDateAccessed",
             "POS: formattedDateAccessed does not crash and produces a non-empty string either way",
-            result: !item.formattedDateAccessed.isEmpty
-        )
+            result: !item.formattedDateAccessed.isEmpty)
         if item.dateAccessed == nil {
             report(
                 "FileItem.formattedDateAccessed",
                 "POS: formattedDateAccessed falls back to \"--\" when dateAccessed is nil",
-                result: item.formattedDateAccessed == "--"
-            )
+                result: item.formattedDateAccessed == "--")
         } else {
             report(
                 "FileItem.formattedDateAccessed",
                 "POS: formattedDateAccessed is not the \"--\" placeholder when dateAccessed is present",
-                result: item.formattedDateAccessed != "--"
-            )
+                result: item.formattedDateAccessed != "--")
         }
     }
 
@@ -143,11 +143,20 @@ public struct FileItemFormattingTests {
 
         report("FileItem.ownerName", "POS: ownerName is resolved to a non-empty string for a real temp file", result: !item.ownerName.isEmpty)
         report("FileItem.groupName", "POS: groupName is resolved to a non-empty string for a real temp file", result: !item.groupName.isEmpty)
-        report("FileItem.ownerName", "NEG: ownerName is not the unresolved-owner placeholder \"--\" for a file we just created ourselves", result: item.ownerName != "--")
-        report("FileItem.groupName", "NEG: groupName is not the unresolved-owner placeholder \"--\" for a file we just created ourselves", result: item.groupName != "--")
+        report(
+            "FileItem.ownerName",
+            "NEG: ownerName is not the unresolved-owner placeholder \"--\" for a file we just created ourselves",
+            result: item.ownerName != "--")
+        report(
+            "FileItem.groupName",
+            "NEG: groupName is not the unresolved-owner placeholder \"--\" for a file we just created ourselves",
+            result: item.groupName != "--")
 
         let currentUser = NSUserName()
-        report("FileItem.ownerName", "POS: ownerName matches the current process's account name for a file created by this process", result: item.ownerName == currentUser)
+        report(
+            "FileItem.ownerName",
+            "POS: ownerName matches the current process's account name for a file created by this process",
+            result: item.ownerName == currentUser)
     }
 
     // Regression coverage for the N+1 owner/group syscall fix: FileItem.init gained a
@@ -167,29 +176,24 @@ public struct FileItemFormattingTests {
         let skippedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: false)
         report(
             "FileItem.needsOwnerGroup", "POS: needsOwnerGroup: false sets ownerName to the \"--\" placeholder instead of resolving it",
-            result: skippedItem.ownerName == "--"
-        )
+            result: skippedItem.ownerName == "--")
         report(
             "FileItem.needsOwnerGroup", "POS: needsOwnerGroup: false sets groupName to the \"--\" placeholder instead of resolving it",
-            result: skippedItem.groupName == "--"
-        )
+            result: skippedItem.groupName == "--")
 
         let resolvedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: true)
         let currentUser = NSUserName()
         report(
             "FileItem.needsOwnerGroup", "NEG: needsOwnerGroup: true still resolves ownerName to a real (non-placeholder) value",
-            result: resolvedItem.ownerName != "--" && resolvedItem.ownerName == currentUser
-        )
+            result: resolvedItem.ownerName != "--" && resolvedItem.ownerName == currentUser)
         report(
             "FileItem.needsOwnerGroup", "NEG: needsOwnerGroup: true still resolves groupName to a real (non-placeholder) value",
-            result: resolvedItem.groupName != "--" && !resolvedItem.groupName.isEmpty
-        )
+            result: resolvedItem.groupName != "--" && !resolvedItem.groupName.isEmpty)
 
         let defaultedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)))
         report(
             "FileItem.needsOwnerGroup", "POS: omitting needsOwnerGroup defaults to true and still resolves a real ownerName",
-            result: defaultedItem.ownerName == currentUser
-        )
+            result: defaultedItem.ownerName == currentUser)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

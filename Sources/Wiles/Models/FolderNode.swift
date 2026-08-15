@@ -17,14 +17,17 @@ struct FolderNode: Identifiable, Hashable {
         let fm = FileManager.default
         let keys: [URLResourceKey] = [.isDirectoryKey]
 
-        guard let urls = try? fm.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles, .skipsPackageDescendants]) else {
+        guard let urls = try? fm.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles, .skipsPackageDescendants])
+        else {
             return []
         }
 
         var nodes: [Self] = []
         for url in urls {
             let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            if !isDir { continue }
+            if !isDir {
+                continue
+            }
 
             let stdURL = url.standardizedFileURL
             let name = stdURL.lastPathComponent

@@ -1,16 +1,16 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct RightClickDetector: NSViewRepresentable {
     let onRightClick: () -> Void
 
-    func makeNSView(context: Context) -> RightClickNSView {
+    func makeNSView(context _: Context) -> RightClickNSView {
         let view = RightClickNSView()
         view.onRightClick = onRightClick
         return view
     }
 
-    func updateNSView(_ nsView: RightClickNSView, context: Context) {
+    func updateNSView(_ nsView: RightClickNSView, context _: Context) {
         nsView.onRightClick = onRightClick
     }
 

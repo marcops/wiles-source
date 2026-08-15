@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 public struct PermissionService: Sendable {
     /// Opens macOS System Settings directly to Full Disk Access preference panel

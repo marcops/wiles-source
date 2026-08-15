@@ -14,8 +14,7 @@ public struct HoverItemHighlightModifier: ViewModifier {
         normalBackground: Color = .clear,
         hoverBackground: Color = Color.accentColor.opacity(0.12),
         selectedBackground: Color = Color.accentColor,
-        cornerRadius: CGFloat = 4
-    ) {
+        cornerRadius: CGFloat = 4) {
         self.isSelected = isSelected
         self.normalBackground = normalBackground
         self.hoverBackground = hoverBackground
@@ -26,8 +25,7 @@ public struct HoverItemHighlightModifier: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .background(
-                isSelected ? selectedBackground : (isHovered ? hoverBackground : normalBackground)
-            )
+                isSelected ? selectedBackground : (isHovered ? hoverBackground : normalBackground))
             .cornerRadius(cornerRadius)
             .scaleEffect(isHovered ? 1.01 : 1.0)
             .animation(MotionTokens.quickEase, value: isHovered)
@@ -35,22 +33,19 @@ public struct HoverItemHighlightModifier: ViewModifier {
     }
 }
 
-extension View {
-    public func hoverHighlight(
+public extension View {
+    func hoverHighlight(
         isSelected: Bool,
         normalBackground: Color = .clear,
         hoverBackground: Color = Color.accentColor.opacity(0.12),
         selectedBackground: Color = Color.accentColor,
-        cornerRadius: CGFloat = 4
-    ) -> some View {
-        self.modifier(
+        cornerRadius: CGFloat = 4) -> some View {
+        modifier(
             HoverItemHighlightModifier(
                 isSelected: isSelected,
                 normalBackground: normalBackground,
                 hoverBackground: hoverBackground,
                 selectedBackground: selectedBackground,
-                cornerRadius: cornerRadius
-            )
-        )
+                cornerRadius: cornerRadius))
     }
 }

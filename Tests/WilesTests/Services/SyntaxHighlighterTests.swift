@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct SyntaxHighlighterTests {
@@ -57,7 +57,7 @@ public struct SyntaxHighlighterTests {
     }
 
     private static func testLongContentIsTruncated() {
-        let content = String(repeating: "a", count: 20_000)
+        let content = String(repeating: "a", count: 20000)
         let result = SyntaxHighlighterService.highlightCode(content: content, fileExtension: "swift")
         let text = String(result.characters)
         report("SyntaxHighlighter", "NEG: content over 10k chars is truncated", result: text.count < content.count && text.contains("(truncated)"))

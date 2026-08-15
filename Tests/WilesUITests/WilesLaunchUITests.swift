@@ -1,6 +1,7 @@
 import XCTest
 
 // MARK: - Wiles Core UI Smoke Test
+
 //
 // This test uses XCUIApplication() — it launches Wiles.app, takes control of
 // the screen and verifies the core UI shell is present and interactive.
@@ -18,7 +19,6 @@ import XCTest
 
 @MainActor
 final class WilesLaunchUITests: XCTestCase {
-
     // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
 
@@ -43,13 +43,12 @@ final class WilesLaunchUITests: XCTestCase {
     ///   3. Clicking FAVORITES (collapse/expand) does not crash.
     ///
     /// All assertions are unconditional — no silent `if element.exists` guards.
-    func testAppLaunchesAndCoreShellIsVisible() throws {
+    func testAppLaunchesAndCoreShellIsVisible() {
         // 1. Main window must appear within 5 s.
         let window = app.windows.firstMatch
         XCTAssertTrue(
             window.waitForExistence(timeout: 5.0),
-            "Wiles main window did not appear within 5 seconds"
-        )
+            "Wiles main window did not appear within 5 seconds")
 
         // 2. FAVORITES sidebar section must be present.
         //    id: "Section_FAVORITES" — SidebarView.swift ~184
@@ -64,14 +63,12 @@ final class WilesLaunchUITests: XCTestCase {
         XCTAssertTrue(
             favorites.waitForExistence(timeout: 3.0),
             "Sidebar FAVORITES section (id='Section_FAVORITES') not found — " +
-            "sidebar failed to render or the accessibility identifier changed"
-        )
+                "sidebar failed to render or the accessibility identifier changed")
 
         // 3. FAVORITES must be hittable (not obscured).
         XCTAssertTrue(
             favorites.isHittable,
-            "Sidebar FAVORITES section exists but is not hittable"
-        )
+            "Sidebar FAVORITES section exists but is not hittable")
 
         // 4. Footer status-bar text must be present.
         //    id: "Status Bar" — FooterBarView.swift ~22
@@ -79,14 +76,12 @@ final class WilesLaunchUITests: XCTestCase {
         XCTAssertTrue(
             statusBar.waitForExistence(timeout: 3.0),
             "Footer status-bar text (id='Status Bar') not found — " +
-            "footer failed to render or the accessibility identifier changed"
-        )
+                "footer failed to render or the accessibility identifier changed")
 
         // 5. Click FAVORITES — button must survive (toggles collapse state).
         favorites.click()
         XCTAssertTrue(
             favorites.waitForExistence(timeout: 2.0),
-            "FAVORITES button disappeared after click — unexpected crash or removal"
-        )
+            "FAVORITES button disappeared after click — unexpected crash or removal")
     }
 }

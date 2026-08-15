@@ -1,10 +1,9 @@
-import Foundation
 import AppKit
+import Foundation
 
 /// Dedicated service responsible for calculating optimal auto-fit column widths based on item content and headers.
 @MainActor
 public final class ColumnAutoFitService {
-
     /// - Parameters:
     ///   - items: The currently listed file items whose content widths are measured.
     ///   - iconSize: The user's configured list icon size preference (pre-scale/pre-clamp), used only
@@ -14,8 +13,7 @@ public final class ColumnAutoFitService {
         for column: ListColumn,
         items: [FileItem],
         iconSize: Double,
-        language: AppLanguage
-    ) -> CGFloat {
+        language: AppLanguage) -> CGFloat {
         let headerWidth = calculateHeaderWidth(for: column, language: language)
         let itemsMax = items.map { calculateItemWidth(for: $0, column: column, iconSize: iconSize, language: language) }.max() ?? 0
         let maxRequired = max(headerWidth, itemsMax)
@@ -32,8 +30,7 @@ public final class ColumnAutoFitService {
         for item: FileItem,
         column: ListColumn,
         iconSize: Double,
-        language: AppLanguage
-    ) -> CGFloat {
+        language: AppLanguage) -> CGFloat {
         let spec = itemTextFontAndPadding(for: item, column: column, iconSize: iconSize, language: language)
         return measureText(spec.text, font: spec.font) + spec.extraPadding
     }
@@ -48,8 +45,7 @@ public final class ColumnAutoFitService {
         for item: FileItem,
         column: ListColumn,
         iconSize: Double,
-        language: AppLanguage
-    ) -> ColumnTextSpec {
+        language: AppLanguage) -> ColumnTextSpec {
         let font12 = NSFont.systemFont(ofSize: 12, weight: .regular)
         let font13Bold = NSFont.systemFont(ofSize: 13, weight: .semibold)
 
@@ -57,8 +53,7 @@ public final class ColumnAutoFitService {
         case .name:
             let clampedIconSize = max(
                 LayoutTokens.listIconMinSize,
-                min(LayoutTokens.listIconMaxSize, CGFloat(iconSize) * LayoutTokens.listIconScaleMultiplier)
-            )
+                min(LayoutTokens.listIconMaxSize, CGFloat(iconSize) * LayoutTokens.listIconScaleMultiplier))
             let tagExtra = item.tags.isEmpty ? 0 : LayoutTokens.columnNameTagExtraPadding
             let extra = clampedIconSize + LayoutTokens.columnNameIconSpacing + tagExtra + LayoutTokens.columnCellExtraPadding
             return ColumnTextSpec(text: item.name, font: font13Bold, extraPadding: extra)
@@ -82,14 +77,14 @@ public final class ColumnAutoFitService {
 
     private static func localizationKey(for column: ListColumn) -> L10n.Key {
         switch column {
-        case .name:         return .name
-        case .size:         return .size
-        case .dateModified: return .dateModified
-        case .dateCreated:  return .created
-        case .dateAccessed: return .lastOpened
-        case .kind:         return .kind
-        case .owner:        return .owner
-        case .group:        return .group
+        case .name: .name
+        case .size: .size
+        case .dateModified: .dateModified
+        case .dateCreated: .created
+        case .dateAccessed: .lastOpened
+        case .kind: .kind
+        case .owner: .owner
+        case .group: .group
         }
     }
 

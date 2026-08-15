@@ -1,11 +1,11 @@
-import Foundation
 import AppKit
 import CryptoKit
+import Foundation
 
 public final class DuplicateDetectionService: Sendable {
     public static let shared = DuplicateDetectionService()
 
-    private init() {}
+    private init() { }
 
     public func findDuplicates(in folderURL: URL) async -> DuplicateScanResult {
         // `.task { }` cancellation on the calling side does NOT automatically cancel a
@@ -19,7 +19,7 @@ public final class DuplicateDetectionService: Sendable {
         }
 
         return await withTaskCancellationHandler {
-            (try? await scanTask.value) ?? DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
+            await (try? scanTask.value) ?? DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
         } onCancel: {
             scanTask.cancel()
         }
@@ -30,8 +30,7 @@ public final class DuplicateDetectionService: Sendable {
         guard let enumerator = fm.enumerator(
             at: folderURL,
             includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else {
+            options: [.skipsHiddenFiles]) else {
             return DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
         }
 

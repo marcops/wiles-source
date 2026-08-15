@@ -1,10 +1,10 @@
-import Foundation
 import AppKit
+import Foundation
 import SwiftUI
 
 public struct SyntaxHighlighterService: Sendable {
     public static func highlightCode(content: String, fileExtension: String) -> AttributedString {
-        let maxChars = 10_000
+        let maxChars = 10000
         let truncatedContent = content.count > maxChars ? String(content.prefix(maxChars)) + "\n... (truncated)" : content
 
         var attributed = AttributedString(truncatedContent)

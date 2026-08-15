@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 public struct ConnectToServerSheetView: View {
     var appState: AppState
@@ -94,7 +94,9 @@ public struct ConnectToServerSheetView: View {
         var history = recentServers
         history.removeAll { $0 == address }
         history.insert(address, at: 0)
-        if history.count > 10 { history = Array(history.prefix(10)) }
+        if history.count > 10 {
+            history = Array(history.prefix(10))
+        }
         UserDefaults.standard.set(history, forKey: DefaultsKey.recentConnectServers.rawValue)
 
         do {

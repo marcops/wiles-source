@@ -7,60 +7,79 @@ public final class PreferencesStore {
     public var viewMode: ViewMode = .grid {
         didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: DefaultsKey.viewMode.rawValue) }
     }
+
     public var appAppearance: AppAppearance = .system {
         didSet { UserDefaults.standard.set(appAppearance.rawValue, forKey: DefaultsKey.appAppearance.rawValue) }
     }
+
     public var showDirectoryTree: Bool = false {
         didSet { UserDefaults.standard.set(showDirectoryTree, forKey: DefaultsKey.showDirectoryTree.rawValue) }
     }
+
     public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
         didSet { UserDefaults.standard.set(sidebarWidth, forKey: DefaultsKey.sidebarWidth.rawValue) }
     }
+
     public var sortOption: SortOption = .name {
         didSet { UserDefaults.standard.set(sortOption.rawValue, forKey: DefaultsKey.sortOption.rawValue) }
     }
+
     public var sortAscending: Bool = true {
         didSet { UserDefaults.standard.set(sortAscending, forKey: DefaultsKey.sortAscending.rawValue) }
     }
+
     public var showHiddenFiles: Bool = false {
         didSet { UserDefaults.standard.set(showHiddenFiles, forKey: DefaultsKey.showHiddenFiles.rawValue) }
     }
+
     public var showFavorites: Bool = true {
         didSet { UserDefaults.standard.set(showFavorites, forKey: DefaultsKey.showFavorites.rawValue) }
     }
+
     public var showRecents: Bool = true {
         didSet { UserDefaults.standard.set(showRecents, forKey: DefaultsKey.showRecents.rawValue) }
     }
+
     public var showPlaces: Bool = true {
         didSet { UserDefaults.standard.set(showPlaces, forKey: DefaultsKey.showPlaces.rawValue) }
     }
+
     public var showNetworkAndCloud: Bool = false {
         didSet { UserDefaults.standard.set(showNetworkAndCloud, forKey: DefaultsKey.showNetworkAndCloud.rawValue) }
     }
+
     public var showSidebarSectionTitles: Bool = true {
         didSet { UserDefaults.standard.set(showSidebarSectionTitles, forKey: DefaultsKey.showSidebarSectionTitles.rawValue) }
     }
+
     public var appLanguage: AppLanguage = .system {
         didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: DefaultsKey.appLanguage.rawValue) }
     }
+
     public var isFavoritesExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isFavoritesExpanded, forKey: DefaultsKey.isFavoritesExpanded.rawValue) }
     }
+
     public var isMacExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isMacExpanded, forKey: DefaultsKey.isMacExpanded.rawValue) }
     }
+
     public var isNetworkExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isNetworkExpanded, forKey: DefaultsKey.isNetworkExpanded.rawValue) }
     }
+
     public var isRecentsExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isRecentsExpanded, forKey: DefaultsKey.isRecentsExpanded.rawValue) }
     }
+
     public var isDevicesExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isDevicesExpanded, forKey: DefaultsKey.isDevicesExpanded.rawValue) }
     }
+
     public var isTreeExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isTreeExpanded, forKey: DefaultsKey.isTreeExpanded.rawValue) }
     }
+
     public var expandedTreePaths: Set<String> = [] {
         didSet {
             if expandedTreePaths.count > Self.maxExpandedTreePaths {
@@ -70,65 +89,84 @@ public final class PreferencesStore {
             scheduleExpandedTreePathsSave()
         }
     }
+
     public var isTagsExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isTagsExpanded, forKey: DefaultsKey.isTagsExpanded.rawValue) }
     }
+
     public var isSmartFoldersExpanded: Bool = true {
         didSet { UserDefaults.standard.set(isSmartFoldersExpanded, forKey: DefaultsKey.isSmartFoldersExpanded.rawValue) }
     }
+
     public var searchScope: SearchScope = .name {
         didSet { UserDefaults.standard.set(searchScope.rawValue, forKey: DefaultsKey.searchScope.rawValue) }
     }
+
     /// When on, a search query recurses through the whole user home directory (`URL.userHome`)
     /// instead of just the current folder's direct children.
     public var searchEverywhere: Bool = false {
         didSet { UserDefaults.standard.set(searchEverywhere, forKey: DefaultsKey.searchEverywhere.rawValue) }
     }
+
     public var showTags: Bool = false {
         didSet { UserDefaults.standard.set(showTags, forKey: DefaultsKey.showTags.rawValue) }
     }
+
     /// Finder-style middle-ellipsis truncation for long file names (Grid, List, Column) instead of
     /// the default end-only truncation. Defaults on, matching Finder's own behavior.
     public var middleTruncateNames: Bool = true {
         didSet { UserDefaults.standard.set(middleTruncateNames, forKey: DefaultsKey.middleTruncateNames.rawValue) }
     }
+
     public var showFooter: Bool = true {
         didSet { UserDefaults.standard.set(showFooter, forKey: DefaultsKey.showFooter.rawValue) }
     }
+
     public var showTerminalDrawer: Bool = false {
         didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: DefaultsKey.showTerminalDrawer.rawValue) }
     }
-    // `showPreviewSidebar` and `showDiskUsageSidebar` are mutually exclusive: both occupy the
-    // same trailing pane of the content `HSplitView`. Letting both be true at once would put a
-    // 3rd pane into that split view, which `HSplitView`/`NSSplitView` doesn't reliably size on
-    // first appearance — newly-inserted panes there could render at ~0 width instead of honoring
-    // their `.frame(minWidth:)`. Keeping it to a strict 2-pane split (content | one inspector) is
-    // the same shape that already worked correctly, so enforce exclusivity here instead of
-    // fighting NSSplitView's sizing from the view layer.
+
+    /// `showPreviewSidebar` and `showDiskUsageSidebar` are mutually exclusive: both occupy the
+    /// same trailing pane of the content `HSplitView`. Letting both be true at once would put a
+    /// 3rd pane into that split view, which `HSplitView`/`NSSplitView` doesn't reliably size on
+    /// first appearance — newly-inserted panes there could render at ~0 width instead of honoring
+    /// their `.frame(minWidth:)`. Keeping it to a strict 2-pane split (content | one inspector) is
+    /// the same shape that already worked correctly, so enforce exclusivity here instead of
+    /// fighting NSSplitView's sizing from the view layer.
     public var showPreviewSidebar: Bool = false {
         didSet {
             UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue)
-            if showPreviewSidebar && showDiskUsageSidebar { showDiskUsageSidebar = false }
+            if showPreviewSidebar, showDiskUsageSidebar {
+                showDiskUsageSidebar = false
+            }
         }
     }
+
     public var showDiskUsageSidebar: Bool = false {
         didSet {
             UserDefaults.standard.set(showDiskUsageSidebar, forKey: DefaultsKey.showDiskUsageSidebar.rawValue)
-            if showDiskUsageSidebar && showPreviewSidebar { showPreviewSidebar = false }
+            if showDiskUsageSidebar, showPreviewSidebar {
+                showPreviewSidebar = false
+            }
         }
     }
+
     public var skipDeleteConfirmation: Bool = false {
         didSet { UserDefaults.standard.set(skipDeleteConfirmation, forKey: DefaultsKey.skipDeleteConfirmation.rawValue) }
     }
+
     public var sidebarTranslucentLevel: Int = 80 {
         didSet { UserDefaults.standard.set(sidebarTranslucentLevel, forKey: DefaultsKey.sidebarTranslucentLevel.rawValue) }
     }
+
     public var contentTranslucentLevel: Int = 40 {
         didSet { UserDefaults.standard.set(contentTranslucentLevel, forKey: DefaultsKey.contentTranslucentLevel.rawValue) }
     }
+
     public var iconSize: Double = 54.0 {
         didSet { UserDefaults.standard.set(iconSize, forKey: DefaultsKey.iconSize.rawValue) }
     }
+
     /// Caps `expandedTreePaths` so an unbounded set of ever-expanded folders isn't retained forever.
     /// Once at the cap, further insertions are dropped (see `expandedTreePaths`'s `didSet`).
     private static let maxExpandedTreePaths = 500
@@ -138,7 +176,7 @@ public final class PreferencesStore {
 
     public var favoriteURLs: [URL] = [] {
         didSet {
-            let paths = favoriteURLs.map { $0.path }
+            let paths = favoriteURLs.map(\.path)
             UserDefaults.standard.set(paths, forKey: DefaultsKey.favoriteURLs.rawValue)
         }
     }
@@ -168,8 +206,7 @@ public final class PreferencesStore {
     /// Restores a `RawRepresentable<String>`-backed preference (enum settings) if a saved value
     /// exists and is still a recognized case.
     private func loadEnum<T: RawRepresentable>(
-        _ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<PreferencesStore, T>, from defaults: UserDefaults
-    ) where T.RawValue == String {
+        _ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<PreferencesStore, T>, from defaults: UserDefaults) where T.RawValue == String {
         if let raw = defaults.string(forKey: key.rawValue), let value = T(rawValue: raw) {
             self[keyPath: keyPath] = value
         }
@@ -212,7 +249,9 @@ public final class PreferencesStore {
         loadBool(.sortAscending, into: \.sortAscending, from: defaults)
 
         let width = defaults.double(forKey: DefaultsKey.sidebarWidth.rawValue)
-        if width > 0 { self.sidebarWidth = width }
+        if width > 0 {
+            sidebarWidth = width
+        }
     }
 
     private func loadSidebarVisibilityPreferences(_ defaults: UserDefaults) {
@@ -236,7 +275,7 @@ public final class PreferencesStore {
         loadBool(.isSmartFoldersExpanded, into: \.isSmartFoldersExpanded, from: defaults)
 
         if let treePaths = defaults.stringArray(forKey: DefaultsKey.expandedTreePaths.rawValue) {
-            self.expandedTreePaths = Set(treePaths.prefix(Self.maxExpandedTreePaths))
+            expandedTreePaths = Set(treePaths.prefix(Self.maxExpandedTreePaths))
         }
     }
 
@@ -252,22 +291,26 @@ public final class PreferencesStore {
         loadBool(.skipDeleteConfirmation, into: \.skipDeleteConfirmation, from: defaults)
 
         let sLevel = defaults.integer(forKey: DefaultsKey.sidebarTranslucentLevel.rawValue)
-        if sLevel > 0 { self.sidebarTranslucentLevel = sLevel }
+        if sLevel > 0 {
+            sidebarTranslucentLevel = sLevel
+        }
         let cLevel = defaults.integer(forKey: DefaultsKey.contentTranslucentLevel.rawValue)
-        if cLevel > 0 { self.contentTranslucentLevel = cLevel }
+        if cLevel > 0 {
+            contentTranslucentLevel = cLevel
+        }
         let iSize = defaults.double(forKey: DefaultsKey.iconSize.rawValue)
-        if iSize >= IconSizeToken.minSize && iSize <= IconSizeToken.maxSize {
-            self.iconSize = iSize
+        if iSize >= IconSizeToken.minSize, iSize <= IconSizeToken.maxSize {
+            iconSize = iSize
         }
     }
 
     private func loadFavoriteURLs(_ defaults: UserDefaults) {
         if let savedFavs = defaults.stringArray(forKey: DefaultsKey.favoriteURLs.rawValue) {
-            self.favoriteURLs = savedFavs.compactMap { path in
+            favoriteURLs = savedFavs.compactMap { path in
                 FileManager.default.fileExists(atPath: path) ? URL(fileURLWithPath: path) : nil
             }
         } else {
-            self.favoriteURLs = [
+            favoriteURLs = [
                 FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop"),
                 FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents"),
                 FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")

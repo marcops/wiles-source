@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct AppStateOperationsExtraTests {
@@ -37,21 +37,23 @@ public struct AppStateOperationsExtraTests {
     /// test happens to touch the shared singleton next) fails forever under that service's
     /// retry-on-failure semantics, hanging the suite.
     static func drainUndoRedoService() async {
-        for _ in 0..<10 where UndoRedoService.shared.canUndo() {
+        for _ in 0 ..< 10 where UndoRedoService.shared.canUndo() {
             _ = try? await UndoRedoService.shared.undo()
         }
     }
 
     /// Shared bounded-polling helper matching the 20 x 200ms budget used throughout this file.
     static func pollUntilTrue(_ condition: () -> Bool) async -> Bool {
-        for _ in 0..<20 {
-            if condition() { return true }
+        for _ in 0 ..< 20 {
+            if condition() {
+                return true
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         return condition()
     }
 
-    // Shared setup: a chmod 555 parent forces fm.removeItem to throw, with no system UI.
+    /// Shared setup: a chmod 555 parent forces fm.removeItem to throw, with no system UI.
     static func expectErrorFromReadOnlyParent(fileName: String, action: (AppState) -> Void) async -> Bool {
         let dir = makeTempDir()
         let fileURL = makeFile(named: fileName, in: dir, content: "secret data")
@@ -70,11 +72,11 @@ public struct AppStateOperationsExtraTests {
         return await pollUntilTrue { appState.modal.errorMessage != nil }
     }
 
-    // deletePermanentlySelected() moved its shred call into a Task.detached (see
-    // AppState+Operations.swift) so the file removal and selection-clearing now happen
-    // asynchronously off @MainActor. A synchronous check right after calling it is racy —
-    // poll with a bounded timeout, matching the pattern already used by
-    // testDeleteSelected()/testShredSelected() below for the same reason.
+    /// deletePermanentlySelected() moved its shred call into a Task.detached (see
+    /// AppState+Operations.swift) so the file removal and selection-clearing now happen
+    /// asynchronously off @MainActor. A synchronous check right after calling it is racy —
+    /// poll with a bounded timeout, matching the pattern already used by
+    /// testDeleteSelected()/testShredSelected() below for the same reason.
     private static func testDeletePermanentlySelected() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -88,20 +90,25 @@ public struct AppStateOperationsExtraTests {
         appState.selectedURLs = [fileURL]
         appState.deletePermanentlySelected()
         var stillExists = true
-        for _ in 0..<20 {
+        for _ in 0 ..< 20 {
             stillExists = FileManager.default.fileExists(atPath: fileURL.path)
-            if !stillExists { break }
+            if !stillExists {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
-        report("AppState+Operations", "POS: deletePermanentlySelected() removes the file from disk and clears selection", result: !stillExists && appState.selectedURLs.isEmpty)
+        report(
+            "AppState+Operations",
+            "POS: deletePermanentlySelected() removes the file from disk and clears selection",
+            result: !stillExists && appState.selectedURLs.isEmpty)
     }
 
-    // copyFileContentToClipboard() (called by copyContentOfSelected()) now reads the file and
-    // writes to the pasteboard inside an internal Task.detached, keeping its own signature
-    // synchronous/fire-and-forget (see FileSystemService+Actions.swift). A synchronous check
-    // right after calling it is racy — poll with a bounded timeout for the positive case; the
-    // negative (empty-selection) case never spawns a task at all, so it's safe to check
-    // immediately.
+    /// copyFileContentToClipboard() (called by copyContentOfSelected()) now reads the file and
+    /// writes to the pasteboard inside an internal Task.detached, keeping its own signature
+    /// synchronous/fire-and-forget (see FileSystemService+Actions.swift). A synchronous check
+    /// right after calling it is racy — poll with a bounded timeout for the positive case; the
+    /// negative (empty-selection) case never spawns a task at all, so it's safe to check
+    /// immediately.
     private static func testCopyContentOfSelected() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -120,9 +127,11 @@ public struct AppStateOperationsExtraTests {
         appState.selectedURLs = [fileURL]
         appState.copyContentOfSelected()
         var copied = false
-        for _ in 0..<20 {
+        for _ in 0 ..< 20 {
             copied = pb.string(forType: .string) == "hello from wiles"
-            if copied { break }
+            if copied {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         report("AppState+Operations", "POS: copyContentOfSelected() writes the first selected file's text content onto the pasteboard", result: copied)
@@ -150,24 +159,28 @@ public struct AppStateOperationsExtraTests {
         appState.deleteSelected(windowUIState: windowUIState)
         report(
             "AppState+Operations", "POS: deleteSelected() raises the confirmation alert without deleting yet",
-            result: windowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: fileURL.path)
-        )
+            result: windowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: fileURL.path))
 
         appState.performDeleteSelected()
         var stillExists = true
-        for _ in 0..<20 {
+        for _ in 0 ..< 20 {
             stillExists = FileManager.default.fileExists(atPath: fileURL.path)
-            if !stillExists { break }
+            if !stillExists {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
-        report("AppState+Operations", "POS: performDeleteSelected() moves the file to Trash and clears the selection", result: !stillExists && appState.selectedURLs.isEmpty)
+        report(
+            "AppState+Operations",
+            "POS: performDeleteSelected() moves the file to Trash and clears the selection",
+            result: !stillExists && appState.selectedURLs.isEmpty)
         await drainUndoRedoService()
 
         await testDeleteSelectedSkipConfirmation(dir: dir)
     }
 
-    // UI_TEST_BACKLOG.md's `skipDeleteConfirmation` bypass branch, deferred until this file was
-    // touched again for a real reason (it now has been, for the WindowUIState migration above).
+    /// UI_TEST_BACKLOG.md's `skipDeleteConfirmation` bypass branch, deferred until this file was
+    /// touched again for a real reason (it now has been, for the WindowUIState migration above).
     private static func testDeleteSelectedSkipConfirmation(dir: URL) async {
         let bypassFile = makeFile(named: "bypass.txt", in: dir)
         let bypassAppState = AppState()
@@ -177,16 +190,17 @@ public struct AppStateOperationsExtraTests {
         bypassAppState.selectedURLs = [bypassFile]
         bypassAppState.deleteSelected(windowUIState: bypassWindowUIState)
         var bypassFileStillExists = true
-        for _ in 0..<20 {
+        for _ in 0 ..< 20 {
             bypassFileStillExists = FileManager.default.fileExists(atPath: bypassFile.path)
-            if !bypassFileStillExists { break }
+            if !bypassFileStillExists {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         report(
             "AppState+Operations",
             "POS: deleteSelected() with skipDeleteConfirmation=true deletes directly without raising the confirm alert",
-            result: !bypassFileStillExists && !bypassWindowUIState.showDeleteConfirmAlert
-        )
+            result: !bypassFileStillExists && !bypassWindowUIState.showDeleteConfirmAlert)
         await drainUndoRedoService()
 
         let keepFile = makeFile(named: "keep.txt", in: dir)
@@ -199,8 +213,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: deleteSelected() with skipDeleteConfirmation=false only raises the confirm alert and never touches the file system",
-            result: keepWindowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: keepFile.path)
-        )
+            result: keepWindowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: keepFile.path))
     }
 
     private static func testShredSelected() async {
@@ -218,12 +231,17 @@ public struct AppStateOperationsExtraTests {
         appState.selectedURLs = [fileURL]
         appState.shredSelected()
         var stillExists = true
-        for _ in 0..<20 {
+        for _ in 0 ..< 20 {
             stillExists = FileManager.default.fileExists(atPath: fileURL.path)
-            if !stillExists { break }
+            if !stillExists {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
-        report("AppState+Operations", "POS: shredSelected() permanently removes the file and clears the selection", result: !stillExists && appState.selectedURLs.isEmpty)
+        report(
+            "AppState+Operations",
+            "POS: shredSelected() permanently removes the file and clears the selection",
+            result: !stillExists && appState.selectedURLs.isEmpty)
     }
 
     private static func testPasteToCurrentDirectory() async {
@@ -247,8 +265,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a .copy clipboard duplicates the file into the current directory and preserves the source",
-            result: copiedExists && sourceStillExists && appState.clipboard != nil
-        )
+            result: copiedExists && sourceStillExists && appState.clipboard != nil)
 
         // NEG: cut-clipboard paste clears the clipboard synchronously (before the async move even completes).
         let cutFile = makeFile(named: "cut-me.txt", in: sourceDir, content: "cut content")
@@ -260,8 +277,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() with a .cut clipboard clears the clipboard immediately, not waiting for the move to finish",
-            result: clipboardClearedImmediately
-        )
+            result: clipboardClearedImmediately)
 
         try? await Task.sleep(nanoseconds: 400_000_000)
         let movedExists = FileManager.default.fileExists(atPath: destDir.appendingPathComponent("cut-me.txt").path)
@@ -269,8 +285,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a .cut clipboard eventually moves the file into the current directory",
-            result: movedExists && originalGone
-        )
+            result: movedExists && originalGone)
         await drainUndoRedoService()
     }
 
@@ -289,13 +304,19 @@ public struct AppStateOperationsExtraTests {
         try? await Task.sleep(nanoseconds: 400_000_000)
         let trashedAway = !FileManager.default.fileExists(atPath: createdDirURL.path)
         let selectionAfterUndo = appState.selectedURLs.first?.path == dir.standardizedFileURL.path
-        report("AppState+Operations", "POS: undoLastAction() reverses the recorded action and selects the resulting URL", result: trashedAway && selectionAfterUndo)
+        report(
+            "AppState+Operations",
+            "POS: undoLastAction() reverses the recorded action and selects the resulting URL",
+            result: trashedAway && selectionAfterUndo)
 
         appState.redoLastAction()
         try? await Task.sleep(nanoseconds: 400_000_000)
         let recreated = FileManager.default.fileExists(atPath: createdDirURL.path)
         let selectionAfterRedo = appState.selectedURLs.first?.path == createdDirURL.standardizedFileURL.path
-        report("AppState+Operations", "POS: redoLastAction() re-applies the reversed action and selects the resulting URL", result: recreated && selectionAfterRedo)
+        report(
+            "AppState+Operations",
+            "POS: redoLastAction() re-applies the reversed action and selects the resulting URL",
+            result: recreated && selectionAfterRedo)
 
         // NEG: redoLastAction() with an empty redo stack is a no-op that doesn't clobber selection.
         // Note: UndoRedoService.shared is a process-wide singleton with no reset API, and undo()/redo()
@@ -311,8 +332,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: redoLastAction() with an empty redo stack leaves the current selection untouched",
-            result: appState2.selectedURLs.first?.path == sentinel.path
-        )
+            result: appState2.selectedURLs.first?.path == sentinel.path)
         await drainUndoRedoService()
     }
 
@@ -325,8 +345,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: downloadFromiCloud() with a URL that isn't a ubiquitous item reports an error instead of crashing",
-            result: appState.modal.errorMessage != nil
-        )
+            result: appState.modal.errorMessage != nil)
     }
 
     /// Regression coverage for the beachball fix: PasswordCompressSheetView's "OK" button used to
@@ -346,15 +365,16 @@ public struct AppStateOperationsExtraTests {
 
         let zipURL = dir.appendingPathComponent("secret.zip")
         var zipCreated = false
-        for _ in 0..<20 {
+        for _ in 0 ..< 20 {
             zipCreated = FileManager.default.fileExists(atPath: zipURL.path)
-            if zipCreated { break }
+            if zipCreated {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         report(
             "AppState+Operations", "POS: compressSelectedToZIPWithPassword() creates the encrypted archive without the caller blocking",
-            result: zipCreated
-        )
+            result: zipCreated)
 
         // NEG: no source URLs set — should be a safe no-op, no crash, nothing created.
         let emptyDir = makeTempDir()
@@ -366,11 +386,10 @@ public struct AppStateOperationsExtraTests {
         let emptyDirContents = (try? FileManager.default.contentsOfDirectory(atPath: emptyDir.path)) ?? ["unexpected-error"]
         report(
             "AppState+Operations", "NEG: compressSelectedToZIPWithPassword() with no passwordCompressURLs set is a safe no-op",
-            result: emptyDirContents.isEmpty
-        )
+            result: emptyDirContents.isEmpty)
     }
 
-    // Nil-clipboard pasteboard fallback + executePaste()'s catch branch (missing cut source).
+    /// Nil-clipboard pasteboard fallback + executePaste()'s catch branch (missing cut source).
     private static func testPasteToCurrentDirectoryEdgeCases() async {
         let sourceDir = makeTempDir()
         let destDir = makeTempDir()
@@ -392,8 +411,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a nil clipboard falls back to copying URLs found on the system pasteboard",
-            result: copied
-        )
+            result: copied)
         await drainUndoRedoService()
 
         let missingFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-cut-\(UUID().uuidString).txt")
@@ -406,8 +424,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() reports an error when the clipboard's cut source no longer exists on disk",
-            result: errorShown
-        )
+            result: errorShown)
     }
 
     static func report(_ category: String, _ name: String, result: Bool) {

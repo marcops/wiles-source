@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FileItemTests {
@@ -24,8 +24,7 @@ public struct FileItemTests {
         report(
             "Model/FileItem",
             "POS: FileItem.hash(into:) makes two equal items collapse into a single Set entry",
-            result: itemSet.count == 1 && item.hashValue == duplicateItem.hashValue
-        )
+            result: itemSet.count == 1 && item.hashValue == duplicateItem.hashValue)
 
         let otherFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("item_test_other.txt")
         try? "Different Data".write(to: otherFile, atomically: true, encoding: .utf8)
@@ -34,8 +33,7 @@ public struct FileItemTests {
         report(
             "Model/FileItem",
             "NEG: FileItem.hash(into:) differing items are not forced into the same Set entry",
-            result: Set([item, otherItem]).count == 2
-        )
+            result: Set([item, otherItem]).count == 2)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

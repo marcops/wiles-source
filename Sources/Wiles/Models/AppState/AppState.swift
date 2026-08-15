@@ -1,12 +1,13 @@
-import SwiftUI
-import Observation
 import GitBeacon
+import Observation
+import SwiftUI
 
 // swiftlint:disable:next type_body_length
 @Observable
 @MainActor
 public final class AppState: @unchecked Sendable {
     // MARK: - Domain Stores
+
     public var navigation: NavigationStore
     public var preferences: PreferencesStore
     public var modal: ModalStore
@@ -37,6 +38,7 @@ public final class AppState: @unchecked Sendable {
     }
 
     // MARK: - Operational State
+
     public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
 
     public func addSmartFolder(_ folder: SmartFolder) {
@@ -66,6 +68,7 @@ public final class AppState: @unchecked Sendable {
             refreshCurrentDirectory()
         }
     }
+
     public var isSearching: Bool = false
 
     /// In-flight directory load spawned by `refreshCurrentDirectory()`. Cancelled and replaced on every
@@ -100,23 +103,26 @@ public final class AppState: @unchecked Sendable {
             saveListColumnStates()
         }
     }
+
     /// Set while a column-resize drag is in progress so intermediate width updates (which fire on every
     /// mouse-move delta) don't each trigger a synchronous JSON encode + `UserDefaults` write. The final
     /// width is persisted once via `persistColumnWidths()` on drag end. See `ColumnResizeHandle`.
     var suppressColumnStatePersistence: Bool = false
 
-    public var perFolderViewModes: [String: String] = (UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ?? [:] {
+    public var perFolderViewModes: [String: String] = (
+        UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
+        [:] {
         didSet { UserDefaults.standard.set(perFolderViewModes, forKey: DefaultsKey.perFolderViewModes.rawValue) }
     }
 
     public init() {
-        self.navigation = NavigationStore()
-        self.preferences = PreferencesStore()
-        self.modal = ModalStore()
-        self.selection = SelectionStore()
-        self.fileSystem = FileSystemStore()
+        navigation = NavigationStore()
+        preferences = PreferencesStore()
+        modal = ModalStore()
+        selection = SelectionStore()
+        fileSystem = FileSystemStore()
 
-        self.updateTrashSize()
+        updateTrashSize()
     }
 
     public func tr(_ key: L10n.Key) -> String {
@@ -277,36 +283,52 @@ public final class AppState: @unchecked Sendable {
         }
     }
 
+    private enum TrashSizeResult {
+        case success(Int64)
+        case noTrash
+        case cancelled
+    }
+
+    /// `nonisolated` on purpose: runs inside `Task.detached`, off the main actor, so the
+    /// potentially-large `~/.Trash` enumeration below never blocks the UI.
+    private nonisolated static func computeTrashSize() -> TrashSizeResult {
+        guard let url = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first else {
+            return .noTrash
+        }
+        var totalSize: Int64 = 0
+        let keys: [URLResourceKey] = [.fileSizeKey, .isDirectoryKey]
+        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]) else {
+            return .noTrash
+        }
+        while let fileURL = enumerator.nextObject() as? URL {
+            if Task.isCancelled {
+                return .cancelled
+            }
+            if let res = try? fileURL.resourceValues(forKeys: Set(keys)), res.isDirectory == false, let size = res.fileSize {
+                totalSize += Int64(size)
+            }
+        }
+        guard !Task.isCancelled else { return .cancelled }
+        return .success(totalSize)
+    }
+
     public func updateTrashSize() {
         // Supersede any enumeration already in flight instead of piling another one on top of it —
         // this fires on every navigation/search keystroke via refreshCurrentDirectory().
         trashSizeTask?.cancel()
-        self.isTrashUpdating = true
+        isTrashUpdating = true
         trashSizeTask = Task.detached(priority: .background) { [weak self] in
-            let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
-            guard let url = trashURL else {
-                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
-                return
-            }
-            var totalSize: Int64 = 0
-            let keys: [URLResourceKey] = [.fileSizeKey, .isDirectoryKey]
-            guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]) else {
-                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
-                return
-            }
-            while let fileURL = enumerator.nextObject() as? URL {
-                if Task.isCancelled { return }
-                if let res = try? fileURL.resourceValues(forKeys: Set(keys)) {
-                    if res.isDirectory == false, let size = res.fileSize {
-                        totalSize += Int64(size)
-                    }
+            switch Self.computeTrashSize() {
+            case let .success(totalSize):
+                let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
+                await MainActor.run { [weak self] in
+                    self?.trashSizeString = sizeStr
+                    self?.isTrashUpdating = false
                 }
-            }
-            guard !Task.isCancelled else { return }
-            let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
-            await MainActor.run { [weak self] in
-                self?.trashSizeString = sizeStr
-                self?.isTrashUpdating = false
+            case .noTrash:
+                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+            case .cancelled:
+                break
             }
         }
     }

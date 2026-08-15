@@ -1,9 +1,9 @@
-import SwiftUI
 import AppKit
 import GitBeacon
+import SwiftUI
 
-extension AppState {
-    public func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
+public extension AppState {
+    func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
         for provider in providers {
             _ = provider.loadObject(ofClass: URL.self) { droppedURL, _ in
                 // Comparing the `URL` values themselves (even standardized) isn't reliable here:
@@ -13,9 +13,9 @@ extension AppState {
                 // such ambiguity — compare that (after resolving symlinks, e.g. ~/Desktop under
                 // iCloud Drive's Desktop & Documents sync) so "drop a folder onto itself" is
                 // caught reliably.
-                guard let droppedURL = droppedURL,
-                    droppedURL.resolvingSymlinksInPath().standardizedFileURL.path
-                        != targetFolder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
+                guard let droppedURL,
+                      droppedURL.resolvingSymlinksInPath().standardizedFileURL.path
+                      != targetFolder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
                 Task { @MainActor in
                     do {
                         _ = try self.moveItem(at: droppedURL, toFolder: targetFolder)
@@ -29,7 +29,7 @@ extension AppState {
         }
     }
 
-    public func downloadFromiCloud(url: URL) {
+    func downloadFromiCloud(url: URL) {
         Task.detached(priority: .userInitiated) {
             do {
                 try FileManager.default.startDownloadingUbiquitousItem(at: url)
@@ -45,19 +45,19 @@ extension AppState {
         }
     }
 
-    public func cutSelected() {
+    func cutSelected() {
         guard !selectedURLs.isEmpty else { return }
         clipboard = ClipboardState(urls: Array(selectedURLs), action: .cut)
     }
 
-    public func copySelected() {
+    func copySelected() {
         guard !selectedURLs.isEmpty else { return }
         let urls = Array(selectedURLs)
         clipboard = ClipboardState(urls: urls, action: .copy)
         FileSystemService.writeToPasteboard(urls: urls)
     }
 
-    public func pasteToCurrentDirectory() {
+    func pasteToCurrentDirectory() {
         HapticService.shared.play(.generic)
         guard let clip = clipboard, !clip.urls.isEmpty else {
             if let urls = FileSystemService.readFromPasteboard(), !urls.isEmpty {
@@ -105,7 +105,7 @@ extension AppState {
         }
     }
 
-    public func deleteSelected(windowUIState: WindowUIState) {
+    func deleteSelected(windowUIState: WindowUIState) {
         guard !selectedURLs.isEmpty else { return }
         if preferences.skipDeleteConfirmation {
             performDeleteSelected()
@@ -114,7 +114,7 @@ extension AppState {
         }
     }
 
-    public func performDeleteSelected() {
+    func performDeleteSelected() {
         guard !selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
@@ -137,7 +137,7 @@ extension AppState {
         }
     }
 
-    public func deletePermanentlySelected() {
+    func deletePermanentlySelected() {
         guard !selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
@@ -157,7 +157,7 @@ extension AppState {
         }
     }
 
-    public func shredSelected() {
+    func shredSelected() {
         guard !selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
@@ -177,12 +177,12 @@ extension AppState {
         }
     }
 
-    public func copyContentOfSelected() {
+    func copyContentOfSelected() {
         guard let firstURL = selectedURLs.first else { return }
         FileSystemService.copyFileContentToClipboard(url: firstURL)
     }
 
-    public func undoLastAction() {
+    func undoLastAction() {
         Task {
             do {
                 if let targetURL = try await UndoRedoService.shared.undo() {
@@ -196,7 +196,7 @@ extension AppState {
         }
     }
 
-    public func redoLastAction() {
+    func redoLastAction() {
         Task {
             do {
                 if let targetURL = try await UndoRedoService.shared.redo() {
@@ -210,34 +210,34 @@ extension AppState {
         }
     }
 
-    public func selectAllItems() {
-        selectedURLs = Set(fileSystem.items.map { $0.url })
+    func selectAllItems() {
+        selectedURLs = Set(fileSystem.items.map(\.url))
     }
 
-    public func openSelectedItem() {
+    func openSelectedItem() {
         if let first = selectedURLs.first {
             navigateTo(first)
         }
     }
 
-    public func triggerQuickLookForSelected(windowUIState: WindowUIState) {
+    func triggerQuickLookForSelected(windowUIState: WindowUIState) {
         if let first = selectedURLs.first {
             windowUIState.quickLookURL = first
         }
     }
 
-    public func openPropertiesForSelected(windowUIState: WindowUIState) {
+    func openPropertiesForSelected(windowUIState: WindowUIState) {
         if let first = selectedURLs.first, let item = fileSystem.items.first(where: { $0.url == first }) {
             windowUIState.propertiesItem = item
         }
     }
 
-    public func startEditingPath(windowUIState: WindowUIState) {
+    func startEditingPath(windowUIState: WindowUIState) {
         navigation.pathText = navigation.currentURL.path
         windowUIState.isEditingPath = true
     }
 
-    public func createNewFolderAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
+    func createNewFolderAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
         let targetFolder = folder ?? navigation.currentURL
         do {
             let createdURL = try FileSystemService.createUniqueDirectory(
@@ -249,7 +249,7 @@ extension AppState {
         }
     }
 
-    public func createNewFileAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
+    func createNewFileAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
         let targetFolder = folder ?? navigation.currentURL
         do {
             let createdURL = try NewFileTemplateService.createTemplateFile(
@@ -261,8 +261,8 @@ extension AppState {
         }
     }
 
-    // Column view creates items in whichever column was right-clicked, not necessarily
-    // `navigation.currentURL` — only touch `fileSystem.items` when they're the same folder.
+    /// Column view creates items in whichever column was right-clicked, not necessarily
+    /// `navigation.currentURL` — only touch `fileSystem.items` when they're the same folder.
     private func enterRenameForNewlyCreated(at url: URL, inFolder: URL, windowUIState: WindowUIState) {
         let newItem = FileItem(url: url)
         fileSystem.renamingURL = url
@@ -273,8 +273,10 @@ extension AppState {
         fileSystem.items.insert(newItem, at: 0)
     }
 
-    public func toggleSearching() {
+    func toggleSearching() {
         isSearching.toggle()
-        if !isSearching { searchQuery = "" }
+        if !isSearching {
+            searchQuery = ""
+        }
     }
 }

@@ -5,15 +5,17 @@ public enum AppAppearance: String, CaseIterable, Identifiable, Hashable, Equatab
     case light = "Light"
     case dark = "Dark"
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     /// Localized label for the Settings/menu appearance picker (the raw values above stay in
     /// English since they're persisted verbatim to `UserDefaults` via `DefaultsKey.appAppearance`).
     public var l10nKey: L10n.Key {
         switch self {
-        case .system: return .appearanceSystemOption
-        case .light: return .appearanceLightOption
-        case .dark: return .appearanceDarkOption
+        case .system: .appearanceSystemOption
+        case .light: .appearanceLightOption
+        case .dark: .appearanceDarkOption
         }
     }
 }

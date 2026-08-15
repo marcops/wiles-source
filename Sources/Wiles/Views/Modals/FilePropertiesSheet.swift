@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import GitBeacon
+import SwiftUI
 
 struct FilePropertiesSheet: View {
     let item: FileItem
@@ -32,7 +32,7 @@ struct FilePropertiesSheet: View {
         }
     }
 
-    @ViewBuilder private var headerView: some View {
+    private var headerView: some View {
         HStack(spacing: 16) {
             Image(nsImage: item.icon).resizable().frame(width: 64, height: 64)
             VStack(alignment: .leading, spacing: 4) {
@@ -47,7 +47,7 @@ struct FilePropertiesSheet: View {
         .background(Color(NSColor.windowBackgroundColor))
     }
 
-    @ViewBuilder private var contentArea: some View {
+    private var contentArea: some View {
         ScrollView {
             VStack(spacing: 16) {
                 generalSection
@@ -73,7 +73,7 @@ struct FilePropertiesSheet: View {
         .contentShape(Rectangle())
     }
 
-    @ViewBuilder private var footerView: some View {
+    private var footerView: some View {
         HStack {
             Spacer()
             Button(appState.tr(.close)) { dismiss() }.keyboardShortcut(.defaultAction)
@@ -82,7 +82,7 @@ struct FilePropertiesSheet: View {
         .background(Color(NSColor.windowBackgroundColor))
     }
 
-    @ViewBuilder private var generalSection: some View {
+    private var generalSection: some View {
         DisclosureGroup(isExpanded: $isGeneralExpanded) {
             VStack(alignment: .leading, spacing: 8) {
                 if let kind = detailedProps?.kind {
@@ -98,7 +98,7 @@ struct FilePropertiesSheet: View {
         }
     }
 
-    @ViewBuilder private var moreInfoSection: some View {
+    private var moreInfoSection: some View {
         DisclosureGroup(isExpanded: $isMoreInfoExpanded) {
             VStack(alignment: .leading, spacing: 8) {
                 if let dims = detailedProps?.dimensions {
@@ -118,13 +118,27 @@ struct FilePropertiesSheet: View {
         if let exif = exifData {
             DisclosureGroup(isExpanded: $isExifExpanded) {
                 VStack(alignment: .leading, spacing: 8) {
-                    if let model = exif.cameraModel { propertyRow(label: appState.tr(.camera), value: model) }
-                    if let lens = exif.lensModel { propertyRow(label: appState.tr(.lens), value: lens) }
-                    if let iso = exif.iso { propertyRow(label: "ISO", value: iso) }
-                    if let ap = exif.aperture { propertyRow(label: appState.tr(.aperture), value: ap) }
-                    if let fl = exif.focalLength { propertyRow(label: appState.tr(.focalLength), value: fl) }
-                    if let dt = exif.dateTimeOriginal { propertyRow(label: appState.tr(.dateTaken), value: dt) }
-                    if let gps = exif.gpsCoordinates { propertyRow(label: "GPS", value: gps) }
+                    if let model = exif.cameraModel {
+                        propertyRow(label: appState.tr(.camera), value: model)
+                    }
+                    if let lens = exif.lensModel {
+                        propertyRow(label: appState.tr(.lens), value: lens)
+                    }
+                    if let iso = exif.iso {
+                        propertyRow(label: "ISO", value: iso)
+                    }
+                    if let ap = exif.aperture {
+                        propertyRow(label: appState.tr(.aperture), value: ap)
+                    }
+                    if let fl = exif.focalLength {
+                        propertyRow(label: appState.tr(.focalLength), value: fl)
+                    }
+                    if let dt = exif.dateTimeOriginal {
+                        propertyRow(label: appState.tr(.dateTaken), value: dt)
+                    }
+                    if let gps = exif.gpsCoordinates {
+                        propertyRow(label: "GPS", value: gps)
+                    }
                 }
                 .padding(.top, 8)
             } label: {
@@ -133,7 +147,7 @@ struct FilePropertiesSheet: View {
         }
     }
 
-    @ViewBuilder private var permissionsSection: some View {
+    private var permissionsSection: some View {
         DisclosureGroup(isExpanded: $isPermissionsExpanded) {
             permissionsContent
                 .padding(.top, 8)
@@ -142,7 +156,7 @@ struct FilePropertiesSheet: View {
         }
     }
 
-    @ViewBuilder private var permissionsContent: some View {
+    private var permissionsContent: some View {
         VStack(alignment: .leading, spacing: 8) {
             propertyRow(label: appState.tr(.owner), value: item.ownerName)
             propertyRow(label: appState.tr(.group), value: item.groupName)
@@ -153,7 +167,7 @@ struct FilePropertiesSheet: View {
         }
     }
 
-    @ViewBuilder private var permissionsEditor: some View {
+    private var permissionsEditor: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(appState.tr(.permissions) + " (" + permissions.octalString + "):")

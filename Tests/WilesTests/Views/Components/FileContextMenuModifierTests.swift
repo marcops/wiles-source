@@ -1,5 +1,5 @@
-@testable import Wiles
 import SwiftUI
+@testable import Wiles
 
 @MainActor
 public struct FileContextMenuModifierTests {
@@ -9,7 +9,10 @@ public struct FileContextMenuModifierTests {
         let item = FileItem(url: tempURL, icon: NSImage())
 
         let modifier = FileContextMenuModifier(item: item, appState: appState)
-        report("View/FileContextMenuModifier", "POS: FileContextMenuModifier initializes with item and appState", result: modifier.item.url.path == item.url.path)
+        report(
+            "View/FileContextMenuModifier",
+            "POS: FileContextMenuModifier initializes with item and appState",
+            result: modifier.item.url.path == item.url.path)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

@@ -6,6 +6,6 @@ public final class DirectoryCacheEntry: NSObject {
 
     public init(result: DirectoryLoadResult) {
         self.result = result
-        self.timestamp = Date()
+        timestamp = Date()
     }
 }

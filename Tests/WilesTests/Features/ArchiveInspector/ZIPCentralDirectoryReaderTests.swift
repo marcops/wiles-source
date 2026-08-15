@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 /// `ZIPCentralDirectoryReader` hand-parses a ZIP file's central directory directly from raw bytes
 /// (see the doc comment on the type itself). It only exposes entry names via
@@ -20,8 +20,8 @@ public struct ZIPCentralDirectoryReaderTests {
 
     // MARK: - Byte layout helpers
 
-    private static let centralDirectoryFileHeaderSignature: UInt32 = 0x0201_4b50
-    private static let endOfCentralDirectorySignature: UInt32 = 0x0605_4b50
+    private static let centralDirectoryFileHeaderSignature: UInt32 = 0x0201_4B50
+    private static let endOfCentralDirectorySignature: UInt32 = 0x0605_4B50
 
     private static func writeUInt16LE(_ value: UInt16, into data: inout Data) {
         data.append(UInt8(value & 0xFF))
@@ -41,37 +41,37 @@ public struct ZIPCentralDirectoryReaderTests {
     private static func makeCentralDirectoryRecord(name: String, crc32: UInt32 = 0, uncompressedSize: UInt32 = 0) -> Data {
         var record = Data()
         writeUInt32LE(centralDirectoryFileHeaderSignature, into: &record) // 0: signature
-        writeUInt16LE(0, into: &record)                                  // 4: version made by
-        writeUInt16LE(0, into: &record)                                  // 6: version needed
-        writeUInt16LE(0, into: &record)                                  // 8: flags
-        writeUInt16LE(0, into: &record)                                  // 10: compression method
-        writeUInt16LE(0, into: &record)                                  // 12: mod time
-        writeUInt16LE(0, into: &record)                                  // 14: mod date
-        writeUInt32LE(crc32, into: &record)                              // 16: crc32
-        writeUInt32LE(uncompressedSize, into: &record)                   // 20: compressed size
-        writeUInt32LE(uncompressedSize, into: &record)                   // 24: uncompressed size
+        writeUInt16LE(0, into: &record) // 4: version made by
+        writeUInt16LE(0, into: &record) // 6: version needed
+        writeUInt16LE(0, into: &record) // 8: flags
+        writeUInt16LE(0, into: &record) // 10: compression method
+        writeUInt16LE(0, into: &record) // 12: mod time
+        writeUInt16LE(0, into: &record) // 14: mod date
+        writeUInt32LE(crc32, into: &record) // 16: crc32
+        writeUInt32LE(uncompressedSize, into: &record) // 20: compressed size
+        writeUInt32LE(uncompressedSize, into: &record) // 24: uncompressed size
         let nameBytes = Data(name.utf8)
-        writeUInt16LE(UInt16(nameBytes.count), into: &record)            // 28: name length
-        writeUInt16LE(0, into: &record)                                  // 30: extra length
-        writeUInt16LE(0, into: &record)                                  // 32: comment length
-        writeUInt16LE(0, into: &record)                                  // 34: disk number start
-        writeUInt16LE(0, into: &record)                                  // 36: internal attrs
-        writeUInt32LE(0, into: &record)                                  // 38: external attrs
-        writeUInt32LE(0, into: &record)                                  // 42: local header offset
-        record.append(nameBytes)                                        // 46: name
+        writeUInt16LE(UInt16(nameBytes.count), into: &record) // 28: name length
+        writeUInt16LE(0, into: &record) // 30: extra length
+        writeUInt16LE(0, into: &record) // 32: comment length
+        writeUInt16LE(0, into: &record) // 34: disk number start
+        writeUInt16LE(0, into: &record) // 36: internal attrs
+        writeUInt32LE(0, into: &record) // 38: external attrs
+        writeUInt32LE(0, into: &record) // 42: local header offset
+        record.append(nameBytes) // 46: name
         return record
     }
 
     private static func makeEndOfCentralDirectory(entryCount: UInt16, centralDirectorySize: UInt32, centralDirectoryOffset: UInt32) -> Data {
         var eocd = Data()
         writeUInt32LE(endOfCentralDirectorySignature, into: &eocd) // 0: signature
-        writeUInt16LE(0, into: &eocd)                              // 4: disk number
-        writeUInt16LE(0, into: &eocd)                              // 6: disk with cd
-        writeUInt16LE(entryCount, into: &eocd)                     // 8: total entries this disk
-        writeUInt16LE(entryCount, into: &eocd)                     // 10: total entries
-        writeUInt32LE(centralDirectorySize, into: &eocd)           // 12: cd size
-        writeUInt32LE(centralDirectoryOffset, into: &eocd)         // 16: cd offset
-        writeUInt16LE(0, into: &eocd)                              // 20: comment length
+        writeUInt16LE(0, into: &eocd) // 4: disk number
+        writeUInt16LE(0, into: &eocd) // 6: disk with cd
+        writeUInt16LE(entryCount, into: &eocd) // 8: total entries this disk
+        writeUInt16LE(entryCount, into: &eocd) // 10: total entries
+        writeUInt32LE(centralDirectorySize, into: &eocd) // 12: cd size
+        writeUInt32LE(centralDirectoryOffset, into: &eocd) // 16: cd offset
+        writeUInt16LE(0, into: &eocd) // 20: comment length
         return eocd
     }
 
@@ -86,8 +86,7 @@ public struct ZIPCentralDirectoryReaderTests {
         let eocd = makeEndOfCentralDirectory(
             entryCount: UInt16(entryNames.count),
             centralDirectorySize: UInt32(centralDirectory.count),
-            centralDirectoryOffset: 0
-        )
+            centralDirectoryOffset: 0)
         return centralDirectory + eocd
     }
 
@@ -130,16 +129,14 @@ public struct ZIPCentralDirectoryReaderTests {
         let eocd = makeEndOfCentralDirectory(
             entryCount: 2,
             centralDirectorySize: UInt32(truncatedCentralDirectory.count),
-            centralDirectoryOffset: 0
-        )
+            centralDirectoryOffset: 0)
         let truncatedBuffer = truncatedCentralDirectory + eocd
 
         let result = ZIPCentralDirectoryReader.readEntryNames(from: truncatedBuffer)
         report(
             "Feature/ZIPCentralDirectoryReader",
             "POS: a buffer whose second record header is cut short still returns the first entry cleanly, without crashing",
-            result: result == [names[0]]
-        )
+            result: result == [names[0]])
     }
 
     private static func testGarbageBufferWithNoEOCDSignatureReturnsNoEntries() {

@@ -8,21 +8,23 @@ enum ShortcutsFilter: CaseIterable, Identifiable {
     case macOS
     case all
 
-    var id: Self { self }
+    var id: Self {
+        self
+    }
 
     var navigationMode: NavigationMode? {
         switch self {
-        case .windows: return .gnome
-        case .macOS: return .macOS
-        case .all: return nil
+        case .windows: .gnome
+        case .macOS: .macOS
+        case .all: nil
         }
     }
 
     var l10nKey: L10n.Key {
         switch self {
-        case .windows: return .gnomeModeTitle
-        case .macOS: return .macModeTitle
-        case .all: return .shortcutsAllTab
+        case .windows: .gnomeModeTitle
+        case .macOS: .macModeTitle
+        case .all: .shortcutsAllTab
         }
     }
 }

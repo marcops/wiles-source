@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct ColumnData: Identifiable {
     let id = UUID()

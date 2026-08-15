@@ -1,5 +1,5 @@
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct DiskUsageSidebarView: View {
     var appState: AppState
@@ -19,8 +19,7 @@ struct DiskUsageSidebarView: View {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
                     .opacity(1.0 - Double(appState.preferences.translucentLevel) / 100.0)
-            }
-        )
+            })
         .task(id: appState.navigation.currentURL) {
             await loadUsage()
         }
@@ -64,7 +63,6 @@ struct DiskUsageSidebarView: View {
         }
     }
 
-    @ViewBuilder
     private func donutChart(report: DiskUsageReport) -> some View {
         Chart {
             ForEach(report.topItems) { item in
@@ -87,7 +85,6 @@ struct DiskUsageSidebarView: View {
         }
     }
 
-    @ViewBuilder
     private func itemsList(report: DiskUsageReport) -> some View {
         VStack(spacing: 6) {
             ForEach(report.topItems) { item in
@@ -128,7 +125,7 @@ struct DiskUsageSidebarView: View {
         item.colorHue == 0.0 ? Color.gray.opacity(0.5) : Color(hue: item.colorHue, saturation: 0.7, brightness: 0.8)
     }
 
-    @ViewBuilder private var loadingIndicator: some View {
+    private var loadingIndicator: some View {
         VStack(spacing: 10) {
             Spacer()
             ProgressView()
@@ -137,7 +134,7 @@ struct DiskUsageSidebarView: View {
         .frame(maxWidth: .infinity, minHeight: 220)
     }
 
-    @ViewBuilder private var emptyStateView: some View {
+    private var emptyStateView: some View {
         VStack {
             Spacer()
             Text(appState.tr(.folderIsEmpty))

@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct ShortcutsHUDOverlay: View {
     var appState: AppState
@@ -8,7 +8,7 @@ struct ShortcutsHUDOverlay: View {
 
     init(appState: AppState, isPresented: Binding<Bool>) {
         self.appState = appState
-        self._isPresented = isPresented
+        _isPresented = isPresented
         _selectedFilter = State(initialValue: appState.navigationMode == .macOS ? .macOS : .windows)
     }
 
@@ -38,7 +38,7 @@ struct ShortcutsHUDOverlay: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    @ViewBuilder private var cardView: some View {
+    private var cardView: some View {
         VStack(spacing: 16) {
             header
                 .padding(.horizontal, 20)
@@ -57,8 +57,7 @@ struct ShortcutsHUDOverlay: View {
             ZStack {
                 TranslucentVisualEffectView(material: .hudWindow)
                 Color(NSColor.windowBackgroundColor).opacity(0.85)
-            }
-        )
+            })
         // A single `.clipShape` for the whole composited card (content + background layers)
         // instead of separate `.cornerRadius()` calls on each background layer — mismatched
         // per-layer corner clipping is what caused the rounded top area (where the header sits)
@@ -66,8 +65,7 @@ struct ShortcutsHUDOverlay: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-        )
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1))
         .shadow(color: Color.black.opacity(0.25), radius: 15, x: 0, y: 8)
     }
 
@@ -142,7 +140,9 @@ struct ShortcutsHUDOverlay: View {
             VStack(spacing: 12) {
                 if selectedFilter == .all {
                     shortcutGroup(title: appState.tr(.shortcutsNav), items: merged(navigationShortcuts(for: .macOS), navigationShortcuts(for: .gnome)))
-                    shortcutGroup(title: appState.tr(.shortcutsFileActions), items: merged(fileActionsShortcuts(for: .macOS), fileActionsShortcuts(for: .gnome)))
+                    shortcutGroup(
+                        title: appState.tr(.shortcutsFileActions),
+                        items: merged(fileActionsShortcuts(for: .macOS), fileActionsShortcuts(for: .gnome)))
                     shortcutGroup(title: appState.tr(.shortcutsSystem), items: merged(systemShortcuts(for: .macOS), systemShortcuts(for: .gnome)))
                     shortcutGroup(title: appState.tr(.shortcutsGeneral), items: generalShortcuts)
                 } else {
@@ -161,13 +161,13 @@ struct ShortcutsHUDOverlay: View {
 
     private func navigationShortcuts(for mode: NavigationMode) -> [(String, String)] {
         if mode == .macOS {
-            return [
+            [
                 (appState.tr(.actNavBackForward), "⌘ [  /  ⌘ ]"),
                 (appState.tr(.actParentFolder), "⌘ ↑"),
                 (appState.tr(.shortcutsOpenFolder), "⌘ ↓")
             ]
         } else {
-            return [
+            [
                 (appState.tr(.actNavBackForward), "⌘ [  /  ⌘ ]"),
                 (appState.tr(.actParentFolder), "Backspace"),
                 (appState.tr(.shortcutsOpenFolder), "Enter")

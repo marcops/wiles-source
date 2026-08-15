@@ -1,0 +1,11 @@
+parent_config: ../.swiftlint.yml
+
+# Test files legitimately run longer than production code (setup + several assertions per
+# scenario) — relaxed here, scoped to Tests/ only. Sources/ keeps the stricter root thresholds.
+function_body_length:
+  warning: 50
+  error: 80
+
+type_body_length:
+  warning: 420
+  error: 500

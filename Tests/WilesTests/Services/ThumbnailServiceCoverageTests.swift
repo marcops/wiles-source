@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ThumbnailServiceCoverageTests {
@@ -34,8 +34,8 @@ public struct ThumbnailServiceCoverageTests {
         return (try? pngData.write(to: url)) != nil
     }
 
-    // Covers loadThumbnail's "if let cached = cache.object(forKey: key) { return cached }" branch:
-    // a second call for the same URL/size must be served from cache instead of regenerating.
+    /// Covers loadThumbnail's "if let cached = cache.object(forKey: key) { return cached }" branch:
+    /// a second call for the same URL/size must be served from cache instead of regenerating.
     private static func testLoadThumbnailServesFromCacheOnSecondCall() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
@@ -48,20 +48,19 @@ public struct ThumbnailServiceCoverageTests {
         let second = await ThumbnailService.shared.loadThumbnail(for: pngURL, size: 32)
         TestReporter.report(
             "ThumbnailService", "POS: loadThumbnail(for:size:) returns the same cached image instance on a second call for the same URL",
-            result: first != nil && first === second
-        )
+            result: first != nil && first === second)
     }
 
-    // Covers prefetchThumbnails' "if Task.isCancelled { break }" branch: starting a new prefetch
-    // while a prior one is still iterating cancels the prior Task, which must observe cancellation
-    // and break out of its loop instead of continuing to process the remaining items.
+    /// Covers prefetchThumbnails' "if Task.isCancelled { break }" branch: starting a new prefetch
+    /// while a prior one is still iterating cancels the prior Task, which must observe cancellation
+    /// and break out of its loop instead of continuing to process the remaining items.
     private static func testPrefetchThumbnailsCancellationBreaksLoop() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         var items: [FileItem] = []
-        for index in 0..<12 {
+        for index in 0 ..< 12 {
             let url = tempDir.appendingPathComponent("cancel-sample-\(index).png")
             writeSamplePNG(to: url)
             items.append(FileItem(url: url, icon: makeFakeIcon()))
@@ -74,8 +73,7 @@ public struct ThumbnailServiceCoverageTests {
         try? await Task.sleep(nanoseconds: 300_000_000)
         TestReporter.report(
             "ThumbnailService", "POS: starting a new prefetchThumbnails call cancels the prior in-flight one without crashing or hanging",
-            result: true
-        )
+            result: true)
     }
 
     private static func testSupportsThumbnailForVariousKinds() {
@@ -87,7 +85,10 @@ public struct ThumbnailServiceCoverageTests {
         let subDir = tempDir.appendingPathComponent("a-folder")
         try? FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
         let dirItem = FileItem(url: subDir, icon: makeFakeIcon())
-        TestReporter.report("ThumbnailService", "NEG: supportsThumbnail(item:) returns false for a directory", result: !ThumbnailService.supportsThumbnail(item: dirItem))
+        TestReporter.report(
+            "ThumbnailService",
+            "NEG: supportsThumbnail(item:) returns false for a directory",
+            result: !ThumbnailService.supportsThumbnail(item: dirItem))
 
         // NEG: a real file whose extension conforms to UTType.archive (zip) is excluded.
         let zipURL = tempDir.appendingPathComponent("archive.zip")
@@ -96,14 +97,16 @@ public struct ThumbnailServiceCoverageTests {
         TestReporter.report(
             "ThumbnailService",
             "NEG: supportsThumbnail(item:) returns false for a .zip file (archive type)",
-            result: !ThumbnailService.supportsThumbnail(item: zipItem)
-        )
+            result: !ThumbnailService.supportsThumbnail(item: zipItem))
 
         // POS: a real file with a plain image extension is eligible.
         let pngURL = tempDir.appendingPathComponent("photo.png")
         FileManager.default.createFile(atPath: pngURL.path, contents: Data())
         let pngItem = FileItem(url: pngURL, icon: makeFakeIcon())
-        TestReporter.report("ThumbnailService", "POS: supportsThumbnail(item:) returns true for a .png file", result: ThumbnailService.supportsThumbnail(item: pngItem))
+        TestReporter.report(
+            "ThumbnailService",
+            "POS: supportsThumbnail(item:) returns true for a .png file",
+            result: ThumbnailService.supportsThumbnail(item: pngItem))
 
         // NEG: an unrecognized/nonsense extension returns false so native icons remain stable.
         let weirdURL = tempDir.appendingPathComponent("mystery.qzxnotarealext")
@@ -112,8 +115,7 @@ public struct ThumbnailServiceCoverageTests {
         TestReporter.report(
             "ThumbnailService",
             "NEG: supportsThumbnail(item:) returns false for an unrecognized extension",
-            result: !ThumbnailService.supportsThumbnail(item: weirdItem)
-        )
+            result: !ThumbnailService.supportsThumbnail(item: weirdItem))
 
         // NEG: a file with no extension at all returns false so native icons remain stable.
         let noExtURL = tempDir.appendingPathComponent("README")
@@ -122,8 +124,7 @@ public struct ThumbnailServiceCoverageTests {
         TestReporter.report(
             "ThumbnailService",
             "NEG: supportsThumbnail(item:) returns false for a file with no extension",
-            result: !ThumbnailService.supportsThumbnail(item: noExtItem)
-        )
+            result: !ThumbnailService.supportsThumbnail(item: noExtItem))
     }
 
     private static func testCacheKeyDoesNotCollideBetweenSizes() {
@@ -158,7 +159,10 @@ public struct ThumbnailServiceCoverageTests {
         // POS: prefetchThumbnails with a mix of eligible/ineligible items filters via supportsThumbnail
         // and returns immediately (fire-and-forget Task.detached), never crashing or hanging on ineligible entries.
         ThumbnailService.shared.prefetchThumbnails(for: [pngItem, folderItem, zipItem], size: 32)
-        TestReporter.report("ThumbnailService", "POS: prefetchThumbnails(for:size:) with mixed eligible/ineligible items returns without crashing", result: true)
+        TestReporter.report(
+            "ThumbnailService",
+            "POS: prefetchThumbnails(for:size:) with mixed eligible/ineligible items returns without crashing",
+            result: true)
 
         // NEG: directories and archives are never dispatched to loadThumbnail by prefetch, so their cache
         // entries remain empty even after giving the detached task a brief window to run.
@@ -175,8 +179,14 @@ public struct ThumbnailServiceCoverageTests {
         TestReporter.report("ThumbnailService", "POS: isImage(fileExtension:) returns true for \"jpg\"", result: ThumbnailService.isImage(fileExtension: "jpg"))
 
         // NEG: non-image extensions and nonsense strings return false
-        TestReporter.report("ThumbnailService", "NEG: isImage(fileExtension:) returns false for \"txt\"", result: !ThumbnailService.isImage(fileExtension: "txt"))
-        TestReporter.report("ThumbnailService", "NEG: isImage(fileExtension:) returns false for empty string", result: !ThumbnailService.isImage(fileExtension: ""))
+        TestReporter.report(
+            "ThumbnailService",
+            "NEG: isImage(fileExtension:) returns false for \"txt\"",
+            result: !ThumbnailService.isImage(fileExtension: "txt"))
+        TestReporter.report(
+            "ThumbnailService",
+            "NEG: isImage(fileExtension:) returns false for empty string",
+            result: !ThumbnailService.isImage(fileExtension: ""))
     }
 
     private static func testCachedThumbnailMiss() {
@@ -222,12 +232,18 @@ public struct ThumbnailServiceCoverageTests {
         // returns nil gracefully in a headless CI environment without QuickLook support -- either
         // outcome is acceptable as long as it doesn't crash or hang.
         let thumbnail = await ThumbnailService.shared.loadThumbnail(for: pngURL, size: 32)
-        TestReporter.report("ThumbnailService", "POS: loadThumbnail(for:size:) on a real PNG completes without crashing (image: \(thumbnail != nil))", result: true)
+        TestReporter.report(
+            "ThumbnailService",
+            "POS: loadThumbnail(for:size:) on a real PNG completes without crashing (image: \(thumbnail != nil))",
+            result: true)
 
         if thumbnail != nil {
             // POS: once loaded, the same URL/size pair is now served from cache
             let cachedAfterLoad = ThumbnailService.shared.cachedThumbnail(for: pngURL, size: 32)
-            TestReporter.report("ThumbnailService", "POS: cachedThumbnail(for:size:) returns the image after a successful loadThumbnail", result: cachedAfterLoad != nil)
+            TestReporter.report(
+                "ThumbnailService",
+                "POS: cachedThumbnail(for:size:) returns the image after a successful loadThumbnail",
+                result: cachedAfterLoad != nil)
         }
 
         // NEG: loadThumbnail for a nonexistent file returns nil rather than crashing/hanging

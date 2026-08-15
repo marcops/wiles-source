@@ -5,8 +5,7 @@ public struct SymlinkService: Sendable {
         targetURL: URL,
         destinationFolder: URL,
         symlinkName: String,
-        mode: SymlinkMode
-    ) throws -> URL {
+        mode: SymlinkMode) throws -> URL {
         let fm = FileManager.default
         let trimmed = symlinkName.trimmingCharacters(in: .whitespacesAndNewlines)
         let name = trimmed.isEmpty ? targetURL.lastPathComponent + " link" : trimmed
@@ -42,13 +41,13 @@ public struct SymlinkService: Sendable {
         let targetComponents = targetURL.standardizedFileURL.pathComponents
 
         var commonIndex = 0
-        while commonIndex < originComponents.count && commonIndex < targetComponents.count && originComponents[commonIndex] == targetComponents[commonIndex] {
+        while commonIndex < originComponents.count, commonIndex < targetComponents.count, originComponents[commonIndex] == targetComponents[commonIndex] {
             commonIndex += 1
         }
 
         var relativeComponents: [String] = []
         let upCount = originComponents.count - commonIndex
-        for _ in 0..<upCount {
+        for _ in 0 ..< upCount {
             relativeComponents.append("..")
         }
 

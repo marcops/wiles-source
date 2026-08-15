@@ -1,5 +1,5 @@
-import SwiftUI
 import Quartz
+import SwiftUI
 
 /// Inline (embedded, not a popup panel) native QuickLook preview — renders anything the system
 /// has a QuickLook generator for (HTML, PDF, images, video, code, Office docs, ...), same engine
@@ -7,7 +7,7 @@ import Quartz
 struct QLPreviewInlineView: NSViewRepresentable {
     let url: URL
 
-    func makeNSView(context: Context) -> QLPreviewView {
+    func makeNSView(context _: Context) -> QLPreviewView {
         guard let view = QLPreviewView(frame: .zero, style: .normal) else {
             preconditionFailure("QLPreviewView failed to initialize")
         }
@@ -15,7 +15,7 @@ struct QLPreviewInlineView: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: QLPreviewView, context: Context) {
+    func updateNSView(_ nsView: QLPreviewView, context _: Context) {
         if (nsView.previewItem as? URL) != url {
             nsView.previewItem = url as NSURL
         }

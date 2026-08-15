@@ -1,5 +1,5 @@
-import SwiftUI
 import GitBeacon
+import SwiftUI
 
 public struct DuplicateCleanerSheetView: View {
     var appState: AppState
@@ -33,15 +33,15 @@ public struct DuplicateCleanerSheetView: View {
         .frame(width: 640, height: 480)
         .task {
             let res = await DuplicateDetectionService.shared.findDuplicates(in: appState.navigation.currentURL)
-            self.scanResult = res
+            scanResult = res
             var autoSelect: Set<URL> = []
             for group in res.groups {
                 for item in group.items.dropFirst() {
                     autoSelect.insert(item.url)
                 }
             }
-            self.selectedURLsToTrash = autoSelect
-            self.isScanning = false
+            selectedURLsToTrash = autoSelect
+            isScanning = false
         }
     }
 
@@ -139,10 +139,13 @@ public struct DuplicateCleanerSheetView: View {
             Toggle("", isOn: Binding(
                 get: { selectedURLsToTrash.contains(item.url) },
                 set: { isChecked in
-                    if isChecked { selectedURLsToTrash.insert(item.url) } else { selectedURLsToTrash.remove(item.url) }
-                }
-            ))
-            .labelsHidden()
+                    if isChecked {
+                        selectedURLsToTrash.insert(item.url)
+                    } else {
+                        selectedURLsToTrash.remove(item.url)
+                    }
+                }))
+                .labelsHidden()
 
             Image(nsImage: item.icon)
                 .resizable()
@@ -193,7 +196,9 @@ public struct DuplicateCleanerSheetView: View {
                 DirectoryCacheService.shared.invalidate(url: appState.navigation.currentURL)
                 appState.refreshCurrentDirectory()
                 if failureCount > 0 {
-                    appState.showError(WilesError.operationFailed(reason: "\(failureCount) of \(urls.count) items could not be moved to Trash.").localizedDescription)
+                    appState
+                        .showError(WilesError.operationFailed(reason: "\(failureCount) of \(urls.count) items could not be moved to Trash.")
+                            .localizedDescription)
                 }
             }
         }

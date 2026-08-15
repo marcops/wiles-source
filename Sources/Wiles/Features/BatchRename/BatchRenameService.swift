@@ -1,8 +1,8 @@
 import Foundation
 
-public final class BatchRenameService {
+public enum BatchRenameService {
     public static func previewNewNames(items: [FileItem], mode: BatchRenameMode) -> [(original: FileItem, newName: String)] {
-        return items.enumerated().map { index, item in
+        items.enumerated().map { index, item in
             (original: item, newName: renamedName(for: item, index: index, mode: mode))
         }
     }
@@ -14,19 +14,19 @@ public final class BatchRenameService {
 
         let newBaseName: String
         switch mode {
-        case .replace(let find, let replaceWith):
+        case let .replace(find, replaceWith):
             if find.isEmpty {
                 newBaseName = baseName
             } else {
                 newBaseName = baseName.replacingOccurrences(of: find, with: replaceWith)
             }
-        case .addPrefixSuffix(let prefix, let suffix):
+        case let .addPrefixSuffix(prefix, suffix):
             newBaseName = "\(prefix)\(baseName)\(suffix)"
-        case .sequenceNumber(let prefix, let startNumber, let paddingDigits):
+        case let .sequenceNumber(prefix, startNumber, paddingDigits):
             let num = startNumber + index
             let formattedNum = String(format: "%0\(paddingDigits)d", num)
             newBaseName = prefix.isEmpty ? formattedNum : "\(prefix)_\(formattedNum)"
-        case .regex(let pattern, let template):
+        case let .regex(pattern, template):
             if pattern.isEmpty {
                 newBaseName = baseName
             } else if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
@@ -45,7 +45,7 @@ public final class BatchRenameService {
         // pattern (that fallback is fine for the live preview text), but actually performing the
         // rename must not pretend the user didn't ask for anything - validate the pattern up front
         // and abort with a real error instead of silently no-op-renaming every item.
-        if case .regex(let pattern, _) = mode, !pattern.isEmpty, (try? NSRegularExpression(pattern: pattern, options: [])) == nil {
+        if case let .regex(pattern, _) = mode, !pattern.isEmpty, (try? NSRegularExpression(pattern: pattern, options: [])) == nil {
             throw WilesError.operationFailed(reason: "Invalid rename pattern: \(pattern)")
         }
 

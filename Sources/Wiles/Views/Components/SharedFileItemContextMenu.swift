@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import GitBeacon
+import SwiftUI
 
 struct SharedFileItemContextMenu: View {
     let item: FileItem
@@ -52,11 +52,15 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var clipboardSection: some View {
         Button("\(appState.tr(.cut)) (Cmd+X)") {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             appState.cutSelected()
         }
         Button("\(appState.tr(.copy)) (Cmd+C)") {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             appState.copySelected()
         }
         Menu(appState.tr(.copyPath)) {
@@ -87,12 +91,16 @@ struct SharedFileItemContextMenu: View {
     @ViewBuilder private var contentActionsSection: some View {
         if !item.isDirectory {
             Button("\(appState.tr(.copyContent)) (#10)") {
-                if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+                if !appState.selectedURLs.contains(item.url) {
+                    appState.selectedURLs = [item.url]
+                }
                 appState.copyContentOfSelected()
             }
             if isImageFile {
                 Button(appState.tr(.quickConvertImage)) {
-                    if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+                    if !appState.selectedURLs.contains(item.url) {
+                        appState.selectedURLs = [item.url]
+                    }
                     windowUIState.imageConverterItem = item
                 }
             }
@@ -140,7 +148,9 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.tr(.compressToZip)) {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             appState.compressSelectedToZIP()
         }
         Button(appState.tr(.compressWithPassword)) {
@@ -153,7 +163,9 @@ struct SharedFileItemContextMenu: View {
     @ViewBuilder private var destructiveActionsSection: some View {
         Divider()
         Button("\(appState.tr(.rename)) \(renameKeyboardHint)") {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             if appState.selectedURLs.count > 1 {
                 windowUIState.showBatchRenameSheet = true
             } else {
@@ -161,19 +173,27 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.tr(.moveToTrash), role: .destructive) {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             appState.deleteSelected(windowUIState: windowUIState)
         }
         Button("\(appState.tr(.deleteImmediately)) (Opt+Cmd+Del)", role: .destructive) {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             appState.deletePermanentlySelected()
         }
         Button(appState.tr(.secureShred), role: .destructive) {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             appState.shredSelected()
         }
         Button(appState.tr(.createSymlink)) {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             windowUIState.symlinkItem = item
         }
         Button("\(appState.tr(.airDrop))...") {
@@ -199,7 +219,9 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button("\(appState.tr(.properties)) (Cmd+I)") {
-            if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
+            if !appState.selectedURLs.contains(item.url) {
+                appState.selectedURLs = [item.url]
+            }
             windowUIState.propertiesItem = item
         }
     }
@@ -216,7 +238,7 @@ struct SharedFileItemContextMenu: View {
             let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
             OpenWithService.chooseOtherApplication(toOpen: targetURLs)
         }
-        if !availableApps.isEmpty && !item.fileExtension.isEmpty {
+        if !availableApps.isEmpty, !item.fileExtension.isEmpty {
             Divider()
             changeDefaultAppMenu(availableApps: availableApps)
         }

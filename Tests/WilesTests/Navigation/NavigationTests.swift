@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct NavigationTests {
@@ -11,14 +11,23 @@ public struct NavigationTests {
 
         // Positive: Navigation
         appState.navigateTo(tempTarget)
-        TestReporter.report("Navigation", "POS: navigateTo(tempTarget)", result: appState.navigation.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
+        TestReporter.report(
+            "Navigation",
+            "POS: navigateTo(tempTarget)",
+            result: appState.navigation.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
 
         // Positive: History Back & Forward
         appState.goBack()
-        TestReporter.report("Navigation", "POS: goBack() restores previous URL", result: appState.navigation.currentURL.standardizedFileURL == initial.standardizedFileURL)
+        TestReporter.report(
+            "Navigation",
+            "POS: goBack() restores previous URL",
+            result: appState.navigation.currentURL.standardizedFileURL == initial.standardizedFileURL)
 
         appState.goForward()
-        TestReporter.report("Navigation", "POS: goForward() restores forward URL", result: appState.navigation.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
+        TestReporter.report(
+            "Navigation",
+            "POS: goForward() restores forward URL",
+            result: appState.navigation.currentURL.standardizedFileURL == tempTarget.standardizedFileURL)
 
         // Negative: Stack Boundary Checks
         appState.goForward()

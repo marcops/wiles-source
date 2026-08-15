@@ -10,9 +10,12 @@ struct FolderPickerNodeView: View {
         Binding(
             get: { expandedPaths.contains(node.url) },
             set: { newValue in
-                if newValue { expandedPaths.insert(node.url) } else { expandedPaths.remove(node.url) }
-            }
-        )
+                if newValue {
+                    expandedPaths.insert(node.url)
+                } else {
+                    expandedPaths.remove(node.url)
+                }
+            })
     }
 
     var body: some View {

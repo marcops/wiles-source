@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FullUIActionCoverageTests {
@@ -21,7 +21,7 @@ public struct FullUIActionCoverageTests {
         testBatchRenameSheetFlows(appState: appState)
     }
 
-    private static func testHttpSharingSheetFlows(appState: AppState) {
+    private static func testHttpSharingSheetFlows(appState _: AppState) {
         let isRunningInitial = LocalHttpServerService.shared.isRunning
         if isRunningInitial {
             LocalHttpServerService.shared.stop()
@@ -32,15 +32,14 @@ public struct FullUIActionCoverageTests {
         report("UI/HttpShare", "NEG: Stopping stopped server is a safe no-op", result: !LocalHttpServerService.shared.isRunning)
     }
 
-    private static func testAutoOrganizationSheetFlows(appState: AppState) {
+    private static func testAutoOrganizationSheetFlows(appState _: AppState) {
         let dummyRule = AutoOrganizationRule(
             id: UUID(),
             sourceURL: URL(fileURLWithPath: "/tmp"),
             destinationURL: URL(fileURLWithPath: "/tmp/Images"),
             conditionType: .extensionEquals,
             conditionValue: "png",
-            isEnabled: true
-        )
+            isEnabled: true)
 
         let countBefore = AutoOrganizationService.shared.rules.count
         AutoOrganizationService.shared.addRule(dummyRule)
@@ -49,7 +48,10 @@ public struct FullUIActionCoverageTests {
         var updated = dummyRule
         updated.conditionValue = "jpg"
         AutoOrganizationService.shared.updateRule(updated)
-        report("UI/AutoOrg", "POS: Updating rule updates conditionValue", result: AutoOrganizationService.shared.rules.contains(where: { $0.conditionValue == "jpg" }))
+        report(
+            "UI/AutoOrg",
+            "POS: Updating rule updates conditionValue",
+            result: AutoOrganizationService.shared.rules.contains(where: { $0.conditionValue == "jpg" }))
 
         AutoOrganizationService.shared.deleteRule(id: dummyRule.id)
         report("UI/AutoOrg", "POS: Deleting rule removes rule by id", result: !AutoOrganizationService.shared.rules.contains(where: { $0.id == dummyRule.id }))
@@ -64,7 +66,7 @@ public struct FullUIActionCoverageTests {
         report("UI/TerminalDrawer", "POS: Terminal drawer state restored", result: appState.preferences.showTerminalDrawer == initialDrawerState)
     }
 
-    private static func testPropertiesSheetFlows(appState: AppState) {
+    private static func testPropertiesSheetFlows(appState _: AppState) {
         let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("test_prop.txt")
         try? "Properties Test Content".write(to: tempFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempFile) }
@@ -78,7 +80,7 @@ public struct FullUIActionCoverageTests {
         report("UI/Properties", "NEG: Setting propertiesItem to nil closes sheet", result: windowUIState.propertiesItem == nil)
     }
 
-    private static func testNewFolderSheetFlows(appState: AppState) {
+    private static func testNewFolderSheetFlows(appState _: AppState) {
         let validFolderName = "New Test Folder"
         report("UI/NewFolder", "POS: Valid folder name is non-empty", result: !validFolderName.trimmingCharacters(in: .whitespaces).isEmpty)
 
@@ -86,7 +88,7 @@ public struct FullUIActionCoverageTests {
         report("UI/NewFolder", "NEG: Trimming empty folder name returns empty string", result: emptyFolderName.trimmingCharacters(in: .whitespaces).isEmpty)
     }
 
-    private static func testDuplicateCleanerSheetFlows(appState: AppState) async {
+    private static func testDuplicateCleanerSheetFlows(appState _: AppState) async {
         let emptyDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: emptyDir) }
@@ -95,12 +97,12 @@ public struct FullUIActionCoverageTests {
         report("UI/DuplicateCleaner", "NEG: Duplicate detection on empty folder returns zero groups", result: result.groups.isEmpty)
     }
 
-    private static func testImageConverterSheetFlows(appState: AppState) {
+    private static func testImageConverterSheetFlows(appState _: AppState) {
         let formats = ImageFormat.allCases
         report("UI/ImageConverter", "POS: ImageFormat options cover PNG, JPEG, HEIC, TIFF", result: formats.count >= 4)
     }
 
-    private static func testDiskSpaceVisualizerSheetFlows(appState: AppState) async {
+    private static func testDiskSpaceVisualizerSheetFlows(appState _: AppState) async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
@@ -131,7 +133,7 @@ public struct FullUIActionCoverageTests {
         windowUIState.showAboutSheet = false
     }
 
-    private static func testConnectToServerSheetFlows(appState: AppState) {
+    private static func testConnectToServerSheetFlows(appState _: AppState) {
         let validURL = "smb://192.168.1.100/Share"
         report("UI/ConnectServer", "POS: Valid SMB URL string is resolvable", result: URL(string: validURL) != nil)
 
@@ -139,7 +141,7 @@ public struct FullUIActionCoverageTests {
         report("UI/ConnectServer", "NEG: Empty URL string fails connection validation", result: invalidURL.isEmpty)
     }
 
-    private static func testSymlinkSheetFlows(appState: AppState) {
+    private static func testSymlinkSheetFlows(appState _: AppState) {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
@@ -155,7 +157,7 @@ public struct FullUIActionCoverageTests {
         }
     }
 
-    private static func testNewFileSheetFlows(appState: AppState) {
+    private static func testNewFileSheetFlows(appState _: AppState) {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
@@ -169,7 +171,7 @@ public struct FullUIActionCoverageTests {
         }
     }
 
-    private static func testBatchRenameSheetFlows(appState: AppState) {
+    private static func testBatchRenameSheetFlows(appState _: AppState) {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }

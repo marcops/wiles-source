@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct PreviewSidebarView: View {
     var appState: AppState
@@ -24,8 +24,7 @@ struct PreviewSidebarView: View {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
                     .opacity(1.0 - Double(appState.preferences.translucentLevel) / 100.0)
-            }
-        )
+            })
         .task(id: appState.selectedURLs) {
             if let first = appState.selectedURLs.first, appState.selectedURLs.count == 1 {
                 detailedProps = await FileMetadataService.shared.fetchProperties(for: first)

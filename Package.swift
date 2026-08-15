@@ -24,17 +24,13 @@ let package = Package(
             path: "Sources/Wiles",
             resources: [
                 .process("Resources")
-            ]
-        ),
+            ]),
         .testTarget(
             name: "WilesTests",
             dependencies: ["Wiles"],
-            path: "Tests/WilesTests"
-        ),
+            path: "Tests/WilesTests"),
         .testTarget(
             name: "WilesUITests",
             dependencies: ["Wiles"],
-            path: "Tests/WilesUITests"
-        )
-    ]
-)
+            path: "Tests/WilesUITests")
+    ])

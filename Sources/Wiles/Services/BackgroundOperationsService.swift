@@ -8,7 +8,7 @@ public final class BackgroundOperationsService {
 
     public var activeTasks: [FileOperationTask] = []
 
-    private init() {}
+    private init() { }
 
     public func addTask(title: String, totalBytes: Int64 = 0) -> UUID {
         let task = FileOperationTask(title: title, totalBytes: totalBytes)

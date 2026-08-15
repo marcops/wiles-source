@@ -1,20 +1,29 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 struct FileGridView: View {
     var appState: AppState
 
-    private var iconSize: CGFloat { CGFloat(appState.preferences.iconSize) * LayoutTokens.gridIconScaleMultiplier }
-    private var cardWidth: CGFloat { iconSize + LayoutTokens.cardWidthOffset }
-    private var cardHeight: CGFloat { iconSize + LayoutTokens.cardHeightOffset }
-    // `maximum` used to be `cardWidth + 24`, letting each column stretch up to 24pt past the card's
-    // own width to fill the row evenly. Since the card content itself stays a fixed `cardWidth`,
-    // that slack just became extra empty margin around the icon — and since how much slack is left
-    // over per row depends on how many columns fit, which changes with `cardWidth`, the visual gap
-    // between icons appeared to grow/shrink as the icon-size slider moved even though `gridSpacing`
-    // itself never changed. Locking `maximum` to `cardWidth` removes the stretch entirely: any
-    // leftover row width becomes trailing margin instead of inflating the gap between icons.
+    private var iconSize: CGFloat {
+        CGFloat(appState.preferences.iconSize) * LayoutTokens.gridIconScaleMultiplier
+    }
+
+    private var cardWidth: CGFloat {
+        iconSize + LayoutTokens.cardWidthOffset
+    }
+
+    private var cardHeight: CGFloat {
+        iconSize + LayoutTokens.cardHeightOffset
+    }
+
+    /// `maximum` used to be `cardWidth + 24`, letting each column stretch up to 24pt past the card's
+    /// own width to fill the row evenly. Since the card content itself stays a fixed `cardWidth`,
+    /// that slack just became extra empty margin around the icon — and since how much slack is left
+    /// over per row depends on how many columns fit, which changes with `cardWidth`, the visual gap
+    /// between icons appeared to grow/shrink as the icon-size slider moved even though `gridSpacing`
+    /// itself never changed. Locking `maximum` to `cardWidth` removes the stretch entirely: any
+    /// leftover row width becomes trailing margin instead of inflating the gap between icons.
     private var columns: [GridItem] {
         [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: LayoutTokens.gridSpacing)]
     }
@@ -30,7 +39,6 @@ struct FileGridView: View {
         }
     }
 
-    @ViewBuilder
     private func gridScrollArea(geometry: GeometryProxy) -> some View {
         ScrollViewReader { proxy in
             gridScrollViewReaderContent(geometry: geometry, proxy: proxy)
@@ -39,7 +47,6 @@ struct FileGridView: View {
         .background(ScrollerAutoHideSetter())
     }
 
-    @ViewBuilder
     private func gridScrollViewReaderContent(geometry: GeometryProxy, proxy: ScrollViewProxy) -> some View {
         ScrollView {
             gridScrollViewBody(geometry: geometry)
@@ -50,7 +57,6 @@ struct FileGridView: View {
         .background(ScrollerAutoHideSetter())
     }
 
-    @ViewBuilder
     private func gridScrollViewBody(geometry: GeometryProxy) -> some View {
         ZStack(alignment: .topLeading) {
             gridZStackContent
@@ -73,8 +79,7 @@ struct FileGridView: View {
             appState: appState,
             coordinateSpaceName: "gridContainer",
             selectionRect: $selectionRect,
-            cellFramesProvider: { appState.selection.gridCellFrames }
-        )
+            cellFramesProvider: { appState.selection.gridCellFrames })
 
         Group {
             gridItemsGroup
@@ -88,7 +93,7 @@ struct FileGridView: View {
     }
 
     @ViewBuilder private var gridItemsGroup: some View {
-        if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
+        if appState.fileSystem.items.isEmpty, !appState.fileSystem.isLoading {
             EmptyDirectoryView(appState: appState)
         } else {
             gridLazyGrid
@@ -118,12 +123,11 @@ struct FileGridView: View {
                     if !appState.selectedURLs.contains(item.url) {
                         appState.selectedURLs = [item.url]
                     }
-                }
-            )
-            .transition(.opacity)
+                })
+                .transition(.opacity)
         }
         .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
-        if paginate && visibleLimit < appState.fileSystem.items.count {
+        if paginate, visibleLimit < appState.fileSystem.items.count {
             ProgressView()
                 .frame(height: 50)
                 .onAppear {
@@ -154,11 +158,10 @@ struct FileGridView: View {
                 appState: appState,
                 windowUIState: windowUIState,
                 font: .system(size: fontSize, weight: isSel ? .semibold : .regular),
-                alignment: .center
-            )
-            .frame(width: fieldWidth, alignment: .top)
-            .offset(x: cellFrame.midX - fieldWidth / 2, y: cellFrame.minY + topInset)
-            .zIndex(10)
+                alignment: .center)
+                .frame(width: fieldWidth, alignment: .top)
+                .offset(x: cellFrame.midX - fieldWidth / 2, y: cellFrame.minY + topInset)
+                .zIndex(10)
         }
     }
 }

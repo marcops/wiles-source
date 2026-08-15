@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 import PDFKit
 
 public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
@@ -45,7 +45,7 @@ public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
             let ext = url.pathExtension.lowercased()
             if ext == "pdf" {
                 if let doc = PDFDocument(url: url) {
-                    for pageNum in 0..<doc.pageCount {
+                    for pageNum in 0 ..< doc.pageCount {
                         try Task.checkCancellation()
                         if let page = doc.page(at: pageNum) {
                             outputPDF.insert(page, at: pageIndex)

@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import CoreServices
+import SwiftUI
 import UniformTypeIdentifiers
 
 public struct FileItemIconView: View {
@@ -29,7 +29,7 @@ public struct FileItemIconView: View {
     }()
 
     public var body: some View {
-        if item.isDirectory && isOpenTargeted {
+        if item.isDirectory, isOpenTargeted {
             Image(nsImage: Self.openFolderIcon)
                 .resizable()
                 .interpolation(.high)

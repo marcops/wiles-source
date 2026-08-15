@@ -13,7 +13,9 @@ struct SettingsView: View {
 
     private enum Tab: CaseIterable, Identifiable {
         case general, appearance, sidebar, advanced
-        var id: Self { self }
+        var id: Self {
+            self
+        }
     }
 
     @State private var selectedTab: Tab = .general
@@ -57,10 +59,10 @@ struct SettingsView: View {
         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
 
-    // A hand-rolled icon-over-title tab row instead of `Picker(.segmented)`: macOS's segmented
-    // control silently drops the icon from a `Label` even with `.labelStyle(.titleAndIcon)`
-    // applied, showing text only. This mirrors the classic macOS Preferences toolbar tab look
-    // (icon above label) while still living inside our own header instead of a native `NSToolbar`.
+    /// A hand-rolled icon-over-title tab row instead of `Picker(.segmented)`: macOS's segmented
+    /// control silently drops the icon from a `Label` even with `.labelStyle(.titleAndIcon)`
+    /// applied, showing text only. This mirrors the classic macOS Preferences toolbar tab look
+    /// (icon above label) while still living inside our own header instead of a native `NSToolbar`.
     private var tabSwitcher: some View {
         HStack(spacing: 4) {
             ForEach(Tab.allCases) { tab in
@@ -69,14 +71,14 @@ struct SettingsView: View {
         }
     }
 
-    // A real `Button` on macOS, even with `.contentShape(Rectangle())` matched exactly to its own
-    // frame, keeps registering clicks only over the label's actual rendered (non-transparent)
-    // content — the `Color.clear`-backed padding around the icon/text stays dead even though it's
-    // visually inside the 64x44 pill. `.contentShape` reliably drives SwiftUI's own gesture
-    // recognizers but not `Button`'s AppKit-backed click routing here (see AGENTS.md rule 33), so
-    // this uses a plain view + `.onTapGesture` instead — that combination does respect
-    // `.contentShape` for the *entire* frame, matched exactly to the visible pill (no outset: see
-    // the overlap bug this had previously, also documented in rule 33).
+    /// A real `Button` on macOS, even with `.contentShape(Rectangle())` matched exactly to its own
+    /// frame, keeps registering clicks only over the label's actual rendered (non-transparent)
+    /// content — the `Color.clear`-backed padding around the icon/text stays dead even though it's
+    /// visually inside the 64x44 pill. `.contentShape` reliably drives SwiftUI's own gesture
+    /// recognizers but not `Button`'s AppKit-backed click routing here (see AGENTS.md rule 33), so
+    /// this uses a plain view + `.onTapGesture` instead — that combination does respect
+    /// `.contentShape` for the *entire* frame, matched exactly to the visible pill (no outset: see
+    /// the overlap bug this had previously, also documented in rule 33).
     private static let tabButtonSize = CGSize(width: 64, height: 44)
 
     private func tabButton(for tab: Tab) -> some View {
@@ -92,8 +94,7 @@ struct SettingsView: View {
         .frame(width: size.width, height: size.height)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-        )
+                .fill(isSelected ? Color.accentColor.opacity(0.15) : Color.clear))
         .contentShape(Rectangle())
         .onTapGesture {
             selectedTab = tab
@@ -102,7 +103,7 @@ struct SettingsView: View {
         .accessibilityLabel(Text(title(for: tab)))
     }
 
-    @ViewBuilder private var content: some View {
+    private var content: some View {
         Group {
             switch selectedTab {
             case .general:

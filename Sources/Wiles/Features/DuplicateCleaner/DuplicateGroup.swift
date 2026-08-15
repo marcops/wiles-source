@@ -1,7 +1,10 @@
 import Foundation
 
 public struct DuplicateGroup: Identifiable, Sendable {
-    public var id: String { hash }
+    public var id: String {
+        hash
+    }
+
     public let hash: String
     public let fileSize: Int64
     public var items: [FileItem]

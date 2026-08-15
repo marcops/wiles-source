@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ArchiveInspectorFeatureTests {
@@ -41,8 +41,7 @@ public struct ArchiveInspectorFeatureTests {
         report(
             "Feature/ArchiveInspector",
             "NEG: extractSingleEntry failure never destroys a pre-existing destination file (regression: used to truncate it via createFile before extraction succeeded)",
-            result: didThrow && contentIntact
-        )
+            result: didThrow && contentIntact)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

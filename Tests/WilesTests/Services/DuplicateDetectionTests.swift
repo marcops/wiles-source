@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct DuplicateDetectionTests {
@@ -59,7 +59,10 @@ public struct DuplicateDetectionTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
-        report("DuplicateDetection", "NEG: empty folder returns zero groups and zero reclaimable bytes", result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
+        report(
+            "DuplicateDetection",
+            "NEG: empty folder returns zero groups and zero reclaimable bytes",
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
     }
 
     private static func testSameSizeDifferentContentNotGrouped() async {
@@ -77,7 +80,10 @@ public struct DuplicateDetectionTests {
         try? contentB.write(to: fileB, atomically: true, encoding: .utf8)
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
-        report("DuplicateDetection", "NEG: files with same size but different content (within first 4096 bytes) are not grouped as duplicates", result: result.groups.isEmpty)
+        report(
+            "DuplicateDetection",
+            "NEG: files with same size but different content (within first 4096 bytes) are not grouped as duplicates",
+            result: result.groups.isEmpty)
     }
 
     private static func testSkipsSubdirectoriesWhenBuildingSizeMap() async {
@@ -96,7 +102,10 @@ public struct DuplicateDetectionTests {
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
         let foundGroup = result.groups.first { $0.items.count == 2 }
-        report("DuplicateDetection", "POS: scan recurses into subdirectories and finds duplicates without erroring on the directory entry itself", result: foundGroup != nil)
+        report(
+            "DuplicateDetection",
+            "POS: scan recurses into subdirectories and finds duplicates without erroring on the directory entry itself",
+            result: foundGroup != nil)
     }
 
     /// Regression coverage for the false-duplicate data-loss fix: files that share an identical
@@ -122,8 +131,7 @@ public struct DuplicateDetectionTests {
         report(
             "DuplicateDetection",
             "NEG: files with identical 4096-byte prefix but differing tail are not grouped (full-hash confirmation)",
-            result: !result.groups.contains { $0.items.count == 2 }
-        )
+            result: !result.groups.contains { $0.items.count == 2 })
     }
 
     /// POS half of the same fix: files large enough to exercise the multi-chunk full-hash read
@@ -137,7 +145,9 @@ public struct DuplicateDetectionTests {
 
         let chunk = Data(repeating: 0x42, count: 1024 * 1024) // 1 MB
         var content = Data()
-        for _ in 0..<2 { content.append(chunk) } // 2 MB, spans multiple 1MB read chunks
+        for _ in 0 ..< 2 {
+            content.append(chunk)
+        } // 2 MB, spans multiple 1MB read chunks
         let fileA = dir.appendingPathComponent("large_a.bin")
         let fileB = dir.appendingPathComponent("large_b.bin")
         try? content.write(to: fileA)
@@ -147,8 +157,7 @@ public struct DuplicateDetectionTests {
         report(
             "DuplicateDetection",
             "POS: large (multi-chunk) truly identical files are still correctly grouped as duplicates",
-            result: result.groups.contains { $0.items.count == 2 }
-        )
+            result: result.groups.contains { $0.items.count == 2 })
     }
 
     private static func testEmptyFilesAreNotGrouped() async {
@@ -163,8 +172,7 @@ public struct DuplicateDetectionTests {
         report(
             "DuplicateDetection",
             "NEG: zero-byte files are excluded from scanning and never grouped as duplicates",
-            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
-        )
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
     }
 
     private static func testHiddenFilesAreSkipped() async {
@@ -180,8 +188,7 @@ public struct DuplicateDetectionTests {
         report(
             "DuplicateDetection",
             "NEG: hidden dotfiles are skipped during enumeration and not grouped as duplicates",
-            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
-        )
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
     }
 
     private static func testThreeIdenticalFilesFormOneGroupOfThree() async {
@@ -197,7 +204,10 @@ public struct DuplicateDetectionTests {
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
         let group = result.groups.first
         let size = Int64(content.utf8.count)
-        report("DuplicateDetection", "POS: three identical files form a single group of three, not multiple pairs", result: result.groups.count == 1 && group?.items.count == 3)
+        report(
+            "DuplicateDetection",
+            "POS: three identical files form a single group of three, not multiple pairs",
+            result: result.groups.count == 1 && group?.items.count == 3)
         report("DuplicateDetection", "POS: reclaimableBytes for a triplicate group equals (3-1) * fileSize", result: result.totalReclaimableBytes == size * 2)
     }
 
@@ -209,7 +219,10 @@ public struct DuplicateDetectionTests {
         try? "the only file in this folder".write(to: dir.appendingPathComponent("solo.txt"), atomically: true, encoding: .utf8)
 
         let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
-        report("DuplicateDetection", "NEG: a lone file with a unique size never forms a duplicate group", result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
+        report(
+            "DuplicateDetection",
+            "NEG: a lone file with a unique size never forms a duplicate group",
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
     }
 
     /// Regression coverage for the `withTaskCancellationHandler` fix: `findDuplicates` runs its
@@ -228,8 +241,10 @@ public struct DuplicateDetectionTests {
 
         let chunk = Data(repeating: 0x5A, count: 1024 * 1024) // 1 MB
         var content = Data()
-        for _ in 0..<4 { content.append(chunk) } // 4 MB per file, spans multiple hash chunks
-        for index in 0..<24 {
+        for _ in 0 ..< 4 {
+            content.append(chunk)
+        } // 4 MB per file, spans multiple hash chunks
+        for index in 0 ..< 24 {
             try? content.write(to: dir.appendingPathComponent("dup_\(index).bin"))
         }
 
@@ -242,13 +257,12 @@ public struct DuplicateDetectionTests {
         report(
             "DuplicateDetection",
             "POS: cancelling the caller's task before the scan completes propagates to the detached scan task, yielding an empty (not partial-wrong or hung) result",
-            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
-        )
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
     }
 
-    // Covers computePartialHash's "guard let handle = try? FileHandle(forReadingFrom: url) else {
-    // return nil }" branch: a same-size candidate that can't be opened for reading (permissions
-    // revoked) must be silently excluded from the partial-hash map rather than crashing the scan.
+    /// Covers computePartialHash's "guard let handle = try? FileHandle(forReadingFrom: url) else {
+    /// return nil }" branch: a same-size candidate that can't be opened for reading (permissions
+    /// revoked) must be silently excluded from the partial-hash map rather than crashing the scan.
     private static func testUnreadableFilesAreSkippedDuringHashing() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -267,8 +281,7 @@ public struct DuplicateDetectionTests {
         report(
             "DuplicateDetection",
             "NEG: a same-size file that can't be opened for reading is excluded from hashing instead of crashing the scan",
-            result: result.groups.isEmpty && result.totalReclaimableBytes == 0
-        )
+            result: result.groups.isEmpty && result.totalReclaimableBytes == 0)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

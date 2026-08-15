@@ -24,12 +24,10 @@ struct InlineRenameField: View {
             .padding(.vertical, 2)
             .background(
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(Color(NSColor.textBackgroundColor))
-            )
+                    .fill(Color(NSColor.textBackgroundColor)))
             .overlay(
                 RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.accentColor, lineWidth: 1.5)
-            )
+                    .stroke(Color.accentColor, lineWidth: 1.5))
             .onAppear {
                 text = item.name
                 // Deferred a tick: right after a context-menu action (e.g. New Folder), the
@@ -52,7 +50,9 @@ struct InlineRenameField: View {
                 return .handled
             }
             .onChange(of: isFocused) { _, focused in
-                if !focused { commit() }
+                if !focused {
+                    commit()
+                }
             }
             .onExitCommand { cancel() }
             .accessibilityLabel(appState.tr(.rename))

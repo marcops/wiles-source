@@ -1,9 +1,10 @@
-import Foundation
 import AppKit
+import Foundation
 
-extension URL {
-    public static let userHome: URL = FileManager.default.homeDirectoryForCurrentUser
-    public static let userTrash: URL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: "/Users/\(NSUserName())/.Trash")
+public extension URL {
+    static let userHome: URL = FileManager.default.homeDirectoryForCurrentUser
+    static let userTrash: URL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask)
+        .first ?? URL(fileURLWithPath: "/Users/\(NSUserName())/.Trash")
 }
 
 public struct FileSystemService: FileSystemServiceProtocol, Sendable {
@@ -21,7 +22,9 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             let fm = FileManager.default
             var items: [FileItem] = []
             for path in paths {
-                if Task.isCancelled { break }
+                if Task.isCancelled {
+                    break
+                }
                 let fileURL = URL(fileURLWithPath: path)
                 guard fm.fileExists(atPath: fileURL.path) else { continue }
 
@@ -67,9 +70,15 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
         var items: [FileItem] = []
         for fileURL in fileURLs {
-            if Task.isCancelled { break }
-            if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) { continue }
-            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
+            if Task.isCancelled {
+                break
+            }
+            if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) {
+                continue
+            }
+            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) {
+                continue
+            }
 
             items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
         }
@@ -98,20 +107,21 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         at root: URL,
         options: DirectoryLoadOptions,
         includeHidden: Bool,
-        onBatch: @escaping @Sendable ([FileItem]) -> Void
-    ) async {
+        onBatch: @escaping @Sendable ([FileItem]) -> Void) async {
         await Task.detached(priority: .userInitiated) {
             performRecursiveSearch(at: root, options: options, includeHidden: includeHidden, onBatch: onBatch)
         }.value
     }
 
-    private static func performRecursiveSearch(
-        at root: URL,
-        options: DirectoryLoadOptions,
-        includeHidden: Bool,
-        onBatch: @escaping @Sendable ([FileItem]) -> Void
-    ) {
-        let fm = FileManager.default
+    /// Without an `errorHandler`, `FileManager.enumerator` silently aborts the ENTIRE walk
+    /// the first time it hits a directory it can't read — and the home folder tree is full
+    /// of those on modern macOS without Full Disk Access (`~/Library/Mail`,
+    /// `~/Library/Containers`, various TCC-protected caches). That would make a recursive
+    /// search stop dead at whatever protected folder it happens to reach first, long before
+    /// getting to folders like `~/Documents` that come later in enumeration order. Returning
+    /// `true` here tells it to skip the unreadable item and keep walking everything else.
+    private static func makeRecursiveSearchEnumerator(
+        at root: URL, options: DirectoryLoadOptions, includeHidden: Bool) -> FileManager.DirectoryEnumerator? {
         var keys: [URLResourceKey] = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
             .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
@@ -123,20 +133,22 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             keys.append(.labelColorKey)
         }
         var enumeratorOptions: FileManager.DirectoryEnumerationOptions = [.skipsPackageDescendants]
-        if !includeHidden { enumeratorOptions.insert(.skipsHiddenFiles) }
-        // Without an `errorHandler`, `FileManager.enumerator` silently aborts the ENTIRE walk
-        // the first time it hits a directory it can't read — and the home folder tree is full
-        // of those on modern macOS without Full Disk Access (`~/Library/Mail`,
-        // `~/Library/Containers`, various TCC-protected caches). That would make a recursive
-        // search stop dead at whatever protected folder it happens to reach first, long before
-        // getting to folders like `~/Documents` that come later in enumeration order. Returning
-        // `true` here tells it to skip the unreadable item and keep walking everything else.
-        guard let enumerator = fm.enumerator(
+        if !includeHidden {
+            enumeratorOptions.insert(.skipsHiddenFiles)
+        }
+        return FileManager.default.enumerator(
             at: root,
             includingPropertiesForKeys: keys,
             options: enumeratorOptions,
-            errorHandler: { _, _ in true }
-        ) else {
+            errorHandler: { _, _ in true })
+    }
+
+    private static func performRecursiveSearch(
+        at root: URL,
+        options: DirectoryLoadOptions,
+        includeHidden: Bool,
+        onBatch: @escaping @Sendable ([FileItem]) -> Void) {
+        guard let enumerator = makeRecursiveSearchEnumerator(at: root, options: options, includeHidden: includeHidden) else {
             onBatch([])
             return
         }
@@ -145,29 +157,43 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         var items: [FileItem] = []
         var lastReportedCount = 0
         while let fileURL = enumerator.nextObject() as? URL {
-            if Task.isCancelled { break }
-            if !includeHidden && isFileHidden(fileURL: fileURL, showHidden: false) { continue }
-            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) { continue }
+            if Task.isCancelled {
+                break
+            }
+            if !includeHidden, isFileHidden(fileURL: fileURL, showHidden: false) {
+                continue
+            }
+            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) {
+                continue
+            }
 
             items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             if items.count - lastReportedCount >= LayoutTokens.recursiveSearchBatchSize {
                 onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
                 lastReportedCount = items.count
             }
-            if items.count >= LayoutTokens.recursiveSearchResultLimit { break }
+            if items.count >= LayoutTokens.recursiveSearchResultLimit {
+                break
+            }
         }
         onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
     }
 
     private static func isFileHidden(fileURL: URL, showHidden: Bool) -> Bool {
-        if showHidden { return false }
-        if fileURL.lastPathComponent.hasPrefix(".") { return true }
+        if showHidden {
+            return false
+        }
+        if fileURL.lastPathComponent.hasPrefix(".") {
+            return true
+        }
         return (try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden) == true
     }
 
     private static func sortItems(_ items: [FileItem], by option: SortOption, ascending: Bool) -> [FileItem] {
-        return items.sorted { lhs, rhs in
-            if lhs.isDirectory != rhs.isDirectory { return lhs.isDirectory && !rhs.isDirectory }
+        items.sorted { lhs, rhs in
+            if lhs.isDirectory != rhs.isDirectory {
+                return lhs.isDirectory && !rhs.isDirectory
+            }
             let res: Bool
             switch option {
             case .name: res = lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending

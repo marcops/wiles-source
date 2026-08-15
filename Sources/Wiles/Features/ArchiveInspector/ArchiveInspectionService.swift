@@ -1,10 +1,10 @@
-import Foundation
 import AppKit
+import Foundation
 import GitBeacon
 
 public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable {
     public static func listEntries(in archiveURL: URL) async -> [ArchiveEntryItem] {
-        return await Task.detached(priority: .userInitiated) {
+        await Task.detached(priority: .userInitiated) {
             // `unzip -Z1` mangles non-ASCII filenames (e.g. emoji) on this system: Apple's
             // bundled unzip lacks proper UTF-8 support and re-encodes names through the
             // process locale, even though tools like `ditto`/`zip` store genuine UTF-8 bytes
@@ -13,8 +13,7 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
             guard let data = try? Data(contentsOf: archiveURL, options: .mappedIfSafe) else {
                 ErrorReporter.report(
                     NSError(domain: "ArchiveInspectionService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not read archive data."]),
-                    context: "Listing archive entries"
-                )
+                    context: "Listing archive entries")
                 return []
             }
             return ZIPCentralDirectoryReader.readEntryNames(from: data).map { ArchiveEntryItem(path: $0) }
@@ -22,7 +21,7 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
     }
 
     public static func extractSingleEntry(from archiveURL: URL, entryPath: String, to destinationFolder: URL) async throws -> URL {
-        return try await Task.detached(priority: .userInitiated) {
+        try await Task.detached(priority: .userInitiated) {
             try extractSingleEntrySync(from: archiveURL, entryPath: entryPath, to: destinationFolder)
         }.value
     }
@@ -63,7 +62,10 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
 
         if process.terminationStatus != 0 {
             try? FileManager.default.removeItem(at: tempURL)
-            throw NSError(domain: "ArchiveInspectionService", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Extraction process failed."])
+            throw NSError(
+                domain: "ArchiveInspectionService",
+                code: Int(process.terminationStatus),
+                userInfo: [NSLocalizedDescriptionKey: "Extraction process failed."])
         }
 
         // Extraction succeeded — only now is it safe to replace any pre-existing file at

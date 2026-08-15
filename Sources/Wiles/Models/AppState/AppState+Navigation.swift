@@ -1,13 +1,13 @@
-import Foundation
 import AppKit
+import Foundation
 import SwiftUI
 
 /// Caps `navigation.historyBack`/`navigation.historyForward` so a long session of folder-hopping
 /// doesn't grow these arrays (and the recent-folders UI they drive) without bound.
 private let maxNavigationHistoryCount = 200
 
-extension AppState {
-    public func navigateTo(_ url: URL, addToHistory: Bool = true) {
+public extension AppState {
+    func navigateTo(_ url: URL, addToHistory: Bool = true) {
         HapticService.shared.play(.alignment)
         if url == Self.recentsVirtualURL {
             navigateToRecentsVirtual(addToHistory: addToHistory)
@@ -36,9 +36,11 @@ extension AppState {
     }
 
     private func navigateToRecentsVirtual(addToHistory: Bool) {
-        if addToHistory && Self.recentsVirtualURL != navigation.currentURL {
+        if addToHistory, Self.recentsVirtualURL != navigation.currentURL {
             navigation.historyBack.append(navigation.currentURL)
-            if navigation.historyBack.count > maxNavigationHistoryCount { navigation.historyBack.removeFirst() }
+            if navigation.historyBack.count > maxNavigationHistoryCount {
+                navigation.historyBack.removeFirst()
+            }
             navigation.historyForward.removeAll()
         }
         navigation.currentURL = Self.recentsVirtualURL
@@ -54,9 +56,11 @@ extension AppState {
             return
         }
         let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: url.standardizedFileURL)
-        if addToHistory && url != navigation.currentURL {
+        if addToHistory, url != navigation.currentURL {
             navigation.historyBack.append(navigation.currentURL)
-            if navigation.historyBack.count > maxNavigationHistoryCount { navigation.historyBack.removeFirst() }
+            if navigation.historyBack.count > maxNavigationHistoryCount {
+                navigation.historyBack.removeFirst()
+            }
             navigation.historyForward.removeAll()
         }
         navigation.currentURL = url.standardizedFileURL
@@ -77,66 +81,99 @@ extension AppState {
         return newURL.appendingPathComponent(oldComponents[newComponents.count])
     }
 
-    public func goBack() {
+    func goBack() {
         guard let prev = navigation.historyBack.popLast() else { return }
         navigation.historyForward.append(navigation.currentURL)
-        if navigation.historyForward.count > maxNavigationHistoryCount { navigation.historyForward.removeFirst() }
+        if navigation.historyForward.count > maxNavigationHistoryCount {
+            navigation.historyForward.removeFirst()
+        }
         navigateTo(prev, addToHistory: false)
     }
 
-    public func goForward() {
+    func goForward() {
         guard let next = navigation.historyForward.popLast() else { return }
         navigation.historyBack.append(navigation.currentURL)
-        if navigation.historyBack.count > maxNavigationHistoryCount { navigation.historyBack.removeFirst() }
+        if navigation.historyBack.count > maxNavigationHistoryCount {
+            navigation.historyBack.removeFirst()
+        }
         navigateTo(next, addToHistory: false)
     }
 
-    public func goUp() {
+    func goUp() {
         let parent = navigation.currentURL.deletingLastPathComponent()
-        if parent != navigation.currentURL { navigateTo(parent) }
+        if parent != navigation.currentURL {
+            navigateTo(parent)
+        }
     }
 
-    public func refreshCurrentDirectory(isUserInitiated: Bool = false) {
-        if isUserInitiated && self.fileSystem.items.isEmpty {
+    /// Snapshot of the state `refreshCurrentDirectory()` needs, captured before entering the
+    /// refresh Task so a concurrent preference change can't alter an in-flight refresh's behavior.
+    private struct RefreshSnapshot {
+        let target: URL
+        let hidden: Bool
+        let tags: Bool
+        let ownerGroup: Bool
+        let query: String
+        let sort: SortOption
+        let asc: Bool
+        let searchEverywhere: Bool
+    }
+
+    func refreshCurrentDirectory(isUserInitiated: Bool = false) {
+        if isUserInitiated, fileSystem.items.isEmpty {
             fileSystem.isLoading = true
         }
-        let target = navigation.currentURL
-        let hidden = preferences.showHiddenFiles
-        let tags = preferences.showTags
-        let ownerGroup = isColumnVisible(.owner) || isColumnVisible(.group)
         let query = searchQuery
-        let sort = preferences.sortOption
-        let asc = preferences.sortAscending
-        let searchEverywhere = preferences.searchEverywhere && !query.isEmpty
+        let snapshot = RefreshSnapshot(
+            target: navigation.currentURL,
+            hidden: preferences.showHiddenFiles,
+            tags: preferences.showTags,
+            ownerGroup: isColumnVisible(.owner) || isColumnVisible(.group),
+            query: query,
+            sort: preferences.sortOption,
+            asc: preferences.sortAscending,
+            searchEverywhere: preferences.searchEverywhere && !query.isEmpty)
 
-        startDirectoryMonitoring(for: target)
+        startDirectoryMonitoring(for: snapshot.target)
 
-        if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: target) {
-            applyLoadedItems(cached.items, target: target)
+        if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: snapshot.target) {
+            applyLoadedItems(cached.items, target: snapshot.target)
         }
 
         // Cancel any load already in flight — every keystroke of a search or rapid navigation used to
         // spawn an unstructured Task with no cancellation, letting a stale result race a fresher one.
         refreshTask?.cancel()
         refreshTask = Task {
-            let (strippedQuery, includeHidden) = SearchFilterService.extractHiddenFlag(from: query)
-            let options = DirectoryLoadOptions(showHidden: hidden, showTags: tags, searchQuery: strippedQuery, sortOption: sort, sortAscending: asc, showOwnerGroup: ownerGroup)
-            if searchEverywhere {
-                await FileSystemService.loadRecursiveSearchResults(at: .userHome, options: options, includeHidden: includeHidden) { [weak self] batch in
-                    Task { @MainActor in
-                        guard let self, !Task.isCancelled else { return }
-                        guard self.navigation.currentURL == target && self.searchQuery == query else { return }
-                        self.applyLoadedItems(batch, target: target)
-                    }
+            await performRefresh(snapshot)
+        }
+    }
+
+    private func performRefresh(_ snapshot: RefreshSnapshot) async {
+        let target = snapshot.target
+        let query = snapshot.query
+        let (strippedQuery, includeHidden) = SearchFilterService.extractHiddenFlag(from: query)
+        let options = DirectoryLoadOptions(
+            showHidden: snapshot.hidden,
+            showTags: snapshot.tags,
+            searchQuery: strippedQuery,
+            sortOption: snapshot.sort,
+            sortAscending: snapshot.asc,
+            showOwnerGroup: snapshot.ownerGroup)
+        if snapshot.searchEverywhere {
+            await FileSystemService.loadRecursiveSearchResults(at: .userHome, options: options, includeHidden: includeHidden) { [weak self] batch in
+                Task { @MainActor in
+                    guard let self, !Task.isCancelled else { return }
+                    guard self.navigation.currentURL == target, self.searchQuery == query else { return }
+                    self.applyLoadedItems(batch, target: target)
                 }
-            } else {
-                let loaded = await FileSystemService.loadDirectoryContents(at: target, options: options)
-                guard !Task.isCancelled else { return }
-                if self.navigation.currentURL == target && self.searchQuery == query {
-                    await MainActor.run {
-                        self.applyLoadedItems(loaded, target: target)
-                        self.refreshTrashSizeIfNeeded(target: target)
-                    }
+            }
+        } else {
+            let loaded = await FileSystemService.loadDirectoryContents(at: target, options: options)
+            guard !Task.isCancelled else { return }
+            if navigation.currentURL == target, searchQuery == query {
+                await MainActor.run {
+                    self.applyLoadedItems(loaded, target: target)
+                    self.refreshTrashSizeIfNeeded(target: target)
                 }
             }
         }
@@ -160,28 +197,30 @@ extension AppState {
     /// still runs and reconciles afterward. The `Equatable` on `FileItem` (which ignores `icon`) means
     /// this is a no-op re-render when the cache already matched reality.
     private func applyLoadedItems(_ loaded: [FileItem], target: URL) {
-        guard self.navigation.currentURL == target else { return }
-        guard self.fileSystem.renamingURL == nil else { return }
-        if self.fileSystem.items != loaded {
-            self.fileSystem.items = loaded
+        guard navigation.currentURL == target else { return }
+        guard fileSystem.renamingURL == nil else { return }
+        if fileSystem.items != loaded {
+            fileSystem.items = loaded
         }
-        self.fileSystem.isLoading = false
-        if let pending = self.selection.pendingSelectionURL {
-            self.selection.pendingSelectionURL = nil
+        fileSystem.isLoading = false
+        if let pending = selection.pendingSelectionURL {
+            selection.pendingSelectionURL = nil
             if loaded.contains(where: { $0.url == pending }) {
-                self.selectedURLs = [pending]
+                selectedURLs = [pending]
             }
         }
     }
 
-    public func addToRecents(_ url: URL) {
+    func addToRecents(_ url: URL) {
         let std = url.standardizedFileURL
-        if std == Self.recentsVirtualURL || std.scheme == "wiles" { return }
+        if std == Self.recentsVirtualURL || std.scheme == "wiles" {
+            return
+        }
         var current = navigation.recentOpenedURLs.filter { $0.standardizedFileURL != std }
         current.insert(std, at: 0)
         if current.count > 50 {
             current = Array(current.prefix(50))
         }
-        self.navigation.recentOpenedURLs = current
+        navigation.recentOpenedURLs = current
     }
 }

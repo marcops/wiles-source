@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct LocalizationCoverageTests {
@@ -29,8 +29,7 @@ public struct LocalizationCoverageTests {
         TestReporter.report(
             "Localization",
             "POS: L10n.string(.cancel, lang: .chinese) resolves via the code.lowercased() lproj-path fallback to the real Chinese translation, not the raw key or English",
-            result: translated == "取消" && translated != L10n.Key.cancel.rawValue && translated != "Cancel"
-        )
+            result: translated == "取消" && translated != L10n.Key.cancel.rawValue && translated != "Cancel")
     }
 
     private static func testActiveCodeForAllNonSystemLanguages() {
@@ -40,8 +39,7 @@ public struct LocalizationCoverageTests {
         let allMatch = nonSystemLanguages.allSatisfy { L10n.activeCode($0) == $0.rawValue }
         TestReporter.report(
             "Localization", "POS: activeCode(_:) returns the exact rawValue for every non-system AppLanguage case",
-            result: allMatch && nonSystemLanguages.count == 15
-        )
+            result: allMatch && nonSystemLanguages.count == 15)
     }
 
     private static func testLanguageIdMatchesRawValue() {
@@ -50,8 +48,7 @@ public struct LocalizationCoverageTests {
         let idsMatchRawValues = allCases.allSatisfy { $0.id == $0.rawValue }
         TestReporter.report(
             "Localization", "POS: AppLanguage.id equals rawValue for every case",
-            result: idsMatchRawValues
-        )
+            result: idsMatchRawValues)
     }
 
     private static func testInvalidRawValueInitReturnsNil() {
@@ -61,18 +58,16 @@ public struct LocalizationCoverageTests {
         let almostValidButWrongCase = AppLanguage(rawValue: "EN")
         TestReporter.report(
             "Localization", "NEG: AppLanguage(rawValue:) returns nil for unsupported/empty/wrong-case codes",
-            result: bogus == nil && empty == nil && almostValidButWrongCase == nil
-        )
+            result: bogus == nil && empty == nil && almostValidButWrongCase == nil)
     }
 
     private static func testDisplayNamesAreUnique() {
         // POS: no two AppLanguage cases should collide on displayName (would be a picker UX bug).
-        let allDisplayNames = AppLanguage.allCases.map { $0.displayName }
+        let allDisplayNames = AppLanguage.allCases.map(\.displayName)
         let uniqueCount = Set(allDisplayNames).count
         TestReporter.report(
             "Localization", "POS: AppLanguage.displayName is unique across all 16 cases",
-            result: uniqueCount == allDisplayNames.count
-        )
+            result: uniqueCount == allDisplayNames.count)
     }
 
     private static func testAppLanguageCodableRoundTrip() {
@@ -82,15 +77,16 @@ public struct LocalizationCoverageTests {
             do {
                 let data = try JSONEncoder().encode(lang)
                 let decoded = try JSONDecoder().decode(AppLanguage.self, from: data)
-                if decoded != lang { allRoundTripped = false }
+                if decoded != lang {
+                    allRoundTripped = false
+                }
             } catch {
                 allRoundTripped = false
             }
         }
         TestReporter.report(
             "Localization", "POS: AppLanguage Codable round-trip (encode/decode) preserves value for every case",
-            result: allRoundTripped
-        )
+            result: allRoundTripped)
     }
 
     private static func testActiveCode() {
@@ -102,11 +98,10 @@ public struct LocalizationCoverageTests {
         // (this is exercised indirectly since we can't override Locale.preferredLanguages in-process,
         // but we can at least assert the fallback path returns a non-empty supported code)
         let systemCode = L10n.activeCode(.system)
-        let supportedCodes = AppLanguage.allCases.map { $0.rawValue }
+        let supportedCodes = AppLanguage.allCases.map(\.rawValue)
         TestReporter.report(
             "Localization", "POS: activeCode(.system) returns one of the supported codes (or 'en' fallback)",
-            result: supportedCodes.contains(systemCode) || systemCode == "en"
-        )
+            result: supportedCodes.contains(systemCode) || systemCode == "en")
     }
 
     private static func testStringLookupAcrossLanguages() {
@@ -114,8 +109,7 @@ public struct LocalizationCoverageTests {
         let allNonEmpty = languagesToSpotCheck.allSatisfy { !L10n.string(.cancel, lang: $0).isEmpty }
         TestReporter.report(
             "Localization", "POS: L10n.string(.cancel, lang:) returns a non-empty string for english, portuguese, japanese, arabic, chinese",
-            result: allNonEmpty
-        )
+            result: allNonEmpty)
     }
 
     private static func testOrphanKeys() {
@@ -125,14 +119,15 @@ public struct LocalizationCoverageTests {
         var allReturnedSomething = true
         for key in orphanKeys {
             let value = L10n.string(key, lang: .english)
-            if value.isEmpty { allReturnedSomething = false }
+            if value.isEmpty {
+                allReturnedSomething = false
+            }
         }
         TestReporter.report(
             "Localization",
             "NEG: L10n.string on orphan keys (itemsCount, itemsCountWithSize, selectedItemsCount, selectedItemsCountWithSize) "
                 + "does not crash and returns a non-empty fallback string",
-            result: allReturnedSomething
-        )
+            result: allReturnedSomething)
     }
 
     private static func testAllCasesDisplayNames() {
@@ -140,8 +135,7 @@ public struct LocalizationCoverageTests {
         let allHaveDisplayNames = allCases.allSatisfy { !$0.displayName.isEmpty }
         TestReporter.report(
             "Localization", "POS: AppLanguage has exactly 16 cases and every case has a non-empty displayName",
-            result: allCases.count == 16 && allHaveDisplayNames
-        )
+            result: allCases.count == 16 && allHaveDisplayNames)
     }
 
     private static func testMissingKeysCheck() {
@@ -156,12 +150,12 @@ public struct LocalizationCoverageTests {
                 let translation = L10n.string(key, lang: lang)
                 // If translation matches camelCase key.rawValue exactly (e.g. "sidebarTrash"), it's an unlocalized key
                 let isCamelCaseKey = key.rawValue.contains { $0.isUppercase }
-                if isCamelCaseKey && translation == key.rawValue {
+                if isCamelCaseKey, translation == key.rawValue {
                     missingKeys.append("\(lang.rawValue):\(key.rawValue)")
                 }
             }
         }
-        
+
         let success = missingKeys.isEmpty
         if !success {
             print("Missing translation keys (\(missingKeys.count)): \(missingKeys.joined(separator: ", "))")
@@ -169,7 +163,6 @@ public struct LocalizationCoverageTests {
         TestReporter.report(
             "Localization",
             "POS: Automated lint check - All L10n.Key cases are localized across all supported languages (Missing: \(missingKeys.count))",
-            result: success
-        )
+            result: success)
     }
 }

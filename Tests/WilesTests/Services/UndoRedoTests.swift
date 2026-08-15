@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct UndoRedoTests {
@@ -16,18 +16,19 @@ public struct UndoRedoTests {
 
         await testRenameAndMoveRoundTrip(service: service, tempDir: tempDir, fileA: fileA)
         await testCreateTrashAndHistoryCap(service: service, tempDir: tempDir, fileA: fileA)
+        await testHistoryCap(service: service, tempDir: tempDir)
         await testTrashRedoAndGhostFailures(service: service, tempDir: tempDir)
         await testFailedUndoDoesNotCorruptStack(service: service, tempDir: tempDir)
 
         try? FileManager.default.removeItem(at: tempDir)
     }
 
-    // UndoRedoService.shared is a process-wide singleton (AGENTS.md rule 17: no shared-state
-    // assumptions). Other test files that touch it earlier in the same test run may leave residue
-    // that can never be fully cleared via undo()/redo() alone — both always relocate a record to
-    // the opposite stack, never discard it, so a record left by another file can end up parked on
-    // either stack. Only assert the nil-on-empty behavior when the stack is verifiably empty going
-    // in, instead of assuming a pristine singleton.
+    /// UndoRedoService.shared is a process-wide singleton (AGENTS.md rule 17: no shared-state
+    /// assumptions). Other test files that touch it earlier in the same test run may leave residue
+    /// that can never be fully cleared via undo()/redo() alone — both always relocate a record to
+    /// the opposite stack, never discard it, so a record left by another file can end up parked on
+    /// either stack. Only assert the nil-on-empty behavior when the stack is verifiably empty going
+    /// in, instead of assuming a pristine singleton.
     private static func testEmptyStackOperations(service: UndoRedoService) async {
         if !service.canUndo() {
             do {
@@ -82,7 +83,7 @@ public struct UndoRedoTests {
         }
     }
 
-    private static func testCreateTrashAndHistoryCap(service: UndoRedoService, tempDir: URL, fileA: URL) async {
+    private static func testCreateTrashAndHistoryCap(service: UndoRedoService, tempDir: URL, fileA _: URL) async {
         // POS: create undo/redo round trip (undoing a "create" trashes it, redoing recreates the folder)
         let createdFolderName = "created_by_test"
         if let createdURL = try? FileSystemService.createDirectory(at: tempDir, name: createdFolderName) {
@@ -117,29 +118,40 @@ public struct UndoRedoTests {
             service.recordAction(.rename(oldURL: redoClearDummy, newURL: renamedDummy))
         }
         TestReporter.report("UndoRedo", "NEG: recording a new action clears the redo stack", result: !service.canRedo())
+    }
 
+    private static func testHistoryCap(service: UndoRedoService, tempDir: URL) async {
         // POS/NEG: history is capped at maxHistoryLimit (50) - oldest actions are evicted.
         // NOTE: this drain relies on every queued record undoing successfully - it must run
         // before any test that deliberately poisons the stack with a record that fails to
         // undo, otherwise the failed record gets re-pushed on every attempt (Fix 2's retry
         // semantics) and this loop would never terminate.
-        while service.canUndo() { _ = try? await service.undo() }
+        while service.canUndo() {
+            _ = try? await service.undo()
+        }
         // Each dummy must be a real, undo-able rename (not a same-URL self-rename, which always
         // fails and — under Fix 2's retry semantics — gets re-pushed onto the same stack position
         // forever instead of ever being removed) so the 50 undo() calls below genuinely shrink the
         // stack by one each time, leaving exactly 1 of the 51.
-        for i in 0..<51 {
+        for i in 0 ..< 51 {
             let dummyURL = tempDir.appendingPathComponent("cap_dummy_\(i).txt")
             let dummyRenamedURL = tempDir.appendingPathComponent("cap_dummy_\(i)_renamed.txt")
             try? "x".write(to: dummyRenamedURL, atomically: true, encoding: .utf8)
             service.recordAction(.rename(oldURL: dummyURL, newURL: dummyRenamedURL))
         }
-        for _ in 0..<50 { _ = try? await service.undo() }
-        TestReporter.report("UndoRedo", "POS: history is capped at maxHistoryLimit(50) - only 50 of 51 recorded actions remain undoable", result: !service.canUndo())
+        for _ in 0 ..< 50 {
+            _ = try? await service.undo()
+        }
+        TestReporter.report(
+            "UndoRedo",
+            "POS: history is capped at maxHistoryLimit(50) - only 50 of 51 recorded actions remain undoable",
+            result: !service.canUndo())
 
         // Drain the one remaining (real, undo-able) record so it doesn't leak into later tests in
         // this file or other test files that also touch the shared UndoRedoService.shared singleton.
-        while service.canUndo() { _ = try? await service.undo() }
+        while service.canUndo() {
+            _ = try? await service.undo()
+        }
     }
 
     private static func testTrashRedoAndGhostFailures(service: UndoRedoService, tempDir: URL) async {
@@ -217,26 +229,22 @@ public struct UndoRedoTests {
         }
         TestReporter.report(
             "UndoRedo", "NEG: undo() propagates (throws) an error instead of silently swallowing it when the underlying rename fails",
-            result: undoThrew
-        )
+            result: undoThrew)
 
         TestReporter.report(
             "UndoRedo", "NEG: a failed undo() does not push its record onto the redo stack (no stack corruption)",
-            result: redoStackWasEmptyBeforeFailure && !service.canRedo()
-        )
+            result: redoStackWasEmptyBeforeFailure && !service.canRedo())
 
         // redo() must be a no-op after the failed undo, not attempt to redo a rename that never happened.
         do {
             let bogusRedo = try await service.redo()
             TestReporter.report(
                 "UndoRedo", "POS: redo() after a failed undo() is a no-op instead of attempting a bogus redo",
-                result: bogusRedo == nil
-            )
+                result: bogusRedo == nil)
         } catch {
             TestReporter.report(
                 "UndoRedo", "POS: redo() after a failed undo() is a no-op instead of attempting a bogus redo",
-                result: false
-            )
+                result: false)
         }
     }
 }

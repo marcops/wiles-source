@@ -56,7 +56,7 @@ public final class WindowUIState {
             || propertiesItem != nil || imageConverterItem != nil || symlinkItem != nil
     }
 
-    public init() {}
+    public init() { }
 
     /// Cancels an active in-place rename in response to a folder navigation. The row rendering
     /// `InlineRenameField` belongs to whatever folder was current when rename began; once

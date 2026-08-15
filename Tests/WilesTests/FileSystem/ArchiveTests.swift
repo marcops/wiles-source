@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ArchiveTests {
@@ -71,9 +71,9 @@ public struct ArchiveTests {
         runEmptyURLsAndProcessFailureTests()
     }
 
-    // Covers compressToZIP's "guard !urls.isEmpty else { return }" no-op branch, and
-    // runCompressionProcess's error-throwing branch when the underlying `ditto` process exits
-    // non-zero (a destination directory it can't write into).
+    /// Covers compressToZIP's "guard !urls.isEmpty else { return }" no-op branch, and
+    /// runCompressionProcess's error-throwing branch when the underlying `ditto` process exits
+    /// non-zero (a destination directory it can't write into).
     private static func runEmptyURLsAndProcessFailureTests() {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -101,7 +101,10 @@ public struct ArchiveTests {
             processFailurePassed = true
         }
         try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyDest.path)
-        TestReporter.report("ZipArchive", "NEG: compressToZIP throws when the underlying ditto process fails (read-only destination)", result: processFailurePassed)
+        TestReporter.report(
+            "ZipArchive",
+            "NEG: compressToZIP throws when the underlying ditto process fails (read-only destination)",
+            result: processFailurePassed)
     }
 
     /// Regression coverage for the -j/no -r fix: compressing a folder that contains a nested
@@ -140,8 +143,7 @@ public struct ArchiveTests {
         }
         TestReporter.report(
             "ZipArchive", "POS: compressToZIP preserves a folder's nested subfolder structure instead of flattening it (-j/-r fix)",
-            result: structurePassed
-        )
+            result: structurePassed)
     }
 
     private static func runIsArchiveAndMultiFileCoverage(tempDir: URL) {
@@ -255,7 +257,9 @@ public struct ArchiveTests {
         } catch {
             print("Multi outside-destination compress error: \(error)")
         }
-        TestReporter.report("ZipArchive", "POS: compressToZIP with multiple sources outside destination folder packs and extracts both files (-j absolute path fix)",
+        TestReporter.report(
+            "ZipArchive",
+            "POS: compressToZIP with multiple sources outside destination folder packs and extracts both files (-j absolute path fix)",
             result: multiOutsidePassed)
 
         runPasswordOutsideDestinationTest(destDir: destDir)
@@ -290,7 +294,9 @@ public struct ArchiveTests {
         } catch {
             print("Password outside-destination compress error: \(error)")
         }
-        TestReporter.report("ZipArchive", "POS: compressToZIP with password and source outside destination folder packs and decrypts correctly (-j absolute path fix)",
+        TestReporter.report(
+            "ZipArchive",
+            "POS: compressToZIP with password and source outside destination folder packs and decrypts correctly (-j absolute path fix)",
             result: pwdOutsidePassed)
     }
 
@@ -327,7 +333,10 @@ public struct ArchiveTests {
         } catch {
             print("Wrong password unzip spawn error: \(error)")
         }
-        TestReporter.report("ZipArchive", "NEG: unzip -P with wrong password fails to extract password-protected zip", result: createdPasswordZip && wrongPasswordFailed)
+        TestReporter.report(
+            "ZipArchive",
+            "NEG: unzip -P with wrong password fails to extract password-protected zip",
+            result: createdPasswordZip && wrongPasswordFailed)
 
         runCorrectPasswordAndDittoCoverage(dir: dir, pwdZip: pwdZip)
     }
@@ -363,6 +372,9 @@ public struct ArchiveTests {
         } catch {
             dittoOnPasswordZipFailed = true
         }
-        TestReporter.report("ZipArchive", "NEG: extractArchive (ditto-based, no password param) fails to extract a password-protected zip", result: dittoOnPasswordZipFailed)
+        TestReporter.report(
+            "ZipArchive",
+            "NEG: extractArchive (ditto-based, no password param) fails to extract a password-protected zip",
+            result: dittoOnPasswordZipFailed)
     }
 }

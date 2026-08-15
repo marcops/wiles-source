@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct UISearchTests {
@@ -47,7 +47,7 @@ public struct UISearchTests {
         report("UI/Search", "POS: Search mode disables and resets query", result: !appState.isSearching && appState.searchQuery.isEmpty)
     }
 
-    private static func testSearchFiltering(appState: AppState) async {
+    private static func testSearchFiltering(appState _: AppState) async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
@@ -63,12 +63,13 @@ public struct UISearchTests {
                 showTags: false,
                 searchQuery: "Alpha",
                 sortOption: .name,
-                sortAscending: true
-            )
-        )
+                sortAscending: true))
 
-        let matching = loaded.map { $0.name }
-        report("UI/Search", "POS: Search query filters items by matching name", result: matching.contains("AlphaDocument.txt") && !matching.contains("BetaNotes.txt"))
+        let matching = loaded.map(\.name)
+        report(
+            "UI/Search",
+            "POS: Search query filters items by matching name",
+            result: matching.contains("AlphaDocument.txt") && !matching.contains("BetaNotes.txt"))
 
         try? FileManager.default.removeItem(at: tempDir)
     }

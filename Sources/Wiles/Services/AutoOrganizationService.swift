@@ -1,7 +1,7 @@
-import Foundation
 import AppKit
-import os
+import Foundation
 import GitBeacon
+import os
 
 @MainActor
 public final class AutoOrganizationService {
@@ -41,7 +41,7 @@ public final class AutoOrganizationService {
     private func loadRules() {
         guard let data = UserDefaults.standard.data(forKey: rulesKey) else { return }
         do {
-            self.rules = try JSONDecoder().decode([AutoOrganizationRule].self, from: data)
+            rules = try JSONDecoder().decode([AutoOrganizationRule].self, from: data)
         } catch {
             Self.logger.error("Failed to decode auto-organization rules from UserDefaults: \(error.localizedDescription, privacy: .public)")
             ErrorReporter.report(error, context: "Decoding auto-organization rules")
@@ -87,8 +87,8 @@ public final class AutoOrganizationService {
         }
         pendingScans.removeAll()
 
-        let activeRules = rules.filter { $0.isEnabled }
-        let uniqueSourceFolders = Set(activeRules.map { $0.sourceURL.standardizedFileURL })
+        let activeRules = rules.filter(\.isEnabled)
+        let uniqueSourceFolders = Set(activeRules.map(\.sourceURL.standardizedFileURL))
 
         for folder in uniqueSourceFolders {
             startWatching(folder: folder)
@@ -156,7 +156,9 @@ public final class AutoOrganizationService {
 
         for file in files {
             // Ignore hidden files and directories
-            if file.lastPathComponent.hasPrefix(".") { continue }
+            if file.lastPathComponent.hasPrefix(".") {
+                continue
+            }
             let resourceValues = try? file.resourceValues(forKeys: Set(resourceKeys))
             if resourceValues?.isDirectory == true {
                 continue
@@ -178,7 +180,9 @@ public final class AutoOrganizationService {
                     do {
                         _ = try FileSystemService.moveItem(at: file, toFolder: destinationURL)
                         await MainActor.run {
-                            UndoRedoService.shared.recordAction(.move(sourceURL: file, destinationURL: destinationURL.appendingPathComponent(file.lastPathComponent)))
+                            UndoRedoService.shared.recordAction(.move(
+                                sourceURL: file,
+                                destinationURL: destinationURL.appendingPathComponent(file.lastPathComponent)))
                         }
                     } catch {
                         // Unexpected failure — user has no other way to learn this move silently

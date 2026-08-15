@@ -22,17 +22,17 @@ public struct POSIXPermissions: Sendable, Equatable {
 
     public init(posixPermissions: Int16) {
         let octal = Int(posixPermissions)
-        self.ownerRead = (octal & 0o400) != 0
-        self.ownerWrite = (octal & 0o200) != 0
-        self.ownerExecute = (octal & 0o100) != 0
+        ownerRead = (octal & 0o400) != 0
+        ownerWrite = (octal & 0o200) != 0
+        ownerExecute = (octal & 0o100) != 0
 
-        self.groupRead = (octal & 0o040) != 0
-        self.groupWrite = (octal & 0o020) != 0
-        self.groupExecute = (octal & 0o010) != 0
+        groupRead = (octal & 0o040) != 0
+        groupWrite = (octal & 0o020) != 0
+        groupExecute = (octal & 0o010) != 0
 
-        self.othersRead = (octal & 0o004) != 0
-        self.othersWrite = (octal & 0o002) != 0
-        self.othersExecute = (octal & 0o001) != 0
+        othersRead = (octal & 0o004) != 0
+        othersWrite = (octal & 0o002) != 0
+        othersExecute = (octal & 0o001) != 0
     }
 
     public var octalInt: Int16 {

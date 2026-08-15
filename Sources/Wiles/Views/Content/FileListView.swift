@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 struct FileListView: View {
@@ -19,7 +19,6 @@ struct FileListView: View {
         }
     }
 
-    @ViewBuilder
     private func listScrollArea(geometry: GeometryProxy) -> some View {
         ScrollViewReader { proxy in
             listScrollViewReaderContent(geometry: geometry, proxy: proxy)
@@ -35,7 +34,6 @@ struct FileListView: View {
         .background(BackgroundContextMenuLayer(appState: appState))
     }
 
-    @ViewBuilder
     private func listScrollViewReaderContent(geometry: GeometryProxy, proxy: ScrollViewProxy) -> some View {
         ScrollView([.horizontal, .vertical]) {
             listScrollViewBody(geometry: geometry)
@@ -46,7 +44,6 @@ struct FileListView: View {
         .background(ScrollerAutoHideSetter())
     }
 
-    @ViewBuilder
     private func listScrollViewBody(geometry: GeometryProxy) -> some View {
         ZStack(alignment: .topLeading) {
             listZStackContent(geometry: geometry)
@@ -67,8 +64,7 @@ struct FileListView: View {
             coordinateSpaceName: "listContainer",
             minWidth: geometry.size.width - LayoutTokens.scrollbarReservedThickness,
             selectionRect: $selectionRect,
-            cellFramesProvider: { appState.selection.listCellFrames }
-        )
+            cellFramesProvider: { appState.selection.listCellFrames })
 
         Group {
             listItemsGroup(geometry: geometry)
@@ -81,7 +77,7 @@ struct FileListView: View {
 
     @ViewBuilder
     private func listItemsGroup(geometry: GeometryProxy) -> some View {
-        if appState.fileSystem.items.isEmpty && !appState.fileSystem.isLoading {
+        if appState.fileSystem.items.isEmpty, !appState.fileSystem.isLoading {
             EmptyDirectoryView(appState: appState)
         } else {
             listVStackContent
@@ -114,7 +110,7 @@ struct FileListView: View {
                 .transition(.opacity)
         }
         .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
-        if paginate && visibleLimit < appState.fileSystem.items.count {
+        if paginate, visibleLimit < appState.fileSystem.items.count {
             ProgressView()
                 .frame(height: 30)
                 .onAppear {
@@ -129,14 +125,18 @@ struct FileListView: View {
 
     private func dynamicColumnText(_ col: ListColumn, for item: FileItem) -> String? {
         switch col {
-        case .size: return item.formattedSize
-        case .dateModified: return item.formattedDate
-        case .dateCreated: return item.formattedDateCreated
-        case .dateAccessed: return item.formattedDateAccessed
-        case .kind: return item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()
-        case .owner: return item.ownerName
-        case .group: return item.groupName
-        case .name: return nil
+        case .size: item.formattedSize
+        case .dateModified: item.formattedDate
+        case .dateCreated: item.formattedDateCreated
+        case .dateAccessed: item.formattedDateAccessed
+        case .kind: if item.isDirectory {
+                appState.tr(.folder)
+            } else {
+                item.fileExtension.uppercased()
+            }
+        case .owner: item.ownerName
+        case .group: item.groupName
+        case .name: nil
         }
     }
 
@@ -148,12 +148,9 @@ struct FileListView: View {
                 .foregroundColor(isSel ? .white.opacity(0.8) : .secondary)
                 .padding(.trailing, 4)
                 .frame(width: appState.columnWidth(for: col), alignment: .trailing)
-        } else {
-            EmptyView()
         }
     }
 
-    @ViewBuilder
     private func nameCell(for item: FileItem, isSel: Bool) -> some View {
         HStack(alignment: .center, spacing: 8) {
             FileItemIconView(item: item, size: listIconSize, isOpenTargeted: dropTargetedURL == item.url)
@@ -176,14 +173,13 @@ struct FileListView: View {
                 nsFont: .systemFont(ofSize: 13, weight: isSel ? .semibold : .regular),
                 color: isSel ? .white : .primary,
                 collapsedLineLimit: 1,
-                middleTruncate: appState.preferences.middleTruncateNames
-            )
+                middleTruncate: appState.preferences.middleTruncateNames)
         }
     }
 
     @ViewBuilder
     private func tagsIndicator(for item: FileItem) -> some View {
-        if appState.preferences.showTags && !item.tags.isEmpty {
+        if appState.preferences.showTags, !item.tags.isEmpty {
             HStack(alignment: .center, spacing: -2) {
                 ForEach(item.tags, id: \.self) { tag in
                     Circle()
@@ -218,8 +214,7 @@ struct FileListView: View {
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: URLFrameKey.self, value: [item.url: geo.frame(in: .named("listContainer"))])
-            }
-        )
+            })
         .contentShape(Rectangle())
         .accessibilityLabel(item.name)
         .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
@@ -228,7 +223,6 @@ struct FileListView: View {
         .fileItemInteractions(
             item: item,
             appState: appState,
-            onTargetedChanged: { targeted in dropTargetedURL = targeted ? item.url : nil }
-        )
+            onTargetedChanged: { targeted in dropTargetedURL = targeted ? item.url : nil })
     }
 }

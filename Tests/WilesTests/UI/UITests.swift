@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct UITests {
@@ -46,15 +46,17 @@ public struct UITests {
         appState.navigateTo(parentURL)
         report(
             "UI/PathBar", "POS: Clicking path bar segment navigates to exact parent directory",
-            result: appState.navigation.currentURL.standardizedFileURL == parentURL.standardizedFileURL
-        )
+            result: appState.navigation.currentURL.standardizedFileURL == parentURL.standardizedFileURL)
 
         let windowUIState = WindowUIState()
         windowUIState.isEditingPath = true
         appState.navigation.pathText = "/Applications"
         appState.navigateTo(URL(fileURLWithPath: appState.navigation.pathText))
         windowUIState.isEditingPath = false
-        report("UI/PathBar", "POS: Direct path text editing submission updates currentURL to /Applications", result: appState.navigation.currentURL.path == "/Applications")
+        report(
+            "UI/PathBar",
+            "POS: Direct path text editing submission updates currentURL to /Applications",
+            result: appState.navigation.currentURL.path == "/Applications")
     }
 
     private static func testSelectionAndContextMenu(appState: AppState) {
@@ -78,7 +80,9 @@ public struct UITests {
         report("UI/Selection", "POS: Single click selects item", result: appState.selectedURLs == [url1])
 
         appState.selectedURLs = [url1]
-        if !appState.selectedURLs.contains(item2.url) { appState.selectedURLs = [item2.url] }
+        if !appState.selectedURLs.contains(item2.url) {
+            appState.selectedURLs = [item2.url]
+        }
         report("UI/ContextMenu", "POS: Right-clicking unselected item targets that item for context menu", result: appState.selectedURLs == [url2])
     }
 

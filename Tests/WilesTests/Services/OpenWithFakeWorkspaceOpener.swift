@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 /// Records calls instead of touching the real OS — see `WorkspaceOpening`. This is what makes
 /// `OpenWithService.open(urls:with:)`'s real call site finally safe to exercise: no real file needs
@@ -13,9 +13,8 @@ final class OpenWithFakeWorkspaceOpener: WorkspaceOpening {
     func open(
         _ urls: [URL],
         withApplicationAt applicationURL: URL,
-        configuration: NSWorkspace.OpenConfiguration,
-        completionHandler: (@Sendable (NSRunningApplication?, Error?) -> Void)?
-    ) {
+        configuration _: NSWorkspace.OpenConfiguration,
+        completionHandler: (@Sendable (NSRunningApplication?, Error?) -> Void)?) {
         openedURLPairs.append((urls, applicationURL))
         completionHandler?(nil, nil)
     }

@@ -31,8 +31,7 @@ final class FinderStyleTruncationServiceTests: XCTestCase {
         let attributed = NSAttributedString(string: result, attributes: [.font: font])
         let bounding = attributed.boundingRect(
             with: CGSize(width: 100, height: CGFloat.greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading]
-        )
+            options: [.usesLineFragmentOrigin, .usesFontLeading])
         let lineHeight = font.ascender - font.descender + font.leading
         let lines = (bounding.height / lineHeight).rounded(.up)
         XCTAssertLessThanOrEqual(lines, 2)

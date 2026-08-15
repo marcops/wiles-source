@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct AppStateOperationsTests {
@@ -37,8 +37,7 @@ public struct AppStateOperationsTests {
         report(
             "AppState+Operations",
             "POS: cutSelected() stores selection in clipboard with .cut action",
-            result: appState.clipboard?.action == .cut && appState.clipboard?.isCut(url: url) == true
-        )
+            result: appState.clipboard?.action == .cut && appState.clipboard?.isCut(url: url) == true)
     }
 
     private static func testCopySelected() {
@@ -64,7 +63,10 @@ public struct AppStateOperationsTests {
         appState.selectedURLs = []
 
         appState.selectAllItems()
-        report("AppState+Operations", "POS: selectAllItems() selects the URL of every item currently listed", result: appState.selectedURLs == Set(items.map { $0.url }))
+        report(
+            "AppState+Operations",
+            "POS: selectAllItems() selects the URL of every item currently listed",
+            result: appState.selectedURLs == Set(items.map(\.url)))
     }
 
     private static func testOpenSelectedItemNavigatesIn() {
@@ -79,8 +81,7 @@ public struct AppStateOperationsTests {
         appState.openSelectedItem()
         report(
             "AppState+Operations", "POS: openSelectedItem() navigates into the selected directory",
-            result: appState.navigation.currentURL.path == subfolder.standardizedFileURL.path
-        )
+            result: appState.navigation.currentURL.path == subfolder.standardizedFileURL.path)
     }
 
     private static func testTriggerQuickLookForSelected() {
@@ -110,15 +111,17 @@ public struct AppStateOperationsTests {
         report(
             "AppState+Operations",
             "POS: openPropertiesForSelected() sets propertiesItem when the selected URL matches a listed item",
-            result: windowUIState.propertiesItem?.url == item.url
-        )
+            result: windowUIState.propertiesItem?.url == item.url)
 
         let appState2 = AppState()
         let windowUIState2 = WindowUIState()
         appState2.fileSystem.items = []
         appState2.selectedURLs = [URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("unknown-\(UUID().uuidString).txt")]
         appState2.openPropertiesForSelected(windowUIState: windowUIState2)
-        report("AppState+Operations", "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item", result: windowUIState2.propertiesItem == nil)
+        report(
+            "AppState+Operations",
+            "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item",
+            result: windowUIState2.propertiesItem == nil)
     }
 
     private static func testStartEditingPath() {
@@ -128,8 +131,7 @@ public struct AppStateOperationsTests {
         report(
             "AppState+Operations",
             "POS: startEditingPath() copies currentURL.path into pathText and enables editing",
-            result: appState.navigation.pathText == appState.navigation.currentURL.path && windowUIState.isEditingPath == true
-        )
+            result: appState.navigation.pathText == appState.navigation.currentURL.path && windowUIState.isEditingPath == true)
     }
 
     private static func testToggleSearching() {
@@ -141,7 +143,10 @@ public struct AppStateOperationsTests {
         report("AppState+Operations", "POS: toggleSearching() enables search mode", result: appState.isSearching == true)
 
         appState.toggleSearching()
-        report("AppState+Operations", "NEG: toggleSearching() off again clears the search query", result: appState.isSearching == false && appState.searchQuery.isEmpty)
+        report(
+            "AppState+Operations",
+            "NEG: toggleSearching() off again clears the search query",
+            result: appState.isSearching == false && appState.searchQuery.isEmpty)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

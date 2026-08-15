@@ -1,19 +1,19 @@
-import SwiftUI
-import QuickLook
 import AppKit
+import QuickLook
+import SwiftUI
 
 struct GlobalKeyMonitor: NSViewRepresentable {
     var appState: AppState
     var windowUIState: WindowUIState
 
-    func makeNSView(context: Context) -> KeyMonitorNSView {
+    func makeNSView(context _: Context) -> KeyMonitorNSView {
         let view = KeyMonitorNSView()
         view.appState = appState
         view.windowUIState = windowUIState
         return view
     }
 
-    func updateNSView(_ nsView: KeyMonitorNSView, context: Context) {
+    func updateNSView(_ nsView: KeyMonitorNSView, context _: Context) {
         nsView.appState = appState
         nsView.windowUIState = windowUIState
     }
@@ -35,7 +35,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            if window != nil && monitor == nil {
+            if window != nil, monitor == nil {
                 monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel]) { [weak self] event in
                     self?.processLocalEvent(event)
                 }
@@ -62,7 +62,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         }
 
         private func processLocalEvent(_ event: NSEvent) -> NSEvent? {
-            guard let appState = appState, let windowUIState = windowUIState else { return event }
+            guard let appState, let windowUIState else { return event }
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
                 return event
             }
@@ -101,7 +101,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             let isCtrl = event.modifierFlags.contains(.control)
             let code = event.keyCode
 
-            if (isCmd || isCtrl) && handleZoomKeyDown(code: code, appState: appState) {
+            if isCmd || isCtrl, handleZoomKeyDown(code: code, appState: appState) {
                 return nil
             }
             if handleNavigationKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState) {
@@ -129,8 +129,8 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
             if let arrowCode = ArrowKey(code: code) {
                 if isCmd, let fav = windowUIState.selectedFavoriteURL,
-                    fav.standardizedFileURL == appState.navigation.currentURL.standardizedFileURL,
-                    arrowCode == .up || arrowCode == .down {
+                   fav.standardizedFileURL == appState.navigation.currentURL.standardizedFileURL,
+                   arrowCode == .up || arrowCode == .down {
                     appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1, windowUIState: windowUIState)
                     return true
                 }
@@ -189,7 +189,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 } else if appState.preferences.viewMode == .column {
                     appState.selection.columnViewDrillRightTrigger += 1
                 } else if let first = appState.selectedURLs.first,
-                    let item = appState.fileSystem.items.first(where: { $0.url == first }), item.isDirectory {
+                          let item = appState.fileSystem.items.first(where: { $0.url == first }), item.isDirectory {
                     appState.navigateTo(first)
                 }
             }
@@ -205,7 +205,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 if !appState.selectedURLs.isEmpty {
                     appState.deleteSelected(windowUIState: windowUIState)
                     return true
-                } else if appState.navigationMode == .gnome && !isCmd {
+                } else if appState.navigationMode == .gnome, !isCmd {
                     appState.goUp()
                     return true
                 }
@@ -216,7 +216,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         }
 
         private func handleReturnKeyDown(isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
-            if isCmd && !appState.selectedURLs.isEmpty {
+            if isCmd, !appState.selectedURLs.isEmpty {
                 appState.deleteSelected(windowUIState: windowUIState)
                 return true
             } else if !isCmd {
@@ -224,7 +224,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                     appState.navigateTo(first)
                     return true
                 } else if appState.navigationMode == .macOS, let first = appState.selectedURLs.first,
-                    let item = appState.fileSystem.items.first(where: { $0.url == first }) {
+                          let item = appState.fileSystem.items.first(where: { $0.url == first }) {
                     windowUIState.renameItem = item
                     return true
                 }
@@ -232,10 +232,10 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             return false
         }
 
-        // `selectedURLs` is a `Set` (no stable order), so `.first` can only ever stand in for
-        // "the current item" when the set holds exactly one element — true for a plain move, but
-        // not once Shift has grown the selection to a range. For a Shift move, the moving end of
-        // that range is derived instead: whichever selected index sits farthest from the anchor.
+        /// `selectedURLs` is a `Set` (no stable order), so `.first` can only ever stand in for
+        /// "the current item" when the set holds exactly one element — true for a plain move, but
+        /// not once Shift has grown the selection to a range. For a Shift move, the moving end of
+        /// that range is derived instead: whichever selected index sits farthest from the anchor.
         private func moveSelection(by offset: Int, isShift: Bool, appState: AppState) {
             let items = appState.fileSystem.items
             guard !items.isEmpty else { return }
@@ -251,7 +251,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 let newIndex = max(0, min(items.count - 1, cursorIndex + offset))
                 let lo = min(anchorIndex, newIndex)
                 let hi = max(anchorIndex, newIndex)
-                appState.selectedURLs = Set(items[lo...hi].map { $0.url })
+                appState.selectedURLs = Set(items[lo ... hi].map(\.url))
                 appState.selection.lastMovedURL = items[newIndex].url
             } else {
                 let currentIndex = items.firstIndex(where: { $0.url == appState.selectedURLs.first }) ?? -1

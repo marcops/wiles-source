@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 /// Continuation of `AppStateOperationsExtraTests` — split out purely to stay under SwiftLint's
 /// 500-line file-length limit (see `AppStateOperationsFailureTests` for the same precedent).
@@ -35,8 +35,7 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: handleDrop() removes the file from its original location",
-            result: !FileManager.default.fileExists(atPath: sourceFile.path)
-        )
+            result: !FileManager.default.fileExists(atPath: sourceFile.path))
     }
 
     /// The early-return guard in `handleDrop` compares the dropped item's own URL to the drop
@@ -60,8 +59,7 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: handleDrop() dropping an item directly onto itself as the target is a no-op, not an error",
-            result: FileManager.default.fileExists(atPath: folderToMove.path) && appState.modal.errorMessage == nil
-        )
+            result: FileManager.default.fileExists(atPath: folderToMove.path) && appState.modal.errorMessage == nil)
     }
 
     /// Unlike dropping onto itself (above), dropping a file back into the folder it's already
@@ -84,8 +82,7 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: handleDrop() dropping a file back into the folder it's already in surfaces a friendly error instead of crashing or losing the file",
-            result: errorShown && FileManager.default.fileExists(atPath: file.path)
-        )
+            result: errorShown && FileManager.default.fileExists(atPath: file.path))
     }
 
     private static func testHandleDropFailureReportsError() async {

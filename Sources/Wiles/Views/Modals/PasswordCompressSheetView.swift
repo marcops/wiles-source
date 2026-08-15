@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct PasswordCompressSheetView: View {
     var appState: AppState

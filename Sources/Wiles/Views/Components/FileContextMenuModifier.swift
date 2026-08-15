@@ -11,8 +11,8 @@ public struct FileContextMenuModifier: ViewModifier {
     }
 }
 
-extension View {
-    public func fileItemContextMenu(for item: FileItem, appState: AppState) -> some View {
-        self.modifier(FileContextMenuModifier(item: item, appState: appState))
+public extension View {
+    func fileItemContextMenu(for item: FileItem, appState: AppState) -> some View {
+        modifier(FileContextMenuModifier(item: item, appState: appState))
     }
 }

@@ -14,10 +14,10 @@ public final class SystemAppearanceObserver {
     public static let shared = SystemAppearanceObserver()
 
     public private(set) var isDark: Bool
-    // Stored (never discarded — see rule 21 in AGENTS.md) but intentionally never removed: this is
-    // a permanent `.shared` singleton that lives for the entire app lifetime, same as
-    // `ThumbnailService.shared`/`PermissionService`, so there's no teardown point to remove it at
-    // and no risk of duplicate registration since `init()` only ever runs once.
+    /// Stored (never discarded — see rule 21 in AGENTS.md) but intentionally never removed: this is
+    /// a permanent `.shared` singleton that lives for the entire app lifetime, same as
+    /// `ThumbnailService.shared`/`PermissionService`, so there's no teardown point to remove it at
+    /// and no risk of duplicate registration since `init()` only ever runs once.
     private let observerToken: NSObjectProtocol
 
     private init() {
@@ -25,12 +25,11 @@ public final class SystemAppearanceObserver {
         observerToken = DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name("AppleInterfaceThemeChangedNotification"),
             object: nil,
-            queue: .main
-        ) { _ in
-            Task { @MainActor in
-                Self.shared.isDark = Self.currentIsDark()
+            queue: .main) { _ in
+                Task { @MainActor in
+                    Self.shared.isDark = Self.currentIsDark()
+                }
             }
-        }
     }
 
     private static func currentIsDark() -> Bool {

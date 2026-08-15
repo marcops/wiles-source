@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct FileColumnView: View {
     var appState: AppState
@@ -11,7 +11,7 @@ struct FileColumnView: View {
     @State private var loadTask: Task<Void, Never>?
 
     var body: some View {
-        if appState.isSearching && !appState.searchQuery.isEmpty {
+        if appState.isSearching, !appState.searchQuery.isEmpty {
             // A search (especially "Whole Mac") has no meaningful drill-down hierarchy — results
             // can come from anywhere under the home folder — so Column view falls back to a
             // single flat results column bound directly to `appState.fileSystem.items`, the exact
@@ -35,9 +35,8 @@ struct FileColumnView: View {
                         columnIndex: 0,
                         isSelected: appState.selectedURLs.contains(item.url),
                         appState: appState,
-                        onSelect: { appState.handleSelection(for: item) }
-                    )
-                    .transition(.opacity)
+                        onSelect: { appState.handleSelection(for: item) })
+                        .transition(.opacity)
                 }
                 .animation(paginate ? nil : MotionTokens.smoothEase, value: appState.fileSystem.items.map(\.url))
             }
@@ -53,7 +52,6 @@ struct FileColumnView: View {
         }
     }
 
-    @ViewBuilder
     private func columnBrowserContent(proxy: ScrollViewProxy) -> some View {
         ScrollView(.horizontal, showsIndicators: true) {
             HStack(spacing: 0) {
@@ -121,8 +119,7 @@ struct FileColumnView: View {
                             RightClickDetector {
                                 appState.selectedURLs.removeAll()
                                 windowUIState.renameItem = nil
-                            }
-                        )
+                            })
                         .contextMenu {
                             SharedBackgroundContextMenu(appState: appState, targetFolderURL: column.folderURL)
                         }
@@ -138,7 +135,6 @@ struct FileColumnView: View {
         .background(ScrollerAutoHideSetter())
     }
 
-    @ViewBuilder
     private func columnItemsList(for column: ColumnData, index: Int) -> some View {
         LazyVStack(spacing: 1) {
             Color.clear.frame(height: 1).id("top")
@@ -160,12 +156,11 @@ struct FileColumnView: View {
                 appState: appState,
                 onSelect: {
                     selectItem(item: item, columnIndex: index)
-                }
-            )
-            .transition(.opacity)
+                })
+                .transition(.opacity)
         }
         .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
-        if paginate && column.visibleLimit < column.items.count {
+        if paginate, column.visibleLimit < column.items.count {
             ProgressView()
                 .frame(height: 25)
                 .onAppear {
@@ -201,14 +196,12 @@ struct FileColumnView: View {
                     searchQuery: appState.searchQuery,
                     sortOption: appState.preferences.sortOption,
                     sortAscending: appState.preferences.sortAscending,
-                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)
-                )
-            )
+                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)))
             await MainActor.run {
                 guard appState.navigation.currentURL == targetURL else { return }
-                self.columns = [ColumnData(folderURL: targetURL, items: rootItems, selectedURL: nil)]
-                self.activeColumnIndex = 0
-                self.appState.selectedURLs.removeAll()
+                columns = [ColumnData(folderURL: targetURL, items: rootItems, selectedURL: nil)]
+                activeColumnIndex = 0
+                appState.selectedURLs.removeAll()
             }
         }
     }
@@ -225,9 +218,7 @@ struct FileColumnView: View {
                         searchQuery: column.folderURL == appState.navigation.currentURL ? appState.searchQuery : "",
                         sortOption: appState.preferences.sortOption,
                         sortAscending: appState.preferences.sortAscending,
-                        showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)
-                    )
-                )
+                        showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)))
                 await MainActor.run {
                     guard index < columns.count, columns[index].folderURL == column.folderURL else { return }
                     if let renamingURL = appState.fileSystem.renamingURL,
@@ -273,7 +264,7 @@ struct FileColumnView: View {
             let newIndex = max(0, min(col.items.count - 1, cursorIndex + offset))
             let lo = min(anchorIndex, newIndex)
             let hi = max(anchorIndex, newIndex)
-            appState.selectedURLs = Set(col.items[lo...hi].map { $0.url })
+            appState.selectedURLs = Set(col.items[lo ... hi].map(\.url))
             columns[activeColumnIndex].selectedURL = col.items[newIndex].url
             appState.selection.lastMovedURL = col.items[newIndex].url
         } else {
@@ -315,21 +306,19 @@ struct FileColumnView: View {
                     searchQuery: "",
                     sortOption: appState.preferences.sortOption,
                     sortAscending: appState.preferences.sortAscending,
-                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)
-                )
-            )
+                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)))
             await MainActor.run {
                 // Verify the user hasn't changed selection while loading before
                 // clobbering the newer selection. The old preview column, if any, stays
                 // visible until here so navigating quickly doesn't flicker it away and back.
-                guard columnIndex < self.columns.count,
-                      self.columns[columnIndex].selectedURL == item.url else { return }
+                guard columnIndex < columns.count,
+                      columns[columnIndex].selectedURL == item.url else { return }
                 let firstURL = autoSelectFirst ? subItems.first?.url : nil
-                self.truncateColumns(after: columnIndex)
-                self.columns.append(ColumnData(folderURL: item.url, items: subItems, selectedURL: firstURL))
-                self.activeColumnIndex = columnIndex + 1
+                truncateColumns(after: columnIndex)
+                columns.append(ColumnData(folderURL: item.url, items: subItems, selectedURL: firstURL))
+                activeColumnIndex = columnIndex + 1
                 if let firstURL {
-                    self.appState.selectedURLs = [firstURL]
+                    appState.selectedURLs = [firstURL]
                 }
             }
         }

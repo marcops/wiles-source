@@ -1,7 +1,7 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
 import PDFKit
+@testable import Wiles
 
 @MainActor
 public struct PDFMergeTests {
@@ -29,9 +29,9 @@ public struct PDFMergeTests {
         await runWriteFailureScenario(imgFile: imgFile)
     }
 
-    // Covers mergeFiles' "guard outputPDF.write(to: destURL) else { throw ... }" branch: a
-    // destination folder the process can't write into makes PDFDocument.write(to:) fail even though
-    // page assembly itself succeeds.
+    /// Covers mergeFiles' "guard outputPDF.write(to: destURL) else { throw ... }" branch: a
+    /// destination folder the process can't write into makes PDFDocument.write(to:) fail even though
+    /// page assembly itself succeeds.
     private static func runWriteFailureScenario(imgFile: URL) async {
         let readOnlyDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: readOnlyDir, withIntermediateDirectories: true)
@@ -76,8 +76,7 @@ public struct PDFMergeTests {
             TestReporter.report(
                 "PDFMerge",
                 "POS: mergeFiles with no outputName generates a default \"Merged_...\" name",
-                result: defaultNamed.lastPathComponent.hasPrefix("Merged_")
-            )
+                result: defaultNamed.lastPathComponent.hasPrefix("Merged_"))
         } else {
             TestReporter.report("PDFMerge", "POS: mergeFiles with no outputName generates a default \"Merged_...\" name", result: false)
         }
@@ -89,8 +88,7 @@ public struct PDFMergeTests {
         TestReporter.report(
             "PDFMerge", "POS: mergeFiles avoids overwriting an existing output file by appending a counter",
             result: first != nil && second != nil && first?.lastPathComponent != second?.lastPathComponent
-                && first?.lastPathComponent == "DupeMerged.pdf" && second?.lastPathComponent == "DupeMerged 2.pdf"
-        )
+                && first?.lastPathComponent == "DupeMerged.pdf" && second?.lastPathComponent == "DupeMerged 2.pdf")
 
         // POS: merging multiple PDFs concatenates their pages into one document
         if let pdfA = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageA.pdf"),
@@ -116,14 +114,16 @@ public struct PDFMergeTests {
         }
         TestReporter.report(
             "PDFMerge", "NEG: mergeFiles with only an unsupported file type throws instead of writing a blank PDF",
-            result: unsupportedThrew
-        )
+            result: unsupportedThrew)
 
         // POS: mixing a valid image with an unsupported file only contributes a page for the valid
         // one — appendPages' pageIndex accumulator must skip the failed entry without leaving a gap.
         if let mixed = try? await PDFMergeService.mergeFiles(urls: [imgFile, unsupportedFile], in: tempDir, outputName: "Mixed.pdf"),
            let mixedDoc = PDFDocument(url: mixed) {
-            TestReporter.report("PDFMerge", "POS: merging a valid image alongside an unsupported file only includes the valid file's page", result: mixedDoc.pageCount == 1)
+            TestReporter.report(
+                "PDFMerge",
+                "POS: merging a valid image alongside an unsupported file only includes the valid file's page",
+                result: mixedDoc.pageCount == 1)
         } else {
             TestReporter.report("PDFMerge", "POS: merging a valid image alongside an unsupported file only includes the valid file's page", result: false)
         }

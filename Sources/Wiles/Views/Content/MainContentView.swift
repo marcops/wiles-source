@@ -1,6 +1,6 @@
-import SwiftUI
-import QuickLook
 import AppKit
+import QuickLook
+import SwiftUI
 
 struct MainContentView: View {
     var appState: AppState
@@ -93,7 +93,7 @@ struct MainContentView: View {
                 appState.performEmptyTrash()
             }
             .keyboardShortcut(.defaultAction)
-            Button(appState.tr(.cancel), role: .cancel) {}
+            Button(appState.tr(.cancel), role: .cancel) { }
         } message: {
             Text(appState.tr(.emptyTrashConfirm))
         }
@@ -102,12 +102,12 @@ struct MainContentView: View {
                 appState.performDeleteSelected()
             }
             .keyboardShortcut(.defaultAction)
-            Button(appState.tr(.cancel), role: .cancel) {}
+            Button(appState.tr(.cancel), role: .cancel) { }
         } message: {
             Text(appState.tr(.moveToTrashConfirm))
         }
         .alert(appState.tr(.errorAlertTitle), isPresented: $appState.modal.showErrorAlert) {
-            Button("OK", role: .cancel) {}
+            Button("OK", role: .cancel) { }
         } message: {
             Text(appState.modal.errorMessage ?? "An error occurred.")
         }
@@ -134,7 +134,11 @@ struct MainContentView: View {
 
     private var sidebarPane: some View {
         SidebarView(appState: appState)
-            .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: CGFloat(appState.preferences.sidebarWidth), maxWidth: LayoutTokens.sidebarMaxWidth, maxHeight: .infinity)
+            .frame(
+                minWidth: LayoutTokens.sidebarMinWidth,
+                idealWidth: CGFloat(appState.preferences.sidebarWidth),
+                maxWidth: LayoutTokens.sidebarMaxWidth,
+                maxHeight: .infinity)
             .background(sidebarWidthTracker)
             .background(SplitViewDividerSetter(position: CGFloat(appState.preferences.sidebarWidth)))
             .layoutPriority(0)
@@ -173,12 +177,12 @@ struct MainContentView: View {
         }
     }
 
-    // Plain SwiftUI VStack, not VSplitView/NSSplitView: the latter animates a pane
-    // *resizing* smoothly but not adding/removing an arranged subview, which made the
-    // terminal's close animation snap instead of collapse. A real VStack properly
-    // animates insertion/removal with `.transition`, sliding down instead of shrinking
-    // toward center. The PTY process itself survives unmount via TerminalViewCache, so
-    // removing the view here doesn't crash or leave anything running orphaned.
+    /// Plain SwiftUI VStack, not VSplitView/NSSplitView: the latter animates a pane
+    /// *resizing* smoothly but not adding/removing an arranged subview, which made the
+    /// terminal's close animation snap instead of collapse. A real VStack properly
+    /// animates insertion/removal with `.transition`, sliding down instead of shrinking
+    /// toward center. The PTY process itself survives unmount via TerminalViewCache, so
+    /// removing the view here doesn't crash or leave anything running orphaned.
     @ViewBuilder private var terminalDrawer: some View {
         if appState.preferences.showTerminalDrawer {
             Divider()
@@ -200,13 +204,12 @@ struct MainContentView: View {
     /// combined, and `HSplitView` has nowhere to take the missing width from except by crushing
     /// a pane below its own declared `.frame(minWidth:)`.
     private var effectiveWindowMinWidth: CGFloat {
-        let inspectorMinWidth: CGFloat
-        if appState.preferences.showDiskUsageSidebar {
-            inspectorMinWidth = 240
+        let inspectorMinWidth: CGFloat = if appState.preferences.showDiskUsageSidebar {
+            240
         } else if appState.preferences.showPreviewSidebar {
-            inspectorMinWidth = 200
+            200
         } else {
-            inspectorMinWidth = 0
+            0
         }
         return LayoutTokens.windowMinWidth + inspectorMinWidth
     }

@@ -18,26 +18,28 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable {
     case chinese = "zh-Hans"
     case arabic = "ar"
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     public var displayName: String {
         switch self {
-        case .system: return "System Default"
-        case .english: return "English"
-        case .portuguese: return "Português"
-        case .spanish: return "Español"
-        case .french: return "Français"
-        case .german: return "Deutsch"
-        case .italian: return "Italiano"
-        case .japanese: return "日本語"
-        case .korean: return "한국어"
-        case .dutch: return "Nederlands"
-        case .polish: return "Polski"
-        case .russian: return "Русский"
-        case .swedish: return "Svenska"
-        case .turkish: return "Türkçe"
-        case .chinese: return "中文"
-        case .arabic: return "العربية"
+        case .system: "System Default"
+        case .english: "English"
+        case .portuguese: "Português"
+        case .spanish: "Español"
+        case .french: "Français"
+        case .german: "Deutsch"
+        case .italian: "Italiano"
+        case .japanese: "日本語"
+        case .korean: "한국어"
+        case .dutch: "Nederlands"
+        case .polish: "Polski"
+        case .russian: "Русский"
+        case .swedish: "Svenska"
+        case .turkish: "Türkçe"
+        case .chinese: "中文"
+        case .arabic: "العربية"
         }
     }
 }

@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 public protocol FileSystemServiceProtocol: Sendable {
     static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem]

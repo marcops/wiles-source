@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct DiskSpaceVisualizerTests {
@@ -55,7 +55,7 @@ public struct DiskSpaceVisualizerTests {
         // POS: more than 10 items groups the smallest ones under "Others"
         let manyDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: manyDir, withIntermediateDirectories: true)
-        for i in 0..<13 {
+        for i in 0 ..< 13 {
             let itemFile = manyDir.appendingPathComponent("item\(i).bin")
             try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: itemFile)
         }
@@ -63,8 +63,7 @@ public struct DiskSpaceVisualizerTests {
         TestReporter.report(
             "DiskSpaceVisualizer",
             "POS: more than 10 items caps topItems at 10 and groups the rest into othersItem",
-            result: manyReport.topItems.count == 10 && manyReport.othersItem != nil
-        )
+            result: manyReport.topItems.count == 10 && manyReport.othersItem != nil)
         try? FileManager.default.removeItem(at: manyDir)
     }
 
@@ -77,8 +76,7 @@ public struct DiskSpaceVisualizerTests {
         let nestedReport = await DiskSpaceVisualizerService.calculateDiskUsage(for: nestedDir)
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: a subdirectory's size is computed recursively from its contents",
-            result: nestedReport.topItems.first(where: { $0.name == "sub" })?.size == 4096
-        )
+            result: nestedReport.topItems.first(where: { $0.name == "sub" })?.size == 4096)
         try? FileManager.default.removeItem(at: nestedDir)
     }
 
@@ -102,8 +100,7 @@ public struct DiskSpaceVisualizerTests {
         let lockedItem = report.topItems.first { $0.name == "locked" }
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: a permission-denied subdirectory is scanned as zero-size instead of crashing",
-            result: lockedItem != nil && lockedItem?.size == 0 && report.totalSize == 1024
-        )
+            result: lockedItem != nil && lockedItem?.size == 0 && report.totalSize == 1024)
     }
 
     // POS: a single very large file dominates the percentage breakdown near 100%
@@ -119,8 +116,7 @@ public struct DiskSpaceVisualizerTests {
         let hugeItem = report.topItems.first { $0.name == "huge.bin" }
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: a single very large file dominates the percentage breakdown near 100%",
-            result: (hugeItem?.percentage ?? 0) > 99.9
-        )
+            result: (hugeItem?.percentage ?? 0) > 99.9)
     }
 
     // NEG: an existing but empty directory yields zero size and no items (grandTotal guard)
@@ -132,8 +128,7 @@ public struct DiskSpaceVisualizerTests {
         let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: an existing empty directory returns zero total size and no top items",
-            result: report.totalSize == 0 && report.topItems.isEmpty && report.othersItem == nil
-        )
+            result: report.totalSize == 0 && report.topItems.isEmpty && report.othersItem == nil)
     }
 
     // NEG: dotfiles/hidden files are excluded from the scan (skipsHiddenFiles option)
@@ -149,8 +144,7 @@ public struct DiskSpaceVisualizerTests {
         let hasHidden = report.topItems.contains { $0.name == ".hidden.bin" }
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: hidden dotfiles are excluded from disk usage scan and total size",
-            result: !hasHidden && report.totalSize == 1024
-        )
+            result: !hasHidden && report.totalSize == 1024)
     }
 
     // POS: topItems are sorted strictly descending by size
@@ -164,12 +158,11 @@ public struct DiskSpaceVisualizerTests {
         try? Data(repeating: 0, count: 2048).write(to: dir.appendingPathComponent("medium.bin"))
 
         let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
-        let sizes = report.topItems.map { $0.size }
+        let sizes = report.topItems.map(\.size)
         let isDescending = sizes == sizes.sorted(by: >)
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: topItems are sorted in strictly descending order by size",
-            result: isDescending && sizes.first == 8192 && sizes.last == 512
-        )
+            result: isDescending && sizes.first == 8192 && sizes.last == 512)
     }
 
     // POS: exactly 10 items produces no "Others" grouping (boundary condition, dropFirst(10) is empty)
@@ -178,15 +171,14 @@ public struct DiskSpaceVisualizerTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        for i in 0..<10 {
+        for i in 0 ..< 10 {
             try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: dir.appendingPathComponent("f\(i).bin"))
         }
 
         let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: exactly 10 items produces a full topItems list with no othersItem",
-            result: report.topItems.count == 10 && report.othersItem == nil
-        )
+            result: report.topItems.count == 10 && report.othersItem == nil)
     }
 
     // POS: a symlink to a file is treated as a file entry using fileExists' resolved size
@@ -204,8 +196,7 @@ public struct DiskSpaceVisualizerTests {
         let linkItem = report.topItems.first { $0.name == "link.bin" }
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: a symlink entry appears in the report without crashing the scan",
-            result: linkItem != nil
-        )
+            result: linkItem != nil)
     }
 
     // Regression coverage for the N+1 fileExists fix: collectRawItems now classifies each entry
@@ -230,12 +221,10 @@ public struct DiskSpaceVisualizerTests {
         let fileItem = report.topItems.first { $0.name == "empty_file.txt" }
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: an empty subdirectory is classified isDirectory=true despite having zero size, same as a zero-byte file",
-            result: dirItem?.isDirectory == true
-        )
+            result: dirItem?.isDirectory == true)
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: a zero-byte regular file is not misclassified as a directory",
-            result: fileItem?.isDirectory == false
-        )
+            result: fileItem?.isDirectory == false)
     }
 
     // POS: percentages for top items plus others sum to ~100% of grand total
@@ -254,7 +243,6 @@ public struct DiskSpaceVisualizerTests {
         let quarterPct = aItem.map { abs($0.percentage - 25.0) < 0.001 } ?? false
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: item percentages are computed correctly and sum to 100% of grand total",
-            result: withinTolerance && quarterPct
-        )
+            result: withinTolerance && quarterPct)
     }
 }

@@ -9,20 +9,22 @@ public enum SortOption: String, CaseIterable, Identifiable, Hashable, Equatable,
     case kind = "Kind"
     case owner = "Owner"
     case group = "Group"
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 
     /// Localized label for menu/Settings pickers (the raw values above stay in English since
     /// they're persisted verbatim to `UserDefaults` via `DefaultsKey.sortOption`).
     public var l10nKey: L10n.Key {
         switch self {
-        case .name: return .name
-        case .dateModified: return .dateModified
-        case .dateCreated: return .created
-        case .dateAccessed: return .lastOpened
-        case .size: return .size
-        case .kind: return .kind
-        case .owner: return .owner
-        case .group: return .group
+        case .name: .name
+        case .dateModified: .dateModified
+        case .dateCreated: .created
+        case .dateAccessed: .lastOpened
+        case .size: .size
+        case .kind: .kind
+        case .owner: .owner
+        case .group: .group
         }
     }
 }

@@ -1,6 +1,6 @@
+import AppKit
 import XCTest
 @testable import Wiles
-import AppKit
 
 /// Standalone dedicated suite for `NetworkServerService` (see `SpotlightSearchTests` for the same
 /// standalone-`XCTestCase` precedent — needs no wiring into `WilesAutomatedXCTestCase.swift`).

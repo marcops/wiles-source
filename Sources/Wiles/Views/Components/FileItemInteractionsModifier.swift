@@ -24,8 +24,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
         appState: AppState,
         onRightClick: (() -> Void)? = nil,
         onSelect: (() -> Void)? = nil,
-        onTargetedChanged: @escaping (Bool) -> Void = { _ in }
-    ) {
+        onTargetedChanged: @escaping (Bool) -> Void = { _ in }) {
         self.item = item
         self.appState = appState
         self.onRightClick = onRightClick
@@ -48,8 +47,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
                         appState.handleSelection(for: item)
                     }
                     scheduleRenameIfAlreadySelected(wasAlreadySelected)
-                }
-            )
+                })
             .onDrag {
                 if !appState.selectedURLs.contains(item.url) {
                     appState.selectedURLs = [item.url]
@@ -69,8 +67,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
                     } else if !appState.selectedURLs.contains(item.url) {
                         appState.selectedURLs = [item.url]
                     }
-                }
-            )
+                })
             .fileItemContextMenu(for: item, appState: appState)
     }
 
@@ -89,22 +86,19 @@ public struct FileItemInteractionsModifier: ViewModifier {
     }
 }
 
-extension View {
-    public func fileItemInteractions(
+public extension View {
+    func fileItemInteractions(
         item: FileItem,
         appState: AppState,
         onRightClick: (() -> Void)? = nil,
         onSelect: (() -> Void)? = nil,
-        onTargetedChanged: @escaping (Bool) -> Void = { _ in }
-    ) -> some View {
-        self.modifier(
+        onTargetedChanged: @escaping (Bool) -> Void = { _ in }) -> some View {
+        modifier(
             FileItemInteractionsModifier(
                 item: item,
                 appState: appState,
                 onRightClick: onRightClick,
                 onSelect: onSelect,
-                onTargetedChanged: onTargetedChanged
-            )
-        )
+                onTargetedChanged: onTargetedChanged))
     }
 }

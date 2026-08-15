@@ -5,5 +5,7 @@ public enum RuleConditionType: String, Codable, CaseIterable, Identifiable {
     case nameContains = "Name Contains"
     case namePrefix = "Name Starts With"
 
-    public var id: String { rawValue }
+    public var id: String {
+        rawValue
+    }
 }

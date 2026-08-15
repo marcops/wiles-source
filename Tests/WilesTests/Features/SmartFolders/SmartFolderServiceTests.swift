@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct SmartFoldersFeatureTests {
@@ -14,15 +14,17 @@ public struct SmartFoldersFeatureTests {
             id: UUID(),
             name: "Test Smart Folder",
             searchQuery: "kind:pdf",
-            scopePath: tempDir.path
-        )
+            scopePath: tempDir.path)
 
         var currentFolders = savedFolders
         currentFolders.append(dummyFolder)
         try? SmartFolderService.saveSmartFolders(currentFolders)
 
         let reloaded = SmartFolderService.loadSavedSmartFolders()
-        report("Feature/SmartFolders", "POS: SmartFolderService persists and reloads new smart folder", result: reloaded.contains(where: { $0.id == dummyFolder.id }))
+        report(
+            "Feature/SmartFolders",
+            "POS: SmartFolderService persists and reloads new smart folder",
+            result: reloaded.contains(where: { $0.id == dummyFolder.id }))
 
         testPredicateInjectionIsNeutralized()
         testEncodingFailureThrowsInsteadOfSilentlyNoOpingSave()
@@ -33,7 +35,7 @@ public struct SmartFoldersFeatureTests {
     /// with no error surfaced to the caller. This proves that an encoding failure now throws, so
     /// AppState.addSmartFolder/removeSmartFolder's existing showError path can surface it.
     private static func testEncodingFailureThrowsInsteadOfSilentlyNoOpingSave() {
-        struct SimulatedEncodingFailure: Error {}
+        struct SimulatedEncodingFailure: Error { }
 
         let beforeData = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue)
 
@@ -48,15 +50,13 @@ public struct SmartFoldersFeatureTests {
         report(
             "Feature/SmartFolders",
             "NEG: saveSmartFolders throws instead of silently no-oping when encoding fails",
-            result: didThrow
-        )
+            result: didThrow)
 
         let afterData = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue)
         report(
             "Feature/SmartFolders",
             "NEG: persisted UserDefaults data is left unchanged when encoding fails",
-            result: afterData == beforeData
-        )
+            result: afterData == beforeData)
     }
 
     /// Fix 1(a): SmartFolderService.executeQuery/executeContentQuery build their NSPredicate
@@ -89,8 +89,7 @@ public struct SmartFoldersFeatureTests {
             report(
                 "Feature/SmartFolders",
                 "POS: single-field predicate (executeQuery pattern) with '\(maliciousQuery)' evaluates without crashing",
-                result: singleFieldResult == false
-            )
+                result: singleFieldResult == false)
 
             // Mirrors SmartFolderService.executeContentQuery's predicate construction exactly.
             let contentPredicate = NSPredicate(format: "(kMDItemTextContent ==[cd] %@) || (kMDItemFSName ==[cd] %@)", wildcardQuery, wildcardQuery)
@@ -98,8 +97,7 @@ public struct SmartFoldersFeatureTests {
             report(
                 "Feature/SmartFolders",
                 "POS: compound OR predicate (executeContentQuery pattern) with '\(maliciousQuery)' evaluates without crashing",
-                result: contentResult == false
-            )
+                result: contentResult == false)
         }
     }
 

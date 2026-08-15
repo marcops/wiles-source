@@ -1,5 +1,5 @@
-@testable import Wiles
 import SwiftUI
+@testable import Wiles
 
 @MainActor
 public struct TagColorTests {
@@ -26,7 +26,10 @@ public struct TagColorTests {
     }
 
     private static func testUnknownTagFallsBackToSecondary() {
-        report("View/TagColor", "NEG: colorForTag(\"chartreuse\") (unrecognized name) falls back to .secondary", result: colorForTag("chartreuse") == .secondary)
+        report(
+            "View/TagColor",
+            "NEG: colorForTag(\"chartreuse\") (unrecognized name) falls back to .secondary",
+            result: colorForTag("chartreuse") == .secondary)
         report("View/TagColor", "NEG: colorForTag(\"\") (empty string) falls back to .secondary", result: colorForTag("") == .secondary)
     }
 

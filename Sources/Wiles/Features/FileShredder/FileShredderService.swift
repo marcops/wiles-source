@@ -18,8 +18,8 @@ public struct FileShredderService: Sendable {
     ///   ACL manipulation. Production callers should never pass this.
     public static func shredFiles(
         urls: [URL],
-        resourceValuesProvider: @Sendable (URL) throws -> URLResourceValues = { try $0.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]) }
-    ) async throws {
+        resourceValuesProvider: @Sendable (URL) throws
+            -> URLResourceValues = { try $0.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]) }) async throws {
         let fm = FileManager.default
         for url in urls {
             try Task.checkCancellation()
@@ -33,7 +33,6 @@ public struct FileShredderService: Sendable {
             let values = try resourceValuesProvider(url)
             if let isDir = values.isDirectory, !isDir,
                let fileSize = values.fileSize, fileSize > 0 {
-
                 // Overwrite file with zero bytes in background
                 if let handle = FileHandle(forWritingAtPath: url.path) {
                     let chunkSize = 1_048_576 // 1MB chunk

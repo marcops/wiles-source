@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 /// Continuation of `AppStateOperationsExtraTests` — split out purely to stay under SwiftLint's
 /// 500-line file-length limit (see `AppStateNavigationExtraTests`/`AppStateColumnsAndActionsAsyncTests`
@@ -19,8 +19,7 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: performDeleteSelected() reports an error when moveToTrash fails (read-only parent directory)",
-            result: errorShown
-        )
+            result: errorShown)
     }
 
     private static func testDeletePermanentlySelectedFailureReportsError() async {
@@ -28,8 +27,7 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: deletePermanentlySelected() reports an error when fm.removeItem fails (read-only parent directory)",
-            result: errorShown
-        )
+            result: errorShown)
     }
 
     private static func testShredSelectedFailureReportsError() async {
@@ -37,11 +35,10 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: shredSelected() reports an error when fm.removeItem fails (read-only parent directory)",
-            result: errorShown
-        )
+            result: errorShown)
     }
 
-    // undo()'s catch: a .create record for a never-created URL makes moveToTrash() throw; materialize the path afterward before draining (failed records go back onto undoStack).
+    /// undo()'s catch: a .create record for a never-created URL makes moveToTrash() throw; materialize the path afterward before draining (failed records go back onto undoStack).
     private static func testUndoLastActionFailureReportsError() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -56,16 +53,15 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: undoLastAction() reports an error when the reverse action fails (moveToTrash on a URL that was never created)",
-            result: errorShown
-        )
+            result: errorShown)
 
         try? FileManager.default.createDirectory(at: neverCreatedURL, withIntermediateDirectories: true)
         await drainUndoRedoService()
     }
 
-    // redo()'s catch: get a record onto redoStack via undo(), then make the forward createDirectory
-    // fail by recreating that path first; retry redo() after clearing the conflict so the failed
-    // record (pushed back onto redoStack, unreachable by drainUndoRedoService()) drains too.
+    /// redo()'s catch: get a record onto redoStack via undo(), then make the forward createDirectory
+    /// fail by recreating that path first; retry redo() after clearing the conflict so the failed
+    /// record (pushed back onto redoStack, unreachable by drainUndoRedoService()) drains too.
     private static func testRedoLastActionFailureReportsError() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -91,8 +87,7 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: redoLastAction() reports an error when the forward action fails (createDirectory on a path that already exists)",
-            result: errorShown
-        )
+            result: errorShown)
 
         try? FileManager.default.removeItem(at: createdDirURL)
         _ = try? await UndoRedoService.shared.redo()

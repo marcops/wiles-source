@@ -21,7 +21,7 @@ public final class ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
         let dt = exif?[kCGImagePropertyExifDateTimeOriginal] as? String
         let gpsStr = formattedGPS(from: gps)
 
-        if make == nil && model == nil && isoStr == nil && fnStr == nil && flStr == nil && dt == nil && gpsStr == nil {
+        if make == nil, model == nil, isoStr == nil, fnStr == nil, flStr == nil, dt == nil, gpsStr == nil {
             return nil
         }
 
@@ -33,8 +33,7 @@ public final class ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
             aperture: fnStr,
             focalLength: flStr,
             dateTimeOriginal: dt,
-            gpsCoordinates: gpsStr
-        )
+            gpsCoordinates: gpsStr)
     }
 
     private static func formattedISO(from exif: [CFString: Any]?) -> String? {

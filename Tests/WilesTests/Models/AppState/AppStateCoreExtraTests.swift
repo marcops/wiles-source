@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 /// Continuation of `AppStateCoreTests` — split out purely to stay under SwiftLint's 500-line
 /// file-length limit (see `AppStateOperationsExtraTests`/`AppStateOperationsFailureTests` for the
@@ -11,8 +11,8 @@ public struct AppStateCoreExtraTests {
         testShowErrorWithErrorType()
     }
 
-    // Regression coverage for the "moved a folder to the folder it's already in" bug report,
-    // where the raw NSError message was shown untranslated to every user regardless of language.
+    /// Regression coverage for the "moved a folder to the folder it's already in" bug report,
+    /// where the raw NSError message was shown untranslated to every user regardless of language.
     private static func testShowErrorWithErrorType() {
         let appState = AppState()
 
@@ -21,16 +21,16 @@ public struct AppStateCoreExtraTests {
         TestReporter.report(
             "AppState",
             "POS: showError(Error) localizes WilesError.itemAlreadyInDestination via appState.tr(...)",
-            result: appState.modal.errorMessage == appState.tr(.itemAlreadyInDestination)
-        )
+            result: appState.modal.errorMessage == appState.tr(.itemAlreadyInDestination))
 
         appState.modal.errorMessage = nil
-        struct SomeOtherError: LocalizedError { var errorDescription: String? { "some other failure" } }
+        struct SomeOtherError: LocalizedError { var errorDescription: String? {
+            "some other failure"
+        } }
         appState.showError(SomeOtherError())
         TestReporter.report(
             "AppState",
             "NEG: showError(Error) falls back to localizedDescription for a non-WilesError",
-            result: appState.modal.errorMessage == "some other failure"
-        )
+            result: appState.modal.errorMessage == "some other failure")
     }
 }

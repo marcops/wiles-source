@@ -16,20 +16,20 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .permissionDenied(let path):
-            return "Permission Denied: Wiles cannot access '\(path)'."
-        case .diskFull(let path):
-            return "Disk Full: Not enough space to complete operation at '\(path)'."
-        case .fileInUse(let path):
-            return "File in Use: '\(path)' is currently open by another application."
-        case .itemNotFound(let path):
-            return "Item Not Found: '\(path)' does not exist."
-        case .operationFailed(let reason):
-            return "Operation Failed: \(reason)"
+        case let .permissionDenied(path):
+            "Permission Denied: Wiles cannot access '\(path)'."
+        case let .diskFull(path):
+            "Disk Full: Not enough space to complete operation at '\(path)'."
+        case let .fileInUse(path):
+            "File in Use: '\(path)' is currently open by another application."
+        case let .itemNotFound(path):
+            "Item Not Found: '\(path)' does not exist."
+        case let .operationFailed(reason):
+            "Operation Failed: \(reason)"
         case .invalidZipPassword:
-            return "Invalid Password: Unable to decrypt ZIP archive."
+            "Invalid Password: Unable to decrypt ZIP archive."
         case .itemAlreadyInDestination:
-            return "This item is already in that location."
+            "This item is already in that location."
         }
     }
 }

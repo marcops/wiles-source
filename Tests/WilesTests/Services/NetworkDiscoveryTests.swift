@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct NetworkDiscoveryTests {
@@ -46,7 +46,10 @@ public struct NetworkDiscoveryTests {
         let shareB = NetworkShare(name: "Duplicate", url: url)
         let idsDiffer = shareA.id != shareB.id
         let notEqual = shareA != shareB
-        TestReporter.report("NetworkDiscovery", "NEG: NetworkShare instances with identical name/url still have distinct ids and are unequal", result: idsDiffer && notEqual)
+        TestReporter.report(
+            "NetworkDiscovery",
+            "NEG: NetworkShare instances with identical name/url still have distinct ids and are unequal",
+            result: idsDiffer && notEqual)
     }
 
     // POS: the same localizedStandardCompare-based ordering the service applies to discoveredShares
@@ -59,7 +62,7 @@ public struct NetworkDiscoveryTests {
             NetworkShare(name: "banana10", url: URL(string: "smb://banana10.local")!)
         ]
         let sorted = shares.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-        let names = sorted.map { $0.name }
+        let names = sorted.map(\.name)
         // localizedStandardCompare treats "banana2" < "banana10" numerically (natural sort), unlike plain string comparison
         let expected = ["Apple", "banana2", "banana10", "zebra"]
         TestReporter.report("NetworkDiscovery", "POS: localizedStandardCompare sort orders names case-insensitively and numerically", result: names == expected)

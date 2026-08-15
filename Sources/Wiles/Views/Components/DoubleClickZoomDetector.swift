@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Attach to dead space in the header/toolbar strip so double-clicking there zooms the window
 /// (fills the screen without entering native Fullscreen), matching standard macOS title-bar
@@ -15,8 +15,7 @@ struct DoubleClickZoomModifier: ViewModifier {
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
                     NSApp.keyWindow?.zoom(nil)
-                }
-        )
+                })
     }
 }
 

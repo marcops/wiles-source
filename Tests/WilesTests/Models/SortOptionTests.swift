@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct SortOptionTests {
@@ -39,8 +39,11 @@ public struct SortOptionTests {
 
         // NEG: every case's l10nKey must be distinct - a copy/paste bug in the switch (e.g. two
         // cases returning the same key) would otherwise pass all the POS checks above individually.
-        let allKeys = SortOption.allCases.map { $0.l10nKey }
-        report("Model/SortOption", "NEG: every case maps to a distinct L10n.Key (no accidental duplicate mapping)", result: Set(allKeys).count == SortOption.allCases.count)
+        let allKeys = SortOption.allCases.map(\.l10nKey)
+        report(
+            "Model/SortOption",
+            "NEG: every case maps to a distinct L10n.Key (no accidental duplicate mapping)",
+            result: Set(allKeys).count == SortOption.allCases.count)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

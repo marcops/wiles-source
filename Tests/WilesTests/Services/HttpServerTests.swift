@@ -1,12 +1,12 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct HttpServerTests {
-    // A short, strict timeout so a server that fails to bind (e.g. port contention across test
-    // runs) makes requests fail fast instead of hanging up to Self.requestSession's default 60s —
-    // with 15+ requests in this file, that default could turn a real failure into a multi-minute
-    // stall that looks like a deadlock.
+    /// A short, strict timeout so a server that fails to bind (e.g. port contention across test
+    /// runs) makes requests fail fast instead of hanging up to Self.requestSession's default 60s —
+    /// with 15+ requests in this file, that default could turn a real failure into a multi-minute
+    /// stall that looks like a deadlock.
     private static let requestSession: URLSession = {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 3
@@ -202,7 +202,10 @@ public struct HttpServerTests {
                 passed = httpResp.value(forHTTPHeaderField: "Content-Type") == "application/octet-stream"
             }
         }
-        TestReporter.report("LocalHttpServer", "NEG: Served .html file has no MIME sniffing - Content-Type is application/octet-stream, not text/html", result: passed)
+        TestReporter.report(
+            "LocalHttpServer",
+            "NEG: Served .html file has no MIME sniffing - Content-Type is application/octet-stream, not text/html",
+            result: passed)
     }
 
     private static func checkFileWithSpaceInNameServed() async {
@@ -290,8 +293,7 @@ public struct HttpServerTests {
         TestReporter.report(
             "LocalHttpServer",
             "NEG: Path traversal into a sibling directory sharing the shared folder's name prefix (e.g. \"<uuid>EVIL\") is blocked",
-            result: blocked
-        )
+            result: blocked)
     }
 
     private static func checkTrailingSlashDirectoryReturns500() async {
@@ -306,7 +308,10 @@ public struct HttpServerTests {
                 passed = httpResp.statusCode == 500
             }
         }
-        TestReporter.report("LocalHttpServer", "NEG: Requesting a directory path with a trailing slash (/subdir/) returns 500 Internal Server Error", result: passed)
+        TestReporter.report(
+            "LocalHttpServer",
+            "NEG: Requesting a directory path with a trailing slash (/subdir/) returns 500 Internal Server Error",
+            result: passed)
     }
 
     private static func checkEmptyDirectoryListing() async {
@@ -336,6 +341,9 @@ public struct HttpServerTests {
         server.stop()
         try? await Task.sleep(nanoseconds: 300_000_000)
 
-        TestReporter.report("LocalHttpServer", "POS: Directory listing for an empty shared folder returns 200 OK with an empty <ul> and no entries", result: passed)
+        TestReporter.report(
+            "LocalHttpServer",
+            "POS: Directory listing for an empty shared folder returns 200 OK with an empty <ul> and no entries",
+            result: passed)
     }
 }

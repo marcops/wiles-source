@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 /// Regression coverage for the N+1 I/O fix: creationDateKey/contentAccessDateKey/effectiveIconKey
 /// were added to FileSystemService's bulk contentsOfDirectory prefetch (previously only FileItem's
@@ -9,7 +9,7 @@ import Foundation
 /// UI_TEST_BACKLOG.md for why the actual syscall-count claim isn't unit-tested (this test was run
 /// against the fix disabled and passed identically, since FileItem's own fallback fetch already
 /// covered correctness — only the performance characteristics changed).
-public struct FileItemBulkPrefetchTests {
+public enum FileItemBulkPrefetchTests {
     public static func run() async {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

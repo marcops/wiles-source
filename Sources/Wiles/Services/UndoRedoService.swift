@@ -8,7 +8,7 @@ public final class UndoRedoService {
     private var redoStack: [UndoRecord] = []
     private let maxHistoryLimit = 50
 
-    private init() {}
+    private init() { }
 
     public func recordAction(_ action: UndoActionType) {
         undoStack.append(UndoRecord(actionType: action))
@@ -54,29 +54,29 @@ public final class UndoRedoService {
 
     private func executeReverseAction(_ action: UndoActionType) async throws -> URL {
         switch action {
-        case .rename(let oldURL, let newURL):
+        case let .rename(oldURL, newURL):
             return try FileSystemService.renameItem(at: newURL, newName: oldURL.lastPathComponent)
-        case .move(let sourceURL, let destinationURL):
+        case let .move(sourceURL, destinationURL):
             return try FileSystemService.moveItem(at: destinationURL, toFolder: sourceURL.deletingLastPathComponent())
-        case .create(let url):
+        case let .create(url):
             _ = try FileSystemService.moveToTrash(url: url)
             return url.deletingLastPathComponent()
-        case .trash(let originalURL, let trashedURL):
+        case let .trash(originalURL, trashedURL):
             return try FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
         }
     }
 
     private func executeForwardAction(_ action: UndoActionType) async throws -> URL {
         switch action {
-        case .rename(let oldURL, let newURL):
+        case let .rename(oldURL, newURL):
             return try FileSystemService.renameItem(at: oldURL, newName: newURL.lastPathComponent)
-        case .move(let sourceURL, let destinationURL):
+        case let .move(sourceURL, destinationURL):
             return try FileSystemService.moveItem(at: sourceURL, toFolder: destinationURL.deletingLastPathComponent())
-        case .create(let url):
+        case let .create(url):
             let folder = url.deletingLastPathComponent()
             let name = url.lastPathComponent
             return try FileSystemService.createDirectory(at: folder, name: name)
-        case .trash(let originalURL, _):
+        case let .trash(originalURL, _):
             // originalURL, not the stale trashedURL: undo() already moved the file back to
             // originalURL, so the old trashedURL path no longer exists on disk by the time
             // redo runs (moveToTrash on it would throw, incorrectly failing every trash redo).

@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct SidebarView: View {
     var appState: AppState
@@ -25,10 +25,12 @@ struct SidebarView: View {
         var items: [SidebarItem] = []
         for url in appState.navigation.historyBack.reversed() {
             let std = url.standardizedFileURL
-            if !seen.contains(std) && std != appState.navigation.currentURL.standardizedFileURL {
+            if !seen.contains(std), std != appState.navigation.currentURL.standardizedFileURL {
                 seen.insert(std)
                 items.append(sidebarItem(for: std))
-                if items.count >= LayoutTokens.maxRecentItemsCount { break }
+                if items.count >= LayoutTokens.maxRecentItemsCount {
+                    break
+                }
             }
         }
         return items
@@ -60,8 +62,7 @@ struct SidebarView: View {
                 Color(NSColor.windowBackgroundColor)
                     .opacity(appState.preferences.sidebarOverlayOpacity)
             }
-            .ignoresSafeArea()
-        )
+            .ignoresSafeArea())
         .overlay(alignment: .top) {
             Color.clear
                 .frame(maxWidth: .infinity)
@@ -93,23 +94,20 @@ struct SidebarView: View {
             let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
             sidebarRow(for: recentsItem, sectionKey: "Recents")
         }
-        if appState.preferences.showFavorites && !favoriteItems.isEmpty {
+        if appState.preferences.showFavorites, !favoriteItems.isEmpty {
             collapsibleSection(
                 title: appState.tr(.favorites), identifierKey: "FAVORITES",
-                isExpanded: $appState.preferences.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true
-            )
+                isExpanded: $appState.preferences.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true)
         }
         if appState.preferences.showNetworkAndCloud {
             collapsibleSection(
                 title: appState.tr(.networkAndCloud), identifierKey: "NETWORK",
-                isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false
-            )
+                isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false)
         }
         if appState.preferences.showPlaces {
             collapsibleSection(
                 title: appState.tr(.places), identifierKey: "PLACES",
-                isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false
-            )
+                isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false)
         }
         if appState.preferences.showDirectoryTree {
             directoryTreeSection(isExpanded: $appState.preferences.isTreeExpanded)
@@ -122,7 +120,6 @@ struct SidebarView: View {
         }
     }
 
-    @ViewBuilder
     private func directoryTreeSection(isExpanded: Binding<Bool>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if appState.preferences.showSidebarSectionTitles {
@@ -140,7 +137,6 @@ struct SidebarView: View {
         }
     }
 
-    @ViewBuilder
     private func tagsSection(isExpanded: Binding<Bool>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if appState.preferences.showSidebarSectionTitles {
@@ -158,7 +154,6 @@ struct SidebarView: View {
         }
     }
 
-    @ViewBuilder
     private func smartFoldersSection(isExpanded: Binding<Bool>) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if appState.preferences.showSidebarSectionTitles {
@@ -172,11 +167,11 @@ struct SidebarView: View {
         }
     }
 
-    // `identifierKey` is a fixed, non-localized key (e.g. "FAVORITES") kept separate from the
-    // localized `title` shown on screen — accessibility identifiers must stay stable across
-    // languages so UI tests and automation don't break when the OS language changes.
-    // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
-    // composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
+    /// `identifierKey` is a fixed, non-localized key (e.g. "FAVORITES") kept separate from the
+    /// localized `title` shown on screen — accessibility identifiers must stay stable across
+    /// languages so UI tests and automation don't break when the OS language changes.
+    /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
+    /// composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
     private func sectionHeader(title: String, identifierKey: String, isExpanded: Binding<Bool>) -> some View {
         HStack(spacing: 4) {
             Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
@@ -228,7 +223,12 @@ struct SidebarView: View {
         .padding(.horizontal, 6)
     }
 
-    private func collapsibleSection(title: String, identifierKey: String, isExpanded: Binding<Bool>, items: [SidebarItem], isFavoritesSection: Bool = false) -> some View {
+    private func collapsibleSection(
+        title: String,
+        identifierKey: String,
+        isExpanded: Binding<Bool>,
+        items: [SidebarItem],
+        isFavoritesSection: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if appState.preferences.showSidebarSectionTitles {
                 sectionHeader(title: title, identifierKey: identifierKey, isExpanded: isExpanded)
@@ -258,17 +258,17 @@ struct SidebarView: View {
 
     private func wellKnownSidebarInfo(forPath path: String, home: URL) -> (name: String, icon: String)? {
         switch path {
-        case home.path: return (appState.tr(.home), "house.fill")
-        case home.appendingPathComponent("Desktop").path: return (appState.tr(.desktop), "desktopcomputer")
-        case home.appendingPathComponent("Documents").path: return (appState.tr(.sidebarDocuments), "doc.fill")
-        case home.appendingPathComponent("Downloads").path: return (appState.tr(.downloads), "arrow.down.circle.fill")
-        case "/Applications": return (appState.tr(.applications), "square.grid.3x3.fill")
-        case home.appendingPathComponent("Music").path: return (appState.tr(.music), "music.note")
-        case home.appendingPathComponent("Pictures").path: return (appState.tr(.pictures), "photo.fill")
-        case home.appendingPathComponent("Movies").path: return (appState.tr(.movies), "film.fill")
-        case home.appendingPathComponent(".Trash").path: return (appState.tr(.sidebarTrash), "trash.fill")
-        case "/": return ("Macintosh HD", "internaldrive.fill")
-        default: return nil
+        case home.path: (appState.tr(.home), "house.fill")
+        case home.appendingPathComponent("Desktop").path: (appState.tr(.desktop), "desktopcomputer")
+        case home.appendingPathComponent("Documents").path: (appState.tr(.sidebarDocuments), "doc.fill")
+        case home.appendingPathComponent("Downloads").path: (appState.tr(.downloads), "arrow.down.circle.fill")
+        case "/Applications": (appState.tr(.applications), "square.grid.3x3.fill")
+        case home.appendingPathComponent("Music").path: (appState.tr(.music), "music.note")
+        case home.appendingPathComponent("Pictures").path: (appState.tr(.pictures), "photo.fill")
+        case home.appendingPathComponent("Movies").path: (appState.tr(.movies), "film.fill")
+        case home.appendingPathComponent(".Trash").path: (appState.tr(.sidebarTrash), "trash.fill")
+        case "/": ("Macintosh HD", "internaldrive.fill")
+        default: nil
         }
     }
 
@@ -316,7 +316,6 @@ struct SidebarView: View {
             isRightClicked: rightClickedRowKey == rowKey,
             isAnotherRowRightClicked: rightClickedRowKey != nil && rightClickedRowKey != rowKey,
             onRightClick: { rightClickedRowKey = rowKey },
-            onLeftClick: { rightClickedRowKey = nil }
-        )
+            onLeftClick: { rightClickedRowKey = nil })
     }
 }

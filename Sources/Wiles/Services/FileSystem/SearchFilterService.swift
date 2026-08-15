@@ -59,12 +59,16 @@ public struct SearchFilterService: Sendable {
             return false
         }
         let lower = token.lowercased()
-        if lower == "today" { return Calendar.current.isDateInToday(modified) }
-        if lower == "yesterday" { return Calendar.current.isDateInYesterday(modified) }
+        if lower == "today" {
+            return Calendar.current.isDateInToday(modified)
+        }
+        if lower == "yesterday" {
+            return Calendar.current.isDateInYesterday(modified)
+        }
 
         let (op, valueStr) = splitOperator(from: lower)
         guard let num = Int(valueStr.compactMap { $0.isNumber ? $0 : nil }.map(String.init).joined()) else { return false }
-        let unit = valueStr.filter { $0.isLetter }
+        let unit = valueStr.filter(\.isLetter)
         let seconds = dateFilterSeconds(num: num, unit: unit)
 
         // "date:>=Nd" means "at least N days old" (age >= N), which is modified-time <= targetDate
@@ -80,11 +84,11 @@ public struct SearchFilterService: Sendable {
 
     private static func dateFilterSeconds(num: Int, unit: String) -> TimeInterval {
         switch unit {
-        case "h": return Double(num) * 3600
-        case "w": return Double(num) * 7 * 86400
-        case "m": return Double(num) * 30 * 86400
-        case "y": return Double(num) * 365 * 86400
-        default: return Double(num) * 86400
+        case "h": Double(num) * 3600
+        case "w": Double(num) * 7 * 86400
+        case "m": Double(num) * 30 * 86400
+        case "y": Double(num) * 365 * 86400
+        default: Double(num) * 86400
         }
     }
 
@@ -107,9 +111,9 @@ public struct SearchFilterService: Sendable {
         guard let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) else { return false }
         let (op, valueStr) = splitOperator(from: token.lowercased())
 
-        let digits = valueStr.filter { $0.isNumber }
+        let digits = valueStr.filter(\.isNumber)
         guard let num = Int64(digits), !digits.isEmpty else { return false }
-        let unit = valueStr.filter { $0.isLetter }
+        let unit = valueStr.filter(\.isLetter)
         let targetBytes = num * sizeFilterMultiplier(unit: unit)
 
         switch op {
@@ -124,7 +128,7 @@ public struct SearchFilterService: Sendable {
     private static func sizeFilterMultiplier(unit: String) -> Int64 {
         if unit.hasPrefix("k") {
             return 1024
-        } else if unit.hasPrefix("b") && !unit.hasPrefix("by") {
+        } else if unit.hasPrefix("b"), !unit.hasPrefix("by") {
             return 1
         } else if unit.hasPrefix("g") {
             return 1024 * 1024 * 1024
@@ -163,17 +167,21 @@ public struct SearchFilterService: Sendable {
 
     private static func matchesTextOrRegex(fileURL: URL, token: String, regex: NSRegularExpression?) -> Bool {
         let fileName = fileURL.lastPathComponent
-        if fileName.localizedCaseInsensitiveContains(token) { return true }
-        if let regex = regex {
+        if fileName.localizedCaseInsensitiveContains(token) {
+            return true
+        }
+        if let regex {
             let range = NSRange(location: 0, length: fileName.utf16.count)
-            if regex.firstMatch(in: fileName, options: [], range: range) != nil { return true }
+            if regex.firstMatch(in: fileName, options: [], range: range) != nil {
+                return true
+            }
         }
         return matchesContent(fileURL: fileURL, query: token)
     }
 
     private static func matchesContent(fileURL: URL, query: String) -> Bool {
         guard query.count >= 3 else { return false }
-        let textExtensions: Set<String> = ["txt", "md", "swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "xml", "csv"]
+        let textExtensions: Set = ["txt", "md", "swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "xml", "csv"]
         guard textExtensions.contains(fileURL.pathExtension.lowercased()) else { return false }
         guard let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize), size < 2_000_000 else { return false }
         guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else { return false }

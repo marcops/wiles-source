@@ -46,14 +46,14 @@ struct FileListHeaderView: View {
 
     static func columnTitle(_ col: ListColumn, appState: AppState) -> String {
         switch col {
-        case .name:         return appState.tr(.name)
-        case .size:         return appState.tr(.size)
-        case .dateModified: return appState.tr(.dateModified)
-        case .dateCreated:  return appState.tr(.created)
-        case .dateAccessed: return appState.tr(.lastOpened)
-        case .kind:         return appState.tr(.kind)
-        case .owner:        return appState.tr(.owner)
-        case .group:        return appState.tr(.group)
+        case .name: appState.tr(.name)
+        case .size: appState.tr(.size)
+        case .dateModified: appState.tr(.dateModified)
+        case .dateCreated: appState.tr(.created)
+        case .dateAccessed: appState.tr(.lastOpened)
+        case .kind: appState.tr(.kind)
+        case .owner: appState.tr(.owner)
+        case .group: appState.tr(.group)
         }
     }
 
@@ -85,18 +85,18 @@ struct FileListHeaderView: View {
 
     private func sortOption(for col: ListColumn) -> SortOption {
         switch col {
-        case .name:         return .name
-        case .size:         return .size
-        case .dateModified: return .dateModified
-        case .dateCreated:  return .dateCreated
-        case .dateAccessed: return .dateAccessed
-        case .kind:         return .kind
-        case .owner:        return .owner
-        case .group:        return .group
+        case .name: .name
+        case .size: .size
+        case .dateModified: .dateModified
+        case .dateCreated: .dateCreated
+        case .dateAccessed: .dateAccessed
+        case .kind: .kind
+        case .owner: .owner
+        case .group: .group
         }
     }
 
-    @ViewBuilder private var columnVisibilityMenu: some View {
+    private var columnVisibilityMenu: some View {
         ForEach(ListColumn.allCases.filter { !$0.isAlwaysVisible }, id: \.self) { col in
             Button { appState.toggleColumnVisibility(col) } label: {
                 HStack {

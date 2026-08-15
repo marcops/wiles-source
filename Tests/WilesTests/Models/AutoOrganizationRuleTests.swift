@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct AutoOrganizationRuleTests {
@@ -21,8 +21,7 @@ public struct AutoOrganizationRuleTests {
             destinationURL: destination,
             conditionType: .extensionEquals,
             conditionValue: "pdf",
-            isEnabled: false
-        )
+            isEnabled: false)
 
         do {
             let data = try JSONEncoder().encode(rule)
@@ -44,8 +43,7 @@ public struct AutoOrganizationRuleTests {
             sourceURL: URL(fileURLWithPath: testTemporaryDirectory()),
             destinationURL: URL(fileURLWithPath: testTemporaryDirectory()),
             conditionType: .nameContains,
-            conditionValue: "invoice"
-        )
+            conditionValue: "invoice")
         report("Model/AutoOrganizationRule", "POS: default initializer sets isEnabled to true when omitted", result: rule.isEnabled == true)
     }
 
@@ -57,8 +55,7 @@ public struct AutoOrganizationRuleTests {
         report(
             "Model/AutoOrganizationRule",
             "NEG: two independently-constructed rules with identical fields get distinct auto-generated ids",
-            result: ruleA.id != ruleB.id
-        )
+            result: ruleA.id != ruleB.id)
 
         let fixedID = UUID()
         let ruleC = AutoOrganizationRule(id: fixedID, sourceURL: source, destinationURL: destination, conditionType: .namePrefix, conditionValue: "IMG")
@@ -66,8 +63,7 @@ public struct AutoOrganizationRuleTests {
         report(
             "Model/AutoOrganizationRule",
             "POS: rules constructed with the same explicit id compare equal (Hashable/Equatable via memberwise synthesis)",
-            result: ruleC == ruleD && ruleC.id == ruleD.id
-        )
+            result: ruleC == ruleD && ruleC.id == ruleD.id)
     }
 
     /// RuleConditionType is the tightly-coupled enum backing `AutoOrganizationRule.conditionType` -
@@ -75,12 +71,11 @@ public struct AutoOrganizationRuleTests {
     /// single-property namespace with no independent behavior of its own.
     private static func testConditionTypeCases() {
         let allCases = RuleConditionType.allCases
-        let uniqueIDs = Set(allCases.map { $0.id })
+        let uniqueIDs = Set(allCases.map(\.id))
         report(
             "Model/AutoOrganizationRule",
             "POS: RuleConditionType.allCases has 3 cases with unique ids matching their raw values",
-            result: allCases.count == 3 && uniqueIDs.count == 3 && allCases.allSatisfy { $0.id == $0.rawValue }
-        )
+            result: allCases.count == 3 && uniqueIDs.count == 3 && allCases.allSatisfy { $0.id == $0.rawValue })
 
         do {
             let data = try JSONEncoder().encode(RuleConditionType.extensionEquals)

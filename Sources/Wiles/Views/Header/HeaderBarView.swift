@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct HeaderBarView: View {
     var appState: AppState
@@ -38,8 +38,7 @@ struct HeaderBarView: View {
                         }
                     }
                 }
-            }
-        )
+            })
         .doubleClickToZoom()
     }
 
@@ -208,8 +207,7 @@ struct HeaderBarView: View {
                 } else {
                     appState.searchQuery = strippedQuery
                 }
-            }
-        )
+            })
     }
 
     private var searchButton: some View {
@@ -236,7 +234,7 @@ struct HeaderBarView: View {
                 .foregroundColor(appState.preferences.searchEverywhere ? .white : .primary)
                 .background(appState.preferences.searchEverywhere ? Color.accentColor : Color(NSColor.controlColor))
                 .cornerRadius(5)
-            .contentShape(Rectangle())
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(appState.tr(.searchEverywhereHelp))
@@ -247,17 +245,17 @@ struct HeaderBarView: View {
 
     private func iconName(for mode: ViewMode) -> String {
         switch mode {
-        case .grid:   return "square.grid.2x2"
-        case .list:   return "list.bullet"
-        case .column: return "sidebar.left"
+        case .grid: "square.grid.2x2"
+        case .list: "list.bullet"
+        case .column: "sidebar.left"
         }
     }
 
     private func accessibilityID(for mode: ViewMode) -> String {
         switch mode {
-        case .grid:   return "ViewModeGrid"
-        case .list:   return "ViewModeList"
-        case .column: return "ViewModeColumn"
+        case .grid: "ViewModeGrid"
+        case .list: "ViewModeList"
+        case .column: "ViewModeColumn"
         }
     }
 
@@ -272,7 +270,9 @@ struct HeaderBarView: View {
         .padding(2)
         .animation(MotionTokens.expandSpring, value: viewSwitcherExpanded)
         .background(ClickOutsideDetector {
-            if viewSwitcherExpanded { viewSwitcherExpanded = false }
+            if viewSwitcherExpanded {
+                viewSwitcherExpanded = false
+            }
         })
     }
 
@@ -314,5 +314,4 @@ struct HeaderBarView: View {
         .accessibilityIdentifier("View Mode")
         .transition(.scale(scale: 0.7).combined(with: .opacity))
     }
-
 }

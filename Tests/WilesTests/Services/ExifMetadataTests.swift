@@ -1,8 +1,8 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
 import ImageIO
 import UniformTypeIdentifiers
+@testable import Wiles
 
 @MainActor
 public struct ExifMetadataTests {

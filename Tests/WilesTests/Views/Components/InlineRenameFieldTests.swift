@@ -15,11 +15,17 @@ public struct InlineRenameFieldTests {
     }
 
     private static func testMainReturnKeyCommits() {
-        report("View/InlineRenameField", "POS: the main Return key (\\r) is recognized as a commit character", result: InlineRenameField.isCommitCharacter("\r"))
+        report(
+            "View/InlineRenameField",
+            "POS: the main Return key (\\r) is recognized as a commit character",
+            result: InlineRenameField.isCommitCharacter("\r"))
     }
 
     private static func testKeypadEnterKeyCommits() {
-        report("View/InlineRenameField", "POS: the keypad Enter key (ETX, \\u{3}) is recognized as a commit character", result: InlineRenameField.isCommitCharacter("\u{3}"))
+        report(
+            "View/InlineRenameField",
+            "POS: the keypad Enter key (ETX, \\u{3}) is recognized as a commit character",
+            result: InlineRenameField.isCommitCharacter("\u{3}"))
     }
 
     private static func testOtherCharactersDoNotCommit() {

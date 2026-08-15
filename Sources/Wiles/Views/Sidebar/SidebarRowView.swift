@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import GitBeacon
+import SwiftUI
 
 struct SidebarRowView: View {
     let item: SidebarItem
@@ -32,41 +32,39 @@ struct SidebarRowView: View {
     var body: some View {
         // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
         // for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
-        return rowContent
-        .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(
-            isDragTargeted ? Color.accentColor.opacity(0.25) :
-            (isSel ? Color.accentColor.opacity(0.18) :
-            (isHovered ? Color.primary.opacity(0.06) : Color.clear))
-        )
-        .cornerRadius(8)
-        .scaleEffect(isDragTargeted ? 1.02 : 1.0)
-        .animation(MotionTokens.snappySpring, value: isDragTargeted)
-        .animation(MotionTokens.quickEase, value: isHovered)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onLeftClick()
-            appState.navigateTo(item.url)
-            windowUIState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
-        }
-        .padding(.horizontal, 8)
-        .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
-        .accessibilityIdentifier(item.name)
-        .accessibilityLabel(item.name)
-        .accessibilityHint(appState.tr(.folder))
-        .onHover { isHovered = $0 }
-        .overlay(
-            RightClickDetector { onRightClick() }
-        )
-        .springLoadedFolder(folderURL: item.url, isDirectory: true, appState: appState) { targeted in
-            withAnimation(MotionTokens.quickEase) { isDragTargeted = targeted }
-        }
-        .contextMenu {
-            rowContextMenu
-        }
+        rowContent
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(
+                isDragTargeted ? Color.accentColor.opacity(0.25) :
+                    (isSel ? Color.accentColor.opacity(0.18) :
+                        (isHovered ? Color.primary.opacity(0.06) : Color.clear)))
+            .cornerRadius(8)
+            .scaleEffect(isDragTargeted ? 1.02 : 1.0)
+            .animation(MotionTokens.snappySpring, value: isDragTargeted)
+            .animation(MotionTokens.quickEase, value: isHovered)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onLeftClick()
+                appState.navigateTo(item.url)
+                windowUIState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
+            }
+            .padding(.horizontal, 8)
+            .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
+            .accessibilityIdentifier(item.name)
+            .accessibilityLabel(item.name)
+            .accessibilityHint(appState.tr(.folder))
+            .onHover { isHovered = $0 }
+            .overlay(
+                RightClickDetector { onRightClick() })
+            .springLoadedFolder(folderURL: item.url, isDirectory: true, appState: appState) { targeted in
+                withAnimation(MotionTokens.quickEase) { isDragTargeted = targeted }
+            }
+            .contextMenu {
+                rowContextMenu
+            }
     }
 
-    @ViewBuilder private var rowContent: some View {
+    private var rowContent: some View {
         HStack(spacing: 10) {
             Image(systemName: item.iconName)
                 .font(.system(size: 15)).foregroundColor(.accentColor).frame(width: 20)
@@ -77,7 +75,7 @@ struct SidebarRowView: View {
             if isTrash {
                 trashSizeIndicator
             }
-            if item.url.path.hasPrefix("/Volumes/") && item.url.path != "/" {
+            if item.url.path.hasPrefix("/Volumes/"), item.url.path != "/" {
                 ejectButton
             }
         }
@@ -90,8 +88,8 @@ struct SidebarRowView: View {
                 .controlSize(.mini)
                 .scaleEffect(0.6)
                 .frame(width: 16, height: 16)
-        } else if !appState.trashSizeString.isEmpty
-            && !["Zero KB", "0 KB", "0 bytes"].contains(appState.trashSizeString) {
+        } else if !appState.trashSizeString.isEmpty,
+                  !["Zero KB", "0 KB", "0 bytes"].contains(appState.trashSizeString) {
             Text(appState.trashSizeString)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.secondary)
@@ -150,7 +148,7 @@ struct SidebarRowView: View {
     private func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
         for provider in providers {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url = url else { return }
+                guard let url else { return }
                 Task { @MainActor in
                     do {
                         _ = try appState.moveItem(at: url, toFolder: targetFolder)

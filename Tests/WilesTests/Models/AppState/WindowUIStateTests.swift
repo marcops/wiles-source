@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 /// `WindowUIState` is a plain per-window presentation-state bag (sheets/alerts/HUD flags plus their
 /// associated items), architecturally identical to `ModalStore` — see `ModalStoreTests.swift` for the
@@ -16,26 +16,32 @@ public struct WindowUIStateTests {
 
     private static func testDefaults() {
         let state = WindowUIState()
-        report("Models/WindowUIState", "POS: fresh instance has all item/URL optionals nil", result: state.propertiesItem == nil
-            && state.renameItem == nil
-            && state.imageConverterItem == nil
-            && state.symlinkItem == nil
-            && state.httpShareFolderURL == nil
-            && state.passwordCompressURLs == nil
-            && state.inspectArchiveURL == nil)
-        report("Models/WindowUIState", "POS: fresh instance has all sheet/alert/HUD bools false", result: !state.showBatchRenameSheet
-            && !state.showEmptyTrashAlert
-            && !state.showDeleteConfirmAlert
-            && !state.showConnectToServerSheet
-            && !state.showAutoOrganizationSheet
-            && !state.showHttpShareSheet
-            && !state.showShortcutsHUD
-            && !state.showSaveSmartFolderSheet
-            && !state.showPasswordCompressSheet
-            && !state.showArchiveInspectionSheet
-            && !state.showHelpSheet
-            && !state.showAboutSheet
-            && !state.showSettingsSheet)
+        report(
+            "Models/WindowUIState",
+            "POS: fresh instance has all item/URL optionals nil",
+            result: state.propertiesItem == nil
+                && state.renameItem == nil
+                && state.imageConverterItem == nil
+                && state.symlinkItem == nil
+                && state.httpShareFolderURL == nil
+                && state.passwordCompressURLs == nil
+                && state.inspectArchiveURL == nil)
+        report(
+            "Models/WindowUIState",
+            "POS: fresh instance has all sheet/alert/HUD bools false",
+            result: !state.showBatchRenameSheet
+                && !state.showEmptyTrashAlert
+                && !state.showDeleteConfirmAlert
+                && !state.showConnectToServerSheet
+                && !state.showAutoOrganizationSheet
+                && !state.showHttpShareSheet
+                && !state.showShortcutsHUD
+                && !state.showSaveSmartFolderSheet
+                && !state.showPasswordCompressSheet
+                && !state.showArchiveInspectionSheet
+                && !state.showHelpSheet
+                && !state.showAboutSheet
+                && !state.showSettingsSheet)
     }
 
     private static func testMutation() {
@@ -57,7 +63,10 @@ public struct WindowUIStateTests {
         state.showSettingsSheet = true
         report("Models/WindowUIState", "POS: showSettingsSheet holds the value it was set to", result: state.showSettingsSheet)
 
-        report("Models/WindowUIState", "POS: two separate instances don't share mutable state", result: WindowUIState().propertiesItem == nil && state.propertiesItem == item)
+        report(
+            "Models/WindowUIState",
+            "POS: two separate instances don't share mutable state",
+            result: WindowUIState().propertiesItem == nil && state.propertiesItem == item)
     }
 
     /// `isAnyModalPresented` gates `GlobalKeyMonitor` so a Return/Delete keypress meant for an
@@ -120,7 +129,10 @@ public struct WindowUIStateTests {
 
         appState.navigateTo(folderB, addToHistory: false)
         let urlAfterNavigating = appState.navigation.currentURL
-        report("Models/WindowUIState", "POS: AppState.navigateTo actually changed navigation.currentURL (test precondition)", result: urlBeforeNavigating != urlAfterNavigating)
+        report(
+            "Models/WindowUIState",
+            "POS: AppState.navigateTo actually changed navigation.currentURL (test precondition)",
+            result: urlBeforeNavigating != urlAfterNavigating)
 
         state.cancelRenameIfNavigated(from: urlBeforeNavigating, to: urlAfterNavigating)
         report("Models/WindowUIState", "POS: navigating to a different folder cancels an active rename", result: state.renameItem == nil)

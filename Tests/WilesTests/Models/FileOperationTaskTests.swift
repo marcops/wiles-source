@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FileOperationTaskTests {
@@ -9,8 +9,7 @@ public struct FileOperationTaskTests {
             progress: 0.5,
             bytesTransferred: 500,
             totalBytes: 1000,
-            isCancelled: false
-        )
+            isCancelled: false)
         report("Model/FileOperationTask", "POS: Task title matches input", result: task.title == "Copying files")
         report("Model/FileOperationTask", "POS: Task progress matches 0.5", result: task.progress == 0.5)
 

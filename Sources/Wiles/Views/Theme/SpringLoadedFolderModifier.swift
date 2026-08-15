@@ -42,20 +42,17 @@ public struct SpringLoadedFolderModifier: ViewModifier {
     }
 }
 
-extension View {
-    public func springLoadedFolder(
+public extension View {
+    func springLoadedFolder(
         folderURL: URL,
         isDirectory: Bool,
         appState: AppState,
-        onTargetedChanged: @escaping (Bool) -> Void = { _ in }
-    ) -> some View {
-        self.modifier(
+        onTargetedChanged: @escaping (Bool) -> Void = { _ in }) -> some View {
+        modifier(
             SpringLoadedFolderModifier(
                 folderURL: folderURL,
                 isDirectory: isDirectory,
                 appState: appState,
-                onTargetedChanged: onTargetedChanged
-            )
-        )
+                onTargetedChanged: onTargetedChanged))
     }
 }

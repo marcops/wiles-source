@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import CoreGraphics
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct SelectionStoreTests {

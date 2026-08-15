@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 import UniformTypeIdentifiers
 
 /// macOS reserves double-click-to-open behavior for folders exclusively to Finder — there is no

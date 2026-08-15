@@ -27,7 +27,9 @@ struct FolderPickerSheet: View {
         .background(Color(NSColor.windowBackgroundColor))
         .onAppear {
             selectedURL = initialURL
-            if let initialURL { expandAncestors(of: initialURL) }
+            if let initialURL {
+                expandAncestors(of: initialURL)
+            }
         }
     }
 
@@ -93,7 +95,9 @@ struct FolderPickerSheet: View {
             Button(appState.tr(.cancel)) { dismiss() }
                 .keyboardShortcut(.escape, modifiers: [])
             Button(appState.tr(.selectFolder)) {
-                if let selectedURL { onSelect(selectedURL) }
+                if let selectedURL {
+                    onSelect(selectedURL)
+                }
                 dismiss()
             }
             .buttonStyle(.borderedProminent)

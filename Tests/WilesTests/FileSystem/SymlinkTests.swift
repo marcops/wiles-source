@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct SymlinkTests {
@@ -39,8 +39,7 @@ public struct SymlinkTests {
                 targetURL: sourceFile,
                 destinationFolder: regressionDir,
                 symlinkName: sourceFile.lastPathComponent,
-                mode: .absolute
-            )
+                mode: .absolute)
         } catch {
             threwError = true
         }
@@ -51,8 +50,7 @@ public struct SymlinkTests {
         TestReporter.report(
             "SymlinkService",
             "NEG: createSymlink whose destination resolves to the same path as its own target never deletes the source (regression: used to permanently destroy it)",
-            result: threwError && stillExists && contentIntact && stillARegularFile
-        )
+            result: threwError && stillExists && contentIntact && stillARegularFile)
     }
 
     // POS/NEG: SymlinkMode.id (Identifiable conformance) returns the raw value for both cases.
@@ -70,10 +68,17 @@ public struct SymlinkTests {
 
         // Negative: Empty Symlink Name Falls Back to Default
         let defaultLink = try? SymlinkService.createSymlink(targetURL: targetFile, destinationFolder: tempDir, symlinkName: "   ", mode: .absolute)
-        TestReporter.report("SymlinkService", "NEG: Empty symlink name auto-generates default link name", result: defaultLink?.lastPathComponent.contains("link") == true)
+        TestReporter.report(
+            "SymlinkService",
+            "NEG: Empty symlink name auto-generates default link name",
+            result: defaultLink?.lastPathComponent.contains("link") == true)
 
         // POS: Relative symlink resolves back to the same target
-        let relativeLinkURL = try? SymlinkService.createSymlink(targetURL: targetFile, destinationFolder: tempDir, symlinkName: "origin_relative_link.txt", mode: .relative)
+        let relativeLinkURL = try? SymlinkService.createSymlink(
+            targetURL: targetFile,
+            destinationFolder: tempDir,
+            symlinkName: "origin_relative_link.txt",
+            mode: .relative)
         var relativeResolvesCorrectly = false
         if let link = relativeLinkURL, let resolved = try? FileManager.default.destinationOfSymbolicLink(atPath: link.path) {
             let resolvedURL = tempDir.standardizedFileURL.appendingPathComponent(resolved).standardizedFileURL
@@ -85,17 +90,15 @@ public struct SymlinkTests {
         let overwriteName = "overwrite_link.txt"
         let firstLink = try? SymlinkService.createSymlink(targetURL: targetFile, destinationFolder: tempDir, symlinkName: overwriteName, mode: .absolute)
         let secondLink = try? SymlinkService.createSymlink(targetURL: targetFile, destinationFolder: tempDir, symlinkName: overwriteName, mode: .absolute)
-        let overwriteSucceeded: Bool
-        if let secondLink, firstLink != nil {
-            overwriteSucceeded = FileManager.default.fileExists(atPath: secondLink.path)
+        let overwriteSucceeded: Bool = if let secondLink, firstLink != nil {
+            FileManager.default.fileExists(atPath: secondLink.path)
         } else {
-            overwriteSucceeded = false
+            false
         }
         TestReporter.report(
             "SymlinkService",
             "POS: creating a symlink at an existing path overwrites it instead of throwing",
-            result: overwriteSucceeded
-        )
+            result: overwriteSucceeded)
 
         runAdvancedSymlinkCoverage(tempDir: tempDir, targetFile: targetFile, linkURL: linkURL)
     }
@@ -103,7 +106,11 @@ public struct SymlinkTests {
     private static func runAdvancedSymlinkCoverage(tempDir: URL, targetFile: URL, linkURL: URL?) {
         // POS: Creating a symlink to a nonexistent target succeeds and produces a dangling/broken link
         let missingTarget = tempDir.appendingPathComponent("does_not_exist.txt")
-        let danglingLink = try? SymlinkService.createSymlink(targetURL: missingTarget, destinationFolder: tempDir, symlinkName: "dangling_link.txt", mode: .absolute)
+        let danglingLink = try? SymlinkService.createSymlink(
+            targetURL: missingTarget,
+            destinationFolder: tempDir,
+            symlinkName: "dangling_link.txt",
+            mode: .absolute)
         var danglingIsBroken = false
         if let link = danglingLink {
             let existsAsSymlink = (try? FileManager.default.destinationOfSymbolicLink(atPath: link.path)) != nil
@@ -138,7 +145,10 @@ public struct SymlinkTests {
         try? FileManager.default.createDirectory(at: nestedDestDir, withIntermediateDirectories: true)
         let outsideTarget = siblingDir.appendingPathComponent("outside.txt")
         try? "Outside Content".write(to: outsideTarget, atomically: true, encoding: .utf8)
-        let outsideRelativeLink = try? SymlinkService.createSymlink(targetURL: outsideTarget, destinationFolder: nestedDestDir, symlinkName: "outside_relative_link.txt",
+        let outsideRelativeLink = try? SymlinkService.createSymlink(
+            targetURL: outsideTarget,
+            destinationFolder: nestedDestDir,
+            symlinkName: "outside_relative_link.txt",
             mode: .relative)
         var outsideRelativeResolves = false
         var outsideRelativeUsesDotDot = false
@@ -147,15 +157,16 @@ public struct SymlinkTests {
             let resolvedURL = nestedDestDir.standardizedFileURL.appendingPathComponent(resolved).standardizedFileURL
             outsideRelativeResolves = resolvedURL.path == outsideTarget.standardizedFileURL.path
         }
-        TestReporter.report("SymlinkService", "POS: relative symlink to a target outside the destination folder uses '..' and resolves correctly",
+        TestReporter.report(
+            "SymlinkService",
+            "POS: relative symlink to a target outside the destination folder uses '..' and resolves correctly",
             result: outsideRelativeResolves && outsideRelativeUsesDotDot)
 
         // POS: Absolute symlink creation stores an absolute path, not a relative one
-        let absoluteLinkStoresFullPath: Bool
-        if let link = linkURL, let resolved = try? FileManager.default.destinationOfSymbolicLink(atPath: link.path) {
-            absoluteLinkStoresFullPath = resolved == targetFile.path
+        let absoluteLinkStoresFullPath: Bool = if let link = linkURL, let resolved = try? FileManager.default.destinationOfSymbolicLink(atPath: link.path) {
+            resolved == targetFile.path
         } else {
-            absoluteLinkStoresFullPath = false
+            false
         }
         TestReporter.report("SymlinkService", "POS: absolute symlink stores the full absolute destination path", result: absoluteLinkStoresFullPath)
     }

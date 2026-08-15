@@ -1,5 +1,5 @@
-import SwiftUI
 import GitBeacon
+import SwiftUI
 
 public struct SymlinkSheetView: View {
     let item: FileItem
@@ -87,8 +87,7 @@ public struct SymlinkSheetView: View {
                 targetURL: item.url,
                 destinationFolder: appState.navigation.currentURL,
                 symlinkName: symlinkName,
-                mode: mode
-            )
+                mode: mode)
             appState.refreshCurrentDirectory()
             appState.selectedURLs = [createdURL]
             dismiss()

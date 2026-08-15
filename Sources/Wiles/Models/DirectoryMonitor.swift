@@ -1,5 +1,5 @@
-import Foundation
 import CoreServices
+import Foundation
 
 final class DirectoryMonitor: @unchecked Sendable {
     private var streamRef: FSEventStreamRef?
@@ -7,7 +7,7 @@ final class DirectoryMonitor: @unchecked Sendable {
 
     func start(path: String, onChange: @escaping @Sendable () -> Void) {
         cancel()
-        self.callback = onChange
+        callback = onChange
 
         let pathsToWatch = [path as NSString] as CFArray
         var context = FSEventStreamContext(
@@ -15,8 +15,7 @@ final class DirectoryMonitor: @unchecked Sendable {
             info: Unmanaged.passUnretained(self).toOpaque(),
             retain: nil,
             release: nil,
-            copyDescription: nil
-        )
+            copyDescription: nil)
 
         let callbackImpl: FSEventStreamCallback = { _, clientCallBackInfo, _, _, _, _ in
             guard let clientCallBackInfo else { return }
@@ -33,10 +32,9 @@ final class DirectoryMonitor: @unchecked Sendable {
             pathsToWatch,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
             0.1,
-            flags
-        ) else { return }
+            flags) else { return }
 
-        self.streamRef = stream
+        streamRef = stream
         FSEventStreamSetDispatchQueue(stream, DispatchQueue.global(qos: .utility))
         FSEventStreamStart(stream)
     }

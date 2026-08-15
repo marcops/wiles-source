@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct BackgroundOperationsTests {
@@ -18,7 +18,10 @@ public struct BackgroundOperationsTests {
         defer { service.completeTask(id: id) }
 
         report("BackgroundOperations", "POS: addTask() appends a new active task", result: service.activeTasks.count == before + 1)
-        report("BackgroundOperations", "POS: newly added task starts at zero progress", result: service.activeTasks.first(where: { $0.id == id })?.progress == 0.0)
+        report(
+            "BackgroundOperations",
+            "POS: newly added task starts at zero progress",
+            result: service.activeTasks.first(where: { $0.id == id })?.progress == 0.0)
     }
 
     private static func testUpdateProgressMutatesTheCorrectTask() {
@@ -34,7 +37,10 @@ public struct BackgroundOperationsTests {
 
         let taskA = service.activeTasks.first(where: { $0.id == idA })
         let taskB = service.activeTasks.first(where: { $0.id == idB })
-        report("BackgroundOperations", "POS: updateProgress() updates only the targeted task's progress", result: taskA?.progress == 0.5 && taskA?.bytesTransferred == 500)
+        report(
+            "BackgroundOperations",
+            "POS: updateProgress() updates only the targeted task's progress",
+            result: taskA?.progress == 0.5 && taskA?.bytesTransferred == 500)
         report("BackgroundOperations", "NEG: updateProgress() does not affect a different task", result: taskB?.progress == 0.0)
     }
 
@@ -42,7 +48,10 @@ public struct BackgroundOperationsTests {
         let service = BackgroundOperationsService.shared
         let before = service.activeTasks
         service.updateProgress(id: UUID(), progress: 0.9)
-        report("BackgroundOperations", "NEG: updateProgress() with an unknown id does not crash or mutate existing tasks", result: service.activeTasks.count == before.count)
+        report(
+            "BackgroundOperations",
+            "NEG: updateProgress() with an unknown id does not crash or mutate existing tasks",
+            result: service.activeTasks.count == before.count)
     }
 
     private static func testCompleteTaskRemovesIt() {

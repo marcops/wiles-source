@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ArchiveEntryItemTests {
@@ -45,15 +45,13 @@ public struct ArchiveEntryItemTests {
         report(
             "Feature/ArchiveEntryItem",
             "POS: deeply nested path preserves the full path while name resolves to only the leaf",
-            result: deeplyNested.path == "a/b/c/d/leaf.txt" && deeplyNested.name == "leaf.txt" && deeplyNested.isDirectory == false
-        )
+            result: deeplyNested.path == "a/b/c/d/leaf.txt" && deeplyNested.name == "leaf.txt" && deeplyNested.isDirectory == false)
 
         let topLevelDirectory = ArchiveEntryItem(path: "assets/")
         report(
             "Feature/ArchiveEntryItem",
             "POS: top-level directory entry is a directory and its name has the slash stripped",
-            result: topLevelDirectory.isDirectory == true && topLevelDirectory.name == "assets"
-        )
+            result: topLevelDirectory.isDirectory == true && topLevelDirectory.name == "assets")
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

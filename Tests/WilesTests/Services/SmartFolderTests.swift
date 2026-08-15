@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 // swiftlint:disable force_try
 // This harness's helper functions are non-throwing by convention (see TestReporter.report call
@@ -14,7 +14,10 @@ public struct SmartFolderTests {
         try! SmartFolderService.saveSmartFolders([folder])
         let loaded = SmartFolderService.loadSavedSmartFolders()
 
-        TestReporter.report("SmartFolder", "POS: saveSmartFolders and loadSavedSmartFolders persist folder", result: loaded.contains(where: { $0.name == "PDFs" }))
+        TestReporter.report(
+            "SmartFolder",
+            "POS: saveSmartFolders and loadSavedSmartFolders persist folder",
+            result: loaded.contains(where: { $0.name == "PDFs" }))
 
         testEmptyArrayRoundTrip()
         testMultipleFoldersFieldByFieldRoundTrip()
@@ -36,7 +39,10 @@ public struct SmartFolderTests {
 
         let iconDefaulted = folder.icon == "folder.badge.gearshape"
         let createdAtInRange = folder.createdAt >= before && folder.createdAt <= after
-        TestReporter.report("SmartFolder", "POS: default init supplies default icon and createdAt within call window", result: iconDefaulted && createdAtInRange)
+        TestReporter.report(
+            "SmartFolder",
+            "POS: default init supplies default icon and createdAt within call window",
+            result: iconDefaulted && createdAtInRange)
 
         let folderB = SmartFolder(name: "Untitled", searchQuery: "kind:any", scopePath: "")
         TestReporter.report("SmartFolder", "POS: default init generates a distinct id per instance", result: folder.id != folderB.id)
@@ -94,14 +100,16 @@ public struct SmartFolderTests {
         let tricky = SmartFolder(
             name: "Q3 \"Final\" Réport 🎉",
             searchQuery: "kind:pdf AND name:'it''s * a test'",
-            scopePath: "/Users/tester"
-        )
+            scopePath: "/Users/tester")
         try! SmartFolderService.saveSmartFolders([tricky])
         let loaded = SmartFolderService.loadSavedSmartFolders()
 
         let matches = loaded.first(where: { $0.id == tricky.id })
         let fieldsPreserved = matches?.name == tricky.name && matches?.searchQuery == tricky.searchQuery
-        TestReporter.report("SmartFolder", "POS: names/queries with quotes, unicode, and wildcards round-trip byte-for-byte through persistence", result: fieldsPreserved)
+        TestReporter.report(
+            "SmartFolder",
+            "POS: names/queries with quotes, unicode, and wildcards round-trip byte-for-byte through persistence",
+            result: fieldsPreserved)
 
         try! SmartFolderService.saveSmartFolders([])
     }
@@ -171,11 +179,11 @@ public struct SmartFolderTests {
 
         TestReporter.report(
             "SmartFolder", "POS: saving multiple folders preserves name, icon, searchQuery, and scopePath exactly on round-trip",
-            result: fieldsMatch
-        )
+            result: fieldsMatch)
 
         // Clean up so this test doesn't leak state into subsequent runs.
         try! SmartFolderService.saveSmartFolders([])
     }
 }
+
 // swiftlint:enable force_try

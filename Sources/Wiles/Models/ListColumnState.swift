@@ -1,5 +1,5 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 // MARK: - Per-Column Persisted State
 
@@ -9,8 +9,8 @@ public struct ListColumnState: Codable, Sendable {
     public var isVisible: Bool
 
     public init(column: ListColumn, width: CGFloat, isVisible: Bool) {
-        self.column    = column
-        self.width     = width
+        self.column = column
+        self.width = width
         self.isVisible = isVisible
     }
 }

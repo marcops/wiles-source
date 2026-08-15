@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct AutoOrganizationSheet: View {
     @Environment(\.dismiss)
@@ -38,7 +38,7 @@ struct AutoOrganizationSheet: View {
         }
     }
 
-    @ViewBuilder private var contentArea: some View {
+    private var contentArea: some View {
         VStack(spacing: 20) {
             if rules.isEmpty {
                 emptyRulesView
@@ -58,7 +58,7 @@ struct AutoOrganizationSheet: View {
         .padding(20)
     }
 
-    @ViewBuilder private var emptyRulesView: some View {
+    private var emptyRulesView: some View {
         VStack(spacing: 10) {
             Image(systemName: "folder.badge.gearshape")
                 .font(.system(size: 40))
@@ -108,9 +108,8 @@ struct AutoOrganizationSheet: View {
                 updated.isEnabled = newVal
                 AutoOrganizationService.shared.updateRule(updated)
                 rules = AutoOrganizationService.shared.rules
-            }
-        ))
-        .labelsHidden()
+            }))
+            .labelsHidden()
     }
 
     private func ruleSummary(_ rule: AutoOrganizationRule) -> some View {
@@ -209,9 +208,9 @@ struct AutoOrganizationSheet: View {
     /// English — never display it directly. This maps each case to its localized display string.
     private func displayName(for type: RuleConditionType) -> String {
         switch type {
-        case .extensionEquals: return appState.tr(.ruleConditionExtensionEquals)
-        case .nameContains: return appState.tr(.ruleConditionNameContains)
-        case .namePrefix: return appState.tr(.ruleConditionNamePrefix)
+        case .extensionEquals: appState.tr(.ruleConditionExtensionEquals)
+        case .nameContains: appState.tr(.ruleConditionNameContains)
+        case .namePrefix: appState.tr(.ruleConditionNamePrefix)
         }
     }
 

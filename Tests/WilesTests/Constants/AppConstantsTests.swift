@@ -11,8 +11,7 @@ final class AppConstantsTests: XCTestCase {
         XCTAssertEqual(AppConstants.githubDisplayString, "github.com/marcops/wiles")
         XCTAssertTrue(
             AppConstants.appVersion.range(of: #"^\d+\.\d+\.\d+$"#, options: .regularExpression) != nil,
-            "appVersion (\(AppConstants.appVersion)) must be a semantic X.Y.Z version string"
-        )
+            "appVersion (\(AppConstants.appVersion)) must be a semantic X.Y.Z version string")
         XCTAssertEqual(AppConstants.mainWindowID, "main")
     }
 

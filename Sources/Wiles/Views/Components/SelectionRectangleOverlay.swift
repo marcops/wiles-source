@@ -1,15 +1,15 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
-// Drag-to-select marquee, background deselect, and the shared background context menu — used by List, Grid, and Column.
-// Draws the rect above the rows itself (this view must stay below them in z-order); needs an ancestor `.coordinateSpace(name: coordinateSpaceName)`.
+/// Drag-to-select marquee, background deselect, and the shared background context menu — used by List, Grid, and Column.
+/// Draws the rect above the rows itself (this view must stay below them in z-order); needs an ancestor `.coordinateSpace(name: coordinateSpaceName)`.
 struct SelectionRectangleOverlay: View {
     var appState: AppState
     var coordinateSpaceName: String
     var minWidth: CGFloat?
     var targetFolderURL: URL?
     @Binding var selectionRect: CGRect?
-    // A closure, not a value, so it's only read on drag — never during body — to avoid re-rendering on every frame update.
+    /// A closure, not a value, so it's only read on drag — never during body — to avoid re-rendering on every frame update.
     var cellFramesProvider: () -> [URL: CGRect]
 
     @Environment(WindowUIState.self)
@@ -33,16 +33,15 @@ struct SelectionRectangleOverlay: View {
 
     /// Visual marquee rectangle for the current `selectionRect`, drawn separately by the caller
     /// above the row content — see the type-level doc comment for why.
+    @ViewBuilder
     static func rectangleOverlay(_ rect: CGRect?) -> some View {
-        Group {
-            if let rect {
-                Rectangle()
-                    .fill(Color.accentColor.opacity(0.15))
-                    .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
-                    .frame(width: rect.width, height: rect.height)
-                    .offset(x: rect.minX, y: rect.minY)
-                    .allowsHitTesting(false)
-            }
+        if let rect {
+            Rectangle()
+                .fill(Color.accentColor.opacity(0.15))
+                .overlay(Rectangle().stroke(Color.accentColor, lineWidth: 1.5))
+                .frame(width: rect.width, height: rect.height)
+                .offset(x: rect.minX, y: rect.minY)
+                .allowsHitTesting(false)
         }
     }
 
@@ -57,7 +56,9 @@ struct SelectionRectangleOverlay: View {
 
     private func handleDragChanged(_ gesture: DragGesture.Value) {
         let start = dragStartPoint ?? gesture.startLocation
-        if dragStartPoint == nil { dragStartPoint = start }
+        if dragStartPoint == nil {
+            dragStartPoint = start
+        }
 
         let rect = normalizedRect(from: start, to: gesture.location)
         selectionRect = rect
@@ -77,11 +78,10 @@ struct SelectionRectangleOverlay: View {
         for (url, frame) in cellFramesProvider() where frame.intersects(rect) {
             matched.insert(url)
         }
-        let resolved: Set<URL>
-        if NSEvent.modifierFlags.contains(.command) {
-            resolved = appState.selectedURLs.union(matched)
+        let resolved: Set<URL> = if NSEvent.modifierFlags.contains(.command) {
+            appState.selectedURLs.union(matched)
         } else {
-            resolved = matched
+            matched
         }
         // Only write when the resolved set actually differs — every row reads `selectedURLs`
         // to compute `isSel`, so a write here re-renders the entire visible list. Small mouse

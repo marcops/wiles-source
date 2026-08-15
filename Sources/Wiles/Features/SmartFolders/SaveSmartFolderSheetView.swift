@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct SaveSmartFolderSheetView: View {
     var appState: AppState
@@ -27,8 +27,7 @@ struct SaveSmartFolderSheetView: View {
                         name: folderName,
                         icon: "folder.badge.gearshape",
                         searchQuery: appState.searchQuery,
-                        scopePath: appState.navigation.currentURL.path
-                    )
+                        scopePath: appState.navigation.currentURL.path)
                     appState.addSmartFolder(folder)
                     dismiss()
                 }

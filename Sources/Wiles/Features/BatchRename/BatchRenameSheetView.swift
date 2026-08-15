@@ -21,11 +21,11 @@ struct BatchRenameSheetView: View {
     private var currentMode: BatchRenameMode {
         switch tabMode {
         case .findReplace:
-            return .replace(find: findText, replaceWith: replaceText)
+            .replace(find: findText, replaceWith: replaceText)
         case .prefixSuffix:
-            return .addPrefixSuffix(prefix: prefixText, suffix: suffixText)
+            .addPrefixSuffix(prefix: prefixText, suffix: suffixText)
         case .sequence:
-            return .sequenceNumber(prefix: sequencePrefix, startNumber: startNumber, paddingDigits: paddingDigits)
+            .sequenceNumber(prefix: sequencePrefix, startNumber: startNumber, paddingDigits: paddingDigits)
         }
     }
 
@@ -143,7 +143,7 @@ struct BatchRenameSheetView: View {
                 HStack(spacing: 4) {
                     Text(appState.tr(.startNumber) + ":")
                         .font(.system(size: 12))
-                    Stepper("\(startNumber)", value: $startNumber, in: 0...9999)
+                    Stepper("\(startNumber)", value: $startNumber, in: 0 ... 9999)
                 }
             }
         }

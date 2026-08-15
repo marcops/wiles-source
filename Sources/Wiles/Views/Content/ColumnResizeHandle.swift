@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Interactive drag handle placed at the trailing edge of a table column.
 /// Dragging left/right adjusts the column width directly, matching macOS Finder behavior.
@@ -27,7 +27,11 @@ struct ColumnResizeHandle: View {
         }
         .onHover { hovering in
             withAnimation(MotionTokens.quickEase) { isHovered = hovering }
-            if hovering { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() }
+            if hovering {
+                NSCursor.resizeLeftRight.push()
+            } else {
+                NSCursor.pop()
+            }
         }
         .onTapGesture(count: 2) {
             appState.autoFitColumnWidth(column)
@@ -51,8 +55,7 @@ struct ColumnResizeHandle: View {
                     dragStartWidth = nil
                     appState.persistColumnWidths()
                     NSCursor.pop()
-                }
-        )
+                })
         .cursor(.resizeLeftRight)
     }
 }

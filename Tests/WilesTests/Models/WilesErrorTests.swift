@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct WilesErrorTests {
@@ -27,34 +27,39 @@ public struct WilesErrorTests {
         report("Model/WilesError", "POS: itemNotFound includes the offending path", result: (notFound.errorDescription ?? "").contains(missingPath))
 
         let operationFailed = WilesError.operationFailed(reason: "network unreachable")
-        report("Model/WilesError", "POS: operationFailed includes the given reason", result: (operationFailed.errorDescription ?? "").contains("network unreachable"))
+        report(
+            "Model/WilesError",
+            "POS: operationFailed includes the given reason",
+            result: (operationFailed.errorDescription ?? "").contains("network unreachable"))
 
-        report("Model/WilesError", "POS: invalidZipPassword has a non-empty description", result: !(WilesError.invalidZipPassword.errorDescription ?? "").isEmpty)
-        report("Model/WilesError", "POS: itemAlreadyInDestination has a non-empty description", result: !(WilesError.itemAlreadyInDestination.errorDescription ?? "").isEmpty)
+        report(
+            "Model/WilesError",
+            "POS: invalidZipPassword has a non-empty description",
+            result: !(WilesError.invalidZipPassword.errorDescription ?? "").isEmpty)
+        report(
+            "Model/WilesError",
+            "POS: itemAlreadyInDestination has a non-empty description",
+            result: !(WilesError.itemAlreadyInDestination.errorDescription ?? "").isEmpty)
     }
 
     private static func testEquatableBehavior() {
         report(
             "Model/WilesError",
             "NEG: two different error cases are not equal",
-            result: WilesError.diskFull(path: "/x") != WilesError.permissionDenied(path: "/x")
-        )
+            result: WilesError.diskFull(path: "/x") != WilesError.permissionDenied(path: "/x"))
         report(
             "Model/WilesError",
             "POS: same case with same associated value is equal",
-            result: WilesError.diskFull(path: "/x") == WilesError.diskFull(path: "/x")
-        )
+            result: WilesError.diskFull(path: "/x") == WilesError.diskFull(path: "/x"))
         report(
             "Model/WilesError",
             "NEG: same case with different associated values is not equal",
-            result: WilesError.itemNotFound(path: "/a") != WilesError.itemNotFound(path: "/b")
-        )
+            result: WilesError.itemNotFound(path: "/a") != WilesError.itemNotFound(path: "/b"))
         report(
             "Model/WilesError",
             "POS: parameterless cases compare equal to themselves",
             result: WilesError.invalidZipPassword == WilesError.invalidZipPassword
-                && WilesError.itemAlreadyInDestination == WilesError.itemAlreadyInDestination
-        )
+                && WilesError.itemAlreadyInDestination == WilesError.itemAlreadyInDestination)
     }
 
     /// Exhaustively exercises every case so a future addition without a matching `report()` call

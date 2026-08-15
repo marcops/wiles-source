@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ArrowKeyNavigationTests {
@@ -36,10 +36,10 @@ public struct ArrowKeyNavigationTests {
         let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? -1
         let newIndex = max(0, min(items.count - 1, anchorIndex + offset))
         let newURL = items[newIndex].url
-        if isShift && anchorIndex >= 0 {
+        if isShift, anchorIndex >= 0 {
             let lo = min(anchorIndex, newIndex)
             let hi = max(anchorIndex, newIndex)
-            appState.selectedURLs = Set(items[lo...hi].map { $0.url })
+            appState.selectedURLs = Set(items[lo ... hi].map(\.url))
         } else {
             appState.selectedURLs = [newURL]
         }
@@ -96,7 +96,7 @@ public struct ArrowKeyNavigationTests {
         appState.fileSystem.items = items
         appState.selectedURLs = [items[0].url]
         simulateMoveSelection(by: 2, isShift: true, appState: appState)
-        let expected: Set<URL> = Set(items.map { $0.url })
+        let expected: Set<URL> = Set(items.map(\.url))
         report("Navigation/ArrowKeys", "POS: Shift+↓ extends range selection", result: appState.selectedURLs == expected)
     }
 
@@ -119,8 +119,7 @@ public struct ArrowKeyNavigationTests {
         }
         report(
             "Navigation/ArrowKeys", "POS: → navigates into selected directory in List View",
-            result: appState.navigation.currentURL.standardizedFileURL == childDir.standardizedFileURL
-        )
+            result: appState.navigation.currentURL.standardizedFileURL == childDir.standardizedFileURL)
     }
 
     private static func testArrowLeftGoesUp() {
@@ -132,19 +131,24 @@ public struct ArrowKeyNavigationTests {
 
         appState.navigateTo(childDir)
         appState.goUp()
-        report("Navigation/ArrowKeys", "POS: ← (goUp) navigates to parent directory", result: appState.navigation.currentURL.path == parentDir.standardizedFileURL.path)
+        report(
+            "Navigation/ArrowKeys",
+            "POS: ← (goUp) navigates to parent directory",
+            result: appState.navigation.currentURL.path == parentDir.standardizedFileURL.path)
     }
 
     private static func testDefaultColumns() {
         let appState = AppState()
         appState.listColumnStates = ListColumnState.defaults()
-        report("Navigation/ListColumns", "POS: Default columns are name, size, dateModified only", result:
+        report(
+            "Navigation/ListColumns",
+            "POS: Default columns are name, size, dateModified only",
+            result:
             appState.isColumnVisible(.name) &&
-            appState.isColumnVisible(.size) &&
-            appState.isColumnVisible(.dateModified) &&
-            !appState.isColumnVisible(.kind) &&
-            !appState.isColumnVisible(.dateCreated)
-        )
+                appState.isColumnVisible(.size) &&
+                appState.isColumnVisible(.dateModified) &&
+                !appState.isColumnVisible(.kind) &&
+                !appState.isColumnVisible(.dateCreated))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

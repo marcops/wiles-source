@@ -1,8 +1,8 @@
-@testable import Wiles
-import Foundation
 import AppKit
 import CoreGraphics
+import Foundation
 import PDFKit
+@testable import Wiles
 
 /// Covers `FileMetadataTooltipService.tooltip(for:)`'s correctness — in particular the private
 /// `pixelDimensions(for:)` helper, exercised indirectly since it's only reachable through the
@@ -39,8 +39,7 @@ public struct FileMetadataTooltipServiceTests {
             isPlanar: false,
             colorSpaceName: .deviceRGB,
             bytesPerRow: 0,
-            bitsPerPixel: 0
-        ) else { return }
+            bitsPerPixel: 0) else { return }
 
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
@@ -67,8 +66,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "POS: tooltip(for:) includes the real pixel dimensions line for an image file",
-            result: tooltip.contains("48 x 24")
-        )
+            result: tooltip.contains("48 x 24"))
     }
 
     private static func testTooltipOmitsDimensionsForNonImageFile() async {
@@ -85,8 +83,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "NEG: tooltip(for:) does not include a dimensions-shaped line for a plain text file",
-            result: !tooltip.contains(" x ")
-        )
+            result: !tooltip.contains(" x "))
     }
 
     private static func testTooltipForDirectoryOmitsDimensions() async {
@@ -100,8 +97,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "NEG: tooltip(for:) for a directory reports Folder and never attempts image parsing",
-            result: tooltip.contains("Folder") && !tooltip.contains(" x ")
-        )
+            result: tooltip.contains("Folder") && !tooltip.contains(" x "))
     }
 
     /// Writes a real multi-page PDF via native CoreGraphics PDF context APIs (no third-party
@@ -111,7 +107,7 @@ public struct FileMetadataTooltipServiceTests {
         var mediaBox = CGRect(x: 0, y: 0, width: 200, height: 200)
         guard let consumer = CGDataConsumer(url: url as CFURL),
               let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else { return }
-        for _ in 0..<pageCount {
+        for _ in 0 ..< pageCount {
             context.beginPDFPage(nil)
             context.endPDFPage()
         }
@@ -132,8 +128,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "POS: tooltip(for:) includes the real page count line (plural grammar) for a 3-page PDF",
-            result: tooltip.contains("3 pages")
-        )
+            result: tooltip.contains("3 pages"))
     }
 
     private static func testTooltipUsesSingularGrammarForOnePagePDF() async {
@@ -150,8 +145,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "POS: tooltip(for:) uses singular '1 page' (not '1 pages') for a single-page PDF",
-            result: tooltip.contains("1 page") && !tooltip.contains("1 pages")
-        )
+            result: tooltip.contains("1 page") && !tooltip.contains("1 pages"))
     }
 
     private static func testTooltipHandlesCorruptPDFGracefully() async {
@@ -168,8 +162,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "NEG: tooltip(for:) for a corrupt/unparsable PDF omits a page-count line instead of crashing",
-            result: !tooltip.contains("page")
-        )
+            result: !tooltip.contains("page"))
     }
 
     private static func testTooltipHandlesCorruptImageGracefully() async {
@@ -186,8 +179,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "NEG: tooltip(for:) for a corrupt/unparsable PNG omits a dimensions line instead of crashing",
-            result: !tooltip.contains(" x ")
-        )
+            result: !tooltip.contains(" x "))
     }
 
     private static func testTooltipFallsBackToDocumentForExtensionlessFile() async {
@@ -204,8 +196,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "POS: tooltip(for:) falls back to the generic 'Document' kind for a file with no extension",
-            result: tooltip.contains("Document")
-        )
+            result: tooltip.contains("Document"))
     }
 
     private static func testTooltipUppercasesUnknownExtension() async {
@@ -222,8 +213,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "POS: tooltip(for:) uppercases an unrecognized extension when macOS has no localized description for it",
-            result: tooltip.contains("MADEUPEXT123")
-        )
+            result: tooltip.contains("MADEUPEXT123"))
     }
 
     /// Verifies real cache/invalidation behavior end-to-end: a second `tooltip(for:)` call for the
@@ -251,8 +241,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "POS: tooltip(for:) returns the cached (stale) text for a previously-seen path without recomputing",
-            result: staleTooltip == firstTooltip
-        )
+            result: staleTooltip == firstTooltip)
 
         FileMetadataTooltipService.invalidate(url: largeItem.url)
         let freshTooltip = await FileMetadataTooltipService.tooltip(for: largeItem)
@@ -260,8 +249,7 @@ public struct FileMetadataTooltipServiceTests {
         report(
             "FileMetadataTooltipService",
             "POS: invalidate(url:) clears the cache so the next tooltip(for:) call reflects the file's new size",
-            result: freshTooltip != firstTooltip
-        )
+            result: freshTooltip != firstTooltip)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

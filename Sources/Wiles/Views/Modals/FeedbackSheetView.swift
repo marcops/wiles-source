@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import GitBeacon
+import SwiftUI
 
 struct FeedbackSheetView: View {
     @Environment(\.dismiss)
@@ -34,7 +34,7 @@ struct FeedbackSheetView: View {
         .background(Color(NSColor.windowBackgroundColor))
         .confirmationDialog(appState.tr(.feedbackConfirmMessage), isPresented: $showConfirmation, titleVisibility: .visible) {
             Button(appState.tr(.feedbackSubmit)) { Task { await submit() } }
-            Button(appState.tr(.cancel), role: .cancel) {}
+            Button(appState.tr(.cancel), role: .cancel) { }
         }
     }
 

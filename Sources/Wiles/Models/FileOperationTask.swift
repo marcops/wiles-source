@@ -14,8 +14,7 @@ public struct FileOperationTask: Identifiable, Sendable {
         progress: Double = 0.0,
         bytesTransferred: Int64 = 0,
         totalBytes: Int64 = 0,
-        isCancelled: Bool = false
-    ) {
+        isCancelled: Bool = false) {
         self.id = id
         self.title = title
         self.progress = progress

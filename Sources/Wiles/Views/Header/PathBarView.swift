@@ -1,6 +1,6 @@
+import GitBeacon
 import SwiftUI
 import UniformTypeIdentifiers
-import GitBeacon
 
 struct PathBarView: View {
     var appState: AppState
@@ -15,18 +15,21 @@ struct PathBarView: View {
         var cur = appState.navigation.currentURL.standardizedFileURL
         var depth = 0
         while depth < 50 {
-            let name: String
-            if cur.path == "/" {
-                name = appState.tr(.root)
+            let name: String = if cur.path == "/" {
+                appState.tr(.root)
             } else if cur.standardizedFileURL == URL.userTrash.standardizedFileURL {
-                name = appState.tr(.sidebarTrash)
+                appState.tr(.sidebarTrash)
             } else {
-                name = cur.lastPathComponent
+                cur.lastPathComponent
             }
             res.insert((name: name, url: cur), at: 0)
-            if cur.path == "/" || cur.path.isEmpty { break }
+            if cur.path == "/" || cur.path.isEmpty {
+                break
+            }
             let parent = cur.deletingLastPathComponent()
-            if parent.path == cur.path || parent == cur { break }
+            if parent.path == cur.path || parent == cur {
+                break
+            }
             cur = parent
             depth += 1
         }
@@ -112,7 +115,7 @@ struct PathBarView: View {
         }
     }
 
-    @ViewBuilder private var breadcrumbPillRow: some View {
+    private var breadcrumbPillRow: some View {
         HStack(spacing: 2) {
             if isHovering {
                 ForEach(pathSegments) { item in
@@ -130,9 +133,9 @@ struct PathBarView: View {
         }
     }
 
-    // fullBreadcrumbWidth comes from the always-rendered hidden measurer below, so it's already
-    // known by the time this fires — no race with the ForEach switching content in this same
-    // transition.
+    /// fullBreadcrumbWidth comes from the always-rendered hidden measurer below, so it's already
+    /// known by the time this fires — no race with the ForEach switching content in this same
+    /// transition.
     private func handleHoverChange(hovering: Bool, outerWidth: CGFloat, proxy: ScrollViewProxy) {
         guard hovering, breadcrumbContentWidth > outerWidth,
               let lastID = pathSegments.last?.id else { return }
@@ -158,8 +161,7 @@ struct PathBarView: View {
         .background(
             GeometryReader { geo in
                 Color.clear.preference(key: BreadcrumbContentWidthKey.self, value: geo.size.width)
-            }
-        )
+            })
         .opacity(0)
         .allowsHitTesting(false)
         .frame(width: 0, height: 0)
@@ -170,7 +172,9 @@ struct PathBarView: View {
     private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {
         let isHome = item.url.standardizedFileURL == URL.userHome.standardizedFileURL
         return HStack(spacing: 4) {
-            if isHome { Image(systemName: "house.fill").font(.system(size: 11)) }
+            if isHome {
+                Image(systemName: "house.fill").font(.system(size: 11))
+            }
             Text(item.name).font(.system(size: 12, weight: .medium))
         }
         .padding(.horizontal, 6)
@@ -179,8 +183,7 @@ struct PathBarView: View {
             isSelected: !isCollapsed && item.url == appState.navigation.currentURL,
             hoverBackground: Color.accentColor.opacity(0.12),
             selectedBackground: Color.accentColor.opacity(0.2),
-            cornerRadius: 4
-        )
+            cornerRadius: 4)
         .foregroundColor(isCollapsed || item.url == appState.navigation.currentURL ? .primary : .secondary)
         .contentShape(Rectangle())
         .onTapGesture { appState.navigateTo(item.url) }
@@ -196,7 +199,7 @@ struct PathBarView: View {
     private func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
         for provider in providers {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url = url else { return }
+                guard let url else { return }
                 Task { @MainActor in
                     do {
                         _ = try appState.moveItem(at: url, toFolder: targetFolder)

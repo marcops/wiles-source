@@ -4,8 +4,7 @@ public struct NewFileTemplateService: Sendable {
     public static func createTemplateFile(
         in folderURL: URL,
         fileName: String,
-        template: FileTemplate
-    ) throws -> URL {
+        template: FileTemplate) throws -> URL {
         let trimmed = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalName = trimmed.isEmpty ? template.defaultFileName : trimmed
 

@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FileShredderTests {
@@ -77,8 +77,7 @@ public struct FileShredderTests {
         TestReporter.report(
             "FileShredder",
             "POS: shredFiles on a file exactly one chunk in size writes a full zero chunk before deleting",
-            result: exactChunkPassed
-        )
+            result: exactChunkPassed)
     }
 
     private static func runDeletePermanentlyCoverage(tempDir: URL) {
@@ -114,7 +113,7 @@ public struct FileShredderTests {
     /// matching the full input count.
     private static func runCancellationCoverage(tempDir: URL) async {
         var shredURLs: [URL] = []
-        for index in 0..<25 {
+        for index in 0 ..< 25 {
             let url = tempDir.appendingPathComponent("cancel_shred_\(index).txt")
             try? "shred me".write(to: url, atomically: true, encoding: .utf8)
             shredURLs.append(url)
@@ -128,12 +127,13 @@ public struct FileShredderTests {
         TestReporter.report(
             "FileShredder",
             "POS: shredFiles() honors Task.checkCancellation() and stops before processing any file when cancelled immediately",
-            result: remainingAfterShredCancel == shredURLs.count
-        )
-        for url in shredURLs { try? FileManager.default.removeItem(at: url) }
+            result: remainingAfterShredCancel == shredURLs.count)
+        for url in shredURLs {
+            try? FileManager.default.removeItem(at: url)
+        }
 
         var deleteURLs: [URL] = []
-        for index in 0..<25 {
+        for index in 0 ..< 25 {
             let url = tempDir.appendingPathComponent("cancel_delete_\(index).txt")
             try? "delete me".write(to: url, atomically: true, encoding: .utf8)
             deleteURLs.append(url)
@@ -147,9 +147,10 @@ public struct FileShredderTests {
         TestReporter.report(
             "FileShredder",
             "POS: deletePermanently() honors Task.checkCancellation() and stops before processing any file when cancelled immediately",
-            result: remainingAfterDeleteCancel == deleteURLs.count
-        )
-        for url in deleteURLs { try? FileManager.default.removeItem(at: url) }
+            result: remainingAfterDeleteCancel == deleteURLs.count)
+        for url in deleteURLs {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     /// Regression coverage for the `Task.isCancelled` check *inside* the byte-overwrite `while`
@@ -174,8 +175,7 @@ public struct FileShredderTests {
         TestReporter.report(
             "FileShredder",
             "POS: shredFiles() honors Task.isCancelled inside the overwrite loop for a large file and stops mid-write",
-            result: fileStillExists
-        )
+            result: fileStillExists)
         try? FileManager.default.removeItem(at: bigFile)
     }
 }

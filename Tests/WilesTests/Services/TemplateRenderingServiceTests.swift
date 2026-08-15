@@ -8,8 +8,7 @@ final class TemplateRenderingServiceTests: XCTestCase {
     func testRenderSubstitutesAllPlaceholders() throws {
         let rendered = try XCTUnwrap(TemplateRenderingService.render(
             resource: "SharedFolder",
-            replacements: ["FOLDER_NAME": "Downloads", "ITEMS": "<li>a.txt</li>"]
-        ))
+            replacements: ["FOLDER_NAME": "Downloads", "ITEMS": "<li>a.txt</li>"]))
 
         XCTAssertTrue(rendered.contains("Downloads"))
         XCTAssertTrue(rendered.contains("<li>a.txt</li>"))
@@ -20,16 +19,14 @@ final class TemplateRenderingServiceTests: XCTestCase {
     func testRenderWithMissingResourceReturnsNil() {
         let rendered = TemplateRenderingService.render(
             resource: "ThisTemplateDoesNotExist",
-            replacements: [:]
-        )
+            replacements: [:])
         XCTAssertNil(rendered)
     }
 
     func testRenderLeavesUnknownPlaceholdersUntouched() throws {
         let rendered = try XCTUnwrap(TemplateRenderingService.render(
             resource: "SharedFolder",
-            replacements: ["FOLDER_NAME": "Docs"]
-        ))
+            replacements: ["FOLDER_NAME": "Docs"]))
         // ITEMS was never supplied, so its placeholder must survive unreplaced rather than
         // silently vanishing — a missing replacement is a caller bug that should stay visible.
         XCTAssertTrue(rendered.contains("{{ITEMS}}"))

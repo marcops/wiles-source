@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 /// Covers the `/Volumes/` branch of `AppState.navigateTo()` (Sources/Wiles/Models/AppState/AppState+Navigation.swift):
 /// paths under `/Volumes/` hop onto a `Task.detached` before the (potentially slow) `fileExists`
@@ -47,8 +47,7 @@ public struct AppStateNavigateToVolumesTests {
             report(
                 "Navigation/Volumes",
                 "POS: /Volumes/ branch skipped — no directory entries visible under /Volumes/ in this environment",
-                result: true
-            )
+                result: true)
             return
         }
 
@@ -65,12 +64,11 @@ public struct AppStateNavigateToVolumesTests {
             "Navigation/Volumes",
             "POS: navigateTo() on a /Volumes/ path does not update currentURL synchronously " +
                 "(proves it hops off the calling context via Task.detached rather than resolving inline)",
-            result: appState.navigation.currentURL == before
-        )
+            result: appState.navigation.currentURL == before)
 
         // Give the detached task + MainActor hop a chance to run and apply completeNavigation().
         var updated = false
-        for _ in 0..<50 {
+        for _ in 0 ..< 50 {
             try? await Task.sleep(nanoseconds: 20_000_000)
             if appState.navigation.currentURL.standardizedFileURL == target.standardizedFileURL {
                 updated = true
@@ -80,7 +78,6 @@ public struct AppStateNavigateToVolumesTests {
         report(
             "Navigation/Volumes",
             "POS: navigateTo() on a /Volumes/ path eventually applies the navigation once the detached task completes",
-            result: updated
-        )
+            result: updated)
     }
 }

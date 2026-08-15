@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ArchiveInspectionTests {
@@ -41,7 +41,10 @@ public struct ArchiveInspectionTests {
             print("Nested archive error: \(error)")
         }
         TestReporter.report("ArchiveInspection", "POS: listEntries reflects nested folder structure with directory markers", result: nestedListPassed)
-        TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts a single entry by path with correct content", result: extractSingleEntryPassed)
+        TestReporter.report(
+            "ArchiveInspection",
+            "POS: extractSingleEntry extracts a single entry by path with correct content",
+            result: extractSingleEntryPassed)
         _ = extractedNestedEntryPath
 
         await runCorruptAndMissingEntryTests(nestedRoot: nestedRoot, nestedFile: nestedFile)
@@ -86,8 +89,14 @@ public struct ArchiveInspectionTests {
         } catch {
             print("Unicode filename archive error: \(error)")
         }
-        TestReporter.report("ArchiveInspection", "POS: listEntries decodes non-ASCII (emoji) filenames as UTF-8 instead of mangling them", result: unicodeListPassed)
-        TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts an entry whose name contains emoji/non-ASCII characters", result: unicodeExtractPassed)
+        TestReporter.report(
+            "ArchiveInspection",
+            "POS: listEntries decodes non-ASCII (emoji) filenames as UTF-8 instead of mangling them",
+            result: unicodeListPassed)
+        TestReporter.report(
+            "ArchiveInspection",
+            "POS: extractSingleEntry extracts an entry whose name contains emoji/non-ASCII characters",
+            result: unicodeExtractPassed)
     }
 
     // POS: ArchiveEntryItem.id (Identifiable conformance) returns the entry's path.
@@ -118,8 +127,7 @@ public struct ArchiveInspectionTests {
         TestReporter.report(
             "ArchiveInspection",
             "NEG: extractSingleEntry throws when the destination folder does not exist (FileHandle open fails)",
-            result: destinationFailureThrew
-        )
+            result: destinationFailureThrew)
     }
 
     private static func runBasicListEntriesTest() async {
@@ -131,7 +139,10 @@ public struct ArchiveInspectionTests {
         try? ZipArchiveService.compressToZIP(urls: [fileToZip], in: tempDir)
 
         let entries = await ArchiveInspectionService.listEntries(in: zipURL)
-        TestReporter.report("ArchiveInspection", "POS: listEntries lists files in zip", result: entries.contains(where: { $0.name.contains("inspect_test_file.txt") }))
+        TestReporter.report(
+            "ArchiveInspection",
+            "POS: listEntries lists files in zip",
+            result: entries.contains(where: { $0.name.contains("inspect_test_file.txt") }))
 
         try? FileManager.default.removeItem(at: fileToZip)
         try? FileManager.default.removeItem(at: zipURL)
@@ -163,16 +174,14 @@ public struct ArchiveInspectionTests {
                 negExtractPassed = true
             }
         }
-        TestReporter.report("ArchiveInspection", "NEG: extractSingleEntry for a missing entry path does not produce the wrong content", result: negExtractPassed)
+        TestReporter.report(
+            "ArchiveInspection",
+            "NEG: extractSingleEntry for a missing entry path does not produce the wrong content",
+            result: negExtractPassed)
     }
 
-    // POS: listEntries lists every entry when the archive contains multiple files,
-    // POS: entries with spaces/special characters in their names are listed and extractable.
-    private static func runMultiEntryAndSpecialCharTests() async {
-        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-
+    /// Writes alpha/beta/special-char files under `root` and zips them into a fresh archive dir.
+    private static func makeMultiEntryArchive(in root: URL) throws -> URL {
         let fileA = root.appendingPathComponent("alpha.txt")
         let fileB = root.appendingPathComponent("beta.txt")
         let fileSpecial = root.appendingPathComponent("my file (test) #1.txt")
@@ -182,16 +191,23 @@ public struct ArchiveInspectionTests {
 
         let archiveDir = root.appendingPathComponent("multi")
         try? FileManager.default.createDirectory(at: archiveDir, withIntermediateDirectories: true)
+        try ArchiveService.compressToZIP(urls: [fileA, fileB, fileSpecial], in: archiveDir)
+        let zip = archiveDir.appendingPathComponent("Archive.zip")
+        return FileManager.default.fileExists(atPath: zip.path) ? zip : archiveDir.appendingPathComponent("multi.zip")
+    }
+
+    // POS: listEntries lists every entry when the archive contains multiple files,
+    // POS: entries with spaces/special characters in their names are listed and extractable.
+    private static func runMultiEntryAndSpecialCharTests() async {
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
 
         var multiListPassed = false
         var specialCharListPassed = false
         var specialCharExtractPassed = false
         do {
-            try ArchiveService.compressToZIP(urls: [fileA, fileB, fileSpecial], in: archiveDir)
-            let zip = archiveDir.appendingPathComponent("Archive.zip")
-            let zipURL = FileManager.default.fileExists(atPath: zip.path)
-                ? zip
-                : archiveDir.appendingPathComponent("multi.zip")
+            let zipURL = try makeMultiEntryArchive(in: root)
             let entries = await ArchiveInspectionService.listEntries(in: zipURL)
             multiListPassed = entries.contains(where: { $0.name == "alpha.txt" })
                 && entries.contains(where: { $0.name == "beta.txt" })
@@ -208,8 +224,14 @@ public struct ArchiveInspectionTests {
             print("Multi-entry archive error: \(error)")
         }
         TestReporter.report("ArchiveInspection", "POS: listEntries lists all files when archive contains multiple entries", result: multiListPassed)
-        TestReporter.report("ArchiveInspection", "POS: listEntries includes entries with spaces and special characters in the name", result: specialCharListPassed)
-        TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts an entry whose name has spaces/special characters", result: specialCharExtractPassed)
+        TestReporter.report(
+            "ArchiveInspection",
+            "POS: listEntries includes entries with spaces and special characters in the name",
+            result: specialCharListPassed)
+        TestReporter.report(
+            "ArchiveInspection",
+            "POS: extractSingleEntry extracts an entry whose name has spaces/special characters",
+            result: specialCharExtractPassed)
     }
 
     // POS: listEntries/extractSingleEntry handle entry paths nested more than one directory deep,
@@ -244,7 +266,9 @@ public struct ArchiveInspectionTests {
         } catch {
             print("Deep nesting archive error: \(error)")
         }
-        TestReporter.report("ArchiveInspection", "POS: listEntries reports nested entry path while ArchiveEntryItem.name keeps only the last component",
+        TestReporter.report(
+            "ArchiveInspection",
+            "POS: listEntries reports nested entry path while ArchiveEntryItem.name keeps only the last component",
             result: deepNameParsedPassed)
         TestReporter.report("ArchiveInspection", "POS: extractSingleEntry extracts an entry nested more than one directory deep", result: deepExtractPassed)
 
@@ -255,7 +279,10 @@ public struct ArchiveInspectionTests {
         // NEG: archive file does not exist at all (unzip should fail cleanly, not crash).
         let missingArchive = root.appendingPathComponent("does_not_exist.zip")
         let missingEntries = await ArchiveInspectionService.listEntries(in: missingArchive)
-        TestReporter.report("ArchiveInspection", "NEG: listEntries on a nonexistent archive file returns empty list without crashing", result: missingEntries.isEmpty)
+        TestReporter.report(
+            "ArchiveInspection",
+            "NEG: listEntries on a nonexistent archive file returns empty list without crashing",
+            result: missingEntries.isEmpty)
 
         // NEG: extractSingleEntry from a nonexistent archive should not silently succeed with real content.
         var missingArchiveExtractPassed = false
@@ -268,6 +295,9 @@ public struct ArchiveInspectionTests {
         } catch {
             missingArchiveExtractPassed = true
         }
-        TestReporter.report("ArchiveInspection", "NEG: extractSingleEntry from a nonexistent archive does not produce real file content", result: missingArchiveExtractPassed)
+        TestReporter.report(
+            "ArchiveInspection",
+            "NEG: extractSingleEntry from a nonexistent archive does not produce real file content",
+            result: missingArchiveExtractPassed)
     }
 }

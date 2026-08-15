@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct ImageThumbnailView: View {
     let url: URL
@@ -12,7 +12,7 @@ struct ImageThumbnailView: View {
         self.size = size
         self.fallback = fallback
         let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size)
-        self._thumbnail = State(initialValue: cached)
+        _thumbnail = State(initialValue: cached)
     }
 
     var body: some View {

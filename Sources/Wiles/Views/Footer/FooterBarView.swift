@@ -1,13 +1,13 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct FooterBarView: View {
     var appState: AppState
     @State private var isIconSizeControlExpanded = false
-    // Free-space lookup is a synchronous disk call (`resourceValues(forKeys:)`) that can block for
-    // seconds on a stalled SMB mount. It's loaded asynchronously via `.task` below and read passively
-    // here instead of computed synchronously in `body`, which `@Observable` re-runs on nearly every
-    // state change the footer observes.
+    /// Free-space lookup is a synchronous disk call (`resourceValues(forKeys:)`) that can block for
+    /// seconds on a stalled SMB mount. It's loaded asynchronously via `.task` below and read passively
+    /// here instead of computed synchronously in `body`, which `@Observable` re-runs on nearly every
+    /// state change the footer observes.
     @State private var freeSpaceText: String?
 
     var body: some View {
@@ -40,7 +40,7 @@ struct FooterBarView: View {
         }
     }
 
-    // Status text (item counts, total/selection sizes, free disk space)
+    /// Status text (item counts, total/selection sizes, free disk space)
     private var statusSection: some View {
         HStack(spacing: 4) {
             Text(appState.statusText)
@@ -97,7 +97,7 @@ struct FooterBarView: View {
                 .foregroundColor(.secondary)
 
             if isIconSizeControlExpanded {
-                Slider(value: $appState.preferences.iconSize, in: 36...128)
+                Slider(value: $appState.preferences.iconSize, in: 36 ... 128)
                     .frame(width: 100)
                     .controlSize(.mini)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))

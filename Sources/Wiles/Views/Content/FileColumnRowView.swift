@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct FileColumnRowView: View {
     let item: FileItem
@@ -18,7 +18,11 @@ struct FileColumnRowView: View {
             ICloudStatusBadgeView(item: item)
 
             if windowUIState.renameItem?.url == item.url {
-                InlineRenameField(item: item, appState: appState, windowUIState: windowUIState, font: .system(size: 12, weight: isSelected ? .semibold : .regular))
+                InlineRenameField(
+                    item: item,
+                    appState: appState,
+                    windowUIState: windowUIState,
+                    font: .system(size: 12, weight: isSelected ? .semibold : .regular))
             } else {
                 SelectionAwareNameText(
                     name: item.name,
@@ -27,9 +31,8 @@ struct FileColumnRowView: View {
                     nsFont: .systemFont(ofSize: 12, weight: isSelected ? .semibold : .regular),
                     color: isSelected ? .white : .primary,
                     collapsedLineLimit: 1,
-                    middleTruncate: appState.preferences.middleTruncateNames
-                )
-                .fileMetadataTooltip(item)
+                    middleTruncate: appState.preferences.middleTruncateNames)
+                    .fileMetadataTooltip(item)
             }
 
             Spacer()
@@ -53,7 +56,6 @@ struct FileColumnRowView: View {
             item: item,
             appState: appState,
             onSelect: onSelect,
-            onTargetedChanged: { targeted in isDropTargeted = targeted }
-        )
+            onTargetedChanged: { targeted in isDropTargeted = targeted })
     }
 }

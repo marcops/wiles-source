@@ -1,7 +1,10 @@
 import Foundation
 
 public struct DiskUsageItem: Identifiable, Sendable {
-    public var id: URL { url }
+    public var id: URL {
+        url
+    }
+
     public let url: URL
     let name: String
     public let size: Int64
@@ -14,7 +17,7 @@ public struct DiskUsageItem: Identifiable, Sendable {
         self.url = url
         self.name = name
         self.size = size
-        self.formattedSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+        formattedSize = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
         self.percentage = percentage
         self.isDirectory = isDirectory
         self.colorHue = colorHue

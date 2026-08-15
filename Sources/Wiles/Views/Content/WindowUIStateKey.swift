@@ -1,6 +1,6 @@
-import SwiftUI
-import QuickLook
 import AppKit
+import QuickLook
+import SwiftUI
 
 /// Per-window focus key for `WindowUIState`. Published via `.focusedSceneValue` (not
 /// `.focusedValue`, which needs an actual SwiftUI-focused control — this app uses custom

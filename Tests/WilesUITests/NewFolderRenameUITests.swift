@@ -1,6 +1,7 @@
 import XCTest
 
 // MARK: - New Folder inline-rename regression
+
 //
 // Real reported bug: "New Folder" (Cmd+Shift+N) created the folder on disk, but the inline
 // rename field either never appeared or appeared and closed itself almost immediately, forcing
@@ -17,7 +18,6 @@ import XCTest
 
 @MainActor
 final class NewFolderRenameUITests: XCTestCase {
-
     // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
     // swiftlint:disable:next implicitly_unwrapped_optional
@@ -46,11 +46,10 @@ final class NewFolderRenameUITests: XCTestCase {
     /// field appears, is still there a moment later (catches the "closes itself immediately"
     /// failure mode), and that typing a name and pressing Return actually renames the folder on
     /// disk — not just that a text field was momentarily visible.
-    func testNewFolderEntersRenameAndCommitsTypedName() throws {
+    func testNewFolderEntersRenameAndCommitsTypedName() {
         XCTAssertTrue(
             app.windows.firstMatch.waitForExistence(timeout: 15.0),
-            "Wiles main window did not appear within 15 seconds"
-        )
+            "Wiles main window did not appear within 15 seconds")
 
         app.typeKey("l", modifierFlags: .command)
         let pathField = app.textFields["PathBarTextField"]
@@ -75,16 +74,14 @@ final class NewFolderRenameUITests: XCTestCase {
         let renameField = app.textFields["InlineRenameField"]
         XCTAssertTrue(
             renameField.waitForExistence(timeout: 3.0),
-            "New Folder did not enter inline rename mode"
-        )
+            "New Folder did not enter inline rename mode")
 
         // Regression check: previously the field opened then committed/closed itself within a
         // fraction of a second, before the user could type anything.
         Thread.sleep(forTimeInterval: 1.0)
         XCTAssertTrue(
             renameField.exists,
-            "Inline rename field closed itself shortly after opening — New Folder timing regression"
-        )
+            "Inline rename field closed itself shortly after opening — New Folder timing regression")
 
         renameField.click()
         renameField.typeKey("a", modifierFlags: .command)
@@ -94,11 +91,9 @@ final class NewFolderRenameUITests: XCTestCase {
         let expectedURL = tempDir.appendingPathComponent("UITestFolderName")
         let renamed = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in FileManager.default.fileExists(atPath: expectedURL.path) },
-            object: nil
-        )
+            object: nil)
         XCTAssertEqual(
             XCTWaiter().wait(for: [renamed], timeout: 3.0), .completed,
-            "Typed name was never committed to disk at \(expectedURL.path)"
-        )
+            "Typed name was never committed to disk at \(expectedURL.path)")
     }
 }

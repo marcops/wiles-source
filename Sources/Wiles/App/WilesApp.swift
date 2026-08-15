@@ -1,6 +1,6 @@
-import SwiftUI
 import AppKit
 import GitBeacon
+import SwiftUI
 
 @main
 struct WilesApp: App {
@@ -22,8 +22,7 @@ struct WilesApp: App {
             repo: CrashReportingConstants.githubRepo,
             token: CrashReportingConstants.githubToken,
             appVersion: AppConstants.appVersion,
-            build: AppConstants.appBuild
-        )
+            build: AppConstants.appBuild)
         GitBeacon.installCrashHandler()
     }
 
@@ -32,9 +31,9 @@ struct WilesApp: App {
     /// back to an already-open window (see `SystemAppearanceObserver`'s doc comment).
     private var resolvedColorScheme: ColorScheme {
         switch appState.preferences.appAppearance {
-        case .system: return SystemAppearanceObserver.shared.isDark ? .dark : .light
-        case .light: return .light
-        case .dark: return .dark
+        case .system: SystemAppearanceObserver.shared.isDark ? .dark : .light
+        case .light: .light
+        case .dark: .dark
         }
     }
 
@@ -54,7 +53,7 @@ struct WilesApp: App {
         }
     }
 
-    @ViewBuilder private var mainWindowContent: some View {
+    private var mainWindowContent: some View {
         MainContentView(appState: appState)
             .preferredColorScheme(resolvedColorScheme)
             .onChange(of: resolvedColorScheme, initial: true) { _, newValue in
@@ -70,8 +69,8 @@ struct WilesApp: App {
             .onAppear {
                 NSApplication.shared.activate(ignoringOtherApps: true)
                 let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "png") ??
-                              Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png") ??
-                              Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png")
+                    Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png") ??
+                    Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png")
 
                 if let iconImage = NSImage(contentsOf: iconURL) {
                     NSApplication.shared.applicationIconImage = iconImage
@@ -144,29 +143,39 @@ struct WilesApp: App {
 
     @ViewBuilder private var fileItemActionCommands: some View {
         Button(appState.tr(.newFolder)) {
-            if let windowUIState { appState.createNewFolderAndRename(windowUIState: windowUIState) }
+            if let windowUIState {
+                appState.createNewFolderAndRename(windowUIState: windowUIState)
+            }
         }
         .keyboardShortcut("n", modifiers: [.command, .shift])
         Button(appState.tr(.newFileTitle)) {
-            if let windowUIState { appState.createNewFileAndRename(windowUIState: windowUIState) }
+            if let windowUIState {
+                appState.createNewFileAndRename(windowUIState: windowUIState)
+            }
         }
         Divider()
         Button(appState.tr(.open)) { appState.openSelectedItem() }
             .keyboardShortcut("o", modifiers: .command)
             .disabled(appState.selectedURLs.isEmpty)
         Button(appState.tr(.properties)) {
-            if let windowUIState { appState.openPropertiesForSelected(windowUIState: windowUIState) }
+            if let windowUIState {
+                appState.openPropertiesForSelected(windowUIState: windowUIState)
+            }
         }
         .keyboardShortcut("i", modifiers: .command)
         .disabled(appState.selectedURLs.isEmpty)
         Button(appState.tr(.quickLook)) {
-            if let windowUIState { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
+            if let windowUIState {
+                appState.triggerQuickLookForSelected(windowUIState: windowUIState)
+            }
         }
         .keyboardShortcut(" ", modifiers: [])
         .disabled(appState.selectedURLs.isEmpty)
         Divider()
         Button(appState.tr(.moveToTrash)) {
-            if let windowUIState { appState.deleteSelected(windowUIState: windowUIState) }
+            if let windowUIState {
+                appState.deleteSelected(windowUIState: windowUIState)
+            }
         }
         .disabled(appState.selectedURLs.isEmpty)
     }
@@ -182,36 +191,68 @@ struct WilesApp: App {
             // While renaming, these keep their shortcut but forward to the system's standard text
             // editing actions instead, so the rename field's own text gets cut/copied/pasted/selected.
             let isRenaming = isRenamingActive ?? false
-            Button(appState.tr(.cut)) {
-                if isRenaming { NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil) } else { appState.cutSelected() }
-            }
-            .keyboardShortcut("x", modifiers: .command)
-            .disabled(!isRenaming && appState.selectedURLs.isEmpty)
-            Button(appState.tr(.copy)) {
-                if isRenaming { NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil) } else { appState.copySelected() }
-            }
-            .keyboardShortcut("c", modifiers: .command)
-            .disabled(!isRenaming && appState.selectedURLs.isEmpty)
-            Button(appState.tr(.paste)) {
-                if isRenaming { NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil) } else { appState.pasteToCurrentDirectory() }
-            }
-            .keyboardShortcut("v", modifiers: .command)
+            cutCommandButton(isRenaming: isRenaming)
+            copyCommandButton(isRenaming: isRenaming)
+            pasteCommandButton(isRenaming: isRenaming)
             Divider()
-            Button(appState.tr(.selectAll)) {
-                if isRenaming { NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil) } else { appState.selectAllItems() }
-            }
-            .keyboardShortcut("a", modifiers: .command)
+            selectAllCommandButton(isRenaming: isRenaming)
             Divider()
             Button(appState.tr(.find)) { appState.toggleSearching() }
                 .keyboardShortcut("f", modifiers: .command)
         }
     }
 
-    // Everyday, frequently-toggled panels/actions stay here for quick keyboard access. Lower-
-    // frequency display preferences (hidden files, tags, compact density, sidebar sections/mode)
-    // moved into the new `Settings` scene (⌘,) — see `Views/Settings/*.swift` — to declutter the
-    // menu bar per the redesign; those bindings still live on the same `PreferencesStore`, so
-    // toggling them in Settings updates the UI live with zero behavior change.
+    private func cutCommandButton(isRenaming: Bool) -> some View {
+        Button(appState.tr(.cut)) {
+            if isRenaming {
+                NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil)
+            } else {
+                appState.cutSelected()
+            }
+        }
+        .keyboardShortcut("x", modifiers: .command)
+        .disabled(!isRenaming && appState.selectedURLs.isEmpty)
+    }
+
+    private func copyCommandButton(isRenaming: Bool) -> some View {
+        Button(appState.tr(.copy)) {
+            if isRenaming {
+                NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil)
+            } else {
+                appState.copySelected()
+            }
+        }
+        .keyboardShortcut("c", modifiers: .command)
+        .disabled(!isRenaming && appState.selectedURLs.isEmpty)
+    }
+
+    private func pasteCommandButton(isRenaming: Bool) -> some View {
+        Button(appState.tr(.paste)) {
+            if isRenaming {
+                NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil)
+            } else {
+                appState.pasteToCurrentDirectory()
+            }
+        }
+        .keyboardShortcut("v", modifiers: .command)
+    }
+
+    private func selectAllCommandButton(isRenaming: Bool) -> some View {
+        Button(appState.tr(.selectAll)) {
+            if isRenaming {
+                NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
+            } else {
+                appState.selectAllItems()
+            }
+        }
+        .keyboardShortcut("a", modifiers: .command)
+    }
+
+    /// Everyday, frequently-toggled panels/actions stay here for quick keyboard access. Lower-
+    /// frequency display preferences (hidden files, tags, compact density, sidebar sections/mode)
+    /// moved into the new `Settings` scene (⌘,) — see `Views/Settings/*.swift` — to declutter the
+    /// menu bar per the redesign; those bindings still live on the same `PreferencesStore`, so
+    /// toggling them in Settings updates the UI live with zero behavior change.
     @CommandsBuilder private var viewMenuCommands: some Commands {
         CommandGroup(after: .sidebar) {
             sidebarViewMenuItems
@@ -224,7 +265,9 @@ struct WilesApp: App {
             .keyboardShortcut("j", modifiers: .command)
         Toggle(appState.tr(appState.preferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $appState.preferences.showPreviewSidebar)
             .keyboardShortcut("p", modifiers: [.command, .shift])
-        Toggle(appState.tr(appState.preferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar), isOn: $appState.preferences.showDiskUsageSidebar)
+        Toggle(
+            appState.tr(appState.preferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
+            isOn: $appState.preferences.showDiskUsageSidebar)
             .keyboardShortcut("d", modifiers: [.command, .shift])
         Menu(appState.tr(.sidebarMenuTitle)) {
             Toggle(appState.tr(.showFavorites), isOn: $appState.preferences.showFavorites)
@@ -266,7 +309,9 @@ struct WilesApp: App {
         Button(appState.tr(.enclosingFolder)) { appState.goUp() }
         Divider()
         Button(appState.tr(.goToFolder)) {
-            if let windowUIState { appState.startEditingPath(windowUIState: windowUIState) }
+            if let windowUIState {
+                appState.startEditingPath(windowUIState: windowUIState)
+            }
         }
         .keyboardShortcut("l", modifiers: .command)
         Button(appState.tr(.connectToServer) + "...") { windowUIState?.showConnectToServerSheet = true }
@@ -282,7 +327,10 @@ struct WilesApp: App {
                 CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
             }
             Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .relative, relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
+                CopyPathService.copy(
+                    urls: [appState.navigation.currentURL],
+                    variant: .relative,
+                    relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
             }
             Button(appState.tr(.copyPathURL)) {
                 CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)

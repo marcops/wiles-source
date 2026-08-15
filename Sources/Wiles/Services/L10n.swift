@@ -1,10 +1,12 @@
 import Foundation
 
 // swiftlint:disable:next type_body_length
-public struct L10n {
+public enum L10n {
     public static func activeCode(_ preferred: AppLanguage) -> String {
-        if preferred != .system { return preferred.rawValue }
-        let supportedCodes = AppLanguage.allCases.map { $0.rawValue }
+        if preferred != .system {
+            return preferred.rawValue
+        }
+        let supportedCodes = AppLanguage.allCases.map(\.rawValue)
         for preference in Locale.preferredLanguages {
             let lower = preference.lowercased()
             if let match = supportedCodes.first(where: { lower.hasPrefix($0.lowercased()) }) {
@@ -14,7 +16,9 @@ public struct L10n {
         return "en"
     }
 
-    private static var resourceBundle: Bundle { .wilesResources }
+    private static var resourceBundle: Bundle {
+        .wilesResources
+    }
 
     public static func string(_ key: Key, lang: AppLanguage) -> String {
         let code = activeCode(lang)
@@ -374,6 +378,7 @@ public struct L10n {
         case shortcutsGeneral
 
         // MARK: - Settings window & remaining menu-bar cleanup (task: Settings redesign + i18n audit)
+
         case newWindow
         case theme
         case skipDeleteConfirmation
@@ -405,6 +410,7 @@ public struct L10n {
         case errorAlertTitle
 
         // MARK: - HttpShareSheet & ArchiveInspectionSheetView (localization + accessibility audit)
+
         case copyLinkAccessibilityLabel
         case copyLinkAccessibilityHint
         case loadingEntries

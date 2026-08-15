@@ -1,18 +1,18 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct TrafficLightRepositioner: NSViewRepresentable {
     var offsetX: CGFloat = 0
     let offsetY: CGFloat
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = RepositionerView()
         view.offsetX = offsetX
         view.offsetY = offsetY
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         if let view = nsView as? RepositionerView {
             view.offsetX = offsetX
             view.offsetY = offsetY
@@ -26,7 +26,9 @@ struct TrafficLightRepositioner: NSViewRepresentable {
 
         /// Purely a passive layout observer — must never intercept clicks meant for whatever's
         /// drawn on top of or behind it, since the default NSView.hitTest claims everything.
-        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+        override func hitTest(_: NSPoint) -> NSView? {
+            nil
+        }
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -39,7 +41,7 @@ struct TrafficLightRepositioner: NSViewRepresentable {
         }
 
         private func reposition() {
-            guard let window = self.window,
+            guard let window,
                   let closeBtn = window.standardWindowButton(.closeButton),
                   let superview = closeBtn.superview else { return }
 

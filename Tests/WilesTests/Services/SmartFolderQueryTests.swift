@@ -20,7 +20,7 @@ final class SmartFolderQueryTests: XCTestCase {
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
 
         SmartFolderService.shared.executeQuery(for: folder) { items in
-            XCTAssertTrue(items.allSatisfy { $0.url.isFileURL })
+            XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
@@ -34,7 +34,7 @@ final class SmartFolderQueryTests: XCTestCase {
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: "")
 
         SmartFolderService.shared.executeQuery(for: folder) { items in
-            XCTAssertTrue(items.allSatisfy { $0.url.isFileURL })
+            XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
@@ -48,7 +48,7 @@ final class SmartFolderQueryTests: XCTestCase {
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: missing)
 
         SmartFolderService.shared.executeQuery(for: folder) { items in
-            XCTAssertTrue(items.allSatisfy { $0.url.isFileURL })
+            XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
@@ -68,7 +68,7 @@ final class SmartFolderQueryTests: XCTestCase {
             XCTFail("The first query's completion should not fire once superseded by a second call")
         }
         SmartFolderService.shared.executeQuery(for: folderB) { items in
-            XCTAssertTrue(items.allSatisfy { $0.url.isFileURL })
+            XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
@@ -82,7 +82,7 @@ final class SmartFolderQueryTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         SmartFolderService.shared.executeContentQuery(queryText: "test", in: dir) { items in
-            XCTAssertTrue(items.allSatisfy { $0.url.isFileURL })
+            XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 

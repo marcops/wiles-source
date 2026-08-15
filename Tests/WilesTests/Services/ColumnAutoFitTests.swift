@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ColumnAutoFitTests {
@@ -40,16 +40,14 @@ public struct ColumnAutoFitTests {
             for: .group,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        )
+            language: appState.preferences.appLanguage)
         // Note: the localized header text itself (e.g. "Group" + padding) already exceeds
         // columnMinWidth (60pt), so short item content can never drive the result down to
         // exactly columnMinWidth here — the real invariant under test is that the floor is
         // never violated, i.e. width is always >= columnMinWidth regardless of content length.
         TestReporter.report(
             "ColumnAutoFit", "POS: short content never produces a width below columnMinWidth",
-            result: width >= LayoutTokens.columnMinWidth
-        )
+            result: width >= LayoutTokens.columnMinWidth)
     }
 
     private static func testLongFileNameExceedsMinimumButClampsToMax() {
@@ -65,13 +63,11 @@ public struct ColumnAutoFitTests {
             for: .name,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        )
+            language: appState.preferences.appLanguage)
         let pos = width > LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
         TestReporter.report(
             "ColumnAutoFit", "POS: very long file name produces width above minimum but clamped at maximum",
-            result: pos
-        )
+            result: pos)
     }
 
     private static func testAllColumnsProduceValidWidths() {
@@ -88,16 +84,14 @@ public struct ColumnAutoFitTests {
                 for: column,
                 items: appState.fileSystem.items,
                 iconSize: appState.preferences.iconSize,
-                language: appState.preferences.appLanguage
-            )
+                language: appState.preferences.appLanguage)
             if !(width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth) {
                 allValid = false
             }
         }
         TestReporter.report(
             "ColumnAutoFit", "POS: every ListColumn case produces a valid clamped CGFloat width without crashing",
-            result: allValid
-        )
+            result: allValid)
     }
 
     private static func testOwnerColumnProducesValidWidth() {
@@ -112,12 +106,10 @@ public struct ColumnAutoFitTests {
             for: .owner,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        )
+            language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: .owner column produces a valid clamped width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
-        )
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
     }
 
     private static func testDateCreatedColumnProducesValidWidth() {
@@ -132,12 +124,10 @@ public struct ColumnAutoFitTests {
             for: .dateCreated,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        )
+            language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: .dateCreated column produces a valid clamped width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
-        )
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
     }
 
     private static func testDateAccessedColumnProducesValidWidth() {
@@ -152,12 +142,10 @@ public struct ColumnAutoFitTests {
             for: .dateAccessed,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        )
+            language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: .dateAccessed column produces a valid clamped width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
-        )
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
     }
 
     private static func testTaggedItemNameColumnIsWiderThanUntagged() {
@@ -184,27 +172,23 @@ public struct ColumnAutoFitTests {
             for: .name,
             items: untaggedAppState.fileSystem.items,
             iconSize: untaggedAppState.preferences.iconSize,
-            language: untaggedAppState.preferences.appLanguage
-        )
+            language: untaggedAppState.preferences.appLanguage)
         let taggedWidth = ColumnAutoFitService.calculateAutoFitWidth(
             for: .name,
             items: taggedAppState.fileSystem.items,
             iconSize: taggedAppState.preferences.iconSize,
-            language: taggedAppState.preferences.appLanguage
-        )
+            language: taggedAppState.preferences.appLanguage)
 
         // If the environment failed to persist the Finder tag (e.g. sandboxed temp volume),
         // fall back to asserting both widths are at least valid rather than a false failure.
-        let pos: Bool
-        if taggedItem.tags.isEmpty {
-            pos = untaggedWidth >= LayoutTokens.columnMinWidth && taggedWidth >= LayoutTokens.columnMinWidth
+        let pos: Bool = if taggedItem.tags.isEmpty {
+            untaggedWidth >= LayoutTokens.columnMinWidth && taggedWidth >= LayoutTokens.columnMinWidth
         } else {
-            pos = taggedWidth >= untaggedWidth
+            taggedWidth >= untaggedWidth
         }
         TestReporter.report(
             "ColumnAutoFit", "POS: tagged item's .name column width accounts for tag extra padding",
-            result: pos
-        )
+            result: pos)
     }
 
     private static func testIconSizeClampingAtLowerExtreme() {
@@ -220,12 +204,10 @@ public struct ColumnAutoFitTests {
             for: .name,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        )
+            language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: extremely small iconSize is clamped to listIconMinSize without producing an invalid width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
-        )
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
     }
 
     private static func testIconSizeClampingAtUpperExtreme() {
@@ -235,17 +217,15 @@ public struct ColumnAutoFitTests {
 
         let item = makeFileItem(dir: dir, name: "icon_high.txt")
         let appState = makeAppState(with: [item])
-        appState.preferences.iconSize = 10_000.0 // scaled value far exceeds listIconMaxSize, must clamp down
+        appState.preferences.iconSize = 10000.0 // scaled value far exceeds listIconMaxSize, must clamp down
 
         let width = ColumnAutoFitService.calculateAutoFitWidth(
             for: .name,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        )
+            language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: extremely large iconSize is clamped to listIconMaxSize without producing an invalid width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
-        )
+            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
     }
 }

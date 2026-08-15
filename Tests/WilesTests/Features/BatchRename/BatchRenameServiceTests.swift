@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct BatchRenameFeatureTests {
@@ -50,13 +50,11 @@ public struct BatchRenameFeatureTests {
         report(
             "Feature/BatchRename",
             "NEG: performBatchRename throws instead of silently no-oping for an invalid regex pattern",
-            result: didThrow
-        )
+            result: didThrow)
         report(
             "Feature/BatchRename",
             "NEG: file keeps its original name when the regex pattern is invalid",
-            result: FileManager.default.fileExists(atPath: file.path)
-        )
+            result: FileManager.default.fileExists(atPath: file.path))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

@@ -1,6 +1,6 @@
-@testable import Wiles
 import Foundation
 import XCTest
+@testable import Wiles
 
 @MainActor
 public final class TestReporter {

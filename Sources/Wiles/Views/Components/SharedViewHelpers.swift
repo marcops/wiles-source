@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 @MainActor
@@ -32,8 +32,8 @@ private struct ScrollToTopOnRenameOrSearchClear: ViewModifier {
     }
 }
 
-extension View {
-    public func scrollToTopOnRenameOrSearchClear(appState: AppState, proxy: ScrollViewProxy) -> some View {
+public extension View {
+    func scrollToTopOnRenameOrSearchClear(appState: AppState, proxy: ScrollViewProxy) -> some View {
         modifier(ScrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy))
     }
 }
@@ -53,8 +53,8 @@ private struct ScrollToLastMovedSelection: ViewModifier {
     }
 }
 
-extension View {
-    public func scrollToLastMovedSelection(appState: AppState, proxy: ScrollViewProxy) -> some View {
+public extension View {
+    func scrollToLastMovedSelection(appState: AppState, proxy: ScrollViewProxy) -> some View {
         modifier(ScrollToLastMovedSelection(appState: appState, proxy: proxy))
     }
 }
@@ -84,8 +84,8 @@ private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
     }
 }
 
-extension View {
-    public func resetPaginationAndPrefetchThumbnails(appState: AppState, visibleLimit: Binding<Int>, thumbnailIconSize: CGFloat) -> some View {
+public extension View {
+    func resetPaginationAndPrefetchThumbnails(appState: AppState, visibleLimit: Binding<Int>, thumbnailIconSize: CGFloat) -> some View {
         modifier(ResetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: visibleLimit, thumbnailIconSize: thumbnailIconSize))
     }
 }

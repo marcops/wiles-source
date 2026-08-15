@@ -91,7 +91,8 @@ fi
 
 section "SwiftFormat (check only, no changes written)"
 if ! command -v swiftformat >/dev/null 2>&1; then
-  echo "SKIP: swiftformat not installed (brew install swiftformat)"
+  echo "FAIL: swiftformat not installed (brew install swiftformat) — format check is mandatory, not optional, for a release"
+  FAILED=1
 else
   if ! swiftformat --lint .; then
     echo "FAIL: files are not formatted (run 'swiftformat .' to fix)"

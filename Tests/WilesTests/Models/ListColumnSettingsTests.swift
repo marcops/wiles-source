@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct ListColumnSettingsTests {
@@ -12,18 +12,20 @@ public struct ListColumnSettingsTests {
     private static func testListColumnDefaults() {
         let defaults = ListColumnState.defaults()
         let allColumns = Set(ListColumn.allCases)
-        let defaultColumns = Set(defaults.map { $0.column })
+        let defaultColumns = Set(defaults.map(\.column))
         report(
             "Model/ListColumnSettings",
             "POS: defaults() returns exactly one entry per ListColumn case",
-            result: defaults.count == ListColumn.allCases.count && defaultColumns == allColumns
-        )
+            result: defaults.count == ListColumn.allCases.count && defaultColumns == allColumns)
 
         let initiallyVisible: Set<ListColumn> = [.name, .size, .dateModified]
-        let actualVisible = Set(defaults.filter { $0.isVisible }.map { $0.column })
-        report("Model/ListColumnSettings", "POS: defaults() marks exactly name/size/dateModified as initially visible", result: actualVisible == initiallyVisible)
+        let actualVisible = Set(defaults.filter(\.isVisible).map(\.column))
+        report(
+            "Model/ListColumnSettings",
+            "POS: defaults() marks exactly name/size/dateModified as initially visible",
+            result: actualVisible == initiallyVisible)
 
-        let hidden = defaults.filter { !$0.isVisible }.map { $0.column }
+        let hidden = defaults.filter { !$0.isVisible }.map(\.column)
         let hiddenSet = Set(hidden)
         let expectedHidden: Set<ListColumn> = [.dateCreated, .dateAccessed, .kind, .owner, .group]
         report("Model/ListColumnSettings", "NEG: defaults() leaves the remaining columns hidden", result: hiddenSet == expectedHidden)
@@ -32,15 +34,13 @@ public struct ListColumnSettingsTests {
         report(
             "Model/ListColumnSettings",
             "NEG: non-name columns report isAlwaysVisible == false",
-            result: ListColumn.allCases.filter { $0 != .name }.allSatisfy { $0.isAlwaysVisible == false }
-        )
+            result: ListColumn.allCases.filter { $0 != .name }.allSatisfy { $0.isAlwaysVisible == false })
 
         // POS: Identifiable.id mirrors rawValue exactly for every case (used by SwiftUI ForEach/Picker).
         report(
             "Model/ListColumnSettings",
             "POS: ListColumn.id equals rawValue for every case",
-            result: ListColumn.allCases.allSatisfy { $0.id == $0.rawValue }
-        )
+            result: ListColumn.allCases.allSatisfy { $0.id == $0.rawValue })
     }
 
     private static func testListColumnDefaultWidths() {
@@ -56,8 +56,7 @@ public struct ListColumnSettingsTests {
         report(
             "Model/ListColumnSettings",
             "NEG: name column's defaultWidth (280) is not clamped to columnMinWidth like other small values would be",
-            result: ListColumn.name.defaultWidth == 280 && ListColumn.name.defaultWidth != LayoutTokens.columnMinWidth
-        )
+            result: ListColumn.name.defaultWidth == 280 && ListColumn.name.defaultWidth != LayoutTokens.columnMinWidth)
     }
 
     private static func testListColumnStateCodableRoundTrip() {
@@ -78,8 +77,7 @@ public struct ListColumnSettingsTests {
             report(
                 "Model/ListColumnSettings",
                 "POS: full defaults() array survives JSON round-trip with matching count and order",
-                result: decodedArray.map { $0.column } == array.map { $0.column }
-            )
+                result: decodedArray.map(\.column) == array.map(\.column))
         } catch {
             report("Model/ListColumnSettings", "POS: full defaults() array survives JSON round-trip with matching count and order", result: false)
         }

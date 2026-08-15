@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FileShredderFeatureTests {
@@ -33,7 +33,7 @@ public struct FileShredderFeatureTests {
         let secretFile = tempDir.appendingPathComponent("secret.txt")
         try? "Sensitive Data".write(to: secretFile, atomically: true, encoding: .utf8)
 
-        struct SimulatedResourceValuesFailure: Error {}
+        struct SimulatedResourceValuesFailure: Error { }
 
         var didThrow = false
         do {
@@ -47,13 +47,11 @@ public struct FileShredderFeatureTests {
         report(
             "Feature/FileShredder",
             "NEG: shredFiles rethrows instead of silently deleting when reading file attributes fails",
-            result: didThrow
-        )
+            result: didThrow)
         report(
             "Feature/FileShredder",
             "NEG: file is left on disk (not silently removed) when attribute read fails",
-            result: FileManager.default.fileExists(atPath: secretFile.path)
-        )
+            result: FileManager.default.fileExists(atPath: secretFile.path))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

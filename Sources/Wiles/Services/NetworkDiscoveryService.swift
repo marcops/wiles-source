@@ -16,7 +16,9 @@ public final class NetworkDiscoveryService {
     }
 
     public func startBrowsing() {
-        if browser != nil { return }
+        if browser != nil {
+            return
+        }
 
         let parameters = NWParameters()
         parameters.includePeerToPeer = true
@@ -50,6 +52,6 @@ public final class NetworkDiscoveryService {
                 }
             }
         }
-        self.discoveredShares = newShares.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        discoveredShares = newShares.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 }

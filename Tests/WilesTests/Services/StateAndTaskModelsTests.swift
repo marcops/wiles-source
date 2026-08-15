@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct StateAndTaskModelsTests {
@@ -40,7 +40,10 @@ public struct StateAndTaskModelsTests {
         report("WilesError", "POS: every WilesError case produces a non-empty errorDescription", result: allNonEmpty)
 
         // NEG: distinct associated values on the same case are not equal.
-        report("WilesError", "NEG: itemNotFound with different paths is not equal", result: WilesError.itemNotFound(path: busyPath) != WilesError.itemNotFound(path: missingPath))
+        report(
+            "WilesError",
+            "NEG: itemNotFound with different paths is not equal",
+            result: WilesError.itemNotFound(path: busyPath) != WilesError.itemNotFound(path: missingPath))
     }
 
     // MARK: - ClipboardState (beyond isCut)
@@ -53,7 +56,10 @@ public struct StateAndTaskModelsTests {
         let messy = URL(fileURLWithPath: raw.path + "/./")
 
         let state = ClipboardState(urls: [messy], action: .cut)
-        report("ClipboardState", "POS: init standardizes stored URLs so equivalent messy paths match", result: state.urls.first?.path == raw.standardizedFileURL.path)
+        report(
+            "ClipboardState",
+            "POS: init standardizes stored URLs so equivalent messy paths match",
+            result: state.urls.first?.path == raw.standardizedFileURL.path)
 
         let empty = ClipboardState(urls: [], action: .cut)
         report("ClipboardState", "NEG: an empty clipboard is never isCut for any URL", result: !empty.isCut(url: raw))
@@ -111,8 +117,7 @@ public struct StateAndTaskModelsTests {
         report(
             "DirectoryCacheEntry",
             "POS: timestamp is stamped at construction time (between before/after)",
-            result: entry.timestamp >= entryBefore && entry.timestamp <= entryAfter
-        )
+            result: entry.timestamp >= entryBefore && entry.timestamp <= entryAfter)
         report("DirectoryCacheEntry", "POS: stored result is the one passed to init", result: entry.result.items.count == 1)
 
         // Constructing a second entry slightly later should have a timestamp >= the first,
@@ -136,7 +141,10 @@ public struct StateAndTaskModelsTests {
         }
 
         let singleItemGroup = DuplicateGroup(hash: "abc", fileSize: 500, items: [makeItem("a.txt")])
-        report("DuplicateGroup", "NEG: reclaimableBytes is 0 when the group has only a single item (nothing to reclaim)", result: singleItemGroup.reclaimableBytes == 0)
+        report(
+            "DuplicateGroup",
+            "NEG: reclaimableBytes is 0 when the group has only a single item (nothing to reclaim)",
+            result: singleItemGroup.reclaimableBytes == 0)
 
         let emptyGroup = DuplicateGroup(hash: "def", fileSize: 500, items: [])
         report("DuplicateGroup", "NEG: reclaimableBytes is 0 when the group has no items", result: emptyGroup.reclaimableBytes == 0)
@@ -150,8 +158,7 @@ public struct StateAndTaskModelsTests {
         report(
             "DuplicateScanResult",
             "POS: totalReclaimableBytes reflects sum passed in, ignoring the zero-reclaim single-item group",
-            result: scanResult.totalReclaimableBytes == 1000
-        )
+            result: scanResult.totalReclaimableBytes == 1000)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

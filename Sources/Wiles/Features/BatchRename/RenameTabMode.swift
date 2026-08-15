@@ -5,5 +5,7 @@ enum RenameTabMode: String, CaseIterable, Identifiable {
     case prefixSuffix = "Prefix & Suffix"
     case sequence = "Sequence"
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 }

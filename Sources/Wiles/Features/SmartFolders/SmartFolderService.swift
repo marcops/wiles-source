@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 @MainActor
 public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @unchecked Sendable {
@@ -35,7 +35,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         let metadataQuery = NSMetadataQuery()
         let wildcardQuery = "*\(smartFolder.searchQuery)*"
         metadataQuery.predicate = NSPredicate(format: "kMDItemDisplayName ==[cd] %@", wildcardQuery)
-        if !smartFolder.scopePath.isEmpty && FileManager.default.fileExists(atPath: smartFolder.scopePath) {
+        if !smartFolder.scopePath.isEmpty, FileManager.default.fileExists(atPath: smartFolder.scopePath) {
             metadataQuery.searchScopes = [URL(fileURLWithPath: smartFolder.scopePath)]
         } else {
             metadataQuery.searchScopes = [NSMetadataQueryUserHomeScope]
@@ -45,19 +45,24 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
             NotificationCenter.default.removeObserver(existingObserver)
             queryObserver = nil
         }
-        queryObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
-            MainActor.assumeIsolated {
-                if let observer = self?.queryObserver {
-                    NotificationCenter.default.removeObserver(observer)
-                    self?.queryObserver = nil
+        queryObserver = NotificationCenter.default
+            .addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
+                MainActor.assumeIsolated {
+                    if let observer = self?.queryObserver {
+                        NotificationCenter.default.removeObserver(observer)
+                        self?.queryObserver = nil
+                    }
                 }
+                guard let query = notification.object as? NSMetadataQuery else { completion([])
+                    return
+                }
+                query.stop()
+                guard let results = query.results as? [NSMetadataItem] else { completion([])
+                    return
+                }
+                let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
+                Self.fetchFileItems(forPaths: paths, completion: completion)
             }
-            guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
-            query.stop()
-            guard let results = query.results as? [NSMetadataItem] else { completion([]); return }
-            let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-            Self.fetchFileItems(forPaths: paths, completion: completion)
-        }
         metadataQuery.start()
         query = metadataQuery
     }
@@ -73,19 +78,24 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
             NotificationCenter.default.removeObserver(existingObserver)
             queryObserver = nil
         }
-        queryObserver = NotificationCenter.default.addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
-            MainActor.assumeIsolated {
-                if let observer = self?.queryObserver {
-                    NotificationCenter.default.removeObserver(observer)
-                    self?.queryObserver = nil
+        queryObserver = NotificationCenter.default
+            .addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
+                MainActor.assumeIsolated {
+                    if let observer = self?.queryObserver {
+                        NotificationCenter.default.removeObserver(observer)
+                        self?.queryObserver = nil
+                    }
                 }
+                guard let query = notification.object as? NSMetadataQuery else { completion([])
+                    return
+                }
+                query.stop()
+                guard let results = query.results as? [NSMetadataItem] else { completion([])
+                    return
+                }
+                let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
+                Self.fetchFileItems(forPaths: paths, completion: completion)
             }
-            guard let query = notification.object as? NSMetadataQuery else { completion([]); return }
-            query.stop()
-            guard let results = query.results as? [NSMetadataItem] else { completion([]); return }
-            let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-            Self.fetchFileItems(forPaths: paths, completion: completion)
-        }
         metadataQuery.start()
         query = metadataQuery
     }

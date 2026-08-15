@@ -1,6 +1,6 @@
 import Foundation
-import Network
 import GitBeacon
+import Network
 
 @Observable
 public final class LocalHttpServerService: @unchecked Sendable {
@@ -16,7 +16,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private var connections: [NWConnection] = []
     private var requiredPassword: String?
 
-    private init() {}
+    private init() { }
 
     public func start(sharing folder: URL, password: String? = nil) {
         sharedFolder = folder
@@ -27,7 +27,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
             listener?.stateUpdateHandler = { [weak self] state in
                 Task { @MainActor in
-                    guard let self = self else { return }
+                    guard let self else { return }
                     switch state {
                     case .ready:
                         self.updateServerURL()
@@ -56,11 +56,11 @@ public final class LocalHttpServerService: @unchecked Sendable {
         listener?.cancel()
         listener = nil
         queue.async { [weak self] in
-            guard let self = self else { return }
-            for conn in self.connections {
+            guard let self else { return }
+            for conn in connections {
                 conn.cancel()
             }
-            self.connections.removeAll()
+            connections.removeAll()
         }
         sharedFolder = nil
         requiredPassword = nil
@@ -84,9 +84,14 @@ public final class LocalHttpServerService: @unchecked Sendable {
                     let name = String(cString: interface.ifa_name)
                     if name == "en0" { // Wi-Fi interface usually
                         var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                        getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                                    &hostname, socklen_t(hostname.count),
-                                    nil, socklen_t(0), NI_NUMERICHOST)
+                        getnameinfo(
+                            interface.ifa_addr,
+                            socklen_t(interface.ifa_addr.pointee.sa_len),
+                            &hostname,
+                            socklen_t(hostname.count),
+                            nil,
+                            socklen_t(0),
+                            NI_NUMERICHOST)
                         let hostnameBytes = Array(hostname.map { UInt8(bitPattern: $0) }.prefix(while: { $0 != 0 }))
                         address = String(bytes: hostnameBytes, encoding: .utf8) ?? ""
                         break
@@ -96,11 +101,10 @@ public final class LocalHttpServerService: @unchecked Sendable {
             freeifaddrs(ifaddr)
         }
 
-        let finalServerURL: String
-        if let ip = address {
-            finalServerURL = "http://\(ip):\(port.rawValue)"
+        let finalServerURL = if let ip = address {
+            "http://\(ip):\(port.rawValue)"
         } else {
-            finalServerURL = "http://localhost:\(port.rawValue)"
+            "http://localhost:\(port.rawValue)"
         }
         Task { @MainActor in
             self.serverURL = finalServerURL
@@ -115,17 +119,17 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
     private func receiveRequest(on connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] content, _, _, _ in
-            guard let self = self, let content = content, !content.isEmpty else {
+            guard let self, let content, !content.isEmpty else {
                 connection.cancel()
                 self?.connections.removeAll(where: { $0 === connection })
                 return
             }
             guard let requestStr = String(bytes: content, encoding: .utf8) else {
                 connection.cancel()
-                self.connections.removeAll(where: { $0 === connection })
+                connections.removeAll(where: { $0 === connection })
                 return
             }
-            self.processRequest(requestStr, connection: connection)
+            processRequest(requestStr, connection: connection)
         }
     }
 
@@ -154,8 +158,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 connection: connection,
                 statusCode: HTTPStatus.unauthorized,
                 body: Data("Unauthorized".utf8),
-                extraHeaders: ["WWW-Authenticate": "Basic realm=\"Wiles Shared Folder\""]
-            )
+                extraHeaders: ["WWW-Authenticate": "Basic realm=\"Wiles Shared Folder\""])
             return
         }
 
@@ -167,8 +170,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
         serveFile(path: path, folder: folder, connection: connection)
     }
 
-    // Password is optional (rule: user chooses with/without auth, HttpShareSheet). When set, every
-    // request must present valid HTTP Basic credentials; the username is not checked, only the password.
+    /// Password is optional (rule: user chooses with/without auth, HttpShareSheet). When set, every
+    /// request must present valid HTTP Basic credentials; the username is not checked, only the password.
     private func isAuthorized(headerLines: some Sequence<String>) -> Bool {
         guard let requiredPassword else { return true }
 
@@ -210,8 +213,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
                     "ITEMS": items,
                     "PAGE_TITLE": L10n.string(.sharedFolderPageTitle, lang: language),
                     "HEADING": L10n.string(.sharedFolderHeading, lang: language)
-                ]
-            ) else {
+                ]) else {
                 sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Missing SharedFolder template".utf8))
                 return
             }
@@ -249,8 +251,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
         streamFile(at: fileURL, connection: connection)
     }
 
-    // Chunk size for streaming file bodies: bounds peak memory usage while serving large files
-    // instead of buffering the entire file into a single `Data` object (see `streamFile`).
+    /// Chunk size for streaming file bodies: bounds peak memory usage while serving large files
+    /// instead of buffering the entire file into a single `Data` object (see `streamFile`).
     private static let fileStreamChunkSize = 64 * 1024
 
     private func streamFile(at fileURL: URL, connection: NWConnection) {
@@ -267,15 +269,15 @@ public final class LocalHttpServerService: @unchecked Sendable {
             \r
 
             """
-            connection.send(content: Data(headerStr.utf8), completion: .contentProcessed({ [weak self] error in
-                guard let self = self, error == nil else {
+            connection.send(content: Data(headerStr.utf8), completion: .contentProcessed { [weak self] error in
+                guard let self, error == nil else {
                     try? fileHandle.close()
                     connection.cancel()
                     self?.connections.removeAll(where: { $0 === connection })
                     return
                 }
-                self.sendNextChunk(fileHandle: fileHandle, connection: connection)
-            }))
+                sendNextChunk(fileHandle: fileHandle, connection: connection)
+            })
         } catch {
             ErrorReporter.report(error, context: "Streaming file over local HTTP share")
             sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading file".utf8))
@@ -285,22 +287,22 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private func sendNextChunk(fileHandle: FileHandle, connection: NWConnection) {
         let chunk = try? fileHandle.read(upToCount: Self.fileStreamChunkSize)
 
-        guard let chunk = chunk, !chunk.isEmpty else {
+        guard let chunk, !chunk.isEmpty else {
             try? fileHandle.close()
             connection.cancel()
             connections.removeAll(where: { $0 === connection })
             return
         }
 
-        connection.send(content: chunk, completion: .contentProcessed({ [weak self] error in
-            guard let self = self, error == nil else {
+        connection.send(content: chunk, completion: .contentProcessed { [weak self] error in
+            guard let self, error == nil else {
                 try? fileHandle.close()
                 connection.cancel()
                 self?.connections.removeAll(where: { $0 === connection })
                 return
             }
-            self.sendNextChunk(fileHandle: fileHandle, connection: connection)
-        }))
+            sendNextChunk(fileHandle: fileHandle, connection: connection)
+        })
     }
 
     private func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain", extraHeaders: [String: String] = [:]) {
@@ -317,9 +319,9 @@ public final class LocalHttpServerService: @unchecked Sendable {
         var responseData = Data(headerStr.utf8)
         responseData.append(body)
 
-        connection.send(content: responseData, completion: .contentProcessed({ [weak self] _ in
+        connection.send(content: responseData, completion: .contentProcessed { [weak self] _ in
             connection.cancel()
             self?.connections.removeAll(where: { $0 === connection })
-        }))
+        })
     }
 }

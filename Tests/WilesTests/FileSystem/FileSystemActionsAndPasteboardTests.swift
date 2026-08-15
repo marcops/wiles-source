@@ -1,13 +1,13 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 /// Split out of `FileSystemTests.swift` (rule: files should stay under 500 lines) — covers move/zip,
 /// copy/trash, and pasteboard round-trip extras for `FileSystemService`.
 @MainActor
 extension FileSystemTests {
-    // Covers moveItem's success path and its "remove existing destination before moving" branch,
-    // and compressToZIP/extractZIP, none of which are exercised elsewhere.
+    /// Covers moveItem's success path and its "remove existing destination before moving" branch,
+    /// and compressToZIP/extractZIP, none of which are exercised elsewhere.
     static func runMoveAndZipCoverageExtras() {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
@@ -152,7 +152,7 @@ extension FileSystemTests {
         FileSystemService.writeToPasteboard(urls: [pbFileA, pbFileB])
         let readBack = FileSystemService.readFromPasteboard()
         let writtenPaths = Set([pbFileA.path, pbFileB.path])
-        let readPaths = Set((readBack ?? []).map { $0.path })
+        let readPaths = Set((readBack ?? []).map(\.path))
         TestReporter.report("FileSystem", "POS: writeToPasteboard/readFromPasteboard round-trips the same file URLs", result: readPaths == writtenPaths)
         // POS: copyFileContentToClipboard writes the file's text content as a pasteboard string
         let clipboardFile = tempDir.appendingPathComponent("clipboard_source.txt")
@@ -163,12 +163,17 @@ extension FileSystemTests {
         // to keep it off the main actor for slow volumes), so the pasteboard write lands
         // asynchronously — poll instead of asserting immediately.
         var pasteboardString: String?
-        for _ in 0..<20 {
+        for _ in 0 ..< 20 {
             pasteboardString = NSPasteboard.general.string(forType: .string)
-            if pasteboardString == clipboardContent { break }
+            if pasteboardString == clipboardContent {
+                break
+            }
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
-        TestReporter.report("FileSystem", "POS: copyFileContentToClipboard writes the file's text content to the pasteboard", result: pasteboardString == clipboardContent)
+        TestReporter.report(
+            "FileSystem",
+            "POS: copyFileContentToClipboard writes the file's text content to the pasteboard",
+            result: pasteboardString == clipboardContent)
         // NEG: copyFileContentToClipboard on a non-existent file does not overwrite pasteboard with stale/empty content
         let priorMarker = "prior marker \(UUID().uuidString)"
         let pb = NSPasteboard.general

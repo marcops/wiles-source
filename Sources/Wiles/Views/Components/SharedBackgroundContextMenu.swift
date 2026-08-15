@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct SharedBackgroundContextMenu: View {
     var appState: AppState
@@ -22,10 +22,10 @@ struct SharedBackgroundContextMenu: View {
                 appState.pasteToCurrentDirectory()
             }
         } else {
-            Button("\(appState.tr(.paste)) (Cmd+V)") {}.disabled(true)
+            Button("\(appState.tr(.paste)) (Cmd+V)") { }.disabled(true)
         }
         Button("\(appState.tr(.selectAll)) (Cmd+A)") {
-            appState.selectedURLs = Set(appState.fileSystem.items.map { $0.url })
+            appState.selectedURLs = Set(appState.fileSystem.items.map(\.url))
         }
         Divider()
         Menu(appState.tr(.copyPath)) {
@@ -33,7 +33,10 @@ struct SharedBackgroundContextMenu: View {
                 CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
             }
             Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .relative, relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
+                CopyPathService.copy(
+                    urls: [appState.navigation.currentURL],
+                    variant: .relative,
+                    relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
             }
             Button(appState.tr(.copyPathURL)) {
                 CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)

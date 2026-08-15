@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct AboutSheet: View {
     @Environment(\.dismiss)
@@ -19,7 +19,7 @@ struct AboutSheet: View {
         .background(Color(NSColor.windowBackgroundColor))
     }
 
-    @ViewBuilder private var contentArea: some View {
+    private var contentArea: some View {
         VStack(spacing: 16) {
             Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
                 .resizable()
@@ -45,7 +45,7 @@ struct AboutSheet: View {
         .padding(.vertical, 32)
     }
 
-    @ViewBuilder private var createdByView: some View {
+    private var createdByView: some View {
         VStack(spacing: 6) {
             Text(appState.tr(.createdBy))
                 .font(.system(size: LayoutTokens.aboutTextFontSize, weight: .medium))

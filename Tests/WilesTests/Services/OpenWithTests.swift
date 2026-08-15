@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct OpenWithTests {
@@ -49,8 +49,7 @@ public struct OpenWithTests {
 
         TestReporter.report(
             "OpenWith", "POS: open(urls:with:) with non-empty urls calls through to the injected opener with the right arguments",
-            result: fake.openedURLPairs.count == 1 && fake.openedURLPairs.first?.urls == [targetFile] && fake.openedURLPairs.first?.applicationURL == appURL
-        )
+            result: fake.openedURLPairs.count == 1 && fake.openedURLPairs.first?.urls == [targetFile] && fake.openedURLPairs.first?.applicationURL == appURL)
     }
 
     // NEG: chooseOtherApplication(toOpen:) with an empty URL array hits the guard and safely no-ops
@@ -72,7 +71,10 @@ public struct OpenWithTests {
 
         let apps = OpenWithService.availableApplications(for: noExtensionFile)
         let validApps = apps.allSatisfy { !$0.name.isEmpty && $0.url.isFileURL }
-        TestReporter.report("OpenWith", "NEG: availableApplications for extensionless file returns a valid (possibly empty) list without crashing", result: validApps)
+        TestReporter.report(
+            "OpenWith",
+            "NEG: availableApplications for extensionless file returns a valid (possibly empty) list without crashing",
+            result: validApps)
     }
 
     // NEG: a well-formed file URL that does not actually exist on disk should not crash the lookup;
@@ -83,7 +85,10 @@ public struct OpenWithTests {
             .appendingPathExtension("txt")
         let apps = OpenWithService.availableApplications(for: ghostFile)
         let validApps = apps.allSatisfy { !$0.name.isEmpty && $0.url.isFileURL }
-        TestReporter.report("OpenWith", "NEG: availableApplications for a nonexistent-on-disk .txt URL returns a valid list without crashing", result: validApps)
+        TestReporter.report(
+            "OpenWith",
+            "NEG: availableApplications for a nonexistent-on-disk .txt URL returns a valid list without crashing",
+            result: validApps)
     }
 
     // NEG: setDefaultApplication with a syntactically valid extension but an application URL that
@@ -102,7 +107,7 @@ public struct OpenWithTests {
         defer { try? FileManager.default.removeItem(at: sampleFile) }
 
         let apps = OpenWithService.availableApplications(for: sampleFile)
-        let ids = apps.map { $0.id }
+        let ids = apps.map(\.id)
         let uniqueIDs = Set(ids)
         TestReporter.report("OpenWith", "POS: availableApplications returns no duplicate bundle ids", result: ids.count == uniqueIDs.count)
     }

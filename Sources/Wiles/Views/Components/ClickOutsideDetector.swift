@@ -1,16 +1,16 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct ClickOutsideDetector: NSViewRepresentable {
     let onOutsideClick: () -> Void
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = ClickView()
         view.onOutsideClick = onOutsideClick
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         if let clickView = nsView as? ClickView {
             clickView.onOutsideClick = onOutsideClick
         }
@@ -40,11 +40,11 @@ struct ClickOutsideDetector: NSViewRepresentable {
         private func setupMonitor() {
             guard window != nil, monitor == nil else { return }
             monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
-                guard let self = self, let myWindow = self.window else { return event }
+                guard let self, let myWindow = window else { return event }
                 let isSameWindow = (event.window == myWindow) || (event.window?.sheetParent == myWindow)
                 if isSameWindow || event.window == nil {
-                    let locationInView = self.convert(event.locationInWindow, from: nil)
-                    if !self.bounds.contains(locationInView) {
+                    let locationInView = convert(event.locationInWindow, from: nil)
+                    if !bounds.contains(locationInView) {
                         DispatchQueue.main.async {
                             self.onOutsideClick?()
                         }
@@ -61,8 +61,8 @@ struct ClickOutsideDetector: NSViewRepresentable {
             }
         }
 
-        override func hitTest(_ aPoint: NSPoint) -> NSView? {
-            return nil
+        override func hitTest(_: NSPoint) -> NSView? {
+            nil
         }
     }
 }

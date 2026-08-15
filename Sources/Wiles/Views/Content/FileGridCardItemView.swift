@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 import UniformTypeIdentifiers
 
 struct FileGridCardItemView: View {
@@ -25,8 +25,7 @@ struct FileGridCardItemView: View {
                 onRightClick: onRightClick,
                 onTargetedChanged: { targeted in
                     withAnimation(MotionTokens.quickEase) { isDropTargeted = targeted }
-                }
-            )
+                })
     }
 
     private func mainContent(isSel: Bool, isCut: Bool) -> some View {
@@ -43,8 +42,7 @@ struct FileGridCardItemView: View {
             .background(
                 GeometryReader { geo in
                     Color.clear.preference(key: URLFrameKey.self, value: [item.url: geo.frame(in: .named("gridContainer"))])
-                }
-            )
+                })
             // Renaming must never resize this cell — that would reflow every other card in the
             // grid. The card's own footprint stays fixed at cardHeight; the growing rename field
             // is a same-size-as-normal-label placeholder with an overlay on top, so it renders at
@@ -64,7 +62,7 @@ struct FileGridCardItemView: View {
             FileItemIconView(item: item, size: iconSize, isOpenTargeted: isDropTargeted)
                 .overlay(ICloudStatusBadgeView(item: item).padding(2), alignment: .topTrailing)
             cardLabel(isSel: isSel)
-            if appState.preferences.showTags && !item.tags.isEmpty {
+            if appState.preferences.showTags, !item.tags.isEmpty {
                 tagsView
             }
         }
@@ -96,8 +94,7 @@ struct FileGridCardItemView: View {
                 collapsedLineLimit: 2,
                 availableWidth: cardWidth - 12, // cardWidth minus the 6pt horizontal padding below × 2
                 alignment: .center,
-                middleTruncate: appState.preferences.middleTruncateNames
-            )
+                middleTruncate: appState.preferences.middleTruncateNames)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(isSel ? Color.accentColor : Color.clear)
@@ -105,8 +102,7 @@ struct FileGridCardItemView: View {
                 .background(
                     GeometryReader { geo in
                         Color.clear.preference(key: LabelWidthKey.self, value: [item.url: geo.size.width])
-                    }
-                )
+                    })
         }
     }
 

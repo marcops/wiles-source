@@ -1,8 +1,8 @@
-import XCTest
-@testable import Wiles
 import AppKit
 import CoreGraphics
 import UniformTypeIdentifiers
+import XCTest
+@testable import Wiles
 
 /// Companion coverage for the `Task.detached`-driven members of `AppState+ColumnsAndActions.swift`
 /// (`performImageConversion`, `performBatchRename`) plus `performRename()`'s success path.
@@ -36,8 +36,7 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         guard let context = CGContext(
             data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
-            space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ), let cgImage: CGImage = {
+            space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue), let cgImage: CGImage = {
             context.setFillColor(CGColor(red: 0, green: 1, blue: 0, alpha: 1))
             context.fill(CGRect(x: 0, y: 0, width: width, height: height))
             return context.makeImage()
@@ -58,7 +57,7 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
     /// for why this can't happen in the synchronous dedicated test file) so a rename recorded by this
     /// test never lingers to break a later test's undo/redo assertions once its temp dir is removed.
     private func drainUndoRedoService() async {
-        for _ in 0..<10 where UndoRedoService.shared.canUndo() {
+        for _ in 0 ..< 10 where UndoRedoService.shared.canUndo() {
             _ = try? await UndoRedoService.shared.undo()
         }
     }
@@ -94,9 +93,11 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
 
         let expectedDest = dir.appendingPathComponent("source_converted.jpg")
         var created = false
-        for _ in 0..<6 {
+        for _ in 0 ..< 6 {
             created = FileManager.default.fileExists(atPath: expectedDest.path)
-            if created { break }
+            if created {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         XCTAssertTrue(created, "performImageConversion() should write the converted file to disk without the caller blocking")
@@ -117,9 +118,11 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         appState.performImageConversion(item: item, targetFormat: .png, preset: .original, cropPreset: .none, quality: 0.9)
 
         var errored = false
-        for _ in 0..<6 {
+        for _ in 0 ..< 6 {
             errored = appState.modal.errorMessage != nil
-            if errored { break }
+            if errored {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         XCTAssertTrue(errored, "performImageConversion() should surface a decode failure via showError() instead of crashing")
@@ -139,13 +142,18 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         let expectedA = dir.appendingPathComponent("renamed_a.txt")
         let expectedB = dir.appendingPathComponent("renamed_b.txt")
         var bothRenamed = false
-        for _ in 0..<6 {
+        for _ in 0 ..< 6 {
             bothRenamed = FileManager.default.fileExists(atPath: expectedA.path) && FileManager.default.fileExists(atPath: expectedB.path)
-            if bothRenamed { break }
+            if bothRenamed {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         XCTAssertTrue(bothRenamed, "performBatchRename() should rename every item on disk without the caller blocking")
-        XCTAssertEqual(appState.selectedURLs, Set([expectedA, expectedB]), "performBatchRename() should select the full set of renamed URLs once the detached Task finishes")
+        XCTAssertEqual(
+            appState.selectedURLs,
+            Set([expectedA, expectedB]),
+            "performBatchRename() should select the full set of renamed URLs once the detached Task finishes")
     }
 
     func testPerformBatchRenameFailurePath() async {
@@ -163,9 +171,11 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         appState.performBatchRename(items: [itemA], mode: .addPrefixSuffix(prefix: "renamed_", suffix: ""))
 
         var errored = false
-        for _ in 0..<6 {
+        for _ in 0 ..< 6 {
             errored = appState.modal.errorMessage != nil
-            if errored { break }
+            if errored {
+                break
+            }
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         XCTAssertTrue(errored, "performBatchRename() should surface a rename failure via showError() instead of crashing")

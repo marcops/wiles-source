@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct DirectoryMonitorTests {
@@ -33,7 +33,7 @@ public struct DirectoryMonitorTests {
         var waited: UInt64 = 0
         let interval: UInt64 = 200_000_000
         let maxWait: UInt64 = 3_000_000_000
-        while !flag.triggered && waited < maxWait {
+        while !flag.triggered, waited < maxWait {
             try? await Task.sleep(nanoseconds: interval)
             waited += interval
         }

@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 extension ArchiveTests {
     static func runTarExtractionTests() {
@@ -103,7 +103,10 @@ extension ArchiveTests {
                 print("tar.gz extraction error: \(error)")
             }
         }
-        TestReporter.report("ZipArchive", "POS: extractArchive extracts a .tar.gz (name-suffix, non-.tgz extension) via /usr/bin/tar", result: tarGzCreated && tarGzExtractPassed)
+        TestReporter.report(
+            "ZipArchive",
+            "POS: extractArchive extracts a .tar.gz (name-suffix, non-.tgz extension) via /usr/bin/tar",
+            result: tarGzCreated && tarGzExtractPassed)
     }
 
     static func runIsArchiveEdgeCaseTests() {

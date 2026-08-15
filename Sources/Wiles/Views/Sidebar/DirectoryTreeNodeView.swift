@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct DirectoryTreeNodeView: View {
     let node: FolderNode
@@ -22,8 +22,7 @@ struct DirectoryTreeNodeView: View {
                 } else {
                     appState.preferences.expandedTreePaths.remove(node.url.path)
                 }
-            }
-        )
+            })
     }
 
     var body: some View {
@@ -43,8 +42,8 @@ struct DirectoryTreeNodeView: View {
         .padding(.leading, CGFloat(depth) * 12)
     }
 
-    // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
-    // composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
+    /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
+    /// composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
     private var rowContent: some View {
         let isSel = appState.navigation.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
         return HStack(spacing: 6) {
@@ -68,8 +67,7 @@ struct DirectoryTreeNodeView: View {
         .accessibilityLabel(node.name)
         .accessibilityHint(appState.tr(.folder))
         .overlay(
-            RightClickDetector { isRightClicked = true }
-        )
+            RightClickDetector { isRightClicked = true })
         .contextMenu {
             SidebarItemContextMenu(url: node.url, appState: appState)
         }

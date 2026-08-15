@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 public struct ApplicationApp: Identifiable, @unchecked Sendable {
     public let id: String

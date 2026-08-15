@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct AppStateColumnsAndSelectionTests {
@@ -37,15 +37,17 @@ public struct AppStateColumnsAndSelectionTests {
         // writes every width/visibility change there), so a prior test run or real app usage on
         // this machine can leave stale state — reset explicitly rather than assume a pristine default.
         appState.listColumnStates = ListColumnState.defaults()
-        report("AppState+Columns", "POS: columnWidth(for:) returns the column's stored width by default", result: appState.columnWidth(for: .name) == ListColumn.name.defaultWidth)
+        report(
+            "AppState+Columns",
+            "POS: columnWidth(for:) returns the column's stored width by default",
+            result: appState.columnWidth(for: .name) == ListColumn.name.defaultWidth)
 
         // Remove a column's state entirely; should fall back to defaultWidth.
         appState.listColumnStates.removeAll { $0.column == .owner }
         report(
             "AppState+Columns",
             "NEG: columnWidth(for:) falls back to defaultWidth when no state entry exists",
-            result: appState.columnWidth(for: .owner) == ListColumn.owner.defaultWidth
-        )
+            result: appState.columnWidth(for: .owner) == ListColumn.owner.defaultWidth)
     }
 
     private static func testIsColumnVisible() {
@@ -68,8 +70,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: setColumnWidth() clamps a too-small width up to LayoutTokens.columnMinWidth",
-            result: appState.columnWidth(for: .size) == LayoutTokens.columnMinWidth
-        )
+            result: appState.columnWidth(for: .size) == LayoutTokens.columnMinWidth)
 
         // No state entry for the column: setColumnWidth should be a no-op (guard returns early).
         appState.listColumnStates.removeAll { $0.column == .kind }
@@ -77,8 +78,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: setColumnWidth() is a no-op when the column has no existing state entry",
-            result: appState.listColumnStates.contains { $0.column == .kind } == false
-        )
+            result: appState.listColumnStates.contains { $0.column == .kind } == false)
     }
 
     /// `setColumnWidth(_:width:persist:)` with `persist: false` (used by `ColumnResizeHandle`'s
@@ -111,12 +111,14 @@ public struct AppStateColumnsAndSelectionTests {
         report("AppState+Columns", "POS: setColumnWidth(persist: true) (the default) persists immediately", result: persistedWidth(for: .size) == 150)
 
         appState.setColumnWidth(.size, width: 321, persist: false)
-        report("AppState+Columns", "POS: setColumnWidth(persist: false) updates the in-memory width immediately", result: appState.columnWidth(for: .size) == 321)
+        report(
+            "AppState+Columns",
+            "POS: setColumnWidth(persist: false) updates the in-memory width immediately",
+            result: appState.columnWidth(for: .size) == 321)
         report(
             "AppState+Columns",
             "NEG: setColumnWidth(persist: false) does not write the new width to UserDefaults yet",
-            result: persistedWidth(for: .size) == 150 && persistedWidth(for: .size) != 321
-        )
+            result: persistedWidth(for: .size) == 150 && persistedWidth(for: .size) != 321)
 
         appState.persistColumnWidths()
         report("AppState+Columns", "POS: persistColumnWidths() persists the width set earlier with persist: false", result: persistedWidth(for: .size) == 321)
@@ -137,8 +139,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: toggleColumnVisibility() is a no-op for the always-visible .name column",
-            result: appState.isColumnVisible(.name) == nameVisibleBefore && nameVisibleBefore == true
-        )
+            result: appState.isColumnVisible(.name) == nameVisibleBefore && nameVisibleBefore == true)
     }
 
     private static func testViewModeForFolder() {
@@ -151,8 +152,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: viewModeForFolder() falls back to the global viewMode when no per-folder override exists",
-            result: appState.viewModeForFolder(dir) == .list
-        )
+            result: appState.viewModeForFolder(dir) == .list)
 
         appState.perFolderViewModes[dir.standardizedFileURL.path] = ViewMode.grid.rawValue
         report("AppState+Columns", "POS: viewModeForFolder() returns the stored per-folder override", result: appState.viewModeForFolder(dir) == .grid)
@@ -169,12 +169,14 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "POS: setViewModeForFolder() stores the per-folder mode and updates the global viewMode",
-            result: appState.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.column.rawValue && appState.preferences.viewMode == .column
-        )
+            result: appState.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.column.rawValue && appState.preferences.viewMode == .column)
 
         // A different, untouched folder should not have an override.
         let otherDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        report("AppState+Columns", "NEG: setViewModeForFolder() does not affect unrelated folders", result: appState.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
+        report(
+            "AppState+Columns",
+            "NEG: setViewModeForFolder() does not affect unrelated folders",
+            result: appState.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
     }
 
     private static func testHandleSelectionSingleClick() {
@@ -191,10 +193,12 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Selection",
             "POS: handleSelection() without extend replaces the entire selection with the single clicked item",
-            result: appState.selectedURLs.count == 1 && appState.selectedURLs.first?.path == itemB.url.path
-        )
+            result: appState.selectedURLs.count == 1 && appState.selectedURLs.first?.path == itemB.url.path)
 
-        report("AppState+Selection", "NEG: handleSelection() without extend clears out any previously selected item", result: appState.selectedURLs.contains(itemA.url) == false)
+        report(
+            "AppState+Selection",
+            "NEG: handleSelection() without extend clears out any previously selected item",
+            result: appState.selectedURLs.contains(itemA.url) == false)
     }
 
     private static func testHandleSelectionExtend() {
@@ -211,17 +215,22 @@ public struct AppStateColumnsAndSelectionTests {
         report("AppState+Selection", "POS: handleSelection() with extend on an empty selection inserts the item", result: appState.selectedURLs == [itemA.url])
 
         appState.handleSelection(for: itemB, extendSelection: true)
-        report("AppState+Selection", "POS: handleSelection() with extend adds a second item alongside the first", result: appState.selectedURLs == Set([itemA.url, itemB.url]))
+        report(
+            "AppState+Selection",
+            "POS: handleSelection() with extend adds a second item alongside the first",
+            result: appState.selectedURLs == Set([itemA.url, itemB.url]))
 
         appState.handleSelection(for: itemA, extendSelection: true)
         report(
             "AppState+Selection",
             "NEG: handleSelection() with extend on an already-selected item removes it (toggle off), leaving the rest intact",
-            result: appState.selectedURLs == Set([itemB.url])
-        )
+            result: appState.selectedURLs == Set([itemB.url]))
 
         appState.handleSelection(for: itemB, extendSelection: true)
-        report("AppState+Selection", "NEG: handleSelection() with extend toggling off the last item empties the selection", result: appState.selectedURLs.isEmpty)
+        report(
+            "AppState+Selection",
+            "NEG: handleSelection() with extend toggling off the last item empties the selection",
+            result: appState.selectedURLs.isEmpty)
     }
 
     /// Regression for the mouse-click `handleSelection(for:)` overload anchoring shift-click
@@ -250,15 +259,13 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Selection",
             "POS: cmd-click on the anchor item toggles it off but leaves the anchor in place",
-            result: appState.selectedURLs.isEmpty && appState.selection.keyboardSelectionAnchorURL == itemB.url
-        )
+            result: appState.selectedURLs.isEmpty && appState.selection.keyboardSelectionAnchorURL == itemB.url)
 
         appState.handleSelection(for: itemD, modifierFlags: .shift)
         report(
             "AppState+Selection",
             "POS: shift-click after the anchor item was deselected still ranges from the stable anchor (B) through D, not just the clicked item",
-            result: appState.selectedURLs == Set([itemB.url, itemC.url, itemD.url])
-        )
+            result: appState.selectedURLs == Set([itemB.url, itemC.url, itemD.url]))
     }
 
     private static func testHandleSelectionMouseCmdClick() {
@@ -273,14 +280,16 @@ public struct AppStateColumnsAndSelectionTests {
 
         appState.selectedURLs = [itemA.url]
         appState.handleSelection(for: itemB, modifierFlags: .command)
-        report("AppState+Selection", "POS: cmd-click adds to the existing selection instead of replacing it", result: appState.selectedURLs == Set([itemA.url, itemB.url]))
+        report(
+            "AppState+Selection",
+            "POS: cmd-click adds to the existing selection instead of replacing it",
+            result: appState.selectedURLs == Set([itemA.url, itemB.url]))
 
         appState.handleSelection(for: itemA, modifierFlags: [])
         report(
             "AppState+Selection",
             "POS: a plain click (no modifiers) still replaces the whole selection with just the clicked item",
-            result: appState.selectedURLs == [itemA.url]
-        )
+            result: appState.selectedURLs == [itemA.url])
     }
 
     private static func testAutoFitColumnWidth() {
@@ -294,13 +303,11 @@ public struct AppStateColumnsAndSelectionTests {
             for: .name,
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage
-        ))
+            language: appState.preferences.appLanguage))
         report(
             "AppState+Columns",
             "POS: autoFitColumnWidth() applies the width computed by ColumnAutoFitService, clamped via setColumnWidth()",
-            result: appState.columnWidth(for: .name) == expected
-        )
+            result: appState.columnWidth(for: .name) == expected)
 
         // No state entry for the column: setColumnWidth's internal guard makes this a no-op.
         appState.listColumnStates.removeAll { $0.column == .size }
@@ -308,8 +315,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: autoFitColumnWidth() is a no-op when the column has no existing state entry",
-            result: appState.listColumnStates.contains { $0.column == .size } == false
-        )
+            result: appState.listColumnStates.contains { $0.column == .size } == false)
     }
 
     private static func testPerformRenameNoOpCases() {
@@ -324,15 +330,13 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: performRename() with an all-whitespace name is a no-op and leaves the file untouched",
-            result: FileManager.default.fileExists(atPath: item.url.path)
-        )
+            result: FileManager.default.fileExists(atPath: item.url.path))
 
         appState.performRename(item: item, newName: item.name)
         report(
             "AppState+Columns",
             "NEG: performRename() with the item's unchanged name is a no-op",
-            result: FileManager.default.fileExists(atPath: item.url.path)
-        )
+            result: FileManager.default.fileExists(atPath: item.url.path))
     }
 
     private static func testPerformRenameFailurePath() {
@@ -349,8 +353,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: performRename() surfaces an error via showError() when FileSystemService.renameItem() throws (destination name already taken)",
-            result: appState.modal.errorMessage != nil && FileManager.default.fileExists(atPath: item.url.path)
-        )
+            result: appState.modal.errorMessage != nil && FileManager.default.fileExists(atPath: item.url.path))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

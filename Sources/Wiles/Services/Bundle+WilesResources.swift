@@ -1,6 +1,6 @@
 import Foundation
 
-extension Bundle {
+public extension Bundle {
     /// `Bundle.module` alone is unsafe here: its generated accessor only checks
     /// `Bundle.main.bundleURL/Wiles_Wiles.bundle` (top level) and a hardcoded absolute `.build`
     /// path, then `fatalError`s if neither resolves — it has no notion of `Contents/Resources/`,
@@ -8,7 +8,7 @@ extension Bundle {
     /// `Wiles_Wiles.bundle` in the shipped .app. Check the real packaging layout first (graceful,
     /// no crash on miss), and only fall back to `Bundle.module` for `swift test`/`swift build`
     /// runs outside any .app wrapper, where those candidates correctly don't apply.
-    public static let wilesResources: Bundle = {
+    static let wilesResources: Bundle = {
         if let resourceURL = Bundle.main.resourceURL?.appendingPathComponent("Wiles_Wiles.bundle"),
            let bundle = Bundle(url: resourceURL) {
             return bundle
@@ -18,10 +18,10 @@ extension Bundle {
             return bundle
         }
         #if SWIFT_PACKAGE
-        if let buildPath = Bundle.main.path(forResource: "Wiles_Wiles", ofType: "bundle"),
-           let bundle = Bundle(path: buildPath) {
-            return bundle
-        }
+            if let buildPath = Bundle.main.path(forResource: "Wiles_Wiles", ofType: "bundle"),
+               let bundle = Bundle(path: buildPath) {
+                return bundle
+            }
         #endif
         return .module
     }()

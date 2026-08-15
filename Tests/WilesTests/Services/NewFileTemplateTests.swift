@@ -1,5 +1,5 @@
-@testable import Wiles
 import Foundation
+@testable import Wiles
 
 @MainActor
 public struct NewFileTemplateTests {
@@ -52,6 +52,9 @@ public struct NewFileTemplateTests {
 
         let names = [first, second, third].compactMap { $0?.lastPathComponent }
         let expected = ["Duplicate.txt", "Duplicate 2.txt", "Duplicate 3.txt"]
-        TestReporter.report("NewFileTemplate", "POS: createTemplateFile generates unique incrementing names when the file already exists", result: names == expected)
+        TestReporter.report(
+            "NewFileTemplate",
+            "POS: createTemplateFile generates unique incrementing names when the file already exists",
+            result: names == expected)
     }
 }

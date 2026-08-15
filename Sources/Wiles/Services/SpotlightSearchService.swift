@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 @MainActor
 public final class SpotlightSearchService {
@@ -8,13 +8,12 @@ public final class SpotlightSearchService {
     private var metadataQuery: NSMetadataQuery?
     private var completionHandler: (([URL]) -> Void)?
 
-    private init() {}
+    private init() { }
 
     public func searchFiles(
         matching queryText: String,
         scopeURL: URL,
-        completion: @escaping ([URL]) -> Void
-    ) {
+        completion: @escaping ([URL]) -> Void) {
         stopSearch()
         guard !queryText.trimmingCharacters(in: .whitespaces).isEmpty else {
             completion([])
@@ -22,8 +21,8 @@ public final class SpotlightSearchService {
         }
 
         let query = NSMetadataQuery()
-        self.completionHandler = completion
-        self.metadataQuery = query
+        completionHandler = completion
+        metadataQuery = query
 
         // Splicing user input directly into the predicate *format string* (the old `'*\(query)*'`
         // approach) means any apostrophe in the search text breaks out of the quoted literal and
@@ -41,8 +40,7 @@ public final class SpotlightSearchService {
             self,
             selector: #selector(queryDidFinishGathering(_:)),
             name: .NSMetadataQueryDidFinishGathering,
-            object: query
-        )
+            object: query)
 
         query.start()
     }
@@ -53,21 +51,20 @@ public final class SpotlightSearchService {
             NotificationCenter.default.removeObserver(
                 self,
                 name: .NSMetadataQueryDidFinishGathering,
-                object: query
-            )
+                object: query)
         }
         metadataQuery = nil
         completionHandler = nil
     }
 
     @objc
-    private func queryDidFinishGathering(_ notification: Notification) {
+    private func queryDidFinishGathering(_: Notification) {
         guard let query = metadataQuery else { return }
         query.stop()
 
         var results: [URL] = []
         let count = query.resultCount
-        for i in 0..<count {
+        for i in 0 ..< count {
             if let item = query.result(at: i) as? NSMetadataItem,
                let path = item.value(forAttribute: kMDItemPath as String) as? String {
                 results.append(URL(fileURLWithPath: path))

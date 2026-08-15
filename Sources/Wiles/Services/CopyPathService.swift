@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 public final class CopyPathService: CopyPathServiceProtocol, Sendable {
     @MainActor
@@ -16,21 +16,23 @@ public final class CopyPathService: CopyPathServiceProtocol, Sendable {
     public static func format(url: URL, variant: PathCopyVariant, relativeTo base: URL? = nil) -> String {
         switch variant {
         case .absolute:
-            return url.standardizedFileURL.path
+            url.standardizedFileURL.path
         case .relative:
-            return relativePath(of: url, relativeTo: base)
+            relativePath(of: url, relativeTo: base)
         case .fileURL:
-            return url.standardizedFileURL.absoluteString
+            url.standardizedFileURL.absoluteString
         case .terminalEscaped:
-            return escapeForTerminal(url.standardizedFileURL.path)
+            escapeForTerminal(url.standardizedFileURL.path)
         }
     }
 
     public static func relativePath(of url: URL, relativeTo base: URL?) -> String {
-        guard let base = base else { return url.standardizedFileURL.path }
+        guard let base else { return url.standardizedFileURL.path }
         let targetPath = url.standardizedFileURL.path
         let basePath = base.standardizedFileURL.path
-        if targetPath == basePath { return "." }
+        if targetPath == basePath {
+            return "."
+        }
         let prefix = basePath.hasSuffix("/") ? basePath : basePath + "/"
         if targetPath.hasPrefix(prefix) {
             return String(targetPath.dropFirst(prefix.count))

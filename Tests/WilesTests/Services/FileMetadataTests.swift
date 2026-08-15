@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FileMetadataTests {
@@ -39,7 +39,7 @@ public struct FileMetadataTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         var urls: [URL] = []
-        for index in 0..<20 {
+        for index in 0 ..< 20 {
             let url = dir.appendingPathComponent("file_\(index).txt")
             try? "content".write(to: url, atomically: true, encoding: .utf8)
             urls.append(url)
@@ -48,7 +48,9 @@ public struct FileMetadataTests {
         var received = 0
         for await _ in await FileMetadataService.shared.streamBatchProperties(for: urls) {
             received += 1
-            if received == 2 { break }
+            if received == 2 {
+                break
+            }
         }
         report("FileMetadata", "POS: breaking out of streamBatchProperties early stops before yielding every URL", result: received < urls.count)
     }
@@ -70,7 +72,10 @@ public struct FileMetadataTests {
     private static func testFetchPropertiesForNonExistentFileDoesNotCrash() async {
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).txt")
         let props = await FileMetadataService.shared.fetchProperties(for: missing)
-        report("FileMetadata", "NEG: non-existent file returns nil owner/permissions instead of crashing", result: props.ownerName == nil && props.posixPermissions == nil)
+        report(
+            "FileMetadata",
+            "NEG: non-existent file returns nil owner/permissions instead of crashing",
+            result: props.ownerName == nil && props.posixPermissions == nil)
     }
 
     private static func testKindIsResolvedForRegularFile() async {

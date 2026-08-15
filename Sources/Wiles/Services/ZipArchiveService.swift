@@ -11,11 +11,10 @@ public final class ArchiveService: Sendable {
         guard !urls.isEmpty else { return }
         let destURL = uniqueZipDestination(for: urls, in: destinationFolder)
 
-        if password == nil && urls.count == 1 {
+        if password == nil, urls.count == 1 {
             try runCompressionProcess(
                 executable: "/usr/bin/ditto",
-                arguments: ["-c", "-k", "--sequesterRsrc", urls[0].path, destURL.path]
-            )
+                arguments: ["-c", "-k", "--sequesterRsrc", urls[0].path, destURL.path])
             return
         }
 

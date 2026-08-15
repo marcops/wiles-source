@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct FileSystemSearchAndSortTests {
@@ -29,8 +29,7 @@ public struct FileSystemSearchAndSortTests {
     private static func load(at url: URL, query: String = "", sort: SortOption = .name, ascending: Bool = true, showHidden: Bool = false) async -> [FileItem] {
         await FileSystemService.loadDirectoryContents(
             at: url,
-            options: DirectoryLoadOptions(showHidden: showHidden, showTags: false, searchQuery: query, sortOption: sort, sortAscending: ascending)
-        )
+            options: DirectoryLoadOptions(showHidden: showHidden, showTags: false, searchQuery: query, sortOption: sort, sortAscending: ascending))
     }
 
     private static func report(_ name: String, result: Bool) {
@@ -142,10 +141,10 @@ public struct FileSystemSearchAndSortTests {
         try? "x".write(to: dir.appendingPathComponent("cherry.txt"), atomically: true, encoding: .utf8)
 
         let ascending = await load(at: dir, sort: .name, ascending: true)
-        report("POS: sortOption .name ascending orders A→Z", result: ascending.map { $0.name } == ["apple.txt", "banana.txt", "cherry.txt"])
+        report("POS: sortOption .name ascending orders A→Z", result: ascending.map(\.name) == ["apple.txt", "banana.txt", "cherry.txt"])
 
         let descending = await load(at: dir, sort: .name, ascending: false)
-        report("POS: sortOption .name descending orders Z→A", result: descending.map { $0.name } == ["cherry.txt", "banana.txt", "apple.txt"])
+        report("POS: sortOption .name descending orders Z→A", result: descending.map(\.name) == ["cherry.txt", "banana.txt", "apple.txt"])
     }
 
     private static func testSortBySize() async {
@@ -157,7 +156,7 @@ public struct FileSystemSearchAndSortTests {
         try? Data(repeating: 0, count: 900).write(to: dir.appendingPathComponent("large.bin"))
 
         let results = await load(at: dir, sort: .size, ascending: true)
-        report("POS: sortOption .size ascending orders smallest to largest", result: results.map { $0.name } == ["small.bin", "medium.bin", "large.bin"])
+        report("POS: sortOption .size ascending orders smallest to largest", result: results.map(\.name) == ["small.bin", "medium.bin", "large.bin"])
     }
 
     private static func testDirectoriesAlwaysSortFirst() async {
@@ -171,9 +170,9 @@ public struct FileSystemSearchAndSortTests {
         report("POS: folders always sort before files regardless of name-based ordering", result: results.first?.name == "zzz_folder")
     }
 
-    // Covers matchesDateFilter's digit-parse guard failure (no numeric digits in the value) and the
-    // week/month/year unit branches of dateFilterSeconds, none of which the "today"/"yesterday"/hour
-    // tests elsewhere exercise.
+    /// Covers matchesDateFilter's digit-parse guard failure (no numeric digits in the value) and the
+    /// week/month/year unit branches of dateFilterSeconds, none of which the "today"/"yesterday"/hour
+    /// tests elsewhere exercise.
     private static func testDateFilterEdgeCases() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -193,9 +192,9 @@ public struct FileSystemSearchAndSortTests {
         report("POS: \"date:>=Ny\" applies the year unit without crashing", result: byYear.isEmpty)
     }
 
-    // Covers matchesSizeFilter's default (">=") operator branch — reached when the value has no
-    // explicit </<=/=/> prefix — and sizeFilterMultiplier's default (megabyte) branch, reached for
-    // any unit other than "k"/"b"/"g" (including no unit at all, or "m").
+    /// Covers matchesSizeFilter's default (">=") operator branch — reached when the value has no
+    /// explicit </<=/=/> prefix — and sizeFilterMultiplier's default (megabyte) branch, reached for
+    /// any unit other than "k"/"b"/"g" (including no unit at all, or "m").
     private static func testSizeFilterEdgeCases() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -204,18 +203,19 @@ public struct FileSystemSearchAndSortTests {
         try? Data(repeating: 0, count: 500).write(to: file)
 
         let defaultOperator = await load(at: dir, query: "size:500b")
-        report("POS: \"size:Nb\" with no explicit operator defaults to >= and matches an exact-size file",
+        report(
+            "POS: \"size:Nb\" with no explicit operator defaults to >= and matches an exact-size file",
             result: defaultOperator.count == 1 && defaultOperator.first?.name == "no_operator.bin")
 
         let defaultMultiplier = await load(at: dir, query: "size:>1m")
         report("NEG: \"size:>Nm\" applies the default megabyte multiplier, excluding a 500-byte file", result: defaultMultiplier.isEmpty)
     }
 
-    // Covers guard-failure branches reached only when resourceValues() itself fails or the file's
-    // content can't be decoded: matchesDateFilter/matchesSizeFilter's "resourceValues failed" guard,
-    // and matchesContent's size-check and UTF-8-decode guards. Calling SearchFilterService directly
-    // (rather than through loadDirectoryContents, which only ever sees real directory entries) lets a
-    // deliberately nonexistent URL reach these guards.
+    /// Covers guard-failure branches reached only when resourceValues() itself fails or the file's
+    /// content can't be decoded: matchesDateFilter/matchesSizeFilter's "resourceValues failed" guard,
+    /// and matchesContent's size-check and UTF-8-decode guards. Calling SearchFilterService directly
+    /// (rather than through loadDirectoryContents, which only ever sees real directory entries) lets a
+    /// deliberately nonexistent URL reach these guards.
     private static func testDirectSearchFilterServiceGuardFailures() {
         let missingFile = tempDir().appendingPathComponent("missing.txt")
         let dateResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "date:>=1d", regex: nil)

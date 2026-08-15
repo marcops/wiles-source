@@ -18,7 +18,9 @@ public enum FileMetadataTooltipService {
 
     public static func tooltip(for item: FileItem) async -> String {
         let key = item.url.path as NSString
-        if let cached = cache.object(forKey: key) { return cached as String }
+        if let cached = cache.object(forKey: key) {
+            return cached as String
+        }
 
         var lines = [item.name]
         if item.isDirectory {

@@ -13,8 +13,7 @@ struct BackgroundContextMenuLayer: View {
                 RightClickDetector {
                     appState.selectedURLs.removeAll()
                     windowUIState.renameItem = nil
-                }
-            )
+                })
             .contextMenu {
                 SharedBackgroundContextMenu(appState: appState)
             }

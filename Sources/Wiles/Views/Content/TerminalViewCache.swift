@@ -1,6 +1,6 @@
-import SwiftUI
-import SwiftTerm
 import AppKit
+import SwiftTerm
+import SwiftUI
 
 /// Keeps the PTY-backed terminal NSView (and its running shell process) alive across drawer
 /// show/hide cycles. SwiftUI destroys and recreates NSViewRepresentable content whenever it's
@@ -14,5 +14,5 @@ final class TerminalViewCache {
     static let shared = TerminalViewCache()
     var view: LocalProcessTerminalView?
     var coordinator: IntegratedTerminalView.Coordinator?
-    private init() {}
+    private init() { }
 }

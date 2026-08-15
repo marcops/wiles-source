@@ -1,16 +1,15 @@
-import Foundation
 import AppKit
 import CoreGraphics
+import Foundation
 import UniformTypeIdentifiers
 
-public final class ImageConverterService {
+public enum ImageConverterService {
     public static func convertImage(
         at url: URL,
         targetFormat: ImageFormat,
         preset: ResizePreset,
         cropPreset: CropPreset = .none,
-        quality: Double = 0.85
-    ) throws -> URL {
+        quality: Double = 0.85) throws -> URL {
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
               let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
             throw NSError(domain: "ImageConverterService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to load image at \(url.path)"])
@@ -53,9 +52,9 @@ public final class ImageConverterService {
 
     private static func croppedDimensions(fullW: CGFloat, fullH: CGFloat, targetAspect: CGFloat) -> (CGFloat, CGFloat) {
         if (fullW / fullH) > targetAspect {
-            return (fullH * targetAspect, fullH)
+            (fullH * targetAspect, fullH)
         } else {
-            return (fullW, fullW / targetAspect)
+            (fullW, fullW / targetAspect)
         }
     }
 
@@ -97,8 +96,7 @@ public final class ImageConverterService {
             bitsPerComponent: 8,
             bytesPerRow: 0,
             space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        )
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
 
         guard let ctx = context else {
             throw NSError(domain: "ImageConverterService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create graphics context"])

@@ -1,8 +1,11 @@
-import Foundation
 import AppKit
+import Foundation
 
 public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
-    public var id: URL { url }
+    public var id: URL {
+        url
+    }
+
     public let url: URL
     public let name: String
     public let isDirectory: Bool
@@ -30,7 +33,7 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     /// avoid a blocking LaunchServices IPC call per file.
     public init(url: URL, icon: NSImage? = nil, fetchTags: Bool = false, needsOwnerGroup: Bool = true) {
         self.url = url.standardizedFileURL
-        self.name = url.lastPathComponent
+        name = url.lastPathComponent
 
         let keys: Set<URLResourceKey> = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey,
@@ -49,35 +52,35 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
         // silently returns an empty tag list for local (non-iCloud) files.
         let tagValues = fetchTags ? try? url.resourceValues(forKeys: [.tagNamesKey, .labelColorKey]) : nil
 
-        self.isDirectory = values?.isDirectory ?? false
-        self.size = Int64(values?.fileSize ?? 0)
-        self.dateModified = values?.contentModificationDate ?? Date()
-        self.dateCreated = values?.creationDate ?? Date()
-        self.dateAccessed = values?.contentAccessDate
-        self.isHidden = values?.isHidden ?? url.lastPathComponent.hasPrefix(".")
-        self.fileExtension = url.pathExtension.lowercased()
+        isDirectory = values?.isDirectory ?? false
+        size = Int64(values?.fileSize ?? 0)
+        dateModified = values?.contentModificationDate ?? Date()
+        dateCreated = values?.creationDate ?? Date()
+        dateAccessed = values?.contentAccessDate
+        isHidden = values?.isHidden ?? url.lastPathComponent.hasPrefix(".")
+        fileExtension = url.pathExtension.lowercased()
 
         let ubiquitous = Self.ubiquitousStatus(from: values)
-        self.isUbiquitous = ubiquitous.isUbiquitous
-        self.isUbiquitousNotDownloaded = ubiquitous.notDownloaded
-        self.isUbiquitousDownloading = ubiquitous.downloading
-        self.isUbiquitousUploading = ubiquitous.uploading
+        isUbiquitous = ubiquitous.isUbiquitous
+        isUbiquitousNotDownloaded = ubiquitous.notDownloaded
+        isUbiquitousDownloading = ubiquitous.downloading
+        isUbiquitousUploading = ubiquitous.uploading
 
         // Fetch POSIX owner/group. This is a separate stat/getpwuid/getgrgid syscall path that
         // doesn't share the bulk-prefetched URLResourceValues above, so skip it entirely when the
         // caller knows the Owner/Group columns aren't visible.
         if needsOwnerGroup {
-            (self.ownerName, self.groupName) = Self.ownerAndGroup(atPath: url.path)
+            (ownerName, groupName) = Self.ownerAndGroup(atPath: url.path)
         } else {
-            (self.ownerName, self.groupName) = ("--", "--")
+            (ownerName, groupName) = ("--", "--")
         }
 
         if fetchTags {
-            self.tags = tagValues?.tagNames ?? []
-            self.tagColor = tagValues?.labelColor
+            tags = tagValues?.tagNames ?? []
+            tagColor = tagValues?.labelColor
         } else {
-            self.tags = []
-            self.tagColor = nil
+            tags = []
+            tagColor = nil
         }
     }
 
@@ -100,8 +103,7 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
             isUbiquitous: values?.isUbiquitousItem ?? false,
             notDownloaded: values?.ubiquitousItemDownloadingStatus == .notDownloaded,
             downloading: values?.ubiquitousItemIsDownloading ?? false,
-            uploading: values?.ubiquitousItemIsUploading ?? false
-        )
+            uploading: values?.ubiquitousItemIsUploading ?? false)
     }
 
     private static func ownerAndGroup(atPath path: String) -> (owner: String, group: String) {
@@ -114,7 +116,9 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     }
 
     public var formattedSize: String {
-        if isDirectory { return "--" }
+        if isDirectory {
+            return "--"
+        }
         return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
 
@@ -140,12 +144,12 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
 
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.url == rhs.url &&
-        lhs.isDirectory == rhs.isDirectory &&
-        lhs.size == rhs.size &&
-        lhs.dateModified == rhs.dateModified &&
-        lhs.isHidden == rhs.isHidden &&
-        lhs.tags == rhs.tags &&
-        lhs.isUbiquitousNotDownloaded == rhs.isUbiquitousNotDownloaded
+            lhs.isDirectory == rhs.isDirectory &&
+            lhs.size == rhs.size &&
+            lhs.dateModified == rhs.dateModified &&
+            lhs.isHidden == rhs.isHidden &&
+            lhs.tags == rhs.tags &&
+            lhs.isUbiquitousNotDownloaded == rhs.isUbiquitousNotDownloaded
     }
 
     public func hash(into hasher: inout Hasher) {

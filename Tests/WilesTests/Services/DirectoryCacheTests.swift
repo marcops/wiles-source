@@ -1,6 +1,6 @@
-@testable import Wiles
-import Foundation
 import AppKit
+import Foundation
+@testable import Wiles
 
 @MainActor
 public struct DirectoryCacheTests {
@@ -73,8 +73,14 @@ public struct DirectoryCacheTests {
         // Positive check: supportsThumbnail identifies images and PDFs
         report("ThumbnailService", "POS: supportsThumbnail returns true for .png", result: ThumbnailService.supportsThumbnail(item: pngItem))
         report("ThumbnailService", "POS: supportsThumbnail returns true for .pdf", result: ThumbnailService.supportsThumbnail(item: pdfItem))
-        report("ThumbnailService", "NEG: supportsThumbnail returns false for .txt (native file icon preserved)", result: !ThumbnailService.supportsThumbnail(item: txtItem))
-        report("ThumbnailService", "NEG: supportsThumbnail returns false for .md (native file icon preserved)", result: !ThumbnailService.supportsThumbnail(item: mdItem))
+        report(
+            "ThumbnailService",
+            "NEG: supportsThumbnail returns false for .txt (native file icon preserved)",
+            result: !ThumbnailService.supportsThumbnail(item: txtItem))
+        report(
+            "ThumbnailService",
+            "NEG: supportsThumbnail returns false for .md (native file icon preserved)",
+            result: !ThumbnailService.supportsThumbnail(item: mdItem))
 
         // Negative check: supportsThumbnail returns false for directories
         report("ThumbnailService", "NEG: supportsThumbnail returns false for directories", result: !ThumbnailService.supportsThumbnail(item: dirItem))
@@ -94,7 +100,10 @@ public struct DirectoryCacheTests {
         let urlB = dir.appendingPathComponent("clear-all-b-\(UUID().uuidString)")
         service.cacheDirectory(sampleResult(), for: urlA)
         service.cacheDirectory(sampleResult(), for: urlB)
-        report("DirectoryCache", "POS: both entries exist before clearAll()", result: service.cachedResult(for: urlA) != nil && service.cachedResult(for: urlB) != nil)
+        report(
+            "DirectoryCache",
+            "POS: both entries exist before clearAll()",
+            result: service.cachedResult(for: urlA) != nil && service.cachedResult(for: urlB) != nil)
 
         service.clearAll()
         report("DirectoryCache", "NEG: clearAll() removes an entry cached under urlA", result: service.cachedResult(for: urlA) == nil)
@@ -137,14 +146,16 @@ public struct DirectoryCacheTests {
 
         service.invalidate(url: plainURL)
         service.cacheDirectory(sampleResult(), for: plainURL)
-        report("DirectoryCache", "POS: entry cached under a canonical path is found via an equivalent non-canonical path", result: service.cachedResult(for: messyURL) != nil)
+        report(
+            "DirectoryCache",
+            "POS: entry cached under a canonical path is found via an equivalent non-canonical path",
+            result: service.cachedResult(for: messyURL) != nil)
 
         service.invalidate(url: messyURL)
         report(
             "DirectoryCache",
             "POS: invalidating via the non-canonical path removes the entry cached under the canonical path",
-            result: service.cachedResult(for: plainURL) == nil
-        )
+            result: service.cachedResult(for: plainURL) == nil)
     }
 
     private static func testInvalidateNonExistentURLIsNoOp() {
@@ -160,7 +171,10 @@ public struct DirectoryCacheTests {
         service.invalidate(url: neverCachedURL)
 
         report("DirectoryCache", "NEG: invalidating a URL with no cached entry does not throw or crash", result: true)
-        report("DirectoryCache", "POS: invalidating an unrelated URL leaves an existing entry untouched", result: service.cachedResult(for: unrelatedURL) != nil)
+        report(
+            "DirectoryCache",
+            "POS: invalidating an unrelated URL leaves an existing entry untouched",
+            result: service.cachedResult(for: unrelatedURL) != nil)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {
