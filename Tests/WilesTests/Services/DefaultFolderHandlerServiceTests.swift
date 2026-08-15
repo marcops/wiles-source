@@ -15,7 +15,7 @@ final class DefaultFolderHandlerServiceTests: XCTestCase {
     // whatever this specific runner bundle happens to be, which isn't a meaningful behavior contract.
     func testRegisterAsFolderHandlerOptionInvokesCompletionExactlyOnce() throws {
         // Real LaunchServices call crashes the test process in CI instead of failing gracefully.
-        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "LaunchServices registration crashes the test process in CI")
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-CRASH: LaunchServices registration crashes the test process in CI")
 
         let exp = expectation(description: "registerAsFolderHandlerOption completion fires")
         exp.assertForOverFulfill = true
@@ -30,7 +30,7 @@ final class DefaultFolderHandlerServiceTests: XCTestCase {
     // NEG: the default parameter value (`completion: ... = { _ in }`) is itself a safe no-op branch -
     // calling with no explicit completion handler must not crash or hang.
     func testRegisterAsFolderHandlerOptionWithDefaultCompletionDoesNotCrash() throws {
-        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "LaunchServices registration crashes the test process in CI")
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-CRASH: LaunchServices registration crashes the test process in CI")
 
         DefaultFolderHandlerService.registerAsFolderHandlerOption()
         XCTAssertTrue(true)

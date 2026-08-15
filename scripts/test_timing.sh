@@ -22,16 +22,16 @@ if [[ -z "$LOG_FILE" ]]; then
 fi
 
 echo
-echo "==> Top 10 slowest test cases"
+echo "==> Top 20 slowest test cases"
 echo
 
-# Matches lines like:
+# Matches lines from any XCTestCase class, not just the WilesAutomatedTests aggregator, e.g.:
 #   Test Case '-[WilesTests.WilesAutomatedTests testFoo]' passed (1.234 seconds).
-#   Test Case '-[WilesTests.WilesAutomatedTests testBar]' failed (0.456 seconds).
+#   Test Case '-[WilesTests.FinderStyleTruncationServiceTests testBar]' passed (0.001 seconds).
 grep -E "Test Case '.*' (passed|failed) \([0-9.]+ seconds\)\.$" "$LOG_FILE" \
-  | sed -E "s/Test Case '-\[WilesTests\.WilesAutomatedTests (test[A-Za-z0-9_]+)\]' (passed|failed) \(([0-9.]+) seconds\)\./\3 \2 \1/" \
+  | sed -E "s/Test Case '-\[WilesTests\.([A-Za-z0-9_]+) (test[A-Za-z0-9_]+)\]' (passed|failed) \(([0-9.]+) seconds\)\./\4 \3 \1.\2/" \
   | sort -rn \
-  | head -10 \
+  | head -20 \
   | awk '{printf "  %7.3fs  %-7s %s\n", $1, $2, $3}'
 
 echo

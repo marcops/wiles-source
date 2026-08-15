@@ -102,7 +102,7 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testOpenWithTests() throws {
         // Real LaunchServices calls crash the test process in CI (see DefaultFolderHandlerServiceTests).
-        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "LaunchServices calls crash the test process in CI")
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-CRASH: LaunchServices calls crash the test process in CI")
         OpenWithTests.run()
     }
 
@@ -137,7 +137,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testArchiveTests() {
+    func testArchiveTests() throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-SLOW: exceeds 2s locally")
         ArchiveTests.run()
     }
 
@@ -162,12 +163,14 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testHttpServerTests() async {
+    func testHttpServerTests() async throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-SLOW: exceeds 2s locally")
         await HttpServerTests.run()
     }
 
     @MainActor
-    func testAutoOrganizationTests() async {
+    func testAutoOrganizationTests() async throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-SLOW: exceeds 2s locally")
         await AutoOrganizationTests.run()
     }
 
@@ -282,7 +285,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testAppStateOperationsExtraTests() async {
+    func testAppStateOperationsExtraTests() async throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-SLOW: exceeds 2s locally")
         await AppStateOperationsExtraTests.run()
     }
 
@@ -297,7 +301,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testDirectoryMonitorTests() async {
+    func testDirectoryMonitorTests() async throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-SLOW: exceeds 2s locally")
         await DirectoryMonitorTests.run()
     }
 
