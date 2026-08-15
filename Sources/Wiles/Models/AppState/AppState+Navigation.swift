@@ -55,15 +55,16 @@ public extension AppState {
             NSWorkspace.shared.open(url)
             return
         }
-        let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: url.standardizedFileURL)
-        if addToHistory, url != navigation.currentURL {
+        let standardizedURL = url.standardizedFileURL
+        let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: standardizedURL)
+        if addToHistory, standardizedURL != navigation.currentURL {
             navigation.historyBack.append(navigation.currentURL)
             if navigation.historyBack.count > maxNavigationHistoryCount {
                 navigation.historyBack.removeFirst()
             }
             navigation.historyForward.removeAll()
         }
-        navigation.currentURL = url.standardizedFileURL
+        navigation.currentURL = standardizedURL
         selectedURLs.removeAll()
         selection.pendingSelectionURL = leavingChildURL
         isSearching = false
