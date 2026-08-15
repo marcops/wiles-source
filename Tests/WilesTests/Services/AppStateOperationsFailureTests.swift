@@ -38,7 +38,8 @@ extension AppStateOperationsExtraTests {
             result: errorShown)
     }
 
-    /// undo()'s catch: a .create record for a never-created URL makes moveToTrash() throw; materialize the path afterward before draining (failed records go back onto undoStack).
+    /// undo()'s catch: a .create record for a never-created URL makes moveToTrash() throw;
+    /// materialize the path afterward before draining (failed records go back onto undoStack).
     private static func testUndoLastActionFailureReportsError() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
