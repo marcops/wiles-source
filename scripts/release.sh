@@ -82,6 +82,22 @@ rm -f "$PUBLIC_DIR"/releases/wiles-v*.zip "$PUBLIC_DIR"/releases/wiles-v*.dmg
 cp "$ZIP_PATH" "$PUBLIC_DIR/releases/"
 cp "$DMG_PATH" "$PUBLIC_DIR/releases/"
 
+# Re-hash the copies actually sitting in wiles-public before they get committed — the Cask's
+# sha256 (and every user's Homebrew install) is only as trustworthy as this file, so a bad copy
+# must be caught here, not discovered later as a Homebrew SHA256 mismatch in the wild.
+PUBLISHED_ZIP_SHA256=$(shasum -a 256 "$PUBLIC_DIR/releases/wiles-v${VERSION}.zip" | awk '{print $1}')
+if [[ "$PUBLISHED_ZIP_SHA256" != "$SHA256" ]]; then
+  echo "error: published zip sha256 mismatch after copy! expected $SHA256, got $PUBLISHED_ZIP_SHA256" >&2
+  exit 1
+fi
+BUILT_DMG_SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
+PUBLISHED_DMG_SHA256=$(shasum -a 256 "$PUBLIC_DIR/releases/wiles-v${VERSION}.dmg" | awk '{print $1}')
+if [[ "$PUBLISHED_DMG_SHA256" != "$BUILT_DMG_SHA256" ]]; then
+  echo "error: published dmg sha256 mismatch after copy! expected $BUILT_DMG_SHA256, got $PUBLISHED_DMG_SHA256" >&2
+  exit 1
+fi
+echo "OK: published zip/dmg sha256 match the build output"
+
 cd "$PUBLIC_DIR"
 
 # Push the binaries + release notes FIRST, in their own commit, so we can pin the Cask's
