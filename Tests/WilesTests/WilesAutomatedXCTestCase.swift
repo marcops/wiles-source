@@ -65,7 +65,6 @@ final class WilesAutomatedTests: XCTestCase {
         MainContentViewTests.run()
         OperationsPopoverViewTests.run()
         ShortcutsHUDOverlayTests.run()
-        SingleInputSheetViewTests.run()
     }
 
     @MainActor

@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-public struct FileItem: Identifiable, Hashable, Sendable {
+public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     public var id: URL { url }
     public let url: URL
     public let name: String

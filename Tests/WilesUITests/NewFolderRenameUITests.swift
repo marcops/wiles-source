@@ -20,6 +20,7 @@ final class NewFolderRenameUITests: XCTestCase {
 
     // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
+    // swiftlint:disable:next implicitly_unwrapped_optional
     private var tempDir: URL!
 
     override func setUpWithError() throws {
@@ -67,8 +68,6 @@ final class NewFolderRenameUITests: XCTestCase {
         let contentArea = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5))
         contentArea.rightClick()
         Thread.sleep(forTimeInterval: 0.5)
-        let allLabels = (0..<app.menuItems.count).map { app.menuItems.element(boundBy: $0).label }
-        print("DEBUG all menu item labels: \(allLabels)")
         let newFolderMenuItem = app.menuItems.matching(NSPredicate(format: "label CONTAINS 'Shift+Cmd+N'")).firstMatch
         XCTAssertTrue(newFolderMenuItem.waitForExistence(timeout: 3.0), "Background context menu's New Folder item did not appear")
         newFolderMenuItem.click()

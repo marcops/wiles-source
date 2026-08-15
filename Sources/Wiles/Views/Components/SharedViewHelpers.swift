@@ -59,27 +59,6 @@ extension View {
     }
 }
 
-struct BackgroundContextMenuLayer: View {
-    var appState: AppState
-
-    @Environment(WindowUIState.self)
-    private var windowUIState
-
-    var body: some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .overlay(
-                RightClickDetector {
-                    appState.selectedURLs.removeAll()
-                    windowUIState.renameItem = nil
-                }
-            )
-            .contextMenu {
-                SharedBackgroundContextMenu(appState: appState)
-            }
-    }
-}
-
 private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
     let appState: AppState
     @Binding var visibleLimit: Int
@@ -108,29 +87,5 @@ private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
 extension View {
     public func resetPaginationAndPrefetchThumbnails(appState: AppState, visibleLimit: Binding<Int>, thumbnailIconSize: CGFloat) -> some View {
         modifier(ResetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: visibleLimit, thumbnailIconSize: thumbnailIconSize))
-    }
-}
-
-public struct ICloudStatusBadgeView: View {
-    let item: FileItem
-
-    public init(item: FileItem) {
-        self.item = item
-    }
-
-    public var body: some View {
-        if item.isUbiquitousDownloading {
-            ProgressView()
-                .scaleEffect(0.5)
-                .frame(width: 14, height: 14)
-        } else if item.isUbiquitousNotDownloaded {
-            Image(systemName: "icloud.and.arrow.down.fill")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(.accentColor)
-        } else if item.isUbiquitousUploading {
-            Image(systemName: "icloud.and.arrow.up")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(.secondary)
-        }
     }
 }

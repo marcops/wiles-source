@@ -6,7 +6,7 @@ struct SharedBackgroundContextMenu: View {
     /// Overrides `appState.navigation.currentURL` as the New Folder/File creation location —
     /// Column view passes the specific column that was right-clicked, since it can show several
     /// folders at once, none of which need to be the current one.
-    var targetFolderURL: URL? = nil
+    var targetFolderURL: URL?
     @Environment(WindowUIState.self)
     private var windowUIState
 

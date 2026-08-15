@@ -125,33 +125,37 @@ struct WilesApp: App {
                 .keyboardShortcut("w", modifiers: .command)
         }
         CommandGroup(after: .newItem) {
-            Button(appState.tr(.newFolder)) {
-                if let windowUIState { appState.createNewFolderAndRename(windowUIState: windowUIState) }
-            }
-            .keyboardShortcut("n", modifiers: [.command, .shift])
-            Button(appState.tr(.newFileTitle)) {
-                if let windowUIState { appState.createNewFileAndRename(windowUIState: windowUIState) }
-            }
-            Divider()
-            Button(appState.tr(.open)) { appState.openSelectedItem() }
-                .keyboardShortcut("o", modifiers: .command)
-                .disabled(appState.selectedURLs.isEmpty)
-            Button(appState.tr(.properties)) {
-                if let windowUIState { appState.openPropertiesForSelected(windowUIState: windowUIState) }
-            }
-            .keyboardShortcut("i", modifiers: .command)
-            .disabled(appState.selectedURLs.isEmpty)
-            Button(appState.tr(.quickLook)) {
-                if let windowUIState { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
-            }
-            .keyboardShortcut(" ", modifiers: [])
-            .disabled(appState.selectedURLs.isEmpty)
-            Divider()
-            Button(appState.tr(.moveToTrash)) {
-                if let windowUIState { appState.deleteSelected(windowUIState: windowUIState) }
-            }
-            .disabled(appState.selectedURLs.isEmpty)
+            fileItemActionCommands
         }
+    }
+
+    @ViewBuilder private var fileItemActionCommands: some View {
+        Button(appState.tr(.newFolder)) {
+            if let windowUIState { appState.createNewFolderAndRename(windowUIState: windowUIState) }
+        }
+        .keyboardShortcut("n", modifiers: [.command, .shift])
+        Button(appState.tr(.newFileTitle)) {
+            if let windowUIState { appState.createNewFileAndRename(windowUIState: windowUIState) }
+        }
+        Divider()
+        Button(appState.tr(.open)) { appState.openSelectedItem() }
+            .keyboardShortcut("o", modifiers: .command)
+            .disabled(appState.selectedURLs.isEmpty)
+        Button(appState.tr(.properties)) {
+            if let windowUIState { appState.openPropertiesForSelected(windowUIState: windowUIState) }
+        }
+        .keyboardShortcut("i", modifiers: .command)
+        .disabled(appState.selectedURLs.isEmpty)
+        Button(appState.tr(.quickLook)) {
+            if let windowUIState { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
+        }
+        .keyboardShortcut(" ", modifiers: [])
+        .disabled(appState.selectedURLs.isEmpty)
+        Divider()
+        Button(appState.tr(.moveToTrash)) {
+            if let windowUIState { appState.deleteSelected(windowUIState: windowUIState) }
+        }
+        .disabled(appState.selectedURLs.isEmpty)
     }
 
     @CommandsBuilder private var editMenuCommands: some Commands {

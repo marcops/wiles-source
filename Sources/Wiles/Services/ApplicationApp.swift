@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-public struct ApplicationApp: Identifiable, Sendable {
+public struct ApplicationApp: Identifiable, @unchecked Sendable {
     public let id: String
     public let name: String
     public let icon: NSImage

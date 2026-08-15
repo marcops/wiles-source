@@ -2,6 +2,10 @@ import AppKit
 import QuickLookThumbnailing
 import UniformTypeIdentifiers
 
+// QLThumbnailRepresentation is a read-only result type we never mutate; mark it unchecked
+// Sendable so awaiting generateBestRepresentation(for:) can return it into MainActor context.
+extension QLThumbnailRepresentation: @retroactive @unchecked Sendable {}
+
 /// Generates real image previews via QuickLookThumbnailing, replacing the generic file-type
 /// icon `NSWorkspace.icon(forFile:)` otherwise returns for every file regardless of its contents.
 /// Always generated once at `maxDimension`, cached per path — SwiftUI's `.resizable()` scales the
@@ -76,7 +80,7 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
         // Cancel any prefetch still running for a previously-viewed folder — otherwise it keeps
         // burning CPU generating thumbnails for a folder the user already navigated away from.
         prefetchTask?.cancel()
-        prefetchTask = Task.detached(priority: .userInitiated) { [weak self] in
+        prefetchTask = Task(priority: .userInitiated) { [weak self] in
             for item in eligibleItems {
                 if Task.isCancelled { break }
                 _ = await self?.loadThumbnail(for: item.url, size: size)

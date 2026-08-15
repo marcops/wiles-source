@@ -7,7 +7,7 @@ struct SelectionRectangleOverlay: View {
     var appState: AppState
     var coordinateSpaceName: String
     var minWidth: CGFloat?
-    var targetFolderURL: URL? = nil
+    var targetFolderURL: URL?
     @Binding var selectionRect: CGRect?
     // A closure, not a value, so it's only read on drag — never during body — to avoid re-rendering on every frame update.
     var cellFramesProvider: () -> [URL: CGRect]
