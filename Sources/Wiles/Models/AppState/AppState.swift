@@ -4,7 +4,7 @@ import Observation
 // swiftlint:disable:next type_body_length
 @Observable
 @MainActor
-public final class AppState {
+public final class AppState: @unchecked Sendable {
     // MARK: - Domain Stores
     public var navigation: NavigationStore
     public var preferences: PreferencesStore
