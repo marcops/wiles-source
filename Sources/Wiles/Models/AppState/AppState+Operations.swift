@@ -6,7 +6,16 @@ extension AppState {
     public func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
         for provider in providers {
             _ = provider.loadObject(ofClass: URL.self) { droppedURL, _ in
-                guard let droppedURL = droppedURL, droppedURL.standardizedFileURL != targetFolder.standardizedFileURL else { return }
+                // Comparing the `URL` values themselves (even standardized) isn't reliable here:
+                // a URL round-tripped through `NSItemProvider` can gain a directory trailing
+                // slash that a URL built locally via `.appendingPathComponent` never gets, so two
+                // URLs for the exact same folder compare unequal via `==`/`!=`. `.path` has no
+                // such ambiguity — compare that (after resolving symlinks, e.g. ~/Desktop under
+                // iCloud Drive's Desktop & Documents sync) so "drop a folder onto itself" is
+                // caught reliably.
+                guard let droppedURL = droppedURL,
+                    droppedURL.resolvingSymlinksInPath().standardizedFileURL.path
+                        != targetFolder.resolvingSymlinksInPath().standardizedFileURL.path else { return }
                 Task { @MainActor in
                     do {
                         _ = try self.moveItem(at: droppedURL, toFolder: targetFolder)

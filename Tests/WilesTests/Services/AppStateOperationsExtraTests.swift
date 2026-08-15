@@ -14,6 +14,7 @@ public struct AppStateOperationsExtraTests {
         await testDownloadFromiCloudFailure()
         await testCompressSelectedToZIPWithPassword()
         await testPasteToCurrentDirectoryEdgeCases()
+        await runHandleDropTests()
         await runFailureTests()
     }
 

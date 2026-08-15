@@ -16,22 +16,33 @@ extension AppState {
     }
 
     public func handleSelection(for item: FileItem) {
-        let flags = NSEvent.modifierFlags
+        handleSelection(for: item, modifierFlags: NSEvent.modifierFlags)
+    }
+
+    /// Testable seam for `handleSelection(for:)` — real callers go through the overload above,
+    /// which reads live `NSEvent.modifierFlags`; tests drive this directly with explicit flags.
+    /// Ranges anchor on `selection.keyboardSelectionAnchorURL`, never `selectedURLs.first` — a
+    /// `Set` has no stable order, so `.first` would make the shift-click range drift to an
+    /// arbitrary already-selected item (see `SelectionStore.keyboardSelectionAnchorURL`'s doc
+    /// comment, and the same fix already applied to Shift+Arrow keyboard selection).
+    func handleSelection(for item: FileItem, modifierFlags flags: NSEvent.ModifierFlags) {
         if flags.contains(.command) {
             if selectedURLs.contains(item.url) {
                 selectedURLs.remove(item.url)
             } else {
                 selectedURLs.insert(item.url)
             }
+            selection.keyboardSelectionAnchorURL = item.url
         } else if flags.contains(.shift),
-            let last = selectedURLs.first,
-            let lastIdx = fileSystem.items.firstIndex(where: { $0.url == last }),
+            let anchorURL = selection.keyboardSelectionAnchorURL,
+            let anchorIdx = fileSystem.items.firstIndex(where: { $0.url == anchorURL }),
             let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) {
-            let range = min(lastIdx, curIdx)...max(lastIdx, curIdx)
+            let range = min(anchorIdx, curIdx)...max(anchorIdx, curIdx)
             let rangeURLs = fileSystem.items[range].map { $0.url }
             selectedURLs.formUnion(rangeURLs)
         } else {
             selectedURLs = [item.url]
+            selection.keyboardSelectionAnchorURL = item.url
         }
     }
 }

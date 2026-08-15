@@ -303,4 +303,9 @@ final class WilesAutomatedTests: XCTestCase {
     func testFileItemFormattingTests() {
         FileItemFormattingTests.run()
     }
+
+    @MainActor
+    func testTagColorTests() {
+        TagColorTests.run()
+    }
 }

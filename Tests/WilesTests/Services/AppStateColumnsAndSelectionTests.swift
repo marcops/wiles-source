@@ -14,6 +14,8 @@ public struct AppStateColumnsAndSelectionTests {
         testSetViewModeForFolder()
         testHandleSelectionSingleClick()
         testHandleSelectionExtend()
+        testHandleSelectionMouseShiftClickUsesStableAnchor()
+        testHandleSelectionMouseCmdClick()
         testAutoFitColumnWidth()
         testPerformRenameNoOpCases()
         testPerformRenameFailurePath()
@@ -220,6 +222,65 @@ public struct AppStateColumnsAndSelectionTests {
 
         appState.handleSelection(for: itemB, extendSelection: true)
         report("AppState+Selection", "NEG: handleSelection() with extend toggling off the last item empties the selection", result: appState.selectedURLs.isEmpty)
+    }
+
+    /// Regression for the mouse-click `handleSelection(for:)` overload anchoring shift-click
+    /// ranges on `selectedURLs.first` — `Set` has no stable order, and here the anchor item is
+    /// deselected before the shift-click, so the old code's optional bind on `.first` fails
+    /// entirely (selection is empty) and silently falls back to a single-item click instead of
+    /// a range. The fix anchors on `selection.keyboardSelectionAnchorURL` instead, matching the
+    /// existing Shift+Arrow keyboard anchor (see `SelectionStore.swift`).
+    private static func testHandleSelectionMouseShiftClickUsesStableAnchor() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let itemA = makeItem(named: "a.txt", in: dir)
+        let itemB = makeItem(named: "b.txt", in: dir)
+        let itemC = makeItem(named: "c.txt", in: dir)
+        let itemD = makeItem(named: "d.txt", in: dir)
+        appState.fileSystem.items = [itemA, itemB, itemC, itemD]
+
+        appState.selectedURLs = []
+        appState.handleSelection(for: itemB, modifierFlags: [])
+        report("AppState+Selection", "POS: plain click sets the keyboard selection anchor", result: appState.selection.keyboardSelectionAnchorURL == itemB.url)
+
+        appState.handleSelection(for: itemB, modifierFlags: .command)
+        report(
+            "AppState+Selection",
+            "POS: cmd-click on the anchor item toggles it off but leaves the anchor in place",
+            result: appState.selectedURLs.isEmpty && appState.selection.keyboardSelectionAnchorURL == itemB.url
+        )
+
+        appState.handleSelection(for: itemD, modifierFlags: .shift)
+        report(
+            "AppState+Selection",
+            "POS: shift-click after the anchor item was deselected still ranges from the stable anchor (B) through D, not just the clicked item",
+            result: appState.selectedURLs == Set([itemB.url, itemC.url, itemD.url])
+        )
+    }
+
+    private static func testHandleSelectionMouseCmdClick() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let itemA = makeItem(named: "a.txt", in: dir)
+        let itemB = makeItem(named: "b.txt", in: dir)
+        appState.fileSystem.items = [itemA, itemB]
+
+        appState.selectedURLs = [itemA.url]
+        appState.handleSelection(for: itemB, modifierFlags: .command)
+        report("AppState+Selection", "POS: cmd-click adds to the existing selection instead of replacing it", result: appState.selectedURLs == Set([itemA.url, itemB.url]))
+
+        appState.handleSelection(for: itemA, modifierFlags: [])
+        report(
+            "AppState+Selection",
+            "POS: a plain click (no modifiers) still replaces the whole selection with just the clicked item",
+            result: appState.selectedURLs == [itemA.url]
+        )
     }
 
     private static func testAutoFitColumnWidth() {
