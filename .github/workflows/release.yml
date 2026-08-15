@@ -47,6 +47,14 @@ jobs:
             exit 1
           fi
 
+      - name: Lint (SwiftLint)
+        working-directory: wiles-source
+        run: |
+          if ! command -v swiftlint >/dev/null 2>&1; then
+            brew install swiftlint
+          fi
+          swiftlint lint --strict
+
       - name: Build & package (.zip + .dmg)
         working-directory: wiles-source
         run: |
