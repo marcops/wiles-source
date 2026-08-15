@@ -158,7 +158,8 @@ jobs:
             --repo marcops/wiles \
             --title "Wiles v${{ steps.version.outputs.value }}" \
             --notes "See RELEASE_NOTES.md in marcops/wiles" \
-            --latest
+            --latest \
+            --clobber
 
       - name: Publish binaries + update Cask in wiles-public
         env:
