@@ -323,6 +323,16 @@
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Wiles 파일 관리자";
 "wilesHelpAndShortcuts" = "도움말";
+"feedbackMenuItem" = "피드백 보내기";
+"feedbackSubtitle" = "버그를 신고하거나 아이디어를 제안하세요";
+"feedbackKindBug" = "버그";
+"feedbackKindFeature" = "기능";
+"feedbackTitleFieldPlaceholder" = "제목";
+"feedbackDescriptionPlaceholder" = "아이디어를 설명해 주세요...";
+"feedbackSubmit" = "제출";
+"feedbackSubmitting" = "제출 중...";
+"feedbackSuccessMessage" = "감사합니다! 피드백이 제출되었습니다.";
+"feedbackConfirmMessage" = "이 피드백을 보내시겠습니까?";
 "write" = "쓰기";
 "yellow" = "Yellow";
 "yes" = "Yes";
@@ -371,3 +381,8 @@
 "noArchiveEntriesFound" = "항목을 찾을 수 없거나 압축 파일을 읽을 수 없습니다.";
 "extractEntryHint" = "이 파일을 현재 폴더에 압축 해제합니다";
 "archiveFileEntry" = "파일";
+"sharedFolderPageTitle" = "공유 폴더";
+"sharedFolderHeading" = "공유됨";
+"requirePassword" = "비밀번호 필요";
+"startSharing" = "공유 시작";
+"wifiSharePasswordProtectedNotice" = "이 폴더는 비밀번호로 보호되어 있습니다. 접근하려면 비밀번호를 입력해야 합니다.";

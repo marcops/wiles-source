@@ -36,6 +36,7 @@ public final class WindowUIState {
     public var inspectArchiveURL: URL?
     public var showArchiveInspectionSheet: Bool = false
     public var showHelpSheet: Bool = false
+    public var showFeedbackSheet: Bool = false
     public var showAboutSheet: Bool = false
     public var showSettingsSheet: Bool = false
     public var quickLookURL: URL?
@@ -51,7 +52,7 @@ public final class WindowUIState {
             || showDeleteConfirmAlert || showConnectToServerSheet || showAutoOrganizationSheet
             || showDuplicateCleanerSheet || showHttpShareSheet || showSaveSmartFolderSheet
             || showPasswordCompressSheet || showArchiveInspectionSheet || showHelpSheet
-            || showAboutSheet || showSettingsSheet || showShortcutsHUD
+            || showFeedbackSheet || showAboutSheet || showSettingsSheet || showShortcutsHUD
             || propertiesItem != nil || imageConverterItem != nil || symlinkItem != nil
     }
 

@@ -326,6 +326,16 @@
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Wiles File Manager";
 "wilesHelpAndShortcuts" = "Help";
+"feedbackMenuItem" = "Send Feedback";
+"feedbackSubtitle" = "Report a bug or suggest an idea";
+"feedbackKindBug" = "Bug";
+"feedbackKindFeature" = "Feature";
+"feedbackTitleFieldPlaceholder" = "Title";
+"feedbackDescriptionPlaceholder" = "Describe your idea...";
+"feedbackSubmit" = "Submit";
+"feedbackSubmitting" = "Submitting...";
+"feedbackSuccessMessage" = "Thanks! Your feedback has been submitted.";
+"feedbackConfirmMessage" = "Send this feedback?";
 "write" = "Write";
 "yellow" = "Yellow";
 "yes" = "Yes";
@@ -370,3 +380,8 @@
 "noArchiveEntriesFound" = "No entries found or the archive could not be read.";
 "extractEntryHint" = "Extracts this file to the current folder";
 "archiveFileEntry" = "File";
+"sharedFolderPageTitle" = "Shared Folder";
+"sharedFolderHeading" = "Shared";
+"requirePassword" = "Require Password";
+"startSharing" = "Start Sharing";
+"wifiSharePasswordProtectedNotice" = "This folder is password protected. Visitors must enter the password to access it.";

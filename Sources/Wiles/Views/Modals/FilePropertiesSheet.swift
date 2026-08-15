@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import GitBeacon
 
 struct FilePropertiesSheet: View {
     let item: FileItem
@@ -169,6 +170,7 @@ struct FilePropertiesSheet: View {
                 do {
                     try FilePermissionsService.setPermissions(for: item.url, permissions: permissions)
                 } catch {
+                    ErrorReporter.report(error, context: "Applying file permissions")
                     appState.showError(error.localizedDescription)
                 }
             }

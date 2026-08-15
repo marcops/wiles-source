@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import GitBeacon
 
 struct ArchiveInspectionSheetView: View {
     let archiveURL: URL
@@ -110,6 +111,7 @@ struct ArchiveInspectionSheetView: View {
         do {
             _ = try await ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.navigation.currentURL)
         } catch {
+            ErrorReporter.report(error, context: "Extracting single archive entry")
             await MainActor.run {
                 appState.showError(error.localizedDescription)
             }

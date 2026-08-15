@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import GitBeacon
 
 @Observable
 public final class LocalHttpServerService: @unchecked Sendable {
@@ -13,11 +14,13 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.wiles.HttpServer")
     private var connections: [NWConnection] = []
+    private var requiredPassword: String?
 
     private init() {}
 
-    public func start(sharing folder: URL) {
+    public func start(sharing folder: URL, password: String? = nil) {
         sharedFolder = folder
+        requiredPassword = (password?.isEmpty == false) ? password : nil
         do {
             let parameters = NWParameters.tcp
             listener = try NWListener(using: parameters, on: port)
@@ -44,6 +47,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
             listener?.start(queue: queue)
         } catch {
+            ErrorReporter.report(error, context: "Starting local HTTP share server")
             stop()
         }
     }
@@ -59,6 +63,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             self.connections.removeAll()
         }
         sharedFolder = nil
+        requiredPassword = nil
         Task { @MainActor in
             isRunning = false
             serverURL = nil
@@ -144,12 +149,46 @@ public final class LocalHttpServerService: @unchecked Sendable {
             return
         }
 
+        guard isAuthorized(headerLines: lines.dropFirst()) else {
+            sendResponse(
+                connection: connection,
+                statusCode: HTTPStatus.unauthorized,
+                body: Data("Unauthorized".utf8),
+                extraHeaders: ["WWW-Authenticate": "Basic realm=\"Wiles Shared Folder\""]
+            )
+            return
+        }
+
         if path == "/" || path.isEmpty {
             serveDirectoryListing(folder: folder, connection: connection)
             return
         }
 
         serveFile(path: path, folder: folder, connection: connection)
+    }
+
+    // Password is optional (rule: user chooses with/without auth, HttpShareSheet). When set, every
+    // request must present valid HTTP Basic credentials; the username is not checked, only the password.
+    private func isAuthorized(headerLines: some Sequence<String>) -> Bool {
+        guard let requiredPassword else { return true }
+
+        guard let authHeader = headerLines.first(where: { $0.lowercased().hasPrefix("authorization:") }) else {
+            return false
+        }
+
+        let value = authHeader.dropFirst("authorization:".count).trimmingCharacters(in: .whitespaces)
+        guard value.hasPrefix("Basic ") else { return false }
+
+        let encoded = value.dropFirst("Basic ".count)
+        guard let decodedData = Data(base64Encoded: String(encoded)),
+              let decoded = String(data: decodedData, encoding: .utf8) else {
+            return false
+        }
+
+        let providedPassword = decoded.split(separator: ":", maxSplits: 1).count == 2
+            ? String(decoded.split(separator: ":", maxSplits: 1)[1])
+            : ""
+        return providedPassword == requiredPassword
     }
 
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {
@@ -161,15 +200,24 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 return "<li style='margin-bottom: 8px;'><a href=\"/\(encoded)\" style='text-decoration: none; color: #0066cc;'>\(name)</a></li>"
             }.joined()
 
+            let rawLanguage = UserDefaults.standard.string(forKey: DefaultsKey.appLanguage.rawValue) ?? AppLanguage.system.rawValue
+            let language = AppLanguage(rawValue: rawLanguage) ?? .system
+
             guard let html = TemplateRenderingService.render(
                 resource: "SharedFolder",
-                replacements: ["FOLDER_NAME": folder.lastPathComponent, "ITEMS": items]
+                replacements: [
+                    "FOLDER_NAME": folder.lastPathComponent,
+                    "ITEMS": items,
+                    "PAGE_TITLE": L10n.string(.sharedFolderPageTitle, lang: language),
+                    "HEADING": L10n.string(.sharedFolderHeading, lang: language)
+                ]
             ) else {
                 sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Missing SharedFolder template".utf8))
                 return
             }
             sendResponse(connection: connection, statusCode: HTTPStatus.ok, body: Data(html.utf8), contentType: "text/html")
         } catch {
+            ErrorReporter.report(error, context: "Serving directory listing over local HTTP share")
             sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading directory".utf8))
         }
     }
@@ -229,6 +277,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 self.sendNextChunk(fileHandle: fileHandle, connection: connection)
             }))
         } catch {
+            ErrorReporter.report(error, context: "Streaming file over local HTTP share")
             sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading file".utf8))
         }
     }
@@ -254,14 +303,15 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }))
     }
 
-    private func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain") {
+    private func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain", extraHeaders: [String: String] = [:]) {
         let statusText = HTTPURLResponse.localizedString(forStatusCode: statusCode)
+        let extraHeaderLines = extraHeaders.map { "\($0.key): \($0.value)\r\n" }.joined()
         let headerStr = """
         HTTP/1.1 \(statusCode) \(statusText)\r
         Content-Length: \(body.count)\r
         Content-Type: \(contentType)\r
         Connection: close\r
-        \r
+        \(extraHeaderLines)\r
 
         """
         var responseData = Data(headerStr.utf8)

@@ -323,6 +323,16 @@
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "مدير ملفات Wiles";
 "wilesHelpAndShortcuts" = "مساعدة";
+"feedbackMenuItem" = "إرسال ملاحظات";
+"feedbackSubtitle" = "أبلغ عن خطأ أو اقترح فكرة";
+"feedbackKindBug" = "خطأ";
+"feedbackKindFeature" = "ميزة";
+"feedbackTitleFieldPlaceholder" = "العنوان";
+"feedbackDescriptionPlaceholder" = "صف فكرتك...";
+"feedbackSubmit" = "إرسال";
+"feedbackSubmitting" = "جارٍ الإرسال...";
+"feedbackSuccessMessage" = "شكرًا! تم إرسال ملاحظاتك.";
+"feedbackConfirmMessage" = "هل تريد إرسال هذه الملاحظات؟";
 "write" = "كتابة";
 "yellow" = "Yellow";
 "yes" = "Yes";
@@ -371,3 +381,8 @@
 "noArchiveEntriesFound" = "لم يتم العثور على عناصر أو تعذّرت قراءة الأرشيف.";
 "extractEntryHint" = "يستخرج هذا الملف إلى المجلد الحالي";
 "archiveFileEntry" = "ملف";
+"sharedFolderPageTitle" = "مجلد مشترك";
+"sharedFolderHeading" = "تمت المشاركة";
+"requirePassword" = "طلب كلمة المرور";
+"startSharing" = "بدء المشاركة";
+"wifiSharePasswordProtectedNotice" = "هذا المجلد محمي بكلمة مرور. يجب على الزوار إدخال كلمة المرور للوصول إليه.";

@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import GitBeacon
 
 struct PathBarView: View {
     var appState: AppState
@@ -200,6 +201,7 @@ struct PathBarView: View {
                     do {
                         _ = try appState.moveItem(at: url, toFolder: targetFolder)
                     } catch {
+                        ErrorReporter.report(error, context: "Handling path bar drop")
                         appState.showError(error)
                     }
                     appState.refreshCurrentDirectory()

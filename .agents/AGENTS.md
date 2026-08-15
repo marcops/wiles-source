@@ -409,7 +409,22 @@ don't improvise a layout that merely "looks plausible." General rules:
   useful to evaluate what just shipped, but a growing wall of old bug-fix bullets buries it. A short
   "what Wiles has grown into" summary at the bottom stays useful indefinitely.
 
-## 38. MANDATORY: Full Rule Self-Audit Before Every Commit, on the Actual Diff
+## 39. Never Hardcode the Set of Supported Locales/Languages
+- **Never write out a fixed list of language codes** (e.g. `["en", "pt", "es", "fr", ...]`) or a
+  fixed set of per-language strings/branches in Swift, HTML, JS, or any other source file to decide
+  which languages a feature supports. That list silently goes stale the moment a `.lproj` folder is
+  added or removed under `Sources/Wiles/Resources/` — the feature keeps shipping the old set forever
+  because nothing forces someone to remember to update the hand-typed list.
+- **Always derive the locale set dynamically** from the actual source of truth: enumerate the
+  `*.lproj` directories under `Sources/Wiles/Resources/` (or go through `LocalizationService`'s own
+  notion of supported locales, if it already exposes one) instead of retyping the list anywhere else.
+- **Applies to every layer**, not just Swift: a static HTML/JS asset (like `SharedFolder.html`) that
+  needs to render in the visitor's language must not embed a hand-picked subset of translations
+  inline. Generate/populate its per-locale content from the same `.lproj` resources at build or
+  serve time (see rule 36 — template + placeholder substitution), so adding a new `.lproj` folder is
+  the only step needed for every consumer of the locale list to pick it up automatically.
+
+## 40. MANDATORY: Full Rule Self-Audit Before Every Commit, on the Actual Diff
 - **Before every single `git commit` in this repo** (source or public), run `scripts/validate.sh`
   (build/tests/lint/format — rule 34) **and** perform an explicit self-audit of `git diff` (staged +
   unstaged) against this entire file — not just rule 29's 22-point Deep Audit checklist, but every

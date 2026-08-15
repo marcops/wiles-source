@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import os
+import GitBeacon
 
 @MainActor
 public final class AutoOrganizationService {
@@ -43,6 +44,7 @@ public final class AutoOrganizationService {
             self.rules = try JSONDecoder().decode([AutoOrganizationRule].self, from: data)
         } catch {
             Self.logger.error("Failed to decode auto-organization rules from UserDefaults: \(error.localizedDescription, privacy: .public)")
+            ErrorReporter.report(error, context: "Decoding auto-organization rules")
         }
     }
 
@@ -52,6 +54,7 @@ public final class AutoOrganizationService {
             UserDefaults.standard.set(data, forKey: rulesKey)
         } catch {
             Self.logger.error("Failed to encode auto-organization rules for UserDefaults: \(error.localizedDescription, privacy: .public)")
+            ErrorReporter.report(error, context: "Encoding auto-organization rules")
         }
     }
 
@@ -178,7 +181,9 @@ public final class AutoOrganizationService {
                             UndoRedoService.shared.recordAction(.move(sourceURL: file, destinationURL: destinationURL.appendingPathComponent(file.lastPathComponent)))
                         }
                     } catch {
-                        // Suppress silent failures during background file monitoring
+                        // Unexpected failure — user has no other way to learn this move silently
+                        // failed, since it runs unattended from background file monitoring.
+                        ErrorReporter.report(error, context: "Auto-organization: moving file to rule destination")
                     }
                 }
                 break // Stop checking other rules for this file if one matched

@@ -59,6 +59,10 @@ public enum LayoutTokens {
     public static let archiveInspectionSheetWidth: CGFloat = 450.0
     public static let archiveInspectionSheetHeight: CGFloat = 400.0
 
+    // Feedback Sheet (bug report / feature request)
+    public static let feedbackSheetWidth: CGFloat = 460.0
+    public static let feedbackDescriptionFieldHeight: CGFloat = 160.0
+
     // Lazy Loading
     public static let lazyLoadingBatchSize: Int = 100
     public static let paginationThreshold: Int = 500

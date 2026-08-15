@@ -323,6 +323,16 @@
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Wiles Dosya Yöneticisi";
 "wilesHelpAndShortcuts" = "Yardım";
+"feedbackMenuItem" = "Geri Bildirim Gönder";
+"feedbackSubtitle" = "Bir hata bildirin veya fikir önerin";
+"feedbackKindBug" = "Hata";
+"feedbackKindFeature" = "Özellik";
+"feedbackTitleFieldPlaceholder" = "Başlık";
+"feedbackDescriptionPlaceholder" = "Fikrinizi açıklayın...";
+"feedbackSubmit" = "Gönder";
+"feedbackSubmitting" = "Gönderiliyor...";
+"feedbackSuccessMessage" = "Teşekkürler! Geri bildiriminiz gönderildi.";
+"feedbackConfirmMessage" = "Bu geri bildirimi gönder?";
 "write" = "Yazma";
 "yellow" = "Yellow";
 "yes" = "Yes";
@@ -371,3 +381,8 @@
 "noArchiveEntriesFound" = "Öğe bulunamadı veya arşiv okunamadı.";
 "extractEntryHint" = "Bu dosyayı geçerli klasöre çıkarır";
 "archiveFileEntry" = "Dosya";
+"sharedFolderPageTitle" = "Paylaşılan Klasör";
+"sharedFolderHeading" = "Paylaşıldı";
+"requirePassword" = "Şifre Gerektir";
+"startSharing" = "Paylaşımı Başlat";
+"wifiSharePasswordProtectedNotice" = "Bu klasör şifreyle korunmaktadır. Ziyaretçilerin erişmek için şifreyi girmesi gerekir.";

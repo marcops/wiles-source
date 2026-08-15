@@ -6,7 +6,6 @@ struct PreviewSidebarView: View {
     @Environment(WindowUIState.self)
     private var windowUIState
     @State private var detailedProps: DetailedFileProperties?
-    @State private var previewContent: String?
 
     var body: some View {
         VStack {
@@ -50,7 +49,7 @@ struct PreviewSidebarView: View {
 
                 propertyRows(for: item)
 
-                codePreview(for: item)
+                nativePreview(for: item)
 
                 Spacer()
 
@@ -58,9 +57,6 @@ struct PreviewSidebarView: View {
                     windowUIState.propertiesItem = item
                 }
                 .buttonStyle(.link)
-            }
-            .task(id: item.url) {
-                previewContent = item.isDirectory ? nil : await Self.loadPreviewContent(url: item.url)
             }
         }
     }
@@ -81,35 +77,19 @@ struct PreviewSidebarView: View {
     }
 
     @ViewBuilder
-    private func codePreview(for item: FileItem) -> some View {
-        if !item.isDirectory, let content = previewContent {
-            let ext = item.fileExtension.lowercased()
-            if ["swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "md", "txt"].contains(ext) {
-                Divider()
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(appState.tr(.codePreview))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    ScrollView(.vertical) {
-                        Text(SyntaxHighlighterService.highlightCode(content: content, fileExtension: ext))
-                            .font(.system(size: 10, design: .monospaced))
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .padding(6)
-                    }
-                    .frame(maxHeight: 160)
+    private func nativePreview(for item: FileItem) -> some View {
+        if !item.isDirectory {
+            Divider()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(appState.tr(.codePreview))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary)
+                QLPreviewInlineView(url: item.url)
+                    .frame(height: 220)
                     .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
                     .cornerRadius(6)
-                }
             }
         }
-    }
-
-    private static func loadPreviewContent(url: URL) async -> String? {
-        await Task.detached(priority: .userInitiated) {
-            guard let content = try? String(contentsOf: url), content.count < 1_000_000 else { return nil }
-            return content
-        }.value
     }
 
     private func propertyRow(label: String, value: String) -> some View {

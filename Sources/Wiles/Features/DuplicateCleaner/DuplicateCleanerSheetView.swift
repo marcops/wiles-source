@@ -1,4 +1,5 @@
 import SwiftUI
+import GitBeacon
 
 public struct DuplicateCleanerSheetView: View {
     var appState: AppState
@@ -184,6 +185,7 @@ public struct DuplicateCleanerSheetView: View {
                 do {
                     _ = try FileSystemService.moveToTrash(url: fileURL)
                 } catch {
+                    ErrorReporter.report(error, context: "Moving duplicate file to Trash")
                     failureCount += 1
                 }
             }

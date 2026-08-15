@@ -8,12 +8,19 @@ struct HttpShareSheet: View {
     var folderURL: URL
 
     @State private var serverService = LocalHttpServerService.shared
+    @State private var isConfiguring = true
+    @State private var requireAuth = false
+    @State private var password = ""
 
     var body: some View {
         VStack(spacing: 20) {
             headerView
 
-            statusSection
+            if isConfiguring {
+                setupSection
+            } else {
+                statusSection
+            }
 
             Spacer()
 
@@ -21,11 +28,26 @@ struct HttpShareSheet: View {
         }
         .padding(20)
         .frame(width: LayoutTokens.httpShareSheetWidth, height: LayoutTokens.httpShareSheetHeight)
-        .onAppear {
-            serverService.start(sharing: folderURL)
-        }
         .onDisappear {
             serverService.stop()
+        }
+    }
+
+    private var setupSection: some View {
+        VStack(spacing: 16) {
+            Toggle(appState.tr(.requirePassword), isOn: $requireAuth)
+
+            if requireAuth {
+                SecureField(appState.tr(.enterPassword), text: $password)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            Button(appState.tr(.startSharing)) {
+                isConfiguring = false
+                serverService.start(sharing: folderURL, password: requireAuth ? password : nil)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(requireAuth && password.isEmpty)
         }
     }
 
@@ -67,7 +89,7 @@ struct HttpShareSheet: View {
                 shareLinkRow(urlString)
             }
 
-            Text(appState.tr(.wifiShareNotice))
+            Text(appState.tr(requireAuth ? .wifiSharePasswordProtectedNotice : .wifiShareNotice))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

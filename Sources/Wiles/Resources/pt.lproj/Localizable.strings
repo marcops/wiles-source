@@ -326,6 +326,16 @@
 "wifiShareNotice" = "Qualquer pessoa na sua rede Wi-Fi pode acessar esta pasta visitando o endereço acima.";
 "wilesFileManager" = "Gerenciador de Arquivos Wiles";
 "wilesHelpAndShortcuts" = "Ajuda";
+"feedbackMenuItem" = "Enviar Feedback";
+"feedbackSubtitle" = "Relate um problema ou sugira uma ideia";
+"feedbackKindBug" = "Bug";
+"feedbackKindFeature" = "Recurso";
+"feedbackTitleFieldPlaceholder" = "Título";
+"feedbackDescriptionPlaceholder" = "Descreva sua ideia...";
+"feedbackSubmit" = "Enviar";
+"feedbackSubmitting" = "Enviando...";
+"feedbackSuccessMessage" = "Obrigado! Seu feedback foi enviado.";
+"feedbackConfirmMessage" = "Enviar este feedback?";
 "write" = "Escrita";
 "yellow" = "Amarelo";
 "yes" = "Sim";
@@ -370,3 +380,8 @@
 "noArchiveEntriesFound" = "Nenhum item encontrado ou o arquivo não pôde ser lido.";
 "extractEntryHint" = "Extrai este arquivo para a pasta atual";
 "archiveFileEntry" = "Arquivo";
+"sharedFolderPageTitle" = "Pasta Compartilhada";
+"sharedFolderHeading" = "Compartilhado";
+"requirePassword" = "Exigir Senha";
+"startSharing" = "Iniciar Compartilhamento";
+"wifiSharePasswordProtectedNotice" = "Esta pasta é protegida por senha. Os visitantes devem digitar a senha para acessá-la.";

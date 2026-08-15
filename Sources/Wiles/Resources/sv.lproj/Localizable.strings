@@ -323,6 +323,16 @@
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Wiles Filhanterare";
 "wilesHelpAndShortcuts" = "Hjälp";
+"feedbackMenuItem" = "Skicka feedback";
+"feedbackSubtitle" = "Rapportera ett fel eller föreslå en idé";
+"feedbackKindBug" = "Fel";
+"feedbackKindFeature" = "Funktion";
+"feedbackTitleFieldPlaceholder" = "Titel";
+"feedbackDescriptionPlaceholder" = "Beskriv din idé...";
+"feedbackSubmit" = "Skicka";
+"feedbackSubmitting" = "Skickar...";
+"feedbackSuccessMessage" = "Tack! Din feedback har skickats.";
+"feedbackConfirmMessage" = "Skicka denna feedback?";
 "write" = "Skriv";
 "yellow" = "Yellow";
 "yes" = "Yes";
@@ -371,3 +381,8 @@
 "noArchiveEntriesFound" = "Inga objekt hittades eller så gick arkivet inte att läsa.";
 "extractEntryHint" = "Packar upp den här filen till aktuell mapp";
 "archiveFileEntry" = "Fil";
+"sharedFolderPageTitle" = "Delad Mapp";
+"sharedFolderHeading" = "Delad";
+"requirePassword" = "Kräv Lösenord";
+"startSharing" = "Starta Delning";
+"wifiSharePasswordProtectedNotice" = "Den här mappen är lösenordsskyddad. Besökare måste ange lösenordet för att komma åt den.";

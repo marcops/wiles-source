@@ -326,6 +326,16 @@
 "wifiShareNotice" = "Jeder in Ihrem WLAN-Netzwerk kann über die obige Adresse auf diesen Ordner zugreifen.";
 "wilesFileManager" = "Wiles Dateimanager";
 "wilesHelpAndShortcuts" = "Hilfe";
+"feedbackMenuItem" = "Feedback senden";
+"feedbackSubtitle" = "Melde einen Fehler oder schlage eine Idee vor";
+"feedbackKindBug" = "Fehler";
+"feedbackKindFeature" = "Funktion";
+"feedbackTitleFieldPlaceholder" = "Titel";
+"feedbackDescriptionPlaceholder" = "Beschreibe deine Idee...";
+"feedbackSubmit" = "Senden";
+"feedbackSubmitting" = "Wird gesendet...";
+"feedbackSuccessMessage" = "Danke! Dein Feedback wurde gesendet.";
+"feedbackConfirmMessage" = "Dieses Feedback senden?";
 "write" = "Schreiben";
 "yellow" = "Gelb";
 "yes" = "Ja";
@@ -370,3 +380,8 @@
 "noArchiveEntriesFound" = "Keine Einträge gefunden oder das Archiv konnte nicht gelesen werden.";
 "extractEntryHint" = "Entpackt diese Datei in den aktuellen Ordner";
 "archiveFileEntry" = "Datei";
+"sharedFolderPageTitle" = "Geteilter Ordner";
+"sharedFolderHeading" = "Geteilt";
+"requirePassword" = "Passwort Erforderlich";
+"startSharing" = "Freigabe Starten";
+"wifiSharePasswordProtectedNotice" = "Dieser Ordner ist passwortgeschützt. Besucher müssen das Passwort eingeben, um darauf zuzugreifen.";

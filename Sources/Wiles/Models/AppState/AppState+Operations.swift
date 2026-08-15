@@ -1,7 +1,25 @@
 import SwiftUI
 import AppKit
+import GitBeacon
 
 extension AppState {
+    public func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
+        for provider in providers {
+            _ = provider.loadObject(ofClass: URL.self) { droppedURL, _ in
+                guard let droppedURL = droppedURL, droppedURL.standardizedFileURL != targetFolder.standardizedFileURL else { return }
+                Task { @MainActor in
+                    do {
+                        _ = try self.moveItem(at: droppedURL, toFolder: targetFolder)
+                        self.refreshCurrentDirectory()
+                    } catch {
+                        ErrorReporter.report(error, context: "Handling file drop")
+                        self.showError(error)
+                    }
+                }
+            }
+        }
+    }
+
     public func downloadFromiCloud(url: URL) {
         Task.detached(priority: .userInitiated) {
             do {
@@ -10,6 +28,7 @@ extension AppState {
                     self?.refreshCurrentDirectory()
                 }
             } catch {
+                ErrorReporter.report(error, context: "Downloading item from iCloud")
                 await MainActor.run { [weak self] in
                     self?.showError(error.localizedDescription)
                 }
@@ -65,6 +84,7 @@ extension AppState {
                         await UndoRedoService.shared.recordAction(.create(url: destURL))
                     }
                 } catch {
+                    ErrorReporter.report(error, context: "Pasting items to current directory")
                     await MainActor.run { [weak self] in
                         self?.showError(error)
                     }
@@ -95,6 +115,7 @@ extension AppState {
                     let trashed = try FileSystemService.moveToTrash(url: url)
                     await UndoRedoService.shared.recordAction(.trash(originalURL: url, trashedURL: trashed))
                 } catch {
+                    ErrorReporter.report(error, context: "Moving item to Trash")
                     await MainActor.run { [weak self] in
                         self?.showError(error.localizedDescription)
                     }
@@ -119,6 +140,7 @@ extension AppState {
                     self?.refreshCurrentDirectory()
                 }
             } catch {
+                ErrorReporter.report(error, context: "Deleting item permanently")
                 await MainActor.run { [weak self] in
                     self?.showError(error.localizedDescription)
                 }
@@ -138,6 +160,7 @@ extension AppState {
                     self?.refreshCurrentDirectory()
                 }
             } catch {
+                ErrorReporter.report(error, context: "Shredding files")
                 await MainActor.run { [weak self] in
                     self?.showError(error.localizedDescription)
                 }
@@ -158,6 +181,7 @@ extension AppState {
                     self.selectedURLs = [targetURL]
                 }
             } catch {
+                ErrorReporter.report(error, context: "Undoing last action")
                 self.showError(error.localizedDescription)
             }
         }
@@ -171,6 +195,7 @@ extension AppState {
                     self.selectedURLs = [targetURL]
                 }
             } catch {
+                ErrorReporter.report(error, context: "Redoing last action")
                 self.showError(error.localizedDescription)
             }
         }
@@ -210,6 +235,7 @@ extension AppState {
                 at: targetFolder, baseName: tr(.defaultFolderName))
             enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
         } catch {
+            ErrorReporter.report(error, context: "Creating new folder")
             showError(error.localizedDescription)
         }
     }
@@ -221,6 +247,7 @@ extension AppState {
                 in: targetFolder, fileName: "", template: .text)
             enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
         } catch {
+            ErrorReporter.report(error, context: "Creating new file")
             showError(error.localizedDescription)
         }
     }

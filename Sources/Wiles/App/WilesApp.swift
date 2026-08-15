@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import GitBeacon
 
 @main
 struct WilesApp: App {
@@ -15,6 +16,15 @@ struct WilesApp: App {
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
         NSWindow.allowsAutomaticWindowTabbing = false
+
+        GitBeacon.configure(
+            owner: CrashReportingConstants.githubOwner,
+            repo: CrashReportingConstants.githubRepo,
+            token: CrashReportingConstants.githubToken,
+            appVersion: AppConstants.appVersion,
+            build: AppConstants.appBuild
+        )
+        GitBeacon.installCrashHandler()
     }
 
     /// Never `nil` — "System" resolves to a concrete `.light`/`.dark` via `SystemAppearanceObserver`
@@ -84,6 +94,9 @@ struct WilesApp: App {
                 }
                 appState.refreshCurrentDirectory()
                 AutoOrganizationService.shared.startMonitoring()
+                Task {
+                    await GitBeacon.processPendingReports()
+                }
             }
     }
 
@@ -284,6 +297,7 @@ struct WilesApp: App {
         CommandGroup(replacing: .help) {
             Button(appState.tr(.wilesHelpAndShortcuts)) { windowUIState?.showHelpSheet = true }
                 .keyboardShortcut("?", modifiers: .command)
+            Button(appState.tr(.feedbackMenuItem)) { windowUIState?.showFeedbackSheet = true }
             Button(appState.tr(.shortcutsCheatsheetTitle)) {
                 withAnimation(MotionTokens.snappySpring) {
                     windowUIState?.showShortcutsHUD.toggle()

@@ -1,5 +1,6 @@
 import SwiftUI
 import Observation
+import GitBeacon
 
 // swiftlint:disable:next type_body_length
 @Observable
@@ -43,6 +44,7 @@ public final class AppState: @unchecked Sendable {
         do {
             try SmartFolderService.saveSmartFolders(smartFolders)
         } catch {
+            ErrorReporter.report(error, context: "Adding smart folder")
             showError(error.localizedDescription)
         }
     }
@@ -52,6 +54,7 @@ public final class AppState: @unchecked Sendable {
         do {
             try SmartFolderService.saveSmartFolders(smartFolders)
         } catch {
+            ErrorReporter.report(error, context: "Removing smart folder")
             showError(error.localizedDescription)
         }
     }
@@ -228,6 +231,7 @@ public final class AppState: @unchecked Sendable {
             do {
                 try FileSystemService.compressToZIP(urls: urls, in: current)
             } catch {
+                ErrorReporter.report(error, context: "Compressing items to ZIP")
                 await MainActor.run { [weak self] in
                     self?.showError(error.localizedDescription)
                 }
@@ -245,6 +249,7 @@ public final class AppState: @unchecked Sendable {
             do {
                 try ArchiveService.compressToZIP(urls: urls, in: current, password: password)
             } catch {
+                ErrorReporter.report(error, context: "Compressing items to password-protected ZIP")
                 await MainActor.run { [weak self] in
                     self?.showError(error.localizedDescription)
                 }
@@ -261,6 +266,7 @@ public final class AppState: @unchecked Sendable {
             do {
                 try FileSystemService.extractZIP(archiveURL: url, to: current)
             } catch {
+                ErrorReporter.report(error, context: "Extracting archive")
                 await MainActor.run { [weak self] in
                     self?.showError(error.localizedDescription)
                 }
@@ -320,14 +326,7 @@ public final class AppState: @unchecked Sendable {
                 await MainActor.run { [weak self] in self?.isTrashUpdating = false }
                 return
             }
-            var failedCount = 0
-            for path in paths {
-                do {
-                    try fm.removeItem(at: path)
-                } catch {
-                    failedCount += 1
-                }
-            }
+            let failedCount = Self.removeTrashContents(paths, using: fm)
             await MainActor.run { [weak self] in
                 self?.updateTrashSize()
                 self?.refreshCurrentDirectory()
@@ -336,5 +335,18 @@ public final class AppState: @unchecked Sendable {
                 }
             }
         }
+    }
+
+    private nonisolated static func removeTrashContents(_ paths: [URL], using fm: FileManager) -> Int {
+        var failedCount = 0
+        for path in paths {
+            do {
+                try fm.removeItem(at: path)
+            } catch {
+                ErrorReporter.report(error, context: "Emptying Trash")
+                failedCount += 1
+            }
+        }
+        return failedCount
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 
+// swiftlint:disable:next type_body_length
 public struct L10n {
     public static func activeCode(_ preferred: AppLanguage) -> String {
         if preferred != .system { return preferred.rawValue }
@@ -33,6 +34,16 @@ public struct L10n {
         case redo
         case enclosingFolder
         case wilesHelpAndShortcuts
+        case feedbackMenuItem
+        case feedbackSubtitle
+        case feedbackKindBug
+        case feedbackKindFeature
+        case feedbackTitleFieldPlaceholder
+        case feedbackDescriptionPlaceholder
+        case feedbackSubmit
+        case feedbackSubmitting
+        case feedbackSuccessMessage
+        case feedbackConfirmMessage
         case sortBy
         case viewMode
         case gridView
@@ -400,5 +411,10 @@ public struct L10n {
         case noArchiveEntriesFound
         case extractEntryHint
         case archiveFileEntry
+        case sharedFolderPageTitle
+        case sharedFolderHeading
+        case requirePassword
+        case startSharing
+        case wifiSharePasswordProtectedNotice
     }
 }

@@ -44,6 +44,9 @@ struct MainContentView: View {
         .sheet(isPresented: $windowUIState.showHelpSheet) {
             HelpSheet(appState: appState)
         }
+        .sheet(isPresented: $windowUIState.showFeedbackSheet) {
+            FeedbackSheetView(appState: appState)
+        }
         .sheet(isPresented: $windowUIState.showAboutSheet) {
             AboutSheet(appState: appState)
         }

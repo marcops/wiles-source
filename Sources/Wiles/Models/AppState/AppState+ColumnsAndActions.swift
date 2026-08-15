@@ -1,5 +1,6 @@
 import Foundation
 import os
+import GitBeacon
 
 private let columnPersistenceLogger = Logger(subsystem: "com.wiles.app", category: "ColumnPersistence")
 
@@ -12,6 +13,7 @@ extension AppState {
             // Encoding failure here silently drops the user's column widths/visibility on next
             // launch (falls back to defaults) with no other signal, so log it for debugging.
             columnPersistenceLogger.error("Failed to encode listColumnStates: \(error.localizedDescription)")
+            ErrorReporter.report(error, context: "Encoding list column states for persistence")
         }
     }
 
@@ -89,6 +91,7 @@ extension AppState {
                     self.selectedURLs = [newURL]
                 }
             } catch {
+                ErrorReporter.report(error, context: "Converting image")
                 await MainActor.run {
                     self.showError(error.localizedDescription)
                 }
@@ -105,6 +108,7 @@ extension AppState {
             self.refreshCurrentDirectory()
             self.selectedURLs = [newURL]
         } catch {
+            ErrorReporter.report(error, context: "Renaming item")
             self.showError(error.localizedDescription)
         }
     }
@@ -118,6 +122,7 @@ extension AppState {
                     self.selectedURLs = Set(newURLs)
                 }
             } catch {
+                ErrorReporter.report(error, context: "Batch renaming items")
                 await MainActor.run {
                     self.showError(error.localizedDescription)
                 }

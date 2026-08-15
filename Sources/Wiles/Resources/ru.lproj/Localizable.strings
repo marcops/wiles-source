@@ -323,6 +323,16 @@
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Файловый Менеджер Wiles";
 "wilesHelpAndShortcuts" = "Справка";
+"feedbackMenuItem" = "Отправить отзыв";
+"feedbackSubtitle" = "Сообщите об ошибке или предложите идею";
+"feedbackKindBug" = "Ошибка";
+"feedbackKindFeature" = "Функция";
+"feedbackTitleFieldPlaceholder" = "Заголовок";
+"feedbackDescriptionPlaceholder" = "Опишите вашу идею...";
+"feedbackSubmit" = "Отправить";
+"feedbackSubmitting" = "Отправка...";
+"feedbackSuccessMessage" = "Спасибо! Ваш отзыв отправлен.";
+"feedbackConfirmMessage" = "Отправить этот отзыв?";
 "write" = "Запись";
 "yellow" = "Yellow";
 "yes" = "Yes";
@@ -371,3 +381,8 @@
 "noArchiveEntriesFound" = "Элементы не найдены или архив не удалось прочитать.";
 "extractEntryHint" = "Извлекает этот файл в текущую папку";
 "archiveFileEntry" = "Файл";
+"sharedFolderPageTitle" = "Общая Папка";
+"sharedFolderHeading" = "Общий доступ";
+"requirePassword" = "Требовать Пароль";
+"startSharing" = "Начать Общий Доступ";
+"wifiSharePasswordProtectedNotice" = "Эта папка защищена паролем. Посетители должны ввести пароль для доступа к ней.";

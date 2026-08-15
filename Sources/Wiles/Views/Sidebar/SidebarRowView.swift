@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import GitBeacon
 
 struct SidebarRowView: View {
     let item: SidebarItem
@@ -108,6 +109,7 @@ struct SidebarRowView: View {
                 try NSWorkspace.shared.unmountAndEjectDevice(at: target)
                 appState.refreshCurrentDirectory()
             } catch {
+                ErrorReporter.report(error, context: "Ejecting volume")
                 appState.showError(error.localizedDescription)
             }
         } label: {
@@ -154,6 +156,7 @@ struct SidebarRowView: View {
                         _ = try appState.moveItem(at: url, toFolder: targetFolder)
                         appState.refreshCurrentDirectory()
                     } catch {
+                        ErrorReporter.report(error, context: "Handling sidebar drop")
                         appState.showError(error)
                     }
                 }

@@ -1,4 +1,5 @@
 import SwiftUI
+import GitBeacon
 
 public struct SymlinkSheetView: View {
     let item: FileItem
@@ -92,6 +93,7 @@ public struct SymlinkSheetView: View {
             appState.selectedURLs = [createdURL]
             dismiss()
         } catch {
+            ErrorReporter.report(error, context: "Creating symbolic link")
             appState.showError(error.localizedDescription)
             dismiss()
         }

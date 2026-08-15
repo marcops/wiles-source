@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import GitBeacon
 
 struct SharedFileItemContextMenu: View {
     let item: FileItem
@@ -8,6 +9,16 @@ struct SharedFileItemContextMenu: View {
     private var windowUIState
 
     var body: some View {
+        openSection
+        shareAndFavoriteSection
+        clipboardSection
+        contentActionsSection
+        archiveAndCompressSection
+        destructiveActionsSection
+        shareTagsPropertiesSection
+    }
+
+    @ViewBuilder private var openSection: some View {
         Button(appState.tr(.open)) { appState.navigateTo(item.url) }
         Button("\(appState.tr(.quickLook)) (Space)") { windowUIState.quickLookURL = item.url }
         Menu(appState.tr(.openWith)) {
@@ -21,6 +32,9 @@ struct SharedFileItemContextMenu: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder private var shareAndFavoriteSection: some View {
         Divider()
         if item.isDirectory {
             Button(appState.tr(.shareFolderWifi)) {
@@ -34,6 +48,9 @@ struct SharedFileItemContextMenu: View {
             }
             Divider()
         }
+    }
+
+    @ViewBuilder private var clipboardSection: some View {
         Button("\(appState.tr(.cut)) (Cmd+X)") {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             appState.cutSelected()
@@ -43,54 +60,75 @@ struct SharedFileItemContextMenu: View {
             appState.copySelected()
         }
         Menu(appState.tr(.copyPath)) {
-            Button(appState.tr(.copyPathAbsolute)) {
-                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-                CopyPathService.copy(urls: target, variant: .absolute)
-            }
-            Button(appState.tr(.copyPathRelative)) {
-                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-                CopyPathService.copy(urls: target, variant: .relative, relativeTo: appState.navigation.currentURL)
-            }
-            Button(appState.tr(.copyPathURL)) {
-                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-                CopyPathService.copy(urls: target, variant: .fileURL)
-            }
-            Button(appState.tr(.copyPathTerminal)) {
-                let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-                CopyPathService.copy(urls: target, variant: .terminalEscaped)
-            }
+            copyPathMenuContent
         }
         Button("\(appState.tr(.paste)) (Cmd+V)") { appState.pasteToCurrentDirectory() }
+    }
+
+    @ViewBuilder private var copyPathMenuContent: some View {
+        Button(appState.tr(.copyPathAbsolute)) {
+            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+            CopyPathService.copy(urls: target, variant: .absolute)
+        }
+        Button(appState.tr(.copyPathRelative)) {
+            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+            CopyPathService.copy(urls: target, variant: .relative, relativeTo: appState.navigation.currentURL)
+        }
+        Button(appState.tr(.copyPathURL)) {
+            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+            CopyPathService.copy(urls: target, variant: .fileURL)
+        }
+        Button(appState.tr(.copyPathTerminal)) {
+            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+            CopyPathService.copy(urls: target, variant: .terminalEscaped)
+        }
+    }
+
+    @ViewBuilder private var contentActionsSection: some View {
         if !item.isDirectory {
             Button("\(appState.tr(.copyContent)) (#10)") {
                 if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
                 appState.copyContentOfSelected()
             }
-            let isImage = ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"].contains(item.fileExtension.lowercased())
-            if isImage {
+            if isImageFile {
                 Button(appState.tr(.quickConvertImage)) {
                     if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
                     windowUIState.imageConverterItem = item
                 }
             }
         }
-        let pdfMergeTargets = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
-        let canMergePDF = pdfMergeTargets.allSatisfy { url in
-            let ext = url.pathExtension.lowercased()
-            return ext == "pdf" || ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"].contains(ext)
-        }
-        if canMergePDF && pdfMergeTargets.count >= 1 {
+        if canMergeSelectedIntoPDF {
             Button(appState.tr(.mergeIntoPDF)) {
                 Task {
                     do {
                         _ = try await PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
                     } catch {
+                        ErrorReporter.report(error, context: "Merging files into PDF")
                         appState.showError(error.localizedDescription)
                     }
                     appState.refreshCurrentDirectory()
                 }
             }
         }
+    }
+
+    private var isImageFile: Bool {
+        ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"].contains(item.fileExtension.lowercased())
+    }
+
+    private var pdfMergeTargets: [URL] {
+        appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
+    }
+
+    private var canMergeSelectedIntoPDF: Bool {
+        let isEligible = pdfMergeTargets.allSatisfy { url in
+            let ext = url.pathExtension.lowercased()
+            return ext == "pdf" || ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"].contains(ext)
+        }
+        return isEligible && pdfMergeTargets.count >= 1
+    }
+
+    @ViewBuilder private var archiveAndCompressSection: some View {
         Divider()
         if ArchiveService.isArchive(url: item.url) {
             Button(appState.tr(.inspectArchive)) {
@@ -110,9 +148,11 @@ struct SharedFileItemContextMenu: View {
             windowUIState.passwordCompressURLs = targetURLs
             windowUIState.showPasswordCompressSheet = true
         }
+    }
+
+    @ViewBuilder private var destructiveActionsSection: some View {
         Divider()
-        let renameHint = appState.navigationMode == .gnome ? "(F2)" : "(Return)"
-        Button("\(appState.tr(.rename)) \(renameHint)") {
+        Button("\(appState.tr(.rename)) \(renameKeyboardHint)") {
             if !appState.selectedURLs.contains(item.url) { appState.selectedURLs = [item.url] }
             if appState.selectedURLs.count > 1 {
                 windowUIState.showBatchRenameSheet = true
@@ -141,6 +181,13 @@ struct SharedFileItemContextMenu: View {
                 airDrop.perform(withItems: [item.url])
             }
         }
+    }
+
+    private var renameKeyboardHint: String {
+        appState.navigationMode == .gnome ? "(F2)" : "(Return)"
+    }
+
+    @ViewBuilder private var shareTagsPropertiesSection: some View {
         Divider()
         ShareLink(item: item.url) {
             Text(appState.tr(.services))
@@ -246,6 +293,7 @@ struct SharedFileItemContextMenu: View {
                 do {
                     try FileSystemService.setTags(for: url, tags: newTags)
                 } catch {
+                    ErrorReporter.report(error, context: "Toggling tag")
                     lastError = error.localizedDescription
                 }
             }
@@ -265,6 +313,7 @@ struct SharedFileItemContextMenu: View {
                 do {
                     try FileSystemService.setTags(for: url, tags: [])
                 } catch {
+                    ErrorReporter.report(error, context: "Clearing all tags")
                     lastError = error.localizedDescription
                 }
             }
@@ -275,56 +324,5 @@ struct SharedFileItemContextMenu: View {
                 appState.refreshCurrentDirectory()
             }
         }
-    }
-}
-
-extension AppState {
-    public func handleSelection(for item: FileItem) {
-        let flags = NSEvent.modifierFlags
-        if flags.contains(.command) {
-            if selectedURLs.contains(item.url) {
-                selectedURLs.remove(item.url)
-            } else {
-                selectedURLs.insert(item.url)
-            }
-        } else if flags.contains(.shift),
-            let last = selectedURLs.first,
-            let lastIdx = fileSystem.items.firstIndex(where: { $0.url == last }),
-            let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) {
-            let range = min(lastIdx, curIdx)...max(lastIdx, curIdx)
-            let rangeURLs = fileSystem.items[range].map { $0.url }
-            selectedURLs.formUnion(rangeURLs)
-        } else {
-            selectedURLs = [item.url]
-        }
-    }
-
-    public func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
-        for provider in providers {
-            _ = provider.loadObject(ofClass: URL.self) { droppedURL, _ in
-                guard let droppedURL = droppedURL, droppedURL.standardizedFileURL != targetFolder.standardizedFileURL else { return }
-                Task { @MainActor in
-                    do {
-                        _ = try self.moveItem(at: droppedURL, toFolder: targetFolder)
-                        self.refreshCurrentDirectory()
-                    } catch {
-                        self.showError(error)
-                    }
-                }
-            }
-        }
-    }
-}
-
-public func colorForTag(_ tag: String) -> Color {
-    switch tag.lowercased() {
-    case "red": return .red
-    case "orange": return .orange
-    case "yellow": return .yellow
-    case "green": return .green
-    case "blue": return .blue
-    case "purple": return .purple
-    case "gray", "grey": return .gray
-    default: return .secondary
     }
 }

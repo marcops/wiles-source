@@ -11,13 +11,15 @@ let package = Package(
         .executable(name: "Wiles", targets: ["Wiles"])
     ],
     dependencies: [
-        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", exact: "1.2.1")
+        .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", exact: "1.2.1"),
+        .package(url: "https://github.com/marcops/git-beacon-mac.git", from: "0.0.2")
     ],
     targets: [
         .executableTarget(
             name: "Wiles",
             dependencies: [
-                .product(name: "SwiftTerm", package: "SwiftTerm")
+                .product(name: "SwiftTerm", package: "SwiftTerm"),
+                .product(name: "GitBeacon", package: "git-beacon-mac")
             ],
             path: "Sources/Wiles",
             resources: [

@@ -323,6 +323,16 @@
 "wifiShareNotice" = "Anyone on your Wi-Fi network can access this folder by visiting the address above.";
 "wilesFileManager" = "Wiles 文件管理器";
 "wilesHelpAndShortcuts" = "帮助";
+"feedbackMenuItem" = "发送反馈";
+"feedbackSubtitle" = "报告错误或提出建议";
+"feedbackKindBug" = "错误";
+"feedbackKindFeature" = "功能";
+"feedbackTitleFieldPlaceholder" = "标题";
+"feedbackDescriptionPlaceholder" = "描述您的想法...";
+"feedbackSubmit" = "提交";
+"feedbackSubmitting" = "正在提交...";
+"feedbackSuccessMessage" = "谢谢！您的反馈已提交。";
+"feedbackConfirmMessage" = "发送此反馈？";
 "write" = "写入";
 "yellow" = "Yellow";
 "yes" = "Yes";
@@ -371,3 +381,8 @@
 "noArchiveEntriesFound" = "未找到任何条目，或无法读取该压缩包。";
 "extractEntryHint" = "将此文件解压到当前文件夹";
 "archiveFileEntry" = "文件";
+"sharedFolderPageTitle" = "共享文件夹";
+"sharedFolderHeading" = "已共享";
+"requirePassword" = "需要密码";
+"startSharing" = "开始共享";
+"wifiSharePasswordProtectedNotice" = "此文件夹受密码保护。访问者必须输入密码才能访问。";

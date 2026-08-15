@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import GitBeacon
 
 public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable {
     public static func listEntries(in archiveURL: URL) async -> [ArchiveEntryItem] {
@@ -9,7 +10,13 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
             // process locale, even though tools like `ditto`/`zip` store genuine UTF-8 bytes
             // in the ZIP central directory. Parsing the central directory ourselves and
             // decoding names directly as UTF-8 sidesteps that mangling entirely.
-            guard let data = try? Data(contentsOf: archiveURL, options: .mappedIfSafe) else { return [] }
+            guard let data = try? Data(contentsOf: archiveURL, options: .mappedIfSafe) else {
+                ErrorReporter.report(
+                    NSError(domain: "ArchiveInspectionService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not read archive data."]),
+                    context: "Listing archive entries"
+                )
+                return []
+            }
             return ZIPCentralDirectoryReader.readEntryNames(from: data).map { ArchiveEntryItem(path: $0) }
         }.value
     }
