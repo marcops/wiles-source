@@ -55,6 +55,20 @@ jobs:
           fi
           swiftlint lint --strict
 
+      - name: Format check (SwiftFormat)
+        working-directory: wiles-source
+        run: |
+          if ! command -v swiftformat >/dev/null 2>&1; then
+            brew install swiftformat
+          fi
+          swiftformat --lint .
+
+      - name: Unit tests (WilesTests, RAM-backed scratch disk)
+        working-directory: wiles-source
+        run: |
+          scripts/setup_test_ramdisk.sh
+          swift test --filter WilesTests
+
       - name: Build & package (.zip + .dmg)
         working-directory: wiles-source
         run: |
@@ -71,7 +85,12 @@ jobs:
           mkdir -p "$DIST_DIR" "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
           echo "==> 1. Building release binary (swift build -c release --arch arm64)..."
-          swift build -c release --arch arm64
+          swift build -c release --arch arm64 2>&1 | tee /tmp/wiles_build.log
+          if grep -qi "warning:" /tmp/wiles_build.log; then
+            echo "error: build produced warnings — releases require a zero-warning build" >&2
+            grep -i "warning:" /tmp/wiles_build.log
+            exit 1
+          fi
 
           BIN_PATH=""
           if [[ -f ".build/arm64-apple-macosx/release/Wiles" ]]; then

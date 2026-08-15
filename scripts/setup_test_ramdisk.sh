@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates (if needed) and mounts a 500MB RAM-backed HFS+ volume at
+# Creates (if needed) and mounts a 100MB RAM-backed HFS+ volume at
 # /private/tmp/WilesTestsRAMDisk. Tests route through testTemporaryDirectory()
 # (Tests/WilesTests/TestScratchDirectory.swift), which uses this volume when present instead of
 # the real on-disk system temp directory - the whole point being that hundreds of real file
@@ -14,7 +14,7 @@
 set -euo pipefail
 
 MOUNT_POINT="/private/tmp/WilesTestsRAMDisk"
-SIZE_SECTORS=1024000 # ~500MB (512-byte sectors)
+SIZE_SECTORS=204800 # 100MB (512-byte sectors) - measured suite peak is ~56MB, this leaves headroom
 
 if mount | grep -q " on ${MOUNT_POINT} "; then
   echo "RAM disk already mounted at $MOUNT_POINT"

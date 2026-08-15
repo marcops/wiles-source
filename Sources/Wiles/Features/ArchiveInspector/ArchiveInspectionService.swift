@@ -37,8 +37,11 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
         // if extraction subsequently failed, since there was no way to restore the original
         // bytes afterward (AGENTS.md rule 35: never destroy user data before the constructive
         // half of the operation is confirmed to succeed).
-        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("\(UUID().uuidString)_\(entryName)")
+        // Staged inside destinationFolder itself (not system temp): replaceItemAt() below is an
+        // atomic move, which fails with EXDEV if the temp file and destURL are on different
+        // volumes (e.g. destinationFolder on an external drive/network share, or a test RAM disk).
+        let tempURL = destinationFolder
+            .appendingPathComponent(".\(UUID().uuidString)_\(entryName)")
 
         FileManager.default.createFile(atPath: tempURL.path, contents: nil, attributes: nil)
         guard let fileHandle = try? FileHandle(forWritingTo: tempURL) else {

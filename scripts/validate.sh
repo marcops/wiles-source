@@ -39,6 +39,7 @@ else
 fi
 
 section "swift test (unit tests — WilesTests, with code coverage)"
+scripts/setup_test_ramdisk.sh
 TEST_LOG="$(mktemp)"
 swift test --enable-code-coverage --filter WilesTests 2>&1 | tee "$TEST_LOG" || true
 if grep -q "FAIL\|error:" "$TEST_LOG" 2>/dev/null && ! grep -q "Build complete" "$TEST_LOG" 2>/dev/null; then
