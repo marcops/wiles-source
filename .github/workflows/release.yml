@@ -22,6 +22,31 @@ jobs:
           token: ${{ secrets.WILES_PUBLIC_DEPLOY_KEY }}
           path: wiles-public
 
+      - name: Guard rails (tag matches appVersion, release notes exist)
+        run: |
+          VERSION=$(grep -o 'appVersion = "[^"]*"' wiles-source/Sources/Wiles/Constants/AppConstants.swift | cut -d'"' -f2)
+          if [[ -z "$VERSION" ]]; then
+            echo "error: could not read appVersion from AppConstants.swift" >&2
+            exit 1
+          fi
+          echo "==> Releasing Wiles v$VERSION"
+
+          # A tag-triggered run must publish exactly what the tag says, never silently build
+          # whatever appVersion happens to be — catches "pushed v0.5.0 but forgot to bump the
+          # source" before anything gets built.
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            if [[ "${{ github.ref_name }}" != "v${VERSION}" ]]; then
+              echo "error: tag ${{ github.ref_name }} does not match appVersion $VERSION in AppConstants.swift" >&2
+              exit 1
+            fi
+          fi
+
+          # Never ship a version with no changelog entry for it.
+          if ! grep -q "^## Version ${VERSION}$" wiles-public/RELEASE_NOTES.md; then
+            echo "error: wiles-public/RELEASE_NOTES.md has no '## Version ${VERSION}' entry" >&2
+            exit 1
+          fi
+
       - name: Build & package (.zip + .dmg)
         working-directory: wiles-source
         run: |
