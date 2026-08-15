@@ -23,7 +23,7 @@ final class NewFolderRenameUITests: XCTestCase {
     // swiftlint:disable:next implicitly_unwrapped_optional
     private var tempDir: URL!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         continueAfterFailure = false
         tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("WilesUITest-\(UUID().uuidString)", isDirectory: true)
@@ -35,7 +35,7 @@ final class NewFolderRenameUITests: XCTestCase {
         app.activate()
     }
 
-    override func tearDownWithError() throws {
+    override func tearDown() async throws {
         app.terminate()
         app = nil
         try? FileManager.default.removeItem(at: tempDir)

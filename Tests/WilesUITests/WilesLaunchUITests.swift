@@ -22,7 +22,7 @@ final class WilesLaunchUITests: XCTestCase {
     // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = ["--ui-testing"]
@@ -30,7 +30,7 @@ final class WilesLaunchUITests: XCTestCase {
         app.activate()
     }
 
-    override func tearDownWithError() throws {
+    override func tearDown() async throws {
         app.terminate()
         app = nil
     }
