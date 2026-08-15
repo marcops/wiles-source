@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build & package
+        run: scripts/build_release.sh
+
+      - name: Read version
+        id: version
+        run: echo "value=$(grep -o 'appVersion = "[^"]*"' Sources/Wiles/Constants/AppConstants.swift | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.WILES_PUBLIC_DEPLOY_KEY }}
+        run: |
+          gh release create "v${{ steps.version.outputs.value }}" \
+            "dist/wiles-v${{ steps.version.outputs.value }}.zip" \
+            "dist/wiles-v${{ steps.version.outputs.value }}.dmg" \
+            --repo marcops/wiles \
+            --title "Wiles v${{ steps.version.outputs.value }}" \
+            --notes "See RELEASE_NOTES.md in marcops/wiles" \
+            --latest
