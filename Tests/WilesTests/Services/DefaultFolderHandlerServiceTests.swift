@@ -14,9 +14,7 @@ final class DefaultFolderHandlerServiceTests: XCTestCase {
     // fake NSWorkspace's registration result, and asserting the boolean itself would pin the test to
     // whatever this specific runner bundle happens to be, which isn't a meaningful behavior contract.
     func testRegisterAsFolderHandlerOptionInvokesCompletionExactlyOnce() throws {
-        // NSWorkspace.shared.setDefaultApplication(at:toOpen:) (real LaunchServices call, no way to
-        // fake it - see the class doc comment) crashes the test process outright on GitHub Actions'
-        // CI runners instead of failing gracefully, since LaunchServices isn't fully available there.
+        // Real LaunchServices call crashes the test process in CI instead of failing gracefully.
         try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "LaunchServices registration crashes the test process in CI")
 
         let exp = expectation(description: "registerAsFolderHandlerOption completion fires")

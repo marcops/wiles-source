@@ -101,10 +101,7 @@ final class WilesAutomatedTests: XCTestCase {
 
     @MainActor
     func testOpenWithTests() throws {
-        // OpenWithTests.run() calls real NSWorkspace/LaunchServices APIs (availableApplications,
-        // setDefaultApplication) right at its entry point - these crash the test process outright
-        // on GitHub Actions runners (LaunchServices isn't fully available there), same as
-        // DefaultFolderHandlerServiceTests.
+        // Real LaunchServices calls crash the test process in CI (see DefaultFolderHandlerServiceTests).
         try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "LaunchServices calls crash the test process in CI")
         OpenWithTests.run()
     }

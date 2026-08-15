@@ -1,14 +1,14 @@
-- regras de organização não deixa selecionar qualquer pasta apenas as principais (ex: download, documentos e etc) tem que deixar so a arvore direto, sem aquele favoritos , e a arvore inteira nao esta limitada que tem hje
-- se eu quero mover 1 arquivo o PATH BAR tem que abrir, e eu posso entrar dai nos diretorios ir direto para 1 deles.
-- o gridview tem que mostrar 2 linhas igual o ifinder se o texto for muito grande, e se for maior que isto ai sim coloca os 3 ppontos
+## High priority (broken or inconsistent core functionality)
+
 - o smartfolder nao esta funcionando corretamente.
-- hide the back and forward, and increase the Title font? with on/off
-- create the director view and traditional view?
-- por o validate no CI
 
+- Multi-select in Column view —  Not done. FileColumnView.swift's selectItem (line 299-300) always does appState.selectedURLs = [item.url], ignoring Cmd/Shift modifiers — it never routes through the shared AppState.handleSelection(for:) that List/Grid use. Marquee/rectangle drag-select is also entirely absent from Column view (no SelectionRectangleOverlay).
 
-Multi-select in Column view — ❌ Not done. FileColumnView.swift's selectItem (line 299-300) always does appState.selectedURLs = [item.url], ignoring Cmd/Shift modifiers — it never routes through the shared AppState.handleSelection(for:) that List/Grid use. Marquee/rectangle drag-select is also entirely absent from Column view (no SelectionRectangleOverlay).
+- regras de organização não deixa selecionar qualquer pasta apenas as principais (ex: download, documentos e etc) tem que deixar so a arvore direto, sem aquele favoritos , e a arvore inteira nao esta limitada que tem hje
 
+## Medium priority (meaningful feature/UX work)
+
+- se eu quero mover 1 arquivo o PATH BAR tem que abrir, e eu posso entrar dai nos diretorios ir direto para 1 deles.
 
 - zip feature
 Double-clicking a `.zip` file should open it in-place the same way a real folder does
@@ -19,3 +19,13 @@ temporary location and open it (like macOS does when peeking inside a `.app` bun
 Once this lands, the existing "Inspect Archive" context-menu sheet
 (`ArchiveInspectionSheetView`) becomes redundant and should be removed — this feature
 absorbs it.
+
+- por o validate no CI
+
+- o gridview tem que mostrar 2 linhas igual o ifinder se o texto for muito grande, e se for maior que isto ai sim coloca os 3 ppontos
+
+## Low priority / undecided
+
+- hide the back and forward, and increase the Title font? with on/off
+
+- create the director view and traditional view?
