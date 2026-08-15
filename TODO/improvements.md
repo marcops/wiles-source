@@ -17,13 +17,24 @@
   exceed the 100MB RAM disk) - needs a deterministic signal that the overwrite loop has started
   (e.g. a testable progress hook) instead of a fixed delay guess. `grep -rn "SKIP-CI" Tests/` finds it.
 
-- `git-beacon-mac` dependency drift: its `0.0.2` git tag on GitHub now points to commit `9e66de88...`,
-  but `Package.resolved` here still pins the old `32ea1ba8...` commit that tag used to point to.
-  A totally fresh dependency resolution (purged SwiftPM cache, no local `.build`) fails outright with
-  a revision-mismatch error instead of silently picking either commit. Hasn't broken any CI run yet
-  today, but any future fresh resolution (a new CI runner, a clean local `.build`) risks hitting this
-  before even reaching the build step. Needs a decision: accept the new tag's commit (update
-  `Package.resolved`) or find out why the tag moved on the git-beacon-mac side first.
+- `git-beacon-mac` dependency drift: its `0.0.2` git tag on GitHub had moved to a different commit
+  than `Package.resolved` had pinned, which broke any fresh dependency resolution (new CI runner,
+  clean local `.build`) with a revision-mismatch error. Worked around by updating `Package.resolved`
+  to the tag's current commit (`9e66de88...`, was `32ea1ba8...`) so builds succeed again - still worth
+  finding out why the tag moved on the git-beacon-mac side, in case it wasn't intentional.
+
+- All tests currently skipped in CI (`grep -rn "SKIP-CI" Tests/` finds every one below):
+  - **SKIP-CI-CRASH** (real LaunchServices/NSWorkspace calls crash the whole test process on GitHub
+    Actions runners - permanent, not expected to ever run in CI): `testOpenWithTests`,
+    `DefaultFolderHandlerServiceTests.testRegisterAsFolderHandlerOptionInvokesCompletionExactlyOnce`,
+    `DefaultFolderHandlerServiceTests.testRegisterAsFolderHandlerOptionWithDefaultCompletionDoesNotCrash`.
+  - **SKIP-CI-SLOW** (took over 2s locally, skipped in CI by policy to keep the pipeline fast - still
+    run locally via `validate.sh`, not otherwise broken): `testArchiveTests`, `testHttpServerTests`,
+    `testAutoOrganizationTests`, `testAppStateOperationsExtraTests`, `testDirectoryMonitorTests`.
+  - **SKIP-CI-ENV** (fails only on CI's toolchain/environment, unconfirmed root cause - the two
+    entries above this one, `AppStateFavoritesMoveTests.testMoveItemUpdatesFavorites` and
+    `FileShredderTests.runMidOverwriteCancellationCoverage` - these are the ones actually worth
+    revisiting, the CRASH/SLOW ones above are working as intended).
 
 - o smartfolder nao esta funcionando corretamente.
 
