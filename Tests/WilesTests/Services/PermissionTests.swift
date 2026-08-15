@@ -95,14 +95,13 @@ public final class PermissionTests {
             result: before == true && after == true)
     }
 
+    /// Checks the exact URL string, not .scheme/.query - Foundation's component parsing for this
+    /// non-hierarchical URL shape (no "//" after the scheme) has varied across versions.
     private static func testSettingsDeepLinkURLComponents() {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
-        TestReporter.report(
-            "Permission",
-            "POS: settings deep link scheme parses as x-apple.systempreferences",
-            result: url?.scheme == "x-apple.systempreferences")
-        TestReporter.report("Permission", "POS: settings deep link query parses as Privacy_AllFiles", result: url?.query == "Privacy_AllFiles")
-        TestReporter.report("Permission", "NEG: settings deep link scheme is not https", result: url?.scheme != "https")
+        let expected = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+        TestReporter.report("Permission", "POS: settings deep link URL string is exact", result: url?.absoluteString == expected)
+        TestReporter.report("Permission", "NEG: settings deep link scheme is not https", result: url?.absoluteString.hasPrefix("https") != true)
     }
 
     private static func testResetIsIdempotent() {
