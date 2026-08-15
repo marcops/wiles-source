@@ -45,23 +45,24 @@ type_body_length:
 
 closure_body_length:
   warning: 25
-  error: 40
+  error: 25
 
 file_length:
   warning: 500
-  error: 800
+  error: 500
 
 function_body_length:
   warning: 40
-  error: 80
+  error: 40
 
 cyclomatic_complexity:
-  warning: 16
-  error: 25
+  warning: 14
+  error: 14
 
 identifier_name:
   min_length:
     warning: 2
+    error: 2
   excluded:
     - id
     - x
