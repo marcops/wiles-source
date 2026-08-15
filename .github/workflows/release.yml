@@ -167,45 +167,24 @@ jobs:
             --notes "See RELEASE_NOTES.md in marcops/wiles" \
             --latest
 
-      - name: Publish binaries + update Cask in wiles-public
+      - name: Update Cask in wiles-public
         env:
           VERSION: ${{ steps.version.outputs.value }}
           SHA256: ${{ steps.version.outputs.sha256 }}
         run: |
-          rm -f wiles-public/releases/wiles-v*.zip wiles-public/releases/wiles-v*.dmg
-          cp "wiles-source/dist/wiles-v${VERSION}.zip" wiles-public/releases/
-          cp "wiles-source/dist/wiles-v${VERSION}.dmg" wiles-public/releases/
-
-          # Re-hash the copy actually sitting in wiles-public before it's committed — this is
-          # what actually ships in the Cask, so a bad copy must be caught here.
-          PUBLISHED_SHA256=$(shasum -a 256 "wiles-public/releases/wiles-v${VERSION}.zip" | awk '{print $1}')
-          if [[ "$PUBLISHED_SHA256" != "$SHA256" ]]; then
-            echo "error: published zip sha256 mismatch after copy! expected $SHA256, got $PUBLISHED_SHA256" >&2
-            exit 1
-          fi
-
           cd wiles-public
           git config user.name "wiles-release-bot"
           git config user.email "release-bot@users.noreply.github.com"
 
-          # Push binaries first, in their own commit, so the Cask's URL can pin to the exact
-          # commit SHA they landed on — GitHub's Fastly CDN caches raw.githubusercontent.com
-          # content per-path, and a `main`-pinned URL can keep serving a stale cached binary
-          # after a new release, causing a Homebrew SHA256 mismatch. Never revert to `main`.
-          git add releases/
-          if ! git diff --cached --quiet; then
-            git commit -m "release: add v${VERSION} binaries"
-            git push origin main
-          fi
-
-          COMMIT_SHA=$(git rev-parse HEAD)
-
+          # Points straight at the GitHub Release asset (already published + sha256-verified in
+          # the previous step) instead of a commit in this repo — that URL is immutable per tag,
+          # so there's no CDN-caching footgun to pin around and nothing to commit here.
           cat > Casks/wiles.rb <<CASK
           cask "wiles" do
             version "${VERSION}"
             sha256 "${SHA256}"
 
-            url "https://raw.githubusercontent.com/marcops/wiles/${COMMIT_SHA}/releases/wiles-v#{version}.zip"
+            url "https://github.com/marcops/wiles/releases/download/v#{version}/wiles-v#{version}.zip"
             name "Wiles"
             desc "Ultra-fast modern macOS File Manager"
             homepage "https://github.com/marcops/wiles"
