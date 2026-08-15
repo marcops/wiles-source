@@ -1,5 +1,14 @@
 ## High priority (broken or inconsistent core functionality)
 
+- CI-only test failure to fix once CI is stable: `AppStateFavoritesMoveTests.testMoveItemUpdatesFavorites`
+  ("POS: moveItem() updates the favorite to the real new on-disk location, not just the old stale path")
+  fails on every GitHub Actions run but passes every time locally (RAM disk or not), same class of
+  Foundation/SDK-version difference as the PermissionTests deep-link bug (see commit 1a57fce) but no
+  confirmed root cause yet. Currently marked `SKIP-CI-SLOW`-style in `WilesAutomatedXCTestCase.swift`
+  (`grep -rn "SKIP-CI" Tests/` finds it). Investigate `FileSystemService.moveItem`'s non-standardized
+  `destURL` construction and `AppState.remapFavorites`'s `.standardizedFileURL` comparison for a
+  CI-toolchain-specific symlink-resolution or idempotency quirk.
+
 - o smartfolder nao esta funcionando corretamente.
 
 - Multi-select in Column view —  Not done. FileColumnView.swift's selectItem (line 299-300) always does appState.selectedURLs = [item.url], ignoring Cmd/Shift modifiers — it never routes through the shared AppState.handleSelection(for:) that List/Grid use. Marquee/rectangle drag-select is also entirely absent from Column view (no SelectionRectangleOverlay).
