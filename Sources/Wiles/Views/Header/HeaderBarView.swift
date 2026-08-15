@@ -95,6 +95,7 @@ struct HeaderBarView: View {
         @Bindable var appState = appState
         return TextField("\(appState.tr(.searchPlaceholder)) \(appState.navigation.currentURL.lastPathComponent)...", text: $appState.searchQuery)
             .textFieldStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .focused($isSearchFocused)
             .onAppear {
                 DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {

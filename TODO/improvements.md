@@ -1,5 +1,7 @@
 ## High priority (broken or inconsistent core functionality)
+ revisar todos os testes que damos skip no ci
 
+ 
 - CI-only test failure to fix once CI is stable: `AppStateFavoritesMoveTests.testMoveItemUpdatesFavorites`
   ("POS: moveItem() updates the favorite to the real new on-disk location, not just the old stale path")
   fails on every GitHub Actions run but passes every time locally (RAM disk or not), same class of
