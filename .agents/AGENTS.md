@@ -13,7 +13,7 @@
 - **Single Responsibility Principle (SRP)**: Keep Views focused on layout declaration, Services (`FileSystemService`, `LocalizationService`, `ZipArchiveService`) focused on system logic, and `AppState` focused on application state.
 - **Dedicated Feature Service Classes**: Each domain feature or system subsystem MUST reside in its own dedicated, isolated Swift service class file (e.g. `Sources/Wiles/Services/ZipArchiveService.swift`). Never bloat existing service files with unrelated feature logic.
 - **No Inline Helper Types**: Never declare a standalone `enum`/`struct` (constants, status codes, options, etc.) inside the same file as an unrelated class/service just because it's used there. It gets its own file in the proper folder (`Constants/`, or a dedicated `Type/Type+Extra.swift` group) — same rule as `AppState/AppState+Navigation.swift`, `Services/FileSystem/FileSystemService.swift`, etc.
-- **One Type Per File**: Never declare more than one top-level `enum`/`struct`/`class`/`protocol` in the same Swift file, even if both are small constant/token namespaces (e.g. `KeyCode` and `IconSizeToken`). Each gets its own file named after the type.
+- **One Type Per File**: Mechanically enforced by the `one_type_per_file` custom rule in `.swiftlint.yml` (`swiftlint lint --strict` in `scripts/validate.sh` fails on any second top-level type in a file) — each type gets its own file named after the type.
 - **Composition over Inheritance**: Prefer SwiftUI View Composition, struct values, extensions, and protocol conformance over deep class hierarchies.
 - **No Inline Compound Conditions**: Any `if`/`guard` combining 3 or more terms (`&&`/`||`/chained comparisons) MUST be extracted into a separate, well-named comparison function or computed property (e.g. `if isEligibleForBulkDelete(...)` instead of `if x || y || z`) instead of left as an inline boolean chain.
 
@@ -41,10 +41,6 @@
 ## 6. No Magic Numbers or Unnamed Constants
 - **Named Tokens & Enums**: Never use raw magic numbers (e.g. key codes like 51, 117, 36, 24, 69, 27, 44, 29, 30), arbitrary multipliers, or unexplained static offsets.
 - Always define named constants, enums (e.g. `KeyCode.backspace`, `LayoutTokens.columnSizeWidth`), or compute values dynamically from container bounds.
-
-## 7. Maximum Function Length (< 25 Lines)
-- **Function & Closure Modularization**: Inline closures and helper functions MUST NOT exceed 25 lines of code.
-- Subdivide complex logic into focused, single-responsibility private helper methods.
 
 ## 8. Complete State Persistence
 - **Every User Action Must Be Persisted**: Every UI preference or state change (e.g., status bar visibility, icon size, view mode, sidebar mode, shortcut mode, section collapse states for `FAVORITES`, `MAC`, `RECENTS`, `DEVICES`, `DIRECTORY TREE`, expanded folder paths, and language preference) MUST be saved to `UserDefaults`.
@@ -348,8 +344,9 @@ don't improvise a layout that merely "looks plausible." General rules:
 - `scripts/push_and_relaunch.sh "<msg>" [--skip-commit]` — build+sign+relaunch, then commit+push.
   Default to `--skip-commit` until told to commit (rule 10).
 - `scripts/validate.sh` — build+test+lint+format, exit 0 = clean.
-- `scripts/build_release.sh` — packages release `.zip`/`.dmg`/`.sha256`.
-- `scripts/release.sh` — validate → build_release → update Homebrew Cask → push.
+- Release (build → package → publish to GitHub Releases → update Homebrew Cask → push) is fully
+  automated in `.github/workflows/release.yml` — no local script; push a `v*` tag or trigger it
+  manually from the Actions tab.
 - `scripts/test_timing.sh` — slowest 10 tests.
 - `scripts/setup_test_ramdisk.sh` — mounts RAM disk for tests.
 

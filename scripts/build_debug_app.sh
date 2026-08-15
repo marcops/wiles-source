@@ -2,8 +2,8 @@
 # Builds Wiles.app in debug mode into .build/ui-test-app/Wiles.app. This exists only to give
 # WilesUITests a real .app to launch — SPM's `swift build` alone produces a bare Mach-O
 # executable, not an app bundle, and XCUIApplication needs a real bundle (Info.plist +
-# CFBundleIdentifier) to launch. Mirrors scripts/build_release.sh's packaging, minus the
-# release-only signing/zip/dmg steps.
+# CFBundleIdentifier) to launch. Mirrors the release build's app-bundle packaging (see
+# .github/workflows/release.yml), minus the release-only signing/zip/dmg steps.
 #
 # Usage: scripts/build_debug_app.sh
 # Invoked as a Run Script build phase by the XcodeGen-generated Wiles.xcodeproj's "Wiles" app

@@ -10,23 +10,219 @@ jobs:
   build-and-release:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout wiles-source
+        uses: actions/checkout@v4
+        with:
+          path: wiles-source
 
-      - name: Build & package
-        run: scripts/build_release.sh
+      - name: Checkout wiles-public
+        uses: actions/checkout@v4
+        with:
+          repository: marcops/wiles
+          token: ${{ secrets.WILES_PUBLIC_DEPLOY_KEY }}
+          path: wiles-public
 
-      - name: Read version
+      - name: Build & package (.zip + .dmg)
+        working-directory: wiles-source
+        run: |
+          VERSION=$(grep -o 'appVersion = "[^"]*"' Sources/Wiles/Constants/AppConstants.swift | cut -d'"' -f2)
+          if [[ -z "$VERSION" ]]; then
+            echo "error: could not read appVersion from AppConstants.swift" >&2
+            exit 1
+          fi
+          echo "==> Building Wiles v$VERSION"
+
+          DIST_DIR="dist"
+          APP_DIR="$DIST_DIR/Wiles.app"
+          rm -rf "$APP_DIR"
+          mkdir -p "$DIST_DIR" "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
+
+          echo "==> 1. Building release binary (swift build -c release --arch arm64)..."
+          swift build -c release --arch arm64
+
+          BIN_PATH=""
+          if [[ -f ".build/arm64-apple-macosx/release/Wiles" ]]; then
+            BIN_PATH=".build/arm64-apple-macosx/release/Wiles"
+          elif [[ -f ".build/release/Wiles" ]]; then
+            BIN_PATH=".build/release/Wiles"
+          else
+            echo "error: release binary not found" >&2
+            exit 1
+          fi
+          cp "$BIN_PATH" "$APP_DIR/Contents/MacOS/Wiles"
+
+          if [[ -d ".build/arm64-apple-macosx/release/Wiles_Wiles.bundle" ]]; then
+            cp -r ".build/arm64-apple-macosx/release/Wiles_Wiles.bundle" "$APP_DIR/Contents/Resources/"
+          elif [[ -d ".build/release/Wiles_Wiles.bundle" ]]; then
+            cp -r ".build/release/Wiles_Wiles.bundle" "$APP_DIR/Contents/Resources/"
+          fi
+          if [[ ! -d "$APP_DIR/Contents/Resources/Wiles_Wiles.bundle" ]]; then
+            echo "error: Wiles_Wiles.bundle missing from Contents/Resources" >&2
+            exit 1
+          fi
+
+          if [[ -f "Sources/Wiles/Resources/AppIcon.icns" ]]; then
+            cp "Sources/Wiles/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+          fi
+
+          cat > "$APP_DIR/Contents/Info.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>Wiles</string>
+              <key>CFBundleIconFile</key>
+              <string>AppIcon</string>
+              <key>CFBundleIconName</key>
+              <string>AppIcon</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.marco.wiles</string>
+              <key>CFBundleName</key>
+              <string>Wiles</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>$VERSION</string>
+              <key>CFBundleVersion</key>
+              <string>$VERSION</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>14.0</string>
+              <key>NSDesktopFolderUsageDescription</key>
+              <string>Wiles precisa de acesso para gerenciar arquivos na sua pasta Mesa (Desktop).</string>
+              <key>NSDocumentsFolderUsageDescription</key>
+              <string>Wiles precisa de acesso para gerenciar arquivos na sua pasta Documentos.</string>
+              <key>NSDownloadsFolderUsageDescription</key>
+              <string>Wiles precisa de acesso para gerenciar arquivos na sua pasta Downloads.</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+              <key>NSPrincipalClass</key>
+              <string>NSApplication</string>
+              <key>NSRemovableVolumesUsageDescription</key>
+              <string>Wiles precisa de acesso para gerenciar arquivos em discos externos.</string>
+              <key>CFBundleDocumentTypes</key>
+              <array>
+                  <dict>
+                      <key>CFBundleTypeName</key>
+                      <string>Folder</string>
+                      <key>CFBundleTypeRole</key>
+                      <string>Viewer</string>
+                      <key>LSHandlerRank</key>
+                      <string>Alternate</string>
+                      <key>LSItemContentTypes</key>
+                      <array>
+                          <string>public.folder</string>
+                      </array>
+                  </dict>
+              </array>
+          </dict>
+          </plist>
+          PLIST
+
+          echo "==> 2. Ad-hoc codesign..."
+          codesign --force --deep --sign - "$APP_DIR"
+
+          ZIP_PATH="$DIST_DIR/wiles-v$VERSION.zip"
+          DMG_PATH="$DIST_DIR/wiles-v$VERSION.dmg"
+          rm -f "$ZIP_PATH" "$DMG_PATH"
+
+          echo "==> 3. Creating ZIP archive (for Homebrew Cask)..."
+          (cd "$DIST_DIR" && /usr/bin/zip -r -y "wiles-v$VERSION.zip" "Wiles.app")
+
+          echo "==> 4. Creating DMG package..."
+          STAGING_DIR=$(mktemp -d)
+          cp -R "$APP_DIR" "$STAGING_DIR/"
+          ln -s /Applications "$STAGING_DIR/Applications"
+          hdiutil create -volname "Wiles" -srcfolder "$STAGING_DIR" -ov -format UDZO "$DMG_PATH"
+          rm -rf "$STAGING_DIR"
+
+          SHA256=$(shasum -a 256 "$ZIP_PATH" | awk '{print $1}')
+          echo "==> Build Release Successful! version=$VERSION sha256=$SHA256"
+
+      - name: Read version & sha256
         id: version
-        run: echo "value=$(grep -o 'appVersion = "[^"]*"' Sources/Wiles/Constants/AppConstants.swift | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+        working-directory: wiles-source
+        run: |
+          VERSION=$(grep -o 'appVersion = "[^"]*"' Sources/Wiles/Constants/AppConstants.swift | cut -d'"' -f2)
+          SHA256=$(shasum -a 256 "dist/wiles-v${VERSION}.zip" | awk '{print $1}')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
 
       - name: Publish to GitHub Releases
         env:
           GH_TOKEN: ${{ secrets.WILES_PUBLIC_DEPLOY_KEY }}
         run: |
           gh release create "v${{ steps.version.outputs.value }}" \
-            "dist/wiles-v${{ steps.version.outputs.value }}.zip" \
-            "dist/wiles-v${{ steps.version.outputs.value }}.dmg" \
+            "wiles-source/dist/wiles-v${{ steps.version.outputs.value }}.zip" \
+            "wiles-source/dist/wiles-v${{ steps.version.outputs.value }}.dmg" \
             --repo marcops/wiles \
             --title "Wiles v${{ steps.version.outputs.value }}" \
             --notes "See RELEASE_NOTES.md in marcops/wiles" \
             --latest
+
+      - name: Publish binaries + update Cask in wiles-public
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          SHA256: ${{ steps.version.outputs.sha256 }}
+        run: |
+          rm -f wiles-public/releases/wiles-v*.zip wiles-public/releases/wiles-v*.dmg
+          cp "wiles-source/dist/wiles-v${VERSION}.zip" wiles-public/releases/
+          cp "wiles-source/dist/wiles-v${VERSION}.dmg" wiles-public/releases/
+
+          # Re-hash the copy actually sitting in wiles-public before it's committed — this is
+          # what actually ships in the Cask, so a bad copy must be caught here.
+          PUBLISHED_SHA256=$(shasum -a 256 "wiles-public/releases/wiles-v${VERSION}.zip" | awk '{print $1}')
+          if [[ "$PUBLISHED_SHA256" != "$SHA256" ]]; then
+            echo "error: published zip sha256 mismatch after copy! expected $SHA256, got $PUBLISHED_SHA256" >&2
+            exit 1
+          fi
+
+          cd wiles-public
+          git config user.name "wiles-release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+
+          # Push binaries first, in their own commit, so the Cask's URL can pin to the exact
+          # commit SHA they landed on — GitHub's Fastly CDN caches raw.githubusercontent.com
+          # content per-path, and a `main`-pinned URL can keep serving a stale cached binary
+          # after a new release, causing a Homebrew SHA256 mismatch. Never revert to `main`.
+          git add releases/
+          if ! git diff --cached --quiet; then
+            git commit -m "release: add v${VERSION} binaries"
+            git push origin main
+          fi
+
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          cat > Casks/wiles.rb <<CASK
+          cask "wiles" do
+            version "${VERSION}"
+            sha256 "${SHA256}"
+
+            url "https://raw.githubusercontent.com/marcops/wiles/${COMMIT_SHA}/releases/wiles-v#{version}.zip"
+            name "Wiles"
+            desc "Ultra-fast modern macOS File Manager"
+            homepage "https://github.com/marcops/wiles"
+
+            depends_on macos: :sonoma
+
+            app "Wiles.app"
+
+            postflight do
+              system_command "xattr",
+                             args: ["-cr", "#{appdir}/Wiles.app"],
+                             sudo: false
+            end
+
+            zap trash: [
+              "~/Library/Preferences/com.marco.wiles.plist",
+              "~/Library/Saved Application State/com.marco.wiles.savedState",
+              "~/Library/Caches/Wiles",
+            ]
+          end
+          CASK
+
+          git add Casks/wiles.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "cask(wiles): update to v${VERSION}"
+            git push origin main
+          fi
