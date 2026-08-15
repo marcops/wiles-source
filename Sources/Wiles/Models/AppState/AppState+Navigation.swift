@@ -20,12 +20,13 @@ extension AppState {
         // seconds if the mount has stalled or gone unreachable, freezing the whole UI. Only that
         // case hops off @MainActor.
         if url.path.hasPrefix("/Volumes/") {
-            Task.detached(priority: .userInitiated) { [weak self] in
-                var isDir: ObjCBool = false
-                let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-                await MainActor.run {
-                    self?.completeNavigation(to: url, isDirectory: exists && isDir.boolValue, addToHistory: addToHistory)
-                }
+            Task { [weak self] in
+                let isDirectory = await Task.detached(priority: .userInitiated) {
+                    var isDir: ObjCBool = false
+                    let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+                    return exists && isDir.boolValue
+                }.value
+                self?.completeNavigation(to: url, isDirectory: isDirectory, addToHistory: addToHistory)
             }
             return
         }
