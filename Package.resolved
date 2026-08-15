@@ -1,12 +1,12 @@
 {
-  "originHash" : "5c10f92f89f5985b74844ec05747b2d2d701bfe17670f28bd14a2e32ffa03b34",
+  "originHash" : "24221f18cab3e86051ca1e4de72ea33605500bbc786fad40a2b6a58e6ae74e2b",
   "pins" : [
     {
       "identity" : "git-beacon-mac",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/marcops/git-beacon-mac.git",
       "state" : {
-        "revision" : "32ea1ba8b14715ef3552e75e835148f4e7631628",
+        "revision" : "9e66de884aab5f22f78957aca953a6aeb5bbf0b2",
         "version" : "0.0.2"
       }
     },

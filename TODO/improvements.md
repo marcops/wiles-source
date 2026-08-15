@@ -9,6 +9,22 @@
   `destURL` construction and `AppState.remapFavorites`'s `.standardizedFileURL` comparison for a
   CI-toolchain-specific symlink-resolution or idempotency quirk.
 
+- CI-only test failure to fix once CI is stable: `FileShredderTests.runMidOverwriteCancellationCoverage`
+  ("POS: shredFiles() honors Task.isCancelled inside the overwrite loop for a large file and stops
+  mid-write") assumes a 50MB overwrite is still in progress 1ms after starting, so cancelling then
+  reliably lands mid-write. On the RAM disk that write can finish inside 1ms, so the operation
+  sometimes completes before cancellation is requested. Can't fix by enlarging the test file (would
+  exceed the 100MB RAM disk) - needs a deterministic signal that the overwrite loop has started
+  (e.g. a testable progress hook) instead of a fixed delay guess. `grep -rn "SKIP-CI" Tests/` finds it.
+
+- `git-beacon-mac` dependency drift: its `0.0.2` git tag on GitHub now points to commit `9e66de88...`,
+  but `Package.resolved` here still pins the old `32ea1ba8...` commit that tag used to point to.
+  A totally fresh dependency resolution (purged SwiftPM cache, no local `.build`) fails outright with
+  a revision-mismatch error instead of silently picking either commit. Hasn't broken any CI run yet
+  today, but any future fresh resolution (a new CI runner, a clean local `.build`) risks hitting this
+  before even reaching the build step. Needs a decision: accept the new tag's commit (update
+  `Package.resolved`) or find out why the tag moved on the git-beacon-mac side first.
+
 - o smartfolder nao esta funcionando corretamente.
 
 - Multi-select in Column view —  Not done. FileColumnView.swift's selectItem (line 299-300) always does appState.selectedURLs = [item.url], ignoring Cmd/Shift modifiers — it never routes through the shared AppState.handleSelection(for:) that List/Grid use. Marquee/rectangle drag-select is also entirely absent from Column view (no SelectionRectangleOverlay).
