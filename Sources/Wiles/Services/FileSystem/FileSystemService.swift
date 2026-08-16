@@ -32,10 +32,10 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
                 items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             if !options.searchQuery.isEmpty {
-                let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+                let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
                 items = items.filter {
                     SearchFilterService.matchesSearch(
-                        fileURL: $0.url, query: options.searchQuery, regex: regex,
+                        fileURL: $0.url, query: options.searchQuery, tokenRegexes: tokenRegexes,
                         scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
                 }
             }
@@ -71,7 +71,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             return []
         }
 
-        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+        let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
         var items: [FileItem] = []
         for fileURL in fileURLs {
             if Task.isCancelled {
@@ -81,7 +81,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
                 continue
             }
             if !SearchFilterService.matchesSearch(
-                fileURL: fileURL, query: options.searchQuery, regex: regex,
+                fileURL: fileURL, query: options.searchQuery, tokenRegexes: tokenRegexes,
                 scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
                 continue
             }
@@ -159,7 +159,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             return
         }
 
-        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+        let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
         var items: [FileItem] = []
         var lastReportedCount = 0
         while let fileURL = enumerator.nextObject() as? URL {
@@ -170,7 +170,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
                 continue
             }
             if !SearchFilterService.matchesSearch(
-                fileURL: fileURL, query: options.searchQuery, regex: regex,
+                fileURL: fileURL, query: options.searchQuery, tokenRegexes: tokenRegexes,
                 scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
                 continue
             }

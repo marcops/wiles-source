@@ -439,6 +439,28 @@ don't improvise a layout that merely "looks plausible." General rules:
 - **This is the same checklist a `/code-review` pass would apply** — running it yourself before
   committing is what keeps that pass from finding anything.
 
+## 42. Release Checklist (Cutting a New Version)
+- **Steps, in order**:
+  1. In `wiles-source`: bump `appVersion` in `Sources/Wiles/Constants/AppConstants.swift`.
+  2. Run `scripts/validate.sh` (build/tests/lint/format) — must exit 0 before committing.
+  3. In `wiles-public`: add a `## Version X.Y.Z` entry to `RELEASE_NOTES.md` (top of file) —
+     required by the release workflow's guard rail (rule 25/37). Enforce the 5-full-version cap:
+     if adding this entry pushes the full-detail count past 5, fold the oldest full entry into
+     `## Earlier Highlights` (one line, features only, per rule 37) in the same edit.
+  4. Commit both repos separately (`wiles-source`, `wiles-public`).
+  5. Push both `main` branches. `git pull --rebase origin main` first if either remote has moved
+     (the `cask(wiles): update to vX.Y.Z` commit from the *previous* release's workflow run often
+     lands on `wiles-public/main` after you last synced).
+  6. Tag `wiles-source` `vX.Y.Z` and push the tag — this triggers `.github/workflows/release.yml`
+     (build → package → publish to GitHub Releases → update Homebrew Cask), fully automated from
+     there. No local packaging/signing steps needed (that manual SHA256 checklist in rule 12 is
+     legacy/fallback only — the workflow is the actual release path).
+  7. Check it started: `gh run list --repo marcops/wiles-source --limit 3`.
+- **Never invent release-note content** — derive it from the actual diff/commits since the last
+  tag (`git log vPREV..HEAD --oneline` in `wiles-source`), not from what "should" have changed.
+  A version with zero user-facing commits still needs a heading (guard rail requires it) but gets
+  no Features/Bug Fixes section.
+
 ## 41. Never Resolve a Lint/Format/Config Conflict Unilaterally — Ask, Every Time
 - When SwiftLint, SwiftFormat, the build, or any other enforced check disagrees with another one
   (e.g. SwiftFormat rewrites code into a shape SwiftLint then flags), **stop and ask the user which

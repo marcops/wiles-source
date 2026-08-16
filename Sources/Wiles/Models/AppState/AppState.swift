@@ -2,7 +2,6 @@ import GitBeacon
 import Observation
 import SwiftUI
 
-// swiftlint:disable:next type_body_length
 @Observable
 @MainActor
 public final class AppState: @unchecked Sendable {
@@ -13,6 +12,7 @@ public final class AppState: @unchecked Sendable {
     public var modal: ModalStore
     public var selection: SelectionStore
     public var fileSystem: FileSystemStore
+    public var smartFolder: SmartFolderStore
 
     func startDirectoryMonitoring(for url: URL) {
         fileSystem.startDirectoryMonitoring(for: url) { [weak self] in
@@ -65,8 +65,31 @@ public final class AppState: @unchecked Sendable {
 
     public var searchQuery: String = "" {
         didSet {
+            guard !smartFolder.suppressSearchQueryRefresh else { return }
+            // A normal searchQuery edit (typing, clearing, a kind:/date: filter button, a tag
+            // click) must unblock refreshCurrentDirectory() below — otherwise it stays stuck behind
+            // the guard meant only for the leftover FSEvents watcher on whatever folder was open
+            // before the smart folder ran. `activeFolderID` deliberately stays put: it only drives
+            // the sidebar's active-row highlight, which should keep showing the smart folder as
+            // selected while its results are on screen, even as the query text is refined — only a
+            // real navigation (navigateTo) should move that highlight elsewhere.
+            smartFolder.isActive = false
             refreshCurrentDirectory()
         }
+    }
+
+    /// Sets `searchQuery` without necessarily reloading the current folder — a smart folder run
+    /// populates `fileSystem.items` from its own cross-directory query and must not race against a
+    /// normal single-directory reload of whatever folder happens to be open, which used to silently
+    /// overwrite the smart folder's results (and the selection) shortly after they appeared.
+    func setSearchQuery(_ query: String, triggerRefresh: Bool) {
+        guard !triggerRefresh else {
+            searchQuery = query
+            return
+        }
+        smartFolder.suppressSearchQueryRefresh = true
+        searchQuery = query
+        smartFolder.suppressSearchQueryRefresh = false
     }
 
     public var isSearching: Bool = false
@@ -121,6 +144,7 @@ public final class AppState: @unchecked Sendable {
         modal = ModalStore()
         selection = SelectionStore()
         fileSystem = FileSystemStore()
+        smartFolder = SmartFolderStore()
 
         updateTrashSize()
     }

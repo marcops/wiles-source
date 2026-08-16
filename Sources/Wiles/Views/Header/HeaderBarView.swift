@@ -98,6 +98,10 @@ struct HeaderBarView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .focused($isSearchFocused)
             .onAppear {
+                guard !appState.smartFolder.suppressNextSearchFocus else {
+                    appState.smartFolder.suppressNextSearchFocus = false
+                    return
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
                     isSearchFocused = true
                 }

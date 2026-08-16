@@ -1,7 +1,6 @@
 import Foundation
 @testable import Wiles
 
-// swiftlint:disable force_try
 // This harness's helper functions are non-throwing by convention (see TestReporter.report call
 // sites throughout). A saveSmartFolders failure here means the test fixture itself is broken, not
 // a real error path to assert against — force_try's "not fine for production code" rationale

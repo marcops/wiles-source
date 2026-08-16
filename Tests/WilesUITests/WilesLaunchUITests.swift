@@ -19,7 +19,6 @@ import XCTest
 
 @MainActor
 final class WilesLaunchUITests: XCTestCase {
-    // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
 
     override func setUp() async throws {

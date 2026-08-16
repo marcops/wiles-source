@@ -25,7 +25,6 @@ import XCTest
 
 @MainActor
 final class GlobalKeyMonitorUITests: XCTestCase {
-    // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
 
     override func setUp() async throws {

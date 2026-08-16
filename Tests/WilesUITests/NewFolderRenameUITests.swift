@@ -18,9 +18,7 @@ import XCTest
 
 @MainActor
 final class NewFolderRenameUITests: XCTestCase {
-    // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
-    // swiftlint:disable:next implicitly_unwrapped_optional
     private var tempDir: URL!
 
     override func setUp() async throws {

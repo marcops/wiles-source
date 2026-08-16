@@ -15,27 +15,47 @@ public struct SearchFilterService: Sendable {
         return (remaining, true)
     }
 
-    public static func parseSearchRegex(query: String, caseSensitive: Bool) -> NSRegularExpression? {
-        guard !query.isEmpty else { return nil }
-        let pattern: String
-        if query.hasPrefix("r:") {
-            pattern = String(query.dropFirst(2))
-        } else if query.contains("*") || query.contains("^") || query.contains("$") {
-            pattern = query
-        } else {
-            return nil
-        }
+    /// Builds a regex for each individual token that looks like one (`r:` prefix, or contains
+    /// `*`/`^`/`$`), keyed by the token text — computed once per query and reused across every
+    /// candidate file, instead of recompiling per file. Filter tokens (`date:`/`size:`/`kind:`/
+    /// `ext:`/`tag:`) never reach `matchesTextOrRegex`, so they're skipped here.
+    public static func parseTokenRegexes(query: String, caseSensitive: Bool) -> [String: NSRegularExpression] {
         let options: NSRegularExpression.Options = caseSensitive ? [] : [.caseInsensitive]
-        return try? NSRegularExpression(pattern: pattern, options: options)
+        var result: [String: NSRegularExpression] = [:]
+        let tokens = query.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        for token in tokens {
+            let lowerToken = token.lowercased()
+            guard !isFilterToken(lowerToken) else { continue }
+            let pattern: String
+            if token.hasPrefix("r:") {
+                pattern = String(token.dropFirst(2))
+            } else if token.contains("*") || token.contains("^") || token.contains("$") {
+                pattern = token
+            } else {
+                continue
+            }
+            result[token] = try? NSRegularExpression(pattern: pattern, options: options)
+        }
+        return result
     }
 
-    /// `scope` is the explicit Name/Content/Both menu choice — no implicit fallback.
-    public static func matchesSearch(fileURL: URL, query: String, regex: NSRegularExpression?, scope: SearchScope, caseSensitive: Bool) -> Bool {
+    private static func isFilterToken(_ lowerToken: String) -> Bool {
+        lowerToken.hasPrefix("date:") || lowerToken.hasPrefix("size:") || lowerToken.hasPrefix("kind:")
+            || lowerToken.hasPrefix("ext:") || lowerToken.hasPrefix("tag:")
+    }
+
+    /// `scope` is the explicit Name/Content/Both menu choice — no implicit fallback. `tokenRegexes`
+    /// comes from `parseTokenRegexes` — each token is matched against its own regex, if it has one,
+    /// never the whole query string (mixing `kind:pdf` with an unrelated `r:`/wildcard token used to
+    /// build one giant regex out of the entire query and silently match nothing).
+    public static func matchesSearch(
+        fileURL: URL, query: String, tokenRegexes: [String: NSRegularExpression], scope: SearchScope, caseSensitive: Bool) -> Bool {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return true }
 
         let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        for token in tokens where !matchesToken(fileURL: fileURL, token: token, regex: regex, scope: scope, caseSensitive: caseSensitive) {
+        for token in tokens
+            where !matchesToken(fileURL: fileURL, token: token, regex: tokenRegexes[token], scope: scope, caseSensitive: caseSensitive) {
             return false
         }
         return true

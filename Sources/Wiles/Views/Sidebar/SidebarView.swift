@@ -207,20 +207,20 @@ struct SidebarView: View {
                 appState.searchQuery = query
             }
         } label: {
-            HStack(spacing: 6) {
-                Circle().fill(colorForTag(tag)).frame(width: 10, height: 10)
+            HStack(spacing: 10) {
+                Circle().fill(colorForTag(tag)).frame(width: 10, height: 10).frame(width: 20, height: 20)
                 Text(appState.tr(colorKey))
-                    .font(.system(size: 12, weight: isSel ? .semibold : .regular, design: .rounded))
+                    .font(.system(size: 13, weight: isSel ? .semibold : .regular, design: .rounded))
                     .foregroundColor(.primary)
                 Spacer()
             }
-            .padding(.horizontal, 10).padding(.vertical, 4)
+            .padding(.horizontal, 10).padding(.vertical, 7)
             .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
             .cornerRadius(6)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
     }
 
     private func collapsibleSection(
@@ -273,23 +273,28 @@ struct SidebarView: View {
     }
 
     private func smartFolderRow(folder: SmartFolder) -> some View {
-        Button {
+        let isSel = appState.smartFolder.activeFolderID == folder.id
+        return Button {
             runSmartFolder(folder)
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Image(systemName: folder.icon)
+                    .font(.system(size: 15))
                     .foregroundColor(.accentColor)
-                    .frame(width: 16, height: 16)
+                    .frame(width: 20, height: 20)
                 Text(folder.name)
-                    .font(.system(size: 13))
+                    .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                     .lineLimit(1)
                 Spacer()
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.vertical, 7)
+            .background(isSel ? Color.accentColor.opacity(0.18) : Color.clear)
+            .cornerRadius(8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, 8)
         .contextMenu {
             Button(appState.tr(.moveToTrash), role: .destructive) {
                 appState.removeSmartFolder(folder)
@@ -298,8 +303,7 @@ struct SidebarView: View {
     }
 
     private func runSmartFolder(_ folder: SmartFolder) {
-        appState.searchQuery = folder.searchQuery
-        appState.isSearching = true
+        appState.prepareForSmartFolderRun(folder)
         SmartFolderService.shared.executeQuery(for: folder) { items in
             Task { @MainActor in
                 appState.fileSystem.items = items

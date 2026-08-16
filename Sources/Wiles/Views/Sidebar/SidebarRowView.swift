@@ -17,8 +17,11 @@ struct SidebarRowView: View {
 
     @State private var isHovered = false
 
+    /// `navigation.currentURL` doesn't change for a smart folder run, so without the
+    /// `smartFolder.activeFolderID` check this row would incorrectly keep showing as the
+    /// active/current folder while a smart folder's results (from a different location) are shown.
     private var isCurrentFolder: Bool {
-        appState.navigation.currentURL.standardizedFileURL == item.url.standardizedFileURL
+        appState.smartFolder.activeFolderID == nil && appState.navigation.currentURL.standardizedFileURL == item.url.standardizedFileURL
     }
 
     private var isSel: Bool {

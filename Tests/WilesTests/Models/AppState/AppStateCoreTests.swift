@@ -21,6 +21,11 @@ public struct AppStateCoreTests {
         testRemoveSmartFolder()
         await testFreeSpaceText()
         testSearchScopeID()
+        testPrepareForSmartFolderRunAvoidsDirectoryRefreshRace()
+        await testPrepareForSmartFolderRunClearsStalePendingSelection()
+        testPrepareForSmartFolderRunSuppressesFocusOnlyWhenSearchWasClosed()
+        testSmartFolderActiveBlocksBackgroundRefreshUntilRealNavigation()
+        testNormalSearchQueryEditExitsSmartFolderModeButKeepsSidebarHighlight()
         testStatusTextSelectedDirectoryHasNoSizeSuffix()
         await testCompressSelectedToZIP()
         await testCompressSelectedToZIPFailure()
@@ -360,8 +365,149 @@ public struct AppStateCoreTests {
 
     private static func testSearchScopeID() {
         report(
-            "AppState", "POS: SearchScope.id returns the case's rawValue for both cases",
-            result: SearchScope.name.id == "name" && SearchScope.content.id == "content")
+            "AppState", "POS: SearchScope.id returns the case's rawValue for every case",
+            result: SearchScope.name.id == "name" && SearchScope.content.id == "content" && SearchScope.both.id == "both")
+    }
+
+    /// Regression: running a smart folder used to assign `searchQuery` directly, whose `didSet`
+    /// unconditionally calls `refreshCurrentDirectory()` — reloading whatever folder was open in
+    /// the background and racing the smart folder's own cross-directory results, which could
+    /// silently overwrite them (and any selection made right after) shortly after they appeared.
+    private static func testPrepareForSmartFolderRunAvoidsDirectoryRefreshRace() {
+        let appState = AppState()
+        appState.selectedURLs = [URL(fileURLWithPath: "/tmp/previously-selected.txt")]
+        appState.refreshTask?.cancel()
+        appState.refreshTask = nil
+
+        let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
+        appState.prepareForSmartFolderRun(folder)
+
+        report("AppState", "POS: prepareForSmartFolderRun sets searchQuery to the folder's query", result: appState.searchQuery == folder.searchQuery)
+        report("AppState", "POS: prepareForSmartFolderRun turns on isSearching", result: appState.isSearching)
+        report("AppState", "NEG: prepareForSmartFolderRun clears any prior file selection", result: appState.selectedURLs.isEmpty)
+        report(
+            "AppState",
+            "NEG: prepareForSmartFolderRun does not spawn a directory-refresh task that could race the smart folder's own results",
+            result: appState.refreshTask == nil)
+        report("AppState", "POS: prepareForSmartFolderRun sets smartFolder.isActive", result: appState.smartFolder.isActive)
+        report(
+            "AppState", "POS: prepareForSmartFolderRun sets smartFolder.activeFolderID to the folder's id",
+            result: appState.smartFolder.activeFolderID == folder.id)
+    }
+
+    /// Regression: a stale `selection.pendingSelectionURL` (left over from an earlier "go up a
+    /// folder" navigation) never gets consumed while smart-folder mode blocks
+    /// `refreshCurrentDirectory()` — so it was still sitting there the moment a real reload finally
+    /// ran again (e.g. editing the search text to exit smart-folder mode), and got applied in a
+    /// totally unrelated context, silently reinstating whatever was selected long before the smart
+    /// folder ran instead of the item the user actually picked inside its results.
+    private static func testPrepareForSmartFolderRunClearsStalePendingSelection() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let staleFile = dir.appendingPathComponent("stale_previous_selection.txt")
+        try? "x".write(to: staleFile, atomically: true, encoding: .utf8)
+
+        let appState = AppState()
+        appState.navigation.currentURL = dir
+        appState.selection.pendingSelectionURL = staleFile
+        appState.selectedURLs = [URL(fileURLWithPath: "/tmp/my-jpg-inside-the-smart-folder.jpg")]
+
+        let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
+        appState.prepareForSmartFolderRun(folder)
+        report("AppState", "POS: prepareForSmartFolderRun clears a stale pendingSelectionURL", result: appState.selection.pendingSelectionURL == nil)
+
+        // Editing the search text exits smart-folder mode and triggers a real reload of the current
+        // directory — this must not resurrect the stale pending selection.
+        appState.searchQuery = "stale"
+        await appState.refreshTask?.value
+        report(
+            "AppState",
+            "NEG: editing search text after a smart folder run does not resurrect the stale pending selection",
+            result: !appState.selectedURLs.contains(staleFile))
+    }
+
+    /// Regression: running a smart folder while the search bar wasn't already visible makes it
+    /// newly appear, which used to auto-focus it — stealing keyboard focus right as the user was
+    /// about to click a result, so their first click just resigned that focus instead of reaching
+    /// the item underneath (classic AppKit click-eating). `prepareForSmartFolderRun` must ask the
+    /// next search-field appearance to skip its auto-focus.
+    private static func testPrepareForSmartFolderRunSuppressesFocusOnlyWhenSearchWasClosed() {
+        let appStateFromClosed = AppState()
+        appStateFromClosed.isSearching = false
+        appStateFromClosed.prepareForSmartFolderRun(SmartFolder(name: "A", searchQuery: "kind:image", scopePath: "/tmp"))
+        report(
+            "AppState",
+            "POS: prepareForSmartFolderRun suppresses the next search-field auto-focus when search was closed",
+            result: appStateFromClosed.smartFolder.suppressNextSearchFocus)
+
+        let appStateAlreadyOpen = AppState()
+        appStateAlreadyOpen.isSearching = true
+        appStateAlreadyOpen.prepareForSmartFolderRun(SmartFolder(name: "B", searchQuery: "kind:image", scopePath: "/tmp"))
+        report(
+            "AppState",
+            "NEG: prepareForSmartFolderRun does not suppress focus when the search field was already open (no new appearance to steal focus)",
+            result: !appStateAlreadyOpen.smartFolder.suppressNextSearchFocus)
+    }
+
+    /// Regression: the very first `smartFolder.isActive` fix blocked `refreshCurrentDirectory()`
+    /// unconditionally, which also silently broke every *normal* search typed after running any
+    /// smart folder (searchQuery's didSet calls refreshCurrentDirectory() too, and it stayed
+    /// blocked until an unrelated real navigation happened). A normal `searchQuery` edit — typing,
+    /// clearing, a filter button — must unblock refreshes itself, not depend on navigation. But it
+    /// must NOT clear `activeFolderID`: that only drives the sidebar's active-row highlight, which
+    /// should keep showing the smart folder as selected while you refine its query text — clearing
+    /// it here made the sidebar jump back to whatever was selected before the smart folder ran the
+    /// instant you edited the search box, which is a real regression a user caught.
+    private static func testNormalSearchQueryEditExitsSmartFolderModeButKeepsSidebarHighlight() {
+        let appState = AppState()
+        let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
+        appState.prepareForSmartFolderRun(folder)
+        appState.refreshTask?.cancel()
+        appState.refreshTask = nil
+
+        appState.searchQuery = "a brand new search"
+
+        report("AppState", "POS: a normal searchQuery edit clears smartFolder.isActive", result: !appState.smartFolder.isActive)
+        report(
+            "AppState",
+            "POS: a normal searchQuery edit does NOT clear smartFolder.activeFolderID (sidebar highlight stays on the smart folder)",
+            result: appState.smartFolder.activeFolderID == folder.id)
+        report(
+            "AppState",
+            "POS: a normal searchQuery edit still triggers a real refresh (spawns a task) instead of staying silently blocked",
+            result: appState.refreshTask != nil)
+    }
+
+    /// Regression: `navigation.currentURL` never changes for a smart folder run, so the FSEvents
+    /// watcher on whatever folder was open before keeps firing `refreshCurrentDirectory()` in the
+    /// background for as long as the smart folder's results stay on screen — each firing could
+    /// silently reload that old folder and reapply its stale `pendingSelectionURL`, stomping a
+    /// selection just made inside the smart folder's results. `smartFolder.isActive` must block
+    /// every such call, not just the one triggered once at run time, until a real navigation happens.
+    private static func testSmartFolderActiveBlocksBackgroundRefreshUntilRealNavigation() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
+        appState.prepareForSmartFolderRun(folder)
+        appState.refreshTask?.cancel()
+        appState.refreshTask = nil
+
+        appState.refreshCurrentDirectory(isUserInitiated: true)
+        report(
+            "AppState",
+            "NEG: refreshCurrentDirectory() is a no-op (spawns no task) while smartFolder.isActive is true",
+            result: appState.refreshTask == nil)
+
+        appState.navigateTo(dir)
+        report("AppState", "POS: navigateTo() clears smartFolder.isActive on real navigation", result: !appState.smartFolder.isActive)
+        report(
+            "AppState",
+            "POS: refreshCurrentDirectory() resumes normally (spawns a task) once smartFolder.isActive is cleared",
+            result: appState.refreshTask != nil)
     }
 
     private static func testStatusTextSelectedDirectoryHasNoSizeSuffix() {
