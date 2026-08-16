@@ -1,16 +1,11 @@
 import Foundation
 @testable import Wiles
 
-// This harness's helper functions are non-throwing by convention (see TestReporter.report call
-// sites throughout). A saveSmartFolders failure here means the test fixture itself is broken, not
-// a real error path to assert against — force_try's "not fine for production code" rationale
-// doesn't apply to test setup/teardown, so it's disabled file-wide rather than threading `throws`
-// through every helper.
 @MainActor
 public struct SmartFolderTests {
     public static func run() {
         let folder = SmartFolder(name: "PDFs", searchQuery: "kind:pdf", scopePath: "/Users")
-        try! SmartFolderService.saveSmartFolders([folder])
+        try? SmartFolderService.saveSmartFolders([folder])
         let loaded = SmartFolderService.loadSavedSmartFolders()
 
         TestReporter.report(
@@ -62,16 +57,16 @@ public struct SmartFolderTests {
     private static func testSavingOverwritesPreviousData() {
         // POS: saving a new set of folders fully replaces the previously persisted set, not merges it
         let original = SmartFolder(name: "Original", searchQuery: "kind:pdf", scopePath: "/Users")
-        try! SmartFolderService.saveSmartFolders([original])
+        try? SmartFolderService.saveSmartFolders([original])
 
         let replacement = SmartFolder(name: "Replacement", searchQuery: "kind:doc", scopePath: "/Users")
-        try! SmartFolderService.saveSmartFolders([replacement])
+        try? SmartFolderService.saveSmartFolders([replacement])
 
         let loaded = SmartFolderService.loadSavedSmartFolders()
         let onlyReplacementPresent = loaded.count == 1 && loaded.first?.name == "Replacement"
         TestReporter.report("SmartFolder", "POS: saveSmartFolders replaces prior contents rather than appending", result: onlyReplacementPresent)
 
-        try! SmartFolderService.saveSmartFolders([])
+        try? SmartFolderService.saveSmartFolders([])
     }
 
     private static func testCorruptedDefaultsDataReturnsEmptyArray() {
@@ -82,7 +77,7 @@ public struct SmartFolderTests {
         let loaded = SmartFolderService.loadSavedSmartFolders()
         TestReporter.report("SmartFolder", "NEG: corrupted (non-JSON) persisted data decodes to an empty array instead of crashing", result: loaded.isEmpty)
 
-        try! SmartFolderService.saveSmartFolders([])
+        try? SmartFolderService.saveSmartFolders([])
     }
 
     private static func testMissingDefaultsKeyReturnsEmptyArray() {
@@ -100,7 +95,7 @@ public struct SmartFolderTests {
             name: "Q3 \"Final\" Réport 🎉",
             searchQuery: "kind:pdf AND name:'it''s * a test'",
             scopePath: "/Users/tester")
-        try! SmartFolderService.saveSmartFolders([tricky])
+        try? SmartFolderService.saveSmartFolders([tricky])
         let loaded = SmartFolderService.loadSavedSmartFolders()
 
         let matches = loaded.first(where: { $0.id == tricky.id })
@@ -110,7 +105,7 @@ public struct SmartFolderTests {
             "POS: names/queries with quotes, unicode, and wildcards round-trip byte-for-byte through persistence",
             result: fieldsPreserved)
 
-        try! SmartFolderService.saveSmartFolders([])
+        try? SmartFolderService.saveSmartFolders([])
     }
 
     private static func testFolderWithNonexistentScopePathPersistsUnchanged() {
@@ -119,31 +114,31 @@ public struct SmartFolderTests {
         let missingDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let folder = SmartFolder(name: "Ghost", searchQuery: "kind:any", scopePath: missingDir.path)
 
-        try! SmartFolderService.saveSmartFolders([folder])
+        try? SmartFolderService.saveSmartFolders([folder])
         let loaded = SmartFolderService.loadSavedSmartFolders()
 
         let preserved = loaded.first(where: { $0.id == folder.id })?.scopePath == missingDir.path
         let stillMissing = !FileManager.default.fileExists(atPath: missingDir.path)
         TestReporter.report("SmartFolder", "POS: a scopePath pointing at a nonexistent directory persists unvalidated", result: preserved && stillMissing)
 
-        try! SmartFolderService.saveSmartFolders([])
+        try? SmartFolderService.saveSmartFolders([])
     }
 
     private static func testFolderWithEmptyScopePathPersistsAsEmpty() {
         // POS: an empty scopePath (used by executeQuery to fall back to NSMetadataQueryUserHomeScope) round-trips as ""
         let folder = SmartFolder(name: "HomeWide", searchQuery: "kind:any", scopePath: "")
-        try! SmartFolderService.saveSmartFolders([folder])
+        try? SmartFolderService.saveSmartFolders([folder])
         let loaded = SmartFolderService.loadSavedSmartFolders()
 
         let preserved = loaded.first(where: { $0.id == folder.id })?.scopePath == ""
         TestReporter.report("SmartFolder", "POS: an empty scopePath round-trips as empty string", result: preserved)
 
-        try! SmartFolderService.saveSmartFolders([])
+        try? SmartFolderService.saveSmartFolders([])
     }
 
     private static func testEmptyArrayRoundTrip() {
         // POS: saving an empty array clears out any leftover data from previous saves
-        try! SmartFolderService.saveSmartFolders([])
+        try? SmartFolderService.saveSmartFolders([])
         let loaded = SmartFolderService.loadSavedSmartFolders()
         TestReporter.report("SmartFolder", "POS: saving an empty array then loading returns an empty array", result: loaded.isEmpty)
     }
@@ -157,7 +152,7 @@ public struct SmartFolderTests {
         let folderB = SmartFolder(name: "Large Files", icon: "doc.fill", searchQuery: "size:>100mb", scopePath: tempScopeB)
         let folderC = SmartFolder(name: "Recent Downloads", icon: "arrow.down.circle", searchQuery: "kind:any", scopePath: tempScopeC)
 
-        try! SmartFolderService.saveSmartFolders([folderA, folderB, folderC])
+        try? SmartFolderService.saveSmartFolders([folderA, folderB, folderC])
         let loaded = SmartFolderService.loadSavedSmartFolders()
 
         guard loaded.count == 3,
@@ -181,8 +176,6 @@ public struct SmartFolderTests {
             result: fieldsMatch)
 
         // Clean up so this test doesn't leak state into subsequent runs.
-        try! SmartFolderService.saveSmartFolders([])
+        try? SmartFolderService.saveSmartFolders([])
     }
 }
-
-// swiftlint:enable force_try

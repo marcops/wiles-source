@@ -45,7 +45,6 @@
 "clearSearch" = "Wyczyść wyszukiwanie";
 "close" = "Zamknij";
 "codePreview" = "Code Preview";
-"columnView" = "Widok Kolumn";
 "compactDensity" = "Compact Density Layout";
 "compressToTarGz" = "Compress to .tar.gz";
 "compressToZip" = "Compress to ZIP";
@@ -160,7 +159,7 @@
 "helpTranslucentTitle" = "Translucent Background & Density Settings";
 "helpUndoDesc" = "Press Cmd+Z to undo or Cmd+Shift+Z to redo file renames, creations, moves, and deletions safely.";
 "helpUndoTitle" = "Full Undo / Redo Operations Engine";
-"helpViewModeMemoryDesc" = "Wiles remembers whether you prefer Grid, List, or Column view individually for each folder you navigate.";
+"helpViewModeMemoryDesc" = "Wiles remembers whether you prefer Grid or List view individually for each folder you navigate.";
 "helpViewModeMemoryTitle" = "Per-Directory View Mode Memory";
 "helpWifiShareDesc" = "Instantly share any folder over your local network via HTTP.";
 "helpWifiShareTitle" = "Wi-Fi Folder Sharing";
@@ -302,6 +301,7 @@
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Nazwa inteligentnego folderu";
+"updateSmartFolderSearch" = "Aktualizuj wyszukiwanie";
 "smartFolders" = "INTELIGENTNE FOLDERY";
 "sortBy" = "Sort By";
 "startNumber" = "Start Number";

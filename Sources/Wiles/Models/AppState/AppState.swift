@@ -43,20 +43,37 @@ public final class AppState: @unchecked Sendable {
 
     public func addSmartFolder(_ folder: SmartFolder) {
         smartFolders.append(folder)
-        do {
-            try SmartFolderService.saveSmartFolders(smartFolders)
-        } catch {
-            ErrorReporter.report(error, context: "Adding smart folder")
-            showError(error.localizedDescription)
-        }
+        persistSmartFolders(context: "Adding smart folder")
     }
 
     public func removeSmartFolder(_ folder: SmartFolder) {
         smartFolders.removeAll { $0.id == folder.id }
+        persistSmartFolders(context: "Removing smart folder")
+    }
+
+    /// Renames a smart folder in place (same id) — trims and ignores an empty/whitespace-only name.
+    public func renameSmartFolder(_ folder: SmartFolder, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, let idx = smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
+        smartFolders[idx].name = trimmed
+        persistSmartFolders(context: "Renaming smart folder")
+    }
+
+    /// Overwrites a smart folder's saved query in place (same id) — e.g. "Update Search" after
+    /// editing the search box while that smart folder's results are showing. Without this, editing
+    /// the query text only ever affected the current session; re-running the smart folder later
+    /// always went back to whatever it was originally saved with.
+    public func updateSmartFolderQuery(_ folder: SmartFolder, to newQuery: String) {
+        guard let idx = smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
+        smartFolders[idx].searchQuery = newQuery
+        persistSmartFolders(context: "Updating smart folder search")
+    }
+
+    private func persistSmartFolders(context: String) {
         do {
             try SmartFolderService.saveSmartFolders(smartFolders)
         } catch {
-            ErrorReporter.report(error, context: "Removing smart folder")
+            ErrorReporter.report(error, context: context)
             showError(error.localizedDescription)
         }
     }
@@ -65,31 +82,12 @@ public final class AppState: @unchecked Sendable {
 
     public var searchQuery: String = "" {
         didSet {
-            guard !smartFolder.suppressSearchQueryRefresh else { return }
-            // A normal searchQuery edit (typing, clearing, a kind:/date: filter button, a tag
-            // click) must unblock refreshCurrentDirectory() below — otherwise it stays stuck behind
-            // the guard meant only for the leftover FSEvents watcher on whatever folder was open
-            // before the smart folder ran. `activeFolderID` deliberately stays put: it only drives
-            // the sidebar's active-row highlight, which should keep showing the smart folder as
-            // selected while its results are on screen, even as the query text is refined — only a
-            // real navigation (navigateTo) should move that highlight elsewhere.
-            smartFolder.isActive = false
+            // `activeFolderID` deliberately stays put: it only drives the sidebar's active-row
+            // highlight, which should keep showing the smart folder as selected while its results
+            // are on screen, even as the query text is refined — only a real navigation
+            // (navigateTo) should move that highlight elsewhere.
             refreshCurrentDirectory()
         }
-    }
-
-    /// Sets `searchQuery` without necessarily reloading the current folder — a smart folder run
-    /// populates `fileSystem.items` from its own cross-directory query and must not race against a
-    /// normal single-directory reload of whatever folder happens to be open, which used to silently
-    /// overwrite the smart folder's results (and the selection) shortly after they appeared.
-    func setSearchQuery(_ query: String, triggerRefresh: Bool) {
-        guard !triggerRefresh else {
-            searchQuery = query
-            return
-        }
-        smartFolder.suppressSearchQueryRefresh = true
-        searchQuery = query
-        smartFolder.suppressSearchQueryRefresh = false
     }
 
     public var isSearching: Bool = false

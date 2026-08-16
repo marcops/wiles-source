@@ -45,7 +45,6 @@
 "clearSearch" = "Limpiar búsqueda";
 "close" = "Cerrar";
 "codePreview" = "Vista Previa de Código";
-"columnView" = "Vista de Columnas";
 "compactDensity" = "Diseño de Densidad Compacta";
 "compressToTarGz" = "Comprimir a .tar.gz";
 "compressToZip" = "Comprimir a ZIP";
@@ -305,6 +304,7 @@
 "sidebarTrash" = "Papelera";
 "size" = "Tamaño";
 "smartFolderName" = "Nombre de Carpeta Inteligente";
+"updateSmartFolderSearch" = "Actualizar Búsqueda";
 "smartFolders" = "CARPETAS INTELIGENTES";
 "sortBy" = "Ordenar por";
 "startNumber" = "Número Inicial";

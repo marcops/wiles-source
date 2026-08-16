@@ -25,6 +25,8 @@ import XCTest
 
 @MainActor
 final class GlobalKeyMonitorUITests: XCTestCase {
+    // Standard XCTest lifecycle: set in setUp(), used by every test method — never nil in practice.
+    // swiftlint:disable:next implicitly_unwrapped_optional
     private var app: XCUIApplication!
 
     override func setUp() async throws {

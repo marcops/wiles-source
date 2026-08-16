@@ -25,7 +25,7 @@ public struct SmallModelEnumsTests {
     }
 
     private static func testViewMode() {
-        report("ViewMode", "POS: CaseIterable has exactly the 3 known cases", result: ViewMode.allCases.count == 3)
+        report("ViewMode", "POS: CaseIterable has exactly the 2 known cases", result: ViewMode.allCases.count == 2)
         for mode in ViewMode.allCases {
             report("ViewMode", "POS: rawValue round-trips for \(mode)", result: ViewMode(rawValue: mode.rawValue) == mode)
             report("ViewMode", "POS: id equals rawValue for \(mode)", result: mode.id == mode.rawValue)

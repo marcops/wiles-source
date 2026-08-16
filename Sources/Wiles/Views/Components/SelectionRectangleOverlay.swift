@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Drag-to-select marquee, background deselect, and the shared background context menu — used by List, Grid, and Column.
+/// Drag-to-select marquee, background deselect, and the shared background context menu — used by List and Grid.
 /// Draws the rect above the rows itself (this view must stay below them in z-order); needs an ancestor `.coordinateSpace(name: coordinateSpaceName)`.
 struct SelectionRectangleOverlay: View {
     var appState: AppState

@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Finder-style middle-ellipsis truncation (equal characters kept from the start and end) instead
 /// of the default end-only truncation:
-/// - Single-line (`collapsedLineLimit == 1`, List/Column): SwiftUI's native `.truncationMode(.middle)`
+/// - Single-line (`collapsedLineLimit == 1`, List): SwiftUI's native `.truncationMode(.middle)`
 ///   already does exactly this, using the real layout engine — no width math needed at all.
 /// - Multi-line (`collapsedLineLimit > 1`, Grid's 2-line wrap): macOS `Text` doesn't support
 ///   `.truncationMode(.middle)` across multiple lines, so `FinderStyleTruncationService`

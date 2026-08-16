@@ -261,8 +261,8 @@ public extension AppState {
         }
     }
 
-    /// Column view creates items in whichever column was right-clicked, not necessarily
-    /// `navigation.currentURL` — only touch `fileSystem.items` when they're the same folder.
+    /// `folder` may differ from `navigation.currentURL` — only touch `fileSystem.items` when
+    /// they're the same folder.
     private func enterRenameForNewlyCreated(at url: URL, inFolder: URL, windowUIState: WindowUIState) {
         let newItem = FileItem(url: url)
         fileSystem.renamingURL = url

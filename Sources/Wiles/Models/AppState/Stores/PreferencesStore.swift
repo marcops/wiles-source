@@ -116,7 +116,7 @@ public final class PreferencesStore {
         didSet { UserDefaults.standard.set(showTags, forKey: DefaultsKey.showTags.rawValue) }
     }
 
-    /// Finder-style middle-ellipsis truncation for long file names (Grid, List, Column) instead of
+    /// Finder-style middle-ellipsis truncation for long file names (Grid, List) instead of
     /// the default end-only truncation. Defaults on, matching Finder's own behavior.
     public var middleTruncateNames: Bool = true {
         didSet { UserDefaults.standard.set(middleTruncateNames, forKey: DefaultsKey.middleTruncateNames.rawValue) }

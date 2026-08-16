@@ -50,7 +50,8 @@ public struct FileSystemTests {
         sort: SortOption = .name,
         ascending: Bool = true,
         showHidden: Bool = false,
-        showTags: Bool = false) async -> [FileItem] {
+        showTags: Bool = false,
+        scope: SearchScope = .name) async -> [FileItem] {
         await FileSystemService.loadDirectoryContents(
             at: url,
             options: DirectoryLoadOptions(
@@ -58,7 +59,8 @@ public struct FileSystemTests {
                 showTags: showTags,
                 searchQuery: query,
                 sortOption: sort,
-                sortAscending: ascending))
+                sortAscending: ascending,
+                searchScope: scope))
     }
 
     private static func runSearchAndSortCoverageExtras() async {
@@ -98,7 +100,8 @@ public struct FileSystemTests {
         try? "the secret phrase is unicorn".write(to: textFile, atomically: true, encoding: .utf8)
         let binaryFile = dir.appendingPathComponent("unrelated_name.bin")
         try? "the secret phrase is unicorn".write(to: binaryFile, atomically: true, encoding: .utf8)
-        let byContent = await loadItems(at: dir, query: "unicorn")
+        // Content-fallback matching is scope-gated (Name-only must not match by content) — opt in explicitly.
+        let byContent = await loadItems(at: dir, query: "unicorn", scope: .content)
         await TestReporter.report(
             "FileSystem/SearchAndSort",
             "POS: token >=3 chars falls back to matching file content for text extensions",
@@ -110,7 +113,7 @@ public struct FileSystemTests {
         // Note: querying "un" against files literally named "unrelated_name.*" would match via the
         // plain filename-substring check before content search's 3-char guard is ever reached — use
         // a short token that appears only in the content, not the filename, to isolate the guard.
-        let tooShort = await loadItems(at: dir, query: "ic")
+        let tooShort = await loadItems(at: dir, query: "ic", scope: .content)
         await TestReporter.report("FileSystem/SearchAndSort", "NEG: content search is skipped for tokens shorter than 3 characters", result: tooShort.isEmpty)
     }
 

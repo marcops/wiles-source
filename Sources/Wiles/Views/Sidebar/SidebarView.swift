@@ -4,6 +4,9 @@ import SwiftUI
 struct SidebarView: View {
     var appState: AppState
     @State private var rightClickedRowKey: String?
+    @State private var renamingSmartFolderID: SmartFolder.ID?
+    @State private var smartFolderRenameText: String = ""
+    @FocusState private var isSmartFolderRenameFocused: Bool
 
     var devices: [SidebarItem] {
         let home = URL.userHome
@@ -272,34 +275,89 @@ struct SidebarView: View {
         }
     }
 
+    @ViewBuilder
     private func smartFolderRow(folder: SmartFolder) -> some View {
-        let isSel = appState.smartFolder.activeFolderID == folder.id
-        return Button {
-            runSmartFolder(folder)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: folder.icon)
-                    .font(.system(size: 15))
-                    .foregroundColor(.accentColor)
-                    .frame(width: 20, height: 20)
-                Text(folder.name)
-                    .font(.system(size: 13, weight: isSel ? .semibold : .regular))
-                    .lineLimit(1)
-                Spacer()
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(isSel ? Color.accentColor.opacity(0.18) : Color.clear)
-            .cornerRadius(8)
-            .contentShape(Rectangle())
+        if renamingSmartFolderID == folder.id {
+            smartFolderRenameField(folder: folder)
+        } else {
+            smartFolderButtonRow(folder: folder)
         }
-        .buttonStyle(.plain)
+    }
+
+    /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
+    /// for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
+    private func smartFolderButtonRow(folder: SmartFolder) -> some View {
+        let isSel = appState.smartFolder.activeFolderID == folder.id
+        return HStack(spacing: 10) {
+            Image(systemName: folder.icon)
+                .font(.system(size: 15))
+                .foregroundColor(.accentColor)
+                .frame(width: 20, height: 20)
+            Text(folder.name)
+                .font(.system(size: 13, weight: isSel ? .semibold : .regular))
+                .lineLimit(1)
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(isSel ? Color.accentColor.opacity(0.18) : Color.clear)
+        .cornerRadius(8)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            runSmartFolder(folder)
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(folder.name)
+        .accessibilityHint(appState.tr(.folder))
         .padding(.horizontal, 8)
         .contextMenu {
+            Button(appState.tr(.rename)) {
+                smartFolderRenameText = folder.name
+                renamingSmartFolderID = folder.id
+            }
+            Button(appState.tr(.updateSmartFolderSearch)) {
+                appState.updateSmartFolderQuery(folder, to: appState.searchQuery)
+            }
+            .disabled(appState.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty)
+            Divider()
             Button(appState.tr(.moveToTrash), role: .destructive) {
                 appState.removeSmartFolder(folder)
             }
         }
+    }
+
+    private func smartFolderRenameField(folder: SmartFolder) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: folder.icon)
+                .font(.system(size: 15))
+                .foregroundColor(.accentColor)
+                .frame(width: 20, height: 20)
+            TextField("", text: $smartFolderRenameText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .focused($isSmartFolderRenameFocused)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
+                        isSmartFolderRenameFocused = true
+                    }
+                }
+                .onSubmit { commitSmartFolderRename(folder) }
+                .onExitCommand { renamingSmartFolderID = nil }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .padding(.horizontal, 8)
+        .onChange(of: isSmartFolderRenameFocused) { _, focused in
+            if !focused {
+                commitSmartFolderRename(folder)
+            }
+        }
+    }
+
+    private func commitSmartFolderRename(_ folder: SmartFolder) {
+        guard renamingSmartFolderID == folder.id else { return }
+        appState.renameSmartFolder(folder, to: smartFolderRenameText)
+        renamingSmartFolderID = nil
     }
 
     private func runSmartFolder(_ folder: SmartFolder) {

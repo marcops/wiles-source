@@ -254,7 +254,6 @@ struct HeaderBarView: View {
         switch mode {
         case .grid: "square.grid.2x2"
         case .list: "list.bullet"
-        case .column: "sidebar.left"
         }
     }
 
@@ -262,7 +261,6 @@ struct HeaderBarView: View {
         switch mode {
         case .grid: "ViewModeGrid"
         case .list: "ViewModeList"
-        case .column: "ViewModeColumn"
         }
     }
 

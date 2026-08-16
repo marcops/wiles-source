@@ -282,7 +282,6 @@ struct WilesApp: App {
         Picker(selection: $appState.preferences.viewMode) {
             Text(appState.tr(.gridView)).tag(ViewMode.grid)
             Text(appState.tr(.listView)).tag(ViewMode.list)
-            Text(appState.tr(.columnView)).tag(ViewMode.column)
         } label: {
             Label(appState.tr(.viewMode), systemImage: "square.grid.2x2")
         }

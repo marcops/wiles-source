@@ -45,7 +45,6 @@
 "clearSearch" = "Limpar Busca";
 "close" = "Fechar";
 "codePreview" = "Pré-visualização de Código";
-"columnView" = "Visualização em Colunas";
 "compactDensity" = "Layout de Densidade Compacta";
 "compressToTarGz" = "Compactar para .tar.gz";
 "compressToZip" = "Compactar para ZIP";
@@ -160,7 +159,7 @@
 "helpTranslucentTitle" = "Fundo Translucido e Configurações de Densidade";
 "helpUndoDesc" = "Pressione Cmd+Z para desfazer ou Cmd+Shift+Z para refazer renomeações, criações, movimentações e exclusões.";
 "helpUndoTitle" = "Mecanismo Completo de Desfazer / Refazer";
-"helpViewModeMemoryDesc" = "O Wiles lembra se você prefere a visualização em Grade, Lista ou Coluna individualmente para cada pasta.";
+"helpViewModeMemoryDesc" = "O Wiles lembra se você prefere a visualização em Grade ou Lista individualmente para cada pasta.";
 "helpViewModeMemoryTitle" = "Memória de Modo de Visualização por Diretório";
 "helpWifiShareDesc" = "Compartilhe pastas instantaneamente na sua rede local via HTTP.";
 "helpWifiShareTitle" = "Compartilhamento Wi-Fi";
@@ -305,6 +304,7 @@
 "sidebarTrash" = "Lixeira";
 "size" = "Tamanho";
 "smartFolderName" = "Nome da Pasta Inteligente";
+"updateSmartFolderSearch" = "Atualizar Busca";
 "smartFolders" = "PASTAS INTELIGENTES";
 "sortBy" = "Ordenar por";
 "startNumber" = "Número Inicial";

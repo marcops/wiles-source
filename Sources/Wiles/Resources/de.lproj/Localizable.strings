@@ -45,7 +45,6 @@
 "clearSearch" = "Suche löschen";
 "close" = "Schließen";
 "codePreview" = "Code-Vorschau";
-"columnView" = "Spaltenansicht";
 "compactDensity" = "Kompakte Dichte-Layout";
 "compressToTarGz" = "In .tar.gz komprimieren";
 "compressToZip" = "In ZIP komprimieren";
@@ -305,6 +304,7 @@
 "sidebarTrash" = "Papierkorb";
 "size" = "Größe";
 "smartFolderName" = "Name des intelligenten Ordners";
+"updateSmartFolderSearch" = "Suche aktualisieren";
 "smartFolders" = "INTELLIGENTE ORDNER";
 "sortBy" = "Sortieren nach";
 "startNumber" = "Startnummer";

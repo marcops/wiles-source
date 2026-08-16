@@ -18,8 +18,11 @@ import XCTest
 
 @MainActor
 final class NewFolderRenameUITests: XCTestCase {
+    // swiftlint:disable implicitly_unwrapped_optional
+    // Standard XCTest lifecycle: both are set in setUp(), used by every test method — never nil in practice.
     private var app: XCUIApplication!
     private var tempDir: URL!
+    // swiftlint:enable implicitly_unwrapped_optional
 
     override func setUp() async throws {
         continueAfterFailure = false

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Direct-in-view rename — replaces the name label in List/Grid/Column with an editable text field
+/// Direct-in-view rename — replaces the name label in List/Grid with an editable text field
 /// instead of popping a modal sheet. Grows downward as the typed name wraps to more lines (matching
 /// Finder), and never shifts the icon above/beside it since growth only pushes content that comes
 /// after it in the same stack.

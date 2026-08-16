@@ -165,11 +165,11 @@ public struct AppStateColumnsAndSelectionTests {
 
         let appState = AppState()
         appState.preferences.viewMode = .list
-        appState.setViewModeForFolder(.column, for: dir)
+        appState.setViewModeForFolder(.grid, for: dir)
         report(
             "AppState+Columns",
             "POS: setViewModeForFolder() stores the per-folder mode and updates the global viewMode",
-            result: appState.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.column.rawValue && appState.preferences.viewMode == .column)
+            result: appState.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.grid.rawValue && appState.preferences.viewMode == .grid)
 
         // A different, untouched folder should not have an override.
         let otherDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)

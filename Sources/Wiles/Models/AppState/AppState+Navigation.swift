@@ -44,7 +44,6 @@ public extension AppState {
             navigation.historyForward.removeAll()
         }
         navigation.currentURL = Self.recentsVirtualURL
-        smartFolder.isActive = false
         smartFolder.activeFolderID = nil
         selectedURLs.removeAll()
         isSearching = false
@@ -67,7 +66,6 @@ public extension AppState {
             navigation.historyForward.removeAll()
         }
         navigation.currentURL = standardizedURL
-        smartFolder.isActive = false
         smartFolder.activeFolderID = nil
         selectedURLs.removeAll()
         selection.pendingSelectionURL = leavingChildURL
@@ -127,7 +125,6 @@ public extension AppState {
     }
 
     func refreshCurrentDirectory(isUserInitiated: Bool = false) {
-        guard !smartFolder.isActive else { return }
         if isUserInitiated, fileSystem.items.isEmpty {
             fileSystem.isLoading = true
         }

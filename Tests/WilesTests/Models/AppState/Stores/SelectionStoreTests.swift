@@ -9,9 +9,6 @@ public struct SelectionStoreTests {
         report("Store/SelectionStore", "POS: gridCellFrames starts empty", result: store.gridCellFrames.isEmpty)
         report("Store/SelectionStore", "POS: gridColumnCount default is 1 when empty", result: store.gridColumnCount == 1)
 
-        store.columnViewDrillRightTrigger += 1
-        report("Store/SelectionStore", "POS: columnViewDrillRightTrigger increments", result: store.columnViewDrillRightTrigger == 1)
-
         report("Store/SelectionStore", "POS: gridLabelWidths starts empty", result: store.gridLabelWidths.isEmpty)
         let url = URL(fileURLWithPath: "/tmp/wiles-selection-store-test-item")
         store.gridLabelWidths[url] = 42.0

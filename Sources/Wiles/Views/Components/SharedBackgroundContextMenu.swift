@@ -3,9 +3,7 @@ import SwiftUI
 
 struct SharedBackgroundContextMenu: View {
     var appState: AppState
-    /// Overrides `appState.navigation.currentURL` as the New Folder/File creation location —
-    /// Column view passes the specific column that was right-clicked, since it can show several
-    /// folders at once, none of which need to be the current one.
+    /// Overrides `appState.navigation.currentURL` as the New Folder/File creation location.
     var targetFolderURL: URL?
     @Environment(WindowUIState.self)
     private var windowUIState

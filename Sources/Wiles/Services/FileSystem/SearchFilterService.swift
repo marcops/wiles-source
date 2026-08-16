@@ -190,11 +190,11 @@ public struct SearchFilterService: Sendable {
     private static func matchesTextOrRegex(fileURL: URL, token: String, regex: NSRegularExpression?, scope: SearchScope, caseSensitive: Bool) -> Bool {
         switch scope {
         case .name:
-            return matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
+            matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
         case .content:
-            return matchesContent(fileURL: fileURL, query: token, caseSensitive: caseSensitive)
+            matchesContent(fileURL: fileURL, query: token, caseSensitive: caseSensitive)
         case .both:
-            return matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
+            matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
                 || matchesContent(fileURL: fileURL, query: token, caseSensitive: caseSensitive)
         }
     }

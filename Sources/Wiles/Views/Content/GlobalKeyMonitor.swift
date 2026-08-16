@@ -158,36 +158,20 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         private func handleArrowKeyDown(_ key: ArrowKey, isShift: Bool, appState: AppState) {
             switch key {
             case .up:
-                if appState.preferences.viewMode == .column {
-                    appState.selection.columnViewVerticalDirection = -1
-                    appState.selection.columnViewVerticalIsShift = isShift
-                    appState.selection.columnViewVerticalTrigger += 1
-                } else {
-                    let offset = appState.preferences.viewMode == .grid ? -appState.selection.gridColumnCount : -1
-                    moveSelection(by: offset, isShift: isShift, appState: appState)
-                }
+                let offset = appState.preferences.viewMode == .grid ? -appState.selection.gridColumnCount : -1
+                moveSelection(by: offset, isShift: isShift, appState: appState)
             case .down:
-                if appState.preferences.viewMode == .column {
-                    appState.selection.columnViewVerticalDirection = 1
-                    appState.selection.columnViewVerticalIsShift = isShift
-                    appState.selection.columnViewVerticalTrigger += 1
-                } else {
-                    let offset = appState.preferences.viewMode == .grid ? appState.selection.gridColumnCount : 1
-                    moveSelection(by: offset, isShift: isShift, appState: appState)
-                }
+                let offset = appState.preferences.viewMode == .grid ? appState.selection.gridColumnCount : 1
+                moveSelection(by: offset, isShift: isShift, appState: appState)
             case .left:
                 if appState.preferences.viewMode == .grid {
                     moveSelection(by: -1, isShift: isShift, appState: appState)
-                } else if appState.preferences.viewMode == .column {
-                    appState.selection.columnViewMoveLeftTrigger += 1
                 } else {
                     appState.goUp()
                 }
             case .right:
                 if appState.preferences.viewMode == .grid {
                     moveSelection(by: 1, isShift: isShift, appState: appState)
-                } else if appState.preferences.viewMode == .column {
-                    appState.selection.columnViewDrillRightTrigger += 1
                 } else if let first = appState.selectedURLs.first,
                           let item = appState.fileSystem.items.first(where: { $0.url == first }), item.isDirectory {
                     appState.navigateTo(first)

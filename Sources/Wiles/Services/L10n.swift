@@ -52,7 +52,6 @@ public enum L10n {
         case viewMode
         case gridView
         case listView
-        case columnView
         case showHiddenFiles
         case showHiddenFilesGnome
         case showHiddenFilesMac
@@ -327,6 +326,7 @@ public enum L10n {
         case saveSearch
         case saveAsSmartFolder
         case smartFolderName
+        case updateSmartFolderSearch
         case sharingAndPermissions
         case read
         case write

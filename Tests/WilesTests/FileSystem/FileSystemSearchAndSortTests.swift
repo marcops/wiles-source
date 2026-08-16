@@ -238,7 +238,12 @@ public struct FileSystemSearchAndSortTests {
         let sizeResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "size:>1b", tokenRegexes: [:], scope: .name, caseSensitive: false)
         report("NEG: matchesSearch with a \"size:\" query on a nonexistent file returns false (resourceValues guard)", result: !sizeResult)
 
-        let contentResultMissing = SearchFilterService.matchesSearch(fileURL: missingFile, query: "unicorn", tokenRegexes: [:], scope: .content, caseSensitive: false)
+        let contentResultMissing = SearchFilterService.matchesSearch(
+            fileURL: missingFile,
+            query: "unicorn",
+            tokenRegexes: [:],
+            scope: .content,
+            caseSensitive: false)
         report("NEG: matchesSearch content-search fallback on a nonexistent file returns false (resourceValues guard)", result: !contentResultMissing)
 
         let dir = tempDir()
@@ -246,7 +251,12 @@ public struct FileSystemSearchAndSortTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let invalidUTF8File = dir.appendingPathComponent("invalid_utf8.txt")
         try? Data([0xFF, 0xFE, 0xFD, 0x80, 0x81]).write(to: invalidUTF8File)
-        let contentResultInvalid = SearchFilterService.matchesSearch(fileURL: invalidUTF8File, query: "unicorn", tokenRegexes: [:], scope: .content, caseSensitive: false)
+        let contentResultInvalid = SearchFilterService.matchesSearch(
+            fileURL: invalidUTF8File,
+            query: "unicorn",
+            tokenRegexes: [:],
+            scope: .content,
+            caseSensitive: false)
         report("NEG: matchesSearch content-search fallback on a file with invalid UTF-8 content returns false (decode guard)", result: !contentResultInvalid)
     }
 

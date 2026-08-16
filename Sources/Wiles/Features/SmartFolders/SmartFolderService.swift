@@ -6,6 +6,13 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     public static let shared = SmartFolderService()
     private var query: NSMetadataQuery?
     private var queryObserver: NSObjectProtocol?
+    /// Identifies the most recently started query. `fetchFileItems` resolves icons on a detached
+    /// task, so a slower-finishing older query (e.g. one with more results) could otherwise still
+    /// call its `completion` after a faster newer one already did, silently overwriting the newer,
+    /// correct results with stale ones — this is why clicking a different smart folder could
+    /// sometimes leave the previous one's results on screen. Each completion checks this token
+    /// before applying, so only the most recently started query's results ever actually land.
+    private var currentQueryToken = UUID()
 
     public static func loadSavedSmartFolders() -> [SmartFolder] {
         guard let data = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue),
@@ -32,6 +39,8 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
 
     public func executeQuery(for smartFolder: SmartFolder, completion: @escaping @Sendable ([FileItem]) -> Void) {
         query?.stop()
+        let token = UUID()
+        currentQueryToken = token
         let metadataQuery = NSMetadataQuery()
         let wildcardQuery = "*\(smartFolder.searchQuery)*"
         metadataQuery.predicate = NSPredicate(format: "kMDItemDisplayName ==[cd] %@", wildcardQuery)
@@ -61,7 +70,15 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
                     return
                 }
                 let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-                Self.fetchFileItems(forPaths: paths, completion: completion)
+                Self.fetchFileItems(forPaths: paths) { [weak self] items in
+                    // fetchFileItems always invokes this via `await MainActor.run`, so it's safe
+                    // to touch MainActor-isolated state here despite the closure's inferred
+                    // `@Sendable` type — matches the `MainActor.assumeIsolated` use just above.
+                    MainActor.assumeIsolated {
+                        guard self?.currentQueryToken == token else { return }
+                        completion(items)
+                    }
+                }
             }
         metadataQuery.start()
         query = metadataQuery
@@ -69,6 +86,8 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
 
     public func executeContentQuery(queryText: String, in folderURL: URL, completion: @escaping @Sendable ([FileItem]) -> Void) {
         query?.stop()
+        let token = UUID()
+        currentQueryToken = token
         let metadataQuery = NSMetadataQuery()
         let wildcardQuery = "*\(queryText)*"
         metadataQuery.predicate = NSPredicate(format: "(kMDItemTextContent ==[cd] %@) || (kMDItemFSName ==[cd] %@)", wildcardQuery, wildcardQuery)
@@ -94,7 +113,15 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
                     return
                 }
                 let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-                Self.fetchFileItems(forPaths: paths, completion: completion)
+                Self.fetchFileItems(forPaths: paths) { [weak self] items in
+                    // fetchFileItems always invokes this via `await MainActor.run`, so it's safe
+                    // to touch MainActor-isolated state here despite the closure's inferred
+                    // `@Sendable` type — matches the `MainActor.assumeIsolated` use just above.
+                    MainActor.assumeIsolated {
+                        guard self?.currentQueryToken == token else { return }
+                        completion(items)
+                    }
+                }
             }
         metadataQuery.start()
         query = metadataQuery

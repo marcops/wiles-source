@@ -5,15 +5,6 @@ import Observation
 @Observable
 @MainActor
 public final class SelectionStore {
-    /// Bumped by the right-arrow key handler so Column View can drill into the selected item's column.
-    public var columnViewDrillRightTrigger: Int = 0
-    /// Set alongside `columnViewVerticalTrigger` so Column View moves selection within its active column.
-    public var columnViewVerticalDirection: Int = 0
-    public var columnViewVerticalTrigger: Int = 0
-    /// Bumped by the left-arrow key handler so Column View shifts focus back one column.
-    public var columnViewMoveLeftTrigger: Int = 0
-    /// Set alongside `columnViewVerticalTrigger` so Column View knows whether to extend the range.
-    public var columnViewVerticalIsShift: Bool = false
     /// Fixed starting point for a Shift+Arrow selection run — must not be derived from
     /// `selectedURLs.first`, since `Set` has no stable order and would make the anchor drift to
     /// an arbitrary already-selected item on every subsequent Shift+Arrow press.
