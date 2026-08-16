@@ -196,7 +196,9 @@ struct FileColumnView: View {
                     searchQuery: appState.searchQuery,
                     sortOption: appState.preferences.sortOption,
                     sortAscending: appState.preferences.sortAscending,
-                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)))
+                    showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group),
+                    searchScope: appState.preferences.searchScope,
+                    searchCaseSensitive: appState.preferences.searchCaseSensitive))
             await MainActor.run {
                 guard appState.navigation.currentURL == targetURL else { return }
                 columns = [ColumnData(folderURL: targetURL, items: rootItems, selectedURL: nil)]
@@ -218,7 +220,9 @@ struct FileColumnView: View {
                         searchQuery: column.folderURL == appState.navigation.currentURL ? appState.searchQuery : "",
                         sortOption: appState.preferences.sortOption,
                         sortAscending: appState.preferences.sortAscending,
-                        showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group)))
+                        showOwnerGroup: appState.isColumnVisible(.owner) || appState.isColumnVisible(.group),
+                        searchScope: appState.preferences.searchScope,
+                        searchCaseSensitive: appState.preferences.searchCaseSensitive))
                 await MainActor.run {
                     guard index < columns.count, columns[index].folderURL == column.folderURL else { return }
                     if let renamingURL = appState.fileSystem.renamingURL,

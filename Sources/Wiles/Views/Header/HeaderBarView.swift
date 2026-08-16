@@ -144,7 +144,9 @@ struct HeaderBarView: View {
         Picker(appState.tr(.searchScope), selection: $appState.preferences.searchScope) {
             Text(appState.tr(.searchByName)).tag(SearchScope.name)
             Text(appState.tr(.searchByContent)).tag(SearchScope.content)
+            Text(appState.tr(.searchByBoth)).tag(SearchScope.both)
         }
+        Toggle(appState.tr(.searchCaseSensitive), isOn: $appState.preferences.searchCaseSensitive)
         Toggle(appState.tr(.searchIncludeHiddenFolders), isOn: includeHiddenFoldersBinding)
         Divider()
         dateFilterButtons

@@ -20,16 +20,24 @@ public struct FileSystemSearchAndSortTests {
         await testDateFilterEdgeCases()
         await testSizeFilterEdgeCases()
         testDirectSearchFilterServiceGuardFailures()
+        await testSearchScopeNameExcludesContentMatches()
+        await testSearchScopeContentExcludesNameOnlyMatches()
+        await testSearchScopeBothMatchesEither()
+        await testCaseSensitiveSearch()
     }
 
     private static func tempDir() -> URL {
         URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
     }
 
-    private static func load(at url: URL, query: String = "", sort: SortOption = .name, ascending: Bool = true, showHidden: Bool = false) async -> [FileItem] {
+    private static func load(
+        at url: URL, query: String = "", sort: SortOption = .name, ascending: Bool = true, showHidden: Bool = false,
+        scope: SearchScope = .name, caseSensitive: Bool = false) async -> [FileItem] {
         await FileSystemService.loadDirectoryContents(
             at: url,
-            options: DirectoryLoadOptions(showHidden: showHidden, showTags: false, searchQuery: query, sortOption: sort, sortAscending: ascending))
+            options: DirectoryLoadOptions(
+                showHidden: showHidden, showTags: false, searchQuery: query, sortOption: sort, sortAscending: ascending,
+                searchScope: scope, searchCaseSensitive: caseSensitive))
     }
 
     private static func report(_ name: String, result: Bool) {
@@ -218,13 +226,13 @@ public struct FileSystemSearchAndSortTests {
     /// deliberately nonexistent URL reach these guards.
     private static func testDirectSearchFilterServiceGuardFailures() {
         let missingFile = tempDir().appendingPathComponent("missing.txt")
-        let dateResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "date:>=1d", regex: nil)
+        let dateResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "date:>=1d", regex: nil, scope: .name, caseSensitive: false)
         report("NEG: matchesSearch with a \"date:\" query on a nonexistent file returns false (resourceValues guard)", result: !dateResult)
 
-        let sizeResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "size:>1b", regex: nil)
+        let sizeResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "size:>1b", regex: nil, scope: .name, caseSensitive: false)
         report("NEG: matchesSearch with a \"size:\" query on a nonexistent file returns false (resourceValues guard)", result: !sizeResult)
 
-        let contentResultMissing = SearchFilterService.matchesSearch(fileURL: missingFile, query: "unicorn", regex: nil)
+        let contentResultMissing = SearchFilterService.matchesSearch(fileURL: missingFile, query: "unicorn", regex: nil, scope: .content, caseSensitive: false)
         report("NEG: matchesSearch content-search fallback on a nonexistent file returns false (resourceValues guard)", result: !contentResultMissing)
 
         let dir = tempDir()
@@ -232,8 +240,64 @@ public struct FileSystemSearchAndSortTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let invalidUTF8File = dir.appendingPathComponent("invalid_utf8.txt")
         try? Data([0xFF, 0xFE, 0xFD, 0x80, 0x81]).write(to: invalidUTF8File)
-        let contentResultInvalid = SearchFilterService.matchesSearch(fileURL: invalidUTF8File, query: "unicorn", regex: nil)
+        let contentResultInvalid = SearchFilterService.matchesSearch(fileURL: invalidUTF8File, query: "unicorn", regex: nil, scope: .content, caseSensitive: false)
         report("NEG: matchesSearch content-search fallback on a file with invalid UTF-8 content returns false (decode guard)", result: !contentResultInvalid)
+    }
+
+    /// Regression: "jpg" used to match Swift files that only mention "jpg" in their source.
+    private static func testSearchScopeNameExcludesContentMatches() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? "let extensions = [\"png\", \"jpg\", \"jpeg\"]".write(to: dir.appendingPathComponent("Utility.swift"), atomically: true, encoding: .utf8)
+
+        let results = await load(at: dir, query: "jpg", scope: .name)
+        report("NEG: \"name\" scope does not match a file whose content (not name) contains the query", result: results.isEmpty)
+    }
+
+    /// `.content` scope is content-only, no name fallback.
+    private static func testSearchScopeContentExcludesNameOnlyMatches() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? "no matching keyword here".write(to: dir.appendingPathComponent("jpg_report.txt"), atomically: true, encoding: .utf8)
+
+        let results = await load(at: dir, query: "jpg", scope: .content)
+        report("NEG: \"content\" scope does not match a file whose name (not content) contains the query", result: results.isEmpty)
+    }
+
+    /// `.both` matches either a name hit or a content hit.
+    private static func testSearchScopeBothMatchesEither() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? "no matching keyword here".write(to: dir.appendingPathComponent("jpg_report.txt"), atomically: true, encoding: .utf8)
+        try? "let extensions = [\"png\", \"jpg\", \"jpeg\"]".write(to: dir.appendingPathComponent("Utility.swift"), atomically: true, encoding: .utf8)
+        try? "nothing relevant".write(to: dir.appendingPathComponent("unrelated.txt"), atomically: true, encoding: .utf8)
+
+        let results = await load(at: dir, query: "jpg", scope: .both)
+        let names = Set(results.map(\.name))
+        report(
+            "POS: \"both\" scope matches a name-only hit and a content-only hit, and excludes non-matching files",
+            result: names == ["jpg_report.txt", "Utility.swift"])
+    }
+
+    /// Case sensitivity defaults off (matches regardless of case) and, when enabled, requires an
+    /// exact-case match.
+    private static func testCaseSensitiveSearch() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? "x".write(to: dir.appendingPathComponent("Report.txt"), atomically: true, encoding: .utf8)
+
+        let insensitive = await load(at: dir, query: "report", caseSensitive: false)
+        report("POS: case-insensitive (default) search matches regardless of case", result: insensitive.count == 1)
+
+        let sensitiveWrongCase = await load(at: dir, query: "report", caseSensitive: true)
+        report("NEG: case-sensitive search does not match a differently-cased query", result: sensitiveWrongCase.isEmpty)
+
+        let sensitiveRightCase = await load(at: dir, query: "Report", caseSensitive: true)
+        report("POS: case-sensitive search matches the exact case", result: sensitiveRightCase.count == 1)
     }
 
     private static func testSetTagsRoundTrip() async {

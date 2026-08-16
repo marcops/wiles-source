@@ -251,9 +251,11 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "文件内容";
 "searchByName" = "文件名";
+"searchByBoth" = "名称和内容";
 "searchEverywhere" = "整个 Mac";
 "searchEverywhereHelp" = "递归搜索整个主文件夹，而不仅仅是当前文件夹";
 "searchIncludeHiddenFolders" = "包含隐藏文件夹";
+"searchCaseSensitive" = "区分大小写";
 "searchPlaceholder" = "Search in";
 "searchScope" = "搜索范围";
 "secureShred" = "安全粉碎文件...";

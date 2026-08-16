@@ -251,9 +251,11 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "File Content";
 "searchByName" = "File Name";
+"searchByBoth" = "Name & Content";
 "searchEverywhere" = "Whole Mac";
 "searchEverywhereHelp" = "Search recursively through your entire home folder instead of just this one";
 "searchIncludeHiddenFolders" = "Include Hidden Folders";
+"searchCaseSensitive" = "Case Sensitive";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Search Scope";
 "secureShred" = "Secure Shred File...";

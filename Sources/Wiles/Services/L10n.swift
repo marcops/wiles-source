@@ -347,9 +347,11 @@ public enum L10n {
         case searchScope
         case searchByName
         case searchByContent
+        case searchByBoth
         case searchEverywhere
         case searchEverywhereHelp
         case searchIncludeHiddenFolders
+        case searchCaseSensitive
         case inspectArchive
         case permissionDeniedNotice
         case emptyFolder

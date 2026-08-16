@@ -251,9 +251,11 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "Dosya İçeriği";
 "searchByName" = "Dosya Adı";
+"searchByBoth" = "Ad ve İçerik";
 "searchEverywhere" = "Tüm Mac";
 "searchEverywhereHelp" = "Yalnızca bu klasörde değil, tüm ana klasörde özyinelemeli olarak arayın";
 "searchIncludeHiddenFolders" = "Gizli Klasörleri Dahil Et";
+"searchCaseSensitive" = "Büyük/Küçük Harf Duyarlı";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Arama Kapsamı";
 "secureShred" = "Dosyayı Güvenli Şekilde Yok Et...";

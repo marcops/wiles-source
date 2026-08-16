@@ -251,9 +251,11 @@
 "scanningFolderSize" = "Ordnergröße scannen...";
 "searchByContent" = "Dateinhalt";
 "searchByName" = "Dateiname";
+"searchByBoth" = "Name & Inhalt";
 "searchEverywhere" = "Ganzer Mac";
 "searchEverywhereHelp" = "Rekursiv im gesamten Home-Ordner suchen statt nur in diesem";
 "searchIncludeHiddenFolders" = "Versteckte Ordner einbeziehen";
+"searchCaseSensitive" = "Groß-/Kleinschreibung beachten";
 "searchPlaceholder" = "Suchen in";
 "searchScope" = "Suchbereich";
 "secureShred" = "Datei sicher vernichten...";

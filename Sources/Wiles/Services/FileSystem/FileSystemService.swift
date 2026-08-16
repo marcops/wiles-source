@@ -32,8 +32,12 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
                 items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             if !options.searchQuery.isEmpty {
-                let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
-                items = items.filter { SearchFilterService.matchesSearch(fileURL: $0.url, query: options.searchQuery, regex: regex) }
+                let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+                items = items.filter {
+                    SearchFilterService.matchesSearch(
+                        fileURL: $0.url, query: options.searchQuery, regex: regex,
+                        scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
+                }
             }
             return items
         }.value
@@ -67,7 +71,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             return []
         }
 
-        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
+        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
         var items: [FileItem] = []
         for fileURL in fileURLs {
             if Task.isCancelled {
@@ -76,7 +80,9 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             if isFileHidden(fileURL: fileURL, showHidden: options.showHidden) {
                 continue
             }
-            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) {
+            if !SearchFilterService.matchesSearch(
+                fileURL: fileURL, query: options.searchQuery, regex: regex,
+                scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
                 continue
             }
 
@@ -153,7 +159,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             return
         }
 
-        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery)
+        let regex = SearchFilterService.parseSearchRegex(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
         var items: [FileItem] = []
         var lastReportedCount = 0
         while let fileURL = enumerator.nextObject() as? URL {
@@ -163,7 +169,9 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             if !includeHidden, isFileHidden(fileURL: fileURL, showHidden: false) {
                 continue
             }
-            if !SearchFilterService.matchesSearch(fileURL: fileURL, query: options.searchQuery, regex: regex) {
+            if !SearchFilterService.matchesSearch(
+                fileURL: fileURL, query: options.searchQuery, regex: regex,
+                scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
                 continue
             }
 

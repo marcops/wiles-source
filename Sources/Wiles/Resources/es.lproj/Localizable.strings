@@ -251,9 +251,11 @@
 "scanningFolderSize" = "Analizando tamaño de la carpeta...";
 "searchByContent" = "Contenido del Archivo";
 "searchByName" = "Nombre del Archivo";
+"searchByBoth" = "Nombre y Contenido";
 "searchEverywhere" = "Todo el Mac";
 "searchEverywhereHelp" = "Buscar recursivamente en todo tu directorio personal en lugar de solo este";
 "searchIncludeHiddenFolders" = "Incluir Carpetas Ocultas";
+"searchCaseSensitive" = "Distinguir Mayúsculas y Minúsculas";
 "searchPlaceholder" = "Buscar en";
 "searchScope" = "Ámbito de Búsqueda";
 "secureShred" = "Destruir Archivo de Forma Segura...";

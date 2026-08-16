@@ -11,13 +11,21 @@ public struct DirectoryLoadOptions: Sendable {
     /// current behavior; callers that know Owner/Group are hidden can pass `false` to skip the
     /// per-file attributesOfItem(atPath:) syscall entirely.
     public let showOwnerGroup: Bool
+    /// Name/Content/Both — mirrors `PreferencesStore.searchScope`.
+    public let searchScope: SearchScope
+    /// Case-sensitive text matching — mirrors `PreferencesStore.searchCaseSensitive`.
+    public let searchCaseSensitive: Bool
 
-    public init(showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool, showOwnerGroup: Bool = true) {
+    public init(
+        showHidden: Bool, showTags: Bool, searchQuery: String, sortOption: SortOption, sortAscending: Bool,
+        showOwnerGroup: Bool = true, searchScope: SearchScope = .name, searchCaseSensitive: Bool = false) {
         self.showHidden = showHidden
         self.showTags = showTags
         self.searchQuery = searchQuery
         self.sortOption = sortOption
         self.sortAscending = sortAscending
         self.showOwnerGroup = showOwnerGroup
+        self.searchScope = searchScope
+        self.searchCaseSensitive = searchCaseSensitive
     }
 }

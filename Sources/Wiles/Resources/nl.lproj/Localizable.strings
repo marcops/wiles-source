@@ -251,9 +251,11 @@
 "scanningFolderSize" = "Scanning folder size...";
 "searchByContent" = "Bestandsinhoud";
 "searchByName" = "Bestandsnaam";
+"searchByBoth" = "Naam en Inhoud";
 "searchEverywhere" = "Hele Mac";
 "searchEverywhereHelp" = "Doorzoek recursief de hele thuismap in plaats van alleen deze map";
 "searchIncludeHiddenFolders" = "Verborgen mappen opnemen";
+"searchCaseSensitive" = "Hoofdlettergevoelig";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Zoekbereik";
 "secureShred" = "Bestand Veilig Vernietigen...";

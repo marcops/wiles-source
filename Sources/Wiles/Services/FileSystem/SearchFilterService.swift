@@ -15,7 +15,7 @@ public struct SearchFilterService: Sendable {
         return (remaining, true)
     }
 
-    public static func parseSearchRegex(query: String) -> NSRegularExpression? {
+    public static func parseSearchRegex(query: String, caseSensitive: Bool) -> NSRegularExpression? {
         guard !query.isEmpty else { return nil }
         let pattern: String
         if query.hasPrefix("r:") {
@@ -25,21 +25,23 @@ public struct SearchFilterService: Sendable {
         } else {
             return nil
         }
-        return try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        let options: NSRegularExpression.Options = caseSensitive ? [] : [.caseInsensitive]
+        return try? NSRegularExpression(pattern: pattern, options: options)
     }
 
-    public static func matchesSearch(fileURL: URL, query: String, regex: NSRegularExpression?) -> Bool {
+    /// `scope` is the explicit Name/Content/Both menu choice — no implicit fallback.
+    public static func matchesSearch(fileURL: URL, query: String, regex: NSRegularExpression?, scope: SearchScope, caseSensitive: Bool) -> Bool {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return true }
 
         let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        for token in tokens where !matchesToken(fileURL: fileURL, token: token, regex: regex) {
+        for token in tokens where !matchesToken(fileURL: fileURL, token: token, regex: regex, scope: scope, caseSensitive: caseSensitive) {
             return false
         }
         return true
     }
 
-    private static func matchesToken(fileURL: URL, token: String, regex: NSRegularExpression?) -> Bool {
+    private static func matchesToken(fileURL: URL, token: String, regex: NSRegularExpression?, scope: SearchScope, caseSensitive: Bool) -> Bool {
         let lowerToken = token.lowercased()
         if lowerToken.hasPrefix("date:") {
             return matchesDateFilter(fileURL: fileURL, token: String(token.dropFirst(5)))
@@ -51,7 +53,7 @@ public struct SearchFilterService: Sendable {
         } else if lowerToken.hasPrefix("tag:") {
             return matchesTagFilter(fileURL: fileURL, tag: String(token.dropFirst(4)))
         }
-        return matchesTextOrRegex(fileURL: fileURL, token: token, regex: regex)
+        return matchesTextOrRegex(fileURL: fileURL, token: token, regex: regex, scope: scope, caseSensitive: caseSensitive)
     }
 
     private static func matchesDateFilter(fileURL: URL, token: String) -> Bool {
@@ -165,26 +167,35 @@ public struct SearchFilterService: Sendable {
         return tagArray.contains { $0.lowercased() == targetTag }
     }
 
-    private static func matchesTextOrRegex(fileURL: URL, token: String, regex: NSRegularExpression?) -> Bool {
-        let fileName = fileURL.lastPathComponent
-        if fileName.localizedCaseInsensitiveContains(token) {
-            return true
+    private static func matchesTextOrRegex(fileURL: URL, token: String, regex: NSRegularExpression?, scope: SearchScope, caseSensitive: Bool) -> Bool {
+        switch scope {
+        case .name:
+            return matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
+        case .content:
+            return matchesContent(fileURL: fileURL, query: token, caseSensitive: caseSensitive)
+        case .both:
+            return matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
+                || matchesContent(fileURL: fileURL, query: token, caseSensitive: caseSensitive)
         }
-        if let regex {
-            let range = NSRange(location: 0, length: fileName.utf16.count)
-            if regex.firstMatch(in: fileName, options: [], range: range) != nil {
-                return true
-            }
-        }
-        return matchesContent(fileURL: fileURL, query: token)
     }
 
-    private static func matchesContent(fileURL: URL, query: String) -> Bool {
+    private static func matchesFileName(fileURL: URL, token: String, regex: NSRegularExpression?, caseSensitive: Bool) -> Bool {
+        let fileName = fileURL.lastPathComponent
+        let nameMatches = caseSensitive ? fileName.contains(token) : fileName.localizedCaseInsensitiveContains(token)
+        if nameMatches {
+            return true
+        }
+        guard let regex else { return false }
+        let range = NSRange(location: 0, length: fileName.utf16.count)
+        return regex.firstMatch(in: fileName, options: [], range: range) != nil
+    }
+
+    private static func matchesContent(fileURL: URL, query: String, caseSensitive: Bool) -> Bool {
         guard query.count >= 3 else { return false }
         let textExtensions: Set = ["txt", "md", "swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "xml", "csv"]
         guard textExtensions.contains(fileURL.pathExtension.lowercased()) else { return false }
         guard let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize), size < 2_000_000 else { return false }
         guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else { return false }
-        return content.localizedCaseInsensitiveContains(query)
+        return caseSensitive ? content.contains(query) : content.localizedCaseInsensitiveContains(query)
     }
 }

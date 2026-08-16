@@ -118,6 +118,8 @@ public extension AppState {
         let sort: SortOption
         let asc: Bool
         let searchEverywhere: Bool
+        let scope: SearchScope
+        let caseSensitive: Bool
     }
 
     func refreshCurrentDirectory(isUserInitiated: Bool = false) {
@@ -133,7 +135,9 @@ public extension AppState {
             query: query,
             sort: preferences.sortOption,
             asc: preferences.sortAscending,
-            searchEverywhere: preferences.searchEverywhere && !query.isEmpty)
+            searchEverywhere: preferences.searchEverywhere && !query.isEmpty,
+            scope: preferences.searchScope,
+            caseSensitive: preferences.searchCaseSensitive)
 
         startDirectoryMonitoring(for: snapshot.target)
 
@@ -159,7 +163,9 @@ public extension AppState {
             searchQuery: strippedQuery,
             sortOption: snapshot.sort,
             sortAscending: snapshot.asc,
-            showOwnerGroup: snapshot.ownerGroup)
+            showOwnerGroup: snapshot.ownerGroup,
+            searchScope: snapshot.scope,
+            searchCaseSensitive: snapshot.caseSensitive)
         if snapshot.searchEverywhere {
             await FileSystemService.loadRecursiveSearchResults(at: .userHome, options: options, includeHidden: includeHidden) { [weak self] batch in
                 Task { @MainActor in

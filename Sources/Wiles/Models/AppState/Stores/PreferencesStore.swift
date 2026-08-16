@@ -102,6 +102,10 @@ public final class PreferencesStore {
         didSet { UserDefaults.standard.set(searchScope.rawValue, forKey: DefaultsKey.searchScope.rawValue) }
     }
 
+    public var searchCaseSensitive: Bool = false {
+        didSet { UserDefaults.standard.set(searchCaseSensitive, forKey: DefaultsKey.searchCaseSensitive.rawValue) }
+    }
+
     /// When on, a search query recurses through the whole user home directory (`URL.userHome`)
     /// instead of just the current folder's direct children.
     public var searchEverywhere: Bool = false {
@@ -281,6 +285,7 @@ public final class PreferencesStore {
 
     private func loadSearchAndDisplayPreferences(_ defaults: UserDefaults) {
         loadEnum(.searchScope, into: \.searchScope, from: defaults)
+        loadBool(.searchCaseSensitive, into: \.searchCaseSensitive, from: defaults)
         loadBool(.searchEverywhere, into: \.searchEverywhere, from: defaults)
         loadBool(.showTags, into: \.showTags, from: defaults)
         loadBool(.middleTruncateNames, into: \.middleTruncateNames, from: defaults)
