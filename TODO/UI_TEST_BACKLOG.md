@@ -91,3 +91,20 @@ Pending tests logged here per AGENTS.md rule 28/rule "defer tests until reviewed
 - Localization-completeness test: assert every key present in `en.lproj/Localizable.strings` (or the union across all locales) exists in every other `*.lproj/Localizable.strings` file, and that no locale has orphaned keys absent from `L10n.Key` — would have caught pt.lproj's stray `actRefreshShortcut`/`actToggleStatusBar`/`tabShortcuts` entries (RESOLVE.md P3 item 3).
 - `ColumnAutoFitService.calculateAutoFitWidth(for:items:iconSize:language:)` unit test: assert width grows with longer item names/localized header text and clamps to `LayoutTokens.columnMinWidth`/`columnMaxWidth` — now trivially testable with plain `[FileItem]`/`Double`/`AppLanguage` inputs since RESOLVE.md P3 item 2 removed the `AppState` dependency; not written yet per standing "defer tests until reviewed" preference.
 - `SidebarItemContextMenu` (new shared Open/Copy Path/Properties menu extracted from `SidebarRowView`/`DirectoryTreeNodeView`, RESOLVE.md P3 item 1): a UI test asserting the menu triggers `appState.navigateTo(url)`, `CopyPathService.copy` with each variant, and sets `windowUIState.propertiesItem` for a given `url` — needs SwiftUI context-menu interaction infrastructure this project doesn't have yet; not written per standing "defer tests until reviewed" preference.
+
+# UI Test Backlog
+
+Manual-review items that can't be covered by the current test harness (state-only, no
+snapshot/screenshot testing) and are pending eventual coverage.
+
+- Search field layout: "Whole Mac" toggle and filter icon must stay right-aligned inside the
+  search bar (`HeaderBarView.searchField`), not centered. Fixed by making `searchTextField`
+  expand (`maxWidth: .infinity, alignment: .leading`) so it absorbs the extra space instead of
+  the whole HStack being centered.
+- `SmartFolderService.executeQuery`/`executeContentQuery`'s `currentQueryToken` staleness guard:
+  clicking a second smart folder before the first one's icon-loading (`fetchFileItems`, a
+  detached task) finishes used to let the first one's results land after the second's, silently
+  showing the wrong folder's results. Fixed with a per-call UUID token checked before applying.
+  Verifying the actual out-of-order race requires a live Spotlight index with two real queries
+  racing — same "needs live Spotlight index" limitation `SmartFolderServiceTests.swift` already
+  documents for its predicate-injection coverage, not practical to drive deterministically here.
