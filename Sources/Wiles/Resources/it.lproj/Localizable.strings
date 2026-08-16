@@ -260,6 +260,8 @@
 "secureShred" = "Distruggi File in Modo Sicuro...";
 "selectAll" = "Seleziona tutto";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Scegli una cartella sul tuo Mac";
+"invalidFolderPath" = "Questa cartella non esiste";
 "selectOtherApp" = "Altro...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

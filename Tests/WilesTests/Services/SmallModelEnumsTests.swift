@@ -61,20 +61,25 @@ public struct SmallModelEnumsTests {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let nodeA = FolderNode(id: dir, name: "same", url: dir, children: nil)
-        let nodeB = FolderNode(id: dir, name: "same", url: dir, children: nil)
+        let nodeA = FolderNode(id: dir, name: "same", url: dir, children: nil, hasSubfolders: false)
+        let nodeB = FolderNode(id: dir, name: "same", url: dir, children: nil, hasSubfolders: false)
         report("FolderNode", "POS: two nodes with identical id/name/url/children are Equatable-equal", result: nodeA == nodeB)
         report("FolderNode", "POS: equal nodes produce equal hashes", result: nodeA.hashValue == nodeB.hashValue)
 
         let otherURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        let nodeC = FolderNode(id: otherURL, name: "same", url: dir, children: nil)
+        let nodeC = FolderNode(id: otherURL, name: "same", url: dir, children: nil, hasSubfolders: false)
         report("FolderNode", "NEG: differing id makes nodes unequal even if other fields match", result: nodeA != nodeC)
 
-        let child = FolderNode(id: dir.appendingPathComponent("child"), name: "child", url: dir.appendingPathComponent("child"), children: nil)
-        let parentWithChild = FolderNode(id: dir, name: "same", url: dir, children: [child])
+        let child = FolderNode(
+            id: dir.appendingPathComponent("child"),
+            name: "child",
+            url: dir.appendingPathComponent("child"),
+            children: nil,
+            hasSubfolders: false)
+        let parentWithChild = FolderNode(id: dir, name: "same", url: dir, children: [child], hasSubfolders: true)
         report("FolderNode", "NEG: presence of children makes a node unequal to an otherwise-identical childless node", result: nodeA != parentWithChild)
 
-        let parentWithEmptyChildren = FolderNode(id: dir, name: "same", url: dir, children: [])
+        let parentWithEmptyChildren = FolderNode(id: dir, name: "same", url: dir, children: [], hasSubfolders: false)
         report("FolderNode", "NEG: an empty children array is not equal to nil children", result: nodeA != parentWithEmptyChildren)
 
         let setOfNodes: Set<FolderNode> = [nodeA, nodeB, nodeC]

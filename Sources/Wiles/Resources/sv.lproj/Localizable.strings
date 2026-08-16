@@ -260,6 +260,8 @@
 "secureShred" = "Förstör Fil Säkert...";
 "selectAll" = "Markera alla";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Välj en mapp på din Mac";
+"invalidFolderPath" = "Den här mappen finns inte";
 "selectOtherApp" = "Annan...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

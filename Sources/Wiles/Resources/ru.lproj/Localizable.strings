@@ -260,6 +260,8 @@
 "secureShred" = "Безопасно Уничтожить Файл...";
 "selectAll" = "Выбрать все";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Выберите папку на вашем Mac";
+"invalidFolderPath" = "Эта папка не существует";
 "selectOtherApp" = "Другое...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

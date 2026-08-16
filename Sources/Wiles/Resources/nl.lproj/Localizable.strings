@@ -260,6 +260,8 @@
 "secureShred" = "Bestand Veilig Vernietigen...";
 "selectAll" = "Selecteer alles";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Kies een map op je Mac";
+"invalidFolderPath" = "Deze map bestaat niet";
 "selectOtherApp" = "Ander...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

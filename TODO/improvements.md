@@ -1,9 +1,4 @@
-## High priority (broken or inconsistent core functionality)
-
-- Multi-select in Column view —  Not done. FileColumnView.swift's selectItem (line 299-300) always does appState.selectedURLs = [item.url], ignoring Cmd/Shift modifiers — it never routes through the shared AppState.handleSelection(for:) that List/Grid use. Marquee/rectangle drag-select is also entirely absent from Column view (no SelectionRectangleOverlay).
-
-- regras de organização não deixa selecionar qualquer pasta apenas as principais (ex: download, documentos e etc) tem que deixar so a arvore direto, sem aquele favoritos , e a arvore inteira nao esta limitada que tem hje
-
+- o tree no sidebar nao abre todo
 ## Medium priority (meaningful feature/UX work)
 
 - se eu quero mover 1 arquivo o PATH BAR tem que abrir, e eu posso entrar dai nos diretorios ir direto para 1 deles.

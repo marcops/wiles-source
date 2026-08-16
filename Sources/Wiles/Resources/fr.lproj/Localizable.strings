@@ -260,6 +260,8 @@
 "secureShred" = "Broyer le fichier en toute sécurité...";
 "selectAll" = "Tout sélectionner";
 "selectFolder" = "Sélectionner un dossier...";
+"selectFolderSubtitle" = "Choisissez un dossier sur votre Mac";
+"invalidFolderPath" = "Ce dossier n'existe pas";
 "selectOtherApp" = "Autre...";
 "selectTemplate" = "Sélectionner un Modèle";
 "sequenceNumbering" = "Numérotation séquentielle";

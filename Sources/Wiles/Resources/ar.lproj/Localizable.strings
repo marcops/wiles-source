@@ -260,6 +260,8 @@
 "secureShred" = "إتلاف الملف بأمان...";
 "selectAll" = "تحديد الكل";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "اختر مجلدًا على جهاز Mac الخاص بك";
+"invalidFolderPath" = "هذا المجلد غير موجود";
 "selectOtherApp" = "آخر...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

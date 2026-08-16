@@ -476,3 +476,19 @@ don't improvise a layout that merely "looks plausible." General rules:
 - **Why**: this exact mistake was made twice in one session — once editing `.swiftformat` without
   asking, once adding a `swiftformat:disable:this` directive without asking — after already being
   corrected the first time.
+
+## 43. Only Read Files Explicitly Named or Pointed To — No Unprompted Context Gathering
+- **Only read/open files the user explicitly names or points to.** Do not grep, explore, or open
+  other files "to get context," understand the project, or see how things connect, unless the user
+  asks for that. This applies to every task, with no exception for a "quick look" or "just checking."
+- **If you believe reading an additional file would help, stop and ask first** — a single sentence
+  ("Want me to also read X?") — and wait for the answer before reading it.
+
+## 44. When Unsure, Ask — Never Guess or Assume
+- **If you have any doubt about what the user wants** — an ambiguous instruction, a design/behavior
+  choice not spelled out, which of two reasonable interpretations applies — **stop and ask a direct
+  question before acting**, instead of picking an interpretation and running with it.
+- This applies to every kind of doubt, not just tooling/config conflicts (rule 41) or whether to read
+  another file (rule 43): those are specific cases of this same general rule.
+- Guessing wrong costs more than asking: it means building the wrong thing, then having to notice,
+  undo, and redo it — slower and more frustrating than a one-line question up front.

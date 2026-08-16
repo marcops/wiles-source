@@ -160,10 +160,17 @@ struct AutoOrganizationSheet: View {
             Text(appState.tr(.ifFileIn))
                 .frame(width: 100, alignment: .trailing)
 
-            Button(sourceURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
+            Button {
                 folderPickerTarget = .source
+            } label: {
+                HStack {
+                    Text(sourceURL?.lastPathComponent ?? appState.tr(.selectFolder))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 0)
+                }
             }
-            .frame(width: 120)
+            .frame(width: 220)
 
             Picker("", selection: $conditionType) {
                 ForEach(RuleConditionType.allCases) { type in
@@ -174,6 +181,7 @@ struct AutoOrganizationSheet: View {
 
             TextField(appState.tr(.ruleValuePlaceholder), text: $conditionValue)
                 .textFieldStyle(.roundedBorder)
+                .frame(width: 60)
         }
     }
 
@@ -181,10 +189,17 @@ struct AutoOrganizationSheet: View {
         HStack {
             Text(appState.tr(.moveTo))
                 .frame(width: 100, alignment: .trailing)
-            Button(destinationURL?.lastPathComponent ?? appState.tr(.selectFolder)) {
+            Button {
                 folderPickerTarget = .destination
+            } label: {
+                HStack {
+                    Text(destinationURL?.lastPathComponent ?? appState.tr(.selectFolder))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 0)
+                }
             }
-            .frame(width: 120)
+            .frame(width: 220)
 
             Spacer()
 

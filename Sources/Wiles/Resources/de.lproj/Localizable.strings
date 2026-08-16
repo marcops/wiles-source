@@ -260,6 +260,8 @@
 "secureShred" = "Datei sicher vernichten...";
 "selectAll" = "Alles auswählen";
 "selectFolder" = "Ordner auswählen...";
+"selectFolderSubtitle" = "Wählen Sie einen Ordner auf Ihrem Mac";
+"invalidFolderPath" = "Dieser Ordner existiert nicht";
 "selectOtherApp" = "Anderes...";
 "selectTemplate" = "Vorlage Auswählen";
 "sequenceNumbering" = "Fortlaufende Nummerierung";

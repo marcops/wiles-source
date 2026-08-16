@@ -260,6 +260,8 @@
 "secureShred" = "安全粉碎文件...";
 "selectAll" = "全选";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "在您的 Mac 上选择一个文件夹";
+"invalidFolderPath" = "该文件夹不存在";
 "selectOtherApp" = "其他...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

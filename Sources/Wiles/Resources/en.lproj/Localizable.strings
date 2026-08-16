@@ -260,6 +260,8 @@
 "secureShred" = "Secure Shred File...";
 "selectAll" = "Select All";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Choose a folder on your Mac";
+"invalidFolderPath" = "This folder doesn't exist";
 "selectOtherApp" = "Other...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

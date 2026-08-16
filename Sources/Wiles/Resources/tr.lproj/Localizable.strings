@@ -260,6 +260,8 @@
 "secureShred" = "Dosyayı Güvenli Şekilde Yok Et...";
 "selectAll" = "Tümünü Seç";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Mac'inizde bir klasör seçin";
+"invalidFolderPath" = "Bu klasör mevcut değil";
 "selectOtherApp" = "Diğer...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

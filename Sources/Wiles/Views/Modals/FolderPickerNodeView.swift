@@ -5,41 +5,51 @@ struct FolderPickerNodeView: View {
     let depth: Int
     @Binding var selectedURL: URL?
     @Binding var expandedPaths: Set<URL>
+    @Binding var childrenCache: [URL: [FolderNode]]
 
-    private var isExpandedBinding: Binding<Bool> {
-        Binding(
-            get: { expandedPaths.contains(node.url) },
-            set: { newValue in
-                if newValue {
-                    expandedPaths.insert(node.url)
-                } else {
-                    expandedPaths.remove(node.url)
-                }
-            })
+    private var children: [FolderNode]? {
+        node.children ?? childrenCache[node.url]
+    }
+
+    private var isExpanded: Bool {
+        expandedPaths.contains(node.url)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            if let children = node.children, !children.isEmpty {
-                DisclosureGroup(isExpanded: isExpandedBinding) {
-                    ForEach(children) { child in
-                        Self(node: child, depth: depth + 1, selectedURL: $selectedURL, expandedPaths: $expandedPaths)
-                    }
-                } label: { rowLabel }
-            } else {
-                rowLabel
+            rowLabel
+            if node.hasSubfolders, isExpanded, let children {
+                ForEach(children) { child in
+                    Self(node: child, depth: depth + 1, selectedURL: $selectedURL, expandedPaths: $expandedPaths, childrenCache: $childrenCache)
+                }
             }
         }
+        .padding(.leading, depth == 0 ? 0 : 12)
+        .id(node.url)
     }
 
     private var rowLabel: some View {
         let isSelected = selectedURL?.standardizedFileURL == node.url.standardizedFileURL
-        return HStack(spacing: 6) {
+        return HStack(spacing: 4) {
+            if node.hasSubfolders {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .frame(width: 10)
+                    .contentShape(Rectangle())
+                    .onTapGesture { toggleExpanded() }
+                    .accessibilityAddTraits(.isButton)
+            } else {
+                Color.clear.frame(width: 10)
+            }
             Image(systemName: "folder.fill")
                 .font(.system(size: 12))
                 .foregroundColor(.accentColor)
             Text(node.name)
                 .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                .lineLimit(1)
+                .truncationMode(.middle)
             Spacer()
         }
         .padding(.horizontal, 4)
@@ -52,5 +62,16 @@ struct FolderPickerNodeView: View {
         }
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
         .accessibilityLabel(node.name)
+    }
+
+    private func toggleExpanded() {
+        if isExpanded {
+            expandedPaths.remove(node.url)
+        } else {
+            expandedPaths.insert(node.url)
+            if children == nil {
+                childrenCache[node.url] = FolderNode.loadChildren(of: node.url)
+            }
+        }
     }
 }

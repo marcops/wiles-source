@@ -274,6 +274,8 @@ public enum L10n {
         case addNewRule
         case ifFileIn
         case selectFolder
+        case selectFolderSubtitle
+        case invalidFolderPath
         case ruleValuePlaceholder
         case moveTo
         case addRule

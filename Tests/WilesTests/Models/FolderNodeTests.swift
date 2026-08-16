@@ -9,7 +9,7 @@ public struct FolderNodeTests {
         report("Model/FolderNode", "POS: Root tree URL path is root '/'", result: rootTree.url.path == "/")
 
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        let leafNode = FolderNode(id: tempDir, name: "temp", url: tempDir, children: nil)
+        let leafNode = FolderNode(id: tempDir, name: "temp", url: tempDir, children: nil, hasSubfolders: false)
         report("Model/FolderNode", "NEG: Leaf node children is nil", result: leafNode.children == nil)
     }
 

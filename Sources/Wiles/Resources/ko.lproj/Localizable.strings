@@ -260,6 +260,8 @@
 "secureShred" = "파일 완전 삭제...";
 "selectAll" = "전체 선택";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Mac에서 폴더를 선택하세요";
+"invalidFolderPath" = "이 폴더가 존재하지 않습니다";
 "selectOtherApp" = "기타...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

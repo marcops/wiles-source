@@ -260,6 +260,8 @@
 "secureShred" = "ファイルを完全に消去...";
 "selectAll" = "すべて選択";
 "selectFolder" = "Select Folder...";
+"selectFolderSubtitle" = "Macでフォルダを選択してください";
+"invalidFolderPath" = "このフォルダは存在しません";
 "selectOtherApp" = "その他...";
 "selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";

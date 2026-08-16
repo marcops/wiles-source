@@ -260,6 +260,8 @@
 "secureShred" = "Triturar Arquivo com Segurança...";
 "selectAll" = "Selecionar Tudo";
 "selectFolder" = "Selecionar Pasta...";
+"selectFolderSubtitle" = "Escolha uma pasta no seu Mac";
+"invalidFolderPath" = "Essa pasta não existe";
 "selectOtherApp" = "Outro...";
 "selectTemplate" = "Selecionar Template";
 "sequenceNumbering" = "Numeração Sequencial";
