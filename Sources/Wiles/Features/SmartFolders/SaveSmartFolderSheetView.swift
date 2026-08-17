@@ -8,34 +8,33 @@ struct SaveSmartFolderSheetView: View {
     @State private var folderName: String = ""
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text(appState.tr(.saveAsSmartFolder))
-                .font(.headline)
+        ModalScaffoldView(
+            icon: .symbol("folder.badge.gearshape"),
+            title: appState.tr(.saveAsSmartFolder),
+            width: 300,
+            primaryButton: ModalFooterButton(
+                title: appState.tr(.saveSearch),
+                isEnabled: !folderName.trimmingCharacters(in: .whitespaces).isEmpty) {
+                    saveSmartFolder()
+                },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            content: { nameField })
+    }
 
-            TextField(appState.tr(.smartFolderName), text: $folderName)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 260)
+    private var nameField: some View {
+        TextField(appState.tr(.smartFolderName), text: $folderName)
+            .textFieldStyle(.roundedBorder)
+            .padding(20)
+    }
 
-            HStack {
-                Button(appState.tr(.cancel)) {
-                    dismiss()
-                }
-                Spacer()
-                Button(appState.tr(.saveSearch)) {
-                    guard !folderName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                    let folder = SmartFolder(
-                        name: folderName,
-                        icon: "folder.badge.gearshape",
-                        searchQuery: appState.searchQuery,
-                        scopePath: appState.navigation.currentURL.path)
-                    appState.addSmartFolder(folder)
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(folderName.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-        }
-        .padding()
-        .frame(width: 300)
+    private func saveSmartFolder() {
+        guard !folderName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let folder = SmartFolder(
+            name: folderName,
+            icon: "folder.badge.gearshape",
+            searchQuery: appState.searchQuery,
+            scopePath: appState.navigation.currentURL.path)
+        appState.addSmartFolder(folder)
+        dismiss()
     }
 }

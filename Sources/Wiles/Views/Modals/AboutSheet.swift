@@ -13,7 +13,7 @@ struct AboutSheet: View {
         ModalScaffoldView(
             icon: .appIcon,
             title: AppConstants.appName,
-            subtitle: "\(appState.tr(.version)) \(AppConstants.appVersion)",
+            showsHeader: false,
             width: LayoutTokens.aboutWindowWidth,
             primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
             content: { contentArea })
@@ -21,6 +21,19 @@ struct AboutSheet: View {
 
     private var contentArea: some View {
         VStack(spacing: 16) {
+            Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: LayoutTokens.aboutIconSize, height: LayoutTokens.aboutIconSize)
+
+            VStack(spacing: 4) {
+                Text(AppConstants.appName)
+                    .font(.system(size: LayoutTokens.aboutTitleFontSize, weight: .bold))
+                Text("\(appState.tr(.version)) \(AppConstants.appVersion)")
+                    .font(.system(size: LayoutTokens.aboutTextFontSize))
+                    .foregroundColor(.secondary)
+            }
+
             Text(appState.tr(.aboutDescription))
                 .font(.system(size: LayoutTokens.aboutTextFontSize))
                 .multilineTextAlignment(.center)
@@ -28,7 +41,7 @@ struct AboutSheet: View {
 
             createdByView
         }
-        .padding(.vertical, 24)
+        .padding(.vertical, 32)
     }
 
     private var createdByView: some View {

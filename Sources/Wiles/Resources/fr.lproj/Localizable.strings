@@ -1,5 +1,5 @@
 "aboutDescription" = "Le gestionnaire de fichiers qui manquait à macOS. Rapide, ciblé, et pensé dans les moindres détails.";
-"aboutWiles" = "À propos";
+"aboutWiles" = "À propos de Wiles";
 "actConnectServer" = "Se connecter au serveur";
 "actCopyShortcut" = "Copier la sélection";
 "actCutShortcut" = "Couper la sélection";
@@ -324,7 +324,6 @@
 "topLargestItems" = "Éléments les plus volumineux";
 "translucentLevel" = "Translucidité";
 "trash" = "Corbeille";
-"trashSelectedDuplicates" = "Déplacer les doublons sélectionnés vers la corbeille";
 "undo" = "Annuler";
 "version" = "Version";
 "viewMode" = "Mode d'affichage";

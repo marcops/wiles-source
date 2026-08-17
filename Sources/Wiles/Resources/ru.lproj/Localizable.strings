@@ -1,5 +1,5 @@
 "aboutDescription" = "Файловый менеджер, которого не хватало macOS. Быстрый, лаконичный и продуманный до мелочей.";
-"aboutWiles" = "О программе";
+"aboutWiles" = "О Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "Корзина";
-"trashSelectedDuplicates" = "Переместить выбранные дубликаты в корзину";
 "undo" = "Отменить";
 "version" = "Version";
 "viewMode" = "View Mode";

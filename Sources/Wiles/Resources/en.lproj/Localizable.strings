@@ -1,5 +1,5 @@
 "aboutDescription" = "The file manager macOS has been missing. Fast, focused, and built with every detail considered.";
-"aboutWiles" = "About";
+"aboutWiles" = "About Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -324,7 +324,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "Trash";
-"trashSelectedDuplicates" = "Move Selected Duplicates to Trash";
 "undo" = "Undo";
 "version" = "Version";
 "viewMode" = "View Mode";

@@ -1,5 +1,5 @@
 "aboutDescription" = "مدير الملفات الذي كان ينقص macOS. سريع، مركّز، ومهتم بكل التفاصيل.";
-"aboutWiles" = "حول";
+"aboutWiles" = "حول Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "سلة المهملات";
-"trashSelectedDuplicates" = "نقل المكررات المحددة إلى السلة";
 "undo" = "تراجع";
 "version" = "Version";
 "viewMode" = "View Mode";

@@ -4,12 +4,15 @@ import SwiftUI
 /// WILES_UI_UX_RULES.md's "Standard Modal Scaffold" rule). Header, content, and footer share one
 /// background so the sheet reads as a single surface — only icon/title/subtitle, an optional
 /// header accessory (a tab switcher, etc.), the content body, and the footer buttons vary between
-/// modals; layout, spacing, typography, and button sizing come from here so every modal matches.
+/// modals; layout, spacing, typography, and button sizing come from `ModalHeaderView`/`ModalFooterView`.
 struct ModalScaffoldView<HeaderAccessory: View, Content: View>: View {
     let icon: ModalIcon
     let title: String
     var subtitle: String?
     var iconSize: CGFloat = LayoutTokens.modalHeaderIconSize
+    /// Toggles the icon/title/subtitle row (and its divider) on or off — off for the rare modal
+    /// whose identity reads better as centered content than a left-aligned banner (see `AboutSheet`).
+    var showsHeader: Bool = true
     let width: CGFloat
     var height: CGFloat?
     let primaryButton: ModalFooterButton
@@ -19,54 +22,16 @@ struct ModalScaffoldView<HeaderAccessory: View, Content: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
+            if showsHeader {
+                ModalHeaderView(icon: icon, title: title, subtitle: subtitle, iconSize: iconSize, accessory: headerAccessory)
+                Divider()
+            }
             content()
             Divider()
-            footer
+            ModalFooterView(primaryButton: primaryButton, secondaryButton: secondaryButton)
         }
         .frame(width: width, height: height)
         .background(Color(NSColor.windowBackgroundColor))
-    }
-
-    private var header: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                icon.view(size: iconSize)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: LayoutTokens.modalTitleFontSize, weight: .bold))
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.system(size: LayoutTokens.modalSubtitleFontSize))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                Spacer()
-            }
-
-            headerAccessory()
-        }
-        .padding(.horizontal, LayoutTokens.modalHeaderHorizontalPadding)
-        .padding(.vertical, LayoutTokens.modalHeaderVerticalPadding)
-    }
-
-    private var footer: some View {
-        HStack {
-            Spacer()
-            if let secondaryButton {
-                Button(secondaryButton.title, action: secondaryButton.action)
-                    .keyboardShortcut(.escape, modifiers: [])
-                    .disabled(!secondaryButton.isEnabled)
-            }
-            Button(primaryButton.title, action: primaryButton.action)
-                .keyboardShortcut(.defaultAction)
-                .controlSize(.large)
-                .disabled(!primaryButton.isEnabled)
-        }
-        .padding(.horizontal, LayoutTokens.modalFooterHorizontalPadding)
-        .padding(.vertical, LayoutTokens.modalFooterVerticalPadding)
     }
 }
 
@@ -76,6 +41,7 @@ extension ModalScaffoldView where HeaderAccessory == EmptyView {
         title: String,
         subtitle: String? = nil,
         iconSize: CGFloat = LayoutTokens.modalHeaderIconSize,
+        showsHeader: Bool = true,
         width: CGFloat,
         height: CGFloat? = nil,
         primaryButton: ModalFooterButton,
@@ -86,6 +52,7 @@ extension ModalScaffoldView where HeaderAccessory == EmptyView {
             title: title,
             subtitle: subtitle,
             iconSize: iconSize,
+            showsHeader: showsHeader,
             width: width,
             height: height,
             primaryButton: primaryButton,

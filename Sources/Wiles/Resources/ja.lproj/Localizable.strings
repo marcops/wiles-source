@@ -1,5 +1,5 @@
 "aboutDescription" = "macOSに足りなかったファイルマネージャー。高速、シンプル、そして細部までこだわりました。";
-"aboutWiles" = "情報";
+"aboutWiles" = "Wiles について";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "ゴミ箱";
-"trashSelectedDuplicates" = "選択した重複項目をごみ箱に移動";
 "undo" = "元に戻す";
 "version" = "Version";
 "viewMode" = "View Mode";

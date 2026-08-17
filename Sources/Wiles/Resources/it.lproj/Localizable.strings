@@ -1,5 +1,5 @@
 "aboutDescription" = "Il file manager che mancava a macOS. Veloce, essenziale e curato in ogni dettaglio.";
-"aboutWiles" = "Informazioni";
+"aboutWiles" = "Informazioni su Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "Cestino";
-"trashSelectedDuplicates" = "Sposta i duplicati selezionati nel cestino";
 "undo" = "Annulla";
 "version" = "Version";
 "viewMode" = "View Mode";

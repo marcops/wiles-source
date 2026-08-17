@@ -131,6 +131,7 @@ struct ShortcutsHUDOverlay: View {
                     isPresented = false
                 }
             }
+            .controlSize(.large)
             .keyboardShortcut(.defaultAction)
         }
     }

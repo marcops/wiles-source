@@ -47,6 +47,8 @@ public enum LayoutTokens {
 
     // About Sheet
     public static let aboutWindowWidth: CGFloat = 400.0
+    public static let aboutIconSize: CGFloat = 80.0
+    public static let aboutTitleFontSize: CGFloat = 24.0
     public static let aboutTextFontSize: CGFloat = 13.0
 
     // HTTP Share Sheet

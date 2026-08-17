@@ -1,5 +1,5 @@
 "aboutDescription" = "Menedżer plików, którego brakowało w macOS. Szybki, skupiony i przemyślany w każdym szczególe.";
-"aboutWiles" = "Informacje";
+"aboutWiles" = "Informacje o Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "Kosz";
-"trashSelectedDuplicates" = "Przenieś zaznaczone duplikaty do kosza";
 "undo" = "Cofnij";
 "version" = "Version";
 "viewMode" = "View Mode";

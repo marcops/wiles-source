@@ -1,5 +1,5 @@
 "aboutDescription" = "De bestandsbeheerder die macOS altijd al had moeten hebben. Snel, gefocust en tot in de puntjes doordacht.";
-"aboutWiles" = "Over";
+"aboutWiles" = "Over Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "Prullenmand";
-"trashSelectedDuplicates" = "Geselecteerde dubbelen naar prullenmand";
 "undo" = "Ongedaan maken";
 "version" = "Version";
 "viewMode" = "View Mode";

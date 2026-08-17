@@ -1,5 +1,5 @@
 "aboutDescription" = "Der Dateimanager, der macOS gefehlt hat. Schnell, fokussiert und bis ins letzte Detail durchdacht.";
-"aboutWiles" = "Über";
+"aboutWiles" = "Über Wiles";
 "actConnectServer" = "Mit Server verbinden";
 "actCopyShortcut" = "Auswahl kopieren";
 "actCutShortcut" = "Auswahl ausschneiden";
@@ -324,7 +324,6 @@
 "topLargestItems" = "Größte Elemente";
 "translucentLevel" = "Transparenz";
 "trash" = "Papierkorb";
-"trashSelectedDuplicates" = "Ausgewählte Duplikate in den Papierkorb verschieben";
 "undo" = "Rückgängig";
 "version" = "Version";
 "viewMode" = "Ansichtsmodus";

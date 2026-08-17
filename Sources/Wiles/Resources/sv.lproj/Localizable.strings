@@ -1,5 +1,5 @@
 "aboutDescription" = "Filhanteraren som macOS har saknat. Snabb, fokuserad och genomtänkt in i minsta detalj.";
-"aboutWiles" = "Om";
+"aboutWiles" = "Om Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "Papperskorg";
-"trashSelectedDuplicates" = "Flytta valda dubbletter till papperskorgen";
 "undo" = "Ångra";
 "version" = "Version";
 "viewMode" = "View Mode";

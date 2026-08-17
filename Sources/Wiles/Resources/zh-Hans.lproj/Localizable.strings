@@ -1,5 +1,5 @@
 "aboutDescription" = "macOS 一直缺少的文件管理器。快速、专注，每个细节都精心打磨。";
-"aboutWiles" = "关于";
+"aboutWiles" = "关于 Wiles";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "废纸篓";
-"trashSelectedDuplicates" = "将选中的重复项移至废纸篓";
 "undo" = "撤销";
 "version" = "Version";
 "viewMode" = "View Mode";

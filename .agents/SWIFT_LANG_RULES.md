@@ -53,6 +53,7 @@ Before shipping any new control cluster, compare it directly to the closest nati
 - When genuinely unsure which alignment applies, open the closest matching native macOS panel and copy what it does, rather than guessing.
 - Trailing accessories (a value, a badge, a chevron) sit close to the row's true trailing edge, not symmetrically inset to match the leading padding — use asymmetric padding if that's what it takes.
 - Don't stack two horizontal dividers back-to-back, or draw one immediately before another structural divider already provides the same separation. A `Divider()` marks one genuine structural boundary; separate items within a region using `VStack`/`HStack` spacing instead, reaching for an extra divider only when spacing alone doesn't communicate the grouping.
+- Don't add an explicit `.buttonStyle(...)` override to force a button's shape/bezel to look like an older macOS convention. Leave standard action buttons (dialog/sheet footer buttons, toolbar buttons) on the system's automatic style so they always render as whatever the current macOS version's native control actually looks like — that's "native," even when the shape changes between OS versions (e.g. the more rounded/pill bezel introduced in macOS 26). Only reach for an explicit `.buttonStyle()` when a control's role genuinely needs a different visual weight than the default (e.g. a small inline icon-only action button), not to pin its shape to a specific look.
 
 ## Window-Scoped State in Multi-Window Apps
 

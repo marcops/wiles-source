@@ -1,5 +1,5 @@
 "aboutDescription" = "macOS에 없던 파일 관리자. 빠르고, 군더더기 없고, 모든 디테일에 신경 썼습니다.";
-"aboutWiles" = "정보";
+"aboutWiles" = "Wiles 정보";
 "actConnectServer" = "Connect to Server";
 "actCopyShortcut" = "Copy Selected";
 "actCutShortcut" = "Cut Selected";
@@ -321,7 +321,6 @@
 "topLargestItems" = "Top Largest Items";
 "translucentLevel" = "Transparency";
 "trash" = "휴지통";
-"trashSelectedDuplicates" = "선택한 중복 항목을 휴지통으로 이동";
 "undo" = "실행 취소";
 "version" = "Version";
 "viewMode" = "View Mode";

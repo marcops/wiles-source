@@ -365,7 +365,6 @@ public enum L10n {
         case duplicateCleanerTitle
         case duplicateCleanerSubtitle
         case reclaimableSpace
-        case trashSelectedDuplicates
         case noDuplicatesFound
         case batchRenameTitle
         case namingPattern

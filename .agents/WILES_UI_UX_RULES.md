@@ -8,7 +8,7 @@ Every modal in this app (`AutoOrganizationSheet`, `HelpSheet`, `AboutSheet`, `Se
 
 `ModalScaffoldView` owns the parts that must be identical across every modal, so they can't drift screen to screen the way they used to:
 - The `VStack { header; Divider(); content; Divider(); footer }` structure, with header/content/footer all sharing one background (`Color(NSColor.windowBackgroundColor)`) — no per-section tinting, so header/body/footer always read as one surface.
-- Header icon (`ModalIcon`: `.appIcon`, `.symbol(String)`, or `.image(NSImage)`, all rendered into the same fixed-size slot), title, and one-line secondary subtitle — never ship a header with just a bare title.
+- Header icon (`ModalIcon`: `.appIcon`, `.symbol(String)`, or `.image(NSImage)`, all rendered into the same fixed-size slot), title, and one-line secondary subtitle — never ship a header with just a bare title. `showsHeader: Bool` (default `true`) toggles the header row and its divider off entirely, for a modal whose identity reads better as centered content than a left-aligned banner — see `AboutSheet`. Header and footer are their own composed types (`ModalHeaderView`, `ModalFooterView`), not inlined into the scaffold.
 - Footer layout: right-aligned `HStack { Spacer(); [secondaryButton]; primaryButton }`, primary always `.controlSize(.large)` with `.keyboardShortcut(.defaultAction)`, secondary (when present) with `.keyboardShortcut(.escape, modifiers: [])`. Pass buttons via `ModalFooterButton`, never build footer buttons by hand.
 - **Never put a close/X button in the header** — every sheet closes exclusively through the footer.
 
@@ -26,9 +26,9 @@ Presentation and dismissal, unchanged by the scaffold:
 
 See `SWIFT_LANG_RULES.md`'s `.contentShape` rule for the general technique. This has shipped as a real bug more than once in this app — most recently `SettingsView.swift`'s tab row, where outset hit regions on adjacent tabs caused clicking "General" to select a different tab. Treat this as a mandatory check on every custom tappable control, not something patched in reactively after a report.
 
-## Minimalist Menu Labels
+## Minimalist Menu & Button Labels
 
-Menu items and short UI labels should be minimalist, not redundant — if context already makes the subject obvious, don't restate it (e.g. "About", not "About Wiles" — a deliberate product choice, even though it diverges from Apple's own HIG convention; not something to "correct" back). Also avoid em-dashes ("—") in short user-facing copy (About sheet text, Help overview) — use periods/short sentences instead.
+Menu items, footer button labels, and other short UI labels should be minimalist, not redundant — if the surrounding context (the modal's own title/subtitle, a visible selection UI) already makes the subject obvious, a button doesn't need to restate it (a "Move to Trash" primary button next to a checkbox-selection list doesn't need to spell out "Selected Duplicates" — the dialog title and the checkboxes already say that). Reuse an existing localization key for the shortened phrase when one already exists elsewhere in the app instead of adding a near-duplicate string. The one required exception is the app menu's "About" item, which follows Apple's own HIG convention and always includes the app name ("About Wiles", not bare "About"). Also avoid em-dashes ("—") in short user-facing copy (About sheet text, Help overview) — use periods/short sentences instead.
 
 ## No Dev Jargon in User-Facing Copy
 

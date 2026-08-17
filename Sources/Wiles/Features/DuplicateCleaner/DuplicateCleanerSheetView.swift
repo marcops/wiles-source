@@ -22,7 +22,7 @@ public struct DuplicateCleanerSheetView: View {
             width: 640,
             height: 480,
             primaryButton: ModalFooterButton(
-                title: appState.tr(.trashSelectedDuplicates),
+                title: appState.tr(.moveToTrash),
                 isEnabled: !selectedURLsToTrash.isEmpty) {
                     trashSelected()
                     dismiss()

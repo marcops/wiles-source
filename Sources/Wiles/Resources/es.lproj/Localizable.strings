@@ -1,5 +1,5 @@
 "aboutDescription" = "El administrador de archivos que le faltaba a macOS. Rápido, enfocado y cuidado en cada detalle.";
-"aboutWiles" = "Acerca de";
+"aboutWiles" = "Acerca de Wiles";
 "actConnectServer" = "Conectarse al Servidor";
 "actCopyShortcut" = "Copiar Seleccionado";
 "actCutShortcut" = "Cortar Seleccionado";
@@ -324,7 +324,6 @@
 "topLargestItems" = "Principales Elementos por Tamaño";
 "translucentLevel" = "Transparencia";
 "trash" = "Papelera";
-"trashSelectedDuplicates" = "Mover duplicados seleccionados a la papelera";
 "undo" = "Deshacer";
 "version" = "Versión";
 "viewMode" = "Modo de Vista";

@@ -16,6 +16,14 @@ Generic software-engineering discipline — applies to any project, any language
 - **No Inline Compound Conditions**: any `if`/`guard` combining 3 or more terms (`&&`/`||`/chained comparisons) MUST be extracted into a separate, well-named comparison function or computed property (e.g. `if isEligibleForBulkDelete(...)` instead of `if x || y || z`) instead of left as an inline boolean chain.
 - (See `WILES_RULES.md` for how these map onto this app's actual views/services.)
 
+## Architect Mode: Front-Load Design, Don't Wait to Be Corrected
+
+When asked to act as architect / improve / design something (not just "fix X"), do the discovery and design pass **before** writing code, not incrementally as gaps get noticed:
+- Audit exhaustively first (every call site, every instance of the pattern being touched) — don't rely on the user spotting what a fuller search would have found.
+- Prefer explicit, self-documenting APIs (a named `Bool`/enum) over implicit signals (`nil` as a hidden "off" switch) unless there's a real ambiguity being modeled.
+- Decompose by the project's own stated principles (SRP, one-type-per-file) from the first draft, not only after being told to split something up.
+- When corrected, extract and state the general principle behind the fix (not just apply the one-off patch) so it generalizes to the next similar case without being asked again.
+
 ## No Magic Numbers or Unnamed Constants
 
 - Never use raw magic numbers, arbitrary multipliers, or unexplained static offsets. Always define named constants/enums, or compute values dynamically from context.
@@ -39,5 +47,6 @@ Generic software-engineering discipline — applies to any project, any language
 ## Full Rule Self-Audit Before Every Commit
 
 - Before every commit, run the project's validation tooling (build/tests/lint/format — see `WILES_RULES.md` for this project's specific command) **and** perform an explicit self-audit of the diff (staged + unstaged) against the applicable rules in `DEV_RULES.md`, `SWIFT_LANG_RULES.md`, `WILES_RULES.md`, and `WILES_UI_UX_RULES.md` — scoped to the code the diff actually touches, not a full-repo re-audit every time.
+- If the work being committed came from an "Architect Mode" task (see above), the self-audit also checks that mode's own bar: was discovery exhaustive, are the new APIs explicit rather than implicit, is the decomposition SRP-clean — not just "does it build and pass lint."
 - **State the audit result explicitly before committing** — which areas were checked, and either "clean" or what was fixed. Don't silently skip this and go straight to `git commit`. If a violation is found, fix it in the same commit rather than committing it and fixing later.
 - This is the same checklist a `/code-review` pass would apply — running it yourself before committing is what keeps that pass from finding anything.
