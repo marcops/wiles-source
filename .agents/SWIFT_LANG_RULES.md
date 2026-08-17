@@ -1,0 +1,99 @@
+# Swift / SwiftUI / AppKit Language Rules
+
+Generic Swift and Apple-platform practices — reusable in any Swift/SwiftUI/AppKit codebase, not specific to Wiles. See `WILES_RULES.md` for this app's own architecture and product decisions, and `DEV_RULES.md` for language-agnostic principles.
+
+## File & Type Organization
+
+- **Dedicated Feature Service Classes**: each domain feature or subsystem gets its own isolated service class file. Never bloat an existing service file with unrelated feature logic.
+- **No Inline Helper Types**: never declare a standalone `enum`/`struct` inside the same file as an unrelated class/service just because it's used there — it gets its own file in the proper folder.
+- **One Type Per File**: each type gets its own file named after the type. Worth enforcing mechanically via a custom lint rule rather than relying on review alone (see `WILES_RULES.md`/`.swiftlint.yml` for how this project does it).
+- **Composition over Inheritance**: prefer SwiftUI View Composition, struct values, extensions, and protocol conformance over deep class hierarchies.
+
+## Data & Code Patterns
+
+- **Value Types First (`struct`/`enum`)**: default to immutable value types for data models and state snapshots. Use `final class` only for `@Observable` state singletons or AppKit lifecycle wrappers.
+- **Protocol-Driven Service Abstraction**: decouple low-level system operations (`FileManager`, `NSWorkspace`, pasteboards, etc.) behind service protocols for clean isolation and unit testing.
+- **Explicit Error Handling**: never swallow disk I/O or system errors with silent `try?` without logging or user feedback. Handle errors explicitly with `Result` or `throw` and localized messages.
+- **Functional Data Pipelines**: prefer declarative transformations (`map`, `compactMap`, `filter`, `reduce`) over imperative mutating loops.
+- **View Body Decomposition**: any SwiftUI `body` or component layout exceeding ~30 lines should be decomposed into smaller sub-views or `@ViewBuilder` helper properties.
+- **Defensive Lifecycle & Resource Management**: explicitly remove/invalidate AppKit event monitors, timers, and `NotificationCenter` observers in `deinit`/`onDisappear`.
+- **No AnyView**: it erases SwiftUI's structural identity and forces aggressive re-rendering. Use `@ViewBuilder` with `if`/`else`/`switch` instead. Simple enough to ban via a lint regex rather than review (see `WILES_RULES.md`/`.swiftlint.yml`).
+- **No Embedded Text/Templates/HTML/Markup in Swift Source**: never build multi-line text blobs (HTML, XML, Markdown, templated documents) via string concatenation in a `.swift` file. Any real content document longer than a one-line string belongs in its own resource file, loaded at runtime with placeholder substitution. Only genuinely dynamic fragments get assembled in Swift, then substituted into the loaded template.
+
+## Concurrency & Performance
+
+- **Main Thread Safety (`@MainActor`)**: perform heavy I/O asynchronously off the main thread, dispatching state updates safely back to `@MainActor`.
+- **Memory & Retain Cycle Safety**: use `[weak self]` in AppKit event monitors and long-lived closures.
+- **Modern State Observation**: use `@Observable` for fine-grained view re-rendering.
+- **Sendable Across Actor Boundaries**: any type passed into a `Task.detached`, an `actor`, or returned from a background context back to `@MainActor` MUST conform to `Sendable` (or be a value type composed entirely of `Sendable` members). Never silently paper over a non-Sendable warning with `@unchecked Sendable` unless the type's internal state is genuinely immutable or already synchronized.
+- **No Synchronous Disk I/O on `@MainActor` for Non-Local Paths**: a local-path `FileManager` check (e.g. `fileExists(atPath:)` under the boot volume) resolves in microseconds and is fine synchronously. Anything under `/Volumes/` (network shares, external drives) MUST run its `FileManager` calls off `@MainActor` — a stalled or unreachable mount can block a synchronous call for seconds and freeze the whole UI.
+- **Explicit Cancellation in Long-Running Async Loops**: an `async` function looping over a large collection continues running even after its parent `Task` is cancelled unless it checks. Call `Task.checkCancellation()` (or check `Task.isCancelled`) at the top of each loop iteration.
+
+## Localization & Accessibility
+
+- **Zero Hardcoded User-Facing Text**: never hardcode user-facing text, menu labels, tooltips, status strings, or accessibility labels/hints/values directly in views or models — always go through a centralized localization service.
+- **Mandatory VoiceOver Accessibility**: every interactive UI element (buttons, rows, cards, toolbar controls) should carry `.accessibilityLabel(...)`, `.accessibilityHint(...)`, `.accessibilityAddTraits(...)`, and `.accessibilityValue(...)` using localized strings.
+- **Never Hardcode the Set of Supported Locales**: never write out a fixed list of language codes or per-language branches to decide which languages a feature supports — that list silently goes stale the moment a locale is added or removed. Always derive the locale set dynamically from the actual resource directories (or the localization service's own notion of supported locales) at every layer that needs it (Swift, static HTML/JS assets, etc.), not just the primary one.
+
+## SwiftUI View Patterns
+
+- **Explicit Animation Boundaries**: never attach `.animation(_:value:)`/`withAnimation` around a high-level container view (a root `ZStack`, an outer `ScrollView`) — attach it only to the specific leaf element changing, so a big data load can't accidentally trigger an animated full-tree layout recalculation.
+- **Explicit View Identity Reset on Full Dataset Replacement**: when a view's entire backing dataset is replaced wholesale, attach `.id(...)` keyed on whatever identifies the dataset. This forces SwiftUI to destroy/recreate the view tree instantly instead of diffing thousands of old rows against new ones.
+- **Scope `GeometryReader` to Preference-Key Frame Extraction, Not All Layout**: when `GeometryReader` exists only to read a child's frame for a `PreferenceKey`, wrap it in `.background(GeometryReader { ... }.preference(...))` so it doesn't participate in layout sizing. This does not mean "never use `GeometryReader` as a structural root" — reading a container's available width to drive adaptive sizing is a legitimate, necessary use; only the preference-key-extraction case must be background-scoped.
+- **Custom Tappable Content MUST Have an Explicit `.contentShape`**: a `Button` (or `.onTapGesture`) whose label is composite content (an icon + text, padding around an icon) is only tappable on its actual rendered, non-transparent pixels by default — clicking the surrounding padding silently does nothing. On macOS, a real `Button` does not reliably honor `.contentShape` for this even when the shape matches the label's frame exactly — its AppKit-backed click routing keeps tracking only the rendered content's bounds. For a composite-content control where the padding needs to be tappable, use a plain view with `.contentShape(Rectangle())` + `.onTapGesture { }` instead (plus `.accessibilityAddTraits(.isButton)` + `.accessibilityLabel(...)` since it's no longer a real control) — this combination actually respects `.contentShape`. Keep the shape matched exactly to the visible frame; don't outset it past that frame for a row of adjacent tappable controls (a tab switcher, packed icon buttons) — outsetting each one's hit region makes neighboring regions overlap, so a click near the boundary can register on the wrong sibling. Grow the real spacing between controls first if a bigger tap target is genuinely needed.
+
+## Apple HIG Alignment & Control Conventions
+
+Before shipping any new control cluster, compare it directly to the closest native macOS System Settings / Safari Preferences / Finder equivalent and match *its* alignment and control choice — don't improvise a layout that merely "looks plausible."
+
+- A mutually-exclusive mode/view switcher (tabs, segmented control) is horizontally centered in its row, never left- or right-aligned.
+- A settings/data row (label ... value) is the opposite: leading-aligned label, trailing-aligned value/control, connected by a `Spacer()`.
+- Prefer a native control over a hand-rolled one when the requirement fits (e.g. `Picker(selection:).pickerStyle(.segmented)` over custom `Button` rows). Only hand-roll when the native control genuinely can't express the requirement — and even then, follow the alignment convention the native control would have used.
+- Footer action buttons are right-aligned — never centered, never left-aligned, even a single lonely button.
+- When genuinely unsure which alignment applies, open the closest matching native macOS panel and copy what it does, rather than guessing.
+- Trailing accessories (a value, a badge, a chevron) sit close to the row's true trailing edge, not symmetrically inset to match the leading padding — use asymmetric padding if that's what it takes.
+- Don't stack two horizontal dividers back-to-back, or draw one immediately before another structural divider already provides the same separation. A `Divider()` marks one genuine structural boundary; separate items within a region using `VStack`/`HStack` spacing instead, reaching for an extra divider only when spacing alone doesn't communicate the grouping.
+
+## Window-Scoped State in Multi-Window Apps
+
+- Any `@Observable` app-wide state object is a single instance shared by every open window of the app. Any sheet/alert/HUD/"currently editing this item" flag stored directly on that shared object fires in **every** open window simultaneously the moment one window sets it — this is a real bug class in multi-window SwiftUI apps, not a hypothetical (concrete shipped incident: see `WILES_RULES.md`).
+- Any state that represents "what this specific window is currently showing/presenting" belongs on a dedicated per-window `@Observable` state object, instantiated as `@State` inside that window's root content view so SwiftUI gives each window its own instance automatically.
+- Wiring pattern: inject the per-window object into that window's view hierarchy with `.environment(_:)` at the root, read it in descendants with `@Environment(...)` — `.sheet`/`.popover`/`.contextMenu` content all inherit the presenter's environment automatically. For code living *outside* any single window's view hierarchy (menu `Commands` in the `App` struct), publish it via `.focusedSceneValue(\.someKey, windowState)` and read with `@FocusedValue(\.someKey)` — not `.focusedValue`/`@FocusedValue` paired with `.focusedValue(_:)`, which requires an actual native SwiftUI-focused control — irrelevant if your app runs its own custom event monitors instead of relying on native SwiftUI focus (as this one does, see `WILES_RULES.md`).
+- Exception: state with no natural "owning window" (an error alert from a background service with no UI in front of it) legitimately stays on the shared state object, since the user needs to see it regardless of which window has focus. Only move state that's set as the direct result of an explicit action taken *in* one specific window.
+
+## Foundation & Data Handling
+
+- **Strict File URL Normalization**: never compare raw URL or `String` paths directly using `==` when either side may originate from user input, persisted defaults, or a different code path than the other — always resolve both sides via `.standardizedFileURL` first. Two `FileItem.url` values that both came from the same `contentsOfDirectory` call are already canonical and fine to compare as-is.
+- **`UserDefaults` Payload Limits**: `UserDefaults` is for lightweight toggles, enums, numbers, and small bounded arrays/JSON only — never large collections or a full listing. Reads/writes are synchronous and can block the main thread if the payload is heavy; put anything directory-scale in an in-memory service instead.
+- **Defensive Memory Bounding for Caches**: never back an in-memory cache (listings, thumbnails, images) with an unbounded dictionary. Use `NSCache` with an explicit `countLimit` and `totalCostLimit` so heavy usage can't silently balloon RAM.
+
+## Never Resolve a Lint/Format/Config Conflict Unilaterally
+
+- When SwiftLint, SwiftFormat, the build, or any other enforced check disagrees with another one (e.g. SwiftFormat rewrites code into a shape SwiftLint then flags), **stop and ask the user which side should change** before editing any config (`.swiftlint.yml`, `.swiftformat`, CI thresholds) or adding any inline suppression. This includes `swiftlint:disable` **and** `swiftformat:disable`/`:disable:next`/`:disable:this` — a format-disable comment is the same move in a different tool and is banned for the same reason.
+- Picking a resolution yourself — even one that looks technically reasonable — is a unilateral tech decision (see `GENERAL_RULES.md`'s "No unilateral tech decisions") applied to tooling config instead of app code, and is just as forbidden. This applies per-instance: agreeing on a general strategy for one conflict (e.g. "make SwiftFormat match SwiftLint") does not license silently reaching for a suppression comment as the mechanism when a fix isn't a clean config change.
+
+## Pre-Commit Architectural Anti-Pattern Checklist
+
+Before finalizing any code or creating a commit, self-audit the diff against these boundaries:
+
+1. **Memory Bounds & OOM Bloat**: any cache/array/dictionary accumulating large payloads must have explicit, strict limits (count/cost limits or eviction) — never unbounded growth.
+2. **Concurrency Leaks (Zombie Tasks)**: every background loop over a large dataset must check `Task.isCancelled`/`Task.checkCancellation()` so it dies the moment the user navigates away or cancels.
+3. **CPU Spin Locks & Busy-Waits**: never a tight retry loop when a resource is locked — use explicit locking checks and debounce to avoid 100% CPU.
+4. **I/O & Network Bottlenecks (N+1)**: never synchronous I/O, disk stats, or IPC inside a loop over a collection — bulk-prefetch before the loop begins.
+5. **UI Thread Blocking (Anti-Beachball)**: heavy transformations, decoding, or disk writing must move to background threads; wrap massive allocations in `autoreleasepool`.
+6. **Data Loss via Heuristic Assumptions**: never rely on partial hashes, file sizes, or name similarity for destructive operations — implement a full cryptographic validation fallback (e.g. SHA-256) before destroying user data.
+7. **Render Loop Thrashing**: isolate high-frequency updates (scroll/mouse tracking) to leaf-node observables/bindings so they don't cascade re-renders of large parent hierarchies.
+8. **State Desynchronization (Single Source of Truth)**: never mirror state across multiple stores/`@State` variables — derive dependent data via computed properties or bindings.
+9. **Retain Cycles**: always `[weak self]` in escaping closures, timers, or event monitors referencing class instances.
+10. **Concurrency Race Conditions**: mutable shared state accessed from multiple concurrent tasks must be protected by an `actor`, `@MainActor`, or a serial queue.
+11. **Security & Shell Injection**: never string-interpolate user input into a shell command (`Process`) — always pass data via the `arguments` array, bypassing shell evaluation.
+12. **UI/UX Silent Failures**: never swallow errors in a user-initiated action (`try?`) unless it's an expected background debounce — user-initiated failures must bubble up to a visible alert/status indicator.
+13. **Unbounded IPC & Stream Buffering (OOM Prevention)**: never accumulate unbounded subprocess/network stream output into RAM — pipe to disk or consume via strict bounded chunking.
+14. **Main Thread Resource Decoding (Anti-Beachball)**: never decode/decompress heavy binary assets synchronously in a view lifecycle event — do it in a detached background pool, pass back only the lightweight final representation.
+15. **Synchronous Subprocess Execution (Anti-Beachball)**: never call `waitUntilExit()` synchronously on `@MainActor` for a system `Process` (`zip`, `tar`, `ditto`, etc.) — run it inside a background `Task.detached`.
+16. **Sequential Bulk Disk I/O on the Main Actor**: never run a `for` loop of blocking filesystem calls directly on `@MainActor` — dispatch bulk destructive operations to a background task, aggregate errors, report the outcome back on the main actor.
+17. **N+1 Attribute Fetching in Directory Enumeration**: never pass `nil`/empty `includingPropertiesForKeys` when enumerating a directory if you'll read resource attributes inside the loop — declare every needed key upfront so the OS bulk-prefetches them.
+18. **Full Payload Buffering Before Network Send (OOM)**: never read an entire file into a single `Data` object before sending it over a network connection — stream in bounded fixed-size chunks.
+19. **Synchronous I/O Inside SwiftUI `body`/Computed Properties**: `body` executes on the main thread and may be called many times per second — all data loading belongs in `.task`/`.onAppear`/equivalent async lifecycle modifiers, storing results in `@State` that `body` reads passively.
+20. **`NSPredicate` Format String Injection**: never interpolate variables into `NSPredicate(format:)` — any predicate-syntax character (`%`, `\`, `(`, `)`, `'`) corrupts the parser and raises an uncatchable Objective-C exception. Always use `%@` argument substitution.
+21. **Block-Based `NotificationCenter` Observer Token Leak**: the closure-based `addObserver(forName:object:queue:using:)` form returns a token that must be stored and explicitly removed via `removeObserver(_:)` — discarding it registers a permanent, unremovable ghost observer; each subsequent registration stacks another one.

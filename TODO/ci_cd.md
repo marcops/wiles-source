@@ -1,6 +1,6 @@
 ## High priority (broken or inconsistent core functionality)
  revisar todos os testes que damos skip no ci
-
+- revisar o validate se tem tudo no CI
  
 - CI-only test failure to fix once CI is stable: `AppStateFavoritesMoveTests.testMoveItemUpdatesFavorites`
   ("POS: moveItem() updates the favorite to the real new on-disk location, not just the old stale path")

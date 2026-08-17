@@ -85,15 +85,15 @@ struct SidebarRowView: View {
     }
 
     @ViewBuilder private var trashSizeIndicator: some View {
-        if appState.isTrashUpdating {
+        if appState.transient.isTrashUpdating {
             ProgressView()
                 .progressViewStyle(.circular)
                 .controlSize(.mini)
                 .scaleEffect(0.6)
                 .frame(width: 16, height: 16)
-        } else if !appState.trashSizeString.isEmpty,
-                  !["Zero KB", "0 KB", "0 bytes"].contains(appState.trashSizeString) {
-            Text(appState.trashSizeString)
+        } else if !appState.transient.trashSizeString.isEmpty,
+                  !["Zero KB", "0 KB", "0 bytes"].contains(appState.transient.trashSizeString) {
+            Text(appState.transient.trashSizeString)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 6)

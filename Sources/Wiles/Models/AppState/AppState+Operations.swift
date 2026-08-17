@@ -47,19 +47,19 @@ public extension AppState {
 
     func cutSelected() {
         guard !selectedURLs.isEmpty else { return }
-        clipboard = ClipboardState(urls: Array(selectedURLs), action: .cut)
+        transient.clipboard = ClipboardState(urls: Array(selectedURLs), action: .cut)
     }
 
     func copySelected() {
         guard !selectedURLs.isEmpty else { return }
         let urls = Array(selectedURLs)
-        clipboard = ClipboardState(urls: urls, action: .copy)
+        transient.clipboard = ClipboardState(urls: urls, action: .copy)
         FileSystemService.writeToPasteboard(urls: urls)
     }
 
     func pasteToCurrentDirectory() {
         HapticService.shared.play(.generic)
-        guard let clip = clipboard, !clip.urls.isEmpty else {
+        guard let clip = transient.clipboard, !clip.urls.isEmpty else {
             if let urls = FileSystemService.readFromPasteboard(), !urls.isEmpty {
                 executePaste(urls: urls, isCut: false)
             }
@@ -67,7 +67,7 @@ public extension AppState {
         }
         executePaste(urls: clip.urls, isCut: clip.action == .cut)
         if clip.action == .cut {
-            clipboard = nil
+            transient.clipboard = nil
         }
     }
 

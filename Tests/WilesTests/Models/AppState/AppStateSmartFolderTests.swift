@@ -164,8 +164,8 @@ public struct AppStateSmartFolderTests {
     private static func testPrepareForSmartFolderRunTriggersSearch() {
         let appState = AppState()
         appState.selectedURLs = [URL(fileURLWithPath: "/tmp/previously-selected.txt")]
-        appState.refreshTask?.cancel()
-        appState.refreshTask = nil
+        appState.transient.refreshTask?.cancel()
+        appState.transient.refreshTask = nil
 
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
         appState.prepareForSmartFolderRun(folder)
@@ -176,7 +176,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "POS: prepareForSmartFolderRun actually triggers a search (spawns a refresh task), same as typing a query",
-            result: appState.refreshTask != nil)
+            result: appState.transient.refreshTask != nil)
         report(
             "AppState", "POS: prepareForSmartFolderRun sets smartFolder.activeFolderID to the folder's id",
             result: appState.smartFolder.activeFolderID == folder.id)
@@ -206,7 +206,7 @@ public struct AppStateSmartFolderTests {
         // Editing the search text exits smart-folder mode and triggers a real reload of the current
         // directory — this must not resurrect the stale pending selection.
         appState.searchQuery = "stale"
-        await appState.refreshTask?.value
+        await appState.transient.refreshTask?.value
         report(
             "AppState",
             "NEG: editing search text after a smart folder run does not resurrect the stale pending selection",
@@ -245,8 +245,8 @@ public struct AppStateSmartFolderTests {
         let appState = AppState()
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
         appState.prepareForSmartFolderRun(folder)
-        appState.refreshTask?.cancel()
-        appState.refreshTask = nil
+        appState.transient.refreshTask?.cancel()
+        appState.transient.refreshTask = nil
 
         appState.searchQuery = "a brand new search"
 
@@ -257,7 +257,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "POS: a normal searchQuery edit triggers a real refresh (spawns a task)",
-            result: appState.refreshTask != nil)
+            result: appState.transient.refreshTask != nil)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

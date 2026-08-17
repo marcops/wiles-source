@@ -194,7 +194,7 @@ struct FileListView: View {
 
     private func listRow(for item: FileItem) -> some View {
         let isSel = appState.selectedURLs.contains(item.url)
-        let isCut = appState.clipboard?.isCut(url: item.url) ?? false
+        let isCut = appState.transient.clipboard?.isCut(url: item.url) ?? false
 
         return HStack(spacing: 0) {
             nameCell(for: item, isSel: isSel)

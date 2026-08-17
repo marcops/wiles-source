@@ -124,3 +124,14 @@ custom_rules:
     regex: '(^|\n)((?:public |internal |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor) \w+)[\s\S]*?\n((?:public |internal |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor) \w+)'
     message: "Only one top-level type is allowed per file — this file declares more than one."
     severity: error
+  no_print_in_production:
+    name: "No print() in Production Code"
+    included: ".*/Sources/.*\\.swift"
+    regex: '\bprint\('
+    message: "Use ErrorReporter.report(...) (GitBeacon) instead of print() for logging in production code."
+    severity: error
+  no_any_view:
+    name: "No AnyView"
+    regex: '\bAnyView\('
+    message: "AnyView erases SwiftUI's structural identity and forces aggressive re-rendering. Use @ViewBuilder with if/else or switch instead."
+    severity: error

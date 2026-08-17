@@ -32,11 +32,11 @@ public extension AppState {
     func setColumnWidth(_ column: ListColumn, width: CGFloat, persist: Bool = true) {
         guard let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
         if !persist {
-            suppressColumnStatePersistence = true
+            transient.suppressColumnStatePersistence = true
         }
         listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
         if !persist {
-            suppressColumnStatePersistence = false
+            transient.suppressColumnStatePersistence = false
         }
     }
 

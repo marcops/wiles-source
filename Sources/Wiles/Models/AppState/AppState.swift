@@ -13,6 +13,7 @@ public final class AppState: @unchecked Sendable {
     public var selection: SelectionStore
     public var fileSystem: FileSystemStore
     public var smartFolder: SmartFolderStore
+    public var transient: TransientStore
 
     func startDirectoryMonitoring(for url: URL) {
         fileSystem.startDirectoryMonitoring(for: url) { [weak self] in
@@ -92,27 +93,10 @@ public final class AppState: @unchecked Sendable {
 
     public var isSearching: Bool = false
 
-    /// In-flight directory load spawned by `refreshCurrentDirectory()`. Cancelled and replaced on every
-    /// call so rapid search keystrokes or navigations can't leave multiple concurrent loads racing to
-    /// apply stale results.
-    var refreshTask: Task<Void, Never>?
-    /// In-flight `~/.Trash` enumeration spawned by `updateTrashSize()`. Cancelled and replaced on every
-    /// call so it never piles up multiple concurrent full-Trash walks.
-    private var trashSizeTask: Task<Void, Never>?
-    /// Timestamp of the last trash-size enumeration triggered opportunistically from
-    /// `refreshCurrentDirectory()`, used to coalesce it to a coarse interval instead of firing on
-    /// every navigation/search keystroke/FSEvents refresh.
-    var lastOpportunisticTrashSizeCheck: Date = .distantPast
-    static let trashSizeCheckInterval: TimeInterval = 30
-
     public var selectedURLs: Set<URL> = []
-    public var clipboard: ClipboardState?
     public var navigationMode: NavigationMode = .gnome {
         didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
     }
-
-    public var trashSizeString: String = ""
-    public var isTrashUpdating: Bool = false
 
     public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: DefaultsKey.isCompactMode.rawValue) {
         didSet { UserDefaults.standard.set(isCompactMode, forKey: DefaultsKey.isCompactMode.rawValue) }
@@ -120,15 +104,10 @@ public final class AppState: @unchecked Sendable {
 
     public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
         didSet {
-            guard !suppressColumnStatePersistence else { return }
+            guard !transient.suppressColumnStatePersistence else { return }
             saveListColumnStates()
         }
     }
-
-    /// Set while a column-resize drag is in progress so intermediate width updates (which fire on every
-    /// mouse-move delta) don't each trigger a synchronous JSON encode + `UserDefaults` write. The final
-    /// width is persisted once via `persistColumnWidths()` on drag end. See `ColumnResizeHandle`.
-    var suppressColumnStatePersistence: Bool = false
 
     public var perFolderViewModes: [String: String] = (
         UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
@@ -143,6 +122,7 @@ public final class AppState: @unchecked Sendable {
         selection = SelectionStore()
         fileSystem = FileSystemStore()
         smartFolder = SmartFolderStore()
+        transient = TransientStore()
 
         updateTrashSize()
     }
@@ -337,18 +317,18 @@ public final class AppState: @unchecked Sendable {
     public func updateTrashSize() {
         // Supersede any enumeration already in flight instead of piling another one on top of it —
         // this fires on every navigation/search keystroke via refreshCurrentDirectory().
-        trashSizeTask?.cancel()
-        isTrashUpdating = true
-        trashSizeTask = Task.detached(priority: .background) { [weak self] in
+        transient.trashSizeTask?.cancel()
+        transient.isTrashUpdating = true
+        transient.trashSizeTask = Task.detached(priority: .background) { [weak self] in
             switch Self.computeTrashSize() {
             case let .success(totalSize):
                 let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
                 await MainActor.run { [weak self] in
-                    self?.trashSizeString = sizeStr
-                    self?.isTrashUpdating = false
+                    self?.transient.trashSizeString = sizeStr
+                    self?.transient.isTrashUpdating = false
                 }
             case .noTrash:
-                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+                await MainActor.run { [weak self] in self?.transient.isTrashUpdating = false }
             case .cancelled:
                 break
             }
@@ -357,17 +337,17 @@ public final class AppState: @unchecked Sendable {
 
     public func performEmptyTrash() {
         Task { @MainActor in
-            self.isTrashUpdating = true
+            self.transient.isTrashUpdating = true
         }
         Task.detached(priority: .userInitiated) {
             let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
             guard let url = trashURL else {
-                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+                await MainActor.run { [weak self] in self?.transient.isTrashUpdating = false }
                 return
             }
             let fm = FileManager.default
             guard let paths = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: []) else {
-                await MainActor.run { [weak self] in self?.isTrashUpdating = false }
+                await MainActor.run { [weak self] in self?.transient.isTrashUpdating = false }
                 return
             }
             let failedCount = Self.removeTrashContents(paths, using: fm)

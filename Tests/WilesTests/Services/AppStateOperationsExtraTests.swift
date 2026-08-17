@@ -256,7 +256,7 @@ public struct AppStateOperationsExtraTests {
         let sourceFile = makeFile(named: "paste-me.txt", in: sourceDir, content: "paste content")
         let appState = AppState()
         appState.navigateTo(destDir)
-        appState.clipboard = ClipboardState(urls: [sourceFile], action: .copy)
+        appState.transient.clipboard = ClipboardState(urls: [sourceFile], action: .copy)
         appState.pasteToCurrentDirectory()
         try? await Task.sleep(nanoseconds: 400_000_000)
         let destFile = destDir.appendingPathComponent("paste-me.txt")
@@ -265,15 +265,15 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a .copy clipboard duplicates the file into the current directory and preserves the source",
-            result: copiedExists && sourceStillExists && appState.clipboard != nil)
+            result: copiedExists && sourceStillExists && appState.transient.clipboard != nil)
 
         // NEG: cut-clipboard paste clears the clipboard synchronously (before the async move even completes).
         let cutFile = makeFile(named: "cut-me.txt", in: sourceDir, content: "cut content")
         let appState2 = AppState()
         appState2.navigateTo(destDir)
-        appState2.clipboard = ClipboardState(urls: [cutFile], action: .cut)
+        appState2.transient.clipboard = ClipboardState(urls: [cutFile], action: .cut)
         appState2.pasteToCurrentDirectory()
-        let clipboardClearedImmediately = appState2.clipboard == nil
+        let clipboardClearedImmediately = appState2.transient.clipboard == nil
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() with a .cut clipboard clears the clipboard immediately, not waiting for the move to finish",
@@ -404,7 +404,7 @@ public struct AppStateOperationsExtraTests {
         FileSystemService.writeToPasteboard(urls: [sourceFile])
         let appState = AppState()
         appState.navigateTo(destDir)
-        appState.clipboard = nil
+        appState.transient.clipboard = nil
         appState.pasteToCurrentDirectory()
         let destFile = destDir.appendingPathComponent("fallback-paste.txt")
         let copied = await pollUntilTrue { FileManager.default.fileExists(atPath: destFile.path) }
@@ -418,7 +418,7 @@ public struct AppStateOperationsExtraTests {
         let appState2 = AppState()
         appState2.modal.errorMessage = nil
         appState2.navigateTo(destDir)
-        appState2.clipboard = ClipboardState(urls: [missingFile], action: .cut)
+        appState2.transient.clipboard = ClipboardState(urls: [missingFile], action: .cut)
         appState2.pasteToCurrentDirectory()
         let errorShown = await pollUntilTrue { appState2.modal.errorMessage != nil }
         report(

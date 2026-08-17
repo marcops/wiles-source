@@ -2,8 +2,8 @@
 
 Behavior changes that aren't practically unit-testable with the project's current test
 infrastructure (no XCUITest gesture simulation, no SwiftUI render-timing harness for transitions).
-Logged per rule 28 in `.agents/AGENTS.md` instead of silently skipped. Pull an item off this list
-and write the real test the moment the missing infrastructure exists.
+Logged per the testing-discipline rule in `.agents/DEV_RULES.md` instead of silently skipped. Pull an
+item off this list and write the real test the moment the missing infrastructure exists.
 
 ## `FileColumnView.refreshAllColumnsFromDisk()` — Column view refresh on delete
 - **File**: `Sources/Wiles/Views/Content/FileColumnView.swift`
@@ -86,7 +86,7 @@ and write the real test the moment the missing infrastructure exists.
   remaining rows animate into place) until this project has snapshot/animation-timing test infra.
 # UI Test Backlog
 
-Pending tests logged here per AGENTS.md rule 28/rule "defer tests until reviewed" — write these once the associated behavior has been manually reviewed by the user.
+Pending tests logged here per `WILES_RULES.md`'s "Testable Fixes Are Deferred, Not Skipped" rule — write these once the associated behavior has been manually reviewed by the user.
 
 - Localization-completeness test: assert every key present in `en.lproj/Localizable.strings` (or the union across all locales) exists in every other `*.lproj/Localizable.strings` file, and that no locale has orphaned keys absent from `L10n.Key` — would have caught pt.lproj's stray `actRefreshShortcut`/`actToggleStatusBar`/`tabShortcuts` entries (RESOLVE.md P3 item 3).
 - `ColumnAutoFitService.calculateAutoFitWidth(for:items:iconSize:language:)` unit test: assert width grows with longer item names/localized header text and clamps to `LayoutTokens.columnMinWidth`/`columnMaxWidth` — now trivially testable with plain `[FileItem]`/`Double`/`AppLanguage` inputs since RESOLVE.md P3 item 2 removed the `AppState` dependency; not written yet per standing "defer tests until reviewed" preference.

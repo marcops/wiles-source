@@ -15,7 +15,7 @@ struct SharedBackgroundContextMenu: View {
         Button(appState.tr(.newFileTitle)) {
             appState.createNewFileAndRename(in: targetFolderURL, windowUIState: windowUIState)
         }
-        if appState.clipboard != nil {
+        if appState.transient.clipboard != nil {
             Button("\(appState.tr(.paste)) (Cmd+V)") {
                 appState.pasteToCurrentDirectory()
             }

@@ -149,8 +149,8 @@ public extension AppState {
 
         // Cancel any load already in flight — every keystroke of a search or rapid navigation used to
         // spawn an unstructured Task with no cancellation, letting a stale result race a fresher one.
-        refreshTask?.cancel()
-        refreshTask = Task {
+        transient.refreshTask?.cancel()
+        transient.refreshTask = Task {
             await performRefresh(snapshot)
         }
     }
@@ -195,9 +195,9 @@ public extension AppState {
     private func refreshTrashSizeIfNeeded(target: URL) {
         let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
         let isTrash = trashURL.map { $0.standardizedFileURL == target.standardizedFileURL } ?? false
-        let dueForCoarseCheck = Date().timeIntervalSince(lastOpportunisticTrashSizeCheck) >= Self.trashSizeCheckInterval
+        let dueForCoarseCheck = Date().timeIntervalSince(transient.lastOpportunisticTrashSizeCheck) >= TransientStore.trashSizeCheckInterval
         guard isTrash || dueForCoarseCheck else { return }
-        lastOpportunisticTrashSizeCheck = Date()
+        transient.lastOpportunisticTrashSizeCheck = Date()
         updateTrashSize()
     }
 

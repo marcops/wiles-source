@@ -29,7 +29,7 @@ public struct AppStateOperationsTests {
         let appState = AppState()
         appState.selectedURLs = []
         appState.cutSelected()
-        report("AppState+Operations", "NEG: cutSelected() with empty selection leaves clipboard nil", result: appState.clipboard == nil)
+        report("AppState+Operations", "NEG: cutSelected() with empty selection leaves clipboard nil", result: appState.transient.clipboard == nil)
 
         let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("cut-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
@@ -37,19 +37,19 @@ public struct AppStateOperationsTests {
         report(
             "AppState+Operations",
             "POS: cutSelected() stores selection in clipboard with .cut action",
-            result: appState.clipboard?.action == .cut && appState.clipboard?.isCut(url: url) == true)
+            result: appState.transient.clipboard?.action == .cut && appState.transient.clipboard?.isCut(url: url) == true)
     }
 
     private static func testCopySelected() {
         let appState = AppState()
         appState.selectedURLs = []
         appState.copySelected()
-        report("AppState+Operations", "NEG: copySelected() with empty selection leaves clipboard nil", result: appState.clipboard == nil)
+        report("AppState+Operations", "NEG: copySelected() with empty selection leaves clipboard nil", result: appState.transient.clipboard == nil)
 
         let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("copy-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.copySelected()
-        report("AppState+Operations", "POS: copySelected() stores selection in clipboard with .copy action", result: appState.clipboard?.action == .copy)
+        report("AppState+Operations", "POS: copySelected() stores selection in clipboard with .copy action", result: appState.transient.clipboard?.action == .copy)
     }
 
     private static func testSelectAllItems() {
