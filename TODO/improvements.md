@@ -6,7 +6,6 @@
 - o gridview tem que mostrar 2 linhas igual o ifinder se o texto for muito grande, e se for maior que isto ai sim coloca os 3 ppontos
 
 ## Low priority / undecided
-- padronizar, o fundo esta com cor diferente nas telas, modais, e o botao tao com tamanho diferente
 - terminal com follow mode, ou seja segue a pasta que eu esotu no folder ou vice e versa, a pasta que eu estou navegando no terminal.
 - hide the back and forward, and increase the Title font? with on/off
 - create the director view and traditional view?

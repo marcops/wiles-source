@@ -70,4 +70,14 @@ public enum LayoutTokens {
     // Recursive Search
     public static let recursiveSearchResultLimit: Int = 2000
     public static let recursiveSearchBatchSize: Int = 40
+
+    // Modal Scaffold (standard header/content/footer skeleton, see ModalScaffoldView)
+    public static let modalHeaderIconSize: CGFloat = 36.0
+    public static let modalSymbolIconScale: CGFloat = 0.5
+    public static let modalHeaderHorizontalPadding: CGFloat = 20.0
+    public static let modalHeaderVerticalPadding: CGFloat = 14.0
+    public static let modalFooterHorizontalPadding: CGFloat = 20.0
+    public static let modalFooterVerticalPadding: CGFloat = 12.0
+    public static let modalTitleFontSize: CGFloat = 16.0
+    public static let modalSubtitleFontSize: CGFloat = 12.0
 }

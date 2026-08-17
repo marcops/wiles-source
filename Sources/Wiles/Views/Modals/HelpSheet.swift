@@ -1,6 +1,4 @@
-import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct HelpSheet: View {
     @Environment(\.dismiss)
@@ -9,62 +7,43 @@ struct HelpSheet: View {
     @State private var selectedTab: HelpTab = .overview
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    switch selectedTab {
-                    case .overview:
-                        overviewSection
-                        navigationModesSection
-                        sidebarAndTagsSection
-                    case .features:
-                        featureHighlightsSection
-                    case .system:
-                        navigationAndSystemSection
-                    }
-                }
-                .padding(20)
-            }
-
-            Divider()
-            footerView
-        }
-        .frame(width: 660, height: 580)
-        .background(Color(NSColor.windowBackgroundColor))
+        ModalScaffoldView(
+            icon: .appIcon,
+            title: appState.tr(.wilesFileManager),
+            subtitle: appState.tr(.helpGuideTitle),
+            width: 660,
+            height: 580,
+            primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
+            headerAccessory: { tabPicker },
+            content: { scrollableContent })
     }
 
-    private var headerView: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 36, height: 36)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(appState.tr(.wilesFileManager))
-                        .font(.system(size: 16, weight: .bold))
-                    Text(appState.tr(.helpGuideTitle))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
+    private var tabPicker: some View {
+        Picker("", selection: $selectedTab) {
+            ForEach(HelpTab.allCases) { tab in
+                Text(tab.title(appState: appState)).tag(tab)
             }
-
-            Picker("", selection: $selectedTab) {
-                ForEach(HelpTab.allCases) { tab in
-                    Text(tab.title(appState: appState)).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 500)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .pickerStyle(.segmented)
+        .frame(maxWidth: 500)
+    }
+
+    private var scrollableContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                switch selectedTab {
+                case .overview:
+                    overviewSection
+                    navigationModesSection
+                    sidebarAndTagsSection
+                case .features:
+                    featureHighlightsSection
+                case .system:
+                    navigationAndSystemSection
+                }
+            }
+            .padding(20)
+        }
     }
 
     private var overviewSection: some View {
@@ -179,18 +158,5 @@ struct HelpSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.done)) {
-                dismiss()
-            }
-            .keyboardShortcut(.defaultAction)
-            .controlSize(.large)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 }

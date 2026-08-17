@@ -4,8 +4,8 @@ import SwiftUI
 /// from the App menu's `⌘,` item in `WilesApp.swift`) rather than a `Settings { }` scene — a real
 /// scene always comes with its own native title bar/traffic-light window chrome, which fought this
 /// header/footer chrome no matter how it was stripped. A sheet has none of that chrome to begin
-/// with, so it follows the exact same header/divider/content/divider/footer pattern as every other
-/// modal in the app (`HelpSheet`, `AboutSheet`, etc. — see AGENTS.md rule 30) with no extra work.
+/// with, so it's built on `ModalScaffoldView`, the shared header/divider/content/divider/footer
+/// skeleton every modal in the app uses (see `WILES_UI_UX_RULES.md`).
 struct SettingsView: View {
     @Environment(\.dismiss)
     private var dismiss
@@ -21,42 +21,15 @@ struct SettingsView: View {
     @State private var selectedTab: Tab = .general
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            Divider()
-
-            content
-
-            Divider()
-            footerView
-        }
-        .frame(width: 480, height: 470)
-        .background(Color(NSColor.windowBackgroundColor))
-    }
-
-    private var headerView: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 36, height: 36)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(appState.tr(.wilesFileManager))
-                        .font(.system(size: 16, weight: .bold))
-                    Text(appState.tr(.settingsHeaderSubtitle))
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            }
-
-            tabSwitcher
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        ModalScaffoldView(
+            icon: .appIcon,
+            title: appState.tr(.wilesFileManager),
+            subtitle: appState.tr(.settingsHeaderSubtitle),
+            width: 480,
+            height: 470,
+            primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
+            headerAccessory: { tabSwitcher },
+            content: { content })
     }
 
     /// A hand-rolled icon-over-title tab row instead of `Picker(.segmented)`: macOS's segmented
@@ -75,10 +48,10 @@ struct SettingsView: View {
     /// frame, keeps registering clicks only over the label's actual rendered (non-transparent)
     /// content — the `Color.clear`-backed padding around the icon/text stays dead even though it's
     /// visually inside the 64x44 pill. `.contentShape` reliably drives SwiftUI's own gesture
-    /// recognizers but not `Button`'s AppKit-backed click routing here (see AGENTS.md rule 33), so
-    /// this uses a plain view + `.onTapGesture` instead — that combination does respect
-    /// `.contentShape` for the *entire* frame, matched exactly to the visible pill (no outset: see
-    /// the overlap bug this had previously, also documented in rule 33).
+    /// recognizers but not `Button`'s AppKit-backed click routing here (see `SWIFT_LANG_RULES.md`'s
+    /// "Custom Tappable Content" rule), so this uses a plain view + `.onTapGesture` instead — that
+    /// combination does respect `.contentShape` for the *entire* frame, matched exactly to the
+    /// visible pill (no outset — that overlap bug is also documented there).
     private static let tabButtonSize = CGSize(width: 64, height: 44)
 
     private func tabButton(for tab: Tab) -> some View {
@@ -118,17 +91,6 @@ struct SettingsView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Color(NSColor.windowBackgroundColor))
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.done)) { dismiss() }
-                .keyboardShortcut(.defaultAction)
-                .controlSize(.large)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 
     private func title(for tab: Tab) -> String {

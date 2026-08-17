@@ -15,53 +15,42 @@ public struct DuplicateCleanerSheetView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            headerBar
-            Divider()
-
-            if isScanning {
-                scanningView
-            } else if let result = scanResult, !result.groups.isEmpty {
-                resultsView(result: result)
-            } else {
-                emptyView
-            }
-
-            Divider()
-            footerBar
-        }
-        .frame(width: 640, height: 480)
-        .task {
-            let res = await DuplicateDetectionService.shared.findDuplicates(in: appState.navigation.currentURL)
-            scanResult = res
-            var autoSelect: Set<URL> = []
-            for group in res.groups {
-                for item in group.items.dropFirst() {
-                    autoSelect.insert(item.url)
+        ModalScaffoldView(
+            icon: .symbol("doc.on.doc.fill"),
+            title: appState.tr(.duplicateCleanerTitle),
+            subtitle: appState.tr(.duplicateCleanerSubtitle),
+            width: 640,
+            height: 480,
+            primaryButton: ModalFooterButton(
+                title: appState.tr(.trashSelectedDuplicates),
+                isEnabled: !selectedURLsToTrash.isEmpty) {
+                    trashSelected()
+                    dismiss()
+                },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            content: { mainContent })
+            .task {
+                let res = await DuplicateDetectionService.shared.findDuplicates(in: appState.navigation.currentURL)
+                scanResult = res
+                var autoSelect: Set<URL> = []
+                for group in res.groups {
+                    for item in group.items.dropFirst() {
+                        autoSelect.insert(item.url)
+                    }
                 }
+                selectedURLsToTrash = autoSelect
+                isScanning = false
             }
-            selectedURLsToTrash = autoSelect
-            isScanning = false
-        }
     }
 
-    private var headerBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "doc.on.doc.fill")
-                .foregroundColor(.accentColor)
-                .font(.system(size: 16))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(appState.tr(.duplicateCleanerTitle))
-                    .font(.headline)
-                Text(appState.tr(.duplicateCleanerSubtitle))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
+    @ViewBuilder private var mainContent: some View {
+        if isScanning {
+            scanningView
+        } else if let result = scanResult, !result.groups.isEmpty {
+            resultsView(result: result)
+        } else {
+            emptyView
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
 
     private var scanningView: some View {
@@ -157,27 +146,6 @@ public struct DuplicateCleanerSheetView: View {
                 .truncationMode(.middle)
             Spacer()
         }
-    }
-
-    private var footerBar: some View {
-        HStack {
-            Spacer()
-            Button { dismiss() } label: {
-                Text(appState.tr(.cancel))
-            }
-            .keyboardShortcut(.cancelAction)
-
-            Button {
-                trashSelected()
-                dismiss()
-            } label: {
-                Text(appState.tr(.trashSelectedDuplicates))
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedURLsToTrash.isEmpty)
-        }
-        .padding(.horizontal, 16)
-        .frame(height: 48)
     }
 
     private func trashSelected() {
