@@ -10,39 +10,25 @@ struct AboutSheet: View {
     var appState: AppState
 
     var body: some View {
-        VStack(spacing: 0) {
-            contentArea
-            Divider()
-            footerView
-        }
-        .frame(width: LayoutTokens.aboutWindowWidth)
-        .background(Color(NSColor.windowBackgroundColor))
+        ModalScaffoldView(
+            icon: .appIcon,
+            title: AppConstants.appName,
+            subtitle: "\(appState.tr(.version)) \(AppConstants.appVersion)",
+            width: LayoutTokens.aboutWindowWidth,
+            primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
+            content: { contentArea })
     }
 
     private var contentArea: some View {
         VStack(spacing: 16) {
-            Image(nsImage: NSApplication.shared.applicationIconImage ?? NSWorkspace.shared.icon(for: .folder))
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: LayoutTokens.aboutIconSize, height: LayoutTokens.aboutIconSize)
-
-            VStack(spacing: 4) {
-                Text(AppConstants.appName)
-                    .font(.system(size: LayoutTokens.aboutTitleFontSize, weight: .bold))
-                Text("\(appState.tr(.version)) \(AppConstants.appVersion)")
-                    .font(.system(size: LayoutTokens.aboutTextFontSize))
-                    .foregroundColor(.secondary)
-            }
-
             Text(appState.tr(.aboutDescription))
                 .font(.system(size: LayoutTokens.aboutTextFontSize))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
             createdByView
-                .padding(.top, 8)
         }
-        .padding(.vertical, 32)
+        .padding(.vertical, 24)
     }
 
     private var createdByView: some View {
@@ -71,19 +57,5 @@ struct AboutSheet: View {
                 }
             }
         }
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.done)) {
-                dismiss()
-            }
-            .keyboardShortcut(.defaultAction)
-            .controlSize(.large)
-            .accessibilityLabel(appState.tr(.done))
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 }

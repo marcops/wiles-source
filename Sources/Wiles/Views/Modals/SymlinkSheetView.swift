@@ -18,28 +18,29 @@ public struct SymlinkSheetView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            headerSection
-            modePickerSection
-            nameInputSection
-            actionButtonsSection
-        }
-        .padding(20)
-        .frame(width: 380)
-        .onAppear {
-            symlinkName = item.name + " link"
-            isNameFocused = true
-        }
+        ModalScaffoldView(
+            icon: .symbol("link"),
+            title: appState.tr(.createSymbolicLink),
+            width: 380,
+            primaryButton: ModalFooterButton(
+                title: appState.tr(.createLink),
+                isEnabled: !symlinkName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                    createSymlink()
+                },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            content: { formContent })
+            .onAppear {
+                symlinkName = item.name + " link"
+                isNameFocused = true
+            }
     }
 
-    private var headerSection: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "link")
-                .font(.system(size: 20))
-                .foregroundColor(.accentColor)
-            Text(appState.tr(.createSymbolicLink))
-                .font(.system(size: 15, weight: .bold))
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            modePickerSection
+            nameInputSection
         }
+        .padding(20)
     }
 
     private var modePickerSection: some View {
@@ -65,19 +66,6 @@ public struct SymlinkSheetView: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($isNameFocused)
                 .onSubmit { createSymlink() }
-        }
-    }
-
-    private var actionButtonsSection: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.cancel)) { dismiss() }
-                .keyboardShortcut(.escape, modifiers: [])
-
-            Button(appState.tr(.createLink)) { createSymlink() }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.return, modifiers: [])
-                .disabled(symlinkName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 

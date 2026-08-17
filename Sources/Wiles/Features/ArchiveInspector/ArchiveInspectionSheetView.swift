@@ -11,34 +11,17 @@ struct ArchiveInspectionSheetView: View {
     @State private var isLoading = true
 
     var body: some View {
-        VStack(spacing: 12) {
-            headerView
-
-            Divider()
-
-            contentArea
-
-            Divider()
-
-            footerView
-        }
-        .padding()
-        .frame(width: LayoutTokens.archiveInspectionSheetWidth, height: LayoutTokens.archiveInspectionSheetHeight)
-        .task {
-            entries = await ArchiveInspectionService.listEntries(in: archiveURL)
-            isLoading = false
-        }
-    }
-
-    private var headerView: some View {
-        HStack {
-            Image(systemName: "doc.zipper")
-                .font(.title2)
-                .foregroundColor(.accentColor)
-            Text(archiveURL.lastPathComponent)
-                .font(.headline)
-            Spacer()
-        }
+        ModalScaffoldView(
+            icon: .symbol("doc.zipper"),
+            title: archiveURL.lastPathComponent,
+            width: LayoutTokens.archiveInspectionSheetWidth,
+            height: LayoutTokens.archiveInspectionSheetHeight,
+            primaryButton: ModalFooterButton(title: appState.tr(.close)) { dismiss() },
+            content: { contentArea })
+            .task {
+                entries = await ArchiveInspectionService.listEntries(in: archiveURL)
+                isLoading = false
+            }
     }
 
     @ViewBuilder private var contentArea: some View {
@@ -58,7 +41,8 @@ struct ArchiveInspectionSheetView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 
     private var emptyStateView: some View {
@@ -70,7 +54,8 @@ struct ArchiveInspectionSheetView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
     }
 
     private var entriesList: some View {
@@ -118,15 +103,6 @@ struct ArchiveInspectionSheetView: View {
         }
         await MainActor.run {
             appState.refreshCurrentDirectory()
-        }
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.close)) {
-                dismiss()
-            }
         }
     }
 }

@@ -22,44 +22,33 @@ struct FolderPickerSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            contentArea
-            Divider()
-            footer
-        }
-        .frame(width: 640, height: 560)
-        .background(Color(NSColor.windowBackgroundColor))
-        .onAppear {
-            selectedURL = initialURL ?? URL.userHome
-            pathText = selectedURL?.path ?? ""
-            if let selectedURL {
-                expandAncestors(of: selectedURL)
+        ModalScaffoldView(
+            icon: .symbol("folder"),
+            title: appState.tr(.selectFolder),
+            subtitle: appState.tr(.selectFolderSubtitle),
+            width: 640,
+            height: 560,
+            primaryButton: ModalFooterButton(
+                title: appState.tr(.selectFolder),
+                isEnabled: selectedURL != nil) {
+                    if let selectedURL {
+                        onSelect(selectedURL)
+                    }
+                    dismiss()
+                },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            content: { contentArea })
+            .onAppear {
+                selectedURL = initialURL ?? URL.userHome
+                pathText = selectedURL?.path ?? ""
+                if let selectedURL {
+                    expandAncestors(of: selectedURL)
+                }
             }
-        }
-        .onChange(of: selectedURL) { _, newValue in
-            pathText = newValue?.path ?? ""
-            pathError = nil
-        }
-    }
-
-    private var header: some View {
-        HStack {
-            Image(systemName: "folder")
-                .font(.system(size: 20))
-                .foregroundColor(.accentColor)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(appState.tr(.selectFolder))
-                    .font(.headline)
-                Text(appState.tr(.selectFolderSubtitle))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+            .onChange(of: selectedURL) { _, newValue in
+                pathText = newValue?.path ?? ""
+                pathError = nil
             }
-            Spacer()
-        }
-        .padding(20)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
 
     private var contentArea: some View {
@@ -155,24 +144,6 @@ struct FolderPickerSheet: View {
         }
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(url.lastPathComponent)
-    }
-
-    private var footer: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.cancel)) { dismiss() }
-                .keyboardShortcut(.escape, modifiers: [])
-            Button(appState.tr(.selectFolder)) {
-                if let selectedURL {
-                    onSelect(selectedURL)
-                }
-                dismiss()
-            }
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.defaultAction)
-            .disabled(selectedURL == nil)
-        }
-        .padding(16)
     }
 
     private func commitPathText() {

@@ -47,8 +47,6 @@ public enum LayoutTokens {
 
     // About Sheet
     public static let aboutWindowWidth: CGFloat = 400.0
-    public static let aboutIconSize: CGFloat = 80.0
-    public static let aboutTitleFontSize: CGFloat = 24.0
     public static let aboutTextFontSize: CGFloat = 13.0
 
     // HTTP Share Sheet
@@ -73,6 +71,7 @@ public enum LayoutTokens {
 
     // Modal Scaffold (standard header/content/footer skeleton, see ModalScaffoldView)
     public static let modalHeaderIconSize: CGFloat = 36.0
+    public static let modalHeaderIconSizeLarge: CGFloat = 64.0
     public static let modalSymbolIconScale: CGFloat = 0.5
     public static let modalHeaderHorizontalPadding: CGFloat = 20.0
     public static let modalHeaderVerticalPadding: CGFloat = 14.0

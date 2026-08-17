@@ -14,45 +14,31 @@ struct ImageConverterSheetView: View {
     @State private var loadedNSImage: NSImage?
 
     var body: some View {
-        VStack(spacing: 14) {
-            headerView
-
-            Divider()
-
-            settingsSection
-
-            Divider()
-
-            actionButtons
-        }
-        .padding(20)
-        .frame(width: 420)
-        .onAppear {
-            let url = item.url
-            Task.detached(priority: .userInitiated) {
-                let img = NSImage(contentsOf: url)
-                await MainActor.run {
-                    loadedNSImage = img
+        ModalScaffoldView(
+            icon: .image(item.icon),
+            title: item.name,
+            subtitle: item.formattedSize,
+            width: 420,
+            primaryButton: ModalFooterButton(title: appState.tr(.convert)) {
+                appState.performImageConversion(
+                    item: item,
+                    targetFormat: targetFormat,
+                    preset: preset,
+                    cropPreset: cropPreset,
+                    quality: quality)
+                dismiss()
+            },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            content: { settingsSection })
+            .onAppear {
+                let url = item.url
+                Task.detached(priority: .userInitiated) {
+                    let img = NSImage(contentsOf: url)
+                    await MainActor.run {
+                        loadedNSImage = img
+                    }
                 }
             }
-        }
-    }
-
-    private var headerView: some View {
-        HStack(spacing: 12) {
-            Image(nsImage: item.icon)
-                .resizable()
-                .frame(width: 36, height: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.name)
-                    .font(.system(size: 14, weight: .bold))
-                    .lineLimit(1)
-                Text(item.formattedSize)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-        }
     }
 
     private var settingsSection: some View {
@@ -64,6 +50,7 @@ struct ImageConverterSheetView: View {
                 qualitySliderRow
             }
         }
+        .padding(20)
     }
 
     private var formatPickerRow: some View {
@@ -117,28 +104,6 @@ struct ImageConverterSheetView: View {
             Text("\(Int(quality * 100))%")
                 .font(.system(size: 11, design: .monospaced))
                 .frame(width: 40)
-        }
-    }
-
-    private var actionButtons: some View {
-        HStack(spacing: 12) {
-            Spacer()
-            Button(appState.tr(.cancel)) {
-                dismiss()
-            }
-            .keyboardShortcut(.escape, modifiers: [])
-
-            Button(appState.tr(.convert)) {
-                appState.performImageConversion(
-                    item: item,
-                    targetFormat: targetFormat,
-                    preset: preset,
-                    cropPreset: cropPreset,
-                    quality: quality)
-                dismiss()
-            }
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.return, modifiers: [])
         }
     }
 }

@@ -13,26 +13,27 @@ public struct ConnectToServerSheetView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 16) {
-            titleRow
+        ModalScaffoldView(
+            icon: .symbol("network"),
+            title: appState.tr(.connectToServer),
+            width: 360,
+            primaryButton: ModalFooterButton(
+                title: appState.tr(.connect),
+                isEnabled: !serverAddress.isEmpty) {
+                    performConnect()
+                },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            content: { formContent })
+    }
+
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
             addressField
             if !recentServers.isEmpty {
                 recentServersSection
             }
-            actionButtons
         }
-        .padding()
-        .frame(width: 360)
-    }
-
-    private var titleRow: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "network")
-                .font(.title)
-                .foregroundColor(.accentColor)
-            Text(appState.tr(.connectToServer))
-                .font(.headline)
-        }
+        .padding(20)
     }
 
     private var addressField: some View {
@@ -71,20 +72,6 @@ public struct ConnectToServerSheetView: View {
             .frame(maxHeight: 100)
         }
         .frame(width: 320)
-    }
-
-    private var actionButtons: some View {
-        HStack {
-            Button(appState.tr(.cancel)) {
-                dismiss()
-            }
-            Spacer()
-            Button(appState.tr(.connect)) {
-                performConnect()
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(serverAddress.isEmpty)
-        }
     }
 
     private func performConnect() {

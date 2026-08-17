@@ -9,6 +9,7 @@ struct ModalScaffoldView<HeaderAccessory: View, Content: View>: View {
     let icon: ModalIcon
     let title: String
     var subtitle: String?
+    var iconSize: CGFloat = LayoutTokens.modalHeaderIconSize
     let width: CGFloat
     var height: CGFloat?
     let primaryButton: ModalFooterButton
@@ -31,7 +32,7 @@ struct ModalScaffoldView<HeaderAccessory: View, Content: View>: View {
     private var header: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                icon.view(size: LayoutTokens.modalHeaderIconSize)
+                icon.view(size: iconSize)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
@@ -74,6 +75,7 @@ extension ModalScaffoldView where HeaderAccessory == EmptyView {
         icon: ModalIcon,
         title: String,
         subtitle: String? = nil,
+        iconSize: CGFloat = LayoutTokens.modalHeaderIconSize,
         width: CGFloat,
         height: CGFloat? = nil,
         primaryButton: ModalFooterButton,
@@ -83,6 +85,7 @@ extension ModalScaffoldView where HeaderAccessory == EmptyView {
             icon: icon,
             title: title,
             subtitle: subtitle,
+            iconSize: iconSize,
             width: width,
             height: height,
             primaryButton: primaryButton,

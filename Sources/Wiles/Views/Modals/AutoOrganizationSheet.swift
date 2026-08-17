@@ -16,26 +16,25 @@ struct AutoOrganizationSheet: View {
     @State private var folderPickerTarget: FolderPickerTarget?
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            Divider()
-            contentArea
-            Divider()
-            footerView
-        }
-        .frame(width: 600, height: 500)
-        .background(Color(NSColor.windowBackgroundColor))
-        .onAppear {
-            rules = AutoOrganizationService.shared.rules
-        }
-        .sheet(item: $folderPickerTarget) { target in
-            FolderPickerSheet(appState: appState, initialURL: target == .source ? sourceURL : destinationURL) { url in
-                switch target {
-                case .source: sourceURL = url
-                case .destination: destinationURL = url
+        ModalScaffoldView(
+            icon: .symbol("folder.badge.gearshape"),
+            title: appState.tr(.autoOrganization),
+            subtitle: appState.tr(.autoOrganizationSubtitle),
+            width: 600,
+            height: 500,
+            primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
+            content: { contentArea })
+            .onAppear {
+                rules = AutoOrganizationService.shared.rules
+            }
+            .sheet(item: $folderPickerTarget) { target in
+                FolderPickerSheet(appState: appState, initialURL: target == .source ? sourceURL : destinationURL) { url in
+                    switch target {
+                    case .source: sourceURL = url
+                    case .destination: destinationURL = url
+                    }
                 }
             }
-        }
     }
 
     private var contentArea: some View {
@@ -70,24 +69,6 @@ struct AutoOrganizationSheet: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var headerView: some View {
-        HStack {
-            Image(systemName: "folder.badge.gearshape")
-                .font(.system(size: 20))
-                .foregroundColor(.accentColor)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(appState.tr(.autoOrganization))
-                    .font(.headline)
-                Text(appState.tr(.autoOrganizationSubtitle))
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-        }
-        .padding(20)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
 
     private func ruleRow(_ rule: AutoOrganizationRule) -> some View {
@@ -227,18 +208,5 @@ struct AutoOrganizationSheet: View {
         case .nameContains: appState.tr(.ruleConditionNameContains)
         case .namePrefix: appState.tr(.ruleConditionNamePrefix)
         }
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.done)) {
-                dismiss()
-            }
-            .keyboardShortcut(.defaultAction)
-            .controlSize(.large)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 }

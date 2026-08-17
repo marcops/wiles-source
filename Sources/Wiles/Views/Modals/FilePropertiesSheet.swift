@@ -19,32 +19,22 @@ struct FilePropertiesSheet: View {
     @State private var exifData: ExifMetadata?
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            Divider()
-            contentArea
-            Divider()
-            footerView
-        }
-        .frame(width: 400, height: 500)
-        .task {
-            await loadProperties()
-        }
+        ModalScaffoldView(
+            icon: .image(item.icon),
+            title: item.name,
+            subtitle: "\(kindText) • \(item.formattedSize)",
+            iconSize: LayoutTokens.modalHeaderIconSizeLarge,
+            width: 400,
+            height: 500,
+            primaryButton: ModalFooterButton(title: appState.tr(.close)) { dismiss() },
+            content: { contentArea })
+            .task {
+                await loadProperties()
+            }
     }
 
-    private var headerView: some View {
-        HStack(spacing: 16) {
-            Image(nsImage: item.icon).resizable().frame(width: 64, height: 64)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name).font(.title2).bold().lineLimit(2)
-                Text(detailedProps?.kind ?? (item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased()))
-                    .font(.subheadline).foregroundColor(.secondary)
-                Text(item.formattedSize).font(.subheadline).foregroundColor(.secondary)
-            }
-            Spacer()
-        }
-        .padding()
-        .background(Color(NSColor.windowBackgroundColor))
+    private var kindText: String {
+        detailedProps?.kind ?? (item.isDirectory ? appState.tr(.folder) : item.fileExtension.uppercased())
     }
 
     private var contentArea: some View {
@@ -69,17 +59,7 @@ struct FilePropertiesSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(NSColor.windowBackgroundColor))
         .contentShape(Rectangle())
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.close)) { dismiss() }.keyboardShortcut(.defaultAction)
-        }
-        .padding()
-        .background(Color(NSColor.windowBackgroundColor))
     }
 
     private var generalSection: some View {

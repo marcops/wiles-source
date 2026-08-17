@@ -13,24 +13,31 @@ struct HttpShareSheet: View {
     @State private var password = ""
 
     var body: some View {
-        VStack(spacing: 20) {
-            headerView
+        ModalScaffoldView(
+            icon: .symbol("wifi"),
+            title: appState.tr(.shareFolderWifi),
+            width: LayoutTokens.httpShareSheetWidth,
+            height: LayoutTokens.httpShareSheetHeight,
+            primaryButton: ModalFooterButton(title: appState.tr(.close)) {
+                serverService.stop()
+                dismiss()
+            },
+            content: { mainContent })
+            .onDisappear {
+                serverService.stop()
+            }
+    }
 
+    private var mainContent: some View {
+        VStack(spacing: 20) {
             if isConfiguring {
                 setupSection
             } else {
                 statusSection
             }
-
             Spacer()
-
-            footerView
         }
         .padding(20)
-        .frame(width: LayoutTokens.httpShareSheetWidth, height: LayoutTokens.httpShareSheetHeight)
-        .onDisappear {
-            serverService.stop()
-        }
     }
 
     private var setupSection: some View {
@@ -49,18 +56,6 @@ struct HttpShareSheet: View {
             .buttonStyle(.borderedProminent)
             .disabled(requireAuth && password.isEmpty)
         }
-    }
-
-    private var headerView: some View {
-        HStack {
-            Image(systemName: "wifi")
-                .font(.system(size: 20))
-                .foregroundColor(.accentColor)
-            Text(appState.tr(.shareFolderWifi))
-                .font(.headline)
-            Spacer()
-        }
-        .padding(.bottom, 10)
     }
 
     @ViewBuilder private var statusSection: some View {
@@ -124,17 +119,6 @@ struct HttpShareSheet: View {
 
             Text(appState.tr(.startingServer))
                 .font(.headline)
-        }
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            Button(appState.tr(.close)) {
-                serverService.stop()
-                dismiss()
-            }
-            .keyboardShortcut(.defaultAction)
         }
     }
 }

@@ -20,44 +20,34 @@ struct FeedbackSheetView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerView
-            Divider()
+        ModalScaffoldView(
+            icon: .symbol("bubble.left.and.text.bubble.right.fill"),
+            title: appState.tr(.feedbackMenuItem),
+            subtitle: appState.tr(.feedbackSubtitle),
+            width: LayoutTokens.feedbackSheetWidth,
+            primaryButton: primaryButton,
+            secondaryButton: didSucceed ? nil : secondaryButton,
+            content: { contentArea.padding(20) })
+            .confirmationDialog(appState.tr(.feedbackConfirmMessage), isPresented: $showConfirmation, titleVisibility: .visible) {
+                Button(appState.tr(.feedbackSubmit)) { Task { await submit() } }
+                Button(appState.tr(.cancel), role: .cancel) { }
+            }
+    }
 
-            contentArea
-                .padding(20)
-
-            Divider()
-            footerView
-        }
-        .frame(width: LayoutTokens.feedbackSheetWidth)
-        .background(Color(NSColor.windowBackgroundColor))
-        .confirmationDialog(appState.tr(.feedbackConfirmMessage), isPresented: $showConfirmation, titleVisibility: .visible) {
-            Button(appState.tr(.feedbackSubmit)) { Task { await submit() } }
-            Button(appState.tr(.cancel), role: .cancel) { }
+    private var primaryButton: ModalFooterButton {
+        if didSucceed {
+            ModalFooterButton(title: appState.tr(.done)) { dismiss() }
+        } else {
+            ModalFooterButton(
+                title: isSubmitting ? appState.tr(.feedbackSubmitting) : appState.tr(.feedbackSubmit),
+                isEnabled: canSubmit && !isSubmitting) {
+                    showConfirmation = true
+                }
         }
     }
 
-    private var headerView: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 28, height: 28)
-                .foregroundColor(.accentColor)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(appState.tr(.feedbackMenuItem))
-                    .font(.system(size: 16, weight: .bold))
-                Text(appState.tr(.feedbackSubtitle))
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+    private var secondaryButton: ModalFooterButton {
+        ModalFooterButton(title: appState.tr(.cancel), isEnabled: !isSubmitting) { dismiss() }
     }
 
     @ViewBuilder private var contentArea: some View {
@@ -157,28 +147,6 @@ struct FeedbackSheetView: View {
         }
         .padding(.vertical, 30)
         .frame(maxWidth: .infinity)
-    }
-
-    private var footerView: some View {
-        HStack {
-            Spacer()
-            if didSucceed {
-                Button(appState.tr(.done)) { dismiss() }
-                    .keyboardShortcut(.defaultAction)
-            } else {
-                Button(appState.tr(.cancel)) { dismiss() }
-                    .keyboardShortcut(.escape, modifiers: [])
-                    .disabled(isSubmitting)
-                Button(isSubmitting ? appState.tr(.feedbackSubmitting) : appState.tr(.feedbackSubmit)) {
-                    showConfirmation = true
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-                .disabled(!canSubmit || isSubmitting)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
     }
 
     private func submit() async {

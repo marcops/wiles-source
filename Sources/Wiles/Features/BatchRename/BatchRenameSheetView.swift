@@ -34,25 +34,28 @@ struct BatchRenameSheetView: View {
     }
 
     var body: some View {
+        ModalScaffoldView(
+            icon: .symbol("textformat.123"),
+            title: "\(appState.tr(.batchRename)) (\(items.count))",
+            width: 480,
+            height: 380,
+            primaryButton: ModalFooterButton(title: appState.tr(.apply)) {
+                appState.performBatchRename(items: items, mode: currentMode)
+                dismiss()
+            },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            headerAccessory: { modePicker },
+            content: { formContent })
+    }
+
+    private var formContent: some View {
         VStack(spacing: 16) {
-            titleRow
-            modePicker
             modeInputView
             Divider()
             previewLabel
             previewList
-            actionButtons
         }
         .padding(20)
-        .frame(width: 480, height: 380)
-    }
-
-    private var titleRow: some View {
-        HStack {
-            Text("\(appState.tr(.batchRename)) (\(items.count))")
-                .font(.system(size: 15, weight: .bold))
-            Spacer()
-        }
     }
 
     private var modePicker: some View {
@@ -101,23 +104,6 @@ struct BatchRenameSheetView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, 2)
-    }
-
-    private var actionButtons: some View {
-        HStack(spacing: 12) {
-            Spacer()
-            Button(appState.tr(.cancel)) {
-                dismiss()
-            }
-            .keyboardShortcut(.escape, modifiers: [])
-
-            Button(appState.tr(.apply)) {
-                appState.performBatchRename(items: items, mode: currentMode)
-                dismiss()
-            }
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.return, modifiers: [])
-        }
     }
 
     @ViewBuilder private var modeInputView: some View {

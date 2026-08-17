@@ -143,6 +143,7 @@ public enum L10n {
         case close
         case parentFolder
         case done
+        case confirm
         case helpShortcuts
         case batchRename
         case find

@@ -10,28 +10,23 @@ struct PasswordCompressSheetView: View {
     @State private var password: String = ""
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text(appState.tr(.compressWithPassword))
-                .font(.headline)
-
-            SecureField(appState.tr(.enterPassword), text: $password)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 260)
-
-            HStack {
-                Button(appState.tr(.cancel)) {
-                    dismiss()
-                }
-                Spacer()
-                Button("OK") {
+        ModalScaffoldView(
+            icon: .symbol("lock.fill"),
+            title: appState.tr(.compressWithPassword),
+            width: 300,
+            primaryButton: ModalFooterButton(
+                title: appState.tr(.confirm),
+                isEnabled: !password.isEmpty) {
                     appState.compressSelectedToZIPWithPassword(password, urls: windowUIState.passwordCompressURLs)
                     dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(password.isEmpty)
-            }
-        }
-        .padding()
-        .frame(width: 300)
+                },
+            secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
+            content: { passwordField })
+    }
+
+    private var passwordField: some View {
+        SecureField(appState.tr(.enterPassword), text: $password)
+            .textFieldStyle(.roundedBorder)
+            .padding(20)
     }
 }
