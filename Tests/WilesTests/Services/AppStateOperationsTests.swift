@@ -49,7 +49,10 @@ public struct AppStateOperationsTests {
         let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("copy-\(UUID().uuidString).txt")
         appState.selectedURLs = [url]
         appState.copySelected()
-        report("AppState+Operations", "POS: copySelected() stores selection in clipboard with .copy action", result: appState.transient.clipboard?.action == .copy)
+        report(
+            "AppState+Operations",
+            "POS: copySelected() stores selection in clipboard with .copy action",
+            result: appState.transient.clipboard?.action == .copy)
     }
 
     private static func testSelectAllItems() {
