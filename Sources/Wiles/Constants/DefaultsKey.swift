@@ -2,6 +2,7 @@ import Foundation
 
 enum DefaultsKey: String {
     case appAppearance = "wiles_appAppearance"
+    case alwaysShowFullPathBar = "wiles_alwaysShowFullPathBar"
     case appLanguage = "wiles_appLanguage"
     case autoOrganizationRules = "wiles_autoOrganizationRules"
     case contentTranslucentLevel = "wiles_contentTranslucentLevel"

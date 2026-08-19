@@ -366,6 +366,7 @@
 "settingsThemeSection" = "테마";
 "settingsTranslucencySection" = "투명도";
 "middleTruncateNames" = "긴 이름을 가운데에서 줄임";
+"alwaysShowFullPathBar" = "항상 전체 경로 표시";
 "settingsSidebarSectionsSection" = "사이드바 섹션";
 "settingsViewSection" = "보기";
 "appearanceSystemOption" = "시스템";

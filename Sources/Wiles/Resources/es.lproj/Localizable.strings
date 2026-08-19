@@ -365,6 +365,7 @@
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Transparencia";
 "middleTruncateNames" = "Truncar Nombres Largos en el Medio";
+"alwaysShowFullPathBar" = "Mostrar Siempre la Ruta Completa";
 "settingsSidebarSectionsSection" = "Secciones de la Barra Lateral";
 "settingsViewSection" = "Vista";
 "appearanceSystemOption" = "Sistema";

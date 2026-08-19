@@ -366,6 +366,7 @@
 "settingsThemeSection" = "Тема";
 "settingsTranslucencySection" = "Прозрачность";
 "middleTruncateNames" = "Сокращать длинные имена в середине";
+"alwaysShowFullPathBar" = "Всегда показывать полный путь";
 "settingsSidebarSectionsSection" = "Разделы боковой панели";
 "settingsViewSection" = "Вид";
 "appearanceSystemOption" = "Системная";

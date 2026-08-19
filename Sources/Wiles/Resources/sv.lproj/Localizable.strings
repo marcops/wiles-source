@@ -366,6 +366,7 @@
 "settingsThemeSection" = "Tema";
 "settingsTranslucencySection" = "Genomskinlighet";
 "middleTruncateNames" = "Korta av långa namn i mitten";
+"alwaysShowFullPathBar" = "Visa alltid hela sökvägen";
 "settingsSidebarSectionsSection" = "Sidopanelsavsnitt";
 "settingsViewSection" = "Vy";
 "appearanceSystemOption" = "System";

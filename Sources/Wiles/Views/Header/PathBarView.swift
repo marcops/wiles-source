@@ -117,7 +117,7 @@ struct PathBarView: View {
 
     private var breadcrumbPillRow: some View {
         HStack(spacing: 2) {
-            if isHovering {
+            if isHovering || appState.preferences.alwaysShowFullPathBar {
                 ForEach(pathSegments) { item in
                     breadcrumbPill(for: item)
                         .id(item.id)

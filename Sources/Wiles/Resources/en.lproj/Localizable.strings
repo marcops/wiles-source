@@ -365,6 +365,7 @@
 "settingsThemeSection" = "Theme";
 "settingsTranslucencySection" = "Translucency";
 "middleTruncateNames" = "Middle-Truncate Long Names";
+"alwaysShowFullPathBar" = "Always Show Full Path Bar";
 "settingsSidebarSectionsSection" = "Sidebar Sections";
 "settingsViewSection" = "View";
 "appearanceSystemOption" = "System";

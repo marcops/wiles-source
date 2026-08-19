@@ -122,6 +122,12 @@ public final class PreferencesStore {
         didSet { UserDefaults.standard.set(middleTruncateNames, forKey: DefaultsKey.middleTruncateNames.rawValue) }
     }
 
+    /// When off (default), the path bar collapses to just the current folder and expands to the
+    /// full breadcrumb trail on hover. When on, the full path is always shown.
+    public var alwaysShowFullPathBar: Bool = false {
+        didSet { UserDefaults.standard.set(alwaysShowFullPathBar, forKey: DefaultsKey.alwaysShowFullPathBar.rawValue) }
+    }
+
     public var showFooter: Bool = true {
         didSet { UserDefaults.standard.set(showFooter, forKey: DefaultsKey.showFooter.rawValue) }
     }
@@ -289,6 +295,7 @@ public final class PreferencesStore {
         loadBool(.searchEverywhere, into: \.searchEverywhere, from: defaults)
         loadBool(.showTags, into: \.showTags, from: defaults)
         loadBool(.middleTruncateNames, into: \.middleTruncateNames, from: defaults)
+        loadBool(.alwaysShowFullPathBar, into: \.alwaysShowFullPathBar, from: defaults)
         loadBool(.showFooter, into: \.showFooter, from: defaults)
         loadBool(.showTerminalDrawer, into: \.showTerminalDrawer, from: defaults)
         loadBool(.showPreviewSidebar, into: \.showPreviewSidebar, from: defaults)

@@ -399,6 +399,7 @@ public enum L10n {
         case settingsThemeSection
         case settingsTranslucencySection
         case middleTruncateNames
+        case alwaysShowFullPathBar
         case settingsSidebarSectionsSection
         case settingsViewSection
         case appearanceSystemOption

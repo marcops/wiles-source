@@ -366,6 +366,7 @@
 "settingsThemeSection" = "Motyw";
 "settingsTranslucencySection" = "Przezroczystość";
 "middleTruncateNames" = "Skracaj długie nazwy w środku";
+"alwaysShowFullPathBar" = "Zawsze pokazuj pełną ścieżkę";
 "settingsSidebarSectionsSection" = "Sekcje paska bocznego";
 "settingsViewSection" = "Widok";
 "appearanceSystemOption" = "System";

@@ -366,6 +366,7 @@
 "settingsThemeSection" = "主题";
 "settingsTranslucencySection" = "透明度";
 "middleTruncateNames" = "在中间截断长文件名";
+"alwaysShowFullPathBar" = "始终显示完整路径";
 "settingsSidebarSectionsSection" = "侧边栏部分";
 "settingsViewSection" = "显示";
 "appearanceSystemOption" = "系统";
