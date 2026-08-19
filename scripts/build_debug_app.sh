@@ -45,4 +45,16 @@ else
   exit 1
 fi
 
+# GitBeacon's own resource bundle — needed at runtime by GitBeacon.processPendingReports() to
+# render a report body. Missing this doesn't fail the build, but crashes the app (NSBundle.module
+# assertion) the moment there's a pending crash report to process, which happens right at launch.
+GITBEACON_BUNDLE="$(dirname "$BIN_PATH")/GitBeacon_GitBeacon.bundle"
+if [[ -d "$GITBEACON_BUNDLE" ]]; then
+  rm -rf "$APP_DIR/Contents/Resources/GitBeacon_GitBeacon.bundle"
+  cp -r "$GITBEACON_BUNDLE" "$APP_DIR/Contents/Resources/"
+else
+  echo "error: GitBeacon_GitBeacon.bundle missing next to debug binary" >&2
+  exit 1
+fi
+
 echo "==> Copied Wiles binary + resources into $APP_DIR"

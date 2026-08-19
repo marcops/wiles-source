@@ -22,6 +22,7 @@ echo "==> 3. Updating bundle & signing..."
 rm -rf Wiles.app/Wiles_Wiles.bundle 2>/dev/null || true
 cp .build/arm64-apple-macosx/debug/Wiles Wiles.app/Contents/MacOS/
 cp -r .build/arm64-apple-macosx/debug/Wiles_Wiles.bundle Wiles.app/Contents/Resources/ 2>/dev/null || true
+cp -r .build/arm64-apple-macosx/debug/GitBeacon_GitBeacon.bundle Wiles.app/Contents/Resources/ 2>/dev/null || true
 codesign -f -s - Wiles.app
 
 echo "==> 4. Relaunching Wiles.app..."
