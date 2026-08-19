@@ -10,6 +10,14 @@ Do not be proactive. Never offer extra actions, ask "should I also do X", propos
 
 **How to apply:** do exactly what's asked, report the result, and stop. If something seems worth flagging (leftover files, a related bug, a follow-up idea), only mention it if the user asks; don't offer to act on it.
 
+## No workarounds — fix the actual bug
+
+Never patch around a bug's symptom (clearing corrupted/queued state, catching and swallowing an error, skipping a failing step) when the real defect is fixable. Find and fix the root cause, even if the workaround is faster.
+
+**Why:** when Wiles v0.3.8 crash-looped on launch, the fast option was deleting the queued crash reports that triggered it — that only hides the failure for one machine and leaves the actual bug (a missing resource bundle in every packaging script) shipping to everyone else. The user explicitly rejected this and demanded the real fix.
+
+**How to apply:** when something is broken, keep investigating until the actual defect is identified (wrong code, missing packaging step, bad config) and fix that. A workaround is acceptable only as an explicitly-labeled stopgap the user asked for, never as the default response to "it's broken."
+
 ## No unilateral tech decisions
 
 Never decide technical parameters (platform/OS version, architecture support, similar scoping choices) on the user's behalf — not even as the "recommended" pre-selected option in a clarifying question.
