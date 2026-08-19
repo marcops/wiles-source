@@ -1,4 +1,3 @@
-- o tree no sidebar nao abre todo
 ## Medium priority (meaningful feature/UX work)
 
 - se eu quero mover 1 arquivo o PATH BAR tem que abrir, e eu posso entrar dai nos diretorios ir direto para 1 deles.

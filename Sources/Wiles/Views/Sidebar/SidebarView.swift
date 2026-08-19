@@ -40,16 +40,20 @@ struct SidebarView: View {
     }
 
     @State private var rootFolderNode: FolderNode?
+    @State private var treeChildrenCache: [URL: [FolderNode]] = [:]
 
     var body: some View {
         @Bindable var appState = appState
 
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                sidebarSectionsContent
+        return GeometryReader { proxy in
+            ScrollView([.vertical, .horizontal]) {
+                VStack(alignment: .leading, spacing: 14) {
+                    sidebarSectionsContent
+                }
+                .frame(minWidth: proxy.size.width, alignment: .leading)
+                .padding(.top, LayoutTokens.sidebarTrafficLightInset)
+                .padding(.bottom, 12)
             }
-            .padding(.top, LayoutTokens.sidebarTrafficLightInset)
-            .padding(.bottom, 12)
         }
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
         .task {
@@ -130,7 +134,7 @@ struct SidebarView: View {
             }
             if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTreeExpanded {
                 if let rootFolderNode {
-                    DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState)
+                    DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState, childrenCache: $treeChildrenCache)
                 } else {
                     ProgressView()
                         .controlSize(.small)
