@@ -11,4 +11,8 @@ public enum AsyncDelayTokens {
     /// Wait for the search field's reveal animation to settle before requesting keyboard
     /// focus, so focus isn't stolen mid-animation.
     public static let searchFieldFocusDelay: TimeInterval = 0.05
+
+    /// Wait for the path bar's expand animation to settle before scrolling to the end, so the
+    /// target offset is computed against the final (not still-animating) content width.
+    public static let pathBarScrollDelay: TimeInterval = 0.16
 }
