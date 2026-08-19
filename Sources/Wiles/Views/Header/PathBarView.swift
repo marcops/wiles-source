@@ -8,6 +8,7 @@ struct PathBarView: View {
     private var windowUIState
     @FocusState private var isFocused: Bool
     @State private var isHovering = false
+    @State private var isDragHovering = false
 
     var pathSegments: [PathSegment] {
         var res: [(name: String, url: URL)] = []
@@ -96,10 +97,13 @@ struct PathBarView: View {
             appState.navigation.pathText = appState.navigation.currentURL.path
             windowUIState.isEditingPath = true
         }
+        /// `.onHover` doesn't fire during an active drag; this catches drag-over instead so the
+        /// bar still expands. The `false` leaves the actual drop to the pills below.
+        .onDrop(of: [.fileURL], isTargeted: $isDragHovering) { _ in false }
     }
 
     private var showsFullBreadcrumb: Bool {
-        isHovering || appState.preferences.alwaysShowFullPathBar
+        isHovering || isDragHovering || appState.preferences.alwaysShowFullPathBar
     }
 
     private var breadcrumbScrollView: some View {
@@ -111,6 +115,7 @@ struct PathBarView: View {
             }
             .onAppear { scrollToEnd(proxy: proxy) }
             .onChange(of: isHovering) { _, _ in scrollToEnd(proxy: proxy) }
+            .onChange(of: isDragHovering) { _, _ in scrollToEnd(proxy: proxy) }
             .onChange(of: appState.preferences.alwaysShowFullPathBar) { _, _ in scrollToEnd(proxy: proxy) }
             .onChange(of: appState.navigation.currentURL) { _, _ in scrollToEnd(proxy: proxy) }
         }
@@ -134,14 +139,11 @@ struct PathBarView: View {
         }
     }
 
-    /// Keeps the bar's scroll position pinned to the current folder (trailing edge) whenever it
-    /// could be off-screen — the row is `.trailing`-anchored so a short collapsed pill already
-    /// sits at the right, and this covers the case where the full breadcrumb overflows the
-    /// visible width (on hover, when the "always show full path bar" setting is on, and on every
-    /// navigation) so the scroll never rests showing the left/root end instead.
+    /// Waits out the row's own expand animation before scrolling — firing on the very next run
+    /// loop tick lands against a still-animating (not yet final) content width and undershoots.
     private func scrollToEnd(proxy: ScrollViewProxy) {
         guard let lastID = pathSegments.last?.id else { return }
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.pathBarScrollDelay) {
             proxy.scrollTo(lastID, anchor: .trailing)
         }
     }
