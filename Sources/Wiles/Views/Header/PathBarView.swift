@@ -97,8 +97,8 @@ struct PathBarView: View {
             appState.navigation.pathText = appState.navigation.currentURL.path
             windowUIState.isEditingPath = true
         }
-        /// `.onHover` doesn't fire during an active drag; this catches drag-over instead so the
-        /// bar still expands. The `false` leaves the actual drop to the pills below.
+        // `.onHover` doesn't fire during an active drag; this catches drag-over instead so the
+        // bar still expands. The `false` leaves the actual drop to the pills below.
         .onDrop(of: [.fileURL], isTargeted: $isDragHovering) { _ in false }
     }
 

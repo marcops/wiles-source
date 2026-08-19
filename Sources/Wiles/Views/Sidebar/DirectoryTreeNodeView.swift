@@ -12,7 +12,7 @@ struct DirectoryTreeNodeView: View {
         self.node = node
         self.depth = depth
         self.appState = appState
-        self._childrenCache = childrenCache
+        _childrenCache = childrenCache
     }
 
     /// Deep folders (outside the eagerly-loaded home ancestor chain) arrive with `node.children == nil`
