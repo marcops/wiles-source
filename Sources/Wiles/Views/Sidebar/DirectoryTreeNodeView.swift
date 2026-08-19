@@ -53,7 +53,13 @@ struct DirectoryTreeNodeView: View {
 
     private func loadChildrenIfNeeded() {
         guard children == nil else { return }
-        childrenCache[node.url] = FolderNode.loadChildren(of: node.url)
+        let url = node.url
+        Task {
+            let loaded = await Task.detached(priority: .userInitiated) {
+                FolderNode.loadChildren(of: url)
+            }.value
+            childrenCache[url] = loaded
+        }
     }
 
     /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for

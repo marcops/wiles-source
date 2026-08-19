@@ -50,7 +50,7 @@ struct SidebarView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     sidebarSectionsContent
                 }
-                .frame(minWidth: proxy.size.width, alignment: .leading)
+                .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .topLeading)
                 .padding(.top, LayoutTokens.sidebarTrafficLightInset)
                 .padding(.bottom, 12)
             }
