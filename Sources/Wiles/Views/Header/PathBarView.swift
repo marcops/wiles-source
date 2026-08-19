@@ -107,18 +107,13 @@ struct PathBarView: View {
     }
 
     private var breadcrumbScrollView: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                breadcrumbPillRow
-                    .padding(.horizontal, 4)
-                    .frame(height: 28)
-            }
-            .onAppear { scrollToEnd(proxy: proxy) }
-            .onChange(of: isHovering) { _, _ in scrollToEnd(proxy: proxy) }
-            .onChange(of: isDragHovering) { _, _ in scrollToEnd(proxy: proxy) }
-            .onChange(of: appState.preferences.alwaysShowFullPathBar) { _, _ in scrollToEnd(proxy: proxy) }
-            .onChange(of: appState.navigation.currentURL) { _, _ in scrollToEnd(proxy: proxy) }
+        ScrollView(.horizontal, showsIndicators: false) {
+            breadcrumbPillRow
+                .padding(.horizontal, 4)
+                .frame(height: 28)
         }
+        .defaultScrollAnchor(showsFullBreadcrumb ? .trailing : .leading)
+        .transaction { $0.animation = nil }
     }
 
     private var breadcrumbPillRow: some View {
@@ -126,7 +121,6 @@ struct PathBarView: View {
             if showsFullBreadcrumb {
                 ForEach(pathSegments) { item in
                     breadcrumbPill(for: item)
-                        .id(item.id)
                     if item.url != appState.navigation.currentURL.standardizedFileURL {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
@@ -136,15 +130,6 @@ struct PathBarView: View {
             } else if let last = pathSegments.last {
                 breadcrumbPill(for: last, isCollapsed: true)
             }
-        }
-    }
-
-    /// Waits out the row's own expand animation before scrolling — firing on the very next run
-    /// loop tick lands against a still-animating (not yet final) content width and undershoots.
-    private func scrollToEnd(proxy: ScrollViewProxy) {
-        guard let lastID = pathSegments.last?.id else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.pathBarScrollDelay) {
-            proxy.scrollTo(lastID, anchor: .trailing)
         }
     }
 
