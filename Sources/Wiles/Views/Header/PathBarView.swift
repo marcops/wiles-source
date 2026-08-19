@@ -144,7 +144,9 @@ struct PathBarView: View {
     private func scrollToEnd(proxy: ScrollViewProxy) {
         guard let lastID = pathSegments.last?.id else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.pathBarScrollDelay) {
-            proxy.scrollTo(lastID, anchor: .trailing)
+            withAnimation(.linear(duration: 0)) {
+                proxy.scrollTo(lastID, anchor: .trailing)
+            }
         }
     }
 
