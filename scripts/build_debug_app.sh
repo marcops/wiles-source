@@ -36,24 +36,16 @@ fi
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$BIN_PATH" "$APP_DIR/Contents/MacOS/Wiles"
 
+# Remove any stray item at the bundle root left behind by an older build — codesign rejects
+# anything there besides Contents/ ("unsealed contents present in the bundle root").
+find "$APP_DIR" -maxdepth 1 -mindepth 1 ! -name Contents -exec rm -rf {} +
+
 RES_BUNDLE="$(dirname "$BIN_PATH")/Wiles_Wiles.bundle"
 if [[ -d "$RES_BUNDLE" ]]; then
   rm -rf "$APP_DIR/Contents/Resources/Wiles_Wiles.bundle"
   cp -r "$RES_BUNDLE" "$APP_DIR/Contents/Resources/"
 else
   echo "error: Wiles_Wiles.bundle missing next to debug binary" >&2
-  exit 1
-fi
-
-# GitBeacon's own resource bundle — needed at runtime by GitBeacon.processPendingReports() to
-# render a report body. Missing this doesn't fail the build, but crashes the app (NSBundle.module
-# assertion) the moment there's a pending crash report to process, which happens right at launch.
-GITBEACON_BUNDLE="$(dirname "$BIN_PATH")/GitBeacon_GitBeacon.bundle"
-if [[ -d "$GITBEACON_BUNDLE" ]]; then
-  rm -rf "$APP_DIR/Contents/Resources/GitBeacon_GitBeacon.bundle"
-  cp -r "$GITBEACON_BUNDLE" "$APP_DIR/Contents/Resources/"
-else
-  echo "error: GitBeacon_GitBeacon.bundle missing next to debug binary" >&2
   exit 1
 fi
 

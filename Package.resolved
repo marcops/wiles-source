@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/marcops/git-beacon-mac.git",
       "state" : {
-        "revision" : "9e66de884aab5f22f78957aca953a6aeb5bbf0b2",
-        "version" : "0.0.2"
+        "revision" : "a319dc2f76765dfff3612f074cdc68284ac267ce",
+        "version" : "0.0.3"
       }
     },
     {

@@ -113,20 +113,6 @@ jobs:
             exit 1
           fi
 
-          # GitBeacon's own resource bundle — needed at runtime by GitBeacon.processPendingReports()
-          # to render a report body. Missing this doesn't fail the build, but crashes the app
-          # (NSBundle.module assertion) the moment there's a pending crash report to process, which
-          # happens right at launch.
-          if [[ -d ".build/arm64-apple-macosx/release/GitBeacon_GitBeacon.bundle" ]]; then
-            cp -r ".build/arm64-apple-macosx/release/GitBeacon_GitBeacon.bundle" "$APP_DIR/Contents/Resources/"
-          elif [[ -d ".build/release/GitBeacon_GitBeacon.bundle" ]]; then
-            cp -r ".build/release/GitBeacon_GitBeacon.bundle" "$APP_DIR/Contents/Resources/"
-          fi
-          if [[ ! -d "$APP_DIR/Contents/Resources/GitBeacon_GitBeacon.bundle" ]]; then
-            echo "error: GitBeacon_GitBeacon.bundle missing from Contents/Resources" >&2
-            exit 1
-          fi
-
           if [[ -f "Sources/Wiles/Resources/AppIcon.icns" ]]; then
             cp "Sources/Wiles/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
           fi
