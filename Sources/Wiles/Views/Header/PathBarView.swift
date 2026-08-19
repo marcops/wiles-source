@@ -8,7 +8,6 @@ struct PathBarView: View {
     private var windowUIState
     @FocusState private var isFocused: Bool
     @State private var isHovering = false
-    @State private var breadcrumbContentWidth: CGFloat = 0
 
     var pathSegments: [PathSegment] {
         var res: [(name: String, url: URL)] = []
@@ -84,10 +83,7 @@ struct PathBarView: View {
 
     private var breadcrumbMode: some View {
         HStack(spacing: 0) {
-            GeometryReader { outerGeo in
-                breadcrumbScrollView(outerGeo: outerGeo)
-            }
-            .background(hiddenFullBreadcrumbMeasurer)
+            breadcrumbScrollView
 
             Spacer(minLength: 4)
         }
@@ -102,22 +98,27 @@ struct PathBarView: View {
         }
     }
 
-    private func breadcrumbScrollView(outerGeo: GeometryProxy) -> some View {
+    private var showsFullBreadcrumb: Bool {
+        isHovering || appState.preferences.alwaysShowFullPathBar
+    }
+
+    private var breadcrumbScrollView: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 breadcrumbPillRow
                     .padding(.horizontal, 4)
                     .frame(height: 28)
             }
-            .onChange(of: isHovering) { _, hovering in
-                handleHoverChange(hovering: hovering, outerWidth: outerGeo.size.width, proxy: proxy)
-            }
+            .onAppear { scrollToEnd(proxy: proxy) }
+            .onChange(of: isHovering) { _, _ in scrollToEnd(proxy: proxy) }
+            .onChange(of: appState.preferences.alwaysShowFullPathBar) { _, _ in scrollToEnd(proxy: proxy) }
+            .onChange(of: appState.navigation.currentURL) { _, _ in scrollToEnd(proxy: proxy) }
         }
     }
 
     private var breadcrumbPillRow: some View {
         HStack(spacing: 2) {
-            if isHovering || appState.preferences.alwaysShowFullPathBar {
+            if showsFullBreadcrumb {
                 ForEach(pathSegments) { item in
                     breadcrumbPill(for: item)
                         .id(item.id)
@@ -133,40 +134,16 @@ struct PathBarView: View {
         }
     }
 
-    /// fullBreadcrumbWidth comes from the always-rendered hidden measurer below, so it's already
-    /// known by the time this fires — no race with the ForEach switching content in this same
-    /// transition.
-    private func handleHoverChange(hovering: Bool, outerWidth: CGFloat, proxy: ScrollViewProxy) {
-        guard hovering, breadcrumbContentWidth > outerWidth,
-              let lastID = pathSegments.last?.id else { return }
+    /// Keeps the bar's scroll position pinned to the current folder (trailing edge) whenever it
+    /// could be off-screen — the row is `.trailing`-anchored so a short collapsed pill already
+    /// sits at the right, and this covers the case where the full breadcrumb overflows the
+    /// visible width (on hover, when the "always show full path bar" setting is on, and on every
+    /// navigation) so the scroll never rests showing the left/root end instead.
+    private func scrollToEnd(proxy: ScrollViewProxy) {
+        guard let lastID = pathSegments.last?.id else { return }
         DispatchQueue.main.async {
             proxy.scrollTo(lastID, anchor: .trailing)
         }
-    }
-
-    /// Renders the full breadcrumb off-screen at all times, purely to know its natural width
-    /// ahead of the hover transition — decoupled from the visible collapsed/expanded toggle so
-    /// there's no one-frame-late race between measuring and deciding whether to scroll.
-    private var hiddenFullBreadcrumbMeasurer: some View {
-        HStack(spacing: 2) {
-            ForEach(pathSegments) { item in
-                breadcrumbPill(for: item)
-                if item.url != appState.navigation.currentURL.standardizedFileURL {
-                    Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
-                }
-            }
-        }
-        .padding(.horizontal, 4)
-        .fixedSize()
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(key: BreadcrumbContentWidthKey.self, value: geo.size.width)
-            })
-        .opacity(0)
-        .allowsHitTesting(false)
-        .frame(width: 0, height: 0)
-        .clipped()
-        .onPreferenceChange(BreadcrumbContentWidthKey.self) { breadcrumbContentWidth = $0 }
     }
 
     private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {
