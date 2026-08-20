@@ -204,7 +204,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var renameKeyboardHint: String {
-        appState.navigationMode == .gnome ? "(F2)" : "(Return)"
+        appState.preferences.navigationMode == .gnome ? "(F2)" : "(Return)"
     }
 
     @ViewBuilder private var shareTagsPropertiesSection: some View {

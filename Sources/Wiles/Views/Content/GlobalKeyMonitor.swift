@@ -189,7 +189,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 if !appState.selectedURLs.isEmpty {
                     appState.deleteSelected(windowUIState: windowUIState)
                     return true
-                } else if appState.navigationMode == .gnome, !isCmd {
+                } else if appState.preferences.navigationMode == .gnome, !isCmd {
                     appState.goUp()
                     return true
                 }
@@ -204,10 +204,10 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 appState.deleteSelected(windowUIState: windowUIState)
                 return true
             } else if !isCmd {
-                if appState.navigationMode == .gnome, let first = appState.selectedURLs.first {
+                if appState.preferences.navigationMode == .gnome, let first = appState.selectedURLs.first {
                     appState.navigateTo(first)
                     return true
-                } else if appState.navigationMode == .macOS, let first = appState.selectedURLs.first,
+                } else if appState.preferences.navigationMode == .macOS, let first = appState.selectedURLs.first,
                           let item = appState.fileSystem.items.first(where: { $0.url == first }) {
                     windowUIState.renameItem = item
                     return true

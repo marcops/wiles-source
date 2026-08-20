@@ -25,6 +25,15 @@ find Wiles.app -maxdepth 1 -mindepth 1 ! -name Contents -exec rm -rf {} +
 rm -rf Wiles.app/Wiles_Wiles.bundle 2>/dev/null || true
 cp .build/arm64-apple-macosx/debug/Wiles Wiles.app/Contents/MacOS/
 cp -r .build/arm64-apple-macosx/debug/Wiles_Wiles.bundle Wiles.app/Contents/Resources/ 2>/dev/null || true
+
+# Info.plist (repo root) is the single source of truth (also used by release.yml) — regenerate
+# on every rebuild instead of relying on a hand-maintained bundle copy that can drift out of sync.
+VERSION=$(grep -o 'appVersion = "[^"]*"' Sources/Wiles/Constants/AppConstants.swift | cut -d'"' -f2)
+sed "s/__VERSION__/$VERSION/g" Info.plist > Wiles.app/Contents/Info.plist
+if [[ -f "Sources/Wiles/Resources/AppIcon.icns" ]]; then
+  cp Sources/Wiles/Resources/AppIcon.icns Wiles.app/Contents/Resources/AppIcon.icns
+fi
+
 codesign -f -s - Wiles.app
 
 echo "==> 4. Relaunching Wiles.app..."

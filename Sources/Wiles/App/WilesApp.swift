@@ -4,13 +4,21 @@ import SwiftUI
 
 @main
 struct WilesApp: App {
-    @State private var appState = AppState()
+    @State private var sharedPreferences = PreferencesStore()
+    @State private var sharedModal = ModalStore()
+    @State private var sharedTransient = TransientStore()
     @Environment(\.openWindow)
     private var openWindow
+    @FocusedValue(\.appState)
+    private var appState
     @FocusedValue(\.windowUIState)
     private var windowUIState
     @FocusedValue(\.isRenamingActive)
     private var isRenamingActive
+
+    private func tr(_ key: L10n.Key) -> String {
+        L10n.string(key, lang: sharedPreferences.appLanguage)
+    }
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
@@ -30,7 +38,7 @@ struct WilesApp: App {
     /// instead of passing `nil` to `.preferredColorScheme`, since `nil` doesn't reliably propagate
     /// back to an already-open window (see `SystemAppearanceObserver`'s doc comment).
     private var resolvedColorScheme: ColorScheme {
-        switch appState.preferences.appAppearance {
+        switch sharedPreferences.appAppearance {
         case .system: SystemAppearanceObserver.shared.isDark ? .dark : .light
         case .light: .light
         case .dark: .dark
@@ -47,14 +55,14 @@ struct WilesApp: App {
             fileMenuCommands
             editMenuCommands
             viewMenuCommands
-            CommandMenu(appState.tr(.goMenuTitle)) { goMenuCommands }
-            CommandMenu(appState.tr(.toolsMenuTitle)) { toolsMenuCommands }
+            CommandMenu(tr(.goMenuTitle)) { goMenuCommands }
+            CommandMenu(tr(.toolsMenuTitle)) { toolsMenuCommands }
             helpMenuCommands
         }
     }
 
     private var mainWindowContent: some View {
-        MainContentView(appState: appState)
+        MainContentView(sharedPreferences: sharedPreferences, sharedModal: sharedModal, sharedTransient: sharedTransient)
             .preferredColorScheme(resolvedColorScheme)
             .onChange(of: resolvedColorScheme, initial: true) { _, newValue in
                 // Belt-and-suspenders: force it explicitly too, since `resolvedColorScheme` is
@@ -75,13 +83,8 @@ struct WilesApp: App {
                 if let iconImage = NSImage(contentsOf: iconURL) {
                     NSApplication.shared.applicationIconImage = iconImage
                 }
-                // `appState` is shared by every window — every sheet/overlay toggle on it would
-                // show in every open window at once if it lived there. All window-scoped sheets/
-                // alerts/HUDs live on `WindowUIState` instead (one instance per window, published
-                // to these menu commands via `.focusedSceneValue`/`@FocusedValue` — see
-                // `WindowUIState.swift` and `WindowUIStateKey` in `MainContentView.swift`).
-                // `isRestorable = false` keeps each launch starting clean instead of macOS
-                // silently restoring however many windows were open at last quit.
+                // `isRestorable = false` keeps each launch starting clean instead of macOS silently
+                // restoring however many windows were open at last quit.
                 for window in NSApplication.shared.windows {
                     window.tabbingMode = .disallowed
                     window.isMovableByWindowBackground = false
@@ -89,9 +92,8 @@ struct WilesApp: App {
                     window.isRestorable = false
                 }
                 if !CommandLine.arguments.contains("--ui-testing") {
-                    PermissionService.requestInitialPermissions(language: appState.preferences.appLanguage)
+                    PermissionService.requestInitialPermissions(language: sharedPreferences.appLanguage)
                 }
-                appState.refreshCurrentDirectory()
                 AutoOrganizationService.shared.startMonitoring()
                 Task {
                     await GitBeacon.processPendingReports()
@@ -101,7 +103,7 @@ struct WilesApp: App {
 
     @CommandsBuilder private var appMenuCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button(appState.tr(.aboutWiles)) { windowUIState?.showAboutSheet = true }
+            Button(tr(.aboutWiles)) { windowUIState?.showAboutSheet = true }
         }
         // `SettingsView` is presented as a sheet (`windowUIState.showSettingsSheet`, wired in
         // `MainContentView`) rather than a `Settings { }` scene — a real scene always gets its own
@@ -113,7 +115,7 @@ struct WilesApp: App {
         // collided with `CommandGroup(replacing: .appSettings)` adding a second, translated one. With
         // no `Settings` scene at all, there's nothing left for SwiftUI to auto-generate.
         CommandGroup(replacing: .appSettings) {
-            Button(appState.tr(.settingsMenuItem)) { windowUIState?.showSettingsSheet = true }
+            Button(tr(.settingsMenuItem)) { windowUIState?.showSettingsSheet = true }
                 .keyboardShortcut(",", modifiers: .command)
         }
     }
@@ -123,17 +125,13 @@ struct WilesApp: App {
         // `appState.preferences.appLanguage` — it never respects the in-app language switcher.
         // Replacing `.newItem` gives full, translated control over it (see UI_TEST_BACKLOG.md).
         CommandGroup(replacing: .newItem) {
-            // `appState` is a single instance shared by every window — every sheet/overlay flag on
-            // it shows in every open window at once. Window-scoped presentation (New Folder,
-            // Properties, Move to Trash confirmation, etc.) reads/writes `windowUIState` instead,
-            // scoped to the focused window via `.focusedSceneValue` — see `WindowUIState.swift`.
-            Button(appState.tr(.newWindow)) { openWindow(id: AppConstants.mainWindowID) }
+            Button(tr(.newWindow)) { openWindow(id: AppConstants.mainWindowID) }
                 .keyboardShortcut("n", modifiers: .command)
         }
         // Same story for "Close": it has no dedicated CommandGroupPlacement, so it rides along
         // inside `.saveItem` (the only remaining File-menu placement for non-document scenes).
         CommandGroup(replacing: .saveItem) {
-            Button(appState.tr(.close)) { NSApplication.shared.keyWindow?.performClose(nil) }
+            Button(tr(.close)) { NSApplication.shared.keyWindow?.performClose(nil) }
                 .keyboardShortcut("w", modifiers: .command)
         }
         CommandGroup(after: .newItem) {
@@ -142,49 +140,31 @@ struct WilesApp: App {
     }
 
     @ViewBuilder private var fileItemActionCommands: some View {
-        Button(appState.tr(.newFolder)) {
-            if let windowUIState {
-                appState.createNewFolderAndRename(windowUIState: windowUIState)
-            }
+        if let appState, let windowUIState {
+            Button(tr(.newFolder)) { appState.createNewFolderAndRename(windowUIState: windowUIState) }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            Button(tr(.newFileTitle)) { appState.createNewFileAndRename(windowUIState: windowUIState) }
+            Divider()
+            Button(tr(.open)) { appState.openSelectedItem() }
+                .keyboardShortcut("o", modifiers: .command)
+                .disabled(appState.selectedURLs.isEmpty)
+            Button(tr(.properties)) { appState.openPropertiesForSelected(windowUIState: windowUIState) }
+                .keyboardShortcut("i", modifiers: .command)
+                .disabled(appState.selectedURLs.isEmpty)
+            Button(tr(.quickLook)) { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
+                .keyboardShortcut(" ", modifiers: [])
+                .disabled(appState.selectedURLs.isEmpty)
+            Divider()
+            Button(tr(.moveToTrash)) { appState.deleteSelected(windowUIState: windowUIState) }
+                .disabled(appState.selectedURLs.isEmpty)
         }
-        .keyboardShortcut("n", modifiers: [.command, .shift])
-        Button(appState.tr(.newFileTitle)) {
-            if let windowUIState {
-                appState.createNewFileAndRename(windowUIState: windowUIState)
-            }
-        }
-        Divider()
-        Button(appState.tr(.open)) { appState.openSelectedItem() }
-            .keyboardShortcut("o", modifiers: .command)
-            .disabled(appState.selectedURLs.isEmpty)
-        Button(appState.tr(.properties)) {
-            if let windowUIState {
-                appState.openPropertiesForSelected(windowUIState: windowUIState)
-            }
-        }
-        .keyboardShortcut("i", modifiers: .command)
-        .disabled(appState.selectedURLs.isEmpty)
-        Button(appState.tr(.quickLook)) {
-            if let windowUIState {
-                appState.triggerQuickLookForSelected(windowUIState: windowUIState)
-            }
-        }
-        .keyboardShortcut(" ", modifiers: [])
-        .disabled(appState.selectedURLs.isEmpty)
-        Divider()
-        Button(appState.tr(.moveToTrash)) {
-            if let windowUIState {
-                appState.deleteSelected(windowUIState: windowUIState)
-            }
-        }
-        .disabled(appState.selectedURLs.isEmpty)
     }
 
     @CommandsBuilder private var editMenuCommands: some Commands {
         CommandGroup(replacing: .undoRedo) {
-            Button(appState.tr(.undo)) { appState.undoLastAction() }
+            Button(tr(.undo)) { appState?.undoLastAction() }
                 .keyboardShortcut("z", modifiers: .command)
-            Button(appState.tr(.redo)) { appState.redoLastAction() }
+            Button(tr(.redo)) { appState?.redoLastAction() }
                 .keyboardShortcut("z", modifiers: [.command, .shift])
         }
         CommandGroup(replacing: .pasteboard) {
@@ -197,52 +177,52 @@ struct WilesApp: App {
             Divider()
             selectAllCommandButton(isRenaming: isRenaming)
             Divider()
-            Button(appState.tr(.find)) { appState.toggleSearching() }
+            Button(tr(.find)) { appState?.toggleSearching() }
                 .keyboardShortcut("f", modifiers: .command)
         }
     }
 
     private func cutCommandButton(isRenaming: Bool) -> some View {
-        Button(appState.tr(.cut)) {
+        Button(tr(.cut)) {
             if isRenaming {
                 NSApp.sendAction(#selector(NSText.cut(_:)), to: nil, from: nil)
             } else {
-                appState.cutSelected()
+                appState?.cutSelected()
             }
         }
         .keyboardShortcut("x", modifiers: .command)
-        .disabled(!isRenaming && appState.selectedURLs.isEmpty)
+        .disabled(!isRenaming && (appState?.selectedURLs.isEmpty ?? true))
     }
 
     private func copyCommandButton(isRenaming: Bool) -> some View {
-        Button(appState.tr(.copy)) {
+        Button(tr(.copy)) {
             if isRenaming {
                 NSApp.sendAction(#selector(NSText.copy(_:)), to: nil, from: nil)
             } else {
-                appState.copySelected()
+                appState?.copySelected()
             }
         }
         .keyboardShortcut("c", modifiers: .command)
-        .disabled(!isRenaming && appState.selectedURLs.isEmpty)
+        .disabled(!isRenaming && (appState?.selectedURLs.isEmpty ?? true))
     }
 
     private func pasteCommandButton(isRenaming: Bool) -> some View {
-        Button(appState.tr(.paste)) {
+        Button(tr(.paste)) {
             if isRenaming {
                 NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil)
             } else {
-                appState.pasteToCurrentDirectory()
+                appState?.pasteToCurrentDirectory()
             }
         }
         .keyboardShortcut("v", modifiers: .command)
     }
 
     private func selectAllCommandButton(isRenaming: Bool) -> some View {
-        Button(appState.tr(.selectAll)) {
+        Button(tr(.selectAll)) {
             if isRenaming {
                 NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil)
             } else {
-                appState.selectAllItems()
+                appState?.selectAllItems()
             }
         }
         .keyboardShortcut("a", modifiers: .command)
@@ -260,92 +240,93 @@ struct WilesApp: App {
     }
 
     @ViewBuilder private var sidebarViewMenuItems: some View {
+        @Bindable var sharedPreferences = sharedPreferences
         Divider()
-        Toggle(appState.tr(appState.preferences.showTerminalDrawer ? .hideTerminal : .showTerminal), isOn: $appState.preferences.showTerminalDrawer)
+        Toggle(tr(sharedPreferences.showTerminalDrawer ? .hideTerminal : .showTerminal), isOn: $sharedPreferences.showTerminalDrawer)
             .keyboardShortcut("j", modifiers: .command)
-        Toggle(appState.tr(appState.preferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $appState.preferences.showPreviewSidebar)
+        Toggle(tr(sharedPreferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $sharedPreferences.showPreviewSidebar)
             .keyboardShortcut("p", modifiers: [.command, .shift])
         Toggle(
-            appState.tr(appState.preferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
-            isOn: $appState.preferences.showDiskUsageSidebar)
+            tr(sharedPreferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
+            isOn: $sharedPreferences.showDiskUsageSidebar)
             .keyboardShortcut("d", modifiers: [.command, .shift])
-        Menu(appState.tr(.sidebarMenuTitle)) {
-            Toggle(appState.tr(.showFavorites), isOn: $appState.preferences.showFavorites)
-            Toggle(appState.tr(.showPlaces), isOn: $appState.preferences.showPlaces)
-            Toggle(appState.tr(.showRecents), isOn: $appState.preferences.showRecents)
-            Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
-            Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
-            Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
-            Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
+        Menu(tr(.sidebarMenuTitle)) {
+            Toggle(tr(.showFavorites), isOn: $sharedPreferences.showFavorites)
+            Toggle(tr(.showPlaces), isOn: $sharedPreferences.showPlaces)
+            Toggle(tr(.showRecents), isOn: $sharedPreferences.showRecents)
+            Toggle(tr(.showNetworkAndCloud), isOn: $sharedPreferences.showNetworkAndCloud)
+            Toggle(tr(.showDirectoryTree), isOn: $sharedPreferences.showDirectoryTree)
+            Toggle(tr(.showSidebarSectionTitles), isOn: $sharedPreferences.showSidebarSectionTitles)
+            Toggle(tr(.showTags), isOn: $sharedPreferences.showTags)
         }
         Divider()
-        Picker(selection: $appState.preferences.viewMode) {
-            Text(appState.tr(.gridView)).tag(ViewMode.grid)
-            Text(appState.tr(.listView)).tag(ViewMode.list)
+        Picker(selection: $sharedPreferences.viewMode) {
+            Text(tr(.gridView)).tag(ViewMode.grid)
+            Text(tr(.listView)).tag(ViewMode.list)
         } label: {
-            Label(appState.tr(.viewMode), systemImage: "square.grid.2x2")
+            Label(tr(.viewMode), systemImage: "square.grid.2x2")
         }
         Menu {
-            Picker(appState.tr(.sortBy), selection: $appState.preferences.sortOption) {
-                ForEach(SortOption.allCases) { opt in Text(appState.tr(opt.l10nKey)).tag(opt) }
+            Picker(tr(.sortBy), selection: $sharedPreferences.sortOption) {
+                ForEach(SortOption.allCases) { opt in Text(tr(opt.l10nKey)).tag(opt) }
             }
-            .onChange(of: appState.preferences.sortOption) { _, _ in appState.refreshCurrentDirectory() }
             Divider()
-            Toggle(appState.tr(.ascending), isOn: $appState.preferences.sortAscending)
-                .onChange(of: appState.preferences.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
+            Toggle(tr(.ascending), isOn: $sharedPreferences.sortAscending)
         } label: {
-            Label(appState.tr(.sortBy), systemImage: "arrow.up.arrow.down")
+            Label(tr(.sortBy), systemImage: "arrow.up.arrow.down")
         }
     }
 
     @ViewBuilder private var goMenuCommands: some View {
-        Button(appState.tr(.back)) { appState.goBack() }
+        Button(tr(.back)) { appState?.goBack() }
             .keyboardShortcut("[", modifiers: .command)
-            .disabled(appState.navigation.historyBack.isEmpty)
-        Button(appState.tr(.forward)) { appState.goForward() }
+            .disabled((appState?.navigation.historyBack.isEmpty) ?? true)
+        Button(tr(.forward)) { appState?.goForward() }
             .keyboardShortcut("]", modifiers: .command)
-            .disabled(appState.navigation.historyForward.isEmpty)
-        Button(appState.tr(.enclosingFolder)) { appState.goUp() }
+            .disabled((appState?.navigation.historyForward.isEmpty) ?? true)
+        Button(tr(.enclosingFolder)) { appState?.goUp() }
         Divider()
-        Button(appState.tr(.goToFolder)) {
-            if let windowUIState {
+        Button(tr(.goToFolder)) {
+            if let appState, let windowUIState {
                 appState.startEditingPath(windowUIState: windowUIState)
             }
         }
         .keyboardShortcut("l", modifiers: .command)
-        Button(appState.tr(.connectToServer) + "...") { windowUIState?.showConnectToServerSheet = true }
+        Button(tr(.connectToServer) + "...") { windowUIState?.showConnectToServerSheet = true }
             .keyboardShortcut("k", modifiers: .command)
     }
 
     @ViewBuilder private var toolsMenuCommands: some View {
-        Button(appState.tr(.autoOrganization) + "...") { windowUIState?.showAutoOrganizationSheet = true }
-        Button(appState.tr(.findDuplicates)) { windowUIState?.showDuplicateCleanerSheet = true }
+        Button(tr(.autoOrganization) + "...") { windowUIState?.showAutoOrganizationSheet = true }
+        Button(tr(.findDuplicates)) { windowUIState?.showDuplicateCleanerSheet = true }
         Divider()
-        Menu(appState.tr(.copyPath)) {
-            Button(appState.tr(.copyPathAbsolute)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
-            }
-            Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(
-                    urls: [appState.navigation.currentURL],
-                    variant: .relative,
-                    relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
-            }
-            Button(appState.tr(.copyPathURL)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)
-            }
-            Button(appState.tr(.copyPathTerminal)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .terminalEscaped)
+        if let appState {
+            Menu(tr(.copyPath)) {
+                Button(tr(.copyPathAbsolute)) {
+                    CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
+                }
+                Button(tr(.copyPathRelative)) {
+                    CopyPathService.copy(
+                        urls: [appState.navigation.currentURL],
+                        variant: .relative,
+                        relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
+                }
+                Button(tr(.copyPathURL)) {
+                    CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)
+                }
+                Button(tr(.copyPathTerminal)) {
+                    CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .terminalEscaped)
+                }
             }
         }
     }
 
     @CommandsBuilder private var helpMenuCommands: some Commands {
         CommandGroup(replacing: .help) {
-            Button(appState.tr(.wilesHelpAndShortcuts)) { windowUIState?.showHelpSheet = true }
+            Button(tr(.wilesHelpAndShortcuts)) { windowUIState?.showHelpSheet = true }
                 .keyboardShortcut("?", modifiers: .command)
-            Button(appState.tr(.feedbackMenuItem)) { windowUIState?.showFeedbackSheet = true }
-            Button(appState.tr(.shortcutsCheatsheetTitle)) {
+            Button(tr(.feedbackMenuItem)) { windowUIState?.showFeedbackSheet = true }
+            Button(tr(.shortcutsCheatsheetTitle)) {
                 withAnimation(MotionTokens.snappySpring) {
                     windowUIState?.showShortcutsHUD.toggle()
                 }

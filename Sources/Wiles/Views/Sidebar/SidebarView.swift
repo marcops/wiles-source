@@ -122,7 +122,7 @@ struct SidebarView: View {
         if appState.preferences.showTags {
             tagsSection(isExpanded: $appState.preferences.isTagsExpanded)
         }
-        if !appState.smartFolders.isEmpty {
+        if !appState.preferences.smartFolders.isEmpty {
             smartFoldersSection(isExpanded: $appState.preferences.isSmartFoldersExpanded)
         }
     }
@@ -167,7 +167,7 @@ struct SidebarView: View {
                 sectionHeader(title: appState.tr(.smartFolders), identifierKey: "SMART_FOLDERS", isExpanded: isExpanded)
             }
             if !appState.preferences.showSidebarSectionTitles || appState.preferences.isSmartFoldersExpanded {
-                ForEach(appState.smartFolders) { folder in
+                ForEach(appState.preferences.smartFolders) { folder in
                     smartFolderRow(folder: folder)
                 }
             }

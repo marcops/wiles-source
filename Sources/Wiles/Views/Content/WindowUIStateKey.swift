@@ -18,6 +18,17 @@ extension FocusedValues {
     }
 }
 
+private struct AppStateKey: FocusedValueKey {
+    typealias Value = AppState
+}
+
+extension FocusedValues {
+    var appState: AppState? {
+        get { self[AppStateKey.self] }
+        set { self[AppStateKey.self] = newValue }
+    }
+}
+
 /// Scalar mirror of `windowUIState.renameItem != nil`, published from inside `MainContentView.body`
 /// so reading `renameItem` there establishes an `@Observable` dependency and forces `body` (and thus
 /// this republish) to re-run when rename starts/ends. `Commands` scene rebuilding only reacts to an

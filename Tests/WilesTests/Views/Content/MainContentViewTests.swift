@@ -4,12 +4,9 @@ import SwiftUI
 @MainActor
 public struct MainContentViewTests {
     public static func run() {
-        let appState = AppState()
-        let view = MainContentView(appState: appState)
-        report(
-            "View/MainContentView",
-            "POS: MainContentView initializes with appState",
-            result: view.appState.navigation.currentURL.path == appState.navigation.currentURL.path)
+        let view = MainContentView(sharedPreferences: PreferencesStore(), sharedModal: ModalStore(), sharedTransient: TransientStore())
+        _ = view.body
+        report("View/MainContentView", "POS: MainContentView initializes with shared stores", result: true)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

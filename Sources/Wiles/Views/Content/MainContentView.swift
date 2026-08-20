@@ -3,9 +3,19 @@ import QuickLook
 import SwiftUI
 
 struct MainContentView: View {
-    var appState: AppState
+    let sharedPreferences: PreferencesStore
+    let sharedModal: ModalStore
+    let sharedTransient: TransientStore
+    @State private var appState = AppState()
     @State private var windowUIState = WindowUIState()
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
+    @State private var didAdoptSharedStores = false
+
+    init(sharedPreferences: PreferencesStore, sharedModal: ModalStore, sharedTransient: TransientStore) {
+        self.sharedPreferences = sharedPreferences
+        self.sharedModal = sharedModal
+        self.sharedTransient = sharedTransient
+    }
 
     var body: some View {
         ZStack {
@@ -14,7 +24,16 @@ struct MainContentView: View {
         }
         .environment(windowUIState)
         .focusedSceneValue(\.windowUIState, windowUIState)
+        .focusedSceneValue(\.appState, appState)
         .focusedSceneValue(\.isRenamingActive, windowUIState.renameItem != nil)
+        .onAppear {
+            guard !didAdoptSharedStores else { return }
+            didAdoptSharedStores = true
+            appState.preferences = sharedPreferences
+            appState.modal = sharedModal
+            appState.transient = sharedTransient
+            appState.refreshCurrentDirectory()
+        }
     }
 
     /// The primary sidebar/content split plus its full modifier chain (window sizing, Quick Look,
@@ -38,6 +57,9 @@ struct MainContentView: View {
         .onChange(of: appState.selectedURLs) { _, newSelection in
             windowUIState.cancelRenameIfSelectionChanged(selectedURLs: newSelection)
         }
+        .onChange(of: appState.preferences.sortOption) { _, _ in appState.refreshCurrentDirectory() }
+        .onChange(of: appState.preferences.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
+        .onChange(of: appState.preferences.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
         .sheet(item: $windowUIState.propertiesItem) { item in
             FilePropertiesSheet(item: item, appState: appState)
         }
@@ -286,7 +308,7 @@ struct MainContentView: View {
     }
 
     private func handleDownArrowKey() {
-        if appState.navigationMode == .macOS {
+        if appState.preferences.navigationMode == .macOS {
             appState.openSelectedItem()
         }
     }

@@ -40,23 +40,21 @@ public final class AppState: @unchecked Sendable {
 
     // MARK: - Operational State
 
-    public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
-
     public func addSmartFolder(_ folder: SmartFolder) {
-        smartFolders.append(folder)
+        preferences.smartFolders.append(folder)
         persistSmartFolders(context: "Adding smart folder")
     }
 
     public func removeSmartFolder(_ folder: SmartFolder) {
-        smartFolders.removeAll { $0.id == folder.id }
+        preferences.smartFolders.removeAll { $0.id == folder.id }
         persistSmartFolders(context: "Removing smart folder")
     }
 
     /// Renames a smart folder in place (same id) — trims and ignores an empty/whitespace-only name.
     public func renameSmartFolder(_ folder: SmartFolder, to newName: String) {
         let trimmed = newName.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, let idx = smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
-        smartFolders[idx].name = trimmed
+        guard !trimmed.isEmpty, let idx = preferences.smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
+        preferences.smartFolders[idx].name = trimmed
         persistSmartFolders(context: "Renaming smart folder")
     }
 
@@ -65,14 +63,14 @@ public final class AppState: @unchecked Sendable {
     /// the query text only ever affected the current session; re-running the smart folder later
     /// always went back to whatever it was originally saved with.
     public func updateSmartFolderQuery(_ folder: SmartFolder, to newQuery: String) {
-        guard let idx = smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
-        smartFolders[idx].searchQuery = newQuery
+        guard let idx = preferences.smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
+        preferences.smartFolders[idx].searchQuery = newQuery
         persistSmartFolders(context: "Updating smart folder search")
     }
 
     private func persistSmartFolders(context: String) {
         do {
-            try SmartFolderService.saveSmartFolders(smartFolders)
+            try SmartFolderService.saveSmartFolders(preferences.smartFolders)
         } catch {
             ErrorReporter.report(error, context: context)
             showError(error.localizedDescription)
@@ -94,35 +92,15 @@ public final class AppState: @unchecked Sendable {
     public var isSearching: Bool = false
 
     public var selectedURLs: Set<URL> = []
-    public var navigationMode: NavigationMode = .gnome {
-        didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
-    }
 
-    public var isCompactMode: Bool = UserDefaults.standard.bool(forKey: DefaultsKey.isCompactMode.rawValue) {
-        didSet { UserDefaults.standard.set(isCompactMode, forKey: DefaultsKey.isCompactMode.rawValue) }
-    }
-
-    public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
-        didSet {
-            guard !transient.suppressColumnStatePersistence else { return }
-            saveListColumnStates()
-        }
-    }
-
-    public var perFolderViewModes: [String: String] = (
-        UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
-        [:] {
-        didSet { UserDefaults.standard.set(perFolderViewModes, forKey: DefaultsKey.perFolderViewModes.rawValue) }
-    }
-
-    public init() {
+    public init(preferences: PreferencesStore = PreferencesStore(), modal: ModalStore = ModalStore(), transient: TransientStore = TransientStore()) {
         navigation = NavigationStore()
-        preferences = PreferencesStore()
-        modal = ModalStore()
+        self.preferences = preferences
+        self.modal = modal
         selection = SelectionStore()
         fileSystem = FileSystemStore()
         smartFolder = SmartFolderStore()
-        transient = TransientStore()
+        self.transient = transient
 
         updateTrashSize()
     }

@@ -12,8 +12,7 @@ struct AdvancedSettingsView: View {
         return Form {
             Section(appState.tr(.settingsViewSection)) {
                 Toggle(appState.tr(showHiddenFilesKey), isOn: $appState.preferences.showHiddenFiles)
-                    .onChange(of: appState.preferences.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
-                Toggle(appState.tr(.compactDensity), isOn: $appState.isCompactMode)
+                Toggle(appState.tr(.compactDensity), isOn: $appState.preferences.isCompactMode)
                 Toggle(appState.tr(.middleTruncateNames), isOn: $appState.preferences.middleTruncateNames)
                 Toggle(appState.tr(.alwaysShowFullPathBar), isOn: $appState.preferences.alwaysShowFullPathBar)
             }
@@ -51,6 +50,6 @@ struct AdvancedSettingsView: View {
     /// GNOME mode toggles hidden files with Ctrl+H, macOS mode with Cmd+Shift+. — the label
     /// communicates the currently-active shortcut for the currently-active navigation mode.
     private var showHiddenFilesKey: L10n.Key {
-        appState.navigationMode == .gnome ? .showHiddenFilesGnome : .showHiddenFilesMac
+        appState.preferences.navigationMode == .gnome ? .showHiddenFilesGnome : .showHiddenFilesMac
     }
 }

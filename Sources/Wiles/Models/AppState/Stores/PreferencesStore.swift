@@ -1,5 +1,9 @@
 import Foundation
+import GitBeacon
 import Observation
+import os
+
+private let columnPersistenceLogger = Logger(subsystem: "com.wiles.app", category: "ColumnPersistence")
 
 @Observable
 @MainActor
@@ -191,6 +195,43 @@ public final class PreferencesStore {
         }
     }
 
+    public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
+
+    public var navigationMode: NavigationMode = .gnome {
+        didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
+    }
+
+    public var isCompactMode: Bool = false {
+        didSet { UserDefaults.standard.set(isCompactMode, forKey: DefaultsKey.isCompactMode.rawValue) }
+    }
+
+    public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
+        didSet {
+            guard !suppressColumnStatePersistence else { return }
+            saveListColumnStates()
+        }
+    }
+
+    public var perFolderViewModes: [String: String] = (
+        UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
+        [:] {
+        didSet { UserDefaults.standard.set(perFolderViewModes, forKey: DefaultsKey.perFolderViewModes.rawValue) }
+    }
+
+    var suppressColumnStatePersistence: Bool = false
+
+    func saveListColumnStates() {
+        do {
+            let data = try JSONEncoder().encode(listColumnStates)
+            UserDefaults.standard.set(data, forKey: DefaultsKey.listColumnStates.rawValue)
+        } catch {
+            // Encoding failure here silently drops the user's column widths/visibility on next
+            // launch (falls back to defaults) with no other signal, so log it for debugging.
+            columnPersistenceLogger.error("Failed to encode listColumnStates: \(error.localizedDescription)")
+            ErrorReporter.report(error, context: "Encoding list column states for persistence")
+        }
+    }
+
     public var translucentLevel: Int {
         get { sidebarTranslucentLevel }
         set {
@@ -301,6 +342,7 @@ public final class PreferencesStore {
         loadBool(.showPreviewSidebar, into: \.showPreviewSidebar, from: defaults)
         loadBool(.showDiskUsageSidebar, into: \.showDiskUsageSidebar, from: defaults)
         loadBool(.skipDeleteConfirmation, into: \.skipDeleteConfirmation, from: defaults)
+        loadBool(.isCompactMode, into: \.isCompactMode, from: defaults)
 
         let sLevel = defaults.integer(forKey: DefaultsKey.sidebarTranslucentLevel.rawValue)
         if sLevel > 0 {

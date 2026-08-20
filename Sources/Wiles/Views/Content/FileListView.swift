@@ -188,7 +188,7 @@ struct FileListView: View {
                         .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
                 }
             }
-            .offset(y: appState.isCompactMode ? 1 : 0)
+            .offset(y: appState.preferences.isCompactMode ? 1 : 0)
         }
     }
 
@@ -208,7 +208,7 @@ struct FileListView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, appState.isCompactMode ? 2 : max(4, listIconSize * 0.25))
+        .padding(.vertical, appState.preferences.isCompactMode ? 2 : max(4, listIconSize * 0.25))
         .hoverHighlight(isSelected: isSel, cornerRadius: 6)
         .opacity(isCut ? 0.5 : 1.0)
         .background(

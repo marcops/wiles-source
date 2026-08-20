@@ -92,7 +92,7 @@ public struct UITests {
         let folderB = tempBase.appendingPathComponent("FolderB")
 
         appState.preferences.viewMode = .grid
-        appState.perFolderViewModes.removeAll()
+        appState.preferences.perFolderViewModes.removeAll()
         appState.setViewModeForFolder(.list, for: folderA)
 
         report("UI/ViewMode", "POS: Per-folder view mode override saved for FolderA (.list)", result: appState.viewModeForFolder(folderA) == .list)

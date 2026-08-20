@@ -117,59 +117,7 @@ jobs:
             cp "Sources/Wiles/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
           fi
 
-          cat > "$APP_DIR/Contents/Info.plist" <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>Wiles</string>
-              <key>CFBundleIconFile</key>
-              <string>AppIcon</string>
-              <key>CFBundleIconName</key>
-              <string>AppIcon</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.marco.wiles</string>
-              <key>CFBundleName</key>
-              <string>Wiles</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>CFBundleShortVersionString</key>
-              <string>$VERSION</string>
-              <key>CFBundleVersion</key>
-              <string>$VERSION</string>
-              <key>LSMinimumSystemVersion</key>
-              <string>14.0</string>
-              <key>NSDesktopFolderUsageDescription</key>
-              <string>Wiles precisa de acesso para gerenciar arquivos na sua pasta Mesa (Desktop).</string>
-              <key>NSDocumentsFolderUsageDescription</key>
-              <string>Wiles precisa de acesso para gerenciar arquivos na sua pasta Documentos.</string>
-              <key>NSDownloadsFolderUsageDescription</key>
-              <string>Wiles precisa de acesso para gerenciar arquivos na sua pasta Downloads.</string>
-              <key>NSHighResolutionCapable</key>
-              <true/>
-              <key>NSPrincipalClass</key>
-              <string>NSApplication</string>
-              <key>NSRemovableVolumesUsageDescription</key>
-              <string>Wiles precisa de acesso para gerenciar arquivos em discos externos.</string>
-              <key>CFBundleDocumentTypes</key>
-              <array>
-                  <dict>
-                      <key>CFBundleTypeName</key>
-                      <string>Folder</string>
-                      <key>CFBundleTypeRole</key>
-                      <string>Viewer</string>
-                      <key>LSHandlerRank</key>
-                      <string>Alternate</string>
-                      <key>LSItemContentTypes</key>
-                      <array>
-                          <string>public.folder</string>
-                      </array>
-                  </dict>
-              </array>
-          </dict>
-          </plist>
-          PLIST
+          sed "s/__VERSION__/$VERSION/g" Info.plist > "$APP_DIR/Contents/Info.plist"
 
           echo "==> 2. Ad-hoc codesign..."
           codesign --force --deep --sign - "$APP_DIR"

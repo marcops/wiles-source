@@ -36,14 +36,14 @@ public struct AppStateColumnsAndSelectionTests {
         // AppState() reads persisted column state from UserDefaults.standard (production code
         // writes every width/visibility change there), so a prior test run or real app usage on
         // this machine can leave stale state — reset explicitly rather than assume a pristine default.
-        appState.listColumnStates = ListColumnState.defaults()
+        appState.preferences.listColumnStates = ListColumnState.defaults()
         report(
             "AppState+Columns",
             "POS: columnWidth(for:) returns the column's stored width by default",
             result: appState.columnWidth(for: .name) == ListColumn.name.defaultWidth)
 
         // Remove a column's state entirely; should fall back to defaultWidth.
-        appState.listColumnStates.removeAll { $0.column == .owner }
+        appState.preferences.listColumnStates.removeAll { $0.column == .owner }
         report(
             "AppState+Columns",
             "NEG: columnWidth(for:) falls back to defaultWidth when no state entry exists",
@@ -57,7 +57,7 @@ public struct AppStateColumnsAndSelectionTests {
         report("AppState+Columns", "NEG: isColumnVisible() is false for a column marked hidden in defaults", result: appState.isColumnVisible(.owner) == false)
 
         // Missing state entry falls back to true.
-        appState.listColumnStates.removeAll { $0.column == .group }
+        appState.preferences.listColumnStates.removeAll { $0.column == .group }
         report("AppState+Columns", "NEG: isColumnVisible() defaults to true when no state entry exists", result: appState.isColumnVisible(.group) == true)
     }
 
@@ -73,12 +73,12 @@ public struct AppStateColumnsAndSelectionTests {
             result: appState.columnWidth(for: .size) == LayoutTokens.columnMinWidth)
 
         // No state entry for the column: setColumnWidth should be a no-op (guard returns early).
-        appState.listColumnStates.removeAll { $0.column == .kind }
+        appState.preferences.listColumnStates.removeAll { $0.column == .kind }
         appState.setColumnWidth(.kind, width: 500)
         report(
             "AppState+Columns",
             "NEG: setColumnWidth() is a no-op when the column has no existing state entry",
-            result: appState.listColumnStates.contains { $0.column == .kind } == false)
+            result: appState.preferences.listColumnStates.contains { $0.column == .kind } == false)
     }
 
     /// `setColumnWidth(_:width:persist:)` with `persist: false` (used by `ColumnResizeHandle`'s
@@ -105,7 +105,7 @@ public struct AppStateColumnsAndSelectionTests {
         }
 
         let appState = AppState()
-        appState.listColumnStates = ListColumnState.defaults()
+        appState.preferences.listColumnStates = ListColumnState.defaults()
         // Establish a known persisted baseline distinct from the width we're about to drag to.
         appState.setColumnWidth(.size, width: 150, persist: true)
         report("AppState+Columns", "POS: setColumnWidth(persist: true) (the default) persists immediately", result: persistedWidth(for: .size) == 150)
@@ -154,7 +154,7 @@ public struct AppStateColumnsAndSelectionTests {
             "NEG: viewModeForFolder() falls back to the global viewMode when no per-folder override exists",
             result: appState.viewModeForFolder(dir) == .list)
 
-        appState.perFolderViewModes[dir.standardizedFileURL.path] = ViewMode.grid.rawValue
+        appState.preferences.perFolderViewModes[dir.standardizedFileURL.path] = ViewMode.grid.rawValue
         report("AppState+Columns", "POS: viewModeForFolder() returns the stored per-folder override", result: appState.viewModeForFolder(dir) == .grid)
     }
 
@@ -169,14 +169,14 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "POS: setViewModeForFolder() stores the per-folder mode and updates the global viewMode",
-            result: appState.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.grid.rawValue && appState.preferences.viewMode == .grid)
+            result: appState.preferences.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.grid.rawValue && appState.preferences.viewMode == .grid)
 
         // A different, untouched folder should not have an override.
         let otherDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         report(
             "AppState+Columns",
             "NEG: setViewModeForFolder() does not affect unrelated folders",
-            result: appState.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
+            result: appState.preferences.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
     }
 
     private static func testHandleSelectionSingleClick() {
@@ -294,7 +294,7 @@ public struct AppStateColumnsAndSelectionTests {
 
     private static func testAutoFitColumnWidth() {
         let appState = AppState()
-        appState.listColumnStates = ListColumnState.defaults()
+        appState.preferences.listColumnStates = ListColumnState.defaults()
         // Start from a known width that's guaranteed to differ from the auto-fit result below.
         appState.setColumnWidth(.name, width: LayoutTokens.columnMinWidth)
 
@@ -310,12 +310,12 @@ public struct AppStateColumnsAndSelectionTests {
             result: appState.columnWidth(for: .name) == expected)
 
         // No state entry for the column: setColumnWidth's internal guard makes this a no-op.
-        appState.listColumnStates.removeAll { $0.column == .size }
+        appState.preferences.listColumnStates.removeAll { $0.column == .size }
         appState.autoFitColumnWidth(.size)
         report(
             "AppState+Columns",
             "NEG: autoFitColumnWidth() is a no-op when the column has no existing state entry",
-            result: appState.listColumnStates.contains { $0.column == .size } == false)
+            result: appState.preferences.listColumnStates.contains { $0.column == .size } == false)
     }
 
     private static func testPerformRenameNoOpCases() {

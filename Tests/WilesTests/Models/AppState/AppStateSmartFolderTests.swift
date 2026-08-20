@@ -29,14 +29,14 @@ public struct AppStateSmartFolderTests {
         }
 
         let appState = AppState()
-        appState.smartFolders = []
+        appState.preferences.smartFolders = []
         let folder = SmartFolder(name: "My Folder", searchQuery: "report", scopePath: "/tmp")
 
         appState.addSmartFolder(folder)
         report(
             "AppState",
             "POS: addSmartFolder() appends the folder to smartFolders",
-            result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == folder.id)
+            result: appState.preferences.smartFolders.count == 1 && appState.preferences.smartFolders.first?.id == folder.id)
 
         let persisted = SmartFolderService.loadSavedSmartFolders()
         report("AppState", "POS: addSmartFolder() persists the folder via SmartFolderService", result: persisted.contains { $0.id == folder.id })
@@ -45,7 +45,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "NEG: addSmartFolder() does not add an unrelated folder that was never added",
-            result: appState.smartFolders.contains { $0.id == other.id } == false)
+            result: appState.preferences.smartFolders.contains { $0.id == other.id } == false)
     }
 
     private static func testRemoveSmartFolder() {
@@ -61,13 +61,13 @@ public struct AppStateSmartFolderTests {
         let appState = AppState()
         let keep = SmartFolder(name: "Keep", searchQuery: "a", scopePath: "/tmp")
         let removeTarget = SmartFolder(name: "Remove", searchQuery: "b", scopePath: "/tmp")
-        appState.smartFolders = [keep, removeTarget]
+        appState.preferences.smartFolders = [keep, removeTarget]
 
         appState.removeSmartFolder(removeTarget)
         report(
             "AppState",
             "POS: removeSmartFolder() removes only the matching folder by id",
-            result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id)
+            result: appState.preferences.smartFolders.count == 1 && appState.preferences.smartFolders.first?.id == keep.id)
 
         let persisted = SmartFolderService.loadSavedSmartFolders()
         report(
@@ -79,7 +79,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "NEG: removeSmartFolder() is a no-op when the folder is already absent",
-            result: appState.smartFolders.count == 1 && appState.smartFolders.first?.id == keep.id)
+            result: appState.preferences.smartFolders.count == 1 && appState.preferences.smartFolders.first?.id == keep.id)
     }
 
     private static func testRenameSmartFolder() {
@@ -95,17 +95,17 @@ public struct AppStateSmartFolderTests {
         let appState = AppState()
         let folder = SmartFolder(name: "Old Name", searchQuery: "kind:image", scopePath: "/tmp")
         let other = SmartFolder(name: "Untouched", searchQuery: "kind:pdf", scopePath: "/tmp")
-        appState.smartFolders = [folder, other]
+        appState.preferences.smartFolders = [folder, other]
 
         appState.renameSmartFolder(folder, to: "New Name")
         report(
             "AppState",
             "POS: renameSmartFolder() updates the name in place, keeping the same id",
-            result: appState.smartFolders.first { $0.id == folder.id }?.name == "New Name")
+            result: appState.preferences.smartFolders.first { $0.id == folder.id }?.name == "New Name")
         report(
             "AppState",
             "NEG: renameSmartFolder() does not touch an unrelated folder",
-            result: appState.smartFolders.first { $0.id == other.id }?.name == "Untouched")
+            result: appState.preferences.smartFolders.first { $0.id == other.id }?.name == "Untouched")
 
         let persisted = SmartFolderService.loadSavedSmartFolders()
         report(
@@ -117,7 +117,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "NEG: renameSmartFolder() with an all-whitespace name is a no-op, leaving the previous name untouched",
-            result: appState.smartFolders.first { $0.id == folder.id }?.name == "New Name")
+            result: appState.preferences.smartFolders.first { $0.id == folder.id }?.name == "New Name")
     }
 
     private static func testUpdateSmartFolderQuery() {
@@ -133,16 +133,16 @@ public struct AppStateSmartFolderTests {
         let appState = AppState()
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image jpg", scopePath: "/tmp")
         let other = SmartFolder(name: "Untouched", searchQuery: "kind:pdf", scopePath: "/tmp")
-        appState.smartFolders = [folder, other]
+        appState.preferences.smartFolders = [folder, other]
 
         appState.updateSmartFolderQuery(folder, to: "kind:image jpeg")
         report(
             "AppState",
             "POS: updateSmartFolderQuery() updates the searchQuery in place, keeping the same id",
-            result: appState.smartFolders.first { $0.id == folder.id }?.searchQuery == "kind:image jpeg")
+            result: appState.preferences.smartFolders.first { $0.id == folder.id }?.searchQuery == "kind:image jpeg")
         report(
             "AppState", "NEG: updateSmartFolderQuery() does not touch an unrelated folder",
-            result: appState.smartFolders.first { $0.id == other.id }?.searchQuery == "kind:pdf")
+            result: appState.preferences.smartFolders.first { $0.id == other.id }?.searchQuery == "kind:pdf")
 
         let persisted = SmartFolderService.loadSavedSmartFolders()
         report(
@@ -164,8 +164,8 @@ public struct AppStateSmartFolderTests {
     private static func testPrepareForSmartFolderRunTriggersSearch() {
         let appState = AppState()
         appState.selectedURLs = [URL(fileURLWithPath: "/tmp/previously-selected.txt")]
-        appState.transient.refreshTask?.cancel()
-        appState.transient.refreshTask = nil
+        appState.fileSystem.refreshTask?.cancel()
+        appState.fileSystem.refreshTask = nil
 
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
         appState.prepareForSmartFolderRun(folder)
@@ -176,7 +176,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "POS: prepareForSmartFolderRun actually triggers a search (spawns a refresh task), same as typing a query",
-            result: appState.transient.refreshTask != nil)
+            result: appState.fileSystem.refreshTask != nil)
         report(
             "AppState", "POS: prepareForSmartFolderRun sets smartFolder.activeFolderID to the folder's id",
             result: appState.smartFolder.activeFolderID == folder.id)
@@ -206,7 +206,7 @@ public struct AppStateSmartFolderTests {
         // Editing the search text exits smart-folder mode and triggers a real reload of the current
         // directory — this must not resurrect the stale pending selection.
         appState.searchQuery = "stale"
-        await appState.transient.refreshTask?.value
+        await appState.fileSystem.refreshTask?.value
         report(
             "AppState",
             "NEG: editing search text after a smart folder run does not resurrect the stale pending selection",
@@ -245,8 +245,8 @@ public struct AppStateSmartFolderTests {
         let appState = AppState()
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
         appState.prepareForSmartFolderRun(folder)
-        appState.transient.refreshTask?.cancel()
-        appState.transient.refreshTask = nil
+        appState.fileSystem.refreshTask?.cancel()
+        appState.fileSystem.refreshTask = nil
 
         appState.searchQuery = "a brand new search"
 
@@ -257,7 +257,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "POS: a normal searchQuery edit triggers a real refresh (spawns a task)",
-            result: appState.transient.refreshTask != nil)
+            result: appState.fileSystem.refreshTask != nil)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

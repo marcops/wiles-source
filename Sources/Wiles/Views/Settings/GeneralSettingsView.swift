@@ -17,7 +17,7 @@ struct GeneralSettingsView: View {
             }
 
             Section(appState.tr(.settingsBehaviorSection)) {
-                Picker(appState.tr(.shortcutMode), selection: $appState.navigationMode) {
+                Picker(appState.tr(.shortcutMode), selection: $appState.preferences.navigationMode) {
                     ForEach(NavigationMode.allCases) { mode in
                         Text(appState.tr(mode.l10nKey)).tag(mode)
                     }

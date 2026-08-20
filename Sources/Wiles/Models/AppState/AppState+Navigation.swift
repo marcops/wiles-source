@@ -149,8 +149,8 @@ public extension AppState {
 
         // Cancel any load already in flight — every keystroke of a search or rapid navigation used to
         // spawn an unstructured Task with no cancellation, letting a stale result race a fresher one.
-        transient.refreshTask?.cancel()
-        transient.refreshTask = Task {
+        fileSystem.refreshTask?.cancel()
+        fileSystem.refreshTask = Task {
             await performRefresh(snapshot)
         }
     }

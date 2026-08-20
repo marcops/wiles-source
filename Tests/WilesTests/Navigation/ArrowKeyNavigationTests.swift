@@ -139,7 +139,7 @@ public struct ArrowKeyNavigationTests {
 
     private static func testDefaultColumns() {
         let appState = AppState()
-        appState.listColumnStates = ListColumnState.defaults()
+        appState.preferences.listColumnStates = ListColumnState.defaults()
         report(
             "Navigation/ListColumns",
             "POS: Default columns are name, size, dateModified only",

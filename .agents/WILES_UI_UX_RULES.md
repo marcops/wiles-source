@@ -24,7 +24,7 @@ Presentation and dismissal, unchanged by the scaffold:
 
 ## Custom Tappable Controls — Repeat Offender, Check Every Time
 
-See `SWIFT_LANG_RULES.md`'s `.contentShape` rule for the general technique. This has shipped as a real bug more than once in this app — most recently `SettingsView.swift`'s tab row, where outset hit regions on adjacent tabs caused clicking "General" to select a different tab. Treat this as a mandatory check on every custom tappable control, not something patched in reactively after a report.
+See `SWIFT_LANG_RULES.md`'s `.contentShape` rule for the general technique. Treat this as a mandatory check on every custom tappable control, not something patched in reactively after a report.
 
 ## Minimalist Menu & Button Labels
 

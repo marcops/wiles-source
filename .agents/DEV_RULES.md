@@ -42,7 +42,6 @@ When asked to act as architect / improve / design something (not just "fix X"), 
 
 - A destructive operation (move, delete, overwrite) must never leave the user with less than they started with. If any precondition isn't clearly safe, abort before touching anything — never "clean up" the destination, delete-then-recreate, or perform a partial/irreversible step before the operation is confirmed possible.
 - Any function that removes/overwrites a destination "to make room" for a write MUST first verify the destination isn't the source itself, and MUST NOT proceed with the destructive half unless the constructive half is actually going to happen. Prefer erroring out over guessing.
-- (See `WILES_RULES.md` for the real incident this rule is written from.)
 
 ## Full Rule Self-Audit Before Every Commit
 

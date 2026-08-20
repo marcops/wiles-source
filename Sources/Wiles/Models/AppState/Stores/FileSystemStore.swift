@@ -8,6 +8,7 @@ public final class FileSystemStore {
     public var isLoading: Bool = false
     /// Suppresses `items` refreshes while set — see `AppState.enterRenameForNewlyCreated`.
     public var renamingURL: URL?
+    var refreshTask: Task<Void, Never>?
     private let directoryMonitor = DirectoryMonitor()
 
     public init() { }

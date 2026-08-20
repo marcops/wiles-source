@@ -133,14 +133,11 @@ For fixes/features in Wiles, don't write/run the actual unit test file immediate
 
 ## Window-Scoped UI State in This App
 
-`AppState` is a single instance shared by every open Wiles window. Any sheet/alert/HUD/"currently editing this item" flag stored directly on `AppState` (or a store hanging off it, like `ModalStore`) fires in **every** open window the moment one window sets it — e.g. opening "Properties" in window A pops it in window B too. This is a real, previously-shipped bug class (see `SWIFT_LANG_RULES.md` for the generic pattern and wiring technique this app follows to avoid it).
+Wiles supports one or more simultaneously open windows. `AppState` itself is now constructed fresh per window (in `MainContentView.init`) — only `AppState.preferences`/`.modal`/`.transient` are shared instances, passed in from `WilesApp` into every window's `AppState`. Any new field added to `AppState`, one of its per-window stores (`navigation`, `fileSystem`, `selection`, `smartFolder`), or the shared stores must be deliberately classified as either per-window or genuinely shared — never added without making that call explicitly. Getting this wrong is a real, previously-shipped bug class: a field that should be per-window but lands on a shared store fires/leaks across every open window at once (see `SWIFT_LANG_RULES.md` for the generic pattern and wiring technique this app follows to avoid it).
 
-- Any per-window presentation state belongs on `WindowUIState`, instantiated as `@State` inside `MainContentView`. AppKit-level code reached through an `NSViewRepresentable` (custom key-event monitors, etc.) gets the per-window object threaded through as an explicit parameter, same as `AppState` already is.
-- Exception: state with no natural owning window (an alert from a background auto-organization scan or network op with no UI in front of it) legitimately stays on `AppState`/`ModalStore`.
-
-## Never Destroy User Data — the Incident This Rule Is Written From
-
-`FileSystemService.moveItem(at:toFolder:)` used to unconditionally `removeItem(at: destURL)` "to clear the way" before calling `moveItem`. When the destination happened to be the exact same path as the source (dragging a folder onto the folder it's already in), this deleted the user's folder outright, then failed to move it (source no longer existed) — permanent data loss, not recoverable from Trash, surfaced only as a confusing untranslated error. See the general rule in `DEV_RULES.md` and the regression test in `Tests/WilesTests/FileSystem/FileSystemMoveRegressionTests.swift`.
+- Any per-window presentation state (sheets, alerts, "currently editing this item" flags) belongs on `WindowUIState`, instantiated as `@State` inside `MainContentView`. AppKit-level code reached through an `NSViewRepresentable` (custom key-event monitors, etc.) gets the per-window object threaded through as an explicit parameter, same as `AppState` already is.
+- Exception: state with no natural owning window (an alert from a background auto-organization scan or network op with no UI in front of it) legitimately stays on `ModalStore`.
+- Code living outside any single window's view hierarchy (menu `Commands` in `WilesApp`) reaches the focused window's `AppState`/`WindowUIState` via `@FocusedValue` — both are optional there, since no window may be focused.
 
 ## Never Hardcode the Set of Supported Locales — Applies to Every Layer Here
 

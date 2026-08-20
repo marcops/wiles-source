@@ -1,10 +1,10 @@
-## Medium priority (meaningful feature/UX work)
+## Bugs
 
-- se eu quero mover 1 arquivo o PATH BAR tem que abrir, e eu posso entrar dai nos diretorios ir direto para 1 deles.
-
-- o gridview tem que mostrar 2 linhas igual o ifinder se o texto for muito grande, e se for maior que isto ai sim coloca os 3 ppontos
+- Navigation state (`currentURL` + back/forward history on `NavigationStore`) is still global on the shared `AppState` instead of per-window on `WindowUIState` — navigating in one open window's folder view (or its terminal, via the existing `cd`-on-navigate sync) moves every other open window too. Same bug class `WILES_RULES.md`'s "Window-Scoped UI State in This App" rule already fixed for sheets/alerts/HUDs, just never applied to navigation itself. 26 files read `appState.navigation.*`/call `appState.navigateTo(...)`, so this is a real refactor, not a one-line fix.
 
 ## Low priority / undecided
+
+-  o gridview tem que mostrar 2 linhas igual o ifinder se o texto for muito grande, e se for maior que isto ai sim coloca os 3 ppontos
 - terminal com follow mode, ou seja segue a pasta que eu esotu no folder ou vice e versa, a pasta que eu estou navegando no terminal.
 - hide the back and forward, and increase the Title font? with on/off
 - create the director view and traditional view?

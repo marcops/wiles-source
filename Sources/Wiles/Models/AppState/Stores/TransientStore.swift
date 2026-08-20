@@ -7,10 +7,6 @@ import Observation
 @Observable
 @MainActor
 public final class TransientStore {
-    /// In-flight directory load spawned by `refreshCurrentDirectory()`. Cancelled and replaced on every
-    /// call so rapid search keystrokes or navigations can't leave multiple concurrent loads racing to
-    /// apply stale results.
-    var refreshTask: Task<Void, Never>?
     /// In-flight `~/.Trash` enumeration spawned by `updateTrashSize()`. Cancelled and replaced on every
     /// call so it never piles up multiple concurrent full-Trash walks.
     var trashSizeTask: Task<Void, Never>?

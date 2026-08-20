@@ -1,49 +1,34 @@
 import Foundation
 import GitBeacon
-import os
-
-private let columnPersistenceLogger = Logger(subsystem: "com.wiles.app", category: "ColumnPersistence")
 
 public extension AppState {
-    internal func saveListColumnStates() {
-        do {
-            let data = try JSONEncoder().encode(listColumnStates)
-            UserDefaults.standard.set(data, forKey: DefaultsKey.listColumnStates.rawValue)
-        } catch {
-            // Encoding failure here silently drops the user's column widths/visibility on next
-            // launch (falls back to defaults) with no other signal, so log it for debugging.
-            columnPersistenceLogger.error("Failed to encode listColumnStates: \(error.localizedDescription)")
-            ErrorReporter.report(error, context: "Encoding list column states for persistence")
-        }
-    }
-
     func columnWidth(for column: ListColumn) -> CGFloat {
-        listColumnStates.first { $0.column == column }?.width ?? column.defaultWidth
+        preferences.listColumnStates.first { $0.column == column }?.width ?? column.defaultWidth
     }
 
     func isColumnVisible(_ column: ListColumn) -> Bool {
-        listColumnStates.first { $0.column == column }?.isVisible ?? true
+        preferences.listColumnStates.first { $0.column == column }?.isVisible ?? true
     }
 
     /// - Parameter persist: When `false` (e.g. while a resize drag is still in progress), the width
-    ///   update is applied without triggering `saveListColumnStates()`'s synchronous encode + write.
-    ///   Callers driving high-frequency updates (drag deltas) must call `persistColumnWidths()` once
-    ///   when the interaction ends.
+    ///   update is applied without triggering `PreferencesStore.saveListColumnStates()`'s synchronous
+    ///   encode + write. Callers driving high-frequency updates (drag deltas) must call
+    ///   `persistColumnWidths()` once when the interaction ends.
     func setColumnWidth(_ column: ListColumn, width: CGFloat, persist: Bool = true) {
-        guard let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
+        guard let idx = preferences.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
         if !persist {
-            transient.suppressColumnStatePersistence = true
+            preferences.suppressColumnStatePersistence = true
         }
-        listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
+        preferences.listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
         if !persist {
-            transient.suppressColumnStatePersistence = false
+            preferences.suppressColumnStatePersistence = false
         }
     }
 
     /// Persists the current `listColumnStates` once. Call this at the end of a high-frequency
     /// interaction (drag end) that used `setColumnWidth(_:width:persist: false)` throughout.
     func persistColumnWidths() {
-        saveListColumnStates()
+        preferences.saveListColumnStates()
     }
 
     func autoFitColumnWidth(_ column: ListColumn) {
@@ -57,19 +42,19 @@ public extension AppState {
 
     func toggleColumnVisibility(_ column: ListColumn) {
         guard !column.isAlwaysVisible,
-              let idx = listColumnStates.firstIndex(where: { $0.column == column }) else { return }
-        listColumnStates[idx].isVisible.toggle()
+              let idx = preferences.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
+        preferences.listColumnStates[idx].isVisible.toggle()
     }
 
     func viewModeForFolder(_ url: URL) -> ViewMode {
-        if let raw = perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
+        if let raw = preferences.perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
             return mode
         }
         return preferences.viewMode
     }
 
     func setViewModeForFolder(_ mode: ViewMode, for url: URL) {
-        perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
+        preferences.perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
         preferences.viewMode = mode
     }
 
