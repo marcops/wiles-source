@@ -1,4 +1,5 @@
 import Foundation
+import GitBeacon
 
 public struct FileShredderService: Sendable {
     /// Direct immediate deletion bypassing Trash (Fast, no zeroing)
@@ -34,26 +35,38 @@ public struct FileShredderService: Sendable {
             if let isDir = values.isDirectory, !isDir,
                let fileSize = values.fileSize, fileSize > 0 {
                 // Overwrite file with zero bytes in background
-                if let handle = FileHandle(forWritingAtPath: url.path) {
-                    let chunkSize = 1_048_576 // 1MB chunk
-                    let zeroBuffer = Data(count: chunkSize)
-                    var bytesWritten = 0
+                guard let handle = FileHandle(forWritingAtPath: url.path) else {
+                    // Never silently skip the zero-overwrite and delete anyway — that would leave
+                    // the caller believing the file was securely shredded when its bytes were
+                    // never actually zeroed. Abort this item and let the error propagate instead.
+                    throw WilesError.operationFailed(reason: "Could not open \(url.lastPathComponent) for secure overwrite.")
+                }
+                let chunkSize = 1_048_576 // 1MB chunk
+                let zeroBuffer = Data(count: chunkSize)
+                var bytesWritten = 0
 
-                    while bytesWritten < fileSize {
-                        if Task.isCancelled {
-                            try? handle.close()
-                            throw CancellationError()
-                        }
-                        let toWrite = min(chunkSize, fileSize - bytesWritten)
-                        if toWrite == chunkSize {
-                            handle.write(zeroBuffer)
-                        } else {
-                            handle.write(Data(count: toWrite))
-                        }
-                        bytesWritten += toWrite
+                while bytesWritten < fileSize {
+                    if Task.isCancelled {
+                        try? handle.close()
+                        throw CancellationError()
                     }
-                    try? handle.synchronize()
-                    try? handle.close()
+                    let toWrite = min(chunkSize, fileSize - bytesWritten)
+                    if toWrite == chunkSize {
+                        handle.write(zeroBuffer)
+                    } else {
+                        handle.write(Data(count: toWrite))
+                    }
+                    bytesWritten += toWrite
+                }
+                do {
+                    try handle.synchronize()
+                } catch {
+                    ErrorReporter.report(error, context: "Synchronizing zero-overwrite for \(url.path)")
+                }
+                do {
+                    try handle.close()
+                } catch {
+                    ErrorReporter.report(error, context: "Closing file handle after zero-overwrite for \(url.path)")
                 }
             }
             try fm.removeItem(at: url)

@@ -2,6 +2,11 @@ import AppKit
 import SwiftUI
 
 struct AutoOrganizationSheet: View {
+    private static let ruleLabelWidth: CGFloat = 100
+    private static let ruleFolderButtonWidth: CGFloat = 220
+    private static let ruleConditionPickerWidth: CGFloat = 140
+    private static let ruleConditionValueFieldWidth: CGFloat = 60
+
     @Environment(\.dismiss)
     private var dismiss
     var appState: AppState
@@ -139,7 +144,7 @@ struct AutoOrganizationSheet: View {
     private var newRuleConditionRow: some View {
         HStack {
             Text(appState.tr(.ifFileIn))
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: Self.ruleLabelWidth, alignment: .trailing)
 
             Button {
                 folderPickerTarget = .source
@@ -151,25 +156,25 @@ struct AutoOrganizationSheet: View {
                     Spacer(minLength: 0)
                 }
             }
-            .frame(width: 220)
+            .frame(width: Self.ruleFolderButtonWidth)
 
             Picker("", selection: $conditionType) {
                 ForEach(RuleConditionType.allCases) { type in
                     Text(displayName(for: type)).tag(type)
                 }
             }
-            .frame(width: 140)
+            .frame(width: Self.ruleConditionPickerWidth)
 
             TextField(appState.tr(.ruleValuePlaceholder), text: $conditionValue)
                 .textFieldStyle(.roundedBorder)
-                .frame(width: 60)
+                .frame(width: Self.ruleConditionValueFieldWidth)
         }
     }
 
     private var newRuleDestinationRow: some View {
         HStack {
             Text(appState.tr(.moveTo))
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: Self.ruleLabelWidth, alignment: .trailing)
             Button {
                 folderPickerTarget = .destination
             } label: {
@@ -180,7 +185,7 @@ struct AutoOrganizationSheet: View {
                     Spacer(minLength: 0)
                 }
             }
-            .frame(width: 220)
+            .frame(width: Self.ruleFolderButtonWidth)
 
             Spacer()
 
@@ -188,12 +193,16 @@ struct AutoOrganizationSheet: View {
                 addRule()
             }
             .buttonStyle(.borderedProminent)
-            .disabled(sourceURL == nil || destinationURL == nil || conditionValue.isEmpty)
+            .disabled(!canAddRule)
         }
     }
 
+    private var canAddRule: Bool {
+        sourceURL != nil && destinationURL != nil && !conditionValue.isEmpty
+    }
+
     private func addRule() {
-        guard let src = sourceURL, let dest = destinationURL, !conditionValue.isEmpty else { return }
+        guard canAddRule, let src = sourceURL, let dest = destinationURL else { return }
         let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: conditionValue)
         AutoOrganizationService.shared.addRule(rule)
         rules = AutoOrganizationService.shared.rules

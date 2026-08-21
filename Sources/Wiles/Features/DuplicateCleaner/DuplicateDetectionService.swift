@@ -2,12 +2,10 @@ import AppKit
 import CryptoKit
 import Foundation
 
-public final class DuplicateDetectionService: Sendable {
-    public static let shared = DuplicateDetectionService()
+public enum DuplicateDetectionService: Sendable {
+    private static let maxScannedFileCount = 50_000
 
-    private init() { }
-
-    public func findDuplicates(in folderURL: URL) async -> DuplicateScanResult {
+    public static func findDuplicates(in folderURL: URL) async -> DuplicateScanResult {
         // `.task { }` cancellation on the calling side does NOT automatically cancel a
         // `Task.detached` — detached tasks are unlinked from their creator, so the scan
         // would otherwise become a zombie that keeps enumerating/hashing after the sheet
@@ -35,9 +33,14 @@ public final class DuplicateDetectionService: Sendable {
         }
 
         var sizeMap: [Int64: [URL]] = [:]
+        var scannedCount = 0
 
         while let fileURL = enumerator.nextObject() as? URL {
             try Task.checkCancellation()
+            scannedCount += 1
+            if scannedCount > maxScannedFileCount {
+                break
+            }
             guard let resourceValues = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
                   let isDir = resourceValues.isDirectory, !isDir,
                   let size = resourceValues.fileSize, size > 0 else {

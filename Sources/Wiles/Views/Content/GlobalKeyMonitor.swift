@@ -128,9 +128,9 @@ struct GlobalKeyMonitor: NSViewRepresentable {
 
         private func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
             if let arrowCode = ArrowKey(code: code) {
-                if isCmd, let fav = windowUIState.selectedFavoriteURL,
-                   fav.standardizedFileURL == appState.navigation.currentURL.standardizedFileURL,
-                   arrowCode == .up || arrowCode == .down {
+                if isFavoriteReorderShortcut(
+                    isCmd: isCmd, arrowCode: arrowCode,
+                    selectedFavorite: windowUIState.selectedFavoriteURL, currentURL: appState.navigation.currentURL) {
                     appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1, windowUIState: windowUIState)
                     return true
                 }
@@ -139,6 +139,15 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 return true
             }
             return handleEditActionKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState)
+        }
+
+        /// True when Cmd+Up/Down was pressed while the sidebar's currently-selected favorite
+        /// happens to also be the folder being browsed — the shortcut for reordering that favorite
+        /// in the list, rather than a plain navigation arrow press.
+        private func isFavoriteReorderShortcut(isCmd: Bool, arrowCode: ArrowKey, selectedFavorite: URL?, currentURL: URL) -> Bool {
+            guard isCmd, let selectedFavorite else { return false }
+            guard selectedFavorite.standardizedFileURL == currentURL.standardizedFileURL else { return false }
+            return arrowCode == .up || arrowCode == .down
         }
 
         private enum ArrowKey: Equatable {
@@ -172,11 +181,18 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             case .right:
                 if appState.preferences.viewMode == .grid {
                     moveSelection(by: 1, isShift: isShift, appState: appState)
-                } else if let first = appState.selectedURLs.first,
-                          let item = appState.fileSystem.items.first(where: { $0.url == first }), item.isDirectory {
-                    appState.navigateTo(first)
+                } else if let target = directoryToEnter(from: appState) {
+                    appState.navigateTo(target)
                 }
             }
+        }
+
+        /// The single selected item's URL, but only when it's actually a directory — `.right` in
+        /// list view should enter a folder, not "navigate to" a selected file.
+        private func directoryToEnter(from appState: AppState) -> URL? {
+            guard let first = appState.selectedURLs.first else { return nil }
+            guard let item = appState.fileSystem.items.first(where: { $0.url == first }) else { return nil }
+            return item.isDirectory ? first : nil
         }
 
         private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {

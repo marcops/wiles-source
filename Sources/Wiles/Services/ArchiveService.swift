@@ -4,7 +4,18 @@ public final class ArchiveService: Sendable {
     public static func isArchive(url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         let name = url.lastPathComponent.lowercased()
-        return ext == "zip" || ext == "tar" || ext == "tgz" || name.hasSuffix(".tar.gz") || name.hasSuffix(".tar.bz2") || name.hasSuffix(".tar.xz")
+        return hasArchiveExtension(ext: ext, name: name)
+    }
+
+    /// True for `.zip`/`.tar`/`.tgz` by extension, or any `.tar.*` compound suffix (`.tar.gz`,
+    /// `.tar.bz2`, `.tar.xz`) that `pathExtension` alone can't see since it only reports the last
+    /// component. Shared by `isArchive` and `extractArchive`'s tar-vs-ditto dispatch.
+    private static func hasArchiveExtension(ext: String, name: String) -> Bool {
+        ext == "zip" || ext == "tar" || ext == "tgz" || isTarFamily(name: name)
+    }
+
+    private static func isTarFamily(name: String) -> Bool {
+        name.hasSuffix(".tar.gz") || name.hasSuffix(".tar.bz2") || name.hasSuffix(".tar.xz")
     }
 
     public static func compressToZIP(urls: [URL], in destinationFolder: URL, password: String? = nil) throws {
@@ -56,7 +67,9 @@ public final class ArchiveService: Sendable {
         try process.run()
         process.waitUntilExit()
         if process.terminationStatus != 0 {
-            throw NSError(domain: "ArchiveService", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Compression process failed."])
+            throw NSError(
+                domain: "ArchiveService", code: Int(process.terminationStatus),
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveCompressionFailed, lang: .system)])
         }
     }
 
@@ -68,7 +81,7 @@ public final class ArchiveService: Sendable {
         if ext == "zip" {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
             process.arguments = ["-x", "-k", archiveURL.path, destinationFolder.path]
-        } else if ext == "tar" || ext == "tgz" || name.hasSuffix(".tar.gz") || name.hasSuffix(".tar.bz2") || name.hasSuffix(".tar.xz") {
+        } else if ext == "tar" || ext == "tgz" || isTarFamily(name: name) {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
             process.arguments = ["-xf", archiveURL.path, "-C", destinationFolder.path]
         } else {
@@ -79,7 +92,9 @@ public final class ArchiveService: Sendable {
         try process.run()
         process.waitUntilExit()
         if process.terminationStatus != 0 {
-            throw NSError(domain: "ArchiveService", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: "Extraction process failed."])
+            throw NSError(
+                domain: "ArchiveService", code: Int(process.terminationStatus),
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveExtractionFailed, lang: .system)])
         }
     }
 
@@ -87,5 +102,3 @@ public final class ArchiveService: Sendable {
         try extractArchive(archiveURL: archiveURL, to: destinationFolder)
     }
 }
-
-public typealias ZipArchiveService = ArchiveService

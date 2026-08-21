@@ -119,6 +119,9 @@ struct DiskUsageSidebarView: View {
                 appState.navigateTo(item.url)
             }
         }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(item.name)
+        .accessibilityHint(appState.tr(.diskUsageItemNavigateHint))
     }
 
     private func colorFor(_ item: DiskUsageItem) -> Color {

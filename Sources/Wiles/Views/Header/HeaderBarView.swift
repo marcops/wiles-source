@@ -164,7 +164,7 @@ struct HeaderBarView: View {
     }
 
     @ViewBuilder private var dateFilterButtons: some View {
-        Button("Modified Today (date:today)") {
+        Button(appState.tr(.filterModifiedToday)) {
             appState.searchQuery = "date:today"
             appState.refreshCurrentDirectory()
         }
@@ -172,7 +172,7 @@ struct HeaderBarView: View {
             appState.searchQuery = "date:7d"
             appState.refreshCurrentDirectory()
         }
-        Button("Modified Past 30 Days (date:30d)") {
+        Button(appState.tr(.filterModified30Days)) {
             appState.searchQuery = "date:30d"
             appState.refreshCurrentDirectory()
         }
@@ -227,6 +227,8 @@ struct HeaderBarView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain).help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")
+        .accessibilityLabel(appState.tr(.actSearch))
+        .accessibilityHint(appState.tr(.find))
     }
 
     private var searchEverywhereToggle: some View {
@@ -264,6 +266,13 @@ struct HeaderBarView: View {
         }
     }
 
+    private func accessibilityLabel(for mode: ViewMode) -> String {
+        switch mode {
+        case .grid: appState.tr(.gridView)
+        case .list: appState.tr(.listView)
+        }
+    }
+
     private var viewSwitcher: some View {
         HStack(spacing: 2) {
             if viewSwitcherExpanded {
@@ -298,6 +307,8 @@ struct HeaderBarView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier(accessibilityID(for: mode))
+            .accessibilityLabel(accessibilityLabel(for: mode))
+            .accessibilityHint(appState.tr(.viewMode))
             .transition(.scale(scale: 0.7).combined(with: .opacity))
         }
     }
@@ -317,6 +328,8 @@ struct HeaderBarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("View Mode")
+        .accessibilityLabel(accessibilityLabel(for: appState.preferences.viewMode))
+        .accessibilityHint(appState.tr(.viewMode))
         .transition(.scale(scale: 0.7).combined(with: .opacity))
     }
 }

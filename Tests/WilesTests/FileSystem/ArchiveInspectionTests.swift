@@ -136,7 +136,7 @@ public struct ArchiveInspectionTests {
         try? "test data for zip".write(to: fileToZip, atomically: true, encoding: .utf8)
 
         let zipURL = tempDir.appendingPathComponent("inspect_test_file.zip")
-        try? ZipArchiveService.compressToZIP(urls: [fileToZip], in: tempDir)
+        try? ArchiveService.compressToZIP(urls: [fileToZip], in: tempDir)
 
         let entries = await ArchiveInspectionService.listEntries(in: zipURL)
         TestReporter.report(

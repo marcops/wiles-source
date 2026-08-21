@@ -17,6 +17,13 @@ public enum LayoutTokens {
     public static let contentMinWidth: CGFloat = 400.0
     public static let windowMinWidth: CGFloat = 650.0
     public static let windowMinHeight: CGFloat = 450.0
+    public static let diskUsageSidebarMinWidth: CGFloat = 240.0
+    public static let previewSidebarMinWidth: CGFloat = 200.0
+    public static let terminalDrawerHeight: CGFloat = 200.0
+
+    // Footer Icon Size Control
+    public static let minIconSize: CGFloat = 36.0
+    public static let maxIconSize: CGFloat = 128.0
 
     // Table Columns
     public static let columnSizeWidth: CGFloat = 90.0
@@ -66,6 +73,7 @@ public enum LayoutTokens {
     // Lazy Loading
     public static let lazyLoadingBatchSize: Int = 100
     public static let paginationThreshold: Int = 500
+    public static let thumbnailPrefetchItemThreshold: Int = 500
 
     // Recursive Search
     public static let recursiveSearchResultLimit: Int = 2000

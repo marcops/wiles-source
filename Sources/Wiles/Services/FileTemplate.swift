@@ -21,12 +21,12 @@ public enum FileTemplate: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public var initialContent: String {
+    public func initialContent(language: AppLanguage) -> String {
         switch self {
         case .text: ""
-        case .markdown: "# Title\n\nContent goes here.\n"
+        case .markdown: L10n.string(.fileTemplateMarkdownContent, lang: language)
         case .swift: "import Foundation\n\n"
-        case .json: "{\n  \"key\": \"value\"\n}\n"
+        case .json: L10n.string(.fileTemplateJSONContent, lang: language)
         case .python: "#!/usr/bin/env python3\n\n"
         }
     }

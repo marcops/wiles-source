@@ -14,7 +14,7 @@ public struct DuplicateCleanerFeatureTests {
         try? content.write(to: fileA, atomically: true, encoding: .utf8)
         try? content.write(to: fileB, atomically: true, encoding: .utf8)
 
-        let scanResult = await DuplicateDetectionService.shared.findDuplicates(in: tempDir)
+        let scanResult = await DuplicateDetectionService.findDuplicates(in: tempDir)
         report("Feature/DuplicateCleaner", "POS: Duplicate scanner finds 1 duplicate group", result: scanResult.groups.count == 1)
         report("Feature/DuplicateCleaner", "POS: Reclaimable bytes > 0", result: scanResult.totalReclaimableBytes > 0)
     }

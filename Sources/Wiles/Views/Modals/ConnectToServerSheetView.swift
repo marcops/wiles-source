@@ -1,7 +1,10 @@
 import AppKit
+import GitBeacon
 import SwiftUI
 
 public struct ConnectToServerSheetView: View {
+    private static let maxRecentServers = 10
+
     var appState: AppState
     @Environment(\.dismiss)
     private var dismiss
@@ -37,9 +40,10 @@ public struct ConnectToServerSheetView: View {
     }
 
     private var addressField: some View {
-        TextField("smb://server/share", text: $serverAddress)
+        TextField(appState.tr(.serverAddressPlaceholder), text: $serverAddress)
             .textFieldStyle(.roundedBorder)
             .frame(width: 320)
+            .accessibilityLabel(appState.tr(.connectToServer))
     }
 
     private var recentServersSection: some View {
@@ -81,8 +85,8 @@ public struct ConnectToServerSheetView: View {
         var history = recentServers
         history.removeAll { $0 == address }
         history.insert(address, at: 0)
-        if history.count > 10 {
-            history = Array(history.prefix(10))
+        if history.count > Self.maxRecentServers {
+            history = Array(history.prefix(Self.maxRecentServers))
         }
         UserDefaults.standard.set(history, forKey: DefaultsKey.recentConnectServers.rawValue)
 
@@ -90,6 +94,7 @@ public struct ConnectToServerSheetView: View {
             try NetworkServerService.connectToServer(urlAddress: address)
             dismiss()
         } catch {
+            ErrorReporter.report(error, context: "Connecting to server \(address)")
             appState.showError(error.localizedDescription)
         }
     }

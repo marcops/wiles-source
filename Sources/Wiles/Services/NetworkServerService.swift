@@ -17,7 +17,7 @@ public struct NetworkServerService {
         }
 
         guard let url = URL(string: fullAddress) else {
-            throw NSError(domain: "NetworkServerService", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid server URL"])
+            throw NSError(domain: "NetworkServerService", code: 400, userInfo: [NSLocalizedDescriptionKey: L10n.string(.invalidServerURL, lang: .system)])
         }
 
         opener.open(url)

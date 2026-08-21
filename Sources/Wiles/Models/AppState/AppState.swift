@@ -2,6 +2,13 @@ import GitBeacon
 import Observation
 import SwiftUI
 
+/// AppState is @MainActor-isolated (see the annotation below); @unchecked Sendable exists only to
+/// satisfy `Task.detached`'s requirement that its `@Sendable` closure's captures conform to
+/// Sendable — `self`/`[weak self]` is captured this way throughout this file and
+/// AppState+Navigation.swift/AppState+Operations.swift/AppState+ColumnsAndActions.swift. In every
+/// one of those closures, `self`'s mutable state is only ever read or written after hopping back
+/// via `await MainActor.run { ... }` (or `Task { @MainActor in ... }`) — never directly inside the
+/// detached body — so all real mutation stays confined to the main actor.
 @Observable
 @MainActor
 public final class AppState: @unchecked Sendable {
@@ -31,11 +38,18 @@ public final class AppState: @unchecked Sendable {
     /// `FileSystemService` operations: known `WilesError` cases get a real localized message via
     /// `appState.tr(...)` instead of surfacing an unlocalized system/English string.
     public func showError(_ error: Error) {
-        if case .itemAlreadyInDestination = error as? WilesError {
-            showError(tr(.itemAlreadyInDestination))
+        if let wilesError = error as? WilesError {
+            showError(wilesError.localizedMessage(lang: preferences.appLanguage))
         } else {
             showError(error.localizedDescription)
         }
+    }
+
+    /// Builds a menu-item label combining a localized action name with its keyboard-shortcut hint
+    /// (e.g. "Paste (Cmd+V)"). The shortcut itself is a keyboard symbol, not translated prose — this
+    /// only centralizes the "(...)" wrapping previously hand-concatenated at each call site.
+    public func trWithShortcutHint(_ key: L10n.Key, shortcut: String) -> String {
+        "\(tr(key)) (\(shortcut))"
     }
 
     // MARK: - Operational State
@@ -117,9 +131,9 @@ public final class AppState: @unchecked Sendable {
             let totalFilesSize = fileSystem.items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
             if totalFilesSize > 0 {
                 let formattedSize = ByteCountFormatter.string(fromByteCount: totalFilesSize, countStyle: .file)
-                return "\(totalCount) \(totalCount == 1 ? "item" : "itens") (\(formattedSize))"
+                return String(format: tr(.itemsCountWithSize), totalCount, formattedSize)
             }
-            return "\(totalCount) \(totalCount == 1 ? "item" : "itens")"
+            return String(format: tr(.itemsCount), totalCount)
         } else {
             let selItems = fileSystem.items.filter { selectedURLs.contains($0.url) }
             let selFilesSize = selItems.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
@@ -303,6 +317,7 @@ public final class AppState: @unchecked Sendable {
                 let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
                 await MainActor.run { [weak self] in
                     self?.transient.trashSizeString = sizeStr
+                    self?.transient.trashSizeBytes = totalSize
                     self?.transient.isTrashUpdating = false
                 }
             case .noTrash:
@@ -332,8 +347,8 @@ public final class AppState: @unchecked Sendable {
             await MainActor.run { [weak self] in
                 self?.updateTrashSize()
                 self?.refreshCurrentDirectory()
-                if failedCount > 0 {
-                    self?.showError("Failed to permanently delete \(failedCount) item(s) from Trash.")
+                if failedCount > 0, let self {
+                    showError(String(format: tr(.emptyTrashDeleteFailed), failedCount))
                 }
             }
         }

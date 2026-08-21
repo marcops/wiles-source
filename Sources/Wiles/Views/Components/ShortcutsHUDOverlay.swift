@@ -163,41 +163,41 @@ struct ShortcutsHUDOverlay: View {
     private func navigationShortcuts(for mode: NavigationMode) -> [(String, String)] {
         if mode == .macOS {
             [
-                (appState.tr(.actNavBackForward), "⌘ [  /  ⌘ ]"),
-                (appState.tr(.actParentFolder), "⌘ ↑"),
-                (appState.tr(.shortcutsOpenFolder), "⌘ ↓")
+                (appState.tr(.actNavBackForward), KeyLabel.cmdBracketNavigation),
+                (appState.tr(.actParentFolder), KeyLabel.cmdUpArrow),
+                (appState.tr(.shortcutsOpenFolder), KeyLabel.cmdDownArrow)
             ]
         } else {
             [
-                (appState.tr(.actNavBackForward), "⌘ [  /  ⌘ ]"),
-                (appState.tr(.actParentFolder), "Backspace"),
-                (appState.tr(.shortcutsOpenFolder), "Enter")
+                (appState.tr(.actNavBackForward), KeyLabel.cmdBracketNavigation),
+                (appState.tr(.actParentFolder), KeyLabel.backspace),
+                (appState.tr(.shortcutsOpenFolder), KeyLabel.enter)
             ]
         }
     }
 
     private func fileActionsShortcuts(for mode: NavigationMode) -> [(String, String)] {
-        let renameKey = mode == .gnome ? "F2" : "Return"
+        let renameKey = mode == .gnome ? KeyLabel.f2 : KeyLabel.returnKey
         return [
-            (appState.tr(.actCopyShortcut), "⌘ C"),
-            (appState.tr(.actCutShortcut), "⌘ X"),
-            (appState.tr(.actPasteShortcut), "⌘ V"),
+            (appState.tr(.actCopyShortcut), KeyLabel.cmdC),
+            (appState.tr(.actCutShortcut), KeyLabel.cmdX),
+            (appState.tr(.actPasteShortcut), KeyLabel.cmdV),
             (appState.tr(.shortcutsRename), renameKey),
-            (appState.tr(.actQuickLook), "Space"),
-            (appState.tr(.actItemProperties), "⌘ I"),
-            (appState.tr(.actNewFolderShortcut), "⌘ Shift N"),
-            (appState.tr(.actMoveTrash), "⌘ Delete")
+            (appState.tr(.actQuickLook), KeyLabel.space),
+            (appState.tr(.actItemProperties), KeyLabel.cmdI),
+            (appState.tr(.actNewFolderShortcut), KeyLabel.cmdShiftN),
+            (appState.tr(.actMoveTrash), KeyLabel.cmdDelete)
         ]
     }
 
     private func systemShortcuts(for mode: NavigationMode) -> [(String, String)] {
-        let hiddenKey = mode == .gnome ? "Ctrl + H" : "⌘ Shift ."
+        let hiddenKey = mode == .gnome ? KeyLabel.ctrlH : KeyLabel.cmdShiftPeriod
         return [
-            (appState.tr(.actSearch), "⌘ F"),
+            (appState.tr(.actSearch), KeyLabel.cmdF),
             (appState.tr(.shortcutsToggleHidden), hiddenKey),
-            (appState.tr(.actUndo), "⌘ Z"),
-            (appState.tr(.actRedo), "⌘ Shift Z"),
-            (appState.tr(.shortcutsToggleOverlay), "⌘ /")
+            (appState.tr(.actUndo), KeyLabel.cmdZ),
+            (appState.tr(.actRedo), KeyLabel.cmdShiftZ),
+            (appState.tr(.shortcutsToggleOverlay), KeyLabel.cmdSlash)
         ]
     }
 
@@ -205,16 +205,16 @@ struct ShortcutsHUDOverlay: View {
     /// (the per-mode tabs stay focused on the shortcuts that actually differ between modes).
     private var generalShortcuts: [(String, String)] {
         [
-            (appState.tr(.settingsMenuItem), "⌘ ,"),
-            (appState.tr(.newWindow), "⌘ N"),
-            (appState.tr(.close), "⌘ W"),
-            (appState.tr(.open), "⌘ O"),
-            (appState.tr(.actToggleTerminal), "⌘ J"),
-            (appState.tr(.actTogglePreview), "⌘ Shift P"),
-            (appState.tr(.goToFolder), "⌘ L"),
-            (appState.tr(.actConnectServer), "⌘ K"),
-            (appState.tr(.actDiskVisualizer), "⌘ Shift D"),
-            (appState.tr(.wilesHelpAndShortcuts), "⌘ ?")
+            (appState.tr(.settingsMenuItem), KeyLabel.cmdComma),
+            (appState.tr(.newWindow), KeyLabel.cmdN),
+            (appState.tr(.close), KeyLabel.cmdW),
+            (appState.tr(.open), KeyLabel.cmdO),
+            (appState.tr(.actToggleTerminal), KeyLabel.cmdJ),
+            (appState.tr(.actTogglePreview), KeyLabel.cmdShiftP),
+            (appState.tr(.goToFolder), KeyLabel.cmdL),
+            (appState.tr(.actConnectServer), KeyLabel.cmdK),
+            (appState.tr(.actDiskVisualizer), KeyLabel.cmdShiftD),
+            (appState.tr(.wilesHelpAndShortcuts), KeyLabel.cmdQuestionMark)
         ]
     }
 
@@ -222,7 +222,10 @@ struct ShortcutsHUDOverlay: View {
     /// "All" tab: identical bindings collapse to a single row, differing ones show both labeled.
     private func merged(_ macList: [(String, String)], _ windowsList: [(String, String)]) -> [(String, String)] {
         zip(macList, windowsList).map { mac, windows in
-            mac.1 == windows.1 ? mac : (mac.0, "\(mac.1) (Mac)  ·  \(windows.1) (Windows)")
+            guard mac.1 != windows.1 else { return mac }
+            let macLabel = String(format: appState.tr(.shortcutMacSuffixFormat), mac.1)
+            let windowsLabel = String(format: appState.tr(.shortcutWindowsSuffixFormat), windows.1)
+            return (mac.0, "\(macLabel)  ·  \(windowsLabel)")
         }
     }
 

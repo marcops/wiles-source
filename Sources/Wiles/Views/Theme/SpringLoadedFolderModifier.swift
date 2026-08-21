@@ -30,7 +30,7 @@ public struct SpringLoadedFolderModifier: ViewModifier {
                 springTask?.cancel()
                 if targeted {
                     springTask = Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(750))
+                        try? await Task.sleep(for: AsyncDelayTokens.springLoadedFolderDelay)
                         if !Task.isCancelled {
                             withAnimation(MotionTokens.snappySpring) {
                                 appState.navigateTo(folderURL)
@@ -38,6 +38,11 @@ public struct SpringLoadedFolderModifier: ViewModifier {
                         }
                     }
                 }
+            }
+            .onDisappear {
+                // Without this, a pending spring-load delay outlives a row that scrolled out of
+                // the hierarchy mid-drag and still fires `navigateTo` on a now-invisible view.
+                springTask?.cancel()
             }
     }
 }

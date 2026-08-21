@@ -11,12 +11,12 @@ public enum ImageFormat: String, CaseIterable, Identifiable, Sendable {
         rawValue
     }
 
-    public var displayName: String {
+    public var l10nKey: L10n.Key {
         switch self {
-        case .jpeg: "JPEG (.jpg)"
-        case .png: "PNG (.png)"
-        case .heic: "HEIC (.heic)"
-        case .tiff: "TIFF (.tiff)"
+        case .jpeg: .imageFormatJPEG
+        case .png: .imageFormatPNG
+        case .heic: .imageFormatHEIC
+        case .tiff: .imageFormatTIFF
         }
     }
 

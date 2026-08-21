@@ -11,13 +11,13 @@ public enum CropPreset: String, CaseIterable, Identifiable, Sendable {
         rawValue
     }
 
-    public var displayName: String {
+    public var l10nKey: L10n.Key {
         switch self {
-        case .none: "No Crop (Full Image)"
-        case .square1x1: "1:1 Square"
-        case .landscape16x9: "16:9 Landscape"
-        case .portrait9x16: "9:16 Portrait"
-        case .standard4x3: "4:3 Standard"
+        case .none: .cropPresetNone
+        case .square1x1: .cropPresetSquare1x1
+        case .landscape16x9: .cropPresetLandscape16x9
+        case .portrait9x16: .cropPresetPortrait9x16
+        case .standard4x3: .cropPresetStandard4x3
         }
     }
 }

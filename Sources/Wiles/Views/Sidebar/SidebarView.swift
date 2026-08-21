@@ -18,7 +18,7 @@ struct SidebarView: View {
             SidebarItem(name: appState.tr(.applications), iconName: "square.grid.3x3.fill", url: URL(fileURLWithPath: "/Applications")),
             SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: airDrop),
             SidebarItem(name: appState.tr(.iCloudDrive), iconName: "icloud.fill", url: cloudDocs),
-            SidebarItem(name: "Macintosh HD", iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/")),
+            SidebarItem(name: appState.tr(.macintoshHDName), iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/")),
             SidebarItem(name: appState.tr(.sidebarTrash), iconName: "trash.fill", url: trashURL)
         ]
     }
@@ -89,7 +89,7 @@ struct SidebarView: View {
         let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
             SidebarItem(name: $0.name, iconName: "network", url: $0.url)
         }
-        var list = [SidebarItem(name: "Network", iconName: "network", url: URL(fileURLWithPath: "/Network"))]
+        var list = [SidebarItem(name: appState.tr(.networkVolumeName), iconName: "network", url: URL(fileURLWithPath: "/Network"))]
         list.append(contentsOf: networkShares)
         return list
     }
@@ -228,6 +228,9 @@ struct SidebarView: View {
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 8)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(appState.tr(colorKey))
+        .accessibilityHint(appState.tr(.tags))
     }
 
     private func collapsibleSection(
@@ -274,7 +277,7 @@ struct SidebarView: View {
         case home.appendingPathComponent("Pictures").path: (appState.tr(.pictures), "photo.fill")
         case home.appendingPathComponent("Movies").path: (appState.tr(.movies), "film.fill")
         case home.appendingPathComponent(".Trash").path: (appState.tr(.sidebarTrash), "trash.fill")
-        case "/": ("Macintosh HD", "internaldrive.fill")
+        case "/": (appState.tr(.macintoshHDName), "internaldrive.fill")
         default: nil
         }
     }

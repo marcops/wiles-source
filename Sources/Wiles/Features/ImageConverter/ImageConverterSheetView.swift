@@ -1,6 +1,15 @@
 import SwiftUI
 
 struct ImageConverterSheetView: View {
+    private static let sheetWidth: CGFloat = 420
+    private static let pickerLabelWidth: CGFloat = 130
+    private static let labelFontSize: CGFloat = 12
+    private static let qualityValueFontSize: CGFloat = 11
+    private static let qualityValueWidth: CGFloat = 40
+    private static let defaultJPEGQuality: Double = 0.85
+    private static let qualitySliderRange: ClosedRange<Double> = 0.1 ... 1.0
+    private static let qualitySliderStep: Double = 0.05
+
     let item: FileItem
     var appState: AppState
 
@@ -9,16 +18,14 @@ struct ImageConverterSheetView: View {
     @State private var targetFormat: ImageFormat = .jpeg
     @State private var preset: ResizePreset = .original
     @State private var cropPreset: CropPreset = .none
-    @State private var quality: Double = 0.85
-
-    @State private var loadedNSImage: NSImage?
+    @State private var quality: Double = Self.defaultJPEGQuality
 
     var body: some View {
         ModalScaffoldView(
             icon: .image(item.icon),
             title: item.name,
             subtitle: item.formattedSize,
-            width: 420,
+            width: Self.sheetWidth,
             primaryButton: ModalFooterButton(title: appState.tr(.convert)) {
                 appState.performImageConversion(
                     item: item,
@@ -30,15 +37,6 @@ struct ImageConverterSheetView: View {
             },
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             content: { settingsSection })
-            .onAppear {
-                let url = item.url
-                Task.detached(priority: .userInitiated) {
-                    let img = NSImage(contentsOf: url)
-                    await MainActor.run {
-                        loadedNSImage = img
-                    }
-                }
-            }
     }
 
     private var settingsSection: some View {
@@ -56,11 +54,11 @@ struct ImageConverterSheetView: View {
     private var formatPickerRow: some View {
         HStack {
             Text(appState.tr(.targetFormat) + ":")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 130, alignment: .leading)
+                .font(.system(size: Self.labelFontSize, weight: .semibold))
+                .frame(width: Self.pickerLabelWidth, alignment: .leading)
             Picker("", selection: $targetFormat) {
                 ForEach(ImageFormat.allCases) { fmt in
-                    Text(fmt.displayName).tag(fmt)
+                    Text(appState.tr(fmt.l10nKey)).tag(fmt)
                 }
             }
             .pickerStyle(.menu)
@@ -70,11 +68,11 @@ struct ImageConverterSheetView: View {
     private var cropPickerRow: some View {
         HStack {
             Text(appState.tr(.cropPreset) + ":")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 130, alignment: .leading)
+                .font(.system(size: Self.labelFontSize, weight: .semibold))
+                .frame(width: Self.pickerLabelWidth, alignment: .leading)
             Picker("", selection: $cropPreset) {
                 ForEach(CropPreset.allCases) { cropOption in
-                    Text(cropOption.displayName).tag(cropOption)
+                    Text(appState.tr(cropOption.l10nKey)).tag(cropOption)
                 }
             }
             .pickerStyle(.menu)
@@ -84,11 +82,11 @@ struct ImageConverterSheetView: View {
     private var resizePickerRow: some View {
         HStack {
             Text(appState.tr(.resizePreset) + ":")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 130, alignment: .leading)
+                .font(.system(size: Self.labelFontSize, weight: .semibold))
+                .frame(width: Self.pickerLabelWidth, alignment: .leading)
             Picker("", selection: $preset) {
                 ForEach(ResizePreset.allCases) { resizePreset in
-                    Text(resizePreset.displayName).tag(resizePreset)
+                    Text(appState.tr(resizePreset.l10nKey)).tag(resizePreset)
                 }
             }
             .pickerStyle(.menu)
@@ -98,12 +96,12 @@ struct ImageConverterSheetView: View {
     private var qualitySliderRow: some View {
         HStack {
             Text(appState.tr(.quality) + ":")
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 130, alignment: .leading)
-            Slider(value: $quality, in: 0.1 ... 1.0, step: 0.05)
+                .font(.system(size: Self.labelFontSize, weight: .semibold))
+                .frame(width: Self.pickerLabelWidth, alignment: .leading)
+            Slider(value: $quality, in: Self.qualitySliderRange, step: Self.qualitySliderStep)
             Text("\(Int(quality * 100))%")
-                .font(.system(size: 11, design: .monospaced))
-                .frame(width: 40)
+                .font(.system(size: Self.qualityValueFontSize, design: .monospaced))
+                .frame(width: Self.qualityValueWidth)
         }
     }
 }

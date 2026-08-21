@@ -112,6 +112,7 @@ struct FeedbackSheetView: View {
         .allowsHitTesting(!isSubmitting)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
         .accessibilityLabel(label)
+        .accessibilityHint(appState.tr(.feedbackKindSelectionHint))
     }
 
     private var descriptionField: some View {
@@ -119,6 +120,7 @@ struct FeedbackSheetView: View {
             .scrollContentBackground(.hidden)
             .disabled(isSubmitting)
             .accessibilityLabel(appState.tr(.feedbackDescriptionPlaceholder))
+            .accessibilityHint(appState.tr(.feedbackDescriptionFieldHint))
             .overlay(alignment: .topLeading) {
                 if requestDescription.isEmpty {
                     Text(appState.tr(.feedbackDescriptionPlaceholder))
@@ -157,6 +159,7 @@ struct FeedbackSheetView: View {
             _ = try await UserReportReporter.submit(UserReport(kind: kind, title: title, description: requestDescription))
             didSucceed = true
         } catch {
+            ErrorReporter.report(error, context: "Submitting user feedback")
             submitError = error.localizedDescription
         }
         isSubmitting = false

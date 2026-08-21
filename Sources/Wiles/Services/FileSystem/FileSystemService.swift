@@ -8,8 +8,12 @@ public extension URL {
 }
 
 public struct FileSystemService: FileSystemServiceProtocol, Sendable {
+    /// Mirrors `AppState.recentsVirtualURL.path` — kept as a separate literal here because
+    /// `AppState` is `@MainActor`-isolated and this function runs off the main actor.
+    private static let virtualRecentsPath = "/virtual/recents"
+
     public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
-        if url.path == "/virtual/recents" {
+        if url.path == virtualRecentsPath {
             return await loadRecentsVirtualDirectory(options: options)
         }
         return await loadRealDirectoryContents(at: url, options: options)

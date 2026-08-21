@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-public final class FilePermissionsService: FilePermissionsServiceProtocol, Sendable {
+public enum FilePermissionsService: FilePermissionsServiceProtocol, Sendable {
     public static func getPermissions(for url: URL) -> POSIXPermissions? {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
               let posix = attrs[.posixPermissions] as? NSNumber else { return nil }

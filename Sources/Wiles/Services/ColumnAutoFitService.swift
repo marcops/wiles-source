@@ -4,6 +4,10 @@ import Foundation
 /// Dedicated service responsible for calculating optimal auto-fit column widths based on item content and headers.
 @MainActor
 public final class ColumnAutoFitService {
+    private static let columnHeaderFontSize: CGFloat = 11
+    private static let columnCellFontSize: CGFloat = 12
+    private static let columnNameFontSize: CGFloat = 13
+
     /// - Parameters:
     ///   - items: The currently listed file items whose content widths are measured.
     ///   - iconSize: The user's configured list icon size preference (pre-scale/pre-clamp), used only
@@ -22,7 +26,7 @@ public final class ColumnAutoFitService {
 
     private static func calculateHeaderWidth(for column: ListColumn, language: AppLanguage) -> CGFloat {
         let title = L10n.string(localizationKey(for: column), lang: language)
-        let font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        let font = NSFont.systemFont(ofSize: columnHeaderFontSize, weight: .semibold)
         return measureText(title, font: font) + LayoutTokens.columnHeaderExtraPadding
     }
 
@@ -35,19 +39,13 @@ public final class ColumnAutoFitService {
         return measureText(spec.text, font: spec.font) + spec.extraPadding
     }
 
-    private struct ColumnTextSpec {
-        let text: String
-        let font: NSFont
-        let extraPadding: CGFloat
-    }
-
     private static func itemTextFontAndPadding(
         for item: FileItem,
         column: ListColumn,
         iconSize: Double,
         language: AppLanguage) -> ColumnTextSpec {
-        let font12 = NSFont.systemFont(ofSize: 12, weight: .regular)
-        let font13Bold = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        let font12 = NSFont.systemFont(ofSize: columnCellFontSize, weight: .regular)
+        let font13Bold = NSFont.systemFont(ofSize: columnNameFontSize, weight: .semibold)
 
         switch column {
         case .name:

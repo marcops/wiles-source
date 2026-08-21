@@ -29,19 +29,20 @@ extension FocusedValues {
     }
 }
 
-/// Scalar mirror of `windowUIState.renameItem != nil`, published from inside `MainContentView.body`
-/// so reading `renameItem` there establishes an `@Observable` dependency and forces `body` (and thus
-/// this republish) to re-run when rename starts/ends. `Commands` scene rebuilding only reacts to an
-/// actual change in a published `FocusedValues` entry — reading a nested mutable property of the
-/// stable `windowUIState` object reference inside `WilesApp` does not, since `Commands` doesn't
-/// observe `@Observable` mutations on an already-published reference the way a `View.body` does.
-private struct IsRenamingActiveKey: FocusedValueKey {
+/// Scalar mirror of `windowUIState.renameItem != nil || windowUIState.isEditingPath`, published
+/// from inside `MainContentView.body` so reading those properties there establishes an
+/// `@Observable` dependency and forces `body` (and thus this republish) to re-run when either kind
+/// of in-app text editing starts/ends. `Commands` scene rebuilding only reacts to an actual change
+/// in a published `FocusedValues` entry — reading a nested mutable property of the stable
+/// `windowUIState` object reference inside `WilesApp` does not, since `Commands` doesn't observe
+/// `@Observable` mutations on an already-published reference the way a `View.body` does.
+private struct IsTextFieldEditingActiveKey: FocusedValueKey {
     typealias Value = Bool
 }
 
 extension FocusedValues {
-    var isRenamingActive: Bool? {
-        get { self[IsRenamingActiveKey.self] }
-        set { self[IsRenamingActiveKey.self] = newValue }
+    var isTextFieldEditingActive: Bool? {
+        get { self[IsTextFieldEditingActiveKey.self] }
+        set { self[IsTextFieldEditingActiveKey.self] = newValue }
     }
 }

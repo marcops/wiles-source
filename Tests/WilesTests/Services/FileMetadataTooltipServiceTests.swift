@@ -61,7 +61,7 @@ public struct FileMetadataTooltipServiceTests {
         makePNG(width: 48, height: 24, at: file)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -78,7 +78,7 @@ public struct FileMetadataTooltipServiceTests {
         try? "hello world".write(to: file, atomically: true, encoding: .utf8)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -92,7 +92,7 @@ public struct FileMetadataTooltipServiceTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let item = FileItem(url: dir, icon: NSWorkspace.shared.icon(forFile: dir.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -123,7 +123,7 @@ public struct FileMetadataTooltipServiceTests {
         makePDF(pageCount: 3, at: file)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -140,7 +140,7 @@ public struct FileMetadataTooltipServiceTests {
         makePDF(pageCount: 1, at: file)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -157,7 +157,7 @@ public struct FileMetadataTooltipServiceTests {
         try? "this is not a real pdf".write(to: file, atomically: true, encoding: .utf8)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -174,7 +174,7 @@ public struct FileMetadataTooltipServiceTests {
         try? "this is not a real image".write(to: file, atomically: true, encoding: .utf8)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -191,7 +191,7 @@ public struct FileMetadataTooltipServiceTests {
         try? "hello".write(to: file, atomically: true, encoding: .utf8)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -208,7 +208,7 @@ public struct FileMetadataTooltipServiceTests {
         try? "hello".write(to: file, atomically: true, encoding: .utf8)
 
         let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let tooltip = await FileMetadataTooltipService.tooltip(for: item)
+        let tooltip = await FileMetadataTooltipService.tooltip(for: item, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -227,7 +227,7 @@ public struct FileMetadataTooltipServiceTests {
         let file = dir.appendingPathComponent("invalidate_test.txt")
         try? Data(repeating: 0x61, count: 10).write(to: file)
         let smallItem = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let firstTooltip = await FileMetadataTooltipService.tooltip(for: smallItem)
+        let firstTooltip = await FileMetadataTooltipService.tooltip(for: smallItem, language: .english)
 
         try? Data(repeating: 0x62, count: 100_000).write(to: file)
         // `URL.resourceValues(forKeys:)` caches results on the URL value itself, so re-using the
@@ -236,7 +236,7 @@ public struct FileMetadataTooltipServiceTests {
         // uncached stat read of the file's current on-disk size.
         let largeFileURL = URL(fileURLWithPath: file.path)
         let largeItem = FileItem(url: largeFileURL, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let staleTooltip = await FileMetadataTooltipService.tooltip(for: largeItem)
+        let staleTooltip = await FileMetadataTooltipService.tooltip(for: largeItem, language: .english)
 
         report(
             "FileMetadataTooltipService",
@@ -244,7 +244,7 @@ public struct FileMetadataTooltipServiceTests {
             result: staleTooltip == firstTooltip)
 
         FileMetadataTooltipService.invalidate(url: largeItem.url)
-        let freshTooltip = await FileMetadataTooltipService.tooltip(for: largeItem)
+        let freshTooltip = await FileMetadataTooltipService.tooltip(for: largeItem, language: .english)
 
         report(
             "FileMetadataTooltipService",

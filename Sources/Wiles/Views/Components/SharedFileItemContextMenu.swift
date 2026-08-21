@@ -20,7 +20,7 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var openSection: some View {
         Button(appState.tr(.open)) { appState.navigateTo(item.url) }
-        Button("\(appState.tr(.quickLook)) (Space)") { windowUIState.quickLookURL = item.url }
+        Button(appState.trWithShortcutHint(.quickLook, shortcut: "Space")) { windowUIState.quickLookURL = item.url }
         Menu(appState.tr(.openWith)) {
             openWithMenuContent
         }
@@ -51,13 +51,13 @@ struct SharedFileItemContextMenu: View {
     }
 
     @ViewBuilder private var clipboardSection: some View {
-        Button("\(appState.tr(.cut)) (Cmd+X)") {
+        Button(appState.trWithShortcutHint(.cut, shortcut: "Cmd+X")) {
             if !appState.selectedURLs.contains(item.url) {
                 appState.selectedURLs = [item.url]
             }
             appState.cutSelected()
         }
-        Button("\(appState.tr(.copy)) (Cmd+C)") {
+        Button(appState.trWithShortcutHint(.copy, shortcut: "Cmd+C")) {
             if !appState.selectedURLs.contains(item.url) {
                 appState.selectedURLs = [item.url]
             }
@@ -66,7 +66,7 @@ struct SharedFileItemContextMenu: View {
         Menu(appState.tr(.copyPath)) {
             copyPathMenuContent
         }
-        Button("\(appState.tr(.paste)) (Cmd+V)") { appState.pasteToCurrentDirectory() }
+        Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { appState.pasteToCurrentDirectory() }
     }
 
     @ViewBuilder private var copyPathMenuContent: some View {
@@ -90,7 +90,7 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var contentActionsSection: some View {
         if !item.isDirectory {
-            Button("\(appState.tr(.copyContent)) (#10)") {
+            Button(appState.trWithShortcutHint(.copyContent, shortcut: "#10")) {
                 if !appState.selectedURLs.contains(item.url) {
                     appState.selectedURLs = [item.url]
                 }
@@ -162,7 +162,7 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var destructiveActionsSection: some View {
         Divider()
-        Button("\(appState.tr(.rename)) \(renameKeyboardHint)") {
+        Button(appState.trWithShortcutHint(.rename, shortcut: renameKeyboardHint)) {
             if !appState.selectedURLs.contains(item.url) {
                 appState.selectedURLs = [item.url]
             }
@@ -178,7 +178,7 @@ struct SharedFileItemContextMenu: View {
             }
             appState.deleteSelected(windowUIState: windowUIState)
         }
-        Button("\(appState.tr(.deleteImmediately)) (Opt+Cmd+Del)", role: .destructive) {
+        Button(appState.trWithShortcutHint(.deleteImmediately, shortcut: "Opt+Cmd+Del"), role: .destructive) {
             if !appState.selectedURLs.contains(item.url) {
                 appState.selectedURLs = [item.url]
             }
@@ -204,7 +204,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var renameKeyboardHint: String {
-        appState.preferences.navigationMode == .gnome ? "(F2)" : "(Return)"
+        appState.preferences.navigationMode == .gnome ? "F2" : "Return"
     }
 
     @ViewBuilder private var shareTagsPropertiesSection: some View {
@@ -218,7 +218,7 @@ struct SharedFileItemContextMenu: View {
                 tagsMenuContent
             }
         }
-        Button("\(appState.tr(.properties)) (Cmd+I)") {
+        Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {
             if !appState.selectedURLs.contains(item.url) {
                 appState.selectedURLs = [item.url]
             }

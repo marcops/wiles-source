@@ -28,5 +28,7 @@ struct PasswordCompressSheetView: View {
         SecureField(appState.tr(.enterPassword), text: $password)
             .textFieldStyle(.roundedBorder)
             .padding(20)
+            .accessibilityLabel(appState.tr(.enterPassword))
+            .accessibilityHint(appState.tr(.archivePasswordFieldHint))
     }
 }

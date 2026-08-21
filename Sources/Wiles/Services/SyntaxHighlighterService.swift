@@ -3,9 +3,9 @@ import Foundation
 import SwiftUI
 
 public struct SyntaxHighlighterService: Sendable {
-    public static func highlightCode(content: String, fileExtension: String) -> AttributedString {
+    public static func highlightCode(content: String, fileExtension: String, language: AppLanguage) -> AttributedString {
         let maxChars = 10000
-        let truncatedContent = content.count > maxChars ? String(content.prefix(maxChars)) + "\n... (truncated)" : content
+        let truncatedContent = content.count > maxChars ? String(content.prefix(maxChars)) + L10n.string(.syntaxTruncatedNotice, lang: language) : content
 
         var attributed = AttributedString(truncatedContent)
         attributed.font = Font.system(size: 11, design: .monospaced)

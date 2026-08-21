@@ -3,6 +3,10 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct PathBarView: View {
+    /// Hard cap on ancestor-walk iterations while building the breadcrumb trail, guarding
+    /// against an unbounded loop if a pathological URL never reaches "/".
+    private static let maxPathDepth = 50
+
     var appState: AppState
     @Environment(WindowUIState.self)
     private var windowUIState
@@ -14,7 +18,7 @@ struct PathBarView: View {
         var res: [(name: String, url: URL)] = []
         var cur = appState.navigation.currentURL.standardizedFileURL
         var depth = 0
-        while depth < 50 {
+        while depth < Self.maxPathDepth {
             let name: String = if cur.path == "/" {
                 appState.tr(.root)
             } else if cur.standardizedFileURL == URL.userTrash.standardizedFileURL {

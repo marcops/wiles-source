@@ -25,7 +25,7 @@ struct MainContentView: View {
         .environment(windowUIState)
         .focusedSceneValue(\.windowUIState, windowUIState)
         .focusedSceneValue(\.appState, appState)
-        .focusedSceneValue(\.isRenamingActive, windowUIState.renameItem != nil)
+        .focusedSceneValue(\.isTextFieldEditingActive, windowUIState.renameItem != nil || windowUIState.isEditingPath)
         .onAppear {
             guard !didAdoptSharedStores else { return }
             didAdoptSharedStores = true
@@ -209,7 +209,7 @@ struct MainContentView: View {
         if appState.preferences.showTerminalDrawer {
             Divider()
             IntegratedTerminalView(appState: appState)
-                .frame(height: 200)
+                .frame(height: LayoutTokens.terminalDrawerHeight)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
@@ -227,9 +227,9 @@ struct MainContentView: View {
     /// a pane below its own declared `.frame(minWidth:)`.
     private var effectiveWindowMinWidth: CGFloat {
         let inspectorMinWidth: CGFloat = if appState.preferences.showDiskUsageSidebar {
-            240
+            LayoutTokens.diskUsageSidebarMinWidth
         } else if appState.preferences.showPreviewSidebar {
-            200
+            LayoutTokens.previewSidebarMinWidth
         } else {
             0
         }
@@ -293,12 +293,6 @@ struct MainContentView: View {
         }
         .onDeleteCommand {
             appState.deleteSelected(windowUIState: windowUIState)
-        }
-    }
-
-    private func triggerRenameForSelected() {
-        if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
-            windowUIState.renameItem = item
         }
     }
 

@@ -50,7 +50,7 @@ struct FileGridCardItemView: View {
             // layout size, floating above whatever is below it instead of pushing it away.
             .zIndex(isRenaming ? 2 : (isSel ? 1 : 0))
             .contentShape(Rectangle())
-            .fileMetadataTooltip(item)
+            .fileMetadataTooltip(item, language: appState.preferences.appLanguage)
             .accessibilityLabel(item.name)
             .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
             .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
@@ -60,7 +60,7 @@ struct FileGridCardItemView: View {
     private func cardVStack(isSel: Bool) -> some View {
         VStack(spacing: 6) {
             FileItemIconView(item: item, size: iconSize, isOpenTargeted: isDropTargeted)
-                .overlay(ICloudStatusBadgeView(item: item).padding(2), alignment: .topTrailing)
+                .overlay(ICloudStatusBadgeView(item: item, appState: appState).padding(2), alignment: .topTrailing)
             cardLabel(isSel: isSel)
             if appState.preferences.showTags, !item.tags.isEmpty {
                 tagsView

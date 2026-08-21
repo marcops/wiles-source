@@ -4,7 +4,8 @@ public struct NewFileTemplateService: Sendable {
     public static func createTemplateFile(
         in folderURL: URL,
         fileName: String,
-        template: FileTemplate) throws -> URL {
+        template: FileTemplate,
+        language: AppLanguage = .system) throws -> URL {
         let trimmed = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalName = trimmed.isEmpty ? template.defaultFileName : trimmed
 
@@ -14,7 +15,7 @@ public struct NewFileTemplateService: Sendable {
         }
 
         let uniqueURL = generateUniqueURL(for: targetURL)
-        let contentData = template.initialContent.data(using: .utf8) ?? Data()
+        let contentData = template.initialContent(language: language).data(using: .utf8) ?? Data()
         try contentData.write(to: uniqueURL, options: .atomic)
         return uniqueURL
     }

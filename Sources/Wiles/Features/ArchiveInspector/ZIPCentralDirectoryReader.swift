@@ -8,6 +8,9 @@ enum ZIPCentralDirectoryReader {
     private static let centralDirectoryFileHeaderSignature: UInt32 = 0x0201_4B50
     private static let endOfCentralDirectoryMinSize = 22
     private static let centralDirectoryFileHeaderMinSize = 46
+    /// Maximum ZIP file comment length (per the format's 16-bit comment-length field), bounding
+    /// how far back from the end of the file we search for the end-of-central-directory record.
+    private static let maxZipCommentLength = 65536
 
     static func readEntryNames(from data: Data) -> [String] {
         guard let centralDirectoryOffset = findCentralDirectoryOffset(in: data) else { return [] }
@@ -34,7 +37,7 @@ enum ZIPCentralDirectoryReader {
 
     private static func findCentralDirectoryOffset(in data: Data) -> Int? {
         guard data.count >= endOfCentralDirectoryMinSize else { return nil }
-        let searchStart = max(0, data.count - endOfCentralDirectoryMinSize - 65536)
+        let searchStart = max(0, data.count - endOfCentralDirectoryMinSize - maxZipCommentLength)
         var position = data.count - endOfCentralDirectoryMinSize
         while position >= searchStart {
             if readUInt32(data, at: position) == endOfCentralDirectorySignature {

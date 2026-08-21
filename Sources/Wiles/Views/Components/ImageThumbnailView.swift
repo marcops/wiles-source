@@ -26,7 +26,7 @@ struct ImageThumbnailView: View {
                 // or two. SwiftUI cancels this task the instant the row leaves the hierarchy, so
                 // waiting a beat before starting the real QuickLook I/O means a row that's only
                 // ever transiently visible never costs any CPU — only rows the scroll settles on do.
-                try? await Task.sleep(for: .milliseconds(100))
+                try? await Task.sleep(for: AsyncDelayTokens.scrollSettleDebounce)
                 guard !Task.isCancelled, thumbnail == nil else { return }
                 if let loaded = await ThumbnailService.shared.loadThumbnail(for: url, size: size) {
                     thumbnail = loaded

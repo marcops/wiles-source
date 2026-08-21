@@ -54,6 +54,7 @@ public struct SymlinkSheetView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .accessibilityLabel(appState.tr(.linkType))
         }
     }
 
@@ -66,6 +67,7 @@ public struct SymlinkSheetView: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($isNameFocused)
                 .onSubmit { createSymlink() }
+                .accessibilityLabel(appState.tr(.symlinkNameLabel))
         }
     }
 

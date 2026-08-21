@@ -263,7 +263,7 @@ public struct AppStateCoreTests {
         report(
             "AppState",
             "NEG: statusText with zero items omits the size suffix in parentheses",
-            result: appState2.statusText == "0 item" || appState2.statusText == "0 itens")
+            result: appState2.statusText == "0 items")
     }
 
     private static func testShowError() {

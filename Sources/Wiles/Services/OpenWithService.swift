@@ -38,7 +38,7 @@ public final class OpenWithService: OpenWithServiceProtocol, Sendable {
     public static func chooseOtherApplication(toOpen urls: [URL]) {
         guard !urls.isEmpty else { return }
         let panel = NSOpenPanel()
-        panel.title = "Select Application"
+        panel.title = L10n.string(.selectApplicationPanelTitle, lang: .system)
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.allowedContentTypes = [.application]
         panel.allowsMultipleSelection = false

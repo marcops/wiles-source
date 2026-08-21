@@ -3,6 +3,10 @@ import Foundation
 public final class DirectoryCacheService: @unchecked Sendable {
     public static let shared = DirectoryCacheService()
 
+    /// Rough estimated in-memory cost (bytes) per cached directory item, used to scale
+    /// `NSCache`'s cost accounting against `totalCostLimit`.
+    private static let estimatedBytesPerCachedItem = 128
+
     private let cache = NSCache<NSURL, DirectoryCacheEntry>()
 
     private init() {
@@ -13,7 +17,7 @@ public final class DirectoryCacheService: @unchecked Sendable {
     public func cacheDirectory(_ result: DirectoryLoadResult, for url: URL) {
         let key = url.standardizedFileURL as NSURL
         let entry = DirectoryCacheEntry(result: result)
-        let cost = result.items.count * 128
+        let cost = result.items.count * Self.estimatedBytesPerCachedItem
         cache.setObject(entry, forKey: key, cost: cost)
     }
 

@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import GitBeacon
 
-public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable {
+public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable {
     public static func listEntries(in archiveURL: URL) async -> [ArchiveEntryItem] {
         await Task.detached(priority: .userInitiated) {
             // `unzip -Z1` mangles non-ASCII filenames (e.g. emoji) on this system: Apple's
@@ -43,7 +43,9 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
 
         FileManager.default.createFile(atPath: tempURL.path, contents: nil, attributes: nil)
         guard let fileHandle = try? FileHandle(forWritingTo: tempURL) else {
-            throw NSError(domain: "ArchiveInspectionService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create destination file."])
+            throw NSError(
+                domain: "ArchiveInspectionService", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveCouldNotCreateDestinationFile, lang: .system)])
         }
         defer { try? fileHandle.close() }
 
@@ -64,7 +66,7 @@ public final class ArchiveInspectionService: ArchiveInspectionServiceProtocol, S
             throw NSError(
                 domain: "ArchiveInspectionService",
                 code: Int(process.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: "Extraction process failed."])
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveExtractionFailed, lang: .system)])
         }
 
         // Extraction succeeded — only now is it safe to replace any pre-existing file at

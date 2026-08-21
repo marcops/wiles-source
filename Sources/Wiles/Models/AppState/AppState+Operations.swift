@@ -253,7 +253,7 @@ public extension AppState {
         let targetFolder = folder ?? navigation.currentURL
         do {
             let createdURL = try NewFileTemplateService.createTemplateFile(
-                in: targetFolder, fileName: "", template: .text)
+                in: targetFolder, fileName: "", template: .text, language: preferences.appLanguage)
             enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
         } catch {
             ErrorReporter.report(error, context: "Creating new file")

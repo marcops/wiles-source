@@ -32,4 +32,31 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
             "This item is already in that location."
         }
     }
+
+    public var l10nKey: L10n.Key {
+        switch self {
+        case .permissionDenied: .wilesErrorPermissionDenied
+        case .diskFull: .wilesErrorDiskFull
+        case .fileInUse: .wilesErrorFileInUse
+        case .itemNotFound: .wilesErrorItemNotFound
+        case .operationFailed: .wilesErrorOperationFailed
+        case .invalidZipPassword: .wilesErrorInvalidZipPassword
+        case .itemAlreadyInDestination: .itemAlreadyInDestination
+        }
+    }
+
+    /// Localized, user-facing message — substitutes any associated path/reason into the localized
+    /// format string via `l10nKey`. Prefer this over `errorDescription`/`localizedDescription`
+    /// wherever a `WilesError` reaches a visible alert.
+    public func localizedMessage(lang: AppLanguage) -> String {
+        let format = L10n.string(l10nKey, lang: lang)
+        switch self {
+        case let .permissionDenied(path), let .diskFull(path), let .fileInUse(path), let .itemNotFound(path):
+            return String(format: format, path)
+        case let .operationFailed(reason):
+            return String(format: format, reason)
+        case .invalidZipPassword, .itemAlreadyInDestination:
+            return format
+        }
+    }
 }

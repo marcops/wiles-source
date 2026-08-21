@@ -36,7 +36,7 @@ public struct DuplicateDetectionTests {
         try? content.write(to: fileB, atomically: true, encoding: .utf8)
         try? "totally different unique content".write(to: fileC, atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report("DuplicateDetection", "POS: exact duplicate files (same size+hash) are grouped together", result: result.groups.contains { $0.items.count == 2 })
         report("DuplicateDetection", "POS: reclaimableBytes reflects (count - 1) * size for the duplicate group", result: result.totalReclaimableBytes > 0)
     }
@@ -49,7 +49,7 @@ public struct DuplicateDetectionTests {
         try? "content one, unique".write(to: dir.appendingPathComponent("one.txt"), atomically: true, encoding: .utf8)
         try? "content two, also unique, different length".write(to: dir.appendingPathComponent("two.txt"), atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report("DuplicateDetection", "NEG: files with different size/content are not grouped as duplicates", result: result.groups.isEmpty)
     }
 
@@ -58,7 +58,7 @@ public struct DuplicateDetectionTests {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
             "NEG: empty folder returns zero groups and zero reclaimable bytes",
@@ -79,7 +79,7 @@ public struct DuplicateDetectionTests {
         try? contentA.write(to: fileA, atomically: true, encoding: .utf8)
         try? contentB.write(to: fileB, atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
             "NEG: files with same size but different content (within first 4096 bytes) are not grouped as duplicates",
@@ -100,7 +100,7 @@ public struct DuplicateDetectionTests {
         try? content.write(to: fileA, atomically: true, encoding: .utf8)
         try? content.write(to: fileB, atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         let foundGroup = result.groups.first { $0.items.count == 2 }
         report(
             "DuplicateDetection",
@@ -127,7 +127,7 @@ public struct DuplicateDetectionTests {
         try? contentA.write(to: fileA, atomically: true, encoding: .utf8)
         try? contentB.write(to: fileB, atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
             "NEG: files with identical 4096-byte prefix but differing tail are not grouped (full-hash confirmation)",
@@ -153,7 +153,7 @@ public struct DuplicateDetectionTests {
         try? content.write(to: fileA)
         try? content.write(to: fileB)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
             "POS: large (multi-chunk) truly identical files are still correctly grouped as duplicates",
@@ -168,7 +168,7 @@ public struct DuplicateDetectionTests {
         try? "".write(to: dir.appendingPathComponent("empty_a.txt"), atomically: true, encoding: .utf8)
         try? "".write(to: dir.appendingPathComponent("empty_b.txt"), atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
             "NEG: zero-byte files are excluded from scanning and never grouped as duplicates",
@@ -184,7 +184,7 @@ public struct DuplicateDetectionTests {
         try? content.write(to: dir.appendingPathComponent(".hidden_a.txt"), atomically: true, encoding: .utf8)
         try? content.write(to: dir.appendingPathComponent(".hidden_b.txt"), atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
             "NEG: hidden dotfiles are skipped during enumeration and not grouped as duplicates",
@@ -201,7 +201,7 @@ public struct DuplicateDetectionTests {
         try? content.write(to: dir.appendingPathComponent("t2.txt"), atomically: true, encoding: .utf8)
         try? content.write(to: dir.appendingPathComponent("t3.txt"), atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         let group = result.groups.first
         let size = Int64(content.utf8.count)
         report(
@@ -218,7 +218,7 @@ public struct DuplicateDetectionTests {
 
         try? "the only file in this folder".write(to: dir.appendingPathComponent("solo.txt"), atomically: true, encoding: .utf8)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         report(
             "DuplicateDetection",
             "NEG: a lone file with a unique size never forms a duplicate group",
@@ -249,7 +249,7 @@ public struct DuplicateDetectionTests {
         }
 
         let callerTask = Task {
-            await DuplicateDetectionService.shared.findDuplicates(in: dir)
+            await DuplicateDetectionService.findDuplicates(in: dir)
         }
         callerTask.cancel()
         let result = await callerTask.value
@@ -275,7 +275,7 @@ public struct DuplicateDetectionTests {
         try? content.write(to: unreadableFile, atomically: true, encoding: .utf8)
         try? FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: unreadableFile.path)
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: dir)
+        let result = await DuplicateDetectionService.findDuplicates(in: dir)
         try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: unreadableFile.path)
 
         report(

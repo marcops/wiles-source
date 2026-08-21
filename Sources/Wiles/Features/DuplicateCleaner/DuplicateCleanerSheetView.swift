@@ -30,7 +30,7 @@ public struct DuplicateCleanerSheetView: View {
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             content: { mainContent })
             .task {
-                let res = await DuplicateDetectionService.shared.findDuplicates(in: appState.navigation.currentURL)
+                let res = await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
                 scanResult = res
                 var autoSelect: Set<URL> = []
                 for group in res.groups {
@@ -135,6 +135,7 @@ public struct DuplicateCleanerSheetView: View {
                     }
                 }))
                 .labelsHidden()
+                .accessibilityLabel("\(appState.tr(.moveToTrash)): \(item.url.lastPathComponent)")
 
             Image(nsImage: item.icon)
                 .resizable()
@@ -164,9 +165,7 @@ public struct DuplicateCleanerSheetView: View {
                 DirectoryCacheService.shared.invalidate(url: appState.navigation.currentURL)
                 appState.refreshCurrentDirectory()
                 if failureCount > 0 {
-                    appState
-                        .showError(WilesError.operationFailed(reason: "\(failureCount) of \(urls.count) items could not be moved to Trash.")
-                            .localizedDescription)
+                    appState.showError(WilesError.operationFailed(reason: "\(failureCount) of \(urls.count) items could not be moved to Trash."))
                 }
             }
         }

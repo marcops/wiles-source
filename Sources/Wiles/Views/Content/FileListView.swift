@@ -154,7 +154,7 @@ struct FileListView: View {
     private func nameCell(for item: FileItem, isSel: Bool) -> some View {
         HStack(alignment: .center, spacing: 8) {
             FileItemIconView(item: item, size: listIconSize, isOpenTargeted: dropTargetedURL == item.url)
-            ICloudStatusBadgeView(item: item)
+            ICloudStatusBadgeView(item: item, appState: appState)
             nameOrRenameField(for: item, isSel: isSel)
             tagsIndicator(for: item)
         }

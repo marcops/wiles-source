@@ -13,8 +13,8 @@ struct WilesApp: App {
     private var appState
     @FocusedValue(\.windowUIState)
     private var windowUIState
-    @FocusedValue(\.isRenamingActive)
-    private var isRenamingActive
+    @FocusedValue(\.isTextFieldEditingActive)
+    private var isTextFieldEditingActive
 
     private func tr(_ key: L10n.Key) -> String {
         L10n.string(key, lang: sharedPreferences.appLanguage)
@@ -168,9 +168,10 @@ struct WilesApp: App {
                 .keyboardShortcut("z", modifiers: [.command, .shift])
         }
         CommandGroup(replacing: .pasteboard) {
-            // While renaming, these keep their shortcut but forward to the system's standard text
-            // editing actions instead, so the rename field's own text gets cut/copied/pasted/selected.
-            let isRenaming = isRenamingActive ?? false
+            // While the rename field or the path bar's text field is active, these keep their
+            // shortcut but forward to the system's standard text editing actions instead, so that
+            // field's own text gets cut/copied/pasted/selected instead of the selected files.
+            let isRenaming = isTextFieldEditingActive ?? false
             cutCommandButton(isRenaming: isRenaming)
             copyCommandButton(isRenaming: isRenaming)
             pasteCommandButton(isRenaming: isRenaming)
@@ -292,12 +293,12 @@ struct WilesApp: App {
             }
         }
         .keyboardShortcut("l", modifiers: .command)
-        Button(tr(.connectToServer) + "...") { windowUIState?.showConnectToServerSheet = true }
+        Button(tr(.connectToServerEllipsis)) { windowUIState?.showConnectToServerSheet = true }
             .keyboardShortcut("k", modifiers: .command)
     }
 
     @ViewBuilder private var toolsMenuCommands: some View {
-        Button(tr(.autoOrganization) + "...") { windowUIState?.showAutoOrganizationSheet = true }
+        Button(tr(.autoOrganizationEllipsis)) { windowUIState?.showAutoOrganizationSheet = true }
         Button(tr(.findDuplicates)) { windowUIState?.showDuplicateCleanerSheet = true }
         Divider()
         if let appState {

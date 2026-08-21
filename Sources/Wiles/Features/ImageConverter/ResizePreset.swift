@@ -11,13 +11,13 @@ public enum ResizePreset: String, CaseIterable, Identifiable, Sendable {
         rawValue
     }
 
-    public var displayName: String {
+    public var l10nKey: L10n.Key {
         switch self {
-        case .original: "Original Size (100%)"
-        case .scale75: "75% Scale"
-        case .scale50: "50% Scale"
-        case .max1080p: "Max 1080p (1920x1080)"
-        case .max4K: "Max 4K (3840x2160)"
+        case .original: .resizePresetOriginal
+        case .scale75: .resizePresetScale75
+        case .scale50: .resizePresetScale50
+        case .max1080p: .resizePresetMax1080p
+        case .max4K: .resizePresetMax4K
         }
     }
 }

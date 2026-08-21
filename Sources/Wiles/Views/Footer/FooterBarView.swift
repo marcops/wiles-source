@@ -97,7 +97,7 @@ struct FooterBarView: View {
                 .foregroundColor(.secondary)
 
             if isIconSizeControlExpanded {
-                Slider(value: $appState.preferences.iconSize, in: 36 ... 128)
+                Slider(value: $appState.preferences.iconSize, in: LayoutTokens.minIconSize ... LayoutTokens.maxIconSize)
                     .frame(width: 100)
                     .controlSize(.mini)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))

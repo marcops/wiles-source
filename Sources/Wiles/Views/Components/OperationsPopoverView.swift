@@ -1,6 +1,20 @@
 import SwiftUI
 
 public struct OperationsPopoverView: View {
+    private static let popoverWidth: CGFloat = 300
+    private static let popoverPadding: CGFloat = 14
+    private static let outerSpacing: CGFloat = 12
+    private static let titleFontSize: CGFloat = 13
+    private static let emptyStatePadding: CGFloat = 8
+    private static let taskListSpacing: CGFloat = 10
+    private static let taskListMaxHeight: CGFloat = 200
+    private static let taskRowSpacing: CGFloat = 4
+    private static let taskTitleFontSize: CGFloat = 11
+    private static let percentFontSize: CGFloat = 10
+    private static let taskRowPadding: CGFloat = 6
+    private static let taskRowBackgroundOpacity: Double = 0.5
+    private static let taskRowCornerRadius: CGFloat = 6
+
     var appState: AppState
     var service = BackgroundOperationsService.shared
 
@@ -9,10 +23,10 @@ public struct OperationsPopoverView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Self.outerSpacing) {
             HStack {
                 Text(appState.tr(.backgroundOperations))
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: Self.titleFontSize, weight: .bold))
                 Spacer()
                 Text("\(service.activeTasks.count) \(appState.tr(.activeSuffix))")
                     .font(.caption)
@@ -24,27 +38,27 @@ public struct OperationsPopoverView: View {
                 Text(appState.tr(.noActiveOperations))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, Self.emptyStatePadding)
             } else {
                 ScrollView(.vertical) {
-                    VStack(spacing: 10) {
+                    VStack(spacing: Self.taskListSpacing) {
                         ForEach(service.activeTasks) { task in
                             taskRow(for: task)
                         }
                     }
                 }
-                .frame(maxHeight: 200)
+                .frame(maxHeight: Self.taskListMaxHeight)
             }
         }
-        .padding(14)
-        .frame(width: 300)
+        .padding(Self.popoverPadding)
+        .frame(width: Self.popoverWidth)
     }
 
     private func taskRow(for task: FileOperationTask) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Self.taskRowSpacing) {
             HStack {
                 Text(task.title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: Self.taskTitleFontSize, weight: .semibold))
                     .lineLimit(1)
                 Spacer()
                 Button {
@@ -54,6 +68,8 @@ public struct OperationsPopoverView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("\(appState.tr(.cancel)): \(task.title)")
+                .accessibilityHint(appState.tr(.cancelTaskAccessibilityHint))
             }
 
             ProgressView(value: task.progress)
@@ -61,13 +77,13 @@ public struct OperationsPopoverView: View {
 
             HStack {
                 Text("\(Int(task.progress * 100))%")
-                    .font(.system(size: 10))
+                    .font(.system(size: Self.percentFontSize))
                     .foregroundColor(.secondary)
                 Spacer()
             }
         }
-        .padding(6)
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-        .cornerRadius(6)
+        .padding(Self.taskRowPadding)
+        .background(Color(NSColor.controlBackgroundColor).opacity(Self.taskRowBackgroundOpacity))
+        .cornerRadius(Self.taskRowCornerRadius)
     }
 }

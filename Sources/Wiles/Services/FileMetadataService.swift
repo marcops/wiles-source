@@ -1,43 +1,18 @@
 import AppKit
 import CoreServices
 import Foundation
+import GitBeacon
 
 public actor FileMetadataService {
     public static let shared = FileMetadataService()
 
     public func fetchProperties(for url: URL) -> DetailedFileProperties {
+        let kind = readTypeDescription(for: url)
         var owner: String?
         var group: String?
         var permsString: String?
-        var dims: String?
-        var duration: String?
-        var kind: String?
-
-        let keys: Set<URLResourceKey> = [.localizedTypeDescriptionKey]
-        if let values = try? url.resourceValues(forKeys: keys) {
-            kind = values.localizedTypeDescription
-        }
-
-        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) {
-            owner = attrs[.ownerAccountName] as? String
-            group = attrs[.groupOwnerAccountName] as? String
-            if let posix = attrs[.posixPermissions] as? NSNumber {
-                permsString = formatPermissions(posix.intValue)
-            }
-        }
-
-        if let mdItem = MDItemCreateWithURL(kCFAllocatorDefault, url as CFURL) {
-            if let width = MDItemCopyAttribute(mdItem, kMDItemPixelWidth) as? Int,
-               let height = MDItemCopyAttribute(mdItem, kMDItemPixelHeight) as? Int {
-                dims = "\(width) × \(height)"
-            }
-            if let dur = MDItemCopyAttribute(mdItem, kMDItemDurationSeconds) as? Double {
-                let formatter = DateComponentsFormatter()
-                formatter.allowedUnits = [.hour, .minute, .second]
-                formatter.unitsStyle = .abbreviated
-                duration = formatter.string(from: dur)
-            }
-        }
+        readOwnershipAndPermissions(for: url, owner: &owner, group: &group, perms: &permsString)
+        let (dims, duration) = readSpotlightDimensionsAndDuration(for: url)
 
         return DetailedFileProperties(
             url: url,
@@ -47,6 +22,48 @@ public actor FileMetadataService {
             dimensions: dims,
             duration: duration,
             kind: kind)
+    }
+
+    private func readTypeDescription(for url: URL) -> String? {
+        let keys: Set<URLResourceKey> = [.localizedTypeDescriptionKey]
+        do {
+            let values = try url.resourceValues(forKeys: keys)
+            return values.localizedTypeDescription
+        } catch {
+            ErrorReporter.report(error, context: "Reading resource values for \(url.path)")
+            return nil
+        }
+    }
+
+    private func readOwnershipAndPermissions(
+        for url: URL, owner: inout String?, group: inout String?, perms: inout String?) {
+        do {
+            let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+            owner = attrs[.ownerAccountName] as? String
+            group = attrs[.groupOwnerAccountName] as? String
+            perms = (attrs[.posixPermissions] as? NSNumber).map { formatPermissions($0.intValue) }
+        } catch {
+            ErrorReporter.report(error, context: "Reading file attributes for \(url.path)")
+        }
+    }
+
+    private func readSpotlightDimensionsAndDuration(for url: URL) -> (dims: String?, duration: String?) {
+        guard let mdItem = MDItemCreateWithURL(kCFAllocatorDefault, url as CFURL) else {
+            return (nil, nil)
+        }
+        var dims: String?
+        var duration: String?
+        if let width = MDItemCopyAttribute(mdItem, kMDItemPixelWidth) as? Int,
+           let height = MDItemCopyAttribute(mdItem, kMDItemPixelHeight) as? Int {
+            dims = "\(width) × \(height)"
+        }
+        if let dur = MDItemCopyAttribute(mdItem, kMDItemDurationSeconds) as? Double {
+            let formatter = DateComponentsFormatter()
+            formatter.allowedUnits = [.hour, .minute, .second]
+            formatter.unitsStyle = .abbreviated
+            duration = formatter.string(from: dur)
+        }
+        return (dims, duration)
     }
 
     public func streamBatchProperties(for urls: [URL]) -> AsyncStream<DetailedFileProperties> {

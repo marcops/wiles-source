@@ -13,11 +13,15 @@ public struct POSIXPermissions: Sendable, Equatable {
     public var othersWrite: Bool
     public var othersExecute: Bool
 
-    public var octalString: String {
+    private var packedOctalValue: Int {
         let owner = (ownerRead ? 4 : 0) + (ownerWrite ? 2 : 0) + (ownerExecute ? 1 : 0)
         let group = (groupRead ? 4 : 0) + (groupWrite ? 2 : 0) + (groupExecute ? 1 : 0)
         let others = (othersRead ? 4 : 0) + (othersWrite ? 2 : 0) + (othersExecute ? 1 : 0)
-        return String(format: "%04o", (owner << 6) | (group << 3) | others)
+        return (owner << 6) | (group << 3) | others
+    }
+
+    public var octalString: String {
+        String(format: "%04o", packedOctalValue)
     }
 
     public init(posixPermissions: Int16) {
@@ -36,9 +40,6 @@ public struct POSIXPermissions: Sendable, Equatable {
     }
 
     public var octalInt: Int16 {
-        let owner = (ownerRead ? 4 : 0) + (ownerWrite ? 2 : 0) + (ownerExecute ? 1 : 0)
-        let group = (groupRead ? 4 : 0) + (groupWrite ? 2 : 0) + (groupExecute ? 1 : 0)
-        let others = (othersRead ? 4 : 0) + (othersWrite ? 2 : 0) + (othersExecute ? 1 : 0)
-        return Int16((owner << 6) | (group << 3) | others)
+        Int16(packedOctalValue)
     }
 }

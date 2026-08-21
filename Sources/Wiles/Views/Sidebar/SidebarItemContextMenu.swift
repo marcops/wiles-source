@@ -27,7 +27,7 @@ struct SidebarItemContextMenu: View {
             }
         }
         Divider()
-        Button("\(appState.tr(.properties)) (Cmd+I)") {
+        Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {
             let fileItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
             windowUIState.propertiesItem = fileItem
         }

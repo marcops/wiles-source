@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import GitBeacon
 
 public extension FileSystemService {
     @discardableResult
@@ -100,24 +101,30 @@ public extension FileSystemService {
         // AppState+Navigation.swift's navigateTo. The signature stays synchronous to satisfy
         // FileSystemServiceProtocol; the heavy work is dispatched internally instead.
         Task.detached(priority: .userInitiated) {
-            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey]),
-                  let size = values.fileSize, size < 10_000_000,
-                  let content = try? String(contentsOf: url) else {
-                return
-            }
-            await MainActor.run {
-                let pb = NSPasteboard.general
-                pb.clearContents()
-                pb.setString(content, forType: .string)
+            do {
+                let values = try url.resourceValues(forKeys: [.fileSizeKey])
+                guard let size = values.fileSize, size < 10_000_000 else { return }
+                let content = try String(contentsOf: url)
+                await copyToClipboard(content)
+            } catch {
+                ErrorReporter.report(error, context: "Copying file content to clipboard for \(url.path)")
             }
         }
     }
 
+    private static func copyToClipboard(_ content: String) async {
+        await MainActor.run {
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(content, forType: .string)
+        }
+    }
+
     static func compressToZIP(urls: [URL], in destinationFolder: URL) throws {
-        try ZipArchiveService.compressToZIP(urls: urls, in: destinationFolder)
+        try ArchiveService.compressToZIP(urls: urls, in: destinationFolder)
     }
 
     static func extractZIP(archiveURL: URL, to destinationFolder: URL) throws {
-        try ZipArchiveService.extractZIP(archiveURL: archiveURL, to: destinationFolder)
+        try ArchiveService.extractZIP(archiveURL: archiveURL, to: destinationFolder)
     }
 }

@@ -9,20 +9,20 @@ struct SharedBackgroundContextMenu: View {
     private var windowUIState
 
     var body: some View {
-        Button("\(appState.tr(.newFolder)) (Shift+Cmd+N)") {
+        Button(appState.trWithShortcutHint(.newFolder, shortcut: "Shift+Cmd+N")) {
             appState.createNewFolderAndRename(in: targetFolderURL, windowUIState: windowUIState)
         }
         Button(appState.tr(.newFileTitle)) {
             appState.createNewFileAndRename(in: targetFolderURL, windowUIState: windowUIState)
         }
         if appState.transient.clipboard != nil {
-            Button("\(appState.tr(.paste)) (Cmd+V)") {
+            Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) {
                 appState.pasteToCurrentDirectory()
             }
         } else {
-            Button("\(appState.tr(.paste)) (Cmd+V)") { }.disabled(true)
+            Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { }.disabled(true)
         }
-        Button("\(appState.tr(.selectAll)) (Cmd+A)") {
+        Button(appState.trWithShortcutHint(.selectAll, shortcut: "Cmd+A")) {
             appState.selectedURLs = Set(appState.fileSystem.items.map(\.url))
         }
         Divider()

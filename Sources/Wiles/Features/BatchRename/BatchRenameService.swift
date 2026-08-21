@@ -40,13 +40,21 @@ public enum BatchRenameService {
         return item.isDirectory ? newBaseName : "\(newBaseName)\(extWithDot)"
     }
 
+    /// Returns the offending pattern string when `mode` is a `.regex` mode whose non-empty pattern
+    /// fails to compile, `nil` otherwise (non-regex modes, or a regex mode with an empty/valid
+    /// pattern never need to abort the rename).
+    private static func invalidRegexPattern(in mode: BatchRenameMode) -> String? {
+        guard case let .regex(pattern, _) = mode, !pattern.isEmpty else { return nil }
+        return (try? NSRegularExpression(pattern: pattern, options: [])) == nil ? pattern : nil
+    }
+
     public static func performBatchRename(items: [FileItem], mode: BatchRenameMode) throws -> [URL] {
         // previewNewNames silently falls back to the original base name for an invalid regex
         // pattern (that fallback is fine for the live preview text), but actually performing the
         // rename must not pretend the user didn't ask for anything - validate the pattern up front
         // and abort with a real error instead of silently no-op-renaming every item.
-        if case let .regex(pattern, _) = mode, !pattern.isEmpty, (try? NSRegularExpression(pattern: pattern, options: [])) == nil {
-            throw WilesError.operationFailed(reason: "Invalid rename pattern: \(pattern)")
+        if let invalidPattern = invalidRegexPattern(in: mode) {
+            throw WilesError.operationFailed(reason: "Invalid rename pattern: \(invalidPattern)")
         }
 
         let previews = previewNewNames(items: items, mode: mode)

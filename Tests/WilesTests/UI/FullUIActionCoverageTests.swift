@@ -93,7 +93,7 @@ public struct FullUIActionCoverageTests {
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: emptyDir) }
 
-        let result = await DuplicateDetectionService.shared.findDuplicates(in: emptyDir)
+        let result = await DuplicateDetectionService.findDuplicates(in: emptyDir)
         report("UI/DuplicateCleaner", "NEG: Duplicate detection on empty folder returns zero groups", result: result.groups.isEmpty)
     }
 

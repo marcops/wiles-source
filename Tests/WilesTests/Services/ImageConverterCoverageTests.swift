@@ -425,27 +425,27 @@ public struct ImageConverterCoverageTests {
             result: dest.deletingLastPathComponent().path == source.deletingLastPathComponent().path)
     }
 
-    // MARK: - Enum id / displayName
+    // MARK: - Enum id / l10nKey
 
     private static func testImageFormatIdAndDisplayNameForAllCases() {
         let allNonEmpty = ImageFormat.allCases.allSatisfy { format in
-            format.id == format.rawValue && !format.displayName.isEmpty
+            format.id == format.rawValue && !L10n.string(format.l10nKey, lang: .system).isEmpty
         }
-        report("ImageConverter", "POS: ImageFormat.id and displayName are populated for every case", result: allNonEmpty)
+        report("ImageConverter", "POS: ImageFormat.id and l10nKey are populated for every case", result: allNonEmpty)
     }
 
     private static func testResizePresetIdAndDisplayNameForAllCases() {
         let allNonEmpty = ResizePreset.allCases.allSatisfy { preset in
-            preset.id == preset.rawValue && !preset.displayName.isEmpty
+            preset.id == preset.rawValue && !L10n.string(preset.l10nKey, lang: .system).isEmpty
         }
-        report("ImageConverter", "POS: ResizePreset.id and displayName are populated for every case", result: allNonEmpty)
+        report("ImageConverter", "POS: ResizePreset.id and l10nKey are populated for every case", result: allNonEmpty)
     }
 
     private static func testCropPresetIdAndDisplayNameForAllCases() {
         let allNonEmpty = CropPreset.allCases.allSatisfy { preset in
-            preset.id == preset.rawValue && !preset.displayName.isEmpty
+            preset.id == preset.rawValue && !L10n.string(preset.l10nKey, lang: .system).isEmpty
         }
-        report("ImageConverter", "POS: CropPreset.id and displayName are populated for every case", result: allNonEmpty)
+        report("ImageConverter", "POS: CropPreset.id and l10nKey are populated for every case", result: allNonEmpty)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

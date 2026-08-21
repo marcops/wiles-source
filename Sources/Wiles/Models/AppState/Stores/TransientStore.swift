@@ -19,6 +19,7 @@ public final class TransientStore {
     public var clipboard: ClipboardState?
 
     public var trashSizeString: String = ""
+    public var trashSizeBytes: Int64 = 0
     public var isTrashUpdating: Bool = false
 
     /// Set while a column-resize drag is in progress so intermediate width updates (which fire on every

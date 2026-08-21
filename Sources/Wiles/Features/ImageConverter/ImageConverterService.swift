@@ -12,7 +12,9 @@ public enum ImageConverterService {
         quality: Double = 0.85) throws -> URL {
         guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
               let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
-            throw NSError(domain: "ImageConverterService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to load image at \(url.path)"])
+            throw NSError(
+                domain: "ImageConverterService", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: String(format: L10n.string(.imageConverterLoadFailed, lang: .system), url.path)])
         }
 
         let workingImage = applyCrop(cgImage, preset: cropPreset)
@@ -99,14 +101,18 @@ public enum ImageConverterService {
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
 
         guard let ctx = context else {
-            throw NSError(domain: "ImageConverterService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create graphics context"])
+            throw NSError(
+                domain: "ImageConverterService", code: 2,
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.imageConverterContextFailed, lang: .system)])
         }
 
         ctx.interpolationQuality = .high
         ctx.draw(image, in: CGRect(origin: .zero, size: targetSize))
 
         guard let resizedImage = ctx.makeImage() else {
-            throw NSError(domain: "ImageConverterService", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to render resized image"])
+            throw NSError(
+                domain: "ImageConverterService", code: 3,
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.imageConverterRenderFailed, lang: .system)])
         }
         return resizedImage
     }
@@ -126,7 +132,9 @@ public enum ImageConverterService {
 
     private static func writeImage(_ image: CGImage, to destURL: URL, format: ImageFormat, quality: Double) throws {
         guard let destination = CGImageDestinationCreateWithURL(destURL as CFURL, format.utType.identifier as CFString, 1, nil) else {
-            throw NSError(domain: "ImageConverterService", code: 4, userInfo: [NSLocalizedDescriptionKey: "Failed to create image destination"])
+            throw NSError(
+                domain: "ImageConverterService", code: 4,
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.imageConverterDestinationFailed, lang: .system)])
         }
 
         let options: [CFString: Any] = [
@@ -135,7 +143,9 @@ public enum ImageConverterService {
 
         CGImageDestinationAddImage(destination, image, options as CFDictionary)
         if !CGImageDestinationFinalize(destination) {
-            throw NSError(domain: "ImageConverterService", code: 5, userInfo: [NSLocalizedDescriptionKey: "Failed to finalize image destination"])
+            throw NSError(
+                domain: "ImageConverterService", code: 5,
+                userInfo: [NSLocalizedDescriptionKey: L10n.string(.imageConverterFinalizeFailed, lang: .system)])
         }
     }
 }

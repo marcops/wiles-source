@@ -35,14 +35,22 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
         guard !item.isDirectory else { return false }
         guard !item.fileExtension.isEmpty else { return false }
         guard let type = UTType(filenameExtension: item.fileExtension) else { return false }
-        if type.conforms(to: .sourceCode) ||
+        if isExcludedFromThumbnails(type: type) {
+            return false
+        }
+        return isPreviewableType(type: type)
+    }
+
+    private static func isExcludedFromThumbnails(type: UTType) -> Bool {
+        type.conforms(to: .sourceCode) ||
             type.conforms(to: .script) ||
             type.conforms(to: .archive) ||
             type.conforms(to: .folder) ||
-            type.conforms(to: .executable) {
-            return false
-        }
-        return type.conforms(to: .image) ||
+            type.conforms(to: .executable)
+    }
+
+    private static func isPreviewableType(type: UTType) -> Bool {
+        type.conforms(to: .image) ||
             type.conforms(to: .movie) ||
             type.conforms(to: .audiovisualContent) ||
             type.conforms(to: .pdf) ||

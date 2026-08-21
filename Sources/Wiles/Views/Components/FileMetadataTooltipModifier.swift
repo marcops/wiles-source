@@ -6,6 +6,7 @@ import SwiftUI
 /// so `text` must be ready *before* that happens, not gated behind a second delay of our own.
 private struct FileMetadataTooltipModifier: ViewModifier {
     let item: FileItem
+    let language: AppLanguage
     @State private var text: String?
 
     func body(content: Content) -> some View {
@@ -14,7 +15,7 @@ private struct FileMetadataTooltipModifier: ViewModifier {
             .onHover { hovering in
                 if hovering, text == nil {
                     Task { @MainActor in
-                        text = await FileMetadataTooltipService.tooltip(for: item)
+                        text = await FileMetadataTooltipService.tooltip(for: item, language: language)
                     }
                 }
             }
@@ -22,7 +23,7 @@ private struct FileMetadataTooltipModifier: ViewModifier {
 }
 
 extension View {
-    func fileMetadataTooltip(_ item: FileItem) -> some View {
-        modifier(FileMetadataTooltipModifier(item: item))
+    func fileMetadataTooltip(_ item: FileItem, language: AppLanguage) -> some View {
+        modifier(FileMetadataTooltipModifier(item: item, language: language))
     }
 }

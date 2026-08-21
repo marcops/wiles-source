@@ -105,7 +105,7 @@ struct FilePropertiesSheet: View {
                         propertyRow(label: appState.tr(.lens), value: lens)
                     }
                     if let iso = exif.iso {
-                        propertyRow(label: "ISO", value: iso)
+                        propertyRow(label: appState.tr(.exifISO), value: iso)
                     }
                     if let ap = exif.aperture {
                         propertyRow(label: appState.tr(.aperture), value: ap)
@@ -117,12 +117,12 @@ struct FilePropertiesSheet: View {
                         propertyRow(label: appState.tr(.dateTaken), value: dt)
                     }
                     if let gps = exif.gpsCoordinates {
-                        propertyRow(label: "GPS", value: gps)
+                        propertyRow(label: appState.tr(.exifGPS), value: gps)
                     }
                 }
                 .padding(.top, 8)
             } label: {
-                Text("EXIF").font(.headline)
+                Text(appState.tr(.exifSectionTitle)).font(.headline)
             }
         }
     }
@@ -171,6 +171,8 @@ struct FilePropertiesSheet: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
             .padding(.top, 4)
+            .accessibilityLabel(appState.tr(.applyPermissions))
+            .accessibilityHint(appState.tr(.applyPermissionsHint))
         }
     }
 
@@ -194,12 +196,18 @@ struct FilePropertiesSheet: View {
             Toggle(appState.tr(.read), isOn: read)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
+                .accessibilityLabel("\(title) \(appState.tr(.read))")
+                .accessibilityHint(appState.tr(.permissionToggleHint))
             Toggle(appState.tr(.write), isOn: write)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
+                .accessibilityLabel("\(title) \(appState.tr(.write))")
+                .accessibilityHint(appState.tr(.permissionToggleHint))
             Toggle(appState.tr(.execute), isOn: execute)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
+                .accessibilityLabel("\(title) \(appState.tr(.execute))")
+                .accessibilityHint(appState.tr(.permissionToggleHint))
             Spacer()
         }
     }

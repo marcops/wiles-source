@@ -56,6 +56,8 @@ struct PreviewSidebarView: View {
                     windowUIState.propertiesItem = item
                 }
                 .buttonStyle(.link)
+                .accessibilityLabel(appState.tr(.moreInfo))
+                .accessibilityHint(appState.tr(.moreInfoAccessibilityHint))
             }
         }
     }

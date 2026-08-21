@@ -1,7 +1,7 @@
 import Foundation
 import ImageIO
 
-public final class ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
+public enum ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
     public static func extractExif(from url: URL) -> ExifMetadata? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {
@@ -21,7 +21,7 @@ public final class ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
         let dt = exif?[kCGImagePropertyExifDateTimeOriginal] as? String
         let gpsStr = formattedGPS(from: gps)
 
-        if make == nil, model == nil, isoStr == nil, fnStr == nil, flStr == nil, dt == nil, gpsStr == nil {
+        if isEmptyMetadata([make, model, isoStr, fnStr, flStr, dt, gpsStr]) {
             return nil
         }
 
@@ -34,6 +34,10 @@ public final class ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
             focalLength: flStr,
             dateTimeOriginal: dt,
             gpsCoordinates: gpsStr)
+    }
+
+    private static func isEmptyMetadata(_ fields: [String?]) -> Bool {
+        fields.allSatisfy { $0 == nil }
     }
 
     private static func formattedISO(from exif: [CFString: Any]?) -> String? {

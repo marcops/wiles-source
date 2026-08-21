@@ -1,34 +1,6 @@
-import Foundation
-
 // swiftlint:disable:next type_body_length
 public enum L10n {
-    public static func activeCode(_ preferred: AppLanguage) -> String {
-        if preferred != .system {
-            return preferred.rawValue
-        }
-        let supportedCodes = AppLanguage.allCases.map(\.rawValue)
-        for preference in Locale.preferredLanguages {
-            let lower = preference.lowercased()
-            if let match = supportedCodes.first(where: { lower.hasPrefix($0.lowercased()) }) {
-                return match
-            }
-        }
-        return "en"
-    }
-
-    private static var resourceBundle: Bundle {
-        .wilesResources
-    }
-
-    public static func string(_ key: Key, lang: AppLanguage) -> String {
-        let code = activeCode(lang)
-        if let path = resourceBundle.path(forResource: code, ofType: "lproj") ?? resourceBundle.path(forResource: code.lowercased(), ofType: "lproj"),
-           let langBundle = Bundle(path: path) {
-            return langBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
-        }
-        return resourceBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
-    }
-
+    // swiftlint:disable:next type_body_length
     public enum Key: String, Sendable, CaseIterable {
         case itemAlreadyInDestination
         case newFolder
@@ -427,5 +399,76 @@ public enum L10n {
         case requirePassword
         case startSharing
         case wifiSharePasswordProtectedNotice
+
+        // MARK: - Accessibility labels/hints audit (task: missing VoiceOver coverage pass)
+
+        case diskUsageItemNavigateHint
+        case cancelTaskAccessibilityHint
+        case feedbackKindSelectionHint
+        case feedbackDescriptionFieldHint
+        case applyPermissionsHint
+        case permissionToggleHint
+        case archivePasswordFieldHint
+        case moreInfoAccessibilityHint
+        case iCloudStatusDownloading
+        case iCloudStatusNotDownloaded
+        case iCloudStatusUploading
+
+        case connectToServerEllipsis
+        case autoOrganizationEllipsis
+        case archiveCouldNotCreateDestinationFile
+        case archiveExtractionFailed
+        case archiveCompressionFailed
+        case imageFormatJPEG
+        case imageFormatPNG
+        case imageFormatHEIC
+        case imageFormatTIFF
+        case resizePresetOriginal
+        case resizePresetScale75
+        case resizePresetScale50
+        case resizePresetMax1080p
+        case resizePresetMax4K
+        case cropPresetNone
+        case cropPresetSquare1x1
+        case cropPresetLandscape16x9
+        case cropPresetPortrait9x16
+        case cropPresetStandard4x3
+        case emptyTrashDeleteFailed
+        case wilesErrorPermissionDenied
+        case wilesErrorDiskFull
+        case wilesErrorFileInUse
+        case wilesErrorItemNotFound
+        case wilesErrorOperationFailed
+        case wilesErrorInvalidZipPassword
+        case tooltipFolder
+        case tooltipModified
+        case tooltipCreated
+        case tooltipOwner
+        case tooltipDocumentFallback
+        case tooltipPageCountOne
+        case tooltipPageCountOther
+        case selectApplicationPanelTitle
+        case pdfMergeNoFilesProvided
+        case pdfMergeNoValidPages
+        case pdfMergeWriteFailed
+        case invalidServerURL
+        case imageConverterLoadFailed
+        case imageConverterContextFailed
+        case imageConverterRenderFailed
+        case imageConverterDestinationFailed
+        case imageConverterFinalizeFailed
+        case syntaxTruncatedNotice
+        case fileTemplateMarkdownContent
+        case fileTemplateJSONContent
+        case filterModifiedToday
+        case filterModified30Days
+        case serverAddressPlaceholder
+        case exifISO
+        case exifGPS
+        case exifSectionTitle
+        case shortcutMacSuffixFormat
+        case shortcutWindowsSuffixFormat
+        case macintoshHDName
+        case networkVolumeName
     }
 }
