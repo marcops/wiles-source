@@ -50,6 +50,12 @@ Only read/open files the user explicitly names or points to. Do not grep, explor
 
 **How to apply:** if reading an additional file seems like it would help, stop and ask first — a single sentence ("Want me to also read X?") — and wait for the answer before reading it.
 
+## No osascript
+
+Never use `osascript` (AppleScript or JXA) for any purpose — driving the app's UI, System Events keystrokes, clipboard manipulation, or anything else.
+
+**How to apply:** if a task seems to need it (e.g. simulating keypresses or menu clicks to test UI behavior), stop and ask the user how they want it verified instead of reaching for `osascript`.
+
 ## When unsure, ask
 
 If there's any doubt about what the user wants — an ambiguous instruction, a design/behavior choice not spelled out, which of two reasonable interpretations applies — stop and ask a direct question before acting, instead of picking an interpretation and running with it.

@@ -62,6 +62,8 @@ public extension AppState {
         guard let clip = transient.clipboard, !clip.urls.isEmpty else {
             if let urls = FileSystemService.readFromPasteboard(), !urls.isEmpty {
                 executePaste(urls: urls, isCut: false)
+            } else {
+                pasteClipboardContentAsFile()
             }
             return
         }
@@ -69,6 +71,17 @@ public extension AppState {
         if clip.action == .cut {
             transient.clipboard = nil
         }
+    }
+
+    /// Reached only once both the internal clipboard and the system pasteboard have no files on
+    /// them — the last remaining case is pasteboard content with no file behind it at all (a
+    /// copied screenshot, a copied text selection), which `createFileFromPasteboardContent`
+    /// materializes as a new file instead of silently doing nothing.
+    private func pasteClipboardContentAsFile() {
+        guard let createdURL = FileSystemService.createFileFromPasteboardContent(in: navigation.currentURL) else { return }
+        UndoRedoService.shared.recordAction(.create(url: createdURL))
+        refreshCurrentDirectory()
+        selectedURLs = [createdURL]
     }
 
     private func executePaste(urls: [URL], isCut: Bool) {

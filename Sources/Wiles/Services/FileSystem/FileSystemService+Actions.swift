@@ -94,6 +94,32 @@ public extension FileSystemService {
         return pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL]
     }
 
+    /// Pasting with nothing "file-shaped" on the pasteboard (no dragged/copied files) still does
+    /// something useful, matching Finder's "New Item from Clipboard": a copied screenshot or image
+    /// becomes a new `.png`, and copied text becomes a new `.txt`, right in the current folder.
+    /// Checked in that order since some image sources also expose a redundant string
+    /// representation on the same pasteboard.
+    @discardableResult
+    static func createFileFromPasteboardContent(in folder: URL) -> URL? {
+        let pb = NSPasteboard.general
+        if let image = pb.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage,
+           let pngData = pngData(for: image) {
+            let destURL = uniqueDestination(for: "Pasted Image.png", in: folder)
+            return (try? pngData.write(to: destURL)) != nil ? destURL : nil
+        }
+        if let text = pb.string(forType: .string), !text.isEmpty {
+            let destURL = uniqueDestination(for: "Pasted Text.txt", in: folder)
+            return (try? text.write(to: destURL, atomically: true, encoding: .utf8)) != nil ? destURL : nil
+        }
+        return nil
+    }
+
+    private static func pngData(for image: NSImage) -> Data? {
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData) else { return nil }
+        return bitmap.representation(using: .png, properties: [:])
+    }
+
     static func copyFileContentToClipboard(url: URL) {
         // Reading the file (up to 10MB) can stall for seconds on a slow or stalled
         // network/SMB mount. Perform the read off the main actor and round-trip only the
