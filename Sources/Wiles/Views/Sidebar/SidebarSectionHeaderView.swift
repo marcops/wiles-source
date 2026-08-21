@@ -1,0 +1,38 @@
+import SwiftUI
+
+/// `identifierKey` is a fixed, non-localized key (e.g. "FAVORITES") kept separate from the
+/// localized `title` shown on screen — accessibility identifiers must stay stable across
+/// languages so UI tests and automation don't break when the OS language changes.
+/// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
+/// composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
+struct SidebarSectionHeaderView: View {
+    let title: String
+    let identifierKey: String
+    var appState: AppState
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.secondary)
+                .frame(width: 12)
+            Text(title)
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(MotionTokens.quickEase) {
+                isExpanded.toggle()
+            }
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("Section_\(identifierKey)")
+        .accessibilityLabel(title)
+        .accessibilityHint(appState.tr(.folder))
+    }
+}

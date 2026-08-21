@@ -40,7 +40,7 @@ struct SidebarView: View {
     }
 
     @State private var rootFolderNode: FolderNode?
-    @State private var treeChildrenCache: [URL: [FolderNode]] = [:]
+    @State private var treeChildrenCache = BoundedFolderNodeCache()
 
     var body: some View {
         @Bindable var appState = appState
@@ -117,120 +117,19 @@ struct SidebarView: View {
                 isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false)
         }
         if appState.preferences.showDirectoryTree {
-            directoryTreeSection(isExpanded: $appState.preferences.isTreeExpanded)
+            DirectoryTreeSectionView(
+                appState: appState, isExpanded: $appState.preferences.isTreeExpanded,
+                rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache)
         }
         if appState.preferences.showTags {
-            tagsSection(isExpanded: $appState.preferences.isTagsExpanded)
+            TagsSectionView(appState: appState, isExpanded: $appState.preferences.isTagsExpanded)
         }
         if !appState.preferences.smartFolders.isEmpty {
-            smartFoldersSection(isExpanded: $appState.preferences.isSmartFoldersExpanded)
+            SmartFoldersSectionView(
+                appState: appState, isExpanded: $appState.preferences.isSmartFoldersExpanded,
+                renamingSmartFolderID: $renamingSmartFolderID, smartFolderRenameText: $smartFolderRenameText,
+                isRenameFocused: $isSmartFolderRenameFocused)
         }
-    }
-
-    private func directoryTreeSection(isExpanded: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if appState.preferences.showSidebarSectionTitles {
-                sectionHeader(title: appState.tr(.directoryTree), identifierKey: "DIRECTORY_TREE", isExpanded: isExpanded)
-            }
-            if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTreeExpanded {
-                if let rootFolderNode {
-                    DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState, childrenCache: $treeChildrenCache)
-                } else {
-                    ProgressView()
-                        .controlSize(.small)
-                        .padding(.horizontal, 12)
-                }
-            }
-        }
-    }
-
-    private func tagsSection(isExpanded: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if appState.preferences.showSidebarSectionTitles {
-                sectionHeader(title: appState.tr(.tags), identifierKey: "TAGS", isExpanded: isExpanded)
-            }
-            if !appState.preferences.showSidebarSectionTitles || appState.preferences.isTagsExpanded {
-                tagRow(tag: "Red", colorKey: .red)
-                tagRow(tag: "Orange", colorKey: .orange)
-                tagRow(tag: "Yellow", colorKey: .yellow)
-                tagRow(tag: "Green", colorKey: .green)
-                tagRow(tag: "Blue", colorKey: .blue)
-                tagRow(tag: "Purple", colorKey: .purple)
-                tagRow(tag: "Gray", colorKey: .gray)
-            }
-        }
-    }
-
-    private func smartFoldersSection(isExpanded: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if appState.preferences.showSidebarSectionTitles {
-                sectionHeader(title: appState.tr(.smartFolders), identifierKey: "SMART_FOLDERS", isExpanded: isExpanded)
-            }
-            if !appState.preferences.showSidebarSectionTitles || appState.preferences.isSmartFoldersExpanded {
-                ForEach(appState.preferences.smartFolders) { folder in
-                    smartFolderRow(folder: folder)
-                }
-            }
-        }
-    }
-
-    /// `identifierKey` is a fixed, non-localized key (e.g. "FAVORITES") kept separate from the
-    /// localized `title` shown on screen — accessibility identifiers must stay stable across
-    /// languages so UI tests and automation don't break when the OS language changes.
-    /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
-    /// composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
-    private func sectionHeader(title: String, identifierKey: String, isExpanded: Binding<Bool>) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundColor(.secondary)
-                .frame(width: 12)
-            Text(title)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 2)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(MotionTokens.quickEase) {
-                isExpanded.wrappedValue.toggle()
-            }
-        }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("Section_\(identifierKey)")
-        .accessibilityLabel(title)
-        .accessibilityHint(appState.tr(.folder))
-    }
-
-    private func tagRow(tag: String, colorKey: L10n.Key) -> some View {
-        let query = "tag:\(tag.lowercased())"
-        let isSel = appState.searchQuery.lowercased() == query
-        return Button {
-            if isSel {
-                appState.searchQuery = ""
-            } else {
-                appState.searchQuery = query
-            }
-        } label: {
-            HStack(spacing: 10) {
-                Circle().fill(colorForTag(tag)).frame(width: 10, height: 10).frame(width: 20, height: 20)
-                Text(appState.tr(colorKey))
-                    .font(.system(size: 13, weight: isSel ? .semibold : .regular, design: .rounded))
-                    .foregroundColor(.primary)
-                Spacer()
-            }
-            .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
-            .cornerRadius(6)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 8)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(appState.tr(colorKey))
-        .accessibilityHint(appState.tr(.tags))
     }
 
     private func collapsibleSection(
@@ -241,7 +140,7 @@ struct SidebarView: View {
         isFavoritesSection: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if appState.preferences.showSidebarSectionTitles {
-                sectionHeader(title: title, identifierKey: identifierKey, isExpanded: isExpanded)
+                SidebarSectionHeaderView(title: title, identifierKey: identifierKey, appState: appState, isExpanded: isExpanded)
             }
             if !appState.preferences.showSidebarSectionTitles || isExpanded.wrappedValue {
                 ForEach(items) { item in
@@ -279,100 +178,6 @@ struct SidebarView: View {
         case home.appendingPathComponent(".Trash").path: (appState.tr(.sidebarTrash), "trash.fill")
         case "/": (appState.tr(.macintoshHDName), "internaldrive.fill")
         default: nil
-        }
-    }
-
-    @ViewBuilder
-    private func smartFolderRow(folder: SmartFolder) -> some View {
-        if renamingSmartFolderID == folder.id {
-            smartFolderRenameField(folder: folder)
-        } else {
-            smartFolderButtonRow(folder: folder)
-        }
-    }
-
-    /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
-    /// for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
-    private func smartFolderButtonRow(folder: SmartFolder) -> some View {
-        let isSel = appState.smartFolder.activeFolderID == folder.id
-        return HStack(spacing: 10) {
-            Image(systemName: folder.icon)
-                .font(.system(size: 15))
-                .foregroundColor(.accentColor)
-                .frame(width: 20, height: 20)
-            Text(folder.name)
-                .font(.system(size: 13, weight: isSel ? .semibold : .regular))
-                .lineLimit(1)
-            Spacer()
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(isSel ? Color.accentColor.opacity(0.18) : Color.clear)
-        .cornerRadius(8)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            runSmartFolder(folder)
-        }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(folder.name)
-        .accessibilityHint(appState.tr(.folder))
-        .padding(.horizontal, 8)
-        .contextMenu {
-            Button(appState.tr(.rename)) {
-                smartFolderRenameText = folder.name
-                renamingSmartFolderID = folder.id
-            }
-            Button(appState.tr(.updateSmartFolderSearch)) {
-                appState.updateSmartFolderQuery(folder, to: appState.searchQuery)
-            }
-            .disabled(appState.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty)
-            Divider()
-            Button(appState.tr(.moveToTrash), role: .destructive) {
-                appState.removeSmartFolder(folder)
-            }
-        }
-    }
-
-    private func smartFolderRenameField(folder: SmartFolder) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: folder.icon)
-                .font(.system(size: 15))
-                .foregroundColor(.accentColor)
-                .frame(width: 20, height: 20)
-            TextField("", text: $smartFolderRenameText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-                .focused($isSmartFolderRenameFocused)
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
-                        isSmartFolderRenameFocused = true
-                    }
-                }
-                .onSubmit { commitSmartFolderRename(folder) }
-                .onExitCommand { renamingSmartFolderID = nil }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .padding(.horizontal, 8)
-        .onChange(of: isSmartFolderRenameFocused) { _, focused in
-            if !focused {
-                commitSmartFolderRename(folder)
-            }
-        }
-    }
-
-    private func commitSmartFolderRename(_ folder: SmartFolder) {
-        guard renamingSmartFolderID == folder.id else { return }
-        appState.renameSmartFolder(folder, to: smartFolderRenameText)
-        renamingSmartFolderID = nil
-    }
-
-    private func runSmartFolder(_ folder: SmartFolder) {
-        appState.prepareForSmartFolderRun(folder)
-        SmartFolderService.shared.executeQuery(for: folder) { items in
-            Task { @MainActor in
-                appState.fileSystem.items = items
-            }
         }
     }
 

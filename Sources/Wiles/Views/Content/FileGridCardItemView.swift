@@ -35,7 +35,7 @@ struct FileGridCardItemView: View {
 
         return cardVStack(isSel: isSel)
             .frame(width: cardWidth, height: cardHeight, alignment: .top)
-            .padding(6)
+            .padding(LayoutTokens.gridCardPadding)
             .hoverHighlight(isSelected: isSel, selectedBackground: Color.accentColor.opacity(0.18), cornerRadius: 10)
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderStroke, lineWidth: strokeWidth))
             .opacity(isCut ? 0.5 : 1.0)
@@ -58,7 +58,7 @@ struct FileGridCardItemView: View {
     }
 
     private func cardVStack(isSel: Bool) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: LayoutTokens.gridCardVStackSpacing) {
             FileItemIconView(item: item, size: iconSize, isOpenTargeted: isDropTargeted)
                 .overlay(ICloudStatusBadgeView(item: item, appState: appState).padding(2), alignment: .topTrailing)
             cardLabel(isSel: isSel)
@@ -70,7 +70,9 @@ struct FileGridCardItemView: View {
 
     @ViewBuilder
     private func cardLabel(isSel: Bool) -> some View {
-        let fontSize = max(8.0, min(12.0, Double(iconSize) * 0.22))
+        let fontSize = max(
+            LayoutTokens.gridCardLabelMinFontSize,
+            min(LayoutTokens.gridCardLabelMaxFontSize, Double(iconSize) * LayoutTokens.gridCardLabelFontScaleMultiplier))
         let fontWeight: Font.Weight = isSel ? .semibold : .regular
         let nsWeight: NSFont.Weight = isSel ? .semibold : .regular
         let nsFont = NSFont.systemFont(ofSize: fontSize, weight: nsWeight)
@@ -83,7 +85,7 @@ struct FileGridCardItemView: View {
 
         if windowUIState.renameItem?.url == item.url {
             Color.clear
-                .frame(width: cardWidth - 12, height: normalLabelHeight)
+                .frame(width: cardWidth - LayoutTokens.gridCardLabelHorizontalInset, height: normalLabelHeight)
         } else {
             SelectionAwareNameText(
                 name: item.name,
@@ -92,7 +94,7 @@ struct FileGridCardItemView: View {
                 nsFont: .systemFont(ofSize: fontSize, weight: nsWeight),
                 color: isSel ? .white : .primary,
                 collapsedLineLimit: 2,
-                availableWidth: cardWidth - 12, // cardWidth minus the 6pt horizontal padding below × 2
+                availableWidth: cardWidth - LayoutTokens.gridCardLabelHorizontalInset,
                 alignment: .center,
                 middleTruncate: appState.preferences.middleTruncateNames)
                 .padding(.horizontal, 6)

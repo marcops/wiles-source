@@ -32,13 +32,7 @@ public struct DuplicateCleanerSheetView: View {
             .task {
                 let res = await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
                 scanResult = res
-                var autoSelect: Set<URL> = []
-                for group in res.groups {
-                    for item in group.items.dropFirst() {
-                        autoSelect.insert(item.url)
-                    }
-                }
-                selectedURLsToTrash = autoSelect
+                selectedURLsToTrash = Set(res.groups.flatMap { $0.items.dropFirst().map(\.url) })
                 isScanning = false
             }
     }

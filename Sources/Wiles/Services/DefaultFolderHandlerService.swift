@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 /// double-clicked anywhere in the system. `NSWorkspace.setDefaultApplication(at:toOpen:)` for
 /// `public.folder` is the only relevant public hook: at best it lets Wiles appear as an option in
 /// Finder's "Open With" submenu for folders. It cannot replace Finder as the double-click default.
-public enum DefaultFolderHandlerService {
+public enum DefaultFolderHandlerService: DefaultFolderHandlerServiceProtocol {
     @MainActor
     public static func registerAsFolderHandlerOption(completion: @escaping @Sendable (Bool) -> Void = { _ in }) {
         NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpen: .folder) { error in

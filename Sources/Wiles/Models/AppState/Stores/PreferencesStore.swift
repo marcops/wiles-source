@@ -361,7 +361,10 @@ public final class PreferencesStore {
     private func loadFavoriteURLs(_ defaults: UserDefaults) {
         if let savedFavs = defaults.stringArray(forKey: DefaultsKey.favoriteURLs.rawValue) {
             favoriteURLs = savedFavs.compactMap { path in
-                FileManager.default.fileExists(atPath: path) ? URL(fileURLWithPath: path) : nil
+                Self.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
+            }
+            Task { [weak self] in
+                await self?.validateSlowVolumeFavorites()
             }
         } else {
             favoriteURLs = [
@@ -370,5 +373,30 @@ public final class PreferencesStore {
                 FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
             ].filter { FileManager.default.fileExists(atPath: $0.path) }
         }
+    }
+
+    /// `/Volumes/` favorites are accepted optimistically above instead of a synchronous
+    /// `fileExists` check that could stall init against a sleeping network share (same pattern as
+    /// `NavigationStore.init`, mirrored from `AppState+Navigation.swift`'s `navigateTo`). Verifies
+    /// them afterward and drops any that turned out to be gone.
+    private func validateSlowVolumeFavorites() async {
+        let pathsToCheck = Set(favoriteURLs.map(\.path).filter(Self.isLikelySlowVolume))
+        guard !pathsToCheck.isEmpty else { return }
+
+        let existence = await Task.detached(priority: .utility) {
+            Dictionary(uniqueKeysWithValues: pathsToCheck.map { ($0, FileManager.default.fileExists(atPath: $0)) })
+        }.value
+
+        favoriteURLs = favoriteURLs.filter { existence[$0.path] ?? true }
+    }
+
+    private static func isLikelySlowVolume(_ path: String) -> Bool {
+        path.hasPrefix("/Volumes/")
+    }
+
+    /// Skips the synchronous `fileExists` check for a `/Volumes/` path — it's accepted as-is here
+    /// and verified later off-`@MainActor` by `validateSlowVolumeFavorites()`.
+    private static func existsOptimistically(atPath path: String) -> Bool {
+        isLikelySlowVolume(path) || FileManager.default.fileExists(atPath: path)
     }
 }

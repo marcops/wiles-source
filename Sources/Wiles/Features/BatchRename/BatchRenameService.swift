@@ -58,17 +58,12 @@ public enum BatchRenameService {
         }
 
         let previews = previewNewNames(items: items, mode: mode)
-        var renamedURLs: [URL] = []
 
-        for (item, newName) in previews {
+        return try previews.map { item, newName in
             guard !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, newName != item.name else {
-                renamedURLs.append(item.url)
-                continue
+                return item.url
             }
-            let newURL = try FileSystemService.renameItem(at: item.url, newName: newName)
-            renamedURLs.append(newURL)
+            return try FileSystemService.renameItem(at: item.url, newName: newName)
         }
-
-        return renamedURLs
     }
 }

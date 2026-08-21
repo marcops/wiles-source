@@ -23,9 +23,9 @@ public final class LocalHttpServerService: @unchecked Sendable {
         requiredPassword = (password?.isEmpty == false) ? password : nil
         do {
             let parameters = NWParameters.tcp
-            listener = try NWListener(using: parameters, on: port)
+            let newListener = try NWListener(using: parameters, on: port)
 
-            listener?.stateUpdateHandler = { [weak self] state in
+            newListener.stateUpdateHandler = { [weak self] state in
                 Task { @MainActor in
                     guard let self else { return }
                     switch state {
@@ -41,11 +41,14 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 }
             }
 
-            listener?.newConnectionHandler = { [weak self] connection in
+            newListener.newConnectionHandler = { [weak self] connection in
                 self?.handleConnection(connection)
             }
 
-            listener?.start(queue: queue)
+            // `listener` is also read/written from stop() on whatever thread the caller uses, so
+            // every mutation is routed through `queue` (the same queue connection handling runs on).
+            queue.sync { listener = newListener }
+            newListener.start(queue: queue)
         } catch {
             ErrorReporter.report(error, context: "Starting local HTTP share server")
             stop()
@@ -53,10 +56,9 @@ public final class LocalHttpServerService: @unchecked Sendable {
     }
 
     public func stop() {
-        listener?.cancel()
-        listener = nil
-        queue.async { [weak self] in
-            guard let self else { return }
+        queue.sync {
+            listener?.cancel()
+            listener = nil
             for conn in connections {
                 conn.cancel()
             }
@@ -70,6 +72,9 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }
     }
 
+    /// Only ever called from the @MainActor `Task` in `start()`'s stateUpdateHandler, so this stays
+    /// synchronous on the actor instead of hopping into a redundant nested `Task { @MainActor in }`.
+    @MainActor
     private func updateServerURL() {
         // Get local IP
         var address: String?
@@ -106,9 +111,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         } else {
             "http://localhost:\(port.rawValue)"
         }
-        Task { @MainActor in
-            self.serverURL = finalServerURL
-        }
+        serverURL = finalServerURL
     }
 
     private func handleConnection(_ connection: NWConnection) {
@@ -191,7 +194,16 @@ public final class LocalHttpServerService: @unchecked Sendable {
         let providedPassword = decoded.split(separator: ":", maxSplits: 1).count == 2
             ? String(decoded.split(separator: ":", maxSplits: 1)[1])
             : ""
-        return providedPassword == requiredPassword
+        return Self.constantTimeEquals(providedPassword, requiredPassword)
+    }
+
+    /// Avoids `==`'s early-exit-on-first-mismatch timing behavior, which could let a remote
+    /// attacker infer the password byte-by-byte from response latency.
+    private static func constantTimeEquals(_ lhs: String, _ rhs: String) -> Bool {
+        let lhsBytes = Array(lhs.utf8)
+        let rhsBytes = Array(rhs.utf8)
+        guard lhsBytes.count == rhsBytes.count else { return false }
+        return zip(lhsBytes, rhsBytes).reduce(into: UInt8(0)) { result, pair in result |= pair.0 ^ pair.1 } == 0
     }
 
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {

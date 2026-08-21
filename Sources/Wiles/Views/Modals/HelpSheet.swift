@@ -6,6 +6,30 @@ struct HelpSheet: View {
     var appState: AppState
     @State private var selectedTab: HelpTab = .overview
 
+    private static let domainToolsItems: [FeatureHelpItem] = [
+        FeatureHelpItem(icon: "tag.fill", titleKey: .helpTagsTitle, descKey: .helpTagsDesc),
+        FeatureHelpItem(icon: "terminal.fill", titleKey: .helpTerminalTitle, descKey: .helpTerminalDesc),
+        FeatureHelpItem(icon: "doc.zipper", titleKey: .helpZipTitle, descKey: .helpZipDesc),
+        FeatureHelpItem(icon: "chart.pie.fill", titleKey: .helpDiskTitle, descKey: .helpDiskDesc),
+        FeatureHelpItem(icon: "photo.stack.fill", titleKey: .helpImageTitle, descKey: .helpImageDesc),
+        FeatureHelpItem(icon: "textformat.123", titleKey: .helpBatchTitle, descKey: .helpBatchDesc),
+        FeatureHelpItem(icon: "link", titleKey: .helpSymlinkTitle, descKey: .helpSymlinkDesc),
+        FeatureHelpItem(icon: "doc.badge.plus", titleKey: .helpTemplateTitle, descKey: .helpTemplateDesc),
+        FeatureHelpItem(icon: "doc.on.clipboard", titleKey: .helpCopyContentTitle, descKey: .helpCopyContentDesc),
+        FeatureHelpItem(icon: "trash.slash.fill", titleKey: .helpShredTitle, descKey: .helpShredDesc),
+        FeatureHelpItem(icon: "network", titleKey: .helpServerTitle, descKey: .helpServerDesc),
+        FeatureHelpItem(icon: "wifi", titleKey: .helpWifiShareTitle, descKey: .helpWifiShareDesc),
+        FeatureHelpItem(icon: "wand.and.stars", titleKey: .helpAutoOrgTitle, descKey: .helpAutoOrgDesc)
+    ]
+
+    private static let navigationAndSystemItems: [FeatureHelpItem] = [
+        FeatureHelpItem(icon: "arrow.uturn.backward.circle.fill", titleKey: .helpUndoTitle, descKey: .helpUndoDesc),
+        FeatureHelpItem(icon: "sidebar.right", titleKey: .helpPreviewTitle, descKey: .helpPreviewDesc),
+        FeatureHelpItem(icon: "folder.badge.gearshape", titleKey: .helpViewModeMemoryTitle, descKey: .helpViewModeMemoryDesc),
+        FeatureHelpItem(icon: "signpost.right.fill", titleKey: .helpPathBarTitle, descKey: .helpPathBarDesc),
+        FeatureHelpItem(icon: "slider.horizontal.3", titleKey: .helpTranslucentTitle, descKey: .helpTranslucentDesc)
+    ]
+
     var body: some View {
         ModalScaffoldView(
             icon: .appIcon,
@@ -62,19 +86,9 @@ struct HelpSheet: View {
                 .font(.system(size: 14, weight: .semibold))
 
             VStack(spacing: 8) {
-                featureRow(icon: "tag.fill", title: appState.tr(.helpTagsTitle), desc: appState.tr(.helpTagsDesc))
-                featureRow(icon: "terminal.fill", title: appState.tr(.helpTerminalTitle), desc: appState.tr(.helpTerminalDesc))
-                featureRow(icon: "doc.zipper", title: appState.tr(.helpZipTitle), desc: appState.tr(.helpZipDesc))
-                featureRow(icon: "chart.pie.fill", title: appState.tr(.helpDiskTitle), desc: appState.tr(.helpDiskDesc))
-                featureRow(icon: "photo.stack.fill", title: appState.tr(.helpImageTitle), desc: appState.tr(.helpImageDesc))
-                featureRow(icon: "textformat.123", title: appState.tr(.helpBatchTitle), desc: appState.tr(.helpBatchDesc))
-                featureRow(icon: "link", title: appState.tr(.helpSymlinkTitle), desc: appState.tr(.helpSymlinkDesc))
-                featureRow(icon: "doc.badge.plus", title: appState.tr(.helpTemplateTitle), desc: appState.tr(.helpTemplateDesc))
-                featureRow(icon: "doc.on.clipboard", title: appState.tr(.helpCopyContentTitle), desc: appState.tr(.helpCopyContentDesc))
-                featureRow(icon: "trash.slash.fill", title: appState.tr(.helpShredTitle), desc: appState.tr(.helpShredDesc))
-                featureRow(icon: "network", title: appState.tr(.helpServerTitle), desc: appState.tr(.helpServerDesc))
-                featureRow(icon: "wifi", title: appState.tr(.helpWifiShareTitle), desc: appState.tr(.helpWifiShareDesc))
-                featureRow(icon: "wand.and.stars", title: appState.tr(.helpAutoOrgTitle), desc: appState.tr(.helpAutoOrgDesc))
+                ForEach(Self.domainToolsItems) { item in
+                    featureRow(item)
+                }
             }
         }
     }
@@ -85,26 +99,24 @@ struct HelpSheet: View {
                 .font(.system(size: 14, weight: .semibold))
 
             VStack(spacing: 8) {
-                featureRow(icon: "arrow.uturn.backward.circle.fill", title: appState.tr(.helpUndoTitle), desc: appState.tr(.helpUndoDesc))
-                featureRow(icon: "sidebar.right", title: appState.tr(.helpPreviewTitle), desc: appState.tr(.helpPreviewDesc))
-                featureRow(icon: "folder.badge.gearshape", title: appState.tr(.helpViewModeMemoryTitle), desc: appState.tr(.helpViewModeMemoryDesc))
-                featureRow(icon: "signpost.right.fill", title: appState.tr(.helpPathBarTitle), desc: appState.tr(.helpPathBarDesc))
-                featureRow(icon: "slider.horizontal.3", title: appState.tr(.helpTranslucentTitle), desc: appState.tr(.helpTranslucentDesc))
+                ForEach(Self.navigationAndSystemItems) { item in
+                    featureRow(item)
+                }
             }
         }
     }
 
-    private func featureRow(icon: String, title: String, desc: String) -> some View {
+    private func featureRow(_ item: FeatureHelpItem) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
+            Image(systemName: item.icon)
                 .font(.system(size: 14))
                 .foregroundColor(.accentColor)
                 .frame(width: 20, height: 20)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(appState.tr(item.titleKey))
                     .font(.system(size: 12, weight: .bold))
-                Text(desc)
+                Text(appState.tr(item.descKey))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -120,7 +132,7 @@ struct HelpSheet: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(appState.tr(.sidebarMode))
                 .font(.system(size: 14, weight: .semibold))
-            Text(appState.tr(.helpTranslucentDesc))
+            Text(appState.tr(.helpTagsDesc))
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
         }
@@ -158,5 +170,20 @@ struct HelpSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
+    }
+
+    /// One row's data in the "Features" / "System" help tabs — icon plus title/description localization keys.
+    private struct FeatureHelpItem: Identifiable {
+        let id: L10n.Key
+        let icon: String
+        let titleKey: L10n.Key
+        let descKey: L10n.Key
+
+        init(icon: String, titleKey: L10n.Key, descKey: L10n.Key) {
+            id = titleKey
+            self.icon = icon
+            self.titleKey = titleKey
+            self.descKey = descKey
+        }
     }
 }

@@ -42,6 +42,13 @@ public enum LayoutTokens {
     public static let gridSpacing: CGFloat = 20.0
     public static let gridPadding: CGFloat = 20.0
     public static let gridIconScaleMultiplier: CGFloat = 1.25
+    public static let gridCardPadding: CGFloat = 6.0
+    public static let gridCardVStackSpacing: CGFloat = 6.0
+    /// `cardWidth` minus the card's horizontal padding (`gridCardPadding`) on both sides.
+    public static let gridCardLabelHorizontalInset: CGFloat = gridCardPadding * 2
+    public static let gridCardLabelMinFontSize: Double = 8.0
+    public static let gridCardLabelMaxFontSize: Double = 12.0
+    public static let gridCardLabelFontScaleMultiplier: Double = 0.22
 
     // List Icons
     public static let listIconMinSize: CGFloat = 16.0

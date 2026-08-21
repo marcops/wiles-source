@@ -3,7 +3,7 @@ import CryptoKit
 import Foundation
 
 public enum DuplicateDetectionService: Sendable {
-    private static let maxScannedFileCount = 50_000
+    private static let maxScannedFileCount = 50000
 
     public static func findDuplicates(in folderURL: URL) async -> DuplicateScanResult {
         // `.task { }` cancellation on the calling side does NOT automatically cancel a

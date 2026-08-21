@@ -4,10 +4,13 @@ import Foundation
 final class DirectoryMonitor: @unchecked Sendable {
     private var streamRef: FSEventStreamRef?
     private var callback: (@Sendable () -> Void)?
+    /// Synchronizes `streamRef`/`callback` between start()/cancel() (called from @MainActor) and
+    /// the FSEvents callback trampoline (invoked on DispatchQueue.global(qos: .utility)).
+    private let stateQueue = DispatchQueue(label: "com.wiles.DirectoryMonitor.state")
 
     func start(path: String, onChange: @escaping @Sendable () -> Void) {
         cancel()
-        callback = onChange
+        stateQueue.sync { callback = onChange }
 
         let pathsToWatch = [path as NSString] as CFArray
         var context = FSEventStreamContext(
@@ -20,7 +23,8 @@ final class DirectoryMonitor: @unchecked Sendable {
         let callbackImpl: FSEventStreamCallback = { _, clientCallBackInfo, _, _, _, _ in
             guard let clientCallBackInfo else { return }
             let monitor = Unmanaged<DirectoryMonitor>.fromOpaque(clientCallBackInfo).takeUnretainedValue()
-            monitor.callback?()
+            let onChange = monitor.stateQueue.sync { monitor.callback }
+            onChange?()
         }
 
         let flags = UInt32(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer)
@@ -34,18 +38,20 @@ final class DirectoryMonitor: @unchecked Sendable {
             0.1,
             flags) else { return }
 
-        streamRef = stream
+        stateQueue.sync { streamRef = stream }
         FSEventStreamSetDispatchQueue(stream, DispatchQueue.global(qos: .utility))
         FSEventStreamStart(stream)
     }
 
     func cancel() {
-        guard let stream = streamRef else { return }
+        guard let stream = stateQueue.sync(execute: { streamRef }) else { return }
         FSEventStreamStop(stream)
         FSEventStreamInvalidate(stream)
         FSEventStreamRelease(stream)
-        streamRef = nil
-        callback = nil
+        stateQueue.sync {
+            streamRef = nil
+            callback = nil
+        }
     }
 
     deinit {

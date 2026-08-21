@@ -28,12 +28,9 @@ struct FolderNode: Identifiable, Hashable {
             return []
         }
 
-        var nodes: [Self] = []
-        for url in urls {
+        let nodes: [Self] = urls.compactMap { url in
             let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            if !isDir {
-                continue
-            }
+            guard isDir else { return nil }
 
             let stdURL = url.standardizedFileURL
             let name = stdURL.lastPathComponent
@@ -41,7 +38,7 @@ struct FolderNode: Identifiable, Hashable {
 
             let children = isAncestorOrHome ? loadSubfolders(at: stdURL, autoExpandFor: homeURL) : nil
             let hasSubfolders = children.map { !$0.isEmpty } ?? directoryHasSubfolder(at: stdURL)
-            nodes.append(Self(id: stdURL, name: name, url: stdURL, children: children?.isEmpty == true ? nil : children, hasSubfolders: hasSubfolders))
+            return Self(id: stdURL, name: name, url: stdURL, children: children?.isEmpty == true ? nil : children, hasSubfolders: hasSubfolders)
         }
         return nodes.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }

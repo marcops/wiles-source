@@ -4,10 +4,10 @@ struct DirectoryTreeNodeView: View {
     let node: FolderNode
     let depth: Int
     var appState: AppState
-    @Binding var childrenCache: [URL: [FolderNode]]
+    @Binding var childrenCache: BoundedFolderNodeCache
     @State private var isRightClicked = false
 
-    init(node: FolderNode, depth: Int = 0, appState: AppState, childrenCache: Binding<[URL: [FolderNode]]>) {
+    init(node: FolderNode, depth: Int = 0, appState: AppState, childrenCache: Binding<BoundedFolderNodeCache>) {
         self.node = node
         self.depth = depth
         self.appState = appState

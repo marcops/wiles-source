@@ -42,15 +42,12 @@ public final class NetworkDiscoveryService {
     }
 
     private func updateDiscoveredShares(from results: Set<NWBrowser.Result>) {
-        var newShares: [NetworkShare] = []
-        for result in results {
-            if case let .service(name, _, _, _) = result.endpoint {
-                // Encode the name to form a valid URL
-                if let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed),
-                   let url = URL(string: "smb://\(encodedName).local") {
-                    newShares.append(NetworkShare(name: name, url: url))
-                }
-            }
+        // Encode the name to form a valid URL
+        let newShares = results.compactMap { result -> NetworkShare? in
+            guard case let .service(name, _, _, _) = result.endpoint,
+                  let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed),
+                  let url = URL(string: "smb://\(encodedName).local") else { return nil }
+            return NetworkShare(name: name, url: url)
         }
         discoveredShares = newShares.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }

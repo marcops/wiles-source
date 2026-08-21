@@ -62,13 +62,10 @@ public final class SpotlightSearchService {
         guard let query = metadataQuery else { return }
         query.stop()
 
-        var results: [URL] = []
-        let count = query.resultCount
-        for i in 0 ..< count {
-            if let item = query.result(at: i) as? NSMetadataItem,
-               let path = item.value(forAttribute: kMDItemPath as String) as? String {
-                results.append(URL(fileURLWithPath: path))
-            }
+        let results: [URL] = (0 ..< query.resultCount).compactMap { i in
+            guard let item = query.result(at: i) as? NSMetadataItem,
+                  let path = item.value(forAttribute: kMDItemPath as String) as? String else { return nil }
+            return URL(fileURLWithPath: path)
         }
 
         let handler = completionHandler

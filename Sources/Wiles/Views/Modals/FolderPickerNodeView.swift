@@ -69,9 +69,20 @@ struct FolderPickerNodeView: View {
             expandedPaths.remove(node.url)
         } else {
             expandedPaths.insert(node.url)
-            if children == nil {
-                childrenCache[node.url] = FolderNode.loadChildren(of: node.url)
-            }
+            loadChildrenIfNeeded()
+        }
+    }
+
+    /// Loads `node`'s children off `@MainActor` (mirrors `DirectoryTreeNodeView.loadChildrenIfNeeded()`)
+    /// so expanding a folder under a stalled network share can't block the UI.
+    private func loadChildrenIfNeeded() {
+        guard children == nil else { return }
+        let url = node.url
+        Task {
+            let loaded = await Task.detached(priority: .userInitiated) {
+                FolderNode.loadChildren(of: url)
+            }.value
+            childrenCache[url] = loaded
         }
     }
 }

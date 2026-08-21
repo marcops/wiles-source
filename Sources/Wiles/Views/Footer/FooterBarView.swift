@@ -76,7 +76,7 @@ struct FooterBarView: View {
 
     private var terminalToggleButton: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.25)) { appState.preferences.showTerminalDrawer.toggle() }
+            withAnimation(MotionTokens.smoothEase) { appState.preferences.showTerminalDrawer.toggle() }
         } label: {
             Image(systemName: "terminal")
                 .font(.system(size: 11, weight: .medium))

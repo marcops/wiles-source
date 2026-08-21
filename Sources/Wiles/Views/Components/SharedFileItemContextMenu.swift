@@ -18,6 +18,25 @@ struct SharedFileItemContextMenu: View {
         shareTagsPropertiesSection
     }
 
+    private static let imageFileExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"]
+
+    /// Makes `item` the sole selection unless it's already part of the current selection.
+    private func ensureItemIsSelected() {
+        if !appState.selectedURLs.contains(item.url) {
+            appState.selectedURLs = [item.url]
+        }
+    }
+
+    /// The current selection, or just `item` when nothing is selected. Doesn't check membership.
+    private var selectionURLsOrItem: [URL] {
+        appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+    }
+
+    /// The current selection when it includes `item`, otherwise just `item` alone.
+    private var itemOrSelectionURLs: [URL] {
+        appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
+    }
+
     @ViewBuilder private var openSection: some View {
         Button(appState.tr(.open)) { appState.navigateTo(item.url) }
         Button(appState.trWithShortcutHint(.quickLook, shortcut: "Space")) { windowUIState.quickLookURL = item.url }
@@ -26,8 +45,7 @@ struct SharedFileItemContextMenu: View {
         }
         if item.isUbiquitousNotDownloaded {
             Button(appState.tr(.downloadFromiCloud)) {
-                let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-                for url in targetURLs {
+                for url in selectionURLsOrItem {
                     appState.downloadFromiCloud(url: url)
                 }
             }
@@ -52,15 +70,11 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var clipboardSection: some View {
         Button(appState.trWithShortcutHint(.cut, shortcut: "Cmd+X")) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             appState.cutSelected()
         }
         Button(appState.trWithShortcutHint(.copy, shortcut: "Cmd+C")) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             appState.copySelected()
         }
         Menu(appState.tr(.copyPath)) {
@@ -71,36 +85,28 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var copyPathMenuContent: some View {
         Button(appState.tr(.copyPathAbsolute)) {
-            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-            CopyPathService.copy(urls: target, variant: .absolute)
+            CopyPathService.copy(urls: selectionURLsOrItem, variant: .absolute)
         }
         Button(appState.tr(.copyPathRelative)) {
-            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-            CopyPathService.copy(urls: target, variant: .relative, relativeTo: appState.navigation.currentURL)
+            CopyPathService.copy(urls: selectionURLsOrItem, variant: .relative, relativeTo: appState.navigation.currentURL)
         }
         Button(appState.tr(.copyPathURL)) {
-            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-            CopyPathService.copy(urls: target, variant: .fileURL)
+            CopyPathService.copy(urls: selectionURLsOrItem, variant: .fileURL)
         }
         Button(appState.tr(.copyPathTerminal)) {
-            let target = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-            CopyPathService.copy(urls: target, variant: .terminalEscaped)
+            CopyPathService.copy(urls: selectionURLsOrItem, variant: .terminalEscaped)
         }
     }
 
     @ViewBuilder private var contentActionsSection: some View {
         if !item.isDirectory {
             Button(appState.trWithShortcutHint(.copyContent, shortcut: "#10")) {
-                if !appState.selectedURLs.contains(item.url) {
-                    appState.selectedURLs = [item.url]
-                }
+                ensureItemIsSelected()
                 appState.copyContentOfSelected()
             }
             if isImageFile {
                 Button(appState.tr(.quickConvertImage)) {
-                    if !appState.selectedURLs.contains(item.url) {
-                        appState.selectedURLs = [item.url]
-                    }
+                    ensureItemIsSelected()
                     windowUIState.imageConverterItem = item
                 }
             }
@@ -121,17 +127,17 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var isImageFile: Bool {
-        ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"].contains(item.fileExtension.lowercased())
+        Self.imageFileExtensions.contains(item.fileExtension.lowercased())
     }
 
     private var pdfMergeTargets: [URL] {
-        appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
+        itemOrSelectionURLs
     }
 
     private var canMergeSelectedIntoPDF: Bool {
         let isEligible = pdfMergeTargets.allSatisfy { url in
             let ext = url.pathExtension.lowercased()
-            return ext == "pdf" || ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"].contains(ext)
+            return ext == "pdf" || Self.imageFileExtensions.contains(ext)
         }
         return isEligible && pdfMergeTargets.count >= 1
     }
@@ -148,14 +154,11 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.tr(.compressToZip)) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             appState.compressSelectedToZIP()
         }
         Button(appState.tr(.compressWithPassword)) {
-            let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
-            windowUIState.passwordCompressURLs = targetURLs
+            windowUIState.passwordCompressURLs = itemOrSelectionURLs
             windowUIState.showPasswordCompressSheet = true
         }
     }
@@ -163,9 +166,7 @@ struct SharedFileItemContextMenu: View {
     @ViewBuilder private var destructiveActionsSection: some View {
         Divider()
         Button(appState.trWithShortcutHint(.rename, shortcut: renameKeyboardHint)) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             if appState.selectedURLs.count > 1 {
                 windowUIState.showBatchRenameSheet = true
             } else {
@@ -173,27 +174,19 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.tr(.moveToTrash), role: .destructive) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             appState.deleteSelected(windowUIState: windowUIState)
         }
         Button(appState.trWithShortcutHint(.deleteImmediately, shortcut: "Opt+Cmd+Del"), role: .destructive) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             appState.deletePermanentlySelected()
         }
         Button(appState.tr(.secureShred), role: .destructive) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             appState.shredSelected()
         }
         Button(appState.tr(.createSymlink)) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             windowUIState.symlinkItem = item
         }
         Button("\(appState.tr(.airDrop))...") {
@@ -219,9 +212,7 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {
-            if !appState.selectedURLs.contains(item.url) {
-                appState.selectedURLs = [item.url]
-            }
+            ensureItemIsSelected()
             windowUIState.propertiesItem = item
         }
     }
@@ -235,8 +226,7 @@ struct SharedFileItemContextMenu: View {
             Divider()
         }
         Button(appState.tr(.selectOtherApp)) {
-            let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-            OpenWithService.chooseOtherApplication(toOpen: targetURLs)
+            OpenWithService.chooseOtherApplication(toOpen: selectionURLsOrItem)
         }
         if !availableApps.isEmpty, !item.fileExtension.isEmpty {
             Divider()
@@ -246,8 +236,7 @@ struct SharedFileItemContextMenu: View {
 
     private func openWithAppButton(app: ApplicationApp) -> some View {
         Button {
-            let targetURLs = appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
-            OpenWithService.open(urls: targetURLs, with: app.url)
+            OpenWithService.open(urls: selectionURLsOrItem, with: app.url)
         } label: {
             Text(app.name)
         }
@@ -270,7 +259,7 @@ struct SharedFileItemContextMenu: View {
         let tagKeys: [String: L10n.Key] = [
             "Red": .red, "Orange": .orange, "Yellow": .yellow, "Green": .green, "Blue": .blue, "Purple": .purple, "Gray": .gray
         ]
-        let targetURLs = appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
+        let targetURLs = itemOrSelectionURLs
         ForEach(predefinedTags, id: \.self) { tag in
             tagToggleButton(tag: tag, tagKeys: tagKeys, targetURLs: targetURLs)
         }
@@ -302,23 +291,7 @@ struct SharedFileItemContextMenu: View {
     private func toggleTag(_ tag: String, targetURLs: [URL]) {
         let itemsSnapshot = appState.fileSystem.items
         Task.detached(priority: .userInitiated) {
-            var lastError: String?
-            for url in targetURLs {
-                let fallbackItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
-                let currentItem = itemsSnapshot.first(where: { $0.url == url }) ?? fallbackItem
-                var newTags = currentItem.tags
-                if newTags.contains(tag) {
-                    newTags.removeAll { $0 == tag }
-                } else {
-                    newTags.append(tag)
-                }
-                do {
-                    try FileSystemService.setTags(for: url, tags: newTags)
-                } catch {
-                    ErrorReporter.report(error, context: "Toggling tag")
-                    lastError = error.localizedDescription
-                }
-            }
+            let lastError = FileTaggingService.toggleTag(tag, for: targetURLs, itemsSnapshot: itemsSnapshot)
             await MainActor.run {
                 if let lastError {
                     appState.showError(lastError)
@@ -330,15 +303,7 @@ struct SharedFileItemContextMenu: View {
 
     private func clearAllTags(targetURLs: [URL]) {
         Task.detached(priority: .userInitiated) {
-            var lastError: String?
-            for url in targetURLs {
-                do {
-                    try FileSystemService.setTags(for: url, tags: [])
-                } catch {
-                    ErrorReporter.report(error, context: "Clearing all tags")
-                    lastError = error.localizedDescription
-                }
-            }
+            let lastError = FileTaggingService.clearAllTags(for: targetURLs)
             await MainActor.run {
                 if let lastError {
                     appState.showError(lastError)

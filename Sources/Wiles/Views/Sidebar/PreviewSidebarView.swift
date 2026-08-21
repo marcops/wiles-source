@@ -19,12 +19,7 @@ struct PreviewSidebarView: View {
         }
         .frame(minWidth: 200, idealWidth: 250, maxWidth: 350, maxHeight: .infinity)
         .padding()
-        .background(
-            ZStack {
-                TranslucentVisualEffectView(material: .sidebar)
-                Color(NSColor.windowBackgroundColor)
-                    .opacity(1.0 - Double(appState.preferences.translucentLevel) / 100.0)
-            })
+        .translucentBackground(material: .sidebar, opacity: appState.preferences.sidebarOverlayOpacity)
         .task(id: appState.selectedURLs) {
             if let first = appState.selectedURLs.first, appState.selectedURLs.count == 1 {
                 detailedProps = await FileMetadataService.shared.fetchProperties(for: first)

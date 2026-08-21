@@ -74,10 +74,7 @@ struct SelectionRectangleOverlay: View {
     }
 
     private func applySelection(matching rect: CGRect) {
-        var matched = Set<URL>()
-        for (url, frame) in cellFramesProvider() where frame.intersects(rect) {
-            matched.insert(url)
-        }
+        let matched = Set(cellFramesProvider().filter { $0.value.intersects(rect) }.keys)
         let resolved: Set<URL> = if NSEvent.modifierFlags.contains(.command) {
             appState.selectedURLs.union(matched)
         } else {

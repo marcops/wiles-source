@@ -42,10 +42,8 @@ public final class CopyPathService: CopyPathServiceProtocol, Sendable {
 
     public static func escapeForTerminal(_ path: String) -> String {
         let specialChars = ["\\", " ", "\t", "(", ")", "[", "]", "{", "}", "'", "\"", "&", "$", "|", ";", "*", "?", "<", ">", "#", "!", "`"]
-        var result = path
-        for char in specialChars {
-            result = result.replacingOccurrences(of: char, with: "\\" + char)
+        return specialChars.reduce(path) { result, char in
+            result.replacingOccurrences(of: char, with: "\\" + char)
         }
-        return result
     }
 }

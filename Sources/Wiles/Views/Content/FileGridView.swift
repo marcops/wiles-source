@@ -148,10 +148,13 @@ struct FileGridView: View {
         if let renameItem = windowUIState.renameItem,
            let item = appState.fileSystem.items.first(where: { $0.url == renameItem.url }),
            let cellFrame = appState.selection.gridCellFrames[renameItem.url] {
-            let fontSize = max(8.0, min(12.0, Double(iconSize) * 0.22))
+            let fontSize = max(
+                LayoutTokens.gridCardLabelMinFontSize,
+                min(LayoutTokens.gridCardLabelMaxFontSize, Double(iconSize) * LayoutTokens.gridCardLabelFontScaleMultiplier))
             let isSel = appState.selectedURLs.contains(item.url)
-            let topInset: CGFloat = 6 + iconSize + 6 // card padding + icon + VStack spacing, matching FileGridCardItemView
-            let fieldWidth = appState.selection.gridLabelWidths[renameItem.url] ?? (cardWidth - 12)
+            // card padding + icon + VStack spacing, matching FileGridCardItemView
+            let topInset: CGFloat = LayoutTokens.gridCardPadding + iconSize + LayoutTokens.gridCardVStackSpacing
+            let fieldWidth = appState.selection.gridLabelWidths[renameItem.url] ?? (cardWidth - LayoutTokens.gridCardLabelHorizontalInset)
 
             InlineRenameField(
                 item: item,

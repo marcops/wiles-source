@@ -8,7 +8,7 @@ struct FileListHeaderView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(Array(Self.visibleColumns(appState).enumerated()), id: \.element) { _, col in
+            ForEach(Self.visibleColumns(appState)) { col in
                 headerCell(columnTitle(col), option: sortOption(for: col), isLeading: col == .name)
                     .frame(width: appState.columnWidth(for: col), alignment: col == .name ? .leading : .trailing)
                     .overlay(alignment: .trailing) {

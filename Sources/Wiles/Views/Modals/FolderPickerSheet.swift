@@ -149,9 +149,29 @@ struct FolderPickerSheet: View {
     private func commitPathText() {
         let expandedPath = (pathText as NSString).expandingTildeInPath
         let url = URL(fileURLWithPath: expandedPath).standardizedFileURL
+        // fileExists(atPath:) resolves in microseconds for a local path, so it stays inline. Under
+        // /Volumes/ the same call can block for seconds against a stalled network share, so it hops
+        // off @MainActor there (mirrors AppState+Navigation.navigateTo(_:addToHistory:)).
+        if url.path.hasPrefix("/Volumes/") {
+            Task {
+                let isValidDirectory = await Task.detached(priority: .userInitiated) {
+                    Self.directoryExists(at: url)
+                }.value
+                applyCommittedPath(url, isValidDirectory: isValidDirectory)
+            }
+            return
+        }
+        applyCommittedPath(url, isValidDirectory: Self.directoryExists(at: url))
+    }
+
+    private nonisolated static func directoryExists(at url: URL) -> Bool {
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
-        guard exists, isDirectory.boolValue else {
+        return exists && isDirectory.boolValue
+    }
+
+    private func applyCommittedPath(_ url: URL, isValidDirectory: Bool) {
+        guard isValidDirectory else {
             pathError = appState.tr(.invalidFolderPath)
             return
         }
@@ -160,22 +180,57 @@ struct FolderPickerSheet: View {
         expandAncestors(of: url)
     }
 
+    /// Snapshot of one ancestor-expansion pass — computed off `@MainActor` for `/Volumes/` paths so the
+    /// result can be merged back in a single hop (mirrors `AppState+Navigation.RefreshSnapshot`).
+    private nonisolated struct AncestorExpansion {
+        let folders: [URL]
+        let loadedChildren: [URL: [FolderNode]]
+    }
+
     /// Ensures every folder between the tree root and `url` is expanded and has its children loaded.
+    /// The walk itself stays synchronous for local paths; under `/Volumes/` it runs off `@MainActor`
+    /// since it calls `FolderNode.loadChildren(of:)` — a `FileManager` hit — once per ancestor level.
     private func expandAncestors(of url: URL) {
         let home = rootNode.url
         guard url.standardizedFileURL.path.hasPrefix(home.path) else {
             return
         }
+        let alreadyCached = Set(childrenCache.keys)
+        if url.path.hasPrefix("/Volumes/") {
+            Task {
+                let expansion = await Task.detached(priority: .userInitiated) {
+                    Self.computeAncestorExpansion(of: url, home: home, alreadyCached: alreadyCached)
+                }.value
+                applyAncestorExpansion(expansion)
+            }
+            return
+        }
+        applyAncestorExpansion(Self.computeAncestorExpansion(of: url, home: home, alreadyCached: alreadyCached))
+    }
+
+    private nonisolated static func computeAncestorExpansion(of url: URL, home: URL, alreadyCached: Set<URL>) -> AncestorExpansion {
+        var folders: [URL] = []
+        var loadedChildren: [URL: [FolderNode]] = [:]
         var current = url.standardizedFileURL.deletingLastPathComponent()
         while current.path.hasPrefix(home.path) {
-            expandedPaths.insert(current)
-            if current != home, childrenCache[current] == nil {
-                childrenCache[current] = FolderNode.loadChildren(of: current)
+            folders.append(current)
+            if current != home, !alreadyCached.contains(current) {
+                loadedChildren[current] = FolderNode.loadChildren(of: current)
             }
             if current == home {
                 break
             }
             current = current.deletingLastPathComponent()
+        }
+        return AncestorExpansion(folders: folders, loadedChildren: loadedChildren)
+    }
+
+    private func applyAncestorExpansion(_ expansion: AncestorExpansion) {
+        for folder in expansion.folders {
+            expandedPaths.insert(folder)
+        }
+        for (folder, children) in expansion.loadedChildren {
+            childrenCache[folder] = children
         }
     }
 }
