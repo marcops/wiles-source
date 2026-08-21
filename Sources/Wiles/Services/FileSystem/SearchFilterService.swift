@@ -29,7 +29,7 @@ public struct SearchFilterService: Sendable {
             let pattern: String
             if token.hasPrefix("r:") {
                 pattern = String(token.dropFirst(2))
-            } else if token.contains("*") || token.contains("^") || token.contains("$") {
+            } else if containsRegexMetacharacter(token) {
                 pattern = token
             } else {
                 continue
@@ -37,6 +37,10 @@ public struct SearchFilterService: Sendable {
             result[token] = try? NSRegularExpression(pattern: pattern, options: options)
         }
         return result
+    }
+
+    private static func containsRegexMetacharacter(_ token: String) -> Bool {
+        token.contains("*") || token.contains("^") || token.contains("$")
     }
 
     private static func isFilterToken(_ lowerToken: String) -> Bool {
@@ -122,11 +126,15 @@ public struct SearchFilterService: Sendable {
         if valueStr.hasPrefix(">=") || valueStr.hasPrefix("<=") {
             op = String(valueStr.prefix(2))
             valueStr = String(valueStr.dropFirst(2))
-        } else if valueStr.hasPrefix(">") || valueStr.hasPrefix("<") || valueStr.hasPrefix("=") {
+        } else if isSingleCharComparisonOperator(valueStr) {
             op = String(valueStr.prefix(1))
             valueStr = String(valueStr.dropFirst(1))
         }
         return (op, valueStr)
+    }
+
+    private static func isSingleCharComparisonOperator(_ valueStr: String) -> Bool {
+        valueStr.hasPrefix(">") || valueStr.hasPrefix("<") || valueStr.hasPrefix("=")
     }
 
     private static func matchesSizeFilter(fileURL: URL, token: String) -> Bool {

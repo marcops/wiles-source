@@ -1,6 +1,6 @@
 ## Bugs
 
-- Navigation state (`currentURL` + back/forward history on `NavigationStore`) is still global on the shared `AppState` instead of per-window on `WindowUIState` — navigating in one open window's folder view (or its terminal, via the existing `cd`-on-navigate sync) moves every other open window too. Same bug class `WILES_RULES.md`'s "Window-Scoped UI State in This App" rule already fixed for sheets/alerts/HUDs, just never applied to navigation itself. 26 files read `appState.navigation.*`/call `appState.navigateTo(...)`, so this is a real refactor, not a one-line fix.
+- Committed secret — `Constants/CrashReportingConstants.swift:15`. `github_pat_...` token hardcoded, compiled into the binary. Not rotated yet (deliberately left as-is for now).
 
 ## Low priority / undecided
 

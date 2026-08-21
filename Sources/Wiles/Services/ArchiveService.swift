@@ -18,6 +18,10 @@ public final class ArchiveService: Sendable {
         name.hasSuffix(".tar.gz") || name.hasSuffix(".tar.bz2") || name.hasSuffix(".tar.xz")
     }
 
+    private static func isTarArchive(ext: String, name: String) -> Bool {
+        ext == "tar" || ext == "tgz" || isTarFamily(name: name)
+    }
+
     public static func compressToZIP(urls: [URL], in destinationFolder: URL, password: String? = nil) throws {
         guard !urls.isEmpty else { return }
         let destURL = uniqueZipDestination(for: urls, in: destinationFolder)
@@ -81,7 +85,7 @@ public final class ArchiveService: Sendable {
         if ext == "zip" {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
             process.arguments = ["-x", "-k", archiveURL.path, destinationFolder.path]
-        } else if ext == "tar" || ext == "tgz" || isTarFamily(name: name) {
+        } else if isTarArchive(ext: ext, name: name) {
             process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
             process.arguments = ["-xf", archiveURL.path, "-C", destinationFolder.path]
         } else {

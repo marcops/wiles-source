@@ -1,14 +1,14 @@
 import Foundation
 
+/// Owned per-window (one instance per `AppState`), not a shared singleton — a `.shared` undo/redo
+/// stack let ⌘Z in one window undo an action performed in a different window.
 @MainActor
 public final class UndoRedoService {
-    public static let shared = UndoRedoService()
-
     private var undoStack: [UndoRecord] = []
     private var redoStack: [UndoRecord] = []
     private let maxHistoryLimit = 50
 
-    private init() { }
+    public init() { }
 
     public func recordAction(_ action: UndoActionType) {
         undoStack.append(UndoRecord(actionType: action))

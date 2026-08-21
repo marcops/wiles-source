@@ -121,8 +121,32 @@ custom_rules:
     # Only counts non-private/fileprivate types: a `private`/`fileprivate` type is a file-scoped
     # implementation detail invisible outside the file (e.g. a FocusedValueKey marker paired with
     # its FocusedValues extension), not a second unit of public API sharing the file.
-    regex: '(^|\n)((?:public |internal |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor) \w+)[\s\S]*?\n((?:public |internal |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor) \w+)'
-    message: "Only one top-level type is allowed per file — this file declares more than one."
+    # `typealias` is included in the alternation alongside class/struct/enum/protocol/actor: a
+    # public typealias renaming a type declared earlier in the same file (e.g. `class ArchiveService
+    # { ... }` + `public typealias ZipArchiveService = ArchiveService`) is the same file/type-identity
+    # confusion this rule exists to catch, even though a typealias isn't a new type declaration.
+    regex: '(^|\n)((?:public |internal |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor|typealias) \w+)[\s\S]*?\n((?:public |internal |open )?(?:final |indirect )?(?:class|struct|enum|protocol|actor|typealias) \w+)'
+    message: "Only one top-level type is allowed per file — this file declares more than one (or renames one via typealias)."
+    severity: error
+  private_helper_type_needs_own_file:
+    name: "Private Helper Type Needs Its Own File"
+    # Separate, narrower companion to `one_type_per_file` above — that rule deliberately skips
+    # private/fileprivate types entirely (see its comment), to allow a legitimate pattern: a
+    # private marker type paired with its own extension, named so it's obviously a single-purpose
+    # implementation detail (e.g. `private struct SomeFocusedValueKey: FocusedValueKey` living next
+    # to `extension FocusedValues { ... }` in the same file — see WindowUIStateKey.swift).
+    # This rule catches the OTHER private-type case that slips through that exemption: a
+    # private/fileprivate helper type (not the Key-marker pattern) bundled into a file alongside
+    # ANY other top-level type — its own unrelated public/internal type (e.g. ColumnAutoFitService's
+    # private ColumnTextSpec helper) or another unrelated private type (e.g. three unrelated
+    # private ViewModifier structs in SharedViewHelpers.swift). Each still needs its own file per
+    # SWIFT_LANG_RULES.md's "No Inline Helper Types" rule, private or not. Matches on the SECOND of
+    # two type declarations being the private-non-Key one, regardless of what the first is (public,
+    # internal, or private) — covers both "public type + private helper" and "private + private".
+    # The `(?!\w*Key\b)` lookahead excludes any type whose name ends in "Key", so the intentionally
+    # exempted FocusedValueKey-marker pattern is never flagged by this rule either.
+    regex: '(^|\n)((?:public |internal |open |private |fileprivate )?(?:final |indirect )?(?:class|struct|enum|actor) \w+)[\s\S]*?\n(private |fileprivate )(?:final |indirect )?(?:class|struct|enum|actor) (?!\w*Key\b)\w+'
+    message: "A private/fileprivate helper type is bundled into a file alongside another unrelated top-level type — it belongs in its own file, unless it's a Key-marker type paired with its own extension (the one exempted pattern, see WindowUIStateKey.swift)."
     severity: error
   no_print_in_production:
     name: "No print() in Production Code"
@@ -135,3 +159,33 @@ custom_rules:
     regex: '\bAnyView\('
     message: "AnyView erases SwiftUI's structural identity and forces aggressive re-rendering. Use @ViewBuilder with if/else or switch instead."
     severity: error
+  no_inline_compound_condition:
+    name: "No Inline Compound Condition (3+ Terms)"
+    # DEV_RULES.md's "No Inline Compound Conditions": an if/guard/else-if combining 3+ terms via
+    # ||/&& must be extracted into a named comparison function instead of left as an inline boolean
+    # chain (see ArchiveService.swift's isTarArchive/SearchFilterService.swift's isFilterToken for
+    # the intended shape). 3 terms means at least 2 operators, so this fires on the SECOND `||`/`&&`
+    # found between the `if`/`guard`/`else if` keyword and that line's `{`/end-of-line — deliberately
+    # single-line only (`[^\n{]*`), since a condition already broken across multiple lines to stay
+    # under line_length is usually one already given a moment's thought, and scanning across
+    # newlines here would risk matching unrelated code that follows. Mixed `||`/`&&` chains still
+    # count (both alternate in the same character class), matching the rule's own "&&/||" wording.
+    regex: '\b(if|guard|else if)\b[^\n{]*(\|\||&&)[^\n{]*(\|\||&&)'
+    message: "An if/guard/else-if combining 3+ terms with ||/&& must be extracted into a named comparison function instead of left as an inline boolean chain (DEV_RULES.md 'No Inline Compound Conditions')."
+    severity: warning
+  no_hardcoded_swiftui_text:
+    included: ".*/Sources/.*\\.swift"
+    name: "No Hardcoded SwiftUI Text"
+    # SWIFT_LANG_RULES.md's "Zero Hardcoded User-Facing Text": Text(...)/Button(...)/Label(...)'s
+    # first positional argument must go through tr(...)/L10n, not a raw string literal (the
+    # MainContentView.swift "OK"/"An error occurred." bug this rule exists to catch). Requires the
+    # literal to directly follow the opening paren and contain at least two letters (so `Text("%")`/
+    # `Button("")` icon-only calls aren't flagged) and excludes any backslash in the literal
+    # (`[^"\\]*`), which rules out string interpolation (`\(...)`) — an interpolated call almost
+    # always wraps its dynamic piece in `tr(...)` already (e.g. `Text("\(count) \(appState.tr(...))")`
+    # ) and isn't the plain-hardcoded-prose case this targets. Doesn't catch `Text(verbatim:)`,
+    # a trailing-labeled second argument, or a literal built from concatenation — narrow on purpose
+    # to keep false positives at zero; a broader net would need semantic parsing, not regex.
+    regex: '\b(Text|Button|Label)\("[^"\\]*[A-Za-z]{2}[^"\\]*"'
+    message: "Hardcoded user-facing text passed directly to Text()/Button()/Label() — route it through tr()/L10n instead (SWIFT_LANG_RULES.md 'Zero Hardcoded User-Facing Text')."
+    severity: warning

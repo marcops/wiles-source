@@ -385,6 +385,8 @@ public enum L10n {
         case adjustIconSizeHelp
         case searchFiltersHelp
         case errorAlertTitle
+        case errorAlertOKButton
+        case errorAlertGenericMessage
 
         // MARK: - HttpShareSheet & ArchiveInspectionSheetView (localization + accessibility audit)
 

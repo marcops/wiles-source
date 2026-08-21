@@ -90,7 +90,7 @@ public extension AppState {
         guard !trimmed.isEmpty, trimmed != item.name else { return }
         do {
             let newURL = try FileSystemService.renameItem(at: item.url, newName: trimmed)
-            UndoRedoService.shared.recordAction(.rename(oldURL: item.url, newURL: newURL))
+            undoRedoService.recordAction(.rename(oldURL: item.url, newURL: newURL))
             refreshCurrentDirectory()
             selectedURLs = [newURL]
         } catch {

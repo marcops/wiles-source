@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct UndoRedoTests {
     public static func run() async {
-        let service = UndoRedoService.shared
+        let service = UndoRedoService()
 
         await testEmptyStackOperations(service: service)
 
@@ -23,12 +23,9 @@ public struct UndoRedoTests {
         try? FileManager.default.removeItem(at: tempDir)
     }
 
-    /// UndoRedoService.shared is a process-wide singleton (AGENTS.md rule 17: no shared-state
-    /// assumptions). Other test files that touch it earlier in the same test run may leave residue
-    /// that can never be fully cleared via undo()/redo() alone — both always relocate a record to
-    /// the opposite stack, never discard it, so a record left by another file can end up parked on
-    /// either stack. Only assert the nil-on-empty behavior when the stack is verifiably empty going
-    /// in, instead of assuming a pristine singleton.
+    /// `service` is a fresh instance owned only by this test run, but undo()/redo() always relocate
+    /// a record to the opposite stack rather than discarding it — so only assert the nil-on-empty
+    /// behavior when the stack is verifiably empty going in.
     private static func testEmptyStackOperations(service: UndoRedoService) async {
         if !service.canUndo() {
             do {
@@ -148,7 +145,7 @@ public struct UndoRedoTests {
             result: !service.canUndo())
 
         // Drain the one remaining (real, undo-able) record so it doesn't leak into later tests in
-        // this file or other test files that also touch the shared UndoRedoService.shared singleton.
+        // this file.
         while service.canUndo() {
             _ = try? await service.undo()
         }
@@ -209,8 +206,7 @@ public struct UndoRedoTests {
     /// swallowing them, and (b) only push a record onto the opposite stack AFTER the reverse/
     /// forward action actually succeeds - a failed undo must not corrupt the stack into a bogus
     /// available redo. This must run last: a failed undo re-pushes its record back onto the undo
-    /// stack for retry, and nothing after this function relies on the shared singleton's stack
-    /// being empty.
+    /// stack for retry, and nothing after this function relies on `service`'s stack being empty.
     private static func testFailedUndoDoesNotCorruptStack(service: UndoRedoService, tempDir: URL) async {
         let ghostSource = tempDir.appendingPathComponent("corruption_ghost_source.txt")
         let ghostRenamed = tempDir.appendingPathComponent("corruption_ghost_renamed.txt")

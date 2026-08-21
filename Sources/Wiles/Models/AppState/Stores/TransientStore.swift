@@ -22,10 +22,5 @@ public final class TransientStore {
     public var trashSizeBytes: Int64 = 0
     public var isTrashUpdating: Bool = false
 
-    /// Set while a column-resize drag is in progress so intermediate width updates (which fire on every
-    /// mouse-move delta) don't each trigger a synchronous JSON encode + `UserDefaults` write. The final
-    /// width is persisted once via `persistColumnWidths()` on drag end. See `ColumnResizeHandle`.
-    var suppressColumnStatePersistence: Bool = false
-
     public init() { }
 }

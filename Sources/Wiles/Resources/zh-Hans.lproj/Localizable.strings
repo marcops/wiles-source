@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "调整图标大小(Cmd/Ctrl + 滚轮 或 Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "搜索筛选器(日期、类型、大小)";
 "errorAlertTitle" = "错误";
+"errorAlertOKButton" = "好";
+"errorAlertGenericMessage" = "发生错误。";
 "copyLinkAccessibilityLabel" = "复制链接";
 "copyLinkAccessibilityHint" = "将共享地址复制到剪贴板";
 "loadingEntries" = "正在加载条目...";

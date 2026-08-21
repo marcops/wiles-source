@@ -10,8 +10,8 @@ import XCTest
 /// `AppStateColumnsAndSelectionTests.swift` is the dedicated 1-to-1 test file for this source file
 /// (per AGENTS.md rule 16) and covers every synchronous member. These three specific members either
 /// kick off async work via `Task.detached` (requiring a polling wait that only an `async` test method
-/// can express) or record onto the process-wide `UndoRedoService.shared` singleton (requiring an
-/// `async` drain per AGENTS.md rule 17 - see `AppStateOperationsExtraTests.swift` for the identical,
+/// can express) or record onto that `AppState`'s own `undoRedoService` (requiring an `async` drain
+/// per AGENTS.md rule 17 - see `AppStateOperationsExtraTests.swift` for the identical,
 /// pre-existing pattern of a "sync dedicated file + async companion file" split for one source file).
 /// A standalone `XCTestCase` (same precedent as `SpotlightSearchTests.swift`) needs no wiring into
 /// `WilesAutomatedXCTestCase.swift`, so it's discoverable without touching that shared file.
@@ -53,12 +53,12 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         return FileItem(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
     }
 
-    /// Repeatedly drains `UndoRedoService.shared` (undo() is async - see the file-level doc comment
-    /// for why this can't happen in the synchronous dedicated test file) so a rename recorded by this
-    /// test never lingers to break a later test's undo/redo assertions once its temp dir is removed.
-    private func drainUndoRedoService() async {
-        for _ in 0 ..< 10 where UndoRedoService.shared.canUndo() {
-            _ = try? await UndoRedoService.shared.undo()
+    /// Repeatedly drains `appState.undoRedoService` (undo() is async - see the file-level doc
+    /// comment for why this can't happen in the synchronous dedicated test file) so a rename
+    /// recorded by this test never lingers to break a later assertion once its temp dir is removed.
+    private func drainUndoRedoService(_ appState: AppState) async {
+        for _ in 0 ..< 10 where appState.undoRedoService.canUndo() {
+            _ = try? await appState.undoRedoService.undo()
         }
     }
 
@@ -76,9 +76,9 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: renamedURL.path), "performRename() should move the file on disk to the new name")
         XCTAssertFalse(FileManager.default.fileExists(atPath: item.url.path), "performRename() should leave nothing behind at the old path")
         XCTAssertEqual(appState.selectedURLs, [renamedURL], "performRename() should select the freshly renamed URL")
-        XCTAssertTrue(UndoRedoService.shared.canUndo(), "performRename() should record an undoable .rename action")
+        XCTAssertTrue(appState.undoRedoService.canUndo(), "performRename() should record an undoable .rename action")
 
-        await drainUndoRedoService()
+        await drainUndoRedoService(appState)
     }
 
     func testPerformImageConversionSuccessPath() async {

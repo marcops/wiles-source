@@ -12,6 +12,9 @@ public final class AutoOrganizationService {
 
     private let ruleStore = AutoOrganizationRuleStore()
     private let watcher = FolderWatcher(debounceInterval: AutoOrganizationService.scanDebounceInterval)
+    /// This service has no owning window (a background scan can fire with no window focused), so
+    /// its own moves are recorded on their own instance rather than any one window's `AppState`.
+    let undoRedoService = UndoRedoService()
     /// How long a matched file's size must stay unchanged before it's considered done writing and
     /// safe to move. FileHandle/POSIX lock checks don't work for this: most writers (browsers,
     /// curl, Finder copies) never take an advisory lock, so a locked-file check would never detect
@@ -102,6 +105,7 @@ public final class AutoOrganizationService {
                 // cross-volume moves, which would otherwise freeze the UI on large files.
                 let stabilityCheckDelay = self.stabilityCheckDelay
                 let destinationURL = rule.destinationURL
+                let undoRedoService = self.undoRedoService
                 Task.detached(priority: .utility) {
                     guard let sizeBefore = Self.fileSize(file) else { return }
                     try? await Task.sleep(nanoseconds: stabilityCheckDelay)
@@ -111,7 +115,7 @@ public final class AutoOrganizationService {
                     do {
                         _ = try FileSystemService.moveItem(at: file, toFolder: destinationURL)
                         await MainActor.run {
-                            UndoRedoService.shared.recordAction(.move(
+                            undoRedoService.recordAction(.move(
                                 sourceURL: file,
                                 destinationURL: destinationURL.appendingPathComponent(file.lastPathComponent)))
                         }

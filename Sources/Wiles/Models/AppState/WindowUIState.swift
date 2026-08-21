@@ -2,11 +2,12 @@ import Foundation
 import Observation
 
 /// Per-window UI presentation state: sheets, alerts, and their associated items that must NOT be
-/// shared across multiple open Wiles windows. `AppState` is a single instance shared by every
-/// window, so any field that used to live on it (or on `ModalStore`) showed up in every open
-/// window at once — e.g. opening "Properties" in one window popped the properties sheet in every
-/// other window too. Anything toggled by an explicit, window-scoped user action belongs here
-/// instead.
+/// shared across multiple open Wiles windows. `AppState` is now constructed fresh per window (see
+/// `MainContentView.init`); only its `preferences`/`modal`/`transient` stores are shared instances.
+/// Before that split, `AppState` was a single instance shared by every window, so any field that
+/// lived on it (or on `ModalStore`) showed up in every open window at once — e.g. opening
+/// "Properties" in one window popped the properties sheet in every other window too. Anything
+/// toggled by an explicit, window-scoped user action belongs here instead.
 ///
 /// Instantiated once per window as `@State` in `MainContentView`, injected into that window's view
 /// hierarchy via `.environment(_:)` and read by descendants with `@Environment(WindowUIState.self)`,
@@ -42,6 +43,11 @@ public final class WindowUIState {
     public var quickLookURL: URL?
     public var selectedFavoriteURL: URL?
     public var isEditingPath: Bool = false
+    /// Keeps this window's terminal PTY/NSView alive across drawer show/hide cycles — per-window so
+    /// opening the terminal drawer in two windows never shares the same shell process. See
+    /// `TerminalViewCache`. Not `public`: `TerminalViewCache` itself is internal, and every reader
+    /// (`IntegratedTerminalView`, `MainContentView`) lives in this same module.
+    let terminalViewCache = TerminalViewCache()
 
     /// True while any sheet or alert owned by this window is on screen. `GlobalKeyMonitor` checks
     /// this before acting on a keypress so a Return/Delete meant for the presented alert's own

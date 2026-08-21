@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "Justera ikonstorlek (Cmd/Ctrl + Scrollhjul eller Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Sökfilter (Datum, Typ, Storlek)";
 "errorAlertTitle" = "Fel";
+"errorAlertOKButton" = "OK";
+"errorAlertGenericMessage" = "Ett fel har inträffat.";
 "copyLinkAccessibilityLabel" = "Kopiera länk";
 "copyLinkAccessibilityHint" = "Kopierar delningsadressen till urklipp";
 "loadingEntries" = "Läser in objekt...";

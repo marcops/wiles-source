@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "Настроить размер значков (Cmd/Ctrl + Колесо мыши или Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Фильтры поиска (Дата, Тип, Размер)";
 "errorAlertTitle" = "Ошибка";
+"errorAlertOKButton" = "ОК";
+"errorAlertGenericMessage" = "Произошла ошибка.";
 "copyLinkAccessibilityLabel" = "Копировать ссылку";
 "copyLinkAccessibilityHint" = "Копирует адрес общего доступа в буфер обмена";
 "loadingEntries" = "Загрузка элементов...";

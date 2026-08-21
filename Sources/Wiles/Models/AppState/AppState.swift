@@ -21,6 +21,9 @@ public final class AppState: @unchecked Sendable {
     public var fileSystem: FileSystemStore
     public var smartFolder: SmartFolderStore
     public var transient: TransientStore
+    /// Per-window undo/redo history — each `AppState` (constructed fresh per window) gets its own,
+    /// so ⌘Z in one window never undoes an action performed in a different window.
+    public let undoRedoService = UndoRedoService()
 
     func startDirectoryMonitoring(for url: URL) {
         fileSystem.startDirectoryMonitoring(for: url) { [weak self] in

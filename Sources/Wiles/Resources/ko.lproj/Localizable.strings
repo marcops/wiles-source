@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "아이콘 크기 조정(Cmd/Ctrl + 휠 또는 Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "검색 필터(날짜, 유형, 크기)";
 "errorAlertTitle" = "오류";
+"errorAlertOKButton" = "확인";
+"errorAlertGenericMessage" = "오류가 발생했습니다.";
 "copyLinkAccessibilityLabel" = "링크 복사";
 "copyLinkAccessibilityHint" = "공유 주소를 클립보드에 복사합니다";
 "loadingEntries" = "항목을 불러오는 중...";

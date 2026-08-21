@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "Dostosuj rozmiar ikon (Cmd/Ctrl + Kółko myszy lub Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Filtry wyszukiwania (Data, Typ, Rozmiar)";
 "errorAlertTitle" = "Błąd";
+"errorAlertOKButton" = "OK";
+"errorAlertGenericMessage" = "Wystąpił błąd.";
 "copyLinkAccessibilityLabel" = "Kopiuj link";
 "copyLinkAccessibilityHint" = "Kopiuje adres udostępniania do schowka";
 "loadingEntries" = "Wczytywanie elementów...";

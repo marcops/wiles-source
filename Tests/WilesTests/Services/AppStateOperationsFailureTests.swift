@@ -44,9 +44,9 @@ extension AppStateOperationsExtraTests {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
         let neverCreatedURL = dir.appendingPathComponent("never-created-\(UUID().uuidString)")
-        UndoRedoService.shared.recordAction(.create(url: neverCreatedURL))
 
         let appState = AppState()
+        appState.undoRedoService.recordAction(.create(url: neverCreatedURL))
         appState.modal.errorMessage = nil
         appState.selectedURLs = []
         appState.undoLastAction()
@@ -57,22 +57,24 @@ extension AppStateOperationsExtraTests {
             result: errorShown)
 
         try? FileManager.default.createDirectory(at: neverCreatedURL, withIntermediateDirectories: true)
-        await drainUndoRedoService()
+        await drainUndoRedoService(appState)
     }
 
     /// redo()'s catch: get a record onto redoStack via undo(), then make the forward createDirectory
     /// fail by recreating that path first; retry redo() after clearing the conflict so the failed
-    /// record (pushed back onto redoStack, unreachable by drainUndoRedoService()) drains too.
+    /// record (pushed back onto redoStack, unreachable by drainUndoRedoService()) drains too. Uses a
+    /// single `appState` throughout — undo()/redo() must run against the exact instance that
+    /// recorded the action, since each `AppState` now owns its own `undoRedoService`.
     private static func testRedoLastActionFailureReportsError() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
         let createdDirURL = dir.appendingPathComponent("redo-fail-dir")
         try? FileManager.default.createDirectory(at: createdDirURL, withIntermediateDirectories: true)
-        UndoRedoService.shared.recordAction(.create(url: createdDirURL))
 
-        let setupAppState = AppState()
-        setupAppState.selectedURLs = []
-        setupAppState.undoLastAction()
+        let appState = AppState()
+        appState.undoRedoService.recordAction(.create(url: createdDirURL))
+        appState.selectedURLs = []
+        appState.undoLastAction()
         let trashedAway = await pollUntilTrue { !FileManager.default.fileExists(atPath: createdDirURL.path) }
         guard trashedAway else {
             report("AppState+Operations", "NEG: redoLastAction() reports an error when the forward action fails (setup: undo did not complete)", result: false)
@@ -80,9 +82,7 @@ extension AppStateOperationsExtraTests {
         }
         try? FileManager.default.createDirectory(at: createdDirURL, withIntermediateDirectories: true)
 
-        let appState = AppState()
         appState.modal.errorMessage = nil
-        appState.selectedURLs = []
         appState.redoLastAction()
         let errorShown = await pollUntilTrue { appState.modal.errorMessage != nil }
         report(
@@ -91,7 +91,7 @@ extension AppStateOperationsExtraTests {
             result: errorShown)
 
         try? FileManager.default.removeItem(at: createdDirURL)
-        _ = try? await UndoRedoService.shared.redo()
-        await drainUndoRedoService()
+        _ = try? await appState.undoRedoService.redo()
+        await drainUndoRedoService(appState)
     }
 }

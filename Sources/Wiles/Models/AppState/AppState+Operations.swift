@@ -78,14 +78,20 @@ public extension AppState {
     /// copied screenshot, a copied text selection), which `createFileFromPasteboardContent`
     /// materializes as a new file instead of silently doing nothing.
     private func pasteClipboardContentAsFile() {
-        guard let createdURL = FileSystemService.createFileFromPasteboardContent(in: navigation.currentURL) else { return }
-        UndoRedoService.shared.recordAction(.create(url: createdURL))
-        refreshCurrentDirectory()
-        selectedURLs = [createdURL]
+        do {
+            guard let createdURL = try FileSystemService.createFileFromPasteboardContent(in: navigation.currentURL) else { return }
+            undoRedoService.recordAction(.create(url: createdURL))
+            refreshCurrentDirectory()
+            selectedURLs = [createdURL]
+        } catch {
+            ErrorReporter.report(error, context: "Creating file from pasteboard content")
+            showError(error)
+        }
     }
 
     private func executePaste(urls: [URL], isCut: Bool) {
         let targetFolder = navigation.currentURL
+        let undoRedoService = self.undoRedoService
         Task.detached(priority: .userInitiated) {
             for url in urls {
                 do {
@@ -97,13 +103,13 @@ public extension AppState {
                         // on MainActor), so it can't be reused for this loop — only the
                         // MainActor-only favorites sync is shared via remapFavorites below.
                         let destURL = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
-                        await UndoRedoService.shared.recordAction(.move(sourceURL: url, destinationURL: destURL))
+                        await undoRedoService.recordAction(.move(sourceURL: url, destinationURL: destURL))
                         await MainActor.run { [weak self] in
                             self?.remapFavorites(from: url, to: destURL)
                         }
                     } else {
                         let destURL = try FileSystemService.copyItem(at: url, toFolder: targetFolder)
-                        await UndoRedoService.shared.recordAction(.create(url: destURL))
+                        await undoRedoService.recordAction(.create(url: destURL))
                     }
                 } catch {
                     ErrorReporter.report(error, context: "Pasting items to current directory")
@@ -131,11 +137,12 @@ public extension AppState {
         guard !selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selectedURLs)
+        let undoRedoService = self.undoRedoService
         Task.detached(priority: .userInitiated) {
             for url in urls {
                 do {
                     let trashed = try FileSystemService.moveToTrash(url: url)
-                    await UndoRedoService.shared.recordAction(.trash(originalURL: url, trashedURL: trashed))
+                    await undoRedoService.recordAction(.trash(originalURL: url, trashedURL: trashed))
                 } catch {
                     ErrorReporter.report(error, context: "Moving item to Trash")
                     await MainActor.run { [weak self] in
@@ -198,7 +205,7 @@ public extension AppState {
     func undoLastAction() {
         Task {
             do {
-                if let targetURL = try await UndoRedoService.shared.undo() {
+                if let targetURL = try await self.undoRedoService.undo() {
                     self.refreshCurrentDirectory()
                     self.selectedURLs = [targetURL]
                 }
@@ -212,7 +219,7 @@ public extension AppState {
     func redoLastAction() {
         Task {
             do {
-                if let targetURL = try await UndoRedoService.shared.redo() {
+                if let targetURL = try await self.undoRedoService.redo() {
                     self.refreshCurrentDirectory()
                     self.selectedURLs = [targetURL]
                 }

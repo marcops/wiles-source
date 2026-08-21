@@ -379,6 +379,8 @@
 "adjustIconSizeHelp" = "Symbolgröße anpassen (Cmd/Ctrl + Mausrad oder Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Suchfilter (Datum, Typ, Größe)";
 "errorAlertTitle" = "Fehler";
+"errorAlertOKButton" = "OK";
+"errorAlertGenericMessage" = "Ein Fehler ist aufgetreten.";
 "copyLinkAccessibilityLabel" = "Link kopieren";
 "copyLinkAccessibilityHint" = "Kopiert die Freigabeadresse in die Zwischenablage";
 "loadingEntries" = "Einträge werden geladen...";

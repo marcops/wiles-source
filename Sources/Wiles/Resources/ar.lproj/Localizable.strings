@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "ضبط حجم الأيقونات (Cmd/Ctrl + عجلة الماوس أو Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "عوامل تصفية البحث (التاريخ، النوع، الحجم)";
 "errorAlertTitle" = "خطأ";
+"errorAlertOKButton" = "موافق";
+"errorAlertGenericMessage" = "حدث خطأ.";
 "copyLinkAccessibilityLabel" = "نسخ الرابط";
 "copyLinkAccessibilityHint" = "ينسخ عنوان المشاركة إلى الحافظة";
 "loadingEntries" = "جارٍ تحميل العناصر...";

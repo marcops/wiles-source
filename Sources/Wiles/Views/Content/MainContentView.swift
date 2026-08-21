@@ -6,15 +6,20 @@ struct MainContentView: View {
     let sharedPreferences: PreferencesStore
     let sharedModal: ModalStore
     let sharedTransient: TransientStore
-    @State private var appState = AppState()
+    @State private var appState: AppState
     @State private var windowUIState = WindowUIState()
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
-    @State private var didAdoptSharedStores = false
 
+    /// Constructs `AppState` directly with the shared stores it needs, instead of default-
+    /// initializing throwaway stores and swapping them in later — a default `AppState()` would run
+    /// its own Trash scan and smart-folder reload only to discard the result immediately.
     init(sharedPreferences: PreferencesStore, sharedModal: ModalStore, sharedTransient: TransientStore) {
         self.sharedPreferences = sharedPreferences
         self.sharedModal = sharedModal
         self.sharedTransient = sharedTransient
+        let newAppState = AppState(preferences: sharedPreferences, modal: sharedModal, transient: sharedTransient)
+        newAppState.refreshCurrentDirectory()
+        _appState = State(initialValue: newAppState)
     }
 
     var body: some View {
@@ -26,14 +31,6 @@ struct MainContentView: View {
         .focusedSceneValue(\.windowUIState, windowUIState)
         .focusedSceneValue(\.appState, appState)
         .focusedSceneValue(\.isTextFieldEditingActive, windowUIState.renameItem != nil || windowUIState.isEditingPath)
-        .onAppear {
-            guard !didAdoptSharedStores else { return }
-            didAdoptSharedStores = true
-            appState.preferences = sharedPreferences
-            appState.modal = sharedModal
-            appState.transient = sharedTransient
-            appState.refreshCurrentDirectory()
-        }
     }
 
     /// The primary sidebar/content split plus its full modifier chain (window sizing, Quick Look,
@@ -129,9 +126,9 @@ struct MainContentView: View {
             Text(appState.tr(.moveToTrashConfirm))
         }
         .alert(appState.tr(.errorAlertTitle), isPresented: $appState.modal.showErrorAlert) {
-            Button("OK", role: .cancel) { }
+            Button(appState.tr(.errorAlertOKButton), role: .cancel) { }
         } message: {
-            Text(appState.modal.errorMessage ?? "An error occurred.")
+            Text(appState.modal.errorMessage ?? appState.tr(.errorAlertGenericMessage))
         }
         .background(mainBackgroundLayer)
     }
@@ -208,7 +205,7 @@ struct MainContentView: View {
     @ViewBuilder private var terminalDrawer: some View {
         if appState.preferences.showTerminalDrawer {
             Divider()
-            IntegratedTerminalView(appState: appState)
+            IntegratedTerminalView(appState: appState, windowUIState: windowUIState)
                 .frame(height: LayoutTokens.terminalDrawerHeight)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }

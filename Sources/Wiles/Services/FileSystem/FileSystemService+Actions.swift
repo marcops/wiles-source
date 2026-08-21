@@ -98,18 +98,22 @@ public extension FileSystemService {
     /// something useful, matching Finder's "New Item from Clipboard": a copied screenshot or image
     /// becomes a new `.png`, and copied text becomes a new `.txt`, right in the current folder.
     /// Checked in that order since some image sources also expose a redundant string
-    /// representation on the same pasteboard.
+    /// representation on the same pasteboard. Returns `nil` only when there's genuinely nothing
+    /// pasteable; a disk write failure once content was found instead throws, so the caller can
+    /// surface it instead of it disappearing silently.
     @discardableResult
-    static func createFileFromPasteboardContent(in folder: URL) -> URL? {
+    static func createFileFromPasteboardContent(in folder: URL) throws -> URL? {
         let pb = NSPasteboard.general
         if let image = pb.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage,
            let pngData = pngData(for: image) {
             let destURL = uniqueDestination(for: "Pasted Image.png", in: folder)
-            return (try? pngData.write(to: destURL)) != nil ? destURL : nil
+            try pngData.write(to: destURL)
+            return destURL
         }
         if let text = pb.string(forType: .string), !text.isEmpty {
             let destURL = uniqueDestination(for: "Pasted Text.txt", in: folder)
-            return (try? text.write(to: destURL, atomically: true, encoding: .utf8)) != nil ? destURL : nil
+            try text.write(to: destURL, atomically: true, encoding: .utf8)
+            return destURL
         }
         return nil
     }

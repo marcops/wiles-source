@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "Simge boyutunu ayarla (Cmd/Ctrl + Tekerlek veya Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Arama Filtreleri (Tarih, Tür, Boyut)";
 "errorAlertTitle" = "Hata";
+"errorAlertOKButton" = "Tamam";
+"errorAlertGenericMessage" = "Bir hata oluştu.";
 "copyLinkAccessibilityLabel" = "Bağlantıyı kopyala";
 "copyLinkAccessibilityHint" = "Paylaşım adresini panoya kopyalar";
 "loadingEntries" = "Öğeler yükleniyor...";

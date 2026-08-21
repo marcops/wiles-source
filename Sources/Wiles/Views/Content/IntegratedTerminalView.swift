@@ -4,15 +4,16 @@ import SwiftUI
 
 struct IntegratedTerminalView: NSViewRepresentable {
     var appState: AppState
+    var windowUIState: WindowUIState
 
     func makeNSView(context: Context) -> LocalProcessTerminalView {
-        if let cached = TerminalViewCache.shared.view {
+        if let cached = windowUIState.terminalViewCache.view {
             return cached
         }
 
         let terminalView = LocalProcessTerminalView(frame: .zero)
         terminalView.processDelegate = context.coordinator
-        TerminalViewCache.shared.view = terminalView
+        windowUIState.terminalViewCache.view = terminalView
 
         let path = appState.navigation.currentURL.path
         terminalView.startProcess(
@@ -40,12 +41,12 @@ struct IntegratedTerminalView: NSViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        if let cached = TerminalViewCache.shared.coordinator {
+        if let cached = windowUIState.terminalViewCache.coordinator {
             cached.parent = self
             return cached
         }
         let coordinator = Coordinator(self, initialPath: appState.navigation.currentURL.path)
-        TerminalViewCache.shared.coordinator = coordinator
+        windowUIState.terminalViewCache.coordinator = coordinator
         return coordinator
     }
 

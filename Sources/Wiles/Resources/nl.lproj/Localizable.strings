@@ -380,6 +380,8 @@
 "adjustIconSizeHelp" = "Pictogramgrootte aanpassen (Cmd/Ctrl + Scrollwiel of Cmd/Ctrl + +/-)";
 "searchFiltersHelp" = "Zoekfilters (Datum, Type, Grootte)";
 "errorAlertTitle" = "Fout";
+"errorAlertOKButton" = "OK";
+"errorAlertGenericMessage" = "Er is een fout opgetreden.";
 "copyLinkAccessibilityLabel" = "Link kopiëren";
 "copyLinkAccessibilityHint" = "Kopieert het deeladres naar het klembord";
 "loadingEntries" = "Items laden...";

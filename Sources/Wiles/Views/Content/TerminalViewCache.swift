@@ -9,10 +9,12 @@ import SwiftUI
 /// open/close. Holding the real instance here means SwiftUI can freely add/remove it from the
 /// hierarchy (so the VSplitView divider disappears for real when closed) without ever
 /// deallocating the process underneath.
+///
+/// One instance per window (owned by `WindowUIState`), not a shared singleton — a `.shared` cache
+/// let two windows' terminal drawers reuse the same shell process/NSView.
 @MainActor
 final class TerminalViewCache {
-    static let shared = TerminalViewCache()
     var view: LocalProcessTerminalView?
     var coordinator: IntegratedTerminalView.Coordinator?
-    private init() { }
+    init() { }
 }

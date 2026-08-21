@@ -30,15 +30,14 @@ public struct AppStateOperationsExtraTests {
         return dir
     }
 
-    /// AppState operations that succeed (paste, trash-delete, undo/redo) record on the
-    /// process-wide UndoRedoService.shared singleton. Call this as the last statement in any test
-    /// function that triggers one, before its `defer`-removal of the temp dir runs — otherwise the
-    /// leftover record points at a file that's about to vanish, and undoing it later (from whatever
-    /// test happens to touch the shared singleton next) fails forever under that service's
+    /// AppState operations that succeed (paste, trash-delete, undo/redo) record on that AppState's
+    /// own `undoRedoService`. Call this as the last statement in any test function that triggers
+    /// one, before its `defer`-removal of the temp dir runs — otherwise the leftover record points
+    /// at a file that's about to vanish, and undoing it later fails forever under that service's
     /// retry-on-failure semantics, hanging the suite.
-    static func drainUndoRedoService() async {
-        for _ in 0 ..< 10 where UndoRedoService.shared.canUndo() {
-            _ = try? await UndoRedoService.shared.undo()
+    static func drainUndoRedoService(_ appState: AppState) async {
+        for _ in 0 ..< 10 where appState.undoRedoService.canUndo() {
+            _ = try? await appState.undoRedoService.undo()
         }
     }
 
@@ -174,7 +173,7 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations",
             "POS: performDeleteSelected() moves the file to Trash and clears the selection",
             result: !stillExists && appState.selectedURLs.isEmpty)
-        await drainUndoRedoService()
+        await drainUndoRedoService(appState)
 
         await testDeleteSelectedSkipConfirmation(dir: dir)
     }
@@ -201,7 +200,7 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations",
             "POS: deleteSelected() with skipDeleteConfirmation=true deletes directly without raising the confirm alert",
             result: !bypassFileStillExists && !bypassWindowUIState.showDeleteConfirmAlert)
-        await drainUndoRedoService()
+        await drainUndoRedoService(bypassAppState)
 
         let keepFile = makeFile(named: "keep.txt", in: dir)
         let keepAppState = AppState()
@@ -286,7 +285,8 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a .cut clipboard eventually moves the file into the current directory",
             result: movedExists && originalGone)
-        await drainUndoRedoService()
+        await drainUndoRedoService(appState)
+        await drainUndoRedoService(appState2)
     }
 
     private static func testUndoRedoLastAction() async {
@@ -296,9 +296,9 @@ public struct AppStateOperationsExtraTests {
         // Set up a directory that was "created" so undo can trash it, then redo can recreate it.
         let createdDirURL = dir.appendingPathComponent("created-dir")
         try? FileManager.default.createDirectory(at: createdDirURL, withIntermediateDirectories: true)
-        UndoRedoService.shared.recordAction(.create(url: createdDirURL))
 
         let appState = AppState()
+        appState.undoRedoService.recordAction(.create(url: createdDirURL))
         appState.selectedURLs = []
         appState.undoLastAction()
         try? await Task.sleep(nanoseconds: 400_000_000)
@@ -319,11 +319,12 @@ public struct AppStateOperationsExtraTests {
             result: recreated && selectionAfterRedo)
 
         // NEG: redoLastAction() with an empty redo stack is a no-op that doesn't clobber selection.
-        // Note: UndoRedoService.shared is a process-wide singleton with no reset API, and undo()/redo()
-        // always move a record to the OPPOSITE stack rather than discarding it — so alternately draining
-        // "while canUndo" then "while canRedo" can never actually reach a truly empty undoStack for a
-        // surviving record; it just ping-pongs it back. The one genuinely empty-and-testable state right
-        // after the POS undo/redo pair above is the redo stack (redoLastAction was just consumed above).
+        // Note: undo()/redo() always move a record to the OPPOSITE stack rather than discarding it —
+        // so alternately draining "while canUndo" then "while canRedo" can never actually reach a
+        // truly empty undoStack for a surviving record; it just ping-pongs it back. The one
+        // genuinely empty-and-testable state right after the POS undo/redo pair above is the redo
+        // stack (redoLastAction was just consumed above). A separate `appState2` also guarantees its
+        // own `undoRedoService` starts genuinely empty.
         let appState2 = AppState()
         let sentinel = dir.appendingPathComponent("sentinel-selection.txt")
         appState2.selectedURLs = [sentinel]
@@ -333,7 +334,7 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations",
             "NEG: redoLastAction() with an empty redo stack leaves the current selection untouched",
             result: appState2.selectedURLs.first?.path == sentinel.path)
-        await drainUndoRedoService()
+        await drainUndoRedoService(appState)
     }
 
     private static func testDownloadFromiCloudFailure() async {
@@ -412,7 +413,7 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a nil clipboard falls back to copying URLs found on the system pasteboard",
             result: copied)
-        await drainUndoRedoService()
+        await drainUndoRedoService(appState)
 
         let missingFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-cut-\(UUID().uuidString).txt")
         let appState2 = AppState()
