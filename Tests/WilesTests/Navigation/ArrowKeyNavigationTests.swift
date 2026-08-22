@@ -32,16 +32,16 @@ public struct ArrowKeyNavigationTests {
     private static func simulateMoveSelection(by offset: Int, isShift: Bool, appState: AppState) {
         let items = appState.fileSystem.items
         guard !items.isEmpty else { return }
-        let anchorURL = appState.selectedURLs.first
+        let anchorURL = appState.selection.selectedURLs.first
         let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? -1
         let newIndex = max(0, min(items.count - 1, anchorIndex + offset))
         let newURL = items[newIndex].url
         if isShift, anchorIndex >= 0 {
             let lo = min(anchorIndex, newIndex)
             let hi = max(anchorIndex, newIndex)
-            appState.selectedURLs = Set(items[lo ... hi].map(\.url))
+            appState.selection.selectedURLs = Set(items[lo ... hi].map(\.url))
         } else {
-            appState.selectedURLs = [newURL]
+            appState.selection.selectedURLs = [newURL]
         }
     }
 
@@ -52,9 +52,9 @@ public struct ArrowKeyNavigationTests {
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt", "c.txt"])
         appState.fileSystem.items = items
-        appState.selectedURLs = [items[0].url]
+        appState.selection.selectedURLs = [items[0].url]
         simulateMoveSelection(by: 1, isShift: false, appState: appState)
-        report("Navigation/ArrowKeys", "POS: ↓ moves selection to next item", result: appState.selectedURLs == [items[1].url])
+        report("Navigation/ArrowKeys", "POS: ↓ moves selection to next item", result: appState.selection.selectedURLs == [items[1].url])
     }
 
     private static func testMoveSelectionUp() {
@@ -62,9 +62,9 @@ public struct ArrowKeyNavigationTests {
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt", "c.txt"])
         appState.fileSystem.items = items
-        appState.selectedURLs = [items[2].url]
+        appState.selection.selectedURLs = [items[2].url]
         simulateMoveSelection(by: -1, isShift: false, appState: appState)
-        report("Navigation/ArrowKeys", "POS: ↑ moves selection to previous item", result: appState.selectedURLs == [items[1].url])
+        report("Navigation/ArrowKeys", "POS: ↑ moves selection to previous item", result: appState.selection.selectedURLs == [items[1].url])
     }
 
     private static func testMoveSelectionBoundaryClamp() {
@@ -72,11 +72,11 @@ public struct ArrowKeyNavigationTests {
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["only.txt"])
         appState.fileSystem.items = items
-        appState.selectedURLs = [items[0].url]
+        appState.selection.selectedURLs = [items[0].url]
         simulateMoveSelection(by: 1, isShift: false, appState: appState)
-        report("Navigation/ArrowKeys", "NEG: ↓ at last item stays on last item", result: appState.selectedURLs == [items[0].url])
+        report("Navigation/ArrowKeys", "NEG: ↓ at last item stays on last item", result: appState.selection.selectedURLs == [items[0].url])
         simulateMoveSelection(by: -1, isShift: false, appState: appState)
-        report("Navigation/ArrowKeys", "NEG: ↑ at first item stays on first item", result: appState.selectedURLs == [items[0].url])
+        report("Navigation/ArrowKeys", "NEG: ↑ at first item stays on first item", result: appState.selection.selectedURLs == [items[0].url])
     }
 
     private static func testMoveSelectionFromEmpty() {
@@ -84,9 +84,9 @@ public struct ArrowKeyNavigationTests {
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt"])
         appState.fileSystem.items = items
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         simulateMoveSelection(by: 1, isShift: false, appState: appState)
-        report("Navigation/ArrowKeys", "POS: ↓ with no selection selects first item", result: appState.selectedURLs == [items[0].url])
+        report("Navigation/ArrowKeys", "POS: ↓ with no selection selects first item", result: appState.selection.selectedURLs == [items[0].url])
     }
 
     private static func testMoveSelectionShiftExtend() {
@@ -94,10 +94,10 @@ public struct ArrowKeyNavigationTests {
         let dir = tempDir()
         let items = makeItems(in: dir, names: ["a.txt", "b.txt", "c.txt"])
         appState.fileSystem.items = items
-        appState.selectedURLs = [items[0].url]
+        appState.selection.selectedURLs = [items[0].url]
         simulateMoveSelection(by: 2, isShift: true, appState: appState)
         let expected: Set<URL> = Set(items.map(\.url))
-        report("Navigation/ArrowKeys", "POS: Shift+↓ extends range selection", result: appState.selectedURLs == expected)
+        report("Navigation/ArrowKeys", "POS: Shift+↓ extends range selection", result: appState.selection.selectedURLs == expected)
     }
 
     private static func testArrowRightEntersDirectory() {
@@ -110,9 +110,9 @@ public struct ArrowKeyNavigationTests {
         let icon = NSWorkspace.shared.icon(forFile: childDir.path)
         let dirItem = FileItem(url: childDir, icon: icon)
         appState.fileSystem.items = [dirItem]
-        appState.selectedURLs = [dirItem.url]
+        appState.selection.selectedURLs = [dirItem.url]
         // Simulate → on a directory in List View
-        if let first = appState.selectedURLs.first,
+        if let first = appState.selection.selectedURLs.first,
            let item = appState.fileSystem.items.first(where: { $0.url == first }),
            item.isDirectory {
             appState.navigateTo(first)

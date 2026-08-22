@@ -188,17 +188,17 @@ public struct AppStateColumnsAndSelectionTests {
         let itemA = makeItem(named: "a.txt", in: dir)
         let itemB = makeItem(named: "b.txt", in: dir)
 
-        appState.selectedURLs = [itemA.url]
+        appState.selection.selectedURLs = [itemA.url]
         appState.handleSelection(for: itemB, extendSelection: false)
         report(
             "AppState+Selection",
             "POS: handleSelection() without extend replaces the entire selection with the single clicked item",
-            result: appState.selectedURLs.count == 1 && appState.selectedURLs.first?.path == itemB.url.path)
+            result: appState.selection.selectedURLs.count == 1 && appState.selection.selectedURLs.first?.path == itemB.url.path)
 
         report(
             "AppState+Selection",
             "NEG: handleSelection() without extend clears out any previously selected item",
-            result: appState.selectedURLs.contains(itemA.url) == false)
+            result: appState.selection.selectedURLs.contains(itemA.url) == false)
     }
 
     private static func testHandleSelectionExtend() {
@@ -210,27 +210,30 @@ public struct AppStateColumnsAndSelectionTests {
         let itemA = makeItem(named: "a.txt", in: dir)
         let itemB = makeItem(named: "b.txt", in: dir)
 
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.handleSelection(for: itemA, extendSelection: true)
-        report("AppState+Selection", "POS: handleSelection() with extend on an empty selection inserts the item", result: appState.selectedURLs == [itemA.url])
+        report(
+            "AppState+Selection",
+            "POS: handleSelection() with extend on an empty selection inserts the item",
+            result: appState.selection.selectedURLs == [itemA.url])
 
         appState.handleSelection(for: itemB, extendSelection: true)
         report(
             "AppState+Selection",
             "POS: handleSelection() with extend adds a second item alongside the first",
-            result: appState.selectedURLs == Set([itemA.url, itemB.url]))
+            result: appState.selection.selectedURLs == Set([itemA.url, itemB.url]))
 
         appState.handleSelection(for: itemA, extendSelection: true)
         report(
             "AppState+Selection",
             "NEG: handleSelection() with extend on an already-selected item removes it (toggle off), leaving the rest intact",
-            result: appState.selectedURLs == Set([itemB.url]))
+            result: appState.selection.selectedURLs == Set([itemB.url]))
 
         appState.handleSelection(for: itemB, extendSelection: true)
         report(
             "AppState+Selection",
             "NEG: handleSelection() with extend toggling off the last item empties the selection",
-            result: appState.selectedURLs.isEmpty)
+            result: appState.selection.selectedURLs.isEmpty)
     }
 
     /// Regression for the mouse-click `handleSelection(for:)` overload anchoring shift-click
@@ -251,7 +254,7 @@ public struct AppStateColumnsAndSelectionTests {
         let itemD = makeItem(named: "d.txt", in: dir)
         appState.fileSystem.items = [itemA, itemB, itemC, itemD]
 
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.handleSelection(for: itemB, modifierFlags: [])
         report("AppState+Selection", "POS: plain click sets the keyboard selection anchor", result: appState.selection.keyboardSelectionAnchorURL == itemB.url)
 
@@ -259,13 +262,13 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Selection",
             "POS: cmd-click on the anchor item toggles it off but leaves the anchor in place",
-            result: appState.selectedURLs.isEmpty && appState.selection.keyboardSelectionAnchorURL == itemB.url)
+            result: appState.selection.selectedURLs.isEmpty && appState.selection.keyboardSelectionAnchorURL == itemB.url)
 
         appState.handleSelection(for: itemD, modifierFlags: .shift)
         report(
             "AppState+Selection",
             "POS: shift-click after the anchor item was deselected still ranges from the stable anchor (B) through D, not just the clicked item",
-            result: appState.selectedURLs == Set([itemB.url, itemC.url, itemD.url]))
+            result: appState.selection.selectedURLs == Set([itemB.url, itemC.url, itemD.url]))
     }
 
     private static func testHandleSelectionMouseCmdClick() {
@@ -278,18 +281,18 @@ public struct AppStateColumnsAndSelectionTests {
         let itemB = makeItem(named: "b.txt", in: dir)
         appState.fileSystem.items = [itemA, itemB]
 
-        appState.selectedURLs = [itemA.url]
+        appState.selection.selectedURLs = [itemA.url]
         appState.handleSelection(for: itemB, modifierFlags: .command)
         report(
             "AppState+Selection",
             "POS: cmd-click adds to the existing selection instead of replacing it",
-            result: appState.selectedURLs == Set([itemA.url, itemB.url]))
+            result: appState.selection.selectedURLs == Set([itemA.url, itemB.url]))
 
         appState.handleSelection(for: itemA, modifierFlags: [])
         report(
             "AppState+Selection",
             "POS: a plain click (no modifiers) still replaces the whole selection with just the clicked item",
-            result: appState.selectedURLs == [itemA.url])
+            result: appState.selection.selectedURLs == [itemA.url])
     }
 
     private static func testAutoFitColumnWidth() {

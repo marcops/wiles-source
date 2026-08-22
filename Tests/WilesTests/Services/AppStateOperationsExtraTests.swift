@@ -65,7 +65,7 @@ public struct AppStateOperationsExtraTests {
         let appState = AppState()
         appState.modal.errorMessage = nil
         appState.navigation.currentURL = dir
-        appState.selectedURLs = [fileURL]
+        appState.selection.selectedURLs = [fileURL]
         action(appState)
 
         return await pollUntilTrue { appState.modal.errorMessage != nil }
@@ -81,12 +81,12 @@ public struct AppStateOperationsExtraTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.deletePermanentlySelected()
-        report("AppState+Operations", "NEG: deletePermanentlySelected() with empty selection is a no-op", result: appState.selectedURLs.isEmpty)
+        report("AppState+Operations", "NEG: deletePermanentlySelected() with empty selection is a no-op", result: appState.selection.selectedURLs.isEmpty)
 
         let fileURL = makeFile(named: "to-shred.txt", in: dir)
-        appState.selectedURLs = [fileURL]
+        appState.selection.selectedURLs = [fileURL]
         appState.deletePermanentlySelected()
         var stillExists = true
         for _ in 0 ..< 20 {
@@ -99,7 +99,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "POS: deletePermanentlySelected() removes the file from disk and clears selection",
-            result: !stillExists && appState.selectedURLs.isEmpty)
+            result: !stillExists && appState.selection.selectedURLs.isEmpty)
     }
 
     /// copyFileContentToClipboard() (called by copyContentOfSelected()) now reads the file and
@@ -117,13 +117,13 @@ public struct AppStateOperationsExtraTests {
         pb.setString("sentinel-before", forType: .string)
 
         let appState = AppState()
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.copyContentOfSelected()
         let unchanged = pb.string(forType: .string) == "sentinel-before"
         report("AppState+Operations", "NEG: copyContentOfSelected() with empty selection leaves the pasteboard untouched", result: unchanged)
 
         let fileURL = makeFile(named: "content.txt", in: dir, content: "hello from wiles")
-        appState.selectedURLs = [fileURL]
+        appState.selection.selectedURLs = [fileURL]
         appState.copyContentOfSelected()
         var copied = false
         for _ in 0 ..< 20 {
@@ -142,9 +142,9 @@ public struct AppStateOperationsExtraTests {
 
         let appState = AppState()
         let windowUIState = WindowUIState()
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.deleteSelected(windowUIState: windowUIState)
-        report("AppState+Operations", "NEG: deleteSelected() with empty selection leaves selection empty", result: appState.selectedURLs.isEmpty)
+        report("AppState+Operations", "NEG: deleteSelected() with empty selection leaves selection empty", result: appState.selection.selectedURLs.isEmpty)
 
         // deleteSelected() internally calls refreshCurrentDirectory(), which reloads
         // appState.navigation.currentURL — without pointing it at our isolated temp dir, it defaults to
@@ -154,7 +154,7 @@ public struct AppStateOperationsExtraTests {
         appState.preferences.viewMode = .grid
 
         let fileURL = makeFile(named: "to-trash.txt", in: dir)
-        appState.selectedURLs = [fileURL]
+        appState.selection.selectedURLs = [fileURL]
         appState.deleteSelected(windowUIState: windowUIState)
         report(
             "AppState+Operations", "POS: deleteSelected() raises the confirmation alert without deleting yet",
@@ -172,7 +172,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "POS: performDeleteSelected() moves the file to Trash and clears the selection",
-            result: !stillExists && appState.selectedURLs.isEmpty)
+            result: !stillExists && appState.selection.selectedURLs.isEmpty)
         await drainUndoRedoService(appState)
 
         await testDeleteSelectedSkipConfirmation(dir: dir)
@@ -186,7 +186,7 @@ public struct AppStateOperationsExtraTests {
         let bypassWindowUIState = WindowUIState()
         bypassAppState.navigation.currentURL = dir
         bypassAppState.preferences.skipDeleteConfirmation = true
-        bypassAppState.selectedURLs = [bypassFile]
+        bypassAppState.selection.selectedURLs = [bypassFile]
         bypassAppState.deleteSelected(windowUIState: bypassWindowUIState)
         var bypassFileStillExists = true
         for _ in 0 ..< 20 {
@@ -207,7 +207,7 @@ public struct AppStateOperationsExtraTests {
         let keepWindowUIState = WindowUIState()
         keepAppState.navigation.currentURL = dir
         keepAppState.preferences.skipDeleteConfirmation = false
-        keepAppState.selectedURLs = [keepFile]
+        keepAppState.selection.selectedURLs = [keepFile]
         keepAppState.deleteSelected(windowUIState: keepWindowUIState)
         report(
             "AppState+Operations",
@@ -220,14 +220,17 @@ public struct AppStateOperationsExtraTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.shredSelected()
-        report("AppState+Operations", "NEG: shredSelected() with empty selection does nothing and does not crash", result: appState.selectedURLs.isEmpty)
+        report(
+            "AppState+Operations",
+            "NEG: shredSelected() with empty selection does nothing and does not crash",
+            result: appState.selection.selectedURLs.isEmpty)
 
         appState.navigation.currentURL = dir
         appState.preferences.viewMode = .grid
         let fileURL = makeFile(named: "to-shred.txt", in: dir, content: "secret data")
-        appState.selectedURLs = [fileURL]
+        appState.selection.selectedURLs = [fileURL]
         appState.shredSelected()
         var stillExists = true
         for _ in 0 ..< 20 {
@@ -240,7 +243,7 @@ public struct AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "POS: shredSelected() permanently removes the file and clears the selection",
-            result: !stillExists && appState.selectedURLs.isEmpty)
+            result: !stillExists && appState.selection.selectedURLs.isEmpty)
     }
 
     private static func testPasteToCurrentDirectory() async {
@@ -299,11 +302,11 @@ public struct AppStateOperationsExtraTests {
 
         let appState = AppState()
         appState.undoRedoService.recordAction(.create(url: createdDirURL))
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.undoLastAction()
         try? await Task.sleep(nanoseconds: 400_000_000)
         let trashedAway = !FileManager.default.fileExists(atPath: createdDirURL.path)
-        let selectionAfterUndo = appState.selectedURLs.first?.path == dir.standardizedFileURL.path
+        let selectionAfterUndo = appState.selection.selectedURLs.first?.path == dir.standardizedFileURL.path
         report(
             "AppState+Operations",
             "POS: undoLastAction() reverses the recorded action and selects the resulting URL",
@@ -312,7 +315,7 @@ public struct AppStateOperationsExtraTests {
         appState.redoLastAction()
         try? await Task.sleep(nanoseconds: 400_000_000)
         let recreated = FileManager.default.fileExists(atPath: createdDirURL.path)
-        let selectionAfterRedo = appState.selectedURLs.first?.path == createdDirURL.standardizedFileURL.path
+        let selectionAfterRedo = appState.selection.selectedURLs.first?.path == createdDirURL.standardizedFileURL.path
         report(
             "AppState+Operations",
             "POS: redoLastAction() re-applies the reversed action and selects the resulting URL",
@@ -327,13 +330,13 @@ public struct AppStateOperationsExtraTests {
         // own `undoRedoService` starts genuinely empty.
         let appState2 = AppState()
         let sentinel = dir.appendingPathComponent("sentinel-selection.txt")
-        appState2.selectedURLs = [sentinel]
+        appState2.selection.selectedURLs = [sentinel]
         appState2.redoLastAction()
         try? await Task.sleep(nanoseconds: 300_000_000)
         report(
             "AppState+Operations",
             "NEG: redoLastAction() with an empty redo stack leaves the current selection untouched",
-            result: appState2.selectedURLs.first?.path == sentinel.path)
+            result: appState2.selection.selectedURLs.first?.path == sentinel.path)
         await drainUndoRedoService(appState)
     }
 
@@ -402,7 +405,7 @@ public struct AppStateOperationsExtraTests {
         defer { pb.clearContents() }
 
         let sourceFile = makeFile(named: "fallback-paste.txt", in: sourceDir, content: "fallback content")
-        FileSystemService.writeToPasteboard(urls: [sourceFile])
+        PasteboardService.writeToPasteboard(urls: [sourceFile])
         let appState = AppState()
         appState.navigateTo(destDir)
         appState.transient.clipboard = nil

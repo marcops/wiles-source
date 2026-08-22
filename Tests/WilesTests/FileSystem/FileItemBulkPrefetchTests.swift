@@ -19,7 +19,7 @@ public enum FileItemBulkPrefetchTests {
         try? "content".write(to: file, atomically: true, encoding: .utf8)
 
         let options = DirectoryLoadOptions(showHidden: false, showTags: false, searchQuery: "", sortOption: .name, sortAscending: true)
-        let items = (try? await FileSystemService.loadDirectoryContents(at: dir, options: options)) ?? []
+        let items = await (try? FileSystemService.loadDirectoryContents(at: dir, options: options)) ?? []
         guard let item = items.first(where: { $0.url.standardizedFileURL == file.standardizedFileURL }) else {
             await TestReporter.report("FileSystem", "POS: bulk-prefetched item is present in loadDirectoryContents results", result: false)
             return

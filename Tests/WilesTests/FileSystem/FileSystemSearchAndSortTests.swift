@@ -39,7 +39,7 @@ public struct FileSystemSearchAndSortTests {
     private static func load(
         at url: URL, query: String = "", sort: SortOption = .name, ascending: Bool = true, showHidden: Bool = false,
         scope: SearchScope = .name, caseSensitive: Bool = false) async -> [FileItem] {
-        (try? await FileSystemService.loadDirectoryContents(
+        await (try? FileSystemService.loadDirectoryContents(
             at: url,
             options: DirectoryLoadOptions(
                 showHidden: showHidden, showTags: false, searchQuery: query, sortOption: sort, sortAscending: ascending,

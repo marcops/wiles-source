@@ -32,8 +32,7 @@ public extension FileSystemService {
             withItemAt: url,
             backupItemName: nil,
             options: [],
-            resultingItemURL: &resultingURL
-        )
+            resultingItemURL: &resultingURL)
         return (resultingURL as URL?) ?? destURL
     }
 

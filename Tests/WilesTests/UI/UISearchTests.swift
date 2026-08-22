@@ -19,32 +19,32 @@ public struct UISearchTests {
     /// layer and isn't reachable from a state-only test — this only proves the underlying model
     /// toggle itself is sound.
     private static func testToggleSearchingIsDeterministic(appState: AppState) {
-        appState.isSearching = false
-        appState.searchQuery = ""
+        appState.selection.isSearching = false
+        appState.selection.searchQuery = ""
 
         appState.toggleSearching()
-        report("UI/Search", "POS: toggleSearching() opens search from closed", result: appState.isSearching)
+        report("UI/Search", "POS: toggleSearching() opens search from closed", result: appState.selection.isSearching)
 
         appState.toggleSearching()
-        report("UI/Search", "POS: toggleSearching() closes search from open", result: !appState.isSearching)
-        report("UI/Search", "POS: toggleSearching() clears the query when closing", result: appState.searchQuery.isEmpty)
+        report("UI/Search", "POS: toggleSearching() closes search from open", result: !appState.selection.isSearching)
+        report("UI/Search", "POS: toggleSearching() clears the query when closing", result: appState.selection.searchQuery.isEmpty)
 
         appState.toggleSearching()
         appState.toggleSearching()
-        report("UI/Search", "POS: toggleSearching() is stable across repeated open/close cycles", result: !appState.isSearching)
+        report("UI/Search", "POS: toggleSearching() is stable across repeated open/close cycles", result: !appState.selection.isSearching)
     }
 
     private static func testSearchToggle(appState: AppState) {
-        appState.isSearching = false
-        appState.searchQuery = "test"
+        appState.selection.isSearching = false
+        appState.selection.searchQuery = "test"
 
         // Toggling search off resets query
-        appState.isSearching = true
-        report("UI/Search", "POS: Search mode enables correctly", result: appState.isSearching == true)
+        appState.selection.isSearching = true
+        report("UI/Search", "POS: Search mode enables correctly", result: appState.selection.isSearching == true)
 
-        appState.isSearching = false
-        appState.searchQuery = ""
-        report("UI/Search", "POS: Search mode disables and resets query", result: !appState.isSearching && appState.searchQuery.isEmpty)
+        appState.selection.isSearching = false
+        appState.selection.searchQuery = ""
+        report("UI/Search", "POS: Search mode disables and resets query", result: !appState.selection.isSearching && appState.selection.searchQuery.isEmpty)
     }
 
     private static func testSearchFiltering(appState _: AppState) async {
@@ -56,7 +56,7 @@ public struct UISearchTests {
         try? "alpha".write(to: fileA, atomically: true, encoding: .utf8)
         try? "beta".write(to: fileB, atomically: true, encoding: .utf8)
 
-        let loaded = (try? await FileSystemService.loadDirectoryContents(
+        let loaded = await (try? FileSystemService.loadDirectoryContents(
             at: tempDir,
             options: DirectoryLoadOptions(
                 showHidden: false,
@@ -75,9 +75,9 @@ public struct UISearchTests {
     }
 
     private static func testSearchClear(appState: AppState) {
-        appState.searchQuery = "Alpha"
-        appState.searchQuery = ""
-        report("UI/Search", "POS: Clearing search query resets text", result: appState.searchQuery.isEmpty)
+        appState.selection.searchQuery = "Alpha"
+        appState.selection.searchQuery = ""
+        report("UI/Search", "POS: Clearing search query resets text", result: appState.selection.searchQuery.isEmpty)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

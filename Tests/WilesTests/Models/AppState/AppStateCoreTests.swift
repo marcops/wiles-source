@@ -248,18 +248,18 @@ public struct AppStateCoreTests {
         let itemA = makeItem(named: "a.txt", in: dir, contents: "hello")
         let itemB = makeItem(named: "b.txt", in: dir, contents: "world!!")
         appState.fileSystem.items = [itemA, itemB]
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         report(
             "AppState",
             "POS: statusText with no selection shows total item count and formatted size",
             result: appState.statusText.hasPrefix("2 ") && appState.statusText.contains("("))
 
-        appState.selectedURLs = [itemA.url]
+        appState.selection.selectedURLs = [itemA.url]
         report("AppState", "POS: statusText with a selection shows 'selected / total'", result: appState.statusText.hasPrefix("1 / 2"))
 
         let appState2 = AppState()
         appState2.fileSystem.items = []
-        appState2.selectedURLs = []
+        appState2.selection.selectedURLs = []
         report(
             "AppState",
             "NEG: statusText with zero items omits the size suffix in parentheses",
@@ -300,7 +300,7 @@ public struct AppStateCoreTests {
         let appState = AppState()
         let dirItem = makeItem(named: "subdir", in: dir, isDirectory: true)
         appState.fileSystem.items = [dirItem]
-        appState.selectedURLs = [dirItem.url]
+        appState.selection.selectedURLs = [dirItem.url]
         report(
             "AppState",
             "NEG: statusText with a selected directory (zero file size) omits the parenthesized size suffix",
@@ -314,7 +314,7 @@ public struct AppStateCoreTests {
 
         let appState = AppState()
         appState.navigation.currentURL = dir
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.compressSelectedToZIP()
         try? await Task.sleep(nanoseconds: 150_000_000)
         let contentsAfterEmptySelection = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
@@ -322,7 +322,7 @@ public struct AppStateCoreTests {
 
         let fileURL = dir.appendingPathComponent("toZip.txt")
         try? "content".write(to: fileURL, atomically: true, encoding: .utf8)
-        appState.selectedURLs = [fileURL]
+        appState.selection.selectedURLs = [fileURL]
         appState.compressSelectedToZIP()
 
         let expectedZip = dir.appendingPathComponent("toZip.zip")
@@ -345,7 +345,7 @@ public struct AppStateCoreTests {
 
         let appState = AppState()
         appState.navigation.currentURL = dir
-        appState.selectedURLs = [nonExistentSource]
+        appState.selection.selectedURLs = [nonExistentSource]
         appState.modal.errorMessage = nil
         appState.compressSelectedToZIP()
 

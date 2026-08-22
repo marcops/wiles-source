@@ -17,8 +17,7 @@ struct QLPreviewInlineView: NSViewRepresentable {
             // surfacing the failure through error reporting.
             ErrorReporter.report(
                 NSError(domain: "QLPreviewInlineView", code: 1, userInfo: [NSLocalizedDescriptionKey: "QLPreviewView failed to initialize."]),
-                context: "Creating inline QuickLook preview"
-            )
+                context: "Creating inline QuickLook preview")
             return NSHostingView(rootView: QLPreviewUnavailableView(appState: appState))
         }
         view.autostarts = true

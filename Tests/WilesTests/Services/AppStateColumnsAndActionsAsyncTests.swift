@@ -75,7 +75,7 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         let renamedURL = dir.appendingPathComponent("after.txt")
         XCTAssertTrue(FileManager.default.fileExists(atPath: renamedURL.path), "performRename() should move the file on disk to the new name")
         XCTAssertFalse(FileManager.default.fileExists(atPath: item.url.path), "performRename() should leave nothing behind at the old path")
-        XCTAssertEqual(appState.selectedURLs, [renamedURL], "performRename() should select the freshly renamed URL")
+        XCTAssertEqual(appState.selection.selectedURLs, [renamedURL], "performRename() should select the freshly renamed URL")
         XCTAssertTrue(appState.undoRedoService.canUndo(), "performRename() should record an undoable .rename action")
 
         await drainUndoRedoService(appState)
@@ -101,7 +101,10 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
         XCTAssertTrue(created, "performImageConversion() should write the converted file to disk without the caller blocking")
-        XCTAssertEqual(appState.selectedURLs, [expectedDest], "performImageConversion() should select the newly converted file once the detached Task finishes")
+        XCTAssertEqual(
+            appState.selection.selectedURLs,
+            [expectedDest],
+            "performImageConversion() should select the newly converted file once the detached Task finishes")
     }
 
     func testPerformImageConversionFailurePath() async {
@@ -151,7 +154,7 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         }
         XCTAssertTrue(bothRenamed, "performBatchRename() should rename every item on disk without the caller blocking")
         XCTAssertEqual(
-            appState.selectedURLs,
+            appState.selection.selectedURLs,
             Set([expectedA, expectedB]),
             "performBatchRename() should select the full set of renamed URLs once the detached Task finishes")
     }

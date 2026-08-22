@@ -48,7 +48,7 @@ extension AppStateOperationsExtraTests {
         let appState = AppState()
         appState.undoRedoService.recordAction(.create(url: neverCreatedURL))
         appState.modal.errorMessage = nil
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.undoLastAction()
         let errorShown = await pollUntilTrue { appState.modal.errorMessage != nil }
         report(
@@ -73,7 +73,7 @@ extension AppStateOperationsExtraTests {
 
         let appState = AppState()
         appState.undoRedoService.recordAction(.create(url: createdDirURL))
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
         appState.undoLastAction()
         let trashedAway = await pollUntilTrue { !FileManager.default.fileExists(atPath: createdDirURL.path) }
         guard trashedAway else {

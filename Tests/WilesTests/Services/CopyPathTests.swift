@@ -53,6 +53,10 @@ public struct CopyPathTests {
     /// Simulates the real call site (`cd "\(escapeForTerminal(path))"`) and asserts the resulting
     /// double-quoted shell string contains no unescaped `"`, `$`, or backtick that could break out
     /// of the quotes or trigger command/variable substitution.
+    private static func isSpecialShellChar(_ char: Character) -> Bool {
+        char == "\"" || char == "$" || char == "`"
+    }
+
     private static func assertNeutralizedWhenQuoted(_ payload: String, description: String) {
         let escaped = CopyPathService.escapeForTerminal(payload)
         let shellCommand = "cd \"\(escaped)\""
@@ -64,7 +68,7 @@ public struct CopyPathTests {
         let chars = Array(shellCommand)
         var quoteCount = 0
         for (index, char) in chars.enumerated() {
-            guard char == "\"" || char == "$" || char == "`" else { continue }
+            guard isSpecialShellChar(char) else { continue }
             let escapedByPriorBackslash = index > 0 && chars[index - 1] == "\\"
             if char == "\"" {
                 quoteCount += 1

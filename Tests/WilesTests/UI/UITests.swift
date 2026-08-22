@@ -74,16 +74,16 @@ public struct UITests {
         let item2 = FileItem(url: url2, icon: icon)
 
         appState.fileSystem.items = [item1, item2]
-        appState.selectedURLs = []
+        appState.selection.selectedURLs = []
 
         appState.handleSelection(for: item1)
-        report("UI/Selection", "POS: Single click selects item", result: appState.selectedURLs == [url1])
+        report("UI/Selection", "POS: Single click selects item", result: appState.selection.selectedURLs == [url1])
 
-        appState.selectedURLs = [url1]
-        if !appState.selectedURLs.contains(item2.url) {
-            appState.selectedURLs = [item2.url]
+        appState.selection.selectedURLs = [url1]
+        if !appState.selection.selectedURLs.contains(item2.url) {
+            appState.selection.selectedURLs = [item2.url]
         }
-        report("UI/ContextMenu", "POS: Right-clicking unselected item targets that item for context menu", result: appState.selectedURLs == [url2])
+        report("UI/ContextMenu", "POS: Right-clicking unselected item targets that item for context menu", result: appState.selection.selectedURLs == [url2])
     }
 
     private static func testPerFolderViewModes(appState: AppState) {

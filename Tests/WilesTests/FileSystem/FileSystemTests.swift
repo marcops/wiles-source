@@ -52,7 +52,7 @@ public struct FileSystemTests {
         showHidden: Bool = false,
         showTags: Bool = false,
         scope: SearchScope = .name) async -> [FileItem] {
-        (try? await FileSystemService.loadDirectoryContents(
+        await (try? FileSystemService.loadDirectoryContents(
             at: url,
             options: DirectoryLoadOptions(
                 showHidden: showHidden,

@@ -81,7 +81,7 @@ public extension AppState {
 
     private func executePaste(urls: [URL], isCut: Bool) {
         let targetFolder = navigation.currentURL
-        let undoRedoService = self.undoRedoService
+        let undoRedoService = undoRedoService
         Task.detached(priority: .userInitiated) {
             for url in urls {
                 do {
@@ -127,7 +127,7 @@ public extension AppState {
         guard !selection.selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selection.selectedURLs)
-        let undoRedoService = self.undoRedoService
+        let undoRedoService = undoRedoService
         Task.detached(priority: .userInitiated) {
             for url in urls {
                 do {

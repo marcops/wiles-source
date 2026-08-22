@@ -40,11 +40,10 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     public func executeQuery(for smartFolder: SmartFolder, completion: @escaping @Sendable ([FileItem]) -> Void) {
         let wildcardQuery = "*\(smartFolder.searchQuery)*"
         let predicate = NSPredicate(format: "kMDItemDisplayName ==[cd] %@", wildcardQuery)
-        let searchScopes: [Any]
-        if !smartFolder.scopePath.isEmpty, FileManager.default.fileExists(atPath: smartFolder.scopePath) {
-            searchScopes = [URL(fileURLWithPath: smartFolder.scopePath)]
+        let searchScopes: [Any] = if !smartFolder.scopePath.isEmpty, FileManager.default.fileExists(atPath: smartFolder.scopePath) {
+            [URL(fileURLWithPath: smartFolder.scopePath)]
         } else {
-            searchScopes = [NSMetadataQueryUserHomeScope]
+            [NSMetadataQueryUserHomeScope]
         }
         runQuery(predicate: predicate, searchScopes: searchScopes, completion: completion)
     }

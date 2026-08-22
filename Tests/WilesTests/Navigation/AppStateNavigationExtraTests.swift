@@ -97,19 +97,19 @@ public struct AppStateNavigationExtraTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         appState.navigateTo(dir)
-        appState.selectedURLs = [dir.appendingPathComponent("x.txt")]
-        appState.isSearching = true
-        appState.searchQuery = "abc"
+        appState.selection.selectedURLs = [dir.appendingPathComponent("x.txt")]
+        appState.selection.isSearching = true
+        appState.selection.searchQuery = "abc"
 
         appState.navigateTo(AppState.recentsVirtualURL)
         report(
             "Navigation/RecentsVirtual", "POS: navigateTo(recentsVirtualURL) sets currentURL to the virtual URL",
             result: appState.navigation.currentURL == AppState.recentsVirtualURL)
-        report("Navigation/RecentsVirtual", "POS: navigateTo(recentsVirtualURL) clears selection", result: appState.selectedURLs.isEmpty)
+        report("Navigation/RecentsVirtual", "POS: navigateTo(recentsVirtualURL) clears selection", result: appState.selection.selectedURLs.isEmpty)
         report(
             "Navigation/RecentsVirtual",
             "POS: navigateTo(recentsVirtualURL) clears search state",
-            result: appState.isSearching == false && appState.searchQuery.isEmpty)
+            result: appState.selection.isSearching == false && appState.selection.searchQuery.isEmpty)
 
         // goBack should return to the real directory we came from.
         appState.goBack()
@@ -306,8 +306,8 @@ public struct AppStateNavigationExtraTests {
         // URL/String values with `==` across code paths that may format them differently).
         var resolved = false
         for _ in 0 ..< 15 {
-            if appState.selectedURLs.count == 1,
-               appState.selectedURLs.first?.standardizedFileURL.path == child.standardizedFileURL.path {
+            if appState.selection.selectedURLs.count == 1,
+               appState.selection.selectedURLs.first?.standardizedFileURL.path == child.standardizedFileURL.path {
                 resolved = true
                 break
             }

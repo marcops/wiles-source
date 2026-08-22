@@ -101,7 +101,7 @@ public enum LayoutTokens {
     public static let filePropertiesSheetWidth: CGFloat = 400.0
     public static let filePropertiesSheetHeight: CGFloat = 500.0
 
-    // Connect To Server Sheet
+    /// Connect To Server Sheet
     public static let connectToServerContentWidth: CGFloat = 320.0
 
     // Empty Directory View

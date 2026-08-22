@@ -63,13 +63,13 @@ struct AboutSheet: View {
                     }
                     .foregroundColor(.accentColor)
                 })
-            .onHover { isHovered in
-                if isHovered {
-                    NSCursor.pointingHand.push()
-                } else {
-                    NSCursor.pop()
+                .onHover { isHovered in
+                    if isHovered {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
                 }
-            }
         }
     }
 }

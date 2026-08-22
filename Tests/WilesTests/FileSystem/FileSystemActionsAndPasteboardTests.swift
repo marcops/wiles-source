@@ -149,8 +149,8 @@ extension FileSystemTests {
         let pbFileB = tempDir.appendingPathComponent("pb_b.txt")
         try? "a".write(to: pbFileA, atomically: true, encoding: .utf8)
         try? "b".write(to: pbFileB, atomically: true, encoding: .utf8)
-        FileSystemService.writeToPasteboard(urls: [pbFileA, pbFileB])
-        let readBack = FileSystemService.readFromPasteboard()
+        PasteboardService.writeToPasteboard(urls: [pbFileA, pbFileB])
+        let readBack = PasteboardService.readFromPasteboard()
         let writtenPaths = Set([pbFileA.path, pbFileB.path])
         let readPaths = Set((readBack ?? []).map(\.path))
         TestReporter.report("FileSystem", "POS: writeToPasteboard/readFromPasteboard round-trips the same file URLs", result: readPaths == writtenPaths)
@@ -158,7 +158,7 @@ extension FileSystemTests {
         let clipboardFile = tempDir.appendingPathComponent("clipboard_source.txt")
         let clipboardContent = "clipboard content \(UUID().uuidString)"
         try? clipboardContent.write(to: clipboardFile, atomically: true, encoding: .utf8)
-        FileSystemService.copyFileContentToClipboard(url: clipboardFile)
+        PasteboardService.copyFileContentToClipboard(url: clipboardFile)
         // copyFileContentToClipboard dispatches its file read via Task.detached internally (fixed
         // to keep it off the main actor for slow volumes), so the pasteboard write lands
         // asynchronously — poll instead of asserting immediately.
@@ -180,7 +180,7 @@ extension FileSystemTests {
         pb.clearContents()
         pb.setString(priorMarker, forType: .string)
         let missingFile = tempDir.appendingPathComponent("does_not_exist_clip.txt")
-        FileSystemService.copyFileContentToClipboard(url: missingFile)
+        PasteboardService.copyFileContentToClipboard(url: missingFile)
         let unchangedString = NSPasteboard.general.string(forType: .string)
         TestReporter.report("FileSystem", "NEG: copyFileContentToClipboard on missing file leaves pasteboard untouched", result: unchangedString == priorMarker)
     }

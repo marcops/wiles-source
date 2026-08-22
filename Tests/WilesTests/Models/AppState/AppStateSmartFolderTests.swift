@@ -163,16 +163,16 @@ public struct AppStateSmartFolderTests {
     /// `searchQuery` normally so its `didSet` fires the real search.
     private static func testPrepareForSmartFolderRunTriggersSearch() {
         let appState = AppState()
-        appState.selectedURLs = [URL(fileURLWithPath: "/tmp/previously-selected.txt")]
+        appState.selection.selectedURLs = [URL(fileURLWithPath: "/tmp/previously-selected.txt")]
         appState.fileSystem.refreshTask?.cancel()
         appState.fileSystem.refreshTask = nil
 
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
         appState.prepareForSmartFolderRun(folder)
 
-        report("AppState", "POS: prepareForSmartFolderRun sets searchQuery to the folder's query", result: appState.searchQuery == folder.searchQuery)
-        report("AppState", "POS: prepareForSmartFolderRun turns on isSearching", result: appState.isSearching)
-        report("AppState", "NEG: prepareForSmartFolderRun clears any prior file selection", result: appState.selectedURLs.isEmpty)
+        report("AppState", "POS: prepareForSmartFolderRun sets searchQuery to the folder's query", result: appState.selection.searchQuery == folder.searchQuery)
+        report("AppState", "POS: prepareForSmartFolderRun turns on isSearching", result: appState.selection.isSearching)
+        report("AppState", "NEG: prepareForSmartFolderRun clears any prior file selection", result: appState.selection.selectedURLs.isEmpty)
         report(
             "AppState",
             "POS: prepareForSmartFolderRun actually triggers a search (spawns a refresh task), same as typing a query",
@@ -197,7 +197,7 @@ public struct AppStateSmartFolderTests {
         let appState = AppState()
         appState.navigation.currentURL = dir
         appState.selection.pendingSelectionURL = staleFile
-        appState.selectedURLs = [URL(fileURLWithPath: "/tmp/my-jpg-inside-the-smart-folder.jpg")]
+        appState.selection.selectedURLs = [URL(fileURLWithPath: "/tmp/my-jpg-inside-the-smart-folder.jpg")]
 
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
         appState.prepareForSmartFolderRun(folder)
@@ -205,12 +205,12 @@ public struct AppStateSmartFolderTests {
 
         // Editing the search text exits smart-folder mode and triggers a real reload of the current
         // directory — this must not resurrect the stale pending selection.
-        appState.searchQuery = "stale"
+        appState.selection.searchQuery = "stale"
         await appState.fileSystem.refreshTask?.value
         report(
             "AppState",
             "NEG: editing search text after a smart folder run does not resurrect the stale pending selection",
-            result: !appState.selectedURLs.contains(staleFile))
+            result: !appState.selection.selectedURLs.contains(staleFile))
     }
 
     /// Regression: running a smart folder while the search bar wasn't already visible makes it
@@ -220,7 +220,7 @@ public struct AppStateSmartFolderTests {
     /// next search-field appearance to skip its auto-focus.
     private static func testPrepareForSmartFolderRunSuppressesFocusOnlyWhenSearchWasClosed() {
         let appStateFromClosed = AppState()
-        appStateFromClosed.isSearching = false
+        appStateFromClosed.selection.isSearching = false
         appStateFromClosed.prepareForSmartFolderRun(SmartFolder(name: "A", searchQuery: "kind:image", scopePath: "/tmp"))
         report(
             "AppState",
@@ -228,7 +228,7 @@ public struct AppStateSmartFolderTests {
             result: appStateFromClosed.smartFolder.suppressNextSearchFocus)
 
         let appStateAlreadyOpen = AppState()
-        appStateAlreadyOpen.isSearching = true
+        appStateAlreadyOpen.selection.isSearching = true
         appStateAlreadyOpen.prepareForSmartFolderRun(SmartFolder(name: "B", searchQuery: "kind:image", scopePath: "/tmp"))
         report(
             "AppState",
@@ -248,7 +248,7 @@ public struct AppStateSmartFolderTests {
         appState.fileSystem.refreshTask?.cancel()
         appState.fileSystem.refreshTask = nil
 
-        appState.searchQuery = "a brand new search"
+        appState.selection.searchQuery = "a brand new search"
 
         report(
             "AppState",
