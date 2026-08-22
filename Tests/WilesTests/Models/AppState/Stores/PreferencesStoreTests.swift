@@ -21,6 +21,56 @@ public struct PreferencesStoreTests {
         testShowDirectoryTreePersistsAcrossStoreInstances()
         testIconSizeLoadsSavedValueWithinBounds()
         testFavoriteURLsFallsBackToDefaultsWhenNoneSaved()
+        testFavoriteURLsLoadsSavedArrayOptimisticallyAcceptingVolumesPaths()
+    }
+
+    // MARK: - favoriteURLs load-from-saved-array branch
+
+    /// `loadFavoriteURLs`'s `if let savedFavs` branch (the sibling of the already-covered
+    /// fallback-to-defaults `else`) filters each saved path through `existsOptimistically`: a real
+    /// existing path passes via `FileManager.fileExists`, a `/Volumes/...` path is accepted
+    /// optimistically regardless of existence (`isLikelySlowVolume`, to avoid a synchronous stall
+    /// against a sleeping network share), and a genuinely-missing non-`/Volumes/` path is dropped.
+    /// Checked synchronously right after `init` — before the `Task { [weak self] in await
+    /// validateSlowVolumeFavorites() }` it also spawns has a chance to run — so this only exercises
+    /// the optimistic-load path, not the later async correction (which would need a real/simulated
+    /// mount to deterministically resolve either way). That task captures `self` weakly and this
+    /// `store` is a purely local variable nothing else retains, so it deallocates at the end of this
+    /// function and the pending task becomes a safe no-op rather than writing stale data back to
+    /// `UserDefaults` later. This mutates the real `UserDefaults.standard` key, so per rule 17 we
+    /// snapshot and restore in `defer`.
+    private static func testFavoriteURLsLoadsSavedArrayOptimisticallyAcceptingVolumesPaths() {
+        let key = DefaultsKey.favoriteURLs.rawValue
+        let priorArray = UserDefaults.standard.stringArray(forKey: key)
+        defer {
+            if let priorArray {
+                UserDefaults.standard.set(priorArray, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        let realExistingPath = FileManager.default.homeDirectoryForCurrentUser.path
+        let missingVolumesPath = "/Volumes/DefinitelyNotMounted-\(UUID().uuidString)"
+        let missingRegularPath = URL(fileURLWithPath: testTemporaryDirectory())
+            .appendingPathComponent("definitely-missing-\(UUID().uuidString)").path
+
+        UserDefaults.standard.set([realExistingPath, missingVolumesPath, missingRegularPath], forKey: key)
+        let store = PreferencesStore()
+        let paths = store.favoriteURLs.map(\.path)
+
+        report(
+            "Store/PreferencesStore",
+            "POS: loadFavoriteURLs keeps a real existing saved path",
+            result: paths.contains(realExistingPath))
+        report(
+            "Store/PreferencesStore",
+            "POS: loadFavoriteURLs optimistically accepts a /Volumes/ path even though it doesn't exist",
+            result: paths.contains(missingVolumesPath))
+        report(
+            "Store/PreferencesStore",
+            "NEG: loadFavoriteURLs drops a genuinely-missing non-/Volumes/ saved path",
+            result: !paths.contains(missingRegularPath))
     }
 
     // MARK: - iconSize load-from-UserDefaults bounds check

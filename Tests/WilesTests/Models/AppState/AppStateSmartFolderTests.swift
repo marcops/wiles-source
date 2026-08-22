@@ -16,6 +16,7 @@ public struct AppStateSmartFolderTests {
         await testPrepareForSmartFolderRunClearsStalePendingSelection()
         testPrepareForSmartFolderRunSuppressesFocusOnlyWhenSearchWasClosed()
         testNormalSearchQueryEditKeepsSidebarHighlight()
+        await testRunSmartFolderAppliesResultsToFileSystemItems()
     }
 
     private static func testAddSmartFolder() {
@@ -259,6 +260,41 @@ public struct AppStateSmartFolderTests {
             "POS: a normal searchQuery edit triggers a real refresh (spawns a task)",
             result: appState.fileSystem.refreshTask != nil)
     }
+
+    /// `runSmartFolder` is `prepareForSmartFolderRun` plus the actual `SmartFolderService.shared
+    /// .executeQuery` (real `NSMetadataQuery`/Spotlight) call, re-entering `@MainActor` to write
+    /// `fileSystem.items`. `SmartFolderQueryTests` already established real Spotlight queries are
+    /// safe/fast enough to exercise directly in this environment (no system UI, cold-start latency
+    /// independent of indexed results) — only proving the callback actually lands in `fileSystem
+    /// .items`, not that results are non-empty.
+    private static func testRunSmartFolderAppliesResultsToFileSystemItems() async {
+        let appState = AppState()
+        appState.fileSystem.items = [FileItem(url: URL(fileURLWithPath: "/tmp/stale-item.txt"))]
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
+
+        appState.runSmartFolder(folder)
+        report("AppState", "POS: runSmartFolder triggers a search via prepareForSmartFolderRun", result: appState.selection.searchQuery == folder.searchQuery)
+
+        // Poll briefly for the async NSMetadataQuery completion to land on fileSystem.items,
+        // matching SmartFolderQueryTests' expectation-based waits for the same underlying call.
+        var attempts = 0
+        while appState.fileSystem.items.contains(where: { $0.url.path == "/tmp/stale-item.txt" }), attempts < 20 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            attempts += 1
+        }
+        report(
+            "AppState",
+            "POS: runSmartFolder replaces fileSystem.items with the executeQuery results (stale item is gone)",
+            result: !appState.fileSystem.items.contains { $0.url.path == "/tmp/stale-item.txt" })
+    }
+
+    // `persistSmartFolders`'s `catch` branch (ErrorReporter.report + showError) is unreachable from
+    // AppState: it only calls the public, non-throwing-encoder `SmartFolderService.saveSmartFolders(_:)`,
+    // which always encodes with a real `JSONEncoder` — `SmartFolder`'s fields (String/UUID/etc.) can't
+    // actually fail to encode. `SmartFolderService`'s own doc comment on its test-only throwing-encoder
+    // overload confirms this: "there's no real-world way to trigger this otherwise." Left uncovered per
+    // WILES_RULES.md's "disproportionate cost" exception rather than adding a fake injectable seam here.
 
     private static func report(_ category: String, _ name: String, result: Bool) {
         TestReporter.report(category, name, result: result)

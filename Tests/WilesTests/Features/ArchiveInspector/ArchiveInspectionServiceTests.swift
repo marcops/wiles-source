@@ -8,6 +8,46 @@ public struct ArchiveInspectorFeatureTests {
         let entries = await ArchiveInspectionService.listEntries(in: nonExistentArchive)
         report("Feature/ArchiveInspector", "NEG: Nonexistent zip returns empty entries", result: entries.isEmpty)
         await runExtractionFailurePreservesExistingDestination()
+        await runReplaceItemFailureCleansUpTempFileAndRethrows()
+    }
+
+    /// Covers `extractSingleEntrySync`'s `replaceItemAt` `catch` block specifically: the destination
+    /// directory stays writable (so the temp file is created and extraction succeeds), but the
+    /// pre-existing file at `destURL` is marked immutable (`chflags uchg`), so only the final atomic
+    /// swap fails. (An empty directory occupying `destURL` was tried first, but `FileManager.
+    /// replaceItemAt` is a "safe save" API that can itself swap a plain file into an empty directory's
+    /// spot — that did not reliably force a throw.) Proves the temp file is cleaned up and the
+    /// original error propagates, rather than a silently-orphaned temp file or a swallowed failure.
+    private static func runReplaceItemFailureCleansUpTempFileAndRethrows() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("archive_replace_fail_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let sourceFile = tempDir.appendingPathComponent("payload.txt")
+        try? "payload content".write(to: sourceFile, atomically: true, encoding: .utf8)
+        try? ArchiveService.compressToZIP(urls: [sourceFile], in: tempDir)
+        let zipURL = tempDir.appendingPathComponent("payload.zip")
+
+        let destDir = tempDir.appendingPathComponent("dest")
+        try? FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+        let destURL = destDir.appendingPathComponent("payload.txt")
+        try? "pre-existing".write(to: destURL, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.immutable: true], ofItemAtPath: destURL.path)
+        defer { try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: destURL.path) }
+
+        var didThrow = false
+        do {
+            _ = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: "payload.txt", to: destDir)
+        } catch {
+            didThrow = true
+        }
+
+        let leftoverTempFiles = (try? FileManager.default.contentsOfDirectory(atPath: destDir.path))?
+            .filter { $0.hasSuffix("_payload.txt") && $0.hasPrefix(".") } ?? []
+        report(
+            "Feature/ArchiveInspector",
+            "NEG: extractSingleEntry rethrows when replaceItemAt fails (destination file is immutable) and removes its own temp file",
+            result: didThrow && leftoverTempFiles.isEmpty)
     }
 
     /// Regression test (see AGENTS.md rule 35): `extractSingleEntry` used to

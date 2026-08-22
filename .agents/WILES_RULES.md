@@ -59,6 +59,17 @@ For fixes/features in Wiles, don't write/run the actual unit test file immediate
 - Add an entry to `UI_TEST_BACKLOG.md` at the repo root for every pending test — both genuinely untestable pieces and testable-but-deferred pieces, same format, so nothing is forgotten.
 - Only write and run the actual test once the user has manually tested and confirmed the change is correct ("deu ok"). Standing rule for all Wiles work, not a one-off.
 
+## Unit Test Coverage Target: 100% of Non-SwiftUI-View Code
+
+Every non-SwiftUI-view unit — `Models/`, `Services/`, `Features/*/*.swift` service/model files (not `*SheetView.swift`), `AppState`/`AppState+*`/`Stores/*` — is pursued to 100% unit test coverage, including branch coverage (every `if`/`guard`/`switch` case exercised, not just line coverage). Pure SwiftUI `View` bodies (`*SheetView.swift`, anything in `Views/`, `App/Commands/*.swift`) are explicitly excluded from this target for now — they're covered later by `WilesUITests`, not `WilesTests` unit tests.
+
+- 100% is the target, not an absolute floor: skip a specific branch/line only when the cost of covering it is clearly disproportionate to its risk (e.g. an unreachable `fatalError` guard, a platform branch that can't run in CI) — and say so explicitly (a short comment or in the report), don't just quietly leave it uncovered.
+- Follow the existing test harness pattern exactly: a logic file (`Tests/WilesTests/.../<Name>Tests.swift`, `public struct <Name>Tests { public static func run() [async] { ... } }` asserting via `TestReporter.report(category, name, result:, detail:)`) plus a standalone `<Name>TestsCase.swift` (`final class <Name>TestsCase: XCTestCase` calling `.run()`) — see `ListColumnSettingsTestsCase.swift` for the preferred standalone-file precedent. Don't edit the shared `WilesAutomatedXCTestCase.swift` for new suites unless there's no other established pattern to follow.
+
+## Tests Must Distrust the Code — Never Silently Patch a Discovered Bug
+
+When writing a test against existing production code and the test reveals the code doesn't actually do what its own logic/naming/doc comments imply, that's a real finding — do not just adjust the test to match the code's actual (possibly wrong) behavior, and do not silently "fix" the production code either. Flag it and let the user decide: it might be intentional, might be a real bug, or the test's own understanding might be wrong. Tests are written to catch what the code actually does wrong, not to rubber-stamp whatever it currently does.
+
 ## Available Scripts
 
 - `scripts/push_and_relaunch.sh "<msg>" [--skip-commit]` — build+sign+relaunch, then commit+push. Default to `--skip-commit` until told to commit.

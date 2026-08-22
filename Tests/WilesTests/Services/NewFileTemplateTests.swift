@@ -57,4 +57,11 @@ public struct NewFileTemplateTests {
             "POS: createTemplateFile generates unique incrementing names when the file already exists",
             result: names == expected)
     }
+
+    // NOTE ON COVERAGE GAP: generateUniqueURL's `ext.isEmpty ? "\(baseName) \(counter)" : ...` true
+    // branch (no-extension case) is unreachable via any public call path — createTemplateFile always
+    // appends the template's extension first when one is missing, and no FileTemplate case has an
+    // empty rawValue, so `ext` is never empty by the time generateUniqueURL runs. The function is
+    // `private`, so it can't be called directly from @testable tests either. Leaving this one line
+    // uncovered rather than adding a contrived test for an unreachable branch.
 }

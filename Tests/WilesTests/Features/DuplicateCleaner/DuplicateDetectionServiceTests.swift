@@ -1,6 +1,15 @@
 import Foundation
 @testable import Wiles
 
+/// Two branches in `DuplicateDetectionService.scanForDuplicateGroups` are intentionally left
+/// uncovered (see `DuplicateDetectionTests.swift` in `Tests/WilesTests/Services/` for the rest of
+/// this service's scan-behavior coverage):
+/// - `guard let enumerator = fm.enumerator(at:...) else { return empty }`: `FileManager.enumerator(at:)`
+///   was verified (see FileSystemSearchAndSortTests.swift's equivalent note) to never actually return
+///   nil on macOS, even for a nonexistent path or a non-file URL — no known reachable trigger.
+/// - `if scannedCount > maxScannedFileCount { break }` (limit is 50,000): forcing this would require
+///   creating 50,001+ real filesystem entries in a temp directory, which would meaningfully slow down
+///   every test run for a single defensive cap-guard — disproportionate cost for the risk it guards.
 @MainActor
 public struct DuplicateCleanerFeatureTests {
     public static func run() async {

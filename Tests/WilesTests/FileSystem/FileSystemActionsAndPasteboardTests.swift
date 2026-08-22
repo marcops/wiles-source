@@ -116,7 +116,44 @@ extension FileSystemTests {
         TestReporter.report("FileSystem", "POS: copyItem onto an existing name auto-renames to name_1.ext", result: collisionRenamePassed)
         TestReporter.report("FileSystem", "POS: copyItem onto name_1.ext auto-renames to name_2.ext on the next collision", result: secondCollisionRenamePassed)
 
+        runCreateUniqueDirectoryCoverageExtra(tempDir: tempDir)
         await runTrashCoverageExtra(tempDir: tempDir)
+    }
+
+    static func runCreateUniqueDirectoryCoverageExtra(tempDir: URL) {
+        // POS: createUniqueDirectory creates baseName as-is when nothing conflicts (loop never executes)
+        var freeNamePassed = false
+        do {
+            let created = try FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
+            freeNamePassed = created.lastPathComponent == "New Folder" && FileManager.default.fileExists(atPath: created.path)
+        } catch {
+            print("createUniqueDirectory free-name error: \(error)")
+        }
+        TestReporter.report("FileSystem", "POS: createUniqueDirectory uses baseName as-is when it doesn't already exist", result: freeNamePassed)
+
+        // POS: createUniqueDirectory appends " 2" then " 3" as prior candidates collide (loop body executes twice)
+        var secondCollisionPassed = false
+        var thirdCollisionPassed = false
+        do {
+            let second = try FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
+            secondCollisionPassed = second.lastPathComponent == "New Folder 2" && FileManager.default.fileExists(atPath: second.path)
+            let third = try FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
+            thirdCollisionPassed = third.lastPathComponent == "New Folder 3" && FileManager.default.fileExists(atPath: third.path)
+        } catch {
+            print("createUniqueDirectory collision error: \(error)")
+        }
+        TestReporter.report("FileSystem", "POS: createUniqueDirectory appends \" 2\" when baseName already exists", result: secondCollisionPassed)
+        TestReporter.report("FileSystem", "POS: createUniqueDirectory appends \" 3\" when baseName and \" 2\" both already exist", result: thirdCollisionPassed)
+
+        // NEG: createUniqueDirectory throws when the parent folder itself doesn't exist
+        var negPassed = false
+        do {
+            let missingParent = tempDir.appendingPathComponent("NoSuchParent_\(UUID().uuidString)")
+            _ = try FileSystemService.createUniqueDirectory(at: missingParent, baseName: "New Folder")
+        } catch {
+            negPassed = true
+        }
+        TestReporter.report("FileSystem", "NEG: createUniqueDirectory throws when the parent folder doesn't exist", result: negPassed)
     }
 
     static func runTrashCoverageExtra(tempDir: URL) async {
@@ -183,5 +220,85 @@ extension FileSystemTests {
         PasteboardService.copyFileContentToClipboard(url: missingFile)
         let unchangedString = NSPasteboard.general.string(forType: .string)
         TestReporter.report("FileSystem", "NEG: copyFileContentToClipboard on missing file leaves pasteboard untouched", result: unchangedString == priorMarker)
+
+        runCreateFileFromPasteboardContentCoverageExtras(tempDir: tempDir)
+    }
+
+    /// Note: `PasteboardService.pngData(for:)`'s `guard ... else { return nil }` failure branch
+    /// (an `NSImage` whose `tiffRepresentation` or `NSBitmapImageRep(data:)` fails) isn't covered
+    /// here — constructing an `NSImage` that reports `.tiff` availability on the pasteboard yet
+    /// fails TIFF/bitmap conversion isn't reachable through the public API without a fragile,
+    /// disproportionate mock. Every image handed to `NSImage(size:)` + `lockFocus`/`unlockFocus`
+    /// round-trips cleanly through `tiffRepresentation`.
+    static func runCreateFileFromPasteboardContentCoverageExtras(tempDir: URL) {
+        let pb = NSPasteboard.general
+        let destFolder = tempDir.appendingPathComponent("PasteContent_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: destFolder, withIntermediateDirectories: true)
+
+        // POS: createFileFromPasteboardContent writes a copied image as "Pasted Image.png"
+        pb.clearContents()
+        let image = NSImage(size: NSSize(width: 4, height: 4))
+        image.lockFocus()
+        NSColor.red.set()
+        NSRect(x: 0, y: 0, width: 4, height: 4).fill()
+        image.unlockFocus()
+        pb.writeObjects([image])
+        var imagePassed = false
+        do {
+            let created = try PasteboardService.createFileFromPasteboardContent(in: destFolder)
+            imagePassed = created?.lastPathComponent == "Pasted Image.png" && FileManager.default.fileExists(atPath: created?.path ?? "")
+        } catch {
+            print("createFileFromPasteboardContent image error: \(error)")
+        }
+        TestReporter.report("FileSystem", "POS: createFileFromPasteboardContent writes a copied image as Pasted Image.png", result: imagePassed)
+
+        // POS: createFileFromPasteboardContent falls back to text when no image is on the pasteboard
+        pb.clearContents()
+        let pastedText = "pasted text \(UUID().uuidString)"
+        pb.setString(pastedText, forType: .string)
+        var textPassed = false
+        do {
+            let created = try PasteboardService.createFileFromPasteboardContent(in: destFolder)
+            let content = created.flatMap { try? String(contentsOf: $0) }
+            textPassed = created?.lastPathComponent == "Pasted Text.txt" && content == pastedText
+        } catch {
+            print("createFileFromPasteboardContent text error: \(error)")
+        }
+        TestReporter.report(
+            "FileSystem",
+            "POS: createFileFromPasteboardContent falls back to writing Pasted Text.txt when there's no image",
+            result: textPassed)
+
+        runCreateFileFromPasteboardContentNilCases(pb: pb, destFolder: destFolder)
+    }
+
+    static func runCreateFileFromPasteboardContentNilCases(pb: NSPasteboard, destFolder: URL) {
+        // NEG: createFileFromPasteboardContent returns nil when there's nothing pasteable
+        pb.clearContents()
+        var nilPassed = false
+        do {
+            let created = try PasteboardService.createFileFromPasteboardContent(in: destFolder)
+            nilPassed = created == nil
+        } catch {
+            print("createFileFromPasteboardContent empty error: \(error)")
+        }
+        TestReporter.report(
+            "FileSystem",
+            "NEG: createFileFromPasteboardContent returns nil when the pasteboard has neither an image nor text",
+            result: nilPassed)
+
+        // NEG: createFileFromPasteboardContent also returns nil for an empty (but present) string
+        pb.clearContents()
+        pb.setString("", forType: .string)
+        var emptyStringPassed = false
+        do {
+            let created = try PasteboardService.createFileFromPasteboardContent(in: destFolder)
+            emptyStringPassed = created == nil
+        } catch {
+            print("createFileFromPasteboardContent empty string error: \(error)")
+        }
+        TestReporter.report("FileSystem", "NEG: createFileFromPasteboardContent returns nil for an empty string on the pasteboard", result: emptyStringPassed)
+
+        pb.clearContents()
     }
 }

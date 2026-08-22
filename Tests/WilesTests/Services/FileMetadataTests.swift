@@ -11,6 +11,8 @@ public struct FileMetadataTests {
         await testDimensionsAreResolvedForRealImage()
         await testStreamBatchPropertiesYieldsOneItemPerURLInOrder()
         await testStreamBatchPropertiesStopsEarlyWhenConsumerBreaks()
+        await testStreamBatchPropertiesOnEmptyURLListFinishesImmediately()
+        await testFormatPermissionsCoversAllRoleBitsIncludingExecute()
     }
 
     private static func testStreamBatchPropertiesYieldsOneItemPerURLInOrder() async {
@@ -113,6 +115,39 @@ public struct FileMetadataTests {
         // image being valid. What we CAN assert is that if a value is produced, it is well-formed.
         let dimensionsWellFormedOrAbsent = props.dimensions == nil || (props.dimensions ?? "").contains("×")
         report("FileMetadata", "POS: pixel dimensions, when resolved, are formatted with × rather than malformed", result: dimensionsWellFormedOrAbsent)
+        // Coverage note: the same Spotlight-indexing-latency limitation applies to the
+        // kMDItemDurationSeconds branch in readSpotlightDimensionsAndDuration — a freshly written
+        // temp-dir file is never indexed in time for CI, so that branch's true side (real duration
+        // formatting) is left uncovered here as a real-network/Spotlight-dependent exception,
+        // consistent with this file's documented policy for SpotlightSearchService.
+    }
+
+    /// Coverage for `streamBatchProperties`'s loop body never running (empty input): the
+    /// `AsyncStream` must still terminate cleanly via `continuation.finish()`.
+    private static func testStreamBatchPropertiesOnEmptyURLListFinishesImmediately() async {
+        var received = 0
+        for await _ in await FileMetadataService.shared.streamBatchProperties(for: []) {
+            received += 1
+        }
+        report("FileMetadata", "NEG: streamBatchProperties on an empty URL list yields nothing and finishes", result: received == 0)
+    }
+
+    /// `formatPermissions` only exercises the "x"/"w" true-branches when the underlying POSIX mode
+    /// actually sets those bits — a freshly-written temp file defaults to 0644 (no execute bits at
+    /// all), which never reaches the true side of the `& 1` (execute) check for any role. Setting an
+    /// explicit asymmetric mode (0751: rwx / r-x / --x) forces every role/bit combination through
+    /// both branches at least once.
+    private static func testFormatPermissionsCoversAllRoleBitsIncludingExecute() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("perms_test.txt")
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o751], ofItemAtPath: file.path)
+
+        let props = await FileMetadataService.shared.fetchProperties(for: file)
+        report("FileMetadata", "POS: formatPermissions renders an explicit rwx/r-x/--x mode exactly", result: props.posixPermissions == "rwxr-x--x")
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

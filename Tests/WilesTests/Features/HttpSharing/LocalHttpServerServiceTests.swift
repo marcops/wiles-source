@@ -32,8 +32,96 @@ public struct HttpSharingFeatureTests {
         await testPasswordProtectedRequestWithWrongPasswordReturns401()
         await testPasswordProtectedRequestWithCorrectPasswordSucceeds()
         await testEmptyPasswordStringIsTreatedAsNoPassword()
+        await testAuthorizationHeaderWithoutBasicPrefixReturns401()
+        await testSharedFolderClearedMidFlightReturns500()
+        await testStopCancelsActiveConnections()
 
         server.stop()
+    }
+
+    // MARK: - Authorization header present but not "Basic " (isAuthorized guard branch)
+
+    /// Covers the `guard value.hasPrefix("Basic ") else { return false }` branch in
+    /// `isAuthorized()`: an Authorization header that's present but uses a different auth scheme
+    /// (e.g. Bearer) must still be rejected as unauthorized rather than crash on the base64 decode.
+    private static func testAuthorizationHeaderWithoutBasicPrefixReturns401() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let server = LocalHttpServerService.shared
+        server.start(sharing: tempDir, password: "secret123")
+        await waitUntil { server.isRunning }
+
+        var passed = false
+        if let sock = rawConnect(port: 8080) {
+            rawSend(sock, "GET / HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer sometoken\r\n\r\n")
+            let response = rawRecvAll(sock, timeoutMs: 1000)
+            let text = String(data: response, encoding: .utf8) ?? ""
+            passed = text.hasPrefix("HTTP/1.1 401")
+            Darwin.close(sock)
+        }
+        report("Feature/HttpSharing", "NEG: an Authorization header using a non-Basic scheme (e.g. Bearer) returns 401 Unauthorized", result: passed)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    // MARK: - sharedFolder cleared mid-flight (processRequest internalServerError guard branch)
+
+    /// Covers the `guard let folder = sharedFolder else` branch in `processRequest()`. In real
+    /// usage `sharedFolder` only becomes nil via `stop()`, which also tears down the listener - but
+    /// the property is public and read fresh per-request, so this directly clears it while the
+    /// server keeps listening to simulate the request landing in that narrow window.
+    private static func testSharedFolderClearedMidFlightReturns500() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let server = LocalHttpServerService.shared
+        server.start(sharing: tempDir)
+        await waitUntil { server.isRunning }
+        server.sharedFolder = nil
+
+        var passed = false
+        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:8080/")!),
+           let httpResp = resp as? HTTPURLResponse {
+            passed = httpResp.statusCode == 500
+        }
+        report("Feature/HttpSharing", "NEG: GET / while sharedFolder is nil (server still listening) returns 500 Internal Server Error", result: passed)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    // MARK: - stop() cancels still-open connections (stop's connections loop)
+
+    /// Covers the `for conn in connections { conn.cancel() }` loop in `stop()` actually iterating a
+    /// non-empty list: a client that connects but hasn't sent/closed yet stays in `connections`
+    /// until data arrives, so calling `stop()` right after connecting should find it still there.
+    private static func testStopCancelsActiveConnections() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let server = LocalHttpServerService.shared
+        server.start(sharing: tempDir)
+        await waitUntil { server.isRunning }
+
+        var danglingSocket: Int32?
+        if let sock = rawConnect(port: 8080) {
+            danglingSocket = sock
+            // Give the accept handler time to run and append the connection before stop() below.
+            try? await Task.sleep(nanoseconds: 150_000_000)
+        }
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        report("Feature/HttpSharing", "POS: stop() completes cleanly while a connected-but-idle client is still open", result: !server.isRunning)
+
+        if let danglingSocket {
+            Darwin.close(danglingSocket)
+        }
+        try? FileManager.default.removeItem(at: tempDir)
     }
 
     // MARK: - Directory-removed-after-start (serveDirectoryListing catch branch)

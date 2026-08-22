@@ -22,4 +22,11 @@ final class AppConstantsTests: XCTestCase {
         let expected = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? String()
         XCTAssertEqual(AppConstants.appName, expected)
     }
+
+    // POS: appBuild reads Bundle.main's CFBundleVersion, falling back to "0" when absent (mirrors
+    // appName's coverage above — this computed property was previously untested).
+    func testAppBuildReadsBundleMainCFBundleVersionOrFallsBackToZero() {
+        let expected = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
+        XCTAssertEqual(AppConstants.appBuild, expected)
+    }
 }

@@ -17,4 +17,20 @@ final class SystemAppearanceObserverTests: XCTestCase {
         let expected = NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         XCTAssertEqual(SystemAppearanceObserver.shared.isDark, expected)
     }
+
+    // POS: exercises the DistributedNotificationCenter observer closure by posting the real
+    // "AppleInterfaceThemeChangedNotification" name locally (no actual System Settings change is
+    // made) — proves the observer's `Task { @MainActor in ... }` callback runs and refreshes `isDark`
+    // to match the (unchanged) real system appearance, without crashing.
+    func testPostingThemeChangeNotificationRefreshesIsDarkOnMainActor() async {
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("AppleInterfaceThemeChangedNotification"), object: nil, userInfo: nil, deliverImmediately: true)
+
+        // The observer callback dispatches to @MainActor asynchronously; a short yield gives it a
+        // chance to run before asserting.
+        try? await Task.sleep(nanoseconds: 200_000_000)
+
+        let expected = NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        XCTAssertEqual(SystemAppearanceObserver.shared.isDark, expected)
+    }
 }

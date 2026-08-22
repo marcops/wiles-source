@@ -17,6 +17,12 @@ public struct LocalizationCoverageTests {
         testChineseMixedCaseLprojFallbackResolvesRealTranslation()
     }
 
+    // Not covered: `L10n.string`'s final `resourceBundle.localizedString(...)` fallback line (both
+    // the exact-case and lowercased `.lproj` path lookups failing) — every real `AppLanguage` case
+    // has a genuine bundled `.lproj` folder (proved by `testMissingKeysCheck` below succeeding across
+    // all of them), so this line is only reachable for a code with no bundled resource at all, which
+    // isn't producible through the public `AppLanguage`/`L10n` API. Disproportionate cost to force.
+
     private static func testChineseMixedCaseLprojFallbackResolvesRealTranslation() {
         // POS: AppLanguage.chinese has rawValue "zh-Hans" (mixed case), but the compiled resource
         // bundle's folder is "zh-hans.lproj" (all-lowercase). L10n.string's first path lookup

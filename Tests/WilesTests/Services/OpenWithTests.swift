@@ -2,6 +2,11 @@ import AppKit
 import Foundation
 @testable import Wiles
 
+/// `chooseOtherApplication(toOpen:)`'s non-empty-URLs body (past the `guard !urls.isEmpty` early
+/// return already covered below) is intentionally left uncovered: it presents a real `NSOpenPanel`,
+/// which would show actual system UI during an automated test run and has no injectable seam (the
+/// panel is constructed directly, not via `WorkspaceOpening`) — disproportionate cost/risk versus a
+/// thin panel-configuration pass-through.
 @MainActor
 public struct OpenWithTests {
     public static func run() {

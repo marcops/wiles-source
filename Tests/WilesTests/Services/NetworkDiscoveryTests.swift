@@ -27,6 +27,16 @@ public struct NetworkDiscoveryTests {
         testNetworkShareInitialization()
         testNetworkShareIdentityIsUniquePerInstance()
         testNetworkShareSortingMatchesLocalizedStandardOrder()
+
+        // `updateDiscoveredShares(from:)` (the `guard case .service`/percent-encoding/URL-building/
+        // sort pipeline) is `private` and only ever invoked from `browser.browseResultsChangedHandler`,
+        // which only fires from a real `NWBrowser.Result` set produced by actual Bonjour/mDNS
+        // discovery on the network — there is no injectable seam to call it with synthetic results
+        // in a unit test. Per WILES_RULES.md this service is explicitly called out as a legitimate
+        // real-network-dependent exception to the 100% branch-coverage target; the tests above cover
+        // every piece of its logic (NetworkShare construction, identity, localizedStandardCompare
+        // sorting) in isolation instead, and startBrowsing()/stopBrowsing() cover the lifecycle
+        // around it.
     }
 
     // POS: NetworkShare's initializer stores the name and url exactly as provided

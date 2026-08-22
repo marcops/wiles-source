@@ -24,6 +24,16 @@ public struct AppStateCoreTests {
         await testCompressSelectedToZIPFailure()
         await testCompressSelectedToZIPWithPasswordFailure()
         await testExtractArchive()
+        testTrWithShortcutHint()
+    }
+
+    private static func testTrWithShortcutHint() {
+        let appState = AppState()
+        let hint = appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")
+        report(
+            "AppState",
+            "POS: trWithShortcutHint wraps the shortcut in parentheses after the localized label",
+            result: hint == "\(appState.tr(.paste)) (Cmd+V)")
     }
 
     private static func makeItem(named name: String, in dir: URL, contents: String = "content", isDirectory: Bool = false) -> FileItem {

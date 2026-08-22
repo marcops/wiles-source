@@ -22,6 +22,14 @@ final class SpotlightSearchTests: XCTestCase {
         XCTAssertTrue(true)
     }
 
+    /// Covers `stopSearch()`'s `if let query = metadataQuery` false branch: calling it when no
+    /// search is in progress (metadataQuery already nil) must be a safe no-op, not a crash.
+    func testSpotlightSearchStopSearchWhenIdleIsNoOp() {
+        SpotlightSearchService.shared.stopSearch()
+        SpotlightSearchService.shared.stopSearch()
+        XCTAssertTrue(true)
+    }
+
     /// Regression coverage for the predicate-injection crash fix: a query built with an apostrophe
     /// used to break out of the predicate format string's quoted literal, and NSPredicate(format:)
     /// raised an uncatchable NSInvalidArgumentException — reaching this assertion at all is the
@@ -58,4 +66,10 @@ final class SpotlightSearchTests: XCTestCase {
 
         wait(for: [exp], timeout: 1.4)
     }
+
+    // Not covered: `queryDidFinishGathering`'s `guard let query = metadataQuery else { return }`
+    // false path (the method is `@objc private`, only reachable via a real
+    // NSMetadataQueryDidFinishGathering notification racing an already-nilled metadataQuery) and
+    // the true side of the compactMap's per-item cast/attribute-extraction inside it — both are
+    // real-Spotlight-timing-dependent, consistent with this file's documented policy above.
 }

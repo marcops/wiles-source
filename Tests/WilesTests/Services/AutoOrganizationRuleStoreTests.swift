@@ -1,0 +1,135 @@
+import Foundation
+@testable import Wiles
+
+/// Coverage for `AutoOrganizationRuleStore` itself (persistence/CRUD), distinct from
+/// `AutoOrganizationTests.swift` (which exercises the full `AutoOrganizationService` pipeline via
+/// its own private store instance) and `AutoOrganizationRuleTests.swift` (the `AutoOrganizationRule`
+/// model). Isolates the real `UserDefaults.standard` key it persists to, restoring the original
+/// value in a guaranteed `defer` per DEV_RULES.md/WILES_RULES.md test-isolation rules.
+@MainActor
+public struct AutoOrganizationRuleStoreTests {
+    private static let rulesKey = DefaultsKey.autoOrganizationRules.rawValue
+
+    public static func run() {
+        let originalValue = UserDefaults.standard.data(forKey: rulesKey)
+        defer {
+            if let originalValue {
+                UserDefaults.standard.set(originalValue, forKey: rulesKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: rulesKey)
+            }
+        }
+
+        testLoadWithNoStoredDataIsNoOp()
+        testLoadDecodesPreviouslySavedRules()
+        testLoadWithCorruptDataLeavesRulesUnchanged()
+        testAddUpdateDeleteRuleMutateAndPersist()
+        testUpdateRuleWithUnknownIdIsNoOp()
+        testOnChangeFiresOnEveryMutation()
+    }
+
+    private static func makeRule(name: String = "pdf") -> AutoOrganizationRule {
+        let base = URL(fileURLWithPath: testTemporaryDirectory())
+        return AutoOrganizationRule(
+            sourceURL: base.appendingPathComponent("Source_\(UUID().uuidString)"),
+            destinationURL: base.appendingPathComponent("Dest_\(UUID().uuidString)"),
+            conditionType: .extensionEquals,
+            conditionValue: name,
+            isEnabled: true)
+    }
+
+    private static func testLoadWithNoStoredDataIsNoOp() {
+        UserDefaults.standard.removeObject(forKey: rulesKey)
+        let store = AutoOrganizationRuleStore()
+        store.load()
+        report("Services/AutoOrganizationRuleStore", "NEG: load() with nothing stored leaves rules empty", result: store.rules.isEmpty)
+    }
+
+    private static func testLoadDecodesPreviouslySavedRules() {
+        let rule = makeRule()
+        let data = try? JSONEncoder().encode([rule])
+        UserDefaults.standard.set(data, forKey: rulesKey)
+
+        let store = AutoOrganizationRuleStore()
+        store.load()
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: load() decodes a previously persisted rule list from UserDefaults",
+            result: store.rules.map(\.id) == [rule.id])
+    }
+
+    private static func testLoadWithCorruptDataLeavesRulesUnchanged() {
+        UserDefaults.standard.set(Data("not valid json".utf8), forKey: rulesKey)
+
+        let store = AutoOrganizationRuleStore()
+        store.load()
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "NEG: load() with corrupt stored data logs/reports the decode error and leaves rules untouched (empty)",
+            result: store.rules.isEmpty)
+    }
+
+    private static func testAddUpdateDeleteRuleMutateAndPersist() {
+        UserDefaults.standard.removeObject(forKey: rulesKey)
+        let store = AutoOrganizationRuleStore()
+        let rule = makeRule()
+
+        store.addRule(rule)
+        report("Services/AutoOrganizationRuleStore", "POS: addRule() appends the new rule", result: store.rules.map(\.id) == [rule.id])
+
+        var updated = rule
+        updated.conditionValue = "docx"
+        store.updateRule(updated)
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: updateRule() replaces the rule with matching id",
+            result: store.rules.first?.conditionValue == "docx")
+
+        // The property's didSet saves synchronously to UserDefaults.standard — a fresh store loading
+        // the same key should observe the just-saved, updated rule.
+        let reloadStore = AutoOrganizationRuleStore()
+        reloadStore.load()
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: mutations are persisted synchronously — a freshly loaded store observes the update",
+            result: reloadStore.rules.first?.conditionValue == "docx")
+
+        store.deleteRule(id: rule.id)
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: deleteRule() removes the rule with matching id",
+            result: store.rules.isEmpty)
+    }
+
+    private static func testUpdateRuleWithUnknownIdIsNoOp() {
+        UserDefaults.standard.removeObject(forKey: rulesKey)
+        let store = AutoOrganizationRuleStore()
+        let rule = makeRule()
+        store.addRule(rule)
+
+        var unknown = makeRule()
+        unknown.conditionValue = "should-not-apply"
+        store.updateRule(unknown)
+
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "NEG: updateRule() with an id not present in rules is a no-op",
+            result: store.rules.count == 1 && store.rules.first?.id == rule.id)
+    }
+
+    private static func testOnChangeFiresOnEveryMutation() {
+        UserDefaults.standard.removeObject(forKey: rulesKey)
+        let store = AutoOrganizationRuleStore()
+        var callCount = 0
+        store.onChange = { callCount += 1 }
+
+        store.addRule(makeRule())
+        store.rules = []
+
+        report("Services/AutoOrganizationRuleStore", "POS: onChange fires once per rules mutation", result: callCount == 2)
+    }
+
+    private static func report(_ category: String, _ name: String, result: Bool) {
+        TestReporter.report(category, name, result: result)
+    }
+}

@@ -42,6 +42,8 @@ public struct AutoOrganizationTests {
         testRuleMutationMethods(service: service, rule: rule)
         testStartMonitoringPublicEntryPoint(service: service)
         testProcessFolderOnNonexistentFolderReturnsEarly(service: service, targetDir: targetDir)
+        await testMoveFailureIsReportedNotCrashed(service: service, inputDir: inputDir)
+        await testFileDeletedDuringStabilityCheckIsSkippedNotCrashed(service: service, inputDir: inputDir, targetDir: targetDir)
 
         // AutoOrganizationService.processFolder() records every real move it performs on its own
         // undoRedoService (AutoOrganizationService.shared has no owning window, so it keeps a
@@ -317,5 +319,54 @@ public struct AutoOrganizationTests {
             "AutoOrganization",
             "NEG: processFolder() on a nonexistent source folder returns early without crashing and leaves rules intact",
             result: service.rules.contains(where: { $0.id == rule.id }))
+    }
+
+    /// Covers `matchAndDispatchMoves`'s `catch` block: `FileSystemService.moveItem` throws
+    /// `.itemAlreadyInDestination` when source and destination standardize to the same path. A rule
+    /// whose destination IS its own source folder forces every match through that throw, proving the
+    /// failure is reported (not silently swallowed or crashed) and the source file survives untouched.
+    private static func testMoveFailureIsReportedNotCrashed(service: AutoOrganizationService, inputDir: URL) async {
+        let selfDestFile = inputDir.appendingPathComponent("self_dest.pdf")
+        try? "PDF".write(to: selfDestFile, atomically: true, encoding: .utf8)
+        // destinationURL == sourceURL: matchAndDispatchMoves computes destURL = inputDir/self_dest.pdf,
+        // which standardizes to the same path as the source file itself.
+        let selfDestRule = AutoOrganizationRule(
+            sourceURL: inputDir, destinationURL: inputDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true)
+        service.rules = [selfDestRule]
+
+        service.processFolder(inputDir)
+        // Stability delay (150ms) + move attempt + generous margin for system load.
+        try? await Task.sleep(nanoseconds: 700_000_000)
+
+        TestReporter.report(
+            "AutoOrganization",
+            "NEG: a move that fails (source == destination) is reported via ErrorReporter and leaves the source file intact, not crashed",
+            result: FileManager.default.fileExists(atPath: selfDestFile.path))
+
+        try? FileManager.default.removeItem(at: selfDestFile)
+    }
+
+    /// Covers the "still being written" guard's other failure mode: `Self.fileSize` returning `nil`
+    /// on the second read (not just size mismatch). Deleting the file mid-stability-check makes the
+    /// second `attributesOfItem` call throw, exercising `guard let sizeAfter = ... else { return }`
+    /// via a genuinely nil `sizeAfter` rather than a numeric mismatch.
+    private static func testFileDeletedDuringStabilityCheckIsSkippedNotCrashed(
+        service: AutoOrganizationService, inputDir: URL, targetDir: URL) async {
+        let vanishingFile = inputDir.appendingPathComponent("vanishing.pdf")
+        try? "PDF".write(to: vanishingFile, atomically: true, encoding: .utf8)
+        let pdfRule = AutoOrganizationRule(
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true)
+        service.rules = [pdfRule]
+
+        service.processFolder(inputDir)
+        // Delete well inside the 150ms stability window so the second size read (post-sleep) fails.
+        try? await Task.sleep(nanoseconds: 40_000_000)
+        try? FileManager.default.removeItem(at: vanishingFile)
+        try? await Task.sleep(nanoseconds: 500_000_000)
+
+        TestReporter.report(
+            "AutoOrganization",
+            "NEG: a file deleted mid-stability-check is skipped (nil sizeAfter) without crashing or appearing in the destination",
+            result: !FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("vanishing.pdf").path))
     }
 }

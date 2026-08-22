@@ -8,6 +8,9 @@ import XCTest
 @MainActor
 final class NetworkServerFakeWorkspaceOpener: WorkspaceOpening {
     private(set) var openedSingleURLs: [URL] = []
+    /// When true, `open(_:)` reports failure — simulates a real connection failure (e.g. server
+    /// unreachable) without attempting a real network mount.
+    var shouldFailToOpen = false
 
     func open(
         _: [URL],
@@ -17,6 +20,6 @@ final class NetworkServerFakeWorkspaceOpener: WorkspaceOpening {
 
     func open(_ url: URL) -> Bool {
         openedSingleURLs.append(url)
-        return true
+        return !shouldFailToOpen
     }
 }

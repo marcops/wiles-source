@@ -14,6 +14,7 @@ public struct AppStateOperationsExtraTests {
         await testDownloadFromiCloudFailure()
         await testCompressSelectedToZIPWithPassword()
         await testPasteToCurrentDirectoryEdgeCases()
+        testPasteClipboardContentAsFile()
         await runHandleDropTests()
         await runFailureTests()
     }
@@ -429,6 +430,65 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() reports an error when the clipboard's cut source no longer exists on disk",
             result: errorShown)
+    }
+
+    /// `pasteClipboardContentAsFile()` — reached only once both the internal clipboard and the
+    /// system pasteboard have no file URLs on them at all; entirely synchronous (no detached
+    /// Task), so no polling is needed here unlike the other paste tests above.
+    private static func testPasteClipboardContentAsFile() {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let pb = NSPasteboard.general
+        defer { pb.clearContents() }
+
+        // POS: no internal clipboard, no file URLs on the system pasteboard, but plain text is
+        // present -> materializes a new "Pasted Text.txt" file in the current directory and
+        // selects it.
+        pb.clearContents()
+        pb.setString("materialize me", forType: .string)
+        let appState = AppState()
+        appState.navigation.currentURL = dir
+        appState.transient.clipboard = nil
+        appState.selection.selectedURLs = []
+        appState.pasteToCurrentDirectory()
+        let createdFile = dir.appendingPathComponent("Pasted Text.txt")
+        report(
+            "AppState+Operations",
+            "POS: pasteToCurrentDirectory() with no clipboard/pasteboard URLs materializes pasteboard text content as a new file",
+            result: FileManager.default.fileExists(atPath: createdFile.path)
+                && appState.selection.selectedURLs == Set([createdFile]))
+
+        // NEG: nothing pasteable at all (empty pasteboard, no text/image) -> safe no-op.
+        pb.clearContents()
+        let appState2 = AppState()
+        appState2.navigation.currentURL = dir
+        appState2.transient.clipboard = nil
+        appState2.selection.selectedURLs = []
+        appState2.pasteToCurrentDirectory()
+        report(
+            "AppState+Operations",
+            "NEG: pasteToCurrentDirectory() with nothing on the clipboard or pasteboard is a safe no-op",
+            result: appState2.selection.selectedURLs.isEmpty)
+
+        // NEG: pasteClipboardContentAsFile()'s catch branch — the text write fails because the
+        // current directory is read-only.
+        let readOnlyDir = makeTempDir()
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyDir.path)
+            try? FileManager.default.removeItem(at: readOnlyDir)
+        }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: readOnlyDir.path)
+        pb.clearContents()
+        pb.setString("cannot write me", forType: .string)
+        let appState3 = AppState()
+        appState3.modal.errorMessage = nil
+        appState3.navigation.currentURL = readOnlyDir
+        appState3.transient.clipboard = nil
+        appState3.pasteToCurrentDirectory()
+        report(
+            "AppState+Operations",
+            "NEG: pasteToCurrentDirectory() reports an error when materializing pasteboard content fails (read-only current directory)",
+            result: appState3.modal.errorMessage != nil)
     }
 
     static func report(_ category: String, _ name: String, result: Bool) {

@@ -13,6 +13,35 @@ public struct FolderNodeTests {
         report("Model/FolderNode", "NEG: Leaf node children is nil", result: leafNode.children == nil)
 
         testLoadChildrenLazyHasSubfolders()
+        testLoadChildrenOfNonexistentFolderReturnsEmpty()
+        testLoadChildrenSkipsPlainFiles()
+    }
+
+    /// Covers `loadSubfolders`'s `guard let urls = try? fm.contentsOfDirectory(...) else { return [] }`
+    /// failure branch — a folder that doesn't exist on disk returns an empty array rather than throwing.
+    private static func testLoadChildrenOfNonexistentFolderReturnsEmpty() {
+        let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString)")
+        let children = FolderNode.loadChildren(of: missing)
+        report("Model/FolderNode", "NEG: loadChildren(of:) for a nonexistent folder returns an empty array", result: children.isEmpty)
+    }
+
+    /// Covers the `guard isDir else { return nil }` filter inside `loadSubfolders`'s `compactMap` —
+    /// a plain file sitting alongside real subfolders must be skipped, not turned into a node.
+    private static func testLoadChildrenSkipsPlainFiles() {
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let subfolder = root.appendingPathComponent("realFolder")
+        let plainFile = root.appendingPathComponent("notAFolder.txt")
+        defer { try? fm.removeItem(at: root) }
+
+        try? fm.createDirectory(at: subfolder, withIntermediateDirectories: true)
+        try? "x".write(to: plainFile, atomically: true, encoding: .utf8)
+
+        let children = FolderNode.loadChildren(of: root)
+        report(
+            "Model/FolderNode",
+            "NEG: loadChildren(of:) skips plain files, returning only the real subfolder",
+            result: children.count == 1 && children.first?.name == "realFolder")
     }
 
     /// Regression coverage for the sidebar directory tree bug: `loadChildren(of:)` doesn't eagerly

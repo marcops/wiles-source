@@ -2,6 +2,18 @@ import AppKit
 import Foundation
 @testable import Wiles
 
+/// A few defensive fallback branches in `FileItem` are intentionally left uncovered — each requires
+/// a real file/volume state that couldn't be reliably forced without mocking `FileManager`/`URL`
+/// resource values, which `FileItem` has no injectable seam for:
+/// - `resolveHighResIcon`'s `(resolvedIcon.copy() as? NSImage) ?? resolvedIcon` fallback: `NSImage.copy()`
+///   was not observed to ever fail the `as? NSImage` cast in practice.
+/// - `ownerAndGroup`'s `(attrs[.ownerAccountName] as? String) ?? "--"` /
+///   `(attrs[.groupOwnerAccountName] as? String) ?? "--"` fallbacks: a real temp file's
+///   `attributesOfItem(atPath:)` always includes both keys as `String` on this platform.
+/// - `formattedDateAccessed`'s `guard let date = dateAccessed else { return "--" }`: `.contentAccessDateKey`
+///   was verified (regular files, directories, `/dev/null`) to always resolve on macOS — see
+///   `FileItemFormattingTests.testFormattedDateAccessedHandlesNil()`, which already handles either
+///   outcome defensively since this is genuinely environment-dependent.
 @MainActor
 public struct FileItemTests {
     public static func run() {

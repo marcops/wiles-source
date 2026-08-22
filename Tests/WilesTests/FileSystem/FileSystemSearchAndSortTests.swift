@@ -20,6 +20,7 @@ public struct FileSystemSearchAndSortTests {
         await testDateFilterEdgeCases()
         await testSizeFilterEdgeCases()
         testDirectSearchFilterServiceGuardFailures()
+        testExtractHiddenFlag()
         await testSearchScopeNameExcludesContentMatches()
         await testSearchScopeContentExcludesNameOnlyMatches()
         await testSearchScopeBothMatchesEither()
@@ -258,6 +259,25 @@ public struct FileSystemSearchAndSortTests {
             scope: .content,
             caseSensitive: false)
         report("NEG: matchesSearch content-search fallback on a file with invalid UTF-8 content returns false (decode guard)", result: !contentResultInvalid)
+    }
+
+    /// `extractHiddenFlag` pulls the global "hidden:true" token out of the query before per-file
+    /// filter tokens are matched, since it's a search-wide setting, not a per-file predicate.
+    private static func testExtractHiddenFlag() {
+        let (strippedYes, includeHiddenYes) = SearchFilterService.extractHiddenFlag(from: "report hidden:true kind:pdf")
+        report(
+            "POS: extractHiddenFlag strips \"hidden:true\" and reports includeHidden true",
+            result: includeHiddenYes && strippedYes == "report kind:pdf")
+
+        let (strippedNo, includeHiddenNo) = SearchFilterService.extractHiddenFlag(from: "report kind:pdf")
+        report(
+            "NEG: extractHiddenFlag leaves the query untouched and reports includeHidden false when absent",
+            result: !includeHiddenNo && strippedNo == "report kind:pdf")
+
+        let (strippedCase, includeHiddenCase) = SearchFilterService.extractHiddenFlag(from: "HIDDEN:TRUE report")
+        report(
+            "POS: extractHiddenFlag matches \"hidden:true\" case-insensitively",
+            result: includeHiddenCase && strippedCase == "report")
     }
 
     /// Regression: "jpg" used to match Swift files that only mention "jpg" in their source.

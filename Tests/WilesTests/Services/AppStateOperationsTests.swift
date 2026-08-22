@@ -13,6 +13,11 @@ public struct AppStateOperationsTests {
         testOpenPropertiesForSelected()
         testStartEditingPath()
         testToggleSearching()
+        testCreateNewFolderAndRenameInCurrentDirectory()
+        testCreateNewFolderAndRenameInOtherFolder()
+        testCreateNewFolderAndRenameFailure()
+        testCreateNewFileAndRename()
+        testCreateNewFileAndRenameFailure()
     }
 
     private static func makeItem(named name: String, in dir: URL, isDirectory: Bool = false) -> FileItem {
@@ -150,6 +155,131 @@ public struct AppStateOperationsTests {
             "AppState+Operations",
             "NEG: toggleSearching() off again clears the search query",
             result: appState.selection.isSearching == false && appState.selection.searchQuery.isEmpty)
+    }
+
+    // MARK: - createNewFolderAndRename / createNewFileAndRename / enterRenameForNewlyCreated
+
+    private static func testCreateNewFolderAndRenameInCurrentDirectory() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let windowUIState = WindowUIState()
+        appState.navigation.currentURL = dir
+        appState.fileSystem.items = []
+        appState.createNewFolderAndRename(windowUIState: windowUIState)
+        guard let createdURL = appState.fileSystem.renamingURL else {
+            report(
+                "AppState+Operations",
+                "POS: createNewFolderAndRename() creates a new folder in the current directory and enters rename mode",
+                result: false)
+            return
+        }
+        report(
+            "AppState+Operations",
+            "POS: createNewFolderAndRename() creates a new folder in the current directory and enters rename mode",
+            result: FileManager.default.fileExists(atPath: createdURL.path)
+                && appState.fileSystem.items.first?.url == createdURL.standardizedFileURL
+                && windowUIState.renameItem?.url == createdURL.standardizedFileURL
+                && appState.selection.selectedURLs == Set([createdURL]))
+    }
+
+    /// `enterRenameForNewlyCreated`'s guard: `folder` may differ from `navigation.currentURL` —
+    /// the new item still gets created and enters rename mode, but `fileSystem.items` (which
+    /// reflects the CURRENT directory's contents, not `folder`'s) must not be touched.
+    private static func testCreateNewFolderAndRenameInOtherFolder() {
+        let currentDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let otherFolder = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: currentDir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: otherFolder, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.removeItem(at: currentDir)
+            try? FileManager.default.removeItem(at: otherFolder)
+        }
+
+        let appState = AppState()
+        let windowUIState = WindowUIState()
+        appState.navigation.currentURL = currentDir
+        appState.fileSystem.items = []
+        appState.createNewFolderAndRename(in: otherFolder, windowUIState: windowUIState)
+        guard let createdURL = windowUIState.renameItem?.url else {
+            report(
+                "AppState+Operations",
+                "NEG: createNewFolderAndRename(in:) targeting a non-current folder does not insert into fileSystem.items",
+                result: false)
+            return
+        }
+        report(
+            "AppState+Operations",
+            "NEG: createNewFolderAndRename(in:) targeting a non-current folder does not insert into fileSystem.items",
+            result: FileManager.default.fileExists(atPath: createdURL.path) && appState.fileSystem.items.isEmpty)
+    }
+
+    private static func testCreateNewFolderAndRenameFailure() {
+        let readOnlyParent = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: readOnlyParent, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyParent.path)
+            try? FileManager.default.removeItem(at: readOnlyParent)
+        }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: readOnlyParent.path)
+
+        let appState = AppState()
+        let windowUIState = WindowUIState()
+        appState.modal.errorMessage = nil
+        appState.navigation.currentURL = readOnlyParent
+        appState.createNewFolderAndRename(windowUIState: windowUIState)
+        report(
+            "AppState+Operations",
+            "NEG: createNewFolderAndRename() reports an error when the folder can't be created (read-only parent directory)",
+            result: appState.modal.errorMessage != nil && windowUIState.renameItem == nil)
+    }
+
+    private static func testCreateNewFileAndRename() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let windowUIState = WindowUIState()
+        appState.navigation.currentURL = dir
+        appState.fileSystem.items = []
+        appState.createNewFileAndRename(windowUIState: windowUIState)
+        guard let createdURL = appState.fileSystem.renamingURL else {
+            report(
+                "AppState+Operations",
+                "POS: createNewFileAndRename() creates a new file in the current directory and enters rename mode",
+                result: false)
+            return
+        }
+        report(
+            "AppState+Operations",
+            "POS: createNewFileAndRename() creates a new file in the current directory and enters rename mode",
+            result: FileManager.default.fileExists(atPath: createdURL.path)
+                && appState.fileSystem.items.first?.url == createdURL.standardizedFileURL
+                && windowUIState.renameItem?.url == createdURL.standardizedFileURL
+                && appState.selection.selectedURLs == Set([createdURL]))
+    }
+
+    private static func testCreateNewFileAndRenameFailure() {
+        let readOnlyParent = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: readOnlyParent, withIntermediateDirectories: true)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyParent.path)
+            try? FileManager.default.removeItem(at: readOnlyParent)
+        }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: readOnlyParent.path)
+
+        let appState = AppState()
+        let windowUIState = WindowUIState()
+        appState.modal.errorMessage = nil
+        appState.navigation.currentURL = readOnlyParent
+        appState.createNewFileAndRename(windowUIState: windowUIState)
+        report(
+            "AppState+Operations",
+            "NEG: createNewFileAndRename() reports an error when the file can't be created (read-only parent directory)",
+            result: appState.modal.errorMessage != nil && windowUIState.renameItem == nil)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

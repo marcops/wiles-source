@@ -42,4 +42,19 @@ final class NetworkServerServiceTests: XCTestCase {
 
         XCTAssertEqual(fake.openedSingleURLs, [URL(string: "ftp://myserver.local")])
     }
+
+    // POS: when the injected opener reports failure (mirrors a real connection failure), the
+    // NSError-construction branch is reached and thrown, instead of returning silently.
+    func testConnectToServerThrowsServerConnectionFailedWhenOpenerReportsFailure() throws {
+        let fake = NetworkServerFakeWorkspaceOpener()
+        fake.shouldFailToOpen = true
+        let previousOpener = NetworkServerService.opener
+        NetworkServerService.opener = fake
+        defer { NetworkServerService.opener = previousOpener }
+
+        XCTAssertThrowsError(try NetworkServerService.connectToServer(urlAddress: "unreachable.local")) { error in
+            XCTAssertEqual((error as NSError).domain, "NetworkServerService")
+            XCTAssertEqual((error as NSError).code, 401)
+        }
+    }
 }

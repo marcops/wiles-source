@@ -7,6 +7,38 @@ public struct WilesErrorTests {
         testErrorDescriptionsIncludeContext()
         testEquatableBehavior()
         testEveryCaseHasNonEmptyDescription()
+        testLocalizedMessageSubstitutesPath()
+        testLocalizedMessageSubstitutesReason()
+        testLocalizedMessageForParameterlessCasesHasNoSubstitution()
+    }
+
+    /// Covers `localizedMessage(lang:)`'s multi-case-pattern branch (permissionDenied/diskFull/
+    /// fileInUse/itemNotFound all substitute their associated `path`).
+    private static func testLocalizedMessageSubstitutesPath() {
+        let path = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("locked.txt").path
+        let cases: [WilesError] = [.permissionDenied(path: path), .diskFull(path: path), .fileInUse(path: path), .itemNotFound(path: path)]
+        let allContainPath = cases.allSatisfy { $0.localizedMessage(lang: .english).contains(path) }
+        report(
+            "Model/WilesError",
+            "POS: localizedMessage substitutes the associated path for permissionDenied/diskFull/fileInUse/itemNotFound",
+            result: allContainPath)
+    }
+
+    /// Covers `localizedMessage(lang:)`'s `.operationFailed(reason:)` branch.
+    private static func testLocalizedMessageSubstitutesReason() {
+        let message = WilesError.operationFailed(reason: "disk unmounted").localizedMessage(lang: .english)
+        report("Model/WilesError", "POS: localizedMessage substitutes the reason for operationFailed", result: message.contains("disk unmounted"))
+    }
+
+    /// Covers `localizedMessage(lang:)`'s `.invalidZipPassword`/`.itemAlreadyInDestination` branch,
+    /// which returns the localized format string as-is with no substitution.
+    private static func testLocalizedMessageForParameterlessCasesHasNoSubstitution() {
+        let zipMessage = WilesError.invalidZipPassword.localizedMessage(lang: .english)
+        let destinationMessage = WilesError.itemAlreadyInDestination.localizedMessage(lang: .english)
+        report(
+            "Model/WilesError",
+            "POS: localizedMessage for parameterless cases returns a non-empty message with no substitution performed",
+            result: !zipMessage.isEmpty && !destinationMessage.isEmpty)
     }
 
     private static func testErrorDescriptionsIncludeContext() {

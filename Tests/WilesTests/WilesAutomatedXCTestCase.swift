@@ -49,6 +49,7 @@ final class WilesAutomatedTests: XCTestCase {
         ModalStoreTests.run()
         WindowUIStateTests.run()
         PreferencesStoreTests.run()
+        PreferencesStoreExtraTests.run()
     }
 
     @MainActor
@@ -262,6 +263,7 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testFileSystemSearchAndSortTests() async {
         await FileSystemSearchAndSortTests.run()
+        await FileSystemRecursiveSearchTests.run()
     }
 
     @MainActor

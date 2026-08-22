@@ -31,4 +31,12 @@ final class TemplateRenderingServiceTests: XCTestCase {
         // silently vanishing — a missing replacement is a caller bug that should stay visible.
         XCTAssertTrue(rendered.contains("{{ITEMS}}"))
     }
+
+    /// Covers the `catch` branch: the resource exists (so the `url(forResource:)` guard passes) but
+    /// isn't valid UTF-8 text, so `String(contentsOf:encoding:)` throws. AppIcon.png is a real bundled
+    /// resource that's guaranteed not to decode as UTF-8.
+    func testRenderWithNonUTF8ResourceReturnsNilViaCatchBranch() {
+        let rendered = TemplateRenderingService.render(resource: "AppIcon", extension: "png", replacements: [:])
+        XCTAssertNil(rendered)
+    }
 }

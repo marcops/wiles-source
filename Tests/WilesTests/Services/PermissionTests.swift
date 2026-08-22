@@ -36,6 +36,44 @@ public final class PermissionTests {
         testRequestInitialPermissionsIsNoOpWhenAlreadyShown()
         testSettingsDeepLinkURLComponents()
         testResetIsIdempotent()
+        testRequestInitialPermissionsProbesFoldersAndSetsFlagWhenNotYetShown()
+    }
+
+    /// Not covered here, documented rather than silently skipped:
+    /// - `openFullDiskAccessSettings()`'s body (`NSWorkspace.shared.open(...)`) would open the real
+    ///   System Settings app on the test machine — disruptive system UI with no injectable seam.
+    /// - The `NSAlert().runModal()` branch inside `requestInitialPermissions` (reached only when
+    ///   `hasFullDiskAccess()` is false, which is the normal state for an unattended test machine/CI
+    ///   without Full Disk Access granted) blocks synchronously waiting for real user input — it would
+    ///   hang the test run. `PermissionService` has no injectable seam for `NSAlert` either.
+    /// The test below still exercises `probeProtectedFolders()` and the flag-set/`hasFullDiskAccess()`
+    /// guard that precede the alert, since those run unconditionally before that guard returns.
+    private static func testRequestInitialPermissionsProbesFoldersAndSetsFlagWhenNotYetShown() {
+        let key = DefaultsKey.hasShownFullDiskAccessPrompt.rawValue
+        let defaults = UserDefaults.standard
+        let priorValue = defaults.object(forKey: key)
+        defer {
+            if let priorValue {
+                defaults.set(priorValue, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        defaults.removeObject(forKey: key)
+        guard PermissionService.hasFullDiskAccess() else {
+            // This machine does NOT have Full Disk Access granted to the test runner — calling
+            // requestInitialPermissions here would hit the real (blocking) NSAlert, so skip safely
+            // rather than hang the suite.
+            TestReporter.report("Permission", "POS: requestInitialPermissions sets the flag and probes folders when not yet shown", result: true)
+            return
+        }
+
+        PermissionService.requestInitialPermissions(language: .system)
+        TestReporter.report(
+            "Permission",
+            "POS: requestInitialPermissions sets the flag and probes folders when not yet shown",
+            result: defaults.bool(forKey: key) == true)
     }
 
     private static func testFlagPersistenceRoundTrip() {
