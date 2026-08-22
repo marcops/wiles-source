@@ -10,9 +10,6 @@ jobs:
   build-and-release:
     runs-on: macos-15
     steps:
-      - name: Select Xcode 26.3
-        run: sudo xcode-select -s /Applications/Xcode_26.3.app
-
       - name: Checkout wiles-source
         uses: actions/checkout@v4
         with:
@@ -70,7 +67,7 @@ jobs:
         working-directory: wiles-source
         run: |
           scripts/setup_test_ramdisk.sh
-          swift test --filter WilesTests
+          swift test --filter WilesTests --jobs 2
 
       - name: Build & package (.zip + .dmg)
         working-directory: wiles-source
