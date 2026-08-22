@@ -372,6 +372,7 @@
 "settingsTranslucencySection" = "Transparenz";
 "middleTruncateNames" = "Lange Namen in der Mitte kürzen";
 "alwaysShowFullPathBar" = "Immer vollständigen Pfad anzeigen";
+"autoHideSidebar" = "Seitenleiste automatisch ausblenden";
 "settingsSidebarSectionsSection" = "Seitenleistenbereiche";
 "settingsViewSection" = "Ansicht";
 "appearanceSystemOption" = "System";

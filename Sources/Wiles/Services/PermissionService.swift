@@ -30,12 +30,14 @@ public struct PermissionService: Sendable {
     /// Shows a single consolidated Full Disk Access prompt on first launch instead of letting
     /// macOS ask separately for every protected folder (Desktop, Documents, Downloads...) as
     /// the user happens to navigate into each one. Only ever shown once, regardless of the choice made.
+    /// Probes every launch (not just the first) so these folders' TCC state is always settled on
+    /// the main thread before any background scan (e.g. the sidebar's directory tree) touches them.
     @MainActor
     public static func requestInitialPermissions(language: AppLanguage) {
+        probeProtectedFolders()
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: hasShownFullDiskAccessPromptKey) else { return }
         defaults.set(true, forKey: hasShownFullDiskAccessPromptKey)
-        probeProtectedFolders()
         guard !hasFullDiskAccess() else { return }
 
         let alert = NSAlert()

@@ -15,6 +15,7 @@ struct AdvancedSettingsView: View {
                 Toggle(appState.tr(.compactDensity), isOn: $appState.preferences.isCompactMode)
                 Toggle(appState.tr(.middleTruncateNames), isOn: $appState.preferences.middleTruncateNames)
                 Toggle(appState.tr(.alwaysShowFullPathBar), isOn: $appState.preferences.alwaysShowFullPathBar)
+                Toggle(appState.tr(.autoHideSidebar), isOn: $appState.preferences.isSidebarCollapsed)
             }
 
             defaultAppSection

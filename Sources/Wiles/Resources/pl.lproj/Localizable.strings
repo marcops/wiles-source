@@ -373,6 +373,7 @@
 "settingsTranslucencySection" = "Przezroczystość";
 "middleTruncateNames" = "Skracaj długie nazwy w środku";
 "alwaysShowFullPathBar" = "Zawsze pokazuj pełną ścieżkę";
+"autoHideSidebar" = "Automatycznie ukryj pasek boczny";
 "settingsSidebarSectionsSection" = "Sekcje paska bocznego";
 "settingsViewSection" = "Widok";
 "appearanceSystemOption" = "System";

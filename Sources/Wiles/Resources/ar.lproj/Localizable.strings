@@ -373,6 +373,7 @@
 "settingsTranslucencySection" = "الشفافية";
 "middleTruncateNames" = "اختصار الأسماء الطويلة من المنتصف";
 "alwaysShowFullPathBar" = "عرض المسار الكامل دائمًا";
+"autoHideSidebar" = "إخفاء الشريط الجانبي تلقائيًا";
 "settingsSidebarSectionsSection" = "أقسام الشريط الجانبي";
 "settingsViewSection" = "العرض";
 "appearanceSystemOption" = "النظام";

@@ -78,16 +78,24 @@ struct MainContentView: View {
         }
     }
 
-    private var sidebarPane: some View {
-        SidebarView(appState: appState)
-            .frame(
-                minWidth: LayoutTokens.sidebarMinWidth,
-                idealWidth: CGFloat(appState.preferences.sidebarWidth),
-                maxWidth: LayoutTokens.sidebarMaxWidth,
-                maxHeight: .infinity)
-            .background(sidebarWidthTracker)
-            .background(SplitViewDividerSetter(position: CGFloat(appState.preferences.sidebarWidth)))
-            .layoutPriority(0)
+    /// Single `SidebarView` identity, only the frame width changes — swapping instances instead
+    /// tore down the hover-tracking view mid-hover, firing a false exit and closing the rail early.
+    private var isSidebarRail: Bool {
+        appState.preferences.isSidebarCollapsed && !windowUIState.isSidebarPeeking
+    }
+
+    @ViewBuilder private var sidebarPane: some View {
+        if appState.preferences.hasVisibleSidebarContent {
+            SidebarView(appState: appState)
+                .frame(
+                    minWidth: isSidebarRail ? LayoutTokens.sidebarCollapsedWidth : LayoutTokens.sidebarMinWidth,
+                    idealWidth: isSidebarRail ? LayoutTokens.sidebarCollapsedWidth : CGFloat(appState.preferences.sidebarWidth),
+                    maxWidth: isSidebarRail ? LayoutTokens.sidebarCollapsedWidth : LayoutTokens.sidebarMaxWidth,
+                    maxHeight: .infinity)
+                .background(sidebarWidthTracker)
+                .background(SplitViewDividerSetter(position: CGFloat(appState.preferences.sidebarWidth)))
+                .layoutPriority(0)
+        }
     }
 
     private var contentColumn: some View {
@@ -179,7 +187,7 @@ struct MainContentView: View {
     }
 
     private func scheduleSidebarWidthSave(_ newWidth: CGFloat) {
-        guard newWidth > 0 else { return }
+        guard newWidth > 0, !isSidebarRail else { return }
         sidebarWidthSaveTask?.cancel()
         sidebarWidthSaveTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(LayoutTokens.sidebarWidthSaveDebounceMs))

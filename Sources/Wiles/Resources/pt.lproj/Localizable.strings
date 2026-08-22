@@ -372,6 +372,7 @@
 "settingsTranslucencySection" = "Transparência";
 "middleTruncateNames" = "Truncar Nomes Longos no Meio";
 "alwaysShowFullPathBar" = "Mostrar Sempre o Caminho Completo";
+"autoHideSidebar" = "Ocultar barra lateral automaticamente";
 "settingsSidebarSectionsSection" = "Seções da Barra Lateral";
 "settingsViewSection" = "Visualização";
 "appearanceSystemOption" = "Sistema";

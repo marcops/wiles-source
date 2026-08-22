@@ -373,6 +373,7 @@
 "settingsTranslucencySection" = "Genomskinlighet";
 "middleTruncateNames" = "Korta av långa namn i mitten";
 "alwaysShowFullPathBar" = "Visa alltid hela sökvägen";
+"autoHideSidebar" = "Dölj sidofält automatiskt";
 "settingsSidebarSectionsSection" = "Sidopanelsavsnitt";
 "settingsViewSection" = "Vy";
 "appearanceSystemOption" = "System";

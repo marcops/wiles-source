@@ -373,6 +373,7 @@
 "settingsTranslucencySection" = "Saydamlık";
 "middleTruncateNames" = "Uzun Adları Ortadan Kısalt";
 "alwaysShowFullPathBar" = "Her Zaman Tam Yolu Göster";
+"autoHideSidebar" = "Kenar Çubuğunu Otomatik Gizle";
 "settingsSidebarSectionsSection" = "Kenar Çubuğu Bölümleri";
 "settingsViewSection" = "Görünüm";
 "appearanceSystemOption" = "Sistem";

@@ -97,8 +97,7 @@ struct DirectoryTreeNodeView: View {
             Spacer()
         }
         .padding(.horizontal, 6).padding(.vertical, 3)
-        .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
-        .cornerRadius(6)
+        .hoverHighlight(isSelected: isSel, selectedBackground: Color.accentColor.opacity(0.15), cornerRadius: 6)
         .contentShape(Rectangle())
         .onTapGesture {
             rightClickedNodePath = nil

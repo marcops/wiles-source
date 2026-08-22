@@ -10,6 +10,7 @@ struct SidebarRowView: View {
     let isFavoritesSection: Bool
     let isRightClicked: Bool
     let isAnotherRowRightClicked: Bool
+    var isCompact: Bool = false
     let onRightClick: () -> Void
     let onLeftClick: () -> Void
 
@@ -56,6 +57,7 @@ struct SidebarRowView: View {
             .accessibilityIdentifier(item.name)
             .accessibilityLabel(item.name)
             .accessibilityHint(appState.tr(.folder))
+            .help(isCompact ? item.name : "")
             .onHover { isHovered = $0 }
             .overlay(
                 RightClickDetector { onRightClick() })
@@ -67,19 +69,27 @@ struct SidebarRowView: View {
             }
     }
 
-    private var rowContent: some View {
-        HStack(spacing: 10) {
+    @ViewBuilder private var rowContent: some View {
+        if isCompact {
             Image(systemName: item.iconName)
                 .font(.system(size: 15)).foregroundColor(.accentColor).frame(width: 20)
-            Text(item.name)
-                .font(.system(size: 13, weight: isSel ? .semibold : .regular))
-                .foregroundColor(.primary)
-            Spacer()
-            if isTrash {
-                trashSizeIndicator
-            }
-            if item.url.path.hasPrefix("/Volumes/"), item.url.path != "/" {
-                ejectButton
+                .frame(maxWidth: .infinity)
+        } else {
+            HStack(spacing: 10) {
+                Image(systemName: item.iconName)
+                    .font(.system(size: 15)).foregroundColor(.accentColor).frame(width: 20)
+                Text(item.name)
+                    .font(.system(size: 13, weight: isSel ? .semibold : .regular))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if isTrash {
+                    trashSizeIndicator
+                }
+                if item.url.path.hasPrefix("/Volumes/"), item.url.path != "/" {
+                    ejectButton
+                }
             }
         }
     }

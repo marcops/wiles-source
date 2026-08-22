@@ -373,6 +373,7 @@
 "settingsTranslucencySection" = "Doorschijnendheid";
 "middleTruncateNames" = "Lange namen in het midden inkorten";
 "alwaysShowFullPathBar" = "Altijd volledig pad tonen";
+"autoHideSidebar" = "Zijbalk automatisch verbergen";
 "settingsSidebarSectionsSection" = "Zijbalksecties";
 "settingsViewSection" = "Beeld";
 "appearanceSystemOption" = "Systeem";

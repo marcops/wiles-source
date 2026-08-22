@@ -3,12 +3,17 @@ import Foundation
 
 public enum LayoutTokens {
     // Sidebar
-    public static let sidebarMinWidth: CGFloat = 140.0
+    public static let sidebarMinWidth: CGFloat = 180.0
     public static let sidebarIdealWidth: CGFloat = 200.0
     public static let sidebarMaxWidth: CGFloat = 260.0
     public static let sidebarTrafficLightInset: CGFloat = 12.0
     public static let sidebarDoubleClickZoneHeight: CGFloat = sidebarTrafficLightInset
     public static let sidebarWidthSaveDebounceMs: Int = 400
+    public static let sidebarCollapsedWidth: CGFloat = 48.0
+    public static let sidebarPeekCollapseDelayMs: Int = 250
+    /// Minimum leading inset for the header row when there's no sidebar pane to its left reserving
+    /// room for the repositioned traffic-light window buttons (see `TrafficLightRepositioner`).
+    public static let headerTrafficLightsSafeLeadingInset: CGFloat = 40.0
     public static let scrollbarReservedThickness: CGFloat = 15.0
     public static let contentTranslucencyDarkenOffset: Double = 0.20
     public static let thumbnailMinimumIconSize: CGFloat = 48.0

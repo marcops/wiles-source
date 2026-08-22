@@ -373,6 +373,7 @@
 "settingsTranslucencySection" = "透明度";
 "middleTruncateNames" = "長い名前を中央で省略";
 "alwaysShowFullPathBar" = "常に完全なパスを表示";
+"autoHideSidebar" = "サイドバーを自動的に隠す";
 "settingsSidebarSectionsSection" = "サイドバーのセクション";
 "settingsViewSection" = "表示";
 "appearanceSystemOption" = "システム";

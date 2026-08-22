@@ -24,6 +24,10 @@ public final class PreferencesStore {
         didSet { UserDefaults.standard.set(sidebarWidth, forKey: DefaultsKey.sidebarWidth.rawValue) }
     }
 
+    public var isSidebarCollapsed: Bool = false {
+        didSet { UserDefaults.standard.set(isSidebarCollapsed, forKey: DefaultsKey.isSidebarCollapsed.rawValue) }
+    }
+
     public var sortOption: SortOption = .name {
         didSet { UserDefaults.standard.set(sortOption.rawValue, forKey: DefaultsKey.sortOption.rawValue) }
     }
@@ -240,6 +244,17 @@ public final class PreferencesStore {
         }
     }
 
+    /// Mirrors `SidebarView.sidebarSectionsContent`'s gating — false hides the whole sidebar pane.
+    public var hasVisibleSidebarContent: Bool {
+        showRecents ||
+            (showFavorites && !favoriteURLs.isEmpty) ||
+            showNetworkAndCloud ||
+            showPlaces ||
+            showDirectoryTree ||
+            showTags ||
+            !smartFolders.isEmpty
+    }
+
     public var sidebarOverlayOpacity: Double {
         let base = 1.0 - Double(sidebarTranslucentLevel) / 100.0
         return appAppearance == .light ? base * 0.5 : base
@@ -303,6 +318,7 @@ public final class PreferencesStore {
         if width > 0 {
             sidebarWidth = width
         }
+        loadBool(.isSidebarCollapsed, into: \.isSidebarCollapsed, from: defaults)
     }
 
     private func loadSidebarVisibilityPreferences(_ defaults: UserDefaults) {

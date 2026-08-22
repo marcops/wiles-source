@@ -35,8 +35,7 @@ struct TagsSectionView: View {
                 Spacer()
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(isSel ? Color.accentColor.opacity(0.15) : Color.clear)
-            .cornerRadius(6)
+            .hoverHighlight(isSelected: isSel, selectedBackground: Color.accentColor.opacity(0.15), cornerRadius: 6)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

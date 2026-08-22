@@ -3,10 +3,17 @@ import SwiftUI
 
 struct SidebarView: View {
     var appState: AppState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var rightClickedRowKey: String?
     @State private var renamingSmartFolderID: SmartFolder.ID?
     @State private var smartFolderRenameText: String = ""
     @FocusState private var isSmartFolderRenameFocused: Bool
+    @State private var collapseWorkItem: DispatchWorkItem?
+
+    private var isCompact: Bool {
+        appState.preferences.isSidebarCollapsed && !windowUIState.isSidebarPeeking
+    }
 
     var devices: [SidebarItem] {
         let home = URL.userHome
@@ -46,21 +53,49 @@ struct SidebarView: View {
         @Bindable var appState = appState
 
         return GeometryReader { proxy in
-            ScrollView([.vertical, .horizontal]) {
+            // Vertical only: rows truncate labels instead of needing horizontal scroll.
+            ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 14) {
                     sidebarSectionsContent
                 }
-                .frame(minWidth: proxy.size.width, minHeight: proxy.size.height, alignment: .topLeading)
+                .frame(
+                    minWidth: proxy.size.width,
+                    maxWidth: proxy.size.width,
+                    minHeight: proxy.size.height - LayoutTokens.scrollbarReservedThickness,
+                    alignment: .topLeading)
                 .padding(.top, LayoutTokens.sidebarTrafficLightInset)
                 .padding(.bottom, 12)
             }
+            .background(ScrollerAutoHideSetter())
         }
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
+        .onHover { hovering in
+            guard appState.preferences.isSidebarCollapsed else { return }
+            collapseWorkItem?.cancel()
+            if hovering {
+                windowUIState.isSidebarPeeking = true
+            } else {
+                let workItem = DispatchWorkItem { windowUIState.isSidebarPeeking = false }
+                collapseWorkItem = workItem
+                DispatchQueue.main.asyncAfter(
+                    deadline: .now() + .milliseconds(LayoutTokens.sidebarPeekCollapseDelayMs), execute: workItem)
+            }
+        }
         .task {
             guard rootFolderNode == nil else { return }
-            let node = await Task.detached(priority: .userInitiated) {
-                FolderNode.buildRootTree()
-            }.value
+            let buildTask = Task.detached(priority: .userInitiated) { FolderNode.buildRootTree() }
+            // GCD timer, not a sibling Task: a stuck detached scan can starve the cooperative thread
+            // pool, and a `Task.sleep` timeout sharing that pool would starve right along with it.
+            let fallbackWorkItem = DispatchWorkItem {
+                guard rootFolderNode == nil else { return }
+                buildTask.cancel()
+                let root = URL(fileURLWithPath: "/")
+                rootFolderNode = FolderNode(id: root, name: "Root (/)", url: root, children: [], hasSubfolders: false)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6, execute: fallbackWorkItem)
+            let node = await buildTask.value
+            guard rootFolderNode == nil else { return }
+            fallbackWorkItem.cancel()
             rootFolderNode = node
         }
         .background(
@@ -116,20 +151,28 @@ struct SidebarView: View {
                 title: appState.tr(.places), identifierKey: "PLACES",
                 isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false)
         }
-        if appState.preferences.showDirectoryTree {
-            DirectoryTreeSectionView(
-                appState: appState, isExpanded: $appState.preferences.isTreeExpanded,
-                rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache)
+        // The tree/tags/smart-folder sections have their own nested structure that doesn't reduce
+        // to a flat icon list, so they're skipped in the collapsed rail rather than shown.
+        if !isCompact {
+            if appState.preferences.showDirectoryTree {
+                DirectoryTreeSectionView(
+                    appState: appState, isExpanded: $appState.preferences.isTreeExpanded,
+                    rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache)
+            }
+            if appState.preferences.showTags {
+                TagsSectionView(appState: appState, isExpanded: $appState.preferences.isTagsExpanded)
+            }
+            if !appState.preferences.smartFolders.isEmpty {
+                SmartFoldersSectionView(
+                    appState: appState, isExpanded: $appState.preferences.isSmartFoldersExpanded,
+                    renamingSmartFolderID: $renamingSmartFolderID, smartFolderRenameText: $smartFolderRenameText,
+                    isRenameFocused: $isSmartFolderRenameFocused)
+            }
         }
-        if appState.preferences.showTags {
-            TagsSectionView(appState: appState, isExpanded: $appState.preferences.isTagsExpanded)
-        }
-        if !appState.preferences.smartFolders.isEmpty {
-            SmartFoldersSectionView(
-                appState: appState, isExpanded: $appState.preferences.isSmartFoldersExpanded,
-                renamingSmartFolderID: $renamingSmartFolderID, smartFolderRenameText: $smartFolderRenameText,
-                isRenameFocused: $isSmartFolderRenameFocused)
-        }
+    }
+
+    private func shouldShowSectionItems(isExpanded: Bool) -> Bool {
+        isCompact || !appState.preferences.showSidebarSectionTitles || isExpanded
     }
 
     private func collapsibleSection(
@@ -139,10 +182,10 @@ struct SidebarView: View {
         items: [SidebarItem],
         isFavoritesSection: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            if appState.preferences.showSidebarSectionTitles {
+            if appState.preferences.showSidebarSectionTitles, !isCompact {
                 SidebarSectionHeaderView(title: title, identifierKey: identifierKey, appState: appState, isExpanded: isExpanded)
             }
-            if !appState.preferences.showSidebarSectionTitles || isExpanded.wrappedValue {
+            if shouldShowSectionItems(isExpanded: isExpanded.wrappedValue) {
                 ForEach(items) { item in
                     sidebarRow(for: item, sectionKey: title, isFavoritesSection: isFavoritesSection)
                 }
@@ -189,6 +232,7 @@ struct SidebarView: View {
             isFavoritesSection: isFavoritesSection,
             isRightClicked: rightClickedRowKey == rowKey,
             isAnotherRowRightClicked: rightClickedRowKey != nil && rightClickedRowKey != rowKey,
+            isCompact: isCompact,
             onRightClick: { rightClickedRowKey = rowKey },
             onLeftClick: { rightClickedRowKey = nil })
     }

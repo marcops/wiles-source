@@ -19,7 +19,8 @@ struct HeaderBarView: View {
             rightControls
                 .padding(.trailing, -2)
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, sidebarProvidesSafeLeadingInset ? 12 : LayoutTokens.headerTrafficLightsSafeLeadingInset)
+        .padding(.trailing, 12)
         .padding(.top, 6)
         .padding(.bottom, 6)
         .background(TrafficLightRepositioner(offsetX: 6, offsetY: 6))
@@ -40,6 +41,13 @@ struct HeaderBarView: View {
                 }
             })
         .doubleClickToZoom()
+    }
+
+    /// False whenever the sidebar isn't reserving enough leading width to clear the repositioned
+    /// traffic-light buttons — fully hidden, or collapsed to its icon-only rail and not peeking.
+    private var sidebarProvidesSafeLeadingInset: Bool {
+        guard appState.preferences.hasVisibleSidebarContent else { return false }
+        return !appState.preferences.isSidebarCollapsed || windowUIState.isSidebarPeeking
     }
 
     private var historyButtons: some View {

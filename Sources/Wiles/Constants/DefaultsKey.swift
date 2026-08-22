@@ -16,6 +16,7 @@ enum DefaultsKey: String {
     case isMacExpanded = "wiles_isMacExpanded"
     case isNetworkExpanded = "wiles_isNetworkExpanded"
     case isRecentsExpanded = "wiles_isRecentsExpanded"
+    case isSidebarCollapsed = "wiles_isSidebarCollapsed"
     case isSmartFoldersExpanded = "wiles_isSmartFoldersExpanded"
     case isTagsExpanded = "wiles_isTagsExpanded"
     case isTreeExpanded = "wiles_isTreeExpanded"

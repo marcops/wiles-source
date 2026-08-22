@@ -35,6 +35,8 @@ struct ViewMenuCommands: LocalizedCommands {
             Toggle(tr(.showDirectoryTree), isOn: $sharedPreferences.showDirectoryTree)
             Toggle(tr(.showSidebarSectionTitles), isOn: $sharedPreferences.showSidebarSectionTitles)
             Toggle(tr(.showTags), isOn: $sharedPreferences.showTags)
+            Divider()
+            Toggle(tr(.autoHideSidebar), isOn: $sharedPreferences.isSidebarCollapsed)
         }
         Divider()
         Picker(selection: $sharedPreferences.viewMode) {

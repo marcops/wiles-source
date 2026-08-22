@@ -372,6 +372,7 @@
 "settingsTranslucencySection" = "Translucency";
 "middleTruncateNames" = "Middle-Truncate Long Names";
 "alwaysShowFullPathBar" = "Always Show Full Path Bar";
+"autoHideSidebar" = "Auto-Hide Sidebar";
 "settingsSidebarSectionsSection" = "Sidebar Sections";
 "settingsViewSection" = "View";
 "appearanceSystemOption" = "System";

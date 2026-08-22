@@ -43,6 +43,8 @@ public final class WindowUIState {
     public var quickLookURL: URL?
     public var selectedFavoriteURL: URL?
     public var isEditingPath: Bool = false
+    /// True while hovering a collapsed sidebar rail, temporarily widening it back out.
+    public var isSidebarPeeking: Bool = false
     /// Keeps this window's terminal PTY/NSView alive across drawer show/hide cycles — per-window so
     /// opening the terminal drawer in two windows never shares the same shell process. See
     /// `TerminalViewCache`. Not `public`: `TerminalViewCache` itself is internal, and every reader
