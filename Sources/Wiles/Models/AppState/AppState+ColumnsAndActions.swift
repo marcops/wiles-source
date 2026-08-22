@@ -74,7 +74,7 @@ public extension AppState {
                     quality: quality)
                 await MainActor.run {
                     self.refreshCurrentDirectory()
-                    self.selectedURLs = [newURL]
+                    self.selection.selectedURLs = [newURL]
                 }
             } catch {
                 ErrorReporter.report(error, context: "Converting image")
@@ -92,7 +92,7 @@ public extension AppState {
             let newURL = try FileSystemService.renameItem(at: item.url, newName: trimmed)
             undoRedoService.recordAction(.rename(oldURL: item.url, newURL: newURL))
             refreshCurrentDirectory()
-            selectedURLs = [newURL]
+            selection.selectedURLs = [newURL]
         } catch {
             ErrorReporter.report(error, context: "Renaming item")
             showError(error.localizedDescription)
@@ -105,7 +105,7 @@ public extension AppState {
                 let newURLs = try BatchRenameService.performBatchRename(items: items, mode: mode)
                 await MainActor.run {
                     self.refreshCurrentDirectory()
-                    self.selectedURLs = Set(newURLs)
+                    self.selection.selectedURLs = Set(newURLs)
                 }
             } catch {
                 ErrorReporter.report(error, context: "Batch renaming items")

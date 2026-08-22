@@ -1,6 +1,6 @@
 import Foundation
 
-public struct SymlinkService: SymlinkServiceProtocol, Sendable {
+public struct SymlinkService: Sendable {
     public static func createSymlink(
         targetURL: URL,
         destinationFolder: URL,

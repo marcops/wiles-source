@@ -12,17 +12,17 @@ public struct ICloudStatusBadgeView: View {
     public var body: some View {
         if item.isUbiquitousDownloading {
             ProgressView()
-                .scaleEffect(0.5)
-                .frame(width: 14, height: 14)
+                .scaleEffect(LayoutTokens.iCloudStatusBadgeProgressScale)
+                .frame(width: LayoutTokens.iCloudStatusBadgeSize, height: LayoutTokens.iCloudStatusBadgeSize)
                 .accessibilityLabel(appState.tr(.iCloudStatusDownloading))
         } else if item.isUbiquitousNotDownloaded {
             Image(systemName: "icloud.and.arrow.down.fill")
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: LayoutTokens.iCloudStatusDownloadIconFontSize, weight: .bold))
                 .foregroundColor(.accentColor)
                 .accessibilityLabel(appState.tr(.iCloudStatusNotDownloaded))
         } else if item.isUbiquitousUploading {
             Image(systemName: "icloud.and.arrow.up")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: LayoutTokens.iCloudStatusUploadIconFontSize, weight: .semibold))
                 .foregroundColor(.secondary)
                 .accessibilityLabel(appState.tr(.iCloudStatusUploading))
         }

@@ -30,38 +30,33 @@ struct FolderPickerNodeView: View {
 
     private var rowLabel: some View {
         let isSelected = selectedURL?.standardizedFileURL == node.url.standardizedFileURL
-        return HStack(spacing: 4) {
-            if node.hasSubfolders {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.secondary)
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    .frame(width: 10)
-                    .contentShape(Rectangle())
-                    .onTapGesture { toggleExpanded() }
-                    .accessibilityAddTraits(.isButton)
-            } else {
-                Color.clear.frame(width: 10)
+        return TappableRow(accessibilityLabel: node.name, isSelected: isSelected, action: { selectedURL = node.url }, content: {
+            HStack(spacing: 4) {
+                if node.hasSubfolders {
+                    TappableRow(action: { toggleExpanded() }, content: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .frame(width: 10)
+                    })
+                } else {
+                    Color.clear.frame(width: 10)
+                }
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.accentColor)
+                Text(node.name)
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
             }
-            Image(systemName: "folder.fill")
-                .font(.system(size: 12))
-                .foregroundColor(.accentColor)
-            Text(node.name)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer()
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
-        .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-        .cornerRadius(4)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedURL = node.url
-        }
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : [.isButton])
-        .accessibilityLabel(node.name)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+            .cornerRadius(4)
+        })
     }
 
     private func toggleExpanded() {

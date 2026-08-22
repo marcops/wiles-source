@@ -38,60 +38,35 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     }
 
     public func executeQuery(for smartFolder: SmartFolder, completion: @escaping @Sendable ([FileItem]) -> Void) {
-        query?.stop()
-        let token = UUID()
-        currentQueryToken = token
-        let metadataQuery = NSMetadataQuery()
         let wildcardQuery = "*\(smartFolder.searchQuery)*"
-        metadataQuery.predicate = NSPredicate(format: "kMDItemDisplayName ==[cd] %@", wildcardQuery)
+        let predicate = NSPredicate(format: "kMDItemDisplayName ==[cd] %@", wildcardQuery)
+        let searchScopes: [Any]
         if !smartFolder.scopePath.isEmpty, FileManager.default.fileExists(atPath: smartFolder.scopePath) {
-            metadataQuery.searchScopes = [URL(fileURLWithPath: smartFolder.scopePath)]
+            searchScopes = [URL(fileURLWithPath: smartFolder.scopePath)]
         } else {
-            metadataQuery.searchScopes = [NSMetadataQueryUserHomeScope]
+            searchScopes = [NSMetadataQueryUserHomeScope]
         }
-
-        if let existingObserver = queryObserver {
-            NotificationCenter.default.removeObserver(existingObserver)
-            queryObserver = nil
-        }
-        queryObserver = NotificationCenter.default
-            .addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
-                MainActor.assumeIsolated {
-                    if let observer = self?.queryObserver {
-                        NotificationCenter.default.removeObserver(observer)
-                        self?.queryObserver = nil
-                    }
-                }
-                guard let query = notification.object as? NSMetadataQuery else { completion([])
-                    return
-                }
-                query.stop()
-                guard let results = query.results as? [NSMetadataItem] else { completion([])
-                    return
-                }
-                let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-                Self.fetchFileItems(forPaths: paths) { [weak self] items in
-                    // fetchFileItems always invokes this via `await MainActor.run`, so it's safe
-                    // to touch MainActor-isolated state here despite the closure's inferred
-                    // `@Sendable` type — matches the `MainActor.assumeIsolated` use just above.
-                    MainActor.assumeIsolated {
-                        guard self?.currentQueryToken == token else { return }
-                        completion(items)
-                    }
-                }
-            }
-        metadataQuery.start()
-        query = metadataQuery
+        runQuery(predicate: predicate, searchScopes: searchScopes, completion: completion)
     }
 
     public func executeContentQuery(queryText: String, in folderURL: URL, completion: @escaping @Sendable ([FileItem]) -> Void) {
+        let wildcardQuery = "*\(queryText)*"
+        let predicate = NSPredicate(format: "(kMDItemTextContent ==[cd] %@) || (kMDItemFSName ==[cd] %@)", wildcardQuery, wildcardQuery)
+        runQuery(predicate: predicate, searchScopes: [folderURL], completion: completion)
+    }
+
+    /// Shared `NSMetadataQuery` setup/teardown boilerplate for `executeQuery` and
+    /// `executeContentQuery`, which differ only in the predicate and search scope they need.
+    /// Owns the same staleness-token handling documented on `currentQueryToken`: each call stops
+    /// any in-flight query, mints a fresh token before starting the new one, and the completion
+    /// only applies its results if that token is still the most recent by the time it fires.
+    private func runQuery(predicate: NSPredicate, searchScopes: [Any], completion: @escaping @Sendable ([FileItem]) -> Void) {
         query?.stop()
         let token = UUID()
         currentQueryToken = token
         let metadataQuery = NSMetadataQuery()
-        let wildcardQuery = "*\(queryText)*"
-        metadataQuery.predicate = NSPredicate(format: "(kMDItemTextContent ==[cd] %@) || (kMDItemFSName ==[cd] %@)", wildcardQuery, wildcardQuery)
-        metadataQuery.searchScopes = [folderURL]
+        metadataQuery.predicate = predicate
+        metadataQuery.searchScopes = searchScopes
 
         if let existingObserver = queryObserver {
             NotificationCenter.default.removeObserver(existingObserver)

@@ -39,7 +39,6 @@ struct MainContentView: View {
     /// relocation: the modifier chain still attaches to `HSplitView` exactly as before, and the
     /// `ZStack` still lays the shortcuts HUD on top of this content, unchanged.
     private var mainSplitView: some View {
-        @Bindable var appState = appState
         @Bindable var windowUIState = windowUIState
         return HSplitView {
             sidebarPane
@@ -51,85 +50,13 @@ struct MainContentView: View {
         .onChange(of: appState.navigation.currentURL) { oldURL, newURL in
             windowUIState.cancelRenameIfNavigated(from: oldURL, to: newURL)
         }
-        .onChange(of: appState.selectedURLs) { _, newSelection in
+        .onChange(of: appState.selection.selectedURLs) { _, newSelection in
             windowUIState.cancelRenameIfSelectionChanged(selectedURLs: newSelection)
         }
         .onChange(of: appState.preferences.sortOption) { _, _ in appState.refreshCurrentDirectory() }
         .onChange(of: appState.preferences.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
         .onChange(of: appState.preferences.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
-        .sheet(item: $windowUIState.propertiesItem) { item in
-            FilePropertiesSheet(item: item, appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showHelpSheet) {
-            HelpSheet(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showFeedbackSheet) {
-            FeedbackSheetView(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showAboutSheet) {
-            AboutSheet(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showSettingsSheet) {
-            SettingsView(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showAutoOrganizationSheet) {
-            AutoOrganizationSheet(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showDuplicateCleanerSheet) {
-            DuplicateCleanerSheetView(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showHttpShareSheet) {
-            if let url = windowUIState.httpShareFolderURL {
-                HttpShareSheet(appState: appState, folderURL: url)
-            }
-        }
-        .sheet(item: $windowUIState.imageConverterItem) { item in
-            ImageConverterSheetView(item: item, appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showBatchRenameSheet) {
-            let selectedItems = appState.fileSystem.items.filter { appState.selectedURLs.contains($0.url) }
-            BatchRenameSheetView(items: selectedItems, appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showConnectToServerSheet) {
-            ConnectToServerSheetView(appState: appState)
-        }
-        .sheet(item: $windowUIState.symlinkItem) { item in
-            SymlinkSheetView(item: item, appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showSaveSmartFolderSheet) {
-            SaveSmartFolderSheetView(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showPasswordCompressSheet) {
-            PasswordCompressSheetView(appState: appState)
-        }
-        .sheet(isPresented: $windowUIState.showArchiveInspectionSheet) {
-            if let url = windowUIState.inspectArchiveURL {
-                ArchiveInspectionSheetView(archiveURL: url, appState: appState)
-            }
-        }
-        .alert(appState.tr(.emptyTrash) + "?", isPresented: $windowUIState.showEmptyTrashAlert) {
-            Button(appState.tr(.emptyTrash)) {
-                appState.performEmptyTrash()
-            }
-            .keyboardShortcut(.defaultAction)
-            Button(appState.tr(.cancel), role: .cancel) { }
-        } message: {
-            Text(appState.tr(.emptyTrashConfirm))
-        }
-        .alert(appState.tr(.moveToTrash) + "?", isPresented: $windowUIState.showDeleteConfirmAlert) {
-            Button(appState.tr(.moveToTrash)) {
-                appState.performDeleteSelected()
-            }
-            .keyboardShortcut(.defaultAction)
-            Button(appState.tr(.cancel), role: .cancel) { }
-        } message: {
-            Text(appState.tr(.moveToTrashConfirm))
-        }
-        .alert(appState.tr(.errorAlertTitle), isPresented: $appState.modal.showErrorAlert) {
-            Button(appState.tr(.errorAlertOKButton), role: .cancel) { }
-        } message: {
-            Text(appState.modal.errorMessage ?? appState.tr(.errorAlertGenericMessage))
-        }
+        .modifier(WilesModalSheets(appState: appState, windowUIState: windowUIState))
         .background(mainBackgroundLayer)
     }
 
@@ -274,7 +201,7 @@ struct MainContentView: View {
     /// so a second menu row for the same command would just be noise.
     private var keyboardShortcutsHandler: some View {
         HStack {
-            Button("") { appState.selectedURLs.removeAll() }
+            Button("") { appState.selection.selectedURLs.removeAll() }
                 .keyboardShortcut(.escape, modifiers: [])
                 .hidden()
                 .disabled(windowUIState.showShortcutsHUD)

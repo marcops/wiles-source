@@ -41,15 +41,15 @@ public struct AppStateNavigationExtraTests {
         appState.navigation.recentOpenedURLs = []
         let urlA = dir.appendingPathComponent("a.txt")
         let urlB = dir.appendingPathComponent("b.txt")
-        appState.addToRecents(urlA)
-        appState.addToRecents(urlB)
+        appState.navigation.addToRecents(urlA)
+        appState.navigation.addToRecents(urlB)
         report(
             "Navigation/Recents",
             "POS: addToRecents() inserts new URL at front",
             result: appState.navigation.recentOpenedURLs.first?.path == urlB.standardizedFileURL.path)
 
         // Re-adding 'a' should move it to front, not duplicate it.
-        appState.addToRecents(urlA)
+        appState.navigation.addToRecents(urlA)
         let paths = appState.navigation.recentOpenedURLs.map(\.path)
         report(
             "Navigation/Recents",
@@ -62,7 +62,7 @@ public struct AppStateNavigationExtraTests {
         let dir = tempDir()
         appState.navigation.recentOpenedURLs = (0 ..< 50).map { dir.appendingPathComponent("f\($0).txt").standardizedFileURL }
         let overflow = dir.appendingPathComponent("overflow.txt")
-        appState.addToRecents(overflow)
+        appState.navigation.addToRecents(overflow)
         report("Navigation/Recents", "POS: addToRecents() caps the list at 50 entries", result: appState.navigation.recentOpenedURLs.count == 50)
         report(
             "Navigation/Recents",
@@ -73,7 +73,7 @@ public struct AppStateNavigationExtraTests {
     private static func testAddToRecentsIgnoresRecentsVirtualURL() {
         let appState = AppState()
         appState.navigation.recentOpenedURLs = []
-        appState.addToRecents(AppState.recentsVirtualURL)
+        appState.navigation.addToRecents(AppState.recentsVirtualURL)
         report("Navigation/Recents", "NEG: addToRecents() ignores the recents virtual URL", result: appState.navigation.recentOpenedURLs.isEmpty)
     }
 
@@ -84,7 +84,7 @@ public struct AppStateNavigationExtraTests {
             report("Navigation/Recents", "NEG: addToRecents() ignores wiles:// scheme URLs", result: false)
             return
         }
-        appState.addToRecents(wilesURL)
+        appState.navigation.addToRecents(wilesURL)
         report("Navigation/Recents", "NEG: addToRecents() ignores wiles:// scheme URLs", result: appState.navigation.recentOpenedURLs.isEmpty)
     }
 

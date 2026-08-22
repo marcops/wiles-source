@@ -21,6 +21,7 @@
 "addRule" = "Add Rule";
 "addToFavorites" = "Add to Favorites";
 "airDrop" = "AirDrop";
+"airDropEllipsis" = "AirDrop…";
 "aperture" = "Aperture";
 "applications" = "Applications";
 "apply" = "Apply";
@@ -41,6 +42,7 @@
 "camera" = "Camera";
 "cancel" = "Cancel";
 "changeAllDefaultApp" = "Always Open With";
+"changeAllDefaultAppEllipsis" = "Always Open With…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "Clear Search";
 "close" = "Close";
@@ -78,6 +80,7 @@
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
 "diskUsageVisualizer" = "Folder Disk Usage Visualizer";
+"diskUsageOthersItemsFormat" = "Others (%d items)";
 "documents" = "Documents";
 "domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
@@ -89,6 +92,7 @@
 "duration" = "Duration";
 "emptyFolder" = "This Folder is Empty";
 "emptyTrash" = "Empty Trash";
+"emptyTrashEllipsis" = "Empty Trash…";
 "emptyTrashConfirm" = "Are you sure you want to permanently delete all items in the Trash?";
 "enclosingFolder" = "Enclosing Folder";
 "enterPassword" = "Enter Password";
@@ -232,6 +236,7 @@
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "Quick Look";
+"previewUnavailable" = "Preview Unavailable";
 "read" = "Read";
 "recentServers" = "Recent Servers";
 "recents" = "Recents";
@@ -345,6 +350,7 @@
 "yes" = "Yes";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
+"moveToTrashPartialFailure" = "%d of %d items could not be moved to Trash.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,6 +447,7 @@
 "pdfMergeNoValidPages" = "No valid pages found in the provided files.";
 "pdfMergeWriteFailed" = "Could not write the merged PDF to disk.";
 "invalidServerURL" = "Invalid server URL";
+"serverConnectionFailed" = "Could not connect to %@";
 "imageConverterLoadFailed" = "Failed to load image at %@";
 "imageConverterContextFailed" = "Failed to create graphics context";
 "imageConverterRenderFailed" = "Failed to render resized image";
@@ -457,5 +464,13 @@
 "exifSectionTitle" = "EXIF";
 "shortcutMacSuffixFormat" = "%@ (Mac)";
 "shortcutWindowsSuffixFormat" = "%@ (Windows)";
+"shortcutModePairSeparatorFormat" = "%@  ·  %@";
 "macintoshHDName" = "Macintosh HD";
 "networkVolumeName" = "Network";
+"operationsButtonHint" = "Shows the list of active background file operations.";
+"saveAsSmartFolderHint" = "Saves the current search as a Smart Folder.";
+"clearSearchHint" = "Clears the current search query.";
+"searchFiltersMenuHint" = "Opens a menu to filter search results by date, kind, or size.";
+"expandFolder" = "Expand";
+"collapseFolder" = "Collapse";
+"expandCollapseFolderHint" = "Double-tap to show or hide this folder's subfolders.";

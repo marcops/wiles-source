@@ -25,12 +25,12 @@ struct AutoOrganizationSheet: View {
             icon: .symbol("folder.badge.gearshape"),
             title: appState.tr(.autoOrganization),
             subtitle: appState.tr(.autoOrganizationSubtitle),
-            width: 600,
-            height: 500,
+            width: LayoutTokens.autoOrganizationSheetWidth,
+            height: LayoutTokens.autoOrganizationSheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
             content: { contentArea })
             .onAppear {
-                rules = AutoOrganizationService.shared.rules
+                refreshRules()
             }
             .sheet(item: $folderPickerTarget) { target in
                 FolderPickerSheet(appState: appState, initialURL: target == .source ? sourceURL : destinationURL) { url in
@@ -93,7 +93,7 @@ struct AutoOrganizationSheet: View {
                 var updated = rule
                 updated.isEnabled = newVal
                 AutoOrganizationService.shared.updateRule(updated)
-                rules = AutoOrganizationService.shared.rules
+                refreshRules()
             }))
             .labelsHidden()
     }
@@ -121,7 +121,7 @@ struct AutoOrganizationSheet: View {
     private func ruleDeleteButton(_ rule: AutoOrganizationRule) -> some View {
         Button {
             AutoOrganizationService.shared.deleteRule(id: rule.id)
-            rules = AutoOrganizationService.shared.rules
+            refreshRules()
         } label: {
             Image(systemName: "trash")
                 .foregroundColor(.red)
@@ -205,8 +205,12 @@ struct AutoOrganizationSheet: View {
         guard canAddRule, let src = sourceURL, let dest = destinationURL else { return }
         let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: conditionValue)
         AutoOrganizationService.shared.addRule(rule)
-        rules = AutoOrganizationService.shared.rules
+        refreshRules()
         conditionValue = ""
+    }
+
+    private func refreshRules() {
+        rules = AutoOrganizationService.shared.rules
     }
 
     /// `RuleConditionType.rawValue` is the persisted/matched identifier (`Codable`), always

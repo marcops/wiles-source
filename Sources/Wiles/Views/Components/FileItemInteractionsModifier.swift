@@ -40,7 +40,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
             }
             .simultaneousGesture(
                 TapGesture().onEnded {
-                    let wasAlreadySelected = appState.selectedURLs.count == 1 && appState.selectedURLs.contains(item.url)
+                    let wasAlreadySelected = appState.selection.selectedURLs.count == 1 && appState.selection.selectedURLs.contains(item.url)
                     if let onSelect {
                         onSelect()
                     } else {
@@ -49,10 +49,10 @@ public struct FileItemInteractionsModifier: ViewModifier {
                     scheduleRenameIfAlreadySelected(wasAlreadySelected)
                 })
             .onDrag {
-                if !appState.selectedURLs.contains(item.url) {
-                    appState.selectedURLs = [item.url]
+                if !appState.selection.selectedURLs.contains(item.url) {
+                    appState.selection.selectedURLs = [item.url]
                 }
-                let urls = Array(appState.selectedURLs)
+                let urls = Array(appState.selection.selectedURLs)
                 let provider = NSItemProvider()
                 for fileURL in urls {
                     provider.registerObject(fileURL as NSURL, visibility: .all)
@@ -64,8 +64,8 @@ public struct FileItemInteractionsModifier: ViewModifier {
                 RightClickDetector {
                     if let onRightClick {
                         onRightClick()
-                    } else if !appState.selectedURLs.contains(item.url) {
-                        appState.selectedURLs = [item.url]
+                    } else if !appState.selection.selectedURLs.contains(item.url) {
+                        appState.selection.selectedURLs = [item.url]
                     }
                 })
             .fileItemContextMenu(for: item, appState: appState)

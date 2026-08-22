@@ -30,37 +30,27 @@ public extension AppState {
     }
 
     func downloadFromiCloud(url: URL) {
-        Task.detached(priority: .userInitiated) {
-            do {
-                try FileManager.default.startDownloadingUbiquitousItem(at: url)
-                await MainActor.run { [weak self] in
-                    self?.refreshCurrentDirectory()
-                }
-            } catch {
-                ErrorReporter.report(error, context: "Downloading item from iCloud")
-                await MainActor.run { [weak self] in
-                    self?.showError(error.localizedDescription)
-                }
-            }
+        runDetachedFileOperation(context: "Downloading item from iCloud") {
+            try FileManager.default.startDownloadingUbiquitousItem(at: url)
         }
     }
 
     func cutSelected() {
-        guard !selectedURLs.isEmpty else { return }
-        transient.clipboard = ClipboardState(urls: Array(selectedURLs), action: .cut)
+        guard !selection.selectedURLs.isEmpty else { return }
+        transient.clipboard = ClipboardState(urls: Array(selection.selectedURLs), action: .cut)
     }
 
     func copySelected() {
-        guard !selectedURLs.isEmpty else { return }
-        let urls = Array(selectedURLs)
+        guard !selection.selectedURLs.isEmpty else { return }
+        let urls = Array(selection.selectedURLs)
         transient.clipboard = ClipboardState(urls: urls, action: .copy)
-        FileSystemService.writeToPasteboard(urls: urls)
+        PasteboardService.writeToPasteboard(urls: urls)
     }
 
     func pasteToCurrentDirectory() {
         HapticService.shared.play(.generic)
         guard let clip = transient.clipboard, !clip.urls.isEmpty else {
-            if let urls = FileSystemService.readFromPasteboard(), !urls.isEmpty {
+            if let urls = PasteboardService.readFromPasteboard(), !urls.isEmpty {
                 executePaste(urls: urls, isCut: false)
             } else {
                 pasteClipboardContentAsFile()
@@ -79,10 +69,10 @@ public extension AppState {
     /// materializes as a new file instead of silently doing nothing.
     private func pasteClipboardContentAsFile() {
         do {
-            guard let createdURL = try FileSystemService.createFileFromPasteboardContent(in: navigation.currentURL) else { return }
+            guard let createdURL = try PasteboardService.createFileFromPasteboardContent(in: navigation.currentURL) else { return }
             undoRedoService.recordAction(.create(url: createdURL))
             refreshCurrentDirectory()
-            selectedURLs = [createdURL]
+            selection.selectedURLs = [createdURL]
         } catch {
             ErrorReporter.report(error, context: "Creating file from pasteboard content")
             showError(error)
@@ -125,7 +115,7 @@ public extension AppState {
     }
 
     func deleteSelected(windowUIState: WindowUIState) {
-        guard !selectedURLs.isEmpty else { return }
+        guard !selection.selectedURLs.isEmpty else { return }
         if preferences.skipDeleteConfirmation {
             performDeleteSelected()
         } else {
@@ -134,9 +124,9 @@ public extension AppState {
     }
 
     func performDeleteSelected() {
-        guard !selectedURLs.isEmpty else { return }
+        guard !selection.selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
-        let urls = Array(selectedURLs)
+        let urls = Array(selection.selectedURLs)
         let undoRedoService = self.undoRedoService
         Task.detached(priority: .userInitiated) {
             for url in urls {
@@ -151,55 +141,37 @@ public extension AppState {
                 }
             }
             await MainActor.run { [weak self] in
-                self?.selectedURLs.removeAll()
+                self?.selection.selectedURLs.removeAll()
                 self?.refreshCurrentDirectory()
             }
         }
     }
 
     func deletePermanentlySelected() {
-        guard !selectedURLs.isEmpty else { return }
+        guard !selection.selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
-        let urls = Array(selectedURLs)
-        Task.detached(priority: .userInitiated) {
-            do {
-                try FileShredderService.deletePermanently(urls: urls)
-                await MainActor.run { [weak self] in
-                    self?.selectedURLs.removeAll()
-                    self?.refreshCurrentDirectory()
-                }
-            } catch {
-                ErrorReporter.report(error, context: "Deleting item permanently")
-                await MainActor.run { [weak self] in
-                    self?.showError(error.localizedDescription)
-                }
-            }
-        }
+        let urls = Array(selection.selectedURLs)
+        runDetachedFileOperation(context: "Deleting item permanently", onSuccess: { [weak self] in
+            self?.selection.selectedURLs.removeAll()
+        }, operation: {
+            try FileShredderService.deletePermanently(urls: urls)
+        })
     }
 
     func shredSelected() {
-        guard !selectedURLs.isEmpty else { return }
+        guard !selection.selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
-        let urls = Array(selectedURLs)
-        Task.detached(priority: .utility) {
-            do {
-                try await FileShredderService.shredFiles(urls: urls)
-                await MainActor.run { [weak self] in
-                    self?.selectedURLs.removeAll()
-                    self?.refreshCurrentDirectory()
-                }
-            } catch {
-                ErrorReporter.report(error, context: "Shredding files")
-                await MainActor.run { [weak self] in
-                    self?.showError(error.localizedDescription)
-                }
-            }
-        }
+        let urls = Array(selection.selectedURLs)
+        runDetachedFileOperation(context: "Shredding files", priority: .utility, onSuccess: { [weak self] in
+            self?.selection.selectedURLs.removeAll()
+        }, operation: {
+            try await FileShredderService.shredFiles(urls: urls)
+        })
     }
 
     func copyContentOfSelected() {
-        guard let firstURL = selectedURLs.first else { return }
-        FileSystemService.copyFileContentToClipboard(url: firstURL)
+        guard let firstURL = selection.selectedURLs.first else { return }
+        PasteboardService.copyFileContentToClipboard(url: firstURL)
     }
 
     func undoLastAction() {
@@ -207,7 +179,7 @@ public extension AppState {
             do {
                 if let targetURL = try await self.undoRedoService.undo() {
                     self.refreshCurrentDirectory()
-                    self.selectedURLs = [targetURL]
+                    self.selection.selectedURLs = [targetURL]
                 }
             } catch {
                 ErrorReporter.report(error, context: "Undoing last action")
@@ -221,7 +193,7 @@ public extension AppState {
             do {
                 if let targetURL = try await self.undoRedoService.redo() {
                     self.refreshCurrentDirectory()
-                    self.selectedURLs = [targetURL]
+                    self.selection.selectedURLs = [targetURL]
                 }
             } catch {
                 ErrorReporter.report(error, context: "Redoing last action")
@@ -231,23 +203,23 @@ public extension AppState {
     }
 
     func selectAllItems() {
-        selectedURLs = Set(fileSystem.items.map(\.url))
+        selection.selectedURLs = Set(fileSystem.items.map(\.url))
     }
 
     func openSelectedItem() {
-        if let first = selectedURLs.first {
+        if let first = selection.selectedURLs.first {
             navigateTo(first)
         }
     }
 
     func triggerQuickLookForSelected(windowUIState: WindowUIState) {
-        if let first = selectedURLs.first {
+        if let first = selection.selectedURLs.first {
             windowUIState.quickLookURL = first
         }
     }
 
     func openPropertiesForSelected(windowUIState: WindowUIState) {
-        if let first = selectedURLs.first, let item = fileSystem.items.first(where: { $0.url == first }) {
+        if let first = selection.selectedURLs.first, let item = fileSystem.items.first(where: { $0.url == first }) {
             windowUIState.propertiesItem = item
         }
     }
@@ -286,7 +258,7 @@ public extension AppState {
     private func enterRenameForNewlyCreated(at url: URL, inFolder: URL, windowUIState: WindowUIState) {
         let newItem = FileItem(url: url)
         fileSystem.renamingURL = url
-        selectedURLs = [url]
+        selection.selectedURLs = [url]
         windowUIState.renameItem = newItem
         guard inFolder.standardizedFileURL == navigation.currentURL.standardizedFileURL else { return }
         DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
@@ -294,9 +266,37 @@ public extension AppState {
     }
 
     func toggleSearching() {
-        isSearching.toggle()
-        if !isSearching {
-            searchQuery = ""
+        selection.isSearching.toggle()
+        if !selection.isSearching {
+            selection.searchQuery = ""
+        }
+    }
+
+    /// Shared shape for a whole-selection file operation: run `operation` off the main actor, then
+    /// re-enter the main actor exactly once — either to run `onSuccess` and refresh (operation
+    /// succeeded), or to report and surface the error (operation threw). `operation` may be
+    /// synchronous or asynchronous throwing work; either coerces fine to the `async throws`
+    /// closure type. Not a fit for operations that need to keep going after a per-item failure
+    /// (e.g. a loop that reports one error per failed URL but still processes the rest) — those
+    /// stay bespoke.
+    private func runDetachedFileOperation(
+        context: String,
+        priority: TaskPriority = .userInitiated,
+        onSuccess: (@MainActor () -> Void)? = nil,
+        operation: @escaping @Sendable () async throws -> Void) {
+        Task.detached(priority: priority) { [weak self] in
+            do {
+                try await operation()
+                await MainActor.run {
+                    onSuccess?()
+                    self?.refreshCurrentDirectory()
+                }
+            } catch {
+                ErrorReporter.report(error, context: context)
+                await MainActor.run {
+                    self?.showError(error.localizedDescription)
+                }
+            }
         }
     }
 }

@@ -11,7 +11,7 @@ struct HeaderBarView: View {
     var body: some View {
         HStack(spacing: 12) {
             historyButtons
-            if appState.isSearching {
+            if appState.selection.isSearching {
                 searchField.frame(maxWidth: .infinity)
             } else {
                 PathBarView(appState: appState).frame(maxWidth: .infinity)
@@ -29,11 +29,11 @@ struct HeaderBarView: View {
             // since this only wrapped the search field, racing the button's own toggle and making
             // a second click on the button re-open the search instead of closing it.
             Group {
-                if appState.isSearching {
+                if appState.selection.isSearching {
                     ClickOutsideDetector {
-                        if appState.searchQuery.isEmpty {
+                        if appState.selection.searchQuery.isEmpty {
                             withAnimation(MotionTokens.quickEase) {
-                                appState.isSearching = false
+                                appState.selection.isSearching = false
                             }
                         }
                     }
@@ -81,7 +81,7 @@ struct HeaderBarView: View {
             searchTextField
             searchEverywhereToggle
             searchFilterMenu
-            if !appState.searchQuery.isEmpty {
+            if !appState.selection.searchQuery.isEmpty {
                 searchQueryActionButtons
             }
         }
@@ -93,7 +93,7 @@ struct HeaderBarView: View {
 
     private var searchTextField: some View {
         @Bindable var appState = appState
-        return TextField("\(appState.tr(.searchPlaceholder)) \(appState.navigation.currentURL.lastPathComponent)...", text: $appState.searchQuery)
+        return TextField("\(appState.tr(.searchPlaceholder)) \(appState.navigation.currentURL.lastPathComponent)...", text: $appState.selection.searchQuery)
             .textFieldStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
             .focused($isSearchFocused)
@@ -111,8 +111,8 @@ struct HeaderBarView: View {
             }
             .onExitCommand {
                 withAnimation(MotionTokens.quickEase) {
-                    appState.isSearching = false
-                    appState.searchQuery = ""
+                    appState.selection.isSearching = false
+                    appState.selection.searchQuery = ""
                 }
             }
     }
@@ -124,11 +124,15 @@ struct HeaderBarView: View {
         }
         .buttonStyle(.plain)
         .help(appState.tr(.saveAsSmartFolder))
+        .accessibilityLabel(appState.tr(.saveAsSmartFolder))
+        .accessibilityHint(appState.tr(.saveAsSmartFolderHint))
 
-        Button { appState.searchQuery = "" } label: {
+        Button { appState.selection.searchQuery = "" } label: {
             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(appState.tr(.clearSearch))
+        .accessibilityHint(appState.tr(.clearSearchHint))
     }
 
     private var searchFilterMenu: some View {
@@ -141,6 +145,8 @@ struct HeaderBarView: View {
         }
         .menuStyle(.borderlessButton)
         .help(appState.tr(.searchFiltersHelp))
+        .accessibilityLabel(appState.tr(.searchFiltersHelp))
+        .accessibilityHint(appState.tr(.searchFiltersMenuHint))
     }
 
     @ViewBuilder private var searchFilterMenuContent: some View {
@@ -158,61 +164,59 @@ struct HeaderBarView: View {
         kindFilterButtons
         Divider()
         Button(appState.tr(.filterLargeFiles)) {
-            appState.searchQuery = "size:>100m"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("size:>100m")
         }
+    }
+
+    /// Sets the search query to a quick-filter token (e.g. `date:today`, `kind:image`) and
+    /// re-runs the directory listing, shared by the large-files, date, and kind filter buttons.
+    private func applyQuickFilter(_ token: String) {
+        appState.selection.searchQuery = token
+        appState.refreshCurrentDirectory()
     }
 
     @ViewBuilder private var dateFilterButtons: some View {
         Button(appState.tr(.filterModifiedToday)) {
-            appState.searchQuery = "date:today"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("date:today")
         }
         Button(appState.tr(.filterModified7Days)) {
-            appState.searchQuery = "date:7d"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("date:7d")
         }
         Button(appState.tr(.filterModified30Days)) {
-            appState.searchQuery = "date:30d"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("date:30d")
         }
     }
 
     @ViewBuilder private var kindFilterButtons: some View {
         Button(appState.tr(.filterImages)) {
-            appState.searchQuery = "kind:image"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("kind:image")
         }
         Button(appState.tr(.filterDocuments)) {
-            appState.searchQuery = "kind:doc"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("kind:doc")
         }
         Button(appState.tr(.filterCodeFiles)) {
-            appState.searchQuery = "kind:code"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("kind:code")
         }
         Button(appState.tr(.filterPDFs)) {
-            appState.searchQuery = "kind:pdf"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("kind:pdf")
         }
         Button(appState.tr(.filterFolders)) {
-            appState.searchQuery = "kind:folder"
-            appState.refreshCurrentDirectory()
+            applyQuickFilter("kind:folder")
         }
     }
 
-    /// Mirrors the `hidden:true` token in `appState.searchQuery` — same query-language convention
+    /// Mirrors the `hidden:true` token in `appState.selection.searchQuery` — same query-language convention
     /// as `date:`/`kind:`/`size:` used elsewhere in this menu, defaulting off (hidden folders are
     /// excluded from search unless explicitly requested).
     private var includeHiddenFoldersBinding: Binding<Bool> {
         Binding(
-            get: { SearchFilterService.extractHiddenFlag(from: appState.searchQuery).includeHidden },
+            get: { SearchFilterService.extractHiddenFlag(from: appState.selection.searchQuery).includeHidden },
             set: { newValue in
-                let (strippedQuery, _) = SearchFilterService.extractHiddenFlag(from: appState.searchQuery)
+                let (strippedQuery, _) = SearchFilterService.extractHiddenFlag(from: appState.selection.searchQuery)
                 if newValue {
-                    appState.searchQuery = strippedQuery.isEmpty ? "hidden:true" : "\(strippedQuery) hidden:true"
+                    appState.selection.searchQuery = strippedQuery.isEmpty ? "hidden:true" : "\(strippedQuery) hidden:true"
                 } else {
-                    appState.searchQuery = strippedQuery
+                    appState.selection.searchQuery = strippedQuery
                 }
             })
     }
@@ -223,7 +227,7 @@ struct HeaderBarView: View {
         } label: {
             Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium))
                 .frame(width: 30, height: 28)
-                .foregroundColor(appState.isSearching ? .accentColor : .primary)
+                .foregroundColor(appState.selection.isSearching ? .accentColor : .primary)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain).help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")
@@ -309,6 +313,7 @@ struct HeaderBarView: View {
             .accessibilityIdentifier(accessibilityID(for: mode))
             .accessibilityLabel(accessibilityLabel(for: mode))
             .accessibilityHint(appState.tr(.viewMode))
+            .accessibilityAddTraits(appState.preferences.viewMode == mode ? [.isButton, .isSelected] : [.isButton])
             .transition(.scale(scale: 0.7).combined(with: .opacity))
         }
     }

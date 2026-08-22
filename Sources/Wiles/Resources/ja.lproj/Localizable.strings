@@ -21,6 +21,7 @@
 "addRule" = "Add Rule";
 "addToFavorites" = "Add to Favorites";
 "airDrop" = "AirDrop";
+"airDropEllipsis" = "AirDrop…";
 "aperture" = "絞り";
 "applications" = "アプリケーション";
 "apply" = "適用";
@@ -41,6 +42,7 @@
 "camera" = "カメラ";
 "cancel" = "キャンセル";
 "changeAllDefaultApp" = "常にこのアプリで開く";
+"changeAllDefaultAppEllipsis" = "常にこのアプリで開く…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "検索を消去";
 "close" = "閉じる";
@@ -78,6 +80,7 @@
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
 "diskUsageVisualizer" = "Folder Disk Usage Visualizer";
+"diskUsageOthersItemsFormat" = "その他 (%d項目)";
 "documents" = "書類";
 "domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
@@ -89,6 +92,7 @@
 "duration" = "Duration";
 "emptyFolder" = "このフォルダは空です";
 "emptyTrash" = "ゴミ箱を空にする";
+"emptyTrashEllipsis" = "ゴミ箱を空にする…";
 "emptyTrashConfirm" = "ゴミ箱内のすべての項目を完全に削除してもよろしいですか?";
 "enclosingFolder" = "上位フォルダ";
 "enterPassword" = "パスワードを入力";
@@ -232,6 +236,7 @@
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "クイックルック";
+"previewUnavailable" = "プレビューは利用できません";
 "read" = "読み取り";
 "recentServers" = "最近のサーバー";
 "recents" = "RECENTS";
@@ -346,6 +351,7 @@
 "sidebarTrash" = "Trash";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
+"moveToTrashPartialFailure" = "%d/%d 個の項目をゴミ箱に移動できませんでした。";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -442,6 +448,7 @@
 "pdfMergeNoValidPages" = "指定されたファイルに有効なページが見つかりませんでした。";
 "pdfMergeWriteFailed" = "結合したPDFをディスクに書き込めませんでした。";
 "invalidServerURL" = "無効なサーバーURLです";
+"serverConnectionFailed" = "%@ に接続できませんでした";
 "imageConverterLoadFailed" = "%@ の画像を読み込めませんでした";
 "imageConverterContextFailed" = "グラフィックコンテキストを作成できませんでした";
 "imageConverterRenderFailed" = "リサイズした画像をレンダリングできませんでした";
@@ -458,5 +465,13 @@
 "exifSectionTitle" = "EXIF";
 "shortcutMacSuffixFormat" = "%@ (Mac)";
 "shortcutWindowsSuffixFormat" = "%@ (Windows)";
+"shortcutModePairSeparatorFormat" = "%@  ·  %@";
 "macintoshHDName" = "Macintosh HD";
 "networkVolumeName" = "ネットワーク";
+"operationsButtonHint" = "実行中のバックグラウンド操作の一覧を表示します。";
+"saveAsSmartFolderHint" = "現在の検索をスマートフォルダとして保存します。";
+"clearSearchHint" = "現在の検索クエリを消去します。";
+"searchFiltersMenuHint" = "日付、種類、サイズで検索結果を絞り込むメニューを開きます。";
+"expandFolder" = "展開";
+"collapseFolder" = "折りたたむ";
+"expandCollapseFolderHint" = "ダブルタップでこのフォルダのサブフォルダを表示または非表示にします。";

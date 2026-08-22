@@ -19,8 +19,15 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private init() { }
 
     public func start(sharing folder: URL, password: String? = nil) {
-        sharedFolder = folder
-        requiredPassword = (password?.isEmpty == false) ? password : nil
+        // `sharedFolder`/`requiredPassword` are read from `processRequest`, which always runs on
+        // `queue` (it's invoked from an `NWConnection` receive completion handler, and every
+        // connection is started with `connection.start(queue: queue)`). Routing the write through
+        // `queue.sync` here — the same mechanism already used for `listener` below — establishes a
+        // proper happens-before relationship with that on-queue read, closing the data race.
+        queue.sync {
+            sharedFolder = folder
+            requiredPassword = (password?.isEmpty == false) ? password : nil
+        }
         do {
             let parameters = NWParameters.tcp
             let newListener = try NWListener(using: parameters, on: port)
@@ -63,9 +70,9 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 conn.cancel()
             }
             connections.removeAll()
+            sharedFolder = nil
+            requiredPassword = nil
         }
-        sharedFolder = nil
-        requiredPassword = nil
         Task { @MainActor in
             isRunning = false
             serverURL = nil

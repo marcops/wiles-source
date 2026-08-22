@@ -6,7 +6,7 @@ private struct ScrollToTopOnRenameOrSearchClear: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: appState.searchQuery) { _, newValue in
+            .onChange(of: appState.selection.searchQuery) { _, newValue in
                 if newValue.isEmpty {
                     scrollToTopAnimated(proxy)
                 }

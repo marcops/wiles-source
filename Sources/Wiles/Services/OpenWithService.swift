@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import UniformTypeIdentifiers
 
-public final class OpenWithService: OpenWithServiceProtocol, Sendable {
+public final class OpenWithService: Sendable {
     /// Injectable seam for tests — see `WorkspaceOpening`. Defaults to the real `NSWorkspace`.
     @MainActor public static var opener: any WorkspaceOpening = RealWorkspaceOpener()
 

@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-public final class CopyPathService: CopyPathServiceProtocol, Sendable {
+public final class CopyPathService: Sendable {
     @MainActor
     public static func copy(urls: [URL], variant: PathCopyVariant, relativeTo base: URL? = nil) {
         guard !urls.isEmpty else { return }

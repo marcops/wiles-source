@@ -3,16 +3,12 @@ import SwiftUI
 
 /// Edit menu: undo/redo plus cut/copy/paste/select-all/find. Split out of `WilesApp.swift` —
 /// pure code motion, no behavior change.
-struct EditMenuCommands: Commands {
+struct EditMenuCommands: LocalizedCommands {
     let sharedPreferences: PreferencesStore
     @FocusedValue(\.appState)
     private var appState
     @FocusedValue(\.isTextFieldEditingActive)
     private var isTextFieldEditingActive
-
-    private func tr(_ key: L10n.Key) -> String {
-        L10n.string(key, lang: sharedPreferences.appLanguage)
-    }
 
     var body: some Commands {
         CommandGroup(replacing: .undoRedo) {
@@ -46,7 +42,7 @@ struct EditMenuCommands: Commands {
             }
         }
         .keyboardShortcut("x", modifiers: .command)
-        .disabled(!isRenaming && (appState?.selectedURLs.isEmpty ?? true))
+        .disabled(!isRenaming && (appState?.selection.selectedURLs.isEmpty ?? true))
     }
 
     private func copyCommandButton(isRenaming: Bool) -> some View {
@@ -58,7 +54,7 @@ struct EditMenuCommands: Commands {
             }
         }
         .keyboardShortcut("c", modifiers: .command)
-        .disabled(!isRenaming && (appState?.selectedURLs.isEmpty ?? true))
+        .disabled(!isRenaming && (appState?.selection.selectedURLs.isEmpty ?? true))
     }
 
     private func pasteCommandButton(isRenaming: Bool) -> some View {

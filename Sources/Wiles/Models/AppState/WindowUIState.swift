@@ -80,7 +80,7 @@ public final class WindowUIState {
     /// which never shifts SwiftUI's `@FocusState` away from `InlineRenameField`'s `TextField`.
     /// `InlineRenameField` only commits/cancels on focus loss, so without this, clicking another
     /// item left the rename field showing on the old item while a different item became selected.
-    /// `MainContentView` calls this from `.onChange(of: appState.selectedURLs)`.
+    /// `MainContentView` calls this from `.onChange(of: appState.selection.selectedURLs)`.
     public func cancelRenameIfSelectionChanged(selectedURLs: Set<URL>) {
         guard let renameItem else { return }
         guard selectedURLs != [renameItem.url] else { return }

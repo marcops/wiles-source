@@ -35,5 +35,25 @@ public final class SelectionStore {
         return ys.filter { abs($0 - firstY) < 5 }.count
     }
 
+    public var searchQuery: String = "" {
+        didSet {
+            // `activeFolderID` deliberately stays put: it only drives the sidebar's active-row
+            // highlight, which should keep showing the smart folder as selected while its results
+            // are on screen, even as the query text is refined — only a real navigation
+            // (navigateTo) should move that highlight elsewhere.
+            onSearchQueryChanged?()
+        }
+    }
+
+    public var isSearching: Bool = false
+
+    public var selectedURLs: Set<URL> = []
+
+    /// Set by `AppState.init` to `{ [weak self] in self?.refreshCurrentDirectory() }` — lets
+    /// `searchQuery`'s `didSet` trigger an `AppState`-level refresh without this store holding a
+    /// reference back to `AppState`. Same idiom as `FileSystemStore.startDirectoryMonitoring`'s
+    /// `refreshHandler` closure.
+    public var onSearchQueryChanged: (() -> Void)?
+
     public init() { }
 }

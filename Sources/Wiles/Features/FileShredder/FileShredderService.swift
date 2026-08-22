@@ -2,6 +2,9 @@ import Foundation
 import GitBeacon
 
 public struct FileShredderService: Sendable {
+    /// Chunk size used when zero-overwriting a file's bytes before secure deletion.
+    private static let zeroOverwriteChunkSize = 1_048_576 // 1MB chunk
+
     /// Direct immediate deletion bypassing Trash (Fast, no zeroing)
     public static func deletePermanently(urls: [URL]) throws {
         let fm = FileManager.default
@@ -41,7 +44,7 @@ public struct FileShredderService: Sendable {
                     // never actually zeroed. Abort this item and let the error propagate instead.
                     throw WilesError.operationFailed(reason: "Could not open \(url.lastPathComponent) for secure overwrite.")
                 }
-                let chunkSize = 1_048_576 // 1MB chunk
+                let chunkSize = Self.zeroOverwriteChunkSize
                 let zeroBuffer = Data(count: chunkSize)
                 var bytesWritten = 0
 

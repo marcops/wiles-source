@@ -225,7 +225,7 @@ struct ShortcutsHUDOverlay: View {
             guard mac.1 != windows.1 else { return mac }
             let macLabel = String(format: appState.tr(.shortcutMacSuffixFormat), mac.1)
             let windowsLabel = String(format: appState.tr(.shortcutWindowsSuffixFormat), windows.1)
-            return (mac.0, "\(macLabel)  ·  \(windowsLabel)")
+            return (mac.0, String(format: appState.tr(.shortcutModePairSeparatorFormat), macLabel, windowsLabel))
         }
     }
 

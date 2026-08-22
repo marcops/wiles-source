@@ -11,7 +11,7 @@ public struct EmptyDirectoryView: View {
         VStack(spacing: 16) {
             Spacer()
 
-            if !appState.searchQuery.isEmpty {
+            if !appState.selection.searchQuery.isEmpty {
                 searchEmptyView
             } else if !FileManager.default.isReadableFile(atPath: appState.navigation.currentURL.path) {
                 // An unreadable folder (e.g. `~/.Trash`, which macOS restricts to Finder without
@@ -31,18 +31,18 @@ public struct EmptyDirectoryView: View {
 
     @ViewBuilder private var searchEmptyView: some View {
         Image(systemName: "doc.text.magnifyingglass")
-            .font(.system(size: 48))
+            .font(.system(size: LayoutTokens.emptyStateIconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
 
         Text(appState.tr(.noResultsFound))
-            .font(.system(size: 15, weight: .semibold))
+            .font(.system(size: LayoutTokens.emptyStateTitleFontSize, weight: .semibold))
             .foregroundColor(.secondary)
 
         Button {
-            appState.searchQuery = ""
+            appState.selection.searchQuery = ""
         } label: {
             Text(appState.tr(.clearSearch))
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: LayoutTokens.emptyStateBodyFontSize, weight: .medium))
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -51,25 +51,25 @@ public struct EmptyDirectoryView: View {
 
     @ViewBuilder private var unreadableFolderView: some View {
         Image(systemName: "lock.fill")
-            .font(.system(size: 48))
+            .font(.system(size: LayoutTokens.emptyStateIconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
 
         Text(appState.tr(.permissionDeniedNotice))
-            .font(.system(size: 15, weight: .semibold))
+            .font(.system(size: LayoutTokens.emptyStateTitleFontSize, weight: .semibold))
             .foregroundColor(.secondary)
             .multilineTextAlignment(.center)
 
         Text(appState.tr(.fullDiskAccessNotice))
-            .font(.system(size: 12))
+            .font(.system(size: LayoutTokens.emptyStateBodyFontSize))
             .foregroundColor(.secondary)
             .multilineTextAlignment(.center)
-            .frame(maxWidth: 320)
+            .frame(maxWidth: LayoutTokens.emptyStateNoticeMaxWidth)
 
         Button {
             PermissionService.openFullDiskAccessSettings()
         } label: {
             Text(appState.tr(.grantFullDiskAccess))
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: LayoutTokens.emptyStateBodyFontSize, weight: .medium))
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -78,11 +78,11 @@ public struct EmptyDirectoryView: View {
 
     @ViewBuilder private var emptyFolderView: some View {
         Image(systemName: "folder")
-            .font(.system(size: 48))
+            .font(.system(size: LayoutTokens.emptyStateIconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
 
         Text(appState.tr(.emptyFolder))
-            .font(.system(size: 15, weight: .semibold))
+            .font(.system(size: LayoutTokens.emptyStateTitleFontSize, weight: .semibold))
             .foregroundColor(.secondary)
     }
 }

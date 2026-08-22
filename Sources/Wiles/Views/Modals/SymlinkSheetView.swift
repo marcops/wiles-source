@@ -79,7 +79,7 @@ public struct SymlinkSheetView: View {
                 symlinkName: symlinkName,
                 mode: mode)
             appState.refreshCurrentDirectory()
-            appState.selectedURLs = [createdURL]
+            appState.selection.selectedURLs = [createdURL]
             dismiss()
         } catch {
             ErrorReporter.report(error, context: "Creating symbolic link")

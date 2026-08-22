@@ -120,8 +120,8 @@ struct FileGridView: View {
                 cardWidth: cardWidth,
                 cardHeight: cardHeight,
                 onRightClick: {
-                    if !appState.selectedURLs.contains(item.url) {
-                        appState.selectedURLs = [item.url]
+                    if !appState.selection.selectedURLs.contains(item.url) {
+                        appState.selection.selectedURLs = [item.url]
                     }
                 })
                 .transition(.opacity)
@@ -151,7 +151,7 @@ struct FileGridView: View {
             let fontSize = max(
                 LayoutTokens.gridCardLabelMinFontSize,
                 min(LayoutTokens.gridCardLabelMaxFontSize, Double(iconSize) * LayoutTokens.gridCardLabelFontScaleMultiplier))
-            let isSel = appState.selectedURLs.contains(item.url)
+            let isSel = appState.selection.selectedURLs.contains(item.url)
             // card padding + icon + VStack spacing, matching FileGridCardItemView
             let topInset: CGFloat = LayoutTokens.gridCardPadding + iconSize + LayoutTokens.gridCardVStackSpacing
             let fieldWidth = appState.selection.gridLabelWidths[renameItem.url] ?? (cardWidth - LayoutTokens.gridCardLabelHorizontalInset)

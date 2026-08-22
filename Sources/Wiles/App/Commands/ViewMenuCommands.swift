@@ -7,12 +7,8 @@ import SwiftUI
 /// Settings updates the UI live with zero behavior change.
 ///
 /// Split out of `WilesApp.swift` — pure code motion, no behavior change.
-struct ViewMenuCommands: Commands {
+struct ViewMenuCommands: LocalizedCommands {
     let sharedPreferences: PreferencesStore
-
-    private func tr(_ key: L10n.Key) -> String {
-        L10n.string(key, lang: sharedPreferences.appLanguage)
-    }
 
     var body: some Commands {
         CommandGroup(after: .sidebar) {

@@ -15,7 +15,7 @@ struct FileGridCardItemView: View {
     @State private var isDropTargeted = false
 
     var body: some View {
-        let isSel = appState.selectedURLs.contains(item.url)
+        let isSel = appState.selection.selectedURLs.contains(item.url)
         let isCut = appState.transient.clipboard?.isCut(url: item.url) ?? false
 
         return mainContent(isSel: isSel, isCut: isCut)

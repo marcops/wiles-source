@@ -42,7 +42,7 @@ public struct ConnectToServerSheetView: View {
     private var addressField: some View {
         TextField(appState.tr(.serverAddressPlaceholder), text: $serverAddress)
             .textFieldStyle(.roundedBorder)
-            .frame(width: 320)
+            .frame(width: LayoutTokens.connectToServerContentWidth)
             .accessibilityLabel(appState.tr(.connectToServer))
     }
 
@@ -55,27 +55,25 @@ public struct ConnectToServerSheetView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(recentServers, id: \.self) { server in
-                        HStack {
-                            Image(systemName: "server.rack")
-                                .foregroundColor(.secondary)
-                            Text(server)
-                                .font(.system(size: 12))
-                            Spacer()
-                        }
-                        .padding(.vertical, 3)
-                        .padding(.horizontal, 6)
-                        .background(Color.primary.opacity(0.04))
-                        .cornerRadius(4)
-                        .contentShape(Rectangle())
-                        .onTapGesture { serverAddress = server }
-                        .accessibilityAddTraits(.isButton)
-                        .accessibilityLabel(Text(server))
+                        TappableRow(accessibilityLabel: server, action: { serverAddress = server }, content: {
+                            HStack {
+                                Image(systemName: "server.rack")
+                                    .foregroundColor(.secondary)
+                                Text(server)
+                                    .font(.system(size: 12))
+                                Spacer()
+                            }
+                            .padding(.vertical, 3)
+                            .padding(.horizontal, 6)
+                            .background(Color.primary.opacity(0.04))
+                            .cornerRadius(4)
+                        })
                     }
                 }
             }
             .frame(maxHeight: 100)
         }
-        .frame(width: 320)
+        .frame(width: LayoutTokens.connectToServerContentWidth)
     }
 
     private func performConnect() {

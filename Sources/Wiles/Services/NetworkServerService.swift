@@ -20,6 +20,10 @@ public struct NetworkServerService {
             throw NSError(domain: "NetworkServerService", code: 400, userInfo: [NSLocalizedDescriptionKey: L10n.string(.invalidServerURL, lang: .system)])
         }
 
-        opener.open(url)
+        guard opener.open(url) else {
+            throw NSError(
+                domain: "NetworkServerService", code: 401,
+                userInfo: [NSLocalizedDescriptionKey: String(format: L10n.string(.serverConnectionFailed, lang: .system), fullAddress)])
+        }
     }
 }

@@ -21,6 +21,7 @@
 "addRule" = "Add Rule";
 "addToFavorites" = "Add to Favorites";
 "airDrop" = "AirDrop";
+"airDropEllipsis" = "AirDrop…";
 "aperture" = "조리개";
 "applications" = "응용 프로그램";
 "apply" = "적용";
@@ -41,6 +42,7 @@
 "camera" = "카메라";
 "cancel" = "취소";
 "changeAllDefaultApp" = "항상 이 앱으로 열기";
+"changeAllDefaultAppEllipsis" = "항상 이 앱으로 열기…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "검색 지우기";
 "close" = "닫기";
@@ -78,6 +80,7 @@
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
 "diskUsageVisualizer" = "Folder Disk Usage Visualizer";
+"diskUsageOthersItemsFormat" = "기타 (%d개 항목)";
 "documents" = "문서";
 "domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
@@ -89,6 +92,7 @@
 "duration" = "Duration";
 "emptyFolder" = "이 폴더는 비어 있습니다";
 "emptyTrash" = "휴지통 비우기";
+"emptyTrashEllipsis" = "휴지통 비우기…";
 "emptyTrashConfirm" = "휴지통의 모든 항목을 영구적으로 삭제하시겠습니까?";
 "enclosingFolder" = "상위 폴더";
 "enterPassword" = "암호 입력";
@@ -232,6 +236,7 @@
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "훑어보기";
+"previewUnavailable" = "미리보기를 사용할 수 없습니다";
 "read" = "읽기";
 "recentServers" = "최근 서버";
 "recents" = "RECENTS";
@@ -346,6 +351,7 @@
 "sidebarTrash" = "Trash";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
+"moveToTrashPartialFailure" = "%d/%d개 항목을 휴지통으로 이동할 수 없습니다.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -442,6 +448,7 @@
 "pdfMergeNoValidPages" = "제공된 파일에서 유효한 페이지를 찾을 수 없습니다.";
 "pdfMergeWriteFailed" = "병합된 PDF를 디스크에 쓸 수 없습니다.";
 "invalidServerURL" = "잘못된 서버 URL";
+"serverConnectionFailed" = "%@에 연결할 수 없습니다";
 "imageConverterLoadFailed" = "%@에서 이미지를 로드하지 못했습니다";
 "imageConverterContextFailed" = "그래픽 컨텍스트를 만들지 못했습니다";
 "imageConverterRenderFailed" = "크기가 조정된 이미지를 렌더링하지 못했습니다";
@@ -458,5 +465,13 @@
 "exifSectionTitle" = "EXIF";
 "shortcutMacSuffixFormat" = "%@ (Mac)";
 "shortcutWindowsSuffixFormat" = "%@ (Windows)";
+"shortcutModePairSeparatorFormat" = "%@  ·  %@";
 "macintoshHDName" = "Macintosh HD";
 "networkVolumeName" = "네트워크";
+"operationsButtonHint" = "활성 백그라운드 작업 목록을 표시합니다.";
+"saveAsSmartFolderHint" = "현재 검색을 스마트 폴더로 저장합니다.";
+"clearSearchHint" = "현재 검색어를 지웁니다.";
+"searchFiltersMenuHint" = "날짜, 종류 또는 크기로 검색 결과를 필터링하는 메뉴를 엽니다.";
+"expandFolder" = "펼치기";
+"collapseFolder" = "접기";
+"expandCollapseFolderHint" = "두 번 탭하면 이 폴더의 하위 폴더를 표시하거나 숨깁니다.";

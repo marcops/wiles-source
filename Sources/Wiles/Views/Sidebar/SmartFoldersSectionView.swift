@@ -62,9 +62,9 @@ struct SmartFoldersSectionView: View {
                 renamingSmartFolderID = folder.id
             }
             Button(appState.tr(.updateSmartFolderSearch)) {
-                appState.updateSmartFolderQuery(folder, to: appState.searchQuery)
+                appState.updateSmartFolderQuery(folder, to: appState.selection.searchQuery)
             }
-            .disabled(appState.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(appState.selection.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty)
             Divider()
             Button(appState.tr(.moveToTrash), role: .destructive) {
                 appState.removeSmartFolder(folder)
@@ -107,11 +107,6 @@ struct SmartFoldersSectionView: View {
     }
 
     private func runSmartFolder(_ folder: SmartFolder) {
-        appState.prepareForSmartFolderRun(folder)
-        SmartFolderService.shared.executeQuery(for: folder) { items in
-            Task { @MainActor in
-                appState.fileSystem.items = items
-            }
-        }
+        appState.runSmartFolder(folder)
     }
 }

@@ -9,19 +9,19 @@ struct PreviewSidebarView: View {
 
     var body: some View {
         VStack {
-            if appState.selectedURLs.isEmpty {
+            if appState.selection.selectedURLs.isEmpty {
                 Text(appState.tr(.noSelection)).foregroundColor(.secondary)
-            } else if appState.selectedURLs.count == 1 {
+            } else if appState.selection.selectedURLs.count == 1 {
                 singleSelectionView
             } else {
-                Text("\(appState.selectedURLs.count) \(appState.tr(.itemsSelectedSuffix))").foregroundColor(.secondary)
+                Text("\(appState.selection.selectedURLs.count) \(appState.tr(.itemsSelectedSuffix))").foregroundColor(.secondary)
             }
         }
         .frame(minWidth: 200, idealWidth: 250, maxWidth: 350, maxHeight: .infinity)
         .padding()
         .translucentBackground(material: .sidebar, opacity: appState.preferences.sidebarOverlayOpacity)
-        .task(id: appState.selectedURLs) {
-            if let first = appState.selectedURLs.first, appState.selectedURLs.count == 1 {
+        .task(id: appState.selection.selectedURLs) {
+            if let first = appState.selection.selectedURLs.first, appState.selection.selectedURLs.count == 1 {
                 detailedProps = await FileMetadataService.shared.fetchProperties(for: first)
             } else {
                 detailedProps = nil
@@ -30,7 +30,7 @@ struct PreviewSidebarView: View {
     }
 
     @ViewBuilder private var singleSelectionView: some View {
-        if let first = appState.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
+        if let first = appState.selection.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
             VStack(alignment: .center, spacing: 16) {
                 FileItemIconView(item: item, size: 120)
                     .id(item.url)
@@ -80,7 +80,7 @@ struct PreviewSidebarView: View {
                 Text(appState.tr(.codePreview))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.secondary)
-                QLPreviewInlineView(url: item.url)
+                QLPreviewInlineView(url: item.url, appState: appState)
                     .frame(height: 220)
                     .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
                     .cornerRadius(6)

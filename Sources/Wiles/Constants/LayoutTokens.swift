@@ -21,10 +21,6 @@ public enum LayoutTokens {
     public static let previewSidebarMinWidth: CGFloat = 200.0
     public static let terminalDrawerHeight: CGFloat = 200.0
 
-    // Footer Icon Size Control
-    public static let minIconSize: CGFloat = 36.0
-    public static let maxIconSize: CGFloat = 128.0
-
     // Table Columns
     public static let columnSizeWidth: CGFloat = 90.0
     public static let columnDateWidth: CGFloat = 140.0
@@ -96,4 +92,27 @@ public enum LayoutTokens {
     public static let modalFooterVerticalPadding: CGFloat = 12.0
     public static let modalTitleFontSize: CGFloat = 16.0
     public static let modalSubtitleFontSize: CGFloat = 12.0
+
+    // Auto Organization Sheet
+    public static let autoOrganizationSheetWidth: CGFloat = 600.0
+    public static let autoOrganizationSheetHeight: CGFloat = 500.0
+
+    // File Properties Sheet
+    public static let filePropertiesSheetWidth: CGFloat = 400.0
+    public static let filePropertiesSheetHeight: CGFloat = 500.0
+
+    // Connect To Server Sheet
+    public static let connectToServerContentWidth: CGFloat = 320.0
+
+    // Empty Directory View
+    public static let emptyStateIconFontSize: CGFloat = 48.0
+    public static let emptyStateTitleFontSize: CGFloat = 15.0
+    public static let emptyStateBodyFontSize: CGFloat = 12.0
+    public static let emptyStateNoticeMaxWidth: CGFloat = 320.0
+
+    // iCloud Status Badge
+    public static let iCloudStatusBadgeProgressScale: Double = 0.5
+    public static let iCloudStatusBadgeSize: CGFloat = 14.0
+    public static let iCloudStatusDownloadIconFontSize: CGFloat = 11.0
+    public static let iCloudStatusUploadIconFontSize: CGFloat = 10.0
 }

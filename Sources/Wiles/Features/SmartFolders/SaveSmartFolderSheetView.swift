@@ -32,7 +32,7 @@ struct SaveSmartFolderSheetView: View {
         let folder = SmartFolder(
             name: folderName,
             icon: "folder.badge.gearshape",
-            searchQuery: appState.searchQuery,
+            searchQuery: appState.selection.searchQuery,
             scopePath: appState.navigation.currentURL.path)
         appState.addSmartFolder(folder)
         dismiss()

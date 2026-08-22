@@ -192,7 +192,7 @@ struct FolderPickerSheet: View {
     /// since it calls `FolderNode.loadChildren(of:)` — a `FileManager` hit — once per ancestor level.
     private func expandAncestors(of url: URL) {
         let home = rootNode.url
-        guard url.standardizedFileURL.path.hasPrefix(home.path) else {
+        guard Self.isWithinOrEqual(url, home) else {
             return
         }
         let alreadyCached = Set(childrenCache.keys)
@@ -212,7 +212,7 @@ struct FolderPickerSheet: View {
         var folders: [URL] = []
         var loadedChildren: [URL: [FolderNode]] = [:]
         var current = url.standardizedFileURL.deletingLastPathComponent()
-        while current.path.hasPrefix(home.path) {
+        while isWithinOrEqual(current, home) {
             folders.append(current)
             if current != home, !alreadyCached.contains(current) {
                 loadedChildren[current] = FolderNode.loadChildren(of: current)
@@ -223,6 +223,17 @@ struct FolderPickerSheet: View {
             current = current.deletingLastPathComponent()
         }
         return AncestorExpansion(folders: folders, loadedChildren: loadedChildren)
+    }
+
+    /// Returns whether `url` is `home` itself or somewhere inside it, compared via standardized path
+    /// components (not raw string prefix) so sibling directories that merely share a string prefix —
+    /// e.g. home `/Users/foo` vs `/Users/foo2` — are never mistaken for an ancestor relationship.
+    /// Mirrors `AppState+Navigation.childToRestore(whenLeaving:movingTo:)`.
+    private nonisolated static func isWithinOrEqual(_ url: URL, _ home: URL) -> Bool {
+        let urlComponents = url.standardizedFileURL.pathComponents
+        let homeComponents = home.standardizedFileURL.pathComponents
+        return urlComponents.count >= homeComponents.count
+            && Array(urlComponents.prefix(homeComponents.count)) == homeComponents
     }
 
     private func applyAncestorExpansion(_ expansion: AncestorExpansion) {

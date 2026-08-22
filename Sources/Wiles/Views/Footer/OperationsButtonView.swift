@@ -20,6 +20,8 @@ struct OperationsButtonView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("OperationsProgressButton")
+        .accessibilityLabel(appState.tr(.backgroundOperations))
+        .accessibilityHint(appState.tr(.operationsButtonHint))
         .popover(isPresented: $showPopover) {
             OperationsPopoverView(appState: appState)
         }

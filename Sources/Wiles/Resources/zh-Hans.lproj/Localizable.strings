@@ -21,6 +21,7 @@
 "addRule" = "Add Rule";
 "addToFavorites" = "Add to Favorites";
 "airDrop" = "隔空投送";
+"airDropEllipsis" = "隔空投送…";
 "aperture" = "光圈";
 "applications" = "应用程序";
 "apply" = "应用";
@@ -41,6 +42,7 @@
 "camera" = "相机";
 "cancel" = "取消";
 "changeAllDefaultApp" = "始终使用此应用打开";
+"changeAllDefaultAppEllipsis" = "始终使用此应用打开…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "清除搜索";
 "close" = "关闭";
@@ -78,6 +80,7 @@
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
 "diskUsageVisualizer" = "Folder Disk Usage Visualizer";
+"diskUsageOthersItemsFormat" = "其他 (%d 个项目)";
 "documents" = "文稿";
 "domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
@@ -89,6 +92,7 @@
 "duration" = "Duration";
 "emptyFolder" = "此文件夹为空";
 "emptyTrash" = "清空废纸篓";
+"emptyTrashEllipsis" = "清空废纸篓…";
 "emptyTrashConfirm" = "确定要永久删除废纸篓中的所有项目吗？";
 "enclosingFolder" = "上级文件夹";
 "enterPassword" = "输入密码";
@@ -232,6 +236,7 @@
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "快速查看";
+"previewUnavailable" = "预览不可用";
 "read" = "读取";
 "recentServers" = "最近的服务器";
 "recents" = "RECENTS";
@@ -346,6 +351,7 @@
 "sidebarTrash" = "Trash";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
+"moveToTrashPartialFailure" = "%d/%d 个项目无法移到废纸篓。";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -442,6 +448,7 @@
 "pdfMergeNoValidPages" = "在提供的文件中未找到有效页面。";
 "pdfMergeWriteFailed" = "无法将合并的 PDF 写入磁盘。";
 "invalidServerURL" = "服务器 URL 无效";
+"serverConnectionFailed" = "无法连接到 %@";
 "imageConverterLoadFailed" = "无法加载位于 %@ 的图像";
 "imageConverterContextFailed" = "无法创建图形上下文";
 "imageConverterRenderFailed" = "无法渲染调整大小后的图像";
@@ -458,5 +465,13 @@
 "exifSectionTitle" = "EXIF";
 "shortcutMacSuffixFormat" = "%@ (Mac)";
 "shortcutWindowsSuffixFormat" = "%@ (Windows)";
+"shortcutModePairSeparatorFormat" = "%@  ·  %@";
 "macintoshHDName" = "Macintosh HD";
 "networkVolumeName" = "网络";
+"operationsButtonHint" = "显示活动后台操作的列表。";
+"saveAsSmartFolderHint" = "将当前搜索保存为智能文件夹。";
+"clearSearchHint" = "清除当前搜索查询。";
+"searchFiltersMenuHint" = "打开菜单以按日期、类型或大小筛选搜索结果。";
+"expandFolder" = "展开";
+"collapseFolder" = "折叠";
+"expandCollapseFolderHint" = "双击以显示或隐藏此文件夹的子文件夹。";

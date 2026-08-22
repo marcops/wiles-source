@@ -49,19 +49,20 @@ struct AboutSheet: View {
             Text(appState.tr(.createdBy))
                 .font(.system(size: LayoutTokens.aboutTextFontSize, weight: .medium))
 
-            HStack(spacing: 6) {
-                Image(systemName: "link")
-                Text(AppConstants.githubDisplayString)
-            }
-            .foregroundColor(.accentColor)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                if let url = URL(string: AppConstants.githubURL) {
-                    openURL(url)
-                }
-            }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(AppConstants.githubDisplayString)
+            TappableRow(
+                accessibilityLabel: AppConstants.githubDisplayString,
+                action: {
+                    if let url = URL(string: AppConstants.githubURL) {
+                        openURL(url)
+                    }
+                },
+                content: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "link")
+                        Text(AppConstants.githubDisplayString)
+                    }
+                    .foregroundColor(.accentColor)
+                })
             .onHover { isHovered in
                 if isHovered {
                     NSCursor.pointingHand.push()

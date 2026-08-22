@@ -52,7 +52,7 @@ public struct FileSystemTests {
         showHidden: Bool = false,
         showTags: Bool = false,
         scope: SearchScope = .name) async -> [FileItem] {
-        await FileSystemService.loadDirectoryContents(
+        (try? await FileSystemService.loadDirectoryContents(
             at: url,
             options: DirectoryLoadOptions(
                 showHidden: showHidden,
@@ -60,7 +60,7 @@ public struct FileSystemTests {
                 searchQuery: query,
                 sortOption: sort,
                 sortAscending: ascending,
-                searchScope: scope))
+                searchScope: scope))) ?? []
     }
 
     private static func runSearchAndSortCoverageExtras() async {

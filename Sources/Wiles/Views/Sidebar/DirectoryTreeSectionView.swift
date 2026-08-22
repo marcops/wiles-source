@@ -5,6 +5,7 @@ struct DirectoryTreeSectionView: View {
     @Binding var isExpanded: Bool
     let rootFolderNode: FolderNode?
     @Binding var childrenCache: BoundedFolderNodeCache
+    @State private var rightClickedNodePath: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -14,7 +15,9 @@ struct DirectoryTreeSectionView: View {
             }
             if !appState.preferences.showSidebarSectionTitles || isExpanded {
                 if let rootFolderNode {
-                    DirectoryTreeNodeView(node: rootFolderNode, depth: 0, appState: appState, childrenCache: $childrenCache)
+                    DirectoryTreeNodeView(
+                        node: rootFolderNode, depth: 0, appState: appState, childrenCache: $childrenCache,
+                        rightClickedNodePath: $rightClickedNodePath)
                 } else {
                     ProgressView()
                         .controlSize(.small)

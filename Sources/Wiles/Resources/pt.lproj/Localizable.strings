@@ -21,6 +21,7 @@
 "addRule" = "Adicionar Regra";
 "addToFavorites" = "Adicionar aos Favoritos";
 "airDrop" = "AirDrop";
+"airDropEllipsis" = "AirDrop…";
 "aperture" = "Abertura";
 "applications" = "Aplicativos";
 "apply" = "Aplicar";
@@ -41,6 +42,7 @@
 "camera" = "Câmera";
 "cancel" = "Cancelar";
 "changeAllDefaultApp" = "Sempre Abrir Com";
+"changeAllDefaultAppEllipsis" = "Sempre Abrir Com…";
 "clearAllTags" = "Limpar Todas as Etiquetas";
 "clearSearch" = "Limpar Busca";
 "close" = "Fechar";
@@ -78,6 +80,7 @@
 "dimensions" = "Dimensões";
 "directoryTree" = "ÁRVORE DE DIRETÓRIOS";
 "diskUsageVisualizer" = "Visualizador de Uso de Disco";
+"diskUsageOthersItemsFormat" = "Outros (%d itens)";
 "documents" = "Documentos";
 "domainToolsTitle" = "Ferramentas do Domínio e Destaques";
 "done" = "Concluído";
@@ -89,6 +92,7 @@
 "duration" = "Duração";
 "emptyFolder" = "Esta Pasta está Vazia";
 "emptyTrash" = "Esvaziar Lixeira";
+"emptyTrashEllipsis" = "Esvaziar Lixeira…";
 "emptyTrashConfirm" = "Tem certeza de que deseja apagar permanentemente todos os itens da Lixeira?";
 "enclosingFolder" = "Pasta Superior";
 "enterPassword" = "Digite a Senha";
@@ -232,6 +236,7 @@
 "quality" = "Qualidade";
 "quickConvertImage" = "Conversão Rápida de Imagem...";
 "quickLook" = "Visualização Rápida";
+"previewUnavailable" = "Pré-visualização Indisponível";
 "read" = "Leitura";
 "recentServers" = "Servidores Recentes";
 "recents" = "Recentes";
@@ -345,6 +350,7 @@
 "yes" = "Sim";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
+"moveToTrashPartialFailure" = "%d de %d itens não puderam ser movidos para a Lixeira.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,6 +447,7 @@
 "pdfMergeNoValidPages" = "Nenhuma página válida encontrada nos arquivos fornecidos.";
 "pdfMergeWriteFailed" = "Não foi possível gravar o PDF mesclado no disco.";
 "invalidServerURL" = "URL do servidor inválida";
+"serverConnectionFailed" = "Não foi possível conectar a %@";
 "imageConverterLoadFailed" = "Falha ao carregar a imagem em %@";
 "imageConverterContextFailed" = "Falha ao criar o contexto gráfico";
 "imageConverterRenderFailed" = "Falha ao renderizar a imagem redimensionada";
@@ -457,5 +464,13 @@
 "exifSectionTitle" = "EXIF";
 "shortcutMacSuffixFormat" = "%@ (Mac)";
 "shortcutWindowsSuffixFormat" = "%@ (Windows)";
+"shortcutModePairSeparatorFormat" = "%@  ·  %@";
 "macintoshHDName" = "Macintosh HD";
 "networkVolumeName" = "Rede";
+"operationsButtonHint" = "Mostra a lista de operações em segundo plano ativas.";
+"saveAsSmartFolderHint" = "Salva a pesquisa atual como uma Pasta Inteligente.";
+"clearSearchHint" = "Limpa a consulta de pesquisa atual.";
+"searchFiltersMenuHint" = "Abre um menu para filtrar os resultados da pesquisa por data, tipo ou tamanho.";
+"expandFolder" = "Expandir";
+"collapseFolder" = "Recolher";
+"expandCollapseFolderHint" = "Toque duas vezes para mostrar ou ocultar as subpastas desta pasta.";

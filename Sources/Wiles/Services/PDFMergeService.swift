@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import PDFKit
 
-public final class PDFMergeService: PDFMergeServiceProtocol, Sendable {
+public final class PDFMergeService: Sendable {
     /// Not @MainActor, and the heavy work runs inside Task.detached: looping over files calling
     /// NSImage(contentsOf:) synchronously decompresses each image's full bitmap into RAM — for
     /// several large photos this alone can take seconds, and doing it on @MainActor (as this used

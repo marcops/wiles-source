@@ -56,14 +56,14 @@ public struct UISearchTests {
         try? "alpha".write(to: fileA, atomically: true, encoding: .utf8)
         try? "beta".write(to: fileB, atomically: true, encoding: .utf8)
 
-        let loaded = await FileSystemService.loadDirectoryContents(
+        let loaded = (try? await FileSystemService.loadDirectoryContents(
             at: tempDir,
             options: DirectoryLoadOptions(
                 showHidden: false,
                 showTags: false,
                 searchQuery: "Alpha",
                 sortOption: .name,
-                sortAscending: true))
+                sortAscending: true))) ?? []
 
         let matching = loaded.map(\.name)
         report(

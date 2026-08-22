@@ -92,10 +92,12 @@ public enum L10n {
         case ejectVolume
         case applications
         case airDrop
+        case airDropEllipsis
         case iCloudDrive
         case freeSpace
         case itemsCount
         case itemsCountWithSize
+        case moveToTrashPartialFailure
         case selectedItemsCount
         case selectedItemsCountWithSize
         case language
@@ -312,6 +314,7 @@ public enum L10n {
         case password
         case others
         case changeAllDefaultApp
+        case changeAllDefaultAppEllipsis
         case recentServers
         case mergeIntoPDF
         case camera
@@ -342,6 +345,7 @@ public enum L10n {
         case namingPattern
         case regexReplace
         case emptyTrash
+        case emptyTrashEllipsis
         case emptyTrashConfirm
         case shortcutsNav
         case shortcutsFileActions
@@ -454,6 +458,7 @@ public enum L10n {
         case pdfMergeNoValidPages
         case pdfMergeWriteFailed
         case invalidServerURL
+        case serverConnectionFailed
         case imageConverterLoadFailed
         case imageConverterContextFailed
         case imageConverterRenderFailed
@@ -470,7 +475,20 @@ public enum L10n {
         case exifSectionTitle
         case shortcutMacSuffixFormat
         case shortcutWindowsSuffixFormat
+        case shortcutModePairSeparatorFormat
         case macintoshHDName
         case networkVolumeName
+        case previewUnavailable
+        case diskUsageOthersItemsFormat
+
+        // MARK: - Accessibility label/hint completeness pass (task: incomplete VoiceOver wiring audit)
+
+        case operationsButtonHint
+        case saveAsSmartFolderHint
+        case clearSearchHint
+        case searchFiltersMenuHint
+        case expandFolder
+        case collapseFolder
+        case expandCollapseFolderHint
     }
 }

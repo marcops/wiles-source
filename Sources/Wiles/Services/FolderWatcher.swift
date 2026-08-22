@@ -31,11 +31,11 @@ final class FolderWatcher {
     }
 
     private func stopAll() {
+        // Each source's cancel handler (set in `startWatching`) closes its own fd once the
+        // cancellation completes asynchronously on the source's queue. Closing here too would
+        // double-close the fd, risking a close of an unrelated fd the OS has since reused.
         for (_, source) in fileMonitors {
             source.cancel()
-        }
-        for (_, fd) in fileDescriptors {
-            close(fd)
         }
         fileMonitors.removeAll()
         fileDescriptors.removeAll()

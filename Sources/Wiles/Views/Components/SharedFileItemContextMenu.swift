@@ -22,19 +22,19 @@ struct SharedFileItemContextMenu: View {
 
     /// Makes `item` the sole selection unless it's already part of the current selection.
     private func ensureItemIsSelected() {
-        if !appState.selectedURLs.contains(item.url) {
-            appState.selectedURLs = [item.url]
+        if !appState.selection.selectedURLs.contains(item.url) {
+            appState.selection.selectedURLs = [item.url]
         }
     }
 
     /// The current selection, or just `item` when nothing is selected. Doesn't check membership.
     private var selectionURLsOrItem: [URL] {
-        appState.selectedURLs.isEmpty ? [item.url] : Array(appState.selectedURLs)
+        appState.selection.selectedURLs.isEmpty ? [item.url] : Array(appState.selection.selectedURLs)
     }
 
     /// The current selection when it includes `item`, otherwise just `item` alone.
     private var itemOrSelectionURLs: [URL] {
-        appState.selectedURLs.contains(item.url) ? Array(appState.selectedURLs) : [item.url]
+        appState.selection.selectedURLs.contains(item.url) ? Array(appState.selection.selectedURLs) : [item.url]
     }
 
     @ViewBuilder private var openSection: some View {
@@ -167,7 +167,7 @@ struct SharedFileItemContextMenu: View {
         Divider()
         Button(appState.trWithShortcutHint(.rename, shortcut: renameKeyboardHint)) {
             ensureItemIsSelected()
-            if appState.selectedURLs.count > 1 {
+            if appState.selection.selectedURLs.count > 1 {
                 windowUIState.showBatchRenameSheet = true
             } else {
                 windowUIState.renameItem = item
@@ -189,7 +189,7 @@ struct SharedFileItemContextMenu: View {
             ensureItemIsSelected()
             windowUIState.symlinkItem = item
         }
-        Button("\(appState.tr(.airDrop))...") {
+        Button(appState.tr(.airDropEllipsis)) {
             if let airDrop = NSSharingService(named: .sendViaAirDrop) {
                 airDrop.perform(withItems: [item.url])
             }
@@ -243,7 +243,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     private func changeDefaultAppMenu(availableApps: [ApplicationApp]) -> some View {
-        Menu(appState.tr(.changeAllDefaultApp) + "...") {
+        Menu(appState.tr(.changeAllDefaultAppEllipsis)) {
             ForEach(availableApps) { app in
                 Button {
                     OpenWithService.setDefaultApplication(for: item.fileExtension, applicationURL: app.url)

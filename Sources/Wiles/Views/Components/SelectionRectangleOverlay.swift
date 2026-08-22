@@ -27,7 +27,7 @@ struct SelectionRectangleOverlay: View {
     }
 
     private func deselectAll() {
-        appState.selectedURLs.removeAll()
+        appState.selection.selectedURLs.removeAll()
         windowUIState.renameItem = nil
     }
 
@@ -76,15 +76,15 @@ struct SelectionRectangleOverlay: View {
     private func applySelection(matching rect: CGRect) {
         let matched = Set(cellFramesProvider().filter { $0.value.intersects(rect) }.keys)
         let resolved: Set<URL> = if NSEvent.modifierFlags.contains(.command) {
-            appState.selectedURLs.union(matched)
+            appState.selection.selectedURLs.union(matched)
         } else {
             matched
         }
         // Only write when the resolved set actually differs — every row reads `selectedURLs`
         // to compute `isSel`, so a write here re-renders the entire visible list. Small mouse
         // movements within the same set of rows would otherwise re-trigger that on every tick.
-        if resolved != appState.selectedURLs {
-            appState.selectedURLs = resolved
+        if resolved != appState.selection.selectedURLs {
+            appState.selection.selectedURLs = resolved
         }
     }
 }

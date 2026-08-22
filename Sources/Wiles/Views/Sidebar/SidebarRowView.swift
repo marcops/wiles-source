@@ -129,7 +129,7 @@ struct SidebarRowView: View {
         favoriteToggleButton
         if isTrash {
             Divider()
-            Button("\(appState.tr(.emptyTrash))...") {
+            Button(appState.tr(.emptyTrashEllipsis)) {
                 windowUIState.showEmptyTrashAlert = true
             }
         }

@@ -27,11 +27,6 @@ struct ColumnResizeHandle: View {
         }
         .onHover { hovering in
             withAnimation(MotionTokens.quickEase) { isHovered = hovering }
-            if hovering {
-                NSCursor.resizeLeftRight.push()
-            } else {
-                NSCursor.pop()
-            }
         }
         .onTapGesture(count: 2) {
             appState.autoFitColumnWidth(column)
@@ -54,7 +49,6 @@ struct ColumnResizeHandle: View {
                 .onEnded { _ in
                     dragStartWidth = nil
                     appState.persistColumnWidths()
-                    NSCursor.pop()
                 })
         .cursor(.resizeLeftRight)
     }

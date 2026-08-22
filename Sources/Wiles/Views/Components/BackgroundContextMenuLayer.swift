@@ -11,7 +11,7 @@ struct BackgroundContextMenuLayer: View {
             .contentShape(Rectangle())
             .overlay(
                 RightClickDetector {
-                    appState.selectedURLs.removeAll()
+                    appState.selection.selectedURLs.removeAll()
                     windowUIState.renameItem = nil
                 })
             .contextMenu {

@@ -23,7 +23,7 @@ struct SharedBackgroundContextMenu: View {
             Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { }.disabled(true)
         }
         Button(appState.trWithShortcutHint(.selectAll, shortcut: "Cmd+A")) {
-            appState.selectedURLs = Set(appState.fileSystem.items.map(\.url))
+            appState.selection.selectedURLs = Set(appState.fileSystem.items.map(\.url))
         }
         Divider()
         Menu(appState.tr(.copyPath)) {

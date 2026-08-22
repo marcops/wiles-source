@@ -1,7 +1,7 @@
 import Foundation
 import ImageIO
 
-public enum ExifMetadataService: ExifMetadataServiceProtocol, Sendable {
+public enum ExifMetadataService: Sendable {
     public static func extractExif(from url: URL) -> ExifMetadata? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {

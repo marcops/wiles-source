@@ -2,14 +2,10 @@ import SwiftUI
 
 /// "Wiles" app menu: About + Settings. Split out of `WilesApp.swift` — pure code motion, no
 /// behavior change.
-struct AppMenuCommands: Commands {
+struct AppMenuCommands: LocalizedCommands {
     let sharedPreferences: PreferencesStore
     @FocusedValue(\.windowUIState)
     private var windowUIState
-
-    private func tr(_ key: L10n.Key) -> String {
-        L10n.string(key, lang: sharedPreferences.appLanguage)
-    }
 
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {

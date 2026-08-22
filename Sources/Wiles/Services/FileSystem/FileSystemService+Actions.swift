@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import GitBeacon
 
@@ -16,11 +15,26 @@ public extension FileSystemService {
             throw WilesError.itemAlreadyInDestination
         }
 
-        if FileManager.default.fileExists(atPath: destURL.path) {
-            try FileManager.default.removeItem(at: destURL)
+        // When the destination doesn't exist yet, there's nothing to replace — a plain move
+        // is correct and matches prior behavior.
+        guard FileManager.default.fileExists(atPath: destURL.path) else {
+            try FileManager.default.moveItem(at: url, to: destURL)
+            return destURL
         }
-        try FileManager.default.moveItem(at: url, to: destURL)
-        return destURL
+
+        // When the destination already exists, `replaceItemAt` performs an atomic overwrite-move:
+        // the source only replaces the destination's contents once the operation is guaranteed to
+        // succeed. Unlike remove-then-move, a failure here (permissions, disk full, source vanishing
+        // mid-operation) can never leave the destination half-deleted with nothing to replace it.
+        var resultingURL: NSURL?
+        try FileManager.default.replaceItem(
+            at: destURL,
+            withItemAt: url,
+            backupItemName: nil,
+            options: [],
+            resultingItemURL: &resultingURL
+        )
+        return (resultingURL as URL?) ?? destURL
     }
 
     @discardableResult
@@ -33,7 +47,10 @@ public extension FileSystemService {
     /// Pasting a copy on top of a name that already exists in the destination should never fail
     /// with a "couldn't be copied" error — like Finder, it should just find a free name. Appends
     /// `_1`, `_2`, ... before the extension until the name is free.
-    private static func uniqueDestination(for name: String, in folder: URL) -> URL {
+    ///
+    /// Internal (not `private`) so `PasteboardService.createFileFromPasteboardContent` can reuse
+    /// the same free-name logic instead of duplicating it.
+    static func uniqueDestination(for name: String, in folder: URL) -> URL {
         var destURL = folder.appendingPathComponent(name)
         guard FileManager.default.fileExists(atPath: destURL.path) else { return destURL }
 
@@ -81,73 +98,6 @@ public extension FileSystemService {
         }
         try FileManager.default.createDirectory(at: candidate, withIntermediateDirectories: false)
         return candidate
-    }
-
-    static func writeToPasteboard(urls: [URL]) {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.writeObjects(urls as [NSURL])
-    }
-
-    static func readFromPasteboard() -> [URL]? {
-        let pb = NSPasteboard.general
-        return pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL]
-    }
-
-    /// Pasting with nothing "file-shaped" on the pasteboard (no dragged/copied files) still does
-    /// something useful, matching Finder's "New Item from Clipboard": a copied screenshot or image
-    /// becomes a new `.png`, and copied text becomes a new `.txt`, right in the current folder.
-    /// Checked in that order since some image sources also expose a redundant string
-    /// representation on the same pasteboard. Returns `nil` only when there's genuinely nothing
-    /// pasteable; a disk write failure once content was found instead throws, so the caller can
-    /// surface it instead of it disappearing silently.
-    @discardableResult
-    static func createFileFromPasteboardContent(in folder: URL) throws -> URL? {
-        let pb = NSPasteboard.general
-        if let image = pb.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage,
-           let pngData = pngData(for: image) {
-            let destURL = uniqueDestination(for: "Pasted Image.png", in: folder)
-            try pngData.write(to: destURL)
-            return destURL
-        }
-        if let text = pb.string(forType: .string), !text.isEmpty {
-            let destURL = uniqueDestination(for: "Pasted Text.txt", in: folder)
-            try text.write(to: destURL, atomically: true, encoding: .utf8)
-            return destURL
-        }
-        return nil
-    }
-
-    private static func pngData(for image: NSImage) -> Data? {
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData) else { return nil }
-        return bitmap.representation(using: .png, properties: [:])
-    }
-
-    static func copyFileContentToClipboard(url: URL) {
-        // Reading the file (up to 10MB) can stall for seconds on a slow or stalled
-        // network/SMB mount. Perform the read off the main actor and round-trip only the
-        // resulting string back, mirroring the /Volumes slow-mount pattern used by
-        // AppState+Navigation.swift's navigateTo. The signature stays synchronous to satisfy
-        // FileSystemServiceProtocol; the heavy work is dispatched internally instead.
-        Task.detached(priority: .userInitiated) {
-            do {
-                let values = try url.resourceValues(forKeys: [.fileSizeKey])
-                guard let size = values.fileSize, size < 10_000_000 else { return }
-                let content = try String(contentsOf: url)
-                await copyToClipboard(content)
-            } catch {
-                ErrorReporter.report(error, context: "Copying file content to clipboard for \(url.path)")
-            }
-        }
-    }
-
-    private static func copyToClipboard(_ content: String) async {
-        await MainActor.run {
-            let pb = NSPasteboard.general
-            pb.clearContents()
-            pb.setString(content, forType: .string)
-        }
     }
 
     static func compressToZIP(urls: [URL], in destinationFolder: URL) throws {

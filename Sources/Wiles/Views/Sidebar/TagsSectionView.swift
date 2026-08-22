@@ -19,12 +19,12 @@ struct TagsSectionView: View {
 
     private func tagRow(tag: String, colorKey: L10n.Key) -> some View {
         let query = "tag:\(tag.lowercased())"
-        let isSel = appState.searchQuery.lowercased() == query
+        let isSel = appState.selection.searchQuery.lowercased() == query
         return Button {
             if isSel {
-                appState.searchQuery = ""
+                appState.selection.searchQuery = ""
             } else {
-                appState.searchQuery = query
+                appState.selection.searchQuery = query
             }
         } label: {
             HStack(spacing: 10) {

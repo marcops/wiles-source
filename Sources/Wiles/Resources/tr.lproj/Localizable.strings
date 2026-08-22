@@ -21,6 +21,7 @@
 "addRule" = "Add Rule";
 "addToFavorites" = "Add to Favorites";
 "airDrop" = "AirDrop";
+"airDropEllipsis" = "AirDrop…";
 "aperture" = "Diyafram";
 "applications" = "Uygulamalar";
 "apply" = "Uygula";
@@ -41,6 +42,7 @@
 "camera" = "Kamera";
 "cancel" = "Vazgeç";
 "changeAllDefaultApp" = "Her Zaman Birlikte Aç";
+"changeAllDefaultAppEllipsis" = "Her Zaman Birlikte Aç…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "Aramayı Temizle";
 "close" = "Kapat";
@@ -78,6 +80,7 @@
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
 "diskUsageVisualizer" = "Folder Disk Usage Visualizer";
+"diskUsageOthersItemsFormat" = "Diğerleri (%d öğe)";
 "documents" = "Belgeler";
 "domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
@@ -89,6 +92,7 @@
 "duration" = "Duration";
 "emptyFolder" = "Bu Klasör Boş";
 "emptyTrash" = "Çöp Kutusunu Boşalt";
+"emptyTrashEllipsis" = "Çöp Kutusunu Boşalt…";
 "emptyTrashConfirm" = "Çöp Kutusundaki tüm öğeleri kalıcı olarak silmek istediğinizden emin misiniz?";
 "enclosingFolder" = "Üst Klasör";
 "enterPassword" = "Parolayı Girin";
@@ -232,6 +236,7 @@
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "Hızlı Bakış";
+"previewUnavailable" = "Önizleme Kullanılamıyor";
 "read" = "Okuma";
 "recentServers" = "Son Sunucular";
 "recents" = "RECENTS";
@@ -346,6 +351,7 @@
 "sidebarTrash" = "Trash";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
+"moveToTrashPartialFailure" = "%d öğeden %d tanesi Çöp Kutusu'na taşınamadı.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -442,6 +448,7 @@
 "pdfMergeNoValidPages" = "Sağlanan dosyalarda geçerli sayfa bulunamadı.";
 "pdfMergeWriteFailed" = "Birleştirilmiş PDF diske yazılamadı.";
 "invalidServerURL" = "Geçersiz sunucu URL'si";
+"serverConnectionFailed" = "%@ bağlantısı kurulamadı";
 "imageConverterLoadFailed" = "%@ konumundaki görüntü yüklenemedi";
 "imageConverterContextFailed" = "Grafik bağlamı oluşturulamadı";
 "imageConverterRenderFailed" = "Yeniden boyutlandırılan görüntü işlenemedi";
@@ -458,5 +465,13 @@
 "exifSectionTitle" = "EXIF";
 "shortcutMacSuffixFormat" = "%@ (Mac)";
 "shortcutWindowsSuffixFormat" = "%@ (Windows)";
+"shortcutModePairSeparatorFormat" = "%@  ·  %@";
 "macintoshHDName" = "Macintosh HD";
 "networkVolumeName" = "Ağ";
+"operationsButtonHint" = "Etkin arka plan işlemlerinin listesini gösterir.";
+"saveAsSmartFolderHint" = "Geçerli aramayı Akıllı Klasör olarak kaydeder.";
+"clearSearchHint" = "Geçerli arama sorgusunu temizler.";
+"searchFiltersMenuHint" = "Arama sonuçlarını tarihe, türe veya boyuta göre filtrelemek için bir menü açar.";
+"expandFolder" = "Genişlet";
+"collapseFolder" = "Daralt";
+"expandCollapseFolderHint" = "Bu klasörün alt klasörlerini göstermek veya gizlemek için iki kez dokunun.";

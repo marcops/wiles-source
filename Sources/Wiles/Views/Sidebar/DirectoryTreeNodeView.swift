@@ -5,13 +5,16 @@ struct DirectoryTreeNodeView: View {
     let depth: Int
     var appState: AppState
     @Binding var childrenCache: BoundedFolderNodeCache
-    @State private var isRightClicked = false
+    @Binding var rightClickedNodePath: String?
 
-    init(node: FolderNode, depth: Int = 0, appState: AppState, childrenCache: Binding<BoundedFolderNodeCache>) {
+    init(
+        node: FolderNode, depth: Int = 0, appState: AppState, childrenCache: Binding<BoundedFolderNodeCache>,
+        rightClickedNodePath: Binding<String?>) {
         self.node = node
         self.depth = depth
         self.appState = appState
         _childrenCache = childrenCache
+        _rightClickedNodePath = rightClickedNodePath
     }
 
     /// Deep folders (outside the eagerly-loaded home ancestor chain) arrive with `node.children == nil`
@@ -29,7 +32,9 @@ struct DirectoryTreeNodeView: View {
             rowContent
             if node.hasSubfolders, isExpanded, let children {
                 ForEach(children) { child in
-                    Self(node: child, depth: depth + 1, appState: appState, childrenCache: $childrenCache)
+                    Self(
+                        node: child, depth: depth + 1, appState: appState, childrenCache: $childrenCache,
+                        rightClickedNodePath: $rightClickedNodePath)
                 }
             }
         }
@@ -64,7 +69,8 @@ struct DirectoryTreeNodeView: View {
     /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
     /// composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
     private var rowContent: some View {
-        let isSel = appState.navigation.currentURL.standardizedFileURL == node.url.standardizedFileURL || isRightClicked
+        let isSel = appState.navigation.currentURL.standardizedFileURL == node.url.standardizedFileURL
+            || rightClickedNodePath == node.url.path
         return HStack(spacing: 6) {
             if node.hasSubfolders {
                 Image(systemName: "chevron.right")
@@ -75,6 +81,8 @@ struct DirectoryTreeNodeView: View {
                     .contentShape(Rectangle())
                     .onTapGesture { toggleExpanded() }
                     .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel(appState.tr(isExpanded ? .collapseFolder : .expandFolder))
+                    .accessibilityHint(appState.tr(.expandCollapseFolderHint))
             } else {
                 Color.clear.frame(width: 10)
             }
@@ -93,14 +101,14 @@ struct DirectoryTreeNodeView: View {
         .cornerRadius(6)
         .contentShape(Rectangle())
         .onTapGesture {
-            isRightClicked = false
+            rightClickedNodePath = nil
             appState.navigateTo(node.url)
         }
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(node.name)
         .accessibilityHint(appState.tr(.folder))
         .overlay(
-            RightClickDetector { isRightClicked = true })
+            RightClickDetector { rightClickedNodePath = node.url.path })
         .contextMenu {
             SidebarItemContextMenu(url: node.url, appState: appState)
         }

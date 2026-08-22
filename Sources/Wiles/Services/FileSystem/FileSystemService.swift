@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import GitBeacon
 
 public extension URL {
     static let userHome: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -12,11 +13,11 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
     /// `AppState` is `@MainActor`-isolated and this function runs off the main actor.
     private static let virtualRecentsPath = "/virtual/recents"
 
-    public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
+    public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async throws -> [FileItem] {
         if url.path == virtualRecentsPath {
             return await loadRecentsVirtualDirectory(options: options)
         }
-        return await loadRealDirectoryContents(at: url, options: options)
+        return try await loadRealDirectoryContents(at: url, options: options)
     }
 
     private static func loadRecentsVirtualDirectory(options: DirectoryLoadOptions) async -> [FileItem] {
@@ -47,14 +48,31 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         }.value
     }
 
-    private static func loadRealDirectoryContents(at url: URL, options: DirectoryLoadOptions) async -> [FileItem] {
-        await Task.detached(priority: .userInitiated) {
-            loadRealDirectoryContentsSync(at: url, options: options)
+    private static func loadRealDirectoryContents(at url: URL, options: DirectoryLoadOptions) async throws -> [FileItem] {
+        try await Task.detached(priority: .userInitiated) {
+            try loadRealDirectoryContentsSync(at: url, options: options)
         }.value
     }
 
-    private static func loadRealDirectoryContentsSync(at url: URL, options: DirectoryLoadOptions) -> [FileItem] {
-        let fm = FileManager.default
+    /// A directory that no longer exists (deleted, unmounted, or moved out from under the user
+    /// while they were viewing it) is treated as empty — matching prior behavior and the "folder
+    /// vanished during navigation" flow, not a real failure worth an alert. Any other failure
+    /// (most notably permission denied on a protected folder) is a genuine read error that must be
+    /// distinguishable from "this folder legitimately has zero items," so it's reported and
+    /// re-thrown for the caller to surface to the user.
+    private static func directoryEntries(at url: URL, keys: [URLResourceKey]) throws -> [URL] {
+        do {
+            return try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsSubdirectoryDescendants])
+        } catch {
+            if let cocoaError = error as? CocoaError, cocoaError.code == .fileReadNoSuchFile {
+                return []
+            }
+            ErrorReporter.report(error, context: "Listing directory contents at \(url.path)")
+            throw error
+        }
+    }
+
+    private static func loadRealDirectoryContentsSync(at url: URL, options: DirectoryLoadOptions) throws -> [FileItem] {
         // Prefetching creationDateKey/contentAccessDateKey/effectiveIconKey here — not just the
         // keys FileItem strictly needs for its primary fields — means FileItem's own
         // resourceValues(forKeys:) call below hits URL's warm resource cache for all of them
@@ -71,9 +89,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             keys.append(.tagNamesKey)
             keys.append(.labelColorKey)
         }
-        guard let fileURLs = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsSubdirectoryDescendants]) else {
-            return []
-        }
+        let fileURLs = try directoryEntries(at: url, keys: keys)
 
         let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
         var items: [FileItem] = []
@@ -117,9 +133,9 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         at root: URL,
         options: DirectoryLoadOptions,
         includeHidden: Bool,
-        onBatch: @escaping @Sendable ([FileItem]) -> Void) async {
-        await Task.detached(priority: .userInitiated) {
-            performRecursiveSearch(at: root, options: options, includeHidden: includeHidden, onBatch: onBatch)
+        onBatch: @escaping @Sendable ([FileItem]) -> Void) async throws {
+        try await Task.detached(priority: .userInitiated) {
+            try performRecursiveSearch(at: root, options: options, includeHidden: includeHidden, onBatch: onBatch)
         }.value
     }
 
@@ -157,10 +173,16 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         at root: URL,
         options: DirectoryLoadOptions,
         includeHidden: Bool,
-        onBatch: @escaping @Sendable ([FileItem]) -> Void) {
+        onBatch: @escaping @Sendable ([FileItem]) -> Void) throws {
         guard let enumerator = makeRecursiveSearchEnumerator(at: root, options: options, includeHidden: includeHidden) else {
-            onBatch([])
-            return
+            // `FileManager.enumerator(at:)` returns nil (rather than an empty enumerator) when the
+            // root itself can't be read at all — most commonly permission denied. Previously this
+            // silently reported zero results, indistinguishable from a genuinely empty tree; now it's
+            // reported and thrown so the caller can surface a real error instead of a misleading
+            // "nothing found."
+            let error = WilesError.permissionDenied(path: root.path)
+            ErrorReporter.report(error, context: "Starting recursive search enumerator at \(root.path)")
+            throw error
         }
 
         let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)

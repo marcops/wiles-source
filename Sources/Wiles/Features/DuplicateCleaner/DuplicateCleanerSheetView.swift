@@ -159,7 +159,8 @@ public struct DuplicateCleanerSheetView: View {
                 DirectoryCacheService.shared.invalidate(url: appState.navigation.currentURL)
                 appState.refreshCurrentDirectory()
                 if failureCount > 0 {
-                    appState.showError(WilesError.operationFailed(reason: "\(failureCount) of \(urls.count) items could not be moved to Trash."))
+                    let reason = String(format: appState.tr(.moveToTrashPartialFailure), failureCount, urls.count)
+                    appState.showError(WilesError.operationFailed(reason: reason))
                 }
             }
         }

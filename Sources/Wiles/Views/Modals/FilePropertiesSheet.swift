@@ -24,8 +24,8 @@ struct FilePropertiesSheet: View {
             title: item.name,
             subtitle: "\(kindText) • \(item.formattedSize)",
             iconSize: LayoutTokens.modalHeaderIconSizeLarge,
-            width: 400,
-            height: 500,
+            width: LayoutTokens.filePropertiesSheetWidth,
+            height: LayoutTokens.filePropertiesSheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.close)) { dismiss() },
             content: { contentArea })
             .task {

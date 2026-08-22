@@ -83,7 +83,7 @@ public enum DiskSpaceVisualizerService {
             let dummyURL = folderURL.appendingPathComponent("Others (\(othersSlice.count))")
             othersItem = DiskUsageItem(
                 url: dummyURL,
-                name: "Others (\(othersSlice.count) items)",
+                name: String(format: L10n.string(.diskUsageOthersItemsFormat, lang: .system), othersSlice.count),
                 size: othersTotalSize,
                 percentage: pct,
                 isDirectory: true,

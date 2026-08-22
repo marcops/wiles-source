@@ -88,8 +88,8 @@ struct FeedbackSheetView: View {
 
     /// `Picker(selection:).pickerStyle(.radioGroup)` always stacks vertically on macOS — there is no
     /// public SwiftUI API to force it horizontal — so this hand-rolls the two options side by side.
-    /// Composite content (icon + text), so per rule 33 it's a plain view + `.onTapGesture`, not a
-    /// real `Button`.
+    /// Composite content (icon + text), rendered via `TappableRow` (rule 33) rather than a real
+    /// `Button`.
     private var kindSelector: some View {
         HStack(spacing: 20) {
             radioOption(.feature, label: appState.tr(.feedbackKindFeature))
@@ -100,19 +100,21 @@ struct FeedbackSheetView: View {
 
     private func radioOption(_ value: UserReportKind, label: String) -> some View {
         let isSelected = kind == value
-        return HStack(spacing: 6) {
-            Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
-                .foregroundColor(isSelected ? .accentColor : .secondary)
-            Text(label)
-                .font(.system(size: 12))
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { kind = value }
-        .opacity(isSubmitting ? 0.5 : 1)
-        .allowsHitTesting(!isSubmitting)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-        .accessibilityLabel(label)
-        .accessibilityHint(appState.tr(.feedbackKindSelectionHint))
+        return TappableRow(
+            accessibilityLabel: label,
+            accessibilityHint: appState.tr(.feedbackKindSelectionHint),
+            isSelected: isSelected,
+            action: { kind = value },
+            content: {
+                HStack(spacing: 6) {
+                    Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                        .foregroundColor(isSelected ? .accentColor : .secondary)
+                    Text(label)
+                        .font(.system(size: 12))
+                }
+            })
+            .opacity(isSubmitting ? 0.5 : 1)
+            .allowsHitTesting(!isSubmitting)
     }
 
     private var descriptionField: some View {

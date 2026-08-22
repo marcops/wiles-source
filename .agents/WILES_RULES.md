@@ -21,6 +21,12 @@ Some of `SWIFT_LANG_RULES.md`'s rules are mechanically enforced here via `.swift
 - Never duplicate context menus, selection handlers, drag & drop handlers (`.fileItemInteractions`), hover highlighting (`.hoverHighlight`), icon rendering (`FileItemIconView`), or empty state indicators (`EmptyDirectoryView`) across `FileGridView`, `FileListView`, and `SidebarView`. Always use the shared ViewModifiers/components.
 - Keep Views focused on layout declaration, Services (`FileSystemService`, `LocalizationService`, `ZipArchiveService`, etc.) focused on system logic, and `AppState` focused on application state.
 
+## Self-Contained Feature Folder Shape
+
+- Every self-contained feature lives under `Features/<Name>/` and pairs a `<Name>Service.swift` (the logic — filesystem work, parsing, computation) with a `<Name>SheetView.swift` (the UI, built on `ModalScaffoldView` per `WILES_UI_UX_RULES.md`). A `<Name>ServiceProtocol.swift` is added only when there's a genuine need for dependency injection/testability (e.g. to mock filesystem access in tests) — not by default for every new feature.
+- Existing features following this shape: `ArchiveInspector` (`ArchiveInspectionService` + `ArchiveInspectionServiceProtocol` + `ArchiveInspectionSheetView`), `BatchRename` (`BatchRenameService` + `BatchRenameSheetView`), `DuplicateCleaner` (`DuplicateDetectionService` + `DuplicateCleanerSheetView`), `HttpSharing` (`LocalHttpServerService` + `HttpShareSheet`), `ImageConverter` (`ImageConverterService` + `ImageConverterSheetView`), and `SmartFolders` (`SmartFolderService` + `SmartFolderServiceProtocol` + `SaveSmartFolderSheetView`).
+- `FileShredder` is the one outlier, not a model to copy: it's a `FileShredderService` invoked directly as a context-menu action (from `AppState+Operations.swift`) with no dedicated sheet, since shredding needs no configuration UI of its own. A new feature should default to the Service + SheetView pair above unless it has the same no-UI-needed shape.
+
 ## Complete State Persistence
 
 - Every UI preference or state change (status bar visibility, icon size, view mode, sidebar mode, shortcut mode, section collapse states for `FAVORITES`/`MAC`/`RECENTS`/`DEVICES`/`DIRECTORY TREE`, expanded folder paths, language preference) MUST be saved to `UserDefaults` and restored exactly on next launch.

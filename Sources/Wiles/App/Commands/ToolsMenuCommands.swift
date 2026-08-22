@@ -2,16 +2,12 @@ import SwiftUI
 
 /// Tools menu: auto-organization, duplicate finder, copy-path variants. Split out of
 /// `WilesApp.swift` — pure code motion, no behavior change.
-struct ToolsMenuCommands: Commands {
+struct ToolsMenuCommands: LocalizedCommands {
     let sharedPreferences: PreferencesStore
     @FocusedValue(\.appState)
     private var appState
     @FocusedValue(\.windowUIState)
     private var windowUIState
-
-    private func tr(_ key: L10n.Key) -> String {
-        L10n.string(key, lang: sharedPreferences.appLanguage)
-    }
 
     var body: some Commands {
         CommandMenu(tr(.toolsMenuTitle)) {

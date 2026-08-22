@@ -1,10 +1,7 @@
 import AppKit
 import Foundation
+import GitBeacon
 import SwiftUI
-
-/// Caps `navigation.historyBack`/`navigation.historyForward` so a long session of folder-hopping
-/// doesn't grow these arrays (and the recent-folders UI they drive) without bound.
-private let maxNavigationHistoryCount = 200
 
 public extension AppState {
     func navigateTo(_ url: URL, addToHistory: Bool = true) {
@@ -13,7 +10,7 @@ public extension AppState {
             navigateToRecentsVirtual(addToHistory: addToHistory)
             return
         }
-        addToRecents(url)
+        navigation.addToRecents(url)
         // fileExists(atPath:) is a synchronous disk call. For a local path it resolves in
         // microseconds, so we check it inline to keep navigation instant. But for anything under
         // /Volumes — an SMB/FTP/SFTP share or external drive — the same call can block for many
@@ -36,18 +33,14 @@ public extension AppState {
     }
 
     private func navigateToRecentsVirtual(addToHistory: Bool) {
-        if addToHistory, Self.recentsVirtualURL != navigation.currentURL {
-            navigation.historyBack.append(navigation.currentURL)
-            if navigation.historyBack.count > maxNavigationHistoryCount {
-                navigation.historyBack.removeFirst()
-            }
-            navigation.historyForward.removeAll()
+        if addToHistory {
+            navigation.recordVisit(to: Self.recentsVirtualURL)
         }
         navigation.currentURL = Self.recentsVirtualURL
         smartFolder.activeFolderID = nil
-        selectedURLs.removeAll()
-        isSearching = false
-        searchQuery = ""
+        selection.selectedURLs.removeAll()
+        selection.isSearching = false
+        selection.searchQuery = ""
         refreshCurrentDirectory()
     }
 
@@ -58,19 +51,15 @@ public extension AppState {
         }
         let standardizedURL = url.standardizedFileURL
         let leavingChildURL = childToRestore(whenLeaving: navigation.currentURL, movingTo: standardizedURL)
-        if addToHistory, standardizedURL != navigation.currentURL {
-            navigation.historyBack.append(navigation.currentURL)
-            if navigation.historyBack.count > maxNavigationHistoryCount {
-                navigation.historyBack.removeFirst()
-            }
-            navigation.historyForward.removeAll()
+        if addToHistory {
+            navigation.recordVisit(to: standardizedURL)
         }
         navigation.currentURL = standardizedURL
         smartFolder.activeFolderID = nil
-        selectedURLs.removeAll()
+        selection.selectedURLs.removeAll()
         selection.pendingSelectionURL = leavingChildURL
-        isSearching = false
-        searchQuery = ""
+        selection.isSearching = false
+        selection.searchQuery = ""
         refreshCurrentDirectory()
     }
 
@@ -85,20 +74,12 @@ public extension AppState {
     }
 
     func goBack() {
-        guard let prev = navigation.historyBack.popLast() else { return }
-        navigation.historyForward.append(navigation.currentURL)
-        if navigation.historyForward.count > maxNavigationHistoryCount {
-            navigation.historyForward.removeFirst()
-        }
+        guard let prev = navigation.popBackForGoBack() else { return }
         navigateTo(prev, addToHistory: false)
     }
 
     func goForward() {
-        guard let next = navigation.historyForward.popLast() else { return }
-        navigation.historyBack.append(navigation.currentURL)
-        if navigation.historyBack.count > maxNavigationHistoryCount {
-            navigation.historyBack.removeFirst()
-        }
+        guard let next = navigation.popForwardForGoForward() else { return }
         navigateTo(next, addToHistory: false)
     }
 
@@ -124,11 +105,19 @@ public extension AppState {
         let caseSensitive: Bool
     }
 
+    func startDirectoryMonitoring(for url: URL) {
+        fileSystem.startDirectoryMonitoring(for: url) { [weak self] in
+            Task { @MainActor in
+                self?.refreshCurrentDirectory(isUserInitiated: false)
+            }
+        }
+    }
+
     func refreshCurrentDirectory(isUserInitiated: Bool = false) {
         if isUserInitiated, fileSystem.items.isEmpty {
             fileSystem.isLoading = true
         }
-        let query = searchQuery
+        let query = selection.searchQuery
         let snapshot = RefreshSnapshot(
             target: navigation.currentURL,
             hidden: preferences.showHiddenFiles,
@@ -169,20 +158,50 @@ public extension AppState {
             searchScope: snapshot.scope,
             searchCaseSensitive: snapshot.caseSensitive)
         if snapshot.searchEverywhere {
-            await FileSystemService.loadRecursiveSearchResults(at: .userHome, options: options, includeHidden: includeHidden) { [weak self] batch in
+            await performSearchEverywhereRefresh(target: target, query: query, options: options, includeHidden: includeHidden)
+        } else {
+            await performDirectoryRefresh(target: target, query: query, options: options)
+        }
+    }
+
+    private func performSearchEverywhereRefresh(target: URL, query: String, options: DirectoryLoadOptions, includeHidden: Bool) async {
+        do {
+            try await FileSystemService.loadRecursiveSearchResults(at: .userHome, options: options, includeHidden: includeHidden) { [weak self] batch in
                 Task { @MainActor in
                     guard let self, !Task.isCancelled else { return }
-                    guard self.navigation.currentURL == target, self.searchQuery == query else { return }
+                    guard self.navigation.currentURL == target, self.selection.searchQuery == query else { return }
                     self.applyLoadedItems(batch, target: target)
                 }
             }
-        } else {
-            let loaded = await FileSystemService.loadDirectoryContents(at: target, options: options)
+        } catch {
+            ErrorReporter.report(error, context: "Searching everywhere from \(target.path)")
             guard !Task.isCancelled else { return }
-            if navigation.currentURL == target, searchQuery == query {
+            if navigation.currentURL == target, selection.searchQuery == query {
+                await MainActor.run {
+                    self.showError(error)
+                    self.fileSystem.isLoading = false
+                }
+            }
+        }
+    }
+
+    private func performDirectoryRefresh(target: URL, query: String, options: DirectoryLoadOptions) async {
+        do {
+            let loaded = try await FileSystemService.loadDirectoryContents(at: target, options: options)
+            guard !Task.isCancelled else { return }
+            if navigation.currentURL == target, selection.searchQuery == query {
                 await MainActor.run {
                     self.applyLoadedItems(loaded, target: target)
                     self.refreshTrashSizeIfNeeded(target: target)
+                }
+            }
+        } catch {
+            ErrorReporter.report(error, context: "Loading directory contents for \(target.path)")
+            guard !Task.isCancelled else { return }
+            if navigation.currentURL == target, selection.searchQuery == query {
+                await MainActor.run {
+                    self.showError(error)
+                    self.fileSystem.isLoading = false
                 }
             }
         }
@@ -215,21 +234,8 @@ public extension AppState {
         if let pending = selection.pendingSelectionURL {
             selection.pendingSelectionURL = nil
             if loaded.contains(where: { $0.url == pending }) {
-                selectedURLs = [pending]
+                selection.selectedURLs = [pending]
             }
         }
-    }
-
-    func addToRecents(_ url: URL) {
-        let std = url.standardizedFileURL
-        if std == Self.recentsVirtualURL || std.scheme == "wiles" {
-            return
-        }
-        var current = navigation.recentOpenedURLs.filter { $0.standardizedFileURL != std }
-        current.insert(std, at: 0)
-        if current.count > 50 {
-            current = Array(current.prefix(50))
-        }
-        navigation.recentOpenedURLs = current
     }
 }
