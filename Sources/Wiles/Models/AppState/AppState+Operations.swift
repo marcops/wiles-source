@@ -287,16 +287,24 @@ public extension AppState {
         Task.detached(priority: priority) { [weak self] in
             do {
                 try await operation()
-                await MainActor.run {
-                    onSuccess?()
-                    self?.refreshCurrentDirectory()
-                }
+                guard let self else { return }
+                await handleDetachedOperationSuccess(onSuccess: onSuccess)
             } catch {
                 ErrorReporter.report(error, context: context)
-                await MainActor.run {
-                    self?.showError(error.localizedDescription)
-                }
+                guard let self else { return }
+                await handleDetachedOperationFailure(error)
             }
         }
+    }
+
+    @MainActor
+    private func handleDetachedOperationSuccess(onSuccess: (@MainActor () -> Void)?) {
+        onSuccess?()
+        refreshCurrentDirectory()
+    }
+
+    @MainActor
+    private func handleDetachedOperationFailure(_ error: Error) {
+        showError(error.localizedDescription)
     }
 }
