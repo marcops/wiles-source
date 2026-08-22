@@ -30,7 +30,7 @@ struct TagsSectionView: View {
             HStack(spacing: 10) {
                 Circle().fill(colorForTag(tag)).frame(width: 10, height: 10).frame(width: 20, height: 20)
                 Text(appState.tr(colorKey))
-                    .font(.system(size: 13, weight: isSel ? .semibold : .regular, design: .rounded))
+                    .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                     .foregroundColor(.primary)
                 Spacer()
             }
