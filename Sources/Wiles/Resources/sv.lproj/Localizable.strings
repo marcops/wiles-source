@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Anslut till en delad mapp på ditt nätverk";
 "deleteAutoOrgRuleConfirmMessage" = "Ta bort den här regeln för automatisk organisering?";
 "deleteRule" = "Ta Bort Regel";
+"discard" = "Förkasta";
 "discardPermissionChangesMessage" = "Förkasta de behörighetsändringar du gjort?";
 "extractingArchiveEllipsis" = "Extraherar…";
 "folderPickerCantReadFolder" = "Det går inte att läsa den här mappen";

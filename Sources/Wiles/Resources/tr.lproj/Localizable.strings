@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Ağınızdaki paylaşılan bir klasöre bağlan";
 "deleteAutoOrgRuleConfirmMessage" = "Bu otomatik düzenleme kuralı silinsin mi?";
 "deleteRule" = "Kuralı Sil";
+"discard" = "Vazgeç";
 "discardPermissionChangesMessage" = "Yaptığınız izin değişiklikleri atılsın mı?";
 "extractingArchiveEllipsis" = "Ayıklanıyor…";
 "folderPickerCantReadFolder" = "Bu klasör okunamıyor";

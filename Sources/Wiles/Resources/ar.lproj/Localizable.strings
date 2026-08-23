@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "الاتصال بمجلد مشترك على شبكتك";
 "deleteAutoOrgRuleConfirmMessage" = "هل تريد حذف قاعدة التنظيم التلقائي هذه؟";
 "deleteRule" = "حذف القاعدة";
+"discard" = "تجاهل";
 "discardPermissionChangesMessage" = "تجاهل تغييرات الأذونات التي أجريتها؟";
 "extractingArchiveEllipsis" = "جارٍ الاستخراج…";
 "folderPickerCantReadFolder" = "تعذّرت قراءة هذا المجلد";

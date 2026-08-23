@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Connettiti a una cartella condivisa sulla tua rete";
 "deleteAutoOrgRuleConfirmMessage" = "Eliminare questa regola di organizzazione automatica?";
 "deleteRule" = "Elimina Regola";
+"discard" = "Scarta";
 "discardPermissionChangesMessage" = "Annullare le modifiche ai permessi apportate?";
 "extractingArchiveEllipsis" = "Estrazione…";
 "folderPickerCantReadFolder" = "Impossibile leggere questa cartella";

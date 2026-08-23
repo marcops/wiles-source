@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Verbinden met een gedeelde map op je netwerk";
 "deleteAutoOrgRuleConfirmMessage" = "Deze auto-organisatieregel verwijderen?";
 "deleteRule" = "Regel Verwijderen";
+"discard" = "Negeren";
 "discardPermissionChangesMessage" = "De aangebrachte machtigingswijzigingen verwerpen?";
 "extractingArchiveEllipsis" = "Uitpakken…";
 "folderPickerCantReadFolder" = "Kan deze map niet lezen";

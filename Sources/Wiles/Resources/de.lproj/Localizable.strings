@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Mit einem freigegebenen Ordner in deinem Netzwerk verbinden";
 "deleteAutoOrgRuleConfirmMessage" = "Diese Auto-Organisationsregel löschen?";
 "deleteRule" = "Regel löschen";
+"discard" = "Verwerfen";
 "discardPermissionChangesMessage" = "Vorgenommene Berechtigungsänderungen verwerfen?";
 "extractingArchiveEllipsis" = "Extrahieren…";
 "folderPickerCantReadFolder" = "Dieser Ordner kann nicht gelesen werden";

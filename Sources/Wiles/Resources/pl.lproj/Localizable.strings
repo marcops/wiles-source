@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Połącz z folderem udostępnionym w sieci";
 "deleteAutoOrgRuleConfirmMessage" = "Usunąć tę regułę automatycznej organizacji?";
 "deleteRule" = "Usuń Regułę";
+"discard" = "Odrzuć";
 "discardPermissionChangesMessage" = "Odrzucić wprowadzone zmiany uprawnień?";
 "extractingArchiveEllipsis" = "Wypakowywanie…";
 "folderPickerCantReadFolder" = "Nie można odczytać tego folderu";

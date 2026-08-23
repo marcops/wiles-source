@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Se connecter à un dossier partagé sur votre réseau";
 "deleteAutoOrgRuleConfirmMessage" = "Supprimer cette règle d'organisation automatique ?";
 "deleteRule" = "Supprimer la Règle";
+"discard" = "Abandonner";
 "discardPermissionChangesMessage" = "Annuler les modifications d'autorisations effectuées ?";
 "extractingArchiveEllipsis" = "Extraction…";
 "folderPickerCantReadFolder" = "Impossible de lire ce dossier";

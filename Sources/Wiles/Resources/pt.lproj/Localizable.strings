@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Conectar a uma pasta compartilhada na sua rede";
 "deleteAutoOrgRuleConfirmMessage" = "Excluir esta regra de organização automática?";
 "deleteRule" = "Excluir Regra";
+"discard" = "Descartar";
 "discardPermissionChangesMessage" = "Descartar as alterações de permissão feitas?";
 "extractingArchiveEllipsis" = "Extraindo…";
 "folderPickerCantReadFolder" = "Não é possível ler esta pasta";

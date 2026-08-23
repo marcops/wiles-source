@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "Подключиться к общей папке в вашей сети";
 "deleteAutoOrgRuleConfirmMessage" = "Удалить это правило автоорганизации?";
 "deleteRule" = "Удалить Правило";
+"discard" = "Отклонить";
 "discardPermissionChangesMessage" = "Отменить внесённые изменения прав доступа?";
 "extractingArchiveEllipsis" = "Извлечение…";
 "folderPickerCantReadFolder" = "Не удаётся прочитать эту папку";

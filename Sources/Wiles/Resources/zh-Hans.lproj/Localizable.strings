@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "连接到网络上的共享文件夹";
 "deleteAutoOrgRuleConfirmMessage" = "删除此自动整理规则？";
 "deleteRule" = "删除规则";
+"discard" = "放弃";
 "discardPermissionChangesMessage" = "放弃你所做的权限更改？";
 "extractingArchiveEllipsis" = "正在解压…";
 "folderPickerCantReadFolder" = "无法读取此文件夹";

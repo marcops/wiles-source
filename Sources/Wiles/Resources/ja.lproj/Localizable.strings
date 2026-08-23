@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "ネットワーク上の共有フォルダに接続";
 "deleteAutoOrgRuleConfirmMessage" = "この自動整理ルールを削除しますか？";
 "deleteRule" = "ルールを削除";
+"discard" = "破棄";
 "discardPermissionChangesMessage" = "行った権限の変更を破棄しますか？";
 "extractingArchiveEllipsis" = "展開中…";
 "folderPickerCantReadFolder" = "このフォルダを読み取れません";

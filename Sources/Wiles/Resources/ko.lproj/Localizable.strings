@@ -39,6 +39,7 @@
 "connectToServerSubtitle" = "네트워크의 공유 폴더에 연결";
 "deleteAutoOrgRuleConfirmMessage" = "이 자동 정리 규칙을 삭제하시겠습니까?";
 "deleteRule" = "규칙 삭제";
+"discard" = "취소";
 "discardPermissionChangesMessage" = "변경한 권한을 취소하시겠습니까?";
 "extractingArchiveEllipsis" = "압축 해제 중…";
 "folderPickerCantReadFolder" = "이 폴더를 읽을 수 없습니다";
