@@ -4,11 +4,7 @@ import Foundation
 public extension AppState {
     func handleSelection(for item: FileItem, extendSelection: Bool = false) {
         if extendSelection {
-            if selection.selectedURLs.contains(item.url) {
-                selection.selectedURLs.remove(item.url)
-            } else {
-                selection.selectedURLs.insert(item.url)
-            }
+            toggleSelectionMembership(of: item.url)
         } else {
             selection.selectedURLs = [item.url]
             selection.keyboardSelectionAnchorURL = item.url
@@ -27,22 +23,40 @@ public extension AppState {
     /// comment, and the same fix already applied to Shift+Arrow keyboard selection).
     internal func handleSelection(for item: FileItem, modifierFlags flags: NSEvent.ModifierFlags) {
         if flags.contains(.command) {
-            if selection.selectedURLs.contains(item.url) {
-                selection.selectedURLs.remove(item.url)
-            } else {
-                selection.selectedURLs.insert(item.url)
-            }
-            selection.keyboardSelectionAnchorURL = item.url
-        } else if flags.contains(.shift),
-                  let anchorURL = selection.keyboardSelectionAnchorURL,
-                  let anchorIdx = fileSystem.items.firstIndex(where: { $0.url == anchorURL }),
-                  let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) {
-            let range = min(anchorIdx, curIdx) ... max(anchorIdx, curIdx)
-            let rangeURLs = fileSystem.items[range].map(\.url)
-            selection.selectedURLs.formUnion(rangeURLs)
+            toggleSelectionMembership(of: item.url)
+        } else if flags.contains(.shift), let rangeURLs = rangeURLs(fromAnchorTo: item) {
+            // Redefines the selection from the anchor rather than unioning, so a nearer shift-click
+            // can shrink the range back down (matches Finder).
+            selection.selectedURLs = Set(rangeURLs)
         } else {
             selection.selectedURLs = [item.url]
             selection.keyboardSelectionAnchorURL = item.url
+        }
+    }
+
+    /// Toggles `url`'s membership in the selection and moves the shift-click anchor to it.
+    private func toggleSelectionMembership(of url: URL) {
+        if selection.selectedURLs.contains(url) {
+            selection.selectedURLs.remove(url)
+        } else {
+            selection.selectedURLs.insert(url)
+        }
+        selection.keyboardSelectionAnchorURL = url
+    }
+
+    /// URLs spanned by the current shift-click anchor through `item`, in `fileSystem.items` order.
+    private func rangeURLs(fromAnchorTo item: FileItem) -> [URL]? {
+        guard let anchorURL = selection.keyboardSelectionAnchorURL,
+              let anchorIdx = fileSystem.items.firstIndex(where: { $0.url == anchorURL }),
+              let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) else { return nil }
+        let range = min(anchorIdx, curIdx) ... max(anchorIdx, curIdx)
+        return fileSystem.items[range].map(\.url)
+    }
+
+    func toggleSearching() {
+        selection.isSearching.toggle()
+        if !selection.isSearching {
+            selection.searchQuery = ""
         }
     }
 }

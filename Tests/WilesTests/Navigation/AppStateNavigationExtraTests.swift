@@ -112,7 +112,7 @@ public struct AppStateNavigationExtraTests {
         report(
             "Navigation/RecentsVirtual",
             "POS: navigateTo(recentsVirtualURL) clears search state",
-            result: appState.selection.isSearching == false && appState.selection.searchQuery.isEmpty)
+            result: !appState.selection.isSearching && appState.selection.searchQuery.isEmpty)
 
         // goBack should return to the real directory we came from.
         appState.goBack()
@@ -412,14 +412,14 @@ public struct AppStateNavigationExtraTests {
         }
 
         let appState = AppState()
-        appState.transient.lastOpportunisticTrashSizeCheck = Date() // "not due" for the coarse check
-        let before = appState.transient.lastOpportunisticTrashSizeCheck
+        appState.fileSystem.trash.lastOpportunisticCheck = Date() // "not due" for the coarse check
+        let before = appState.fileSystem.trash.lastOpportunisticCheck
 
         appState.navigateTo(trashURL)
 
         var updated = false
         for _ in 0 ..< 30 {
-            if appState.transient.lastOpportunisticTrashSizeCheck != before {
+            if appState.fileSystem.trash.lastOpportunisticCheck != before {
                 updated = true
                 break
             }

@@ -22,14 +22,25 @@ public enum ListColumn: String, CaseIterable, Identifiable, Codable, Hashable, S
         self == .name
     }
 
-    /// Default fixed width. Name returns 0 — it uses maxWidth: .infinity instead.
+    /// Whether a fresh install shows this column before the user customizes visibility.
+    public var isVisibleByDefault: Bool {
+        switch self {
+        case .name, .size, .dateModified: true
+        case .dateCreated, .dateAccessed, .kind, .owner, .group: false
+        }
+    }
+
+    private static let dateColumnWidth: CGFloat = 160
+
+    /// Default fixed width. `.name` gets a real starting width too, but its column is rendered
+    /// with `maxWidth: .infinity` so this value only matters before the user resizes it.
     public var defaultWidth: CGFloat {
         switch self {
         case .name: 280
         case .size: 90
-        case .dateModified: 160
-        case .dateCreated: 160
-        case .dateAccessed: 160
+        case .dateModified: Self.dateColumnWidth
+        case .dateCreated: Self.dateColumnWidth
+        case .dateAccessed: Self.dateColumnWidth
         case .kind: 120
         case .owner: 100
         case .group: 100

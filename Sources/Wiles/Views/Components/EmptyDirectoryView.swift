@@ -1,10 +1,24 @@
 import SwiftUI
 
 public struct EmptyDirectoryView: View {
+    private static let iconFontSize: CGFloat = 48.0
+    private static let titleFontSize: CGFloat = 15.0
+    private static let bodyFontSize: CGFloat = 12.0
+    private static let noticeMaxWidth: CGFloat = 320.0
+
     var appState: AppState
 
     public init(appState: AppState) {
         self.appState = appState
+    }
+
+    /// Assumes slow `/Volumes/` mounts are readable to avoid blocking `access()` on the main thread.
+    private var isCurrentFolderReadable: Bool {
+        let path = appState.navigation.currentURL.path
+        if path.hasPrefix("/Volumes/") {
+            return true
+        }
+        return FileManager.default.isReadableFile(atPath: path)
     }
 
     public var body: some View {
@@ -13,7 +27,7 @@ public struct EmptyDirectoryView: View {
 
             if !appState.selection.searchQuery.isEmpty {
                 searchEmptyView
-            } else if !FileManager.default.isReadableFile(atPath: appState.navigation.currentURL.path) {
+            } else if !isCurrentFolderReadable {
                 // An unreadable folder (e.g. `~/.Trash`, which macOS restricts to Finder without
                 // Full Disk Access) silently returns an empty item list from
                 // `FileSystemService` — indistinguishable from a genuinely empty folder unless we
@@ -31,18 +45,18 @@ public struct EmptyDirectoryView: View {
 
     @ViewBuilder private var searchEmptyView: some View {
         Image(systemName: "doc.text.magnifyingglass")
-            .font(.system(size: LayoutTokens.emptyStateIconFontSize))
+            .font(.system(size: Self.iconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
 
         Text(appState.tr(.noResultsFound))
-            .font(.system(size: LayoutTokens.emptyStateTitleFontSize, weight: .semibold))
+            .font(.system(size: Self.titleFontSize, weight: .semibold))
             .foregroundColor(.secondary)
 
         Button {
             appState.selection.searchQuery = ""
         } label: {
             Text(appState.tr(.clearSearch))
-                .font(.system(size: LayoutTokens.emptyStateBodyFontSize, weight: .medium))
+                .font(.system(size: Self.bodyFontSize, weight: .medium))
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -51,25 +65,25 @@ public struct EmptyDirectoryView: View {
 
     @ViewBuilder private var unreadableFolderView: some View {
         Image(systemName: "lock.fill")
-            .font(.system(size: LayoutTokens.emptyStateIconFontSize))
+            .font(.system(size: Self.iconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
 
         Text(appState.tr(.permissionDeniedNotice))
-            .font(.system(size: LayoutTokens.emptyStateTitleFontSize, weight: .semibold))
+            .font(.system(size: Self.titleFontSize, weight: .semibold))
             .foregroundColor(.secondary)
             .multilineTextAlignment(.center)
 
         Text(appState.tr(.fullDiskAccessNotice))
-            .font(.system(size: LayoutTokens.emptyStateBodyFontSize))
+            .font(.system(size: Self.bodyFontSize))
             .foregroundColor(.secondary)
             .multilineTextAlignment(.center)
-            .frame(maxWidth: LayoutTokens.emptyStateNoticeMaxWidth)
+            .frame(maxWidth: Self.noticeMaxWidth)
 
         Button {
             PermissionService.openFullDiskAccessSettings()
         } label: {
             Text(appState.tr(.grantFullDiskAccess))
-                .font(.system(size: LayoutTokens.emptyStateBodyFontSize, weight: .medium))
+                .font(.system(size: Self.bodyFontSize, weight: .medium))
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -78,11 +92,11 @@ public struct EmptyDirectoryView: View {
 
     @ViewBuilder private var emptyFolderView: some View {
         Image(systemName: "folder")
-            .font(.system(size: LayoutTokens.emptyStateIconFontSize))
+            .font(.system(size: Self.iconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
 
         Text(appState.tr(.emptyFolder))
-            .font(.system(size: LayoutTokens.emptyStateTitleFontSize, weight: .semibold))
+            .font(.system(size: Self.titleFontSize, weight: .semibold))
             .foregroundColor(.secondary)
     }
 }

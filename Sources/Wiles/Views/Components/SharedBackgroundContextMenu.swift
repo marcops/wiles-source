@@ -45,7 +45,6 @@ struct SharedBackgroundContextMenu: View {
         }
         Button(appState.tr(.shareFolderWifi)) {
             windowUIState.httpShareFolderURL = appState.navigation.currentURL
-            windowUIState.showHttpShareSheet = true
         }
         Divider()
         Button(appState.tr(.folderProperties)) {

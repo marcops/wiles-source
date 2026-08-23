@@ -12,6 +12,32 @@ public struct WindowUIStateTests {
         testIsAnyModalPresented()
         testCancelRenameIfNavigated()
         testCancelRenameIfSelectionChanged()
+        testPerWindowDefaultsSeedAndWriteBack()
+    }
+
+    /// `showTerminalDrawer`/`sidebarWidth`/`showPreviewSidebar`/`showDiskUsageSidebar` are seeded
+    /// from the shared `PreferencesStore` at construction and written back on change, so each window
+    /// has its own live value while still picking a sensible default for the *next* new window — see
+    /// `PreferencesStore.sidebarWidth`'s doc comment. `showPreviewSidebar`/`showDiskUsageSidebar` also
+    /// stay mutually exclusive per-window, mirroring `PreferencesStore`'s own exclusivity.
+    private static func testPerWindowDefaultsSeedAndWriteBack() {
+        let preferences = PreferencesStore()
+        preferences.showTerminalDrawer = true
+        preferences.sidebarWidth = 222
+
+        let state = WindowUIState(preferences: preferences)
+        report("Models/WindowUIState", "POS: showTerminalDrawer is seeded from the preferences default", result: state.showTerminalDrawer)
+        report("Models/WindowUIState", "POS: sidebarWidth is seeded from the preferences default", result: state.sidebarWidth == 222)
+
+        state.showTerminalDrawer = false
+        report("Models/WindowUIState", "POS: toggling showTerminalDrawer writes back to preferences", result: !preferences.showTerminalDrawer)
+
+        state.showPreviewSidebar = true
+        state.showDiskUsageSidebar = true
+        report(
+            "Models/WindowUIState",
+            "POS: showPreviewSidebar and showDiskUsageSidebar stay mutually exclusive per-window",
+            result: state.showDiskUsageSidebar && !state.showPreviewSidebar && !preferences.showPreviewSidebar)
     }
 
     private static func testDefaults() {
@@ -34,11 +60,8 @@ public struct WindowUIStateTests {
                 && !state.showDeleteConfirmAlert
                 && !state.showConnectToServerSheet
                 && !state.showAutoOrganizationSheet
-                && !state.showHttpShareSheet
                 && !state.showShortcutsHUD
                 && !state.showSaveSmartFolderSheet
-                && !state.showPasswordCompressSheet
-                && !state.showArchiveInspectionSheet
                 && !state.showHelpSheet
                 && !state.showAboutSheet
                 && !state.showSettingsSheet)
@@ -85,6 +108,10 @@ public struct WindowUIStateTests {
         state.showSettingsSheet = true
         report("Models/WindowUIState", "POS: isAnyModalPresented is true while showSettingsSheet is set", result: state.isAnyModalPresented)
         state.showSettingsSheet = false
+
+        state.httpShareFolderURL = URL(fileURLWithPath: "/tmp")
+        report("Models/WindowUIState", "POS: isAnyModalPresented is true while httpShareFolderURL payload is set", result: state.isAnyModalPresented)
+        state.httpShareFolderURL = nil
 
         let item = FileItem(url: URL(fileURLWithPath: "/tmp/wiles-window-ui-state-modal-test-item"))
         state.propertiesItem = item

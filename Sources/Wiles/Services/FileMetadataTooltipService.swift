@@ -32,8 +32,8 @@ public enum FileMetadataTooltipService {
                 lines.append(contentsOf: extra)
             }
         }
-        lines.append(String(format: L10n.string(.tooltipModified, lang: language), item.formattedDate))
-        lines.append(String(format: L10n.string(.tooltipCreated, lang: language), item.formattedDateCreated))
+        lines.append(String(format: L10n.string(.tooltipModified, lang: language), item.formattedDate(language: language)))
+        lines.append(String(format: L10n.string(.tooltipCreated, lang: language), item.formattedDateCreated(language: language)))
         if item.ownerName != "--" {
             lines.append(String(format: L10n.string(.tooltipOwner, lang: language), item.ownerName))
         }

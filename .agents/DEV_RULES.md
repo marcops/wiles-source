@@ -27,6 +27,7 @@ When asked to act as architect / improve / design something (not just "fix X"), 
 ## No Magic Numbers or Unnamed Constants
 
 - Never use raw magic numbers, arbitrary multipliers, or unexplained static offsets. Always define named constants/enums, or compute values dynamically from context.
+- Placement depends on sharing, not on the value's type: if a constant is used by 2+ types/files, it belongs in the shared token enum (e.g. `LayoutTokens`/`MotionTokens`); if it's only used within one type, it belongs as a `private static let` inside that type, not in the shared file. Don't default to the shared file "to be safe" — that turns it into a dumping ground of single-use values and creates false coupling between unrelated views. Promote a local constant to the shared file only when a second real caller actually appears.
 
 ## Minimal Scope & Minimal Diff Discipline
 

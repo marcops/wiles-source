@@ -13,12 +13,26 @@ struct SidebarSettingsView: View {
         return Form {
             Section(appState.tr(.settingsSidebarSectionsSection)) {
                 Toggle(appState.tr(.showFavorites), isOn: $appState.preferences.showFavorites)
+                    .help(appState.tr(.showFavoritesHint))
+                    .accessibilityHint(Text(appState.tr(.showFavoritesHint)))
                 Toggle(appState.tr(.showPlaces), isOn: $appState.preferences.showPlaces)
+                    .help(appState.tr(.showPlacesHint))
+                    .accessibilityHint(Text(appState.tr(.showPlacesHint)))
                 Toggle(appState.tr(.showRecents), isOn: $appState.preferences.showRecents)
+                    .help(appState.tr(.showRecentsHint))
+                    .accessibilityHint(Text(appState.tr(.showRecentsHint)))
                 Toggle(appState.tr(.showNetworkAndCloud), isOn: $appState.preferences.showNetworkAndCloud)
+                    .help(appState.tr(.showNetworkAndCloudHint))
+                    .accessibilityHint(Text(appState.tr(.showNetworkAndCloudHint)))
                 Toggle(appState.tr(.showDirectoryTree), isOn: $appState.preferences.showDirectoryTree)
+                    .help(appState.tr(.showDirectoryTreeHint))
+                    .accessibilityHint(Text(appState.tr(.showDirectoryTreeHint)))
                 Toggle(appState.tr(.showSidebarSectionTitles), isOn: $appState.preferences.showSidebarSectionTitles)
+                    .help(appState.tr(.showSidebarSectionTitlesHint))
+                    .accessibilityHint(Text(appState.tr(.showSidebarSectionTitlesHint)))
                 Toggle(appState.tr(.showTags), isOn: $appState.preferences.showTags)
+                    .help(appState.tr(.showTagsHint))
+                    .accessibilityHint(Text(appState.tr(.showTagsHint)))
             }
         }
         .formStyle(.grouped)

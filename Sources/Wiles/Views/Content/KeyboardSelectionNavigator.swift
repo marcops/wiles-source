@@ -78,10 +78,10 @@ struct KeyboardSelectionNavigator {
         return item.isDirectory ? first : nil
     }
 
-    /// `selectedURLs` is a `Set` (no stable order), so `.first` can only ever stand in for
-    /// "the current item" when the set holds exactly one element — true for a plain move, but
-    /// not once Shift has grown the selection to a range. For a Shift move, the moving end of
-    /// that range is derived instead: whichever selected index sits farthest from the anchor.
+    /// `selectedURLs` is a `Set` (no stable order), so `.first` can't reliably stand in for "the
+    /// current item" — both branches below derive it from `keyboardSelectionAnchorURL` instead.
+    /// For a Shift move, the moving end of the range is whichever selected index sits farthest
+    /// from the anchor.
     private func moveSelection(by offset: Int, isShift: Bool, appState: AppState) {
         let items = appState.fileSystem.items
         guard !items.isEmpty else { return }
@@ -100,7 +100,8 @@ struct KeyboardSelectionNavigator {
             appState.selection.selectedURLs = Set(items[lo ... hi].map(\.url))
             appState.selection.lastMovedURL = items[newIndex].url
         } else {
-            let currentIndex = items.firstIndex(where: { $0.url == appState.selection.selectedURLs.first }) ?? -1
+            let currentURL = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first
+            let currentIndex = items.firstIndex(where: { $0.url == currentURL }) ?? -1
             let newIndex = max(0, min(items.count - 1, currentIndex + offset))
             let newURL = items[newIndex].url
             appState.selection.keyboardSelectionAnchorURL = newURL
@@ -134,8 +135,9 @@ struct KeyboardSelectionNavigator {
             appState.deleteSelected(windowUIState: windowUIState)
             return true
         } else if !isCmd {
-            if appState.preferences.navigationMode == .gnome, let first = appState.selection.selectedURLs.first {
-                appState.navigateTo(first)
+            if appState.preferences.navigationMode == .gnome,
+               let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first {
+                appState.navigateTo(anchor)
                 return true
             } else if let item = macOSReturnKeyItem(appState: appState) {
                 windowUIState.renameItem = item
@@ -150,8 +152,8 @@ struct KeyboardSelectionNavigator {
     /// and that URL still resolves to a loaded `FileItem`.
     private func macOSReturnKeyItem(appState: AppState) -> FileItem? {
         guard appState.preferences.navigationMode == .macOS else { return nil }
-        guard let first = appState.selection.selectedURLs.first else { return nil }
-        return appState.fileSystem.items.first(where: { $0.url == first })
+        guard let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first else { return nil }
+        return appState.fileSystem.items.first(where: { $0.url == anchor })
     }
 
     private func triggerRenameForSelected(appState: AppState, windowUIState: WindowUIState) {

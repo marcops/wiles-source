@@ -5,6 +5,7 @@ import os
 
 private let columnPersistenceLogger = Logger(subsystem: "com.wiles.app", category: "ColumnPersistence")
 
+/// Adding/removing a `DefaultsKey` needs no migration; *changing* one's stored type/format does — give it a new key name instead.
 @Observable
 @MainActor
 public final class PreferencesStore {
@@ -20,6 +21,9 @@ public final class PreferencesStore {
         didSet { UserDefaults.standard.set(showDirectoryTree, forKey: DefaultsKey.showDirectoryTree.rawValue) }
     }
 
+    /// Persisted default for a *new* window's sidebar width — each open window's actual current
+    /// width lives on that window's own `WindowUIState.sidebarWidth`, seeded from this at window
+    /// construction and written back here on change so the next new window picks up the latest value.
     public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
         didSet { UserDefaults.standard.set(sidebarWidth, forKey: DefaultsKey.sidebarWidth.rawValue) }
     }
@@ -90,11 +94,19 @@ public final class PreferencesStore {
 
     public var expandedTreePaths: Set<String> = [] {
         didSet {
-            if expandedTreePaths.count > Self.maxExpandedTreePaths {
-                expandedTreePaths = oldValue
+            guard expandedTreePaths.count > Self.maxExpandedTreePaths else {
+                scheduleExpandedTreePathsSave()
                 return
             }
-            scheduleExpandedTreePathsSave()
+            // Evict paths that already existed rather than silently reverting the whole
+            // assignment — that left disclosure triangles doing nothing once the cap was hit.
+            // Prior paths are evicted first; only if that alone isn't enough (e.g. a single
+            // assignment that's already over the cap with no prior baseline) does eviction fall
+            // back to trimming the newly-added batch itself.
+            let overflow = expandedTreePaths.count - Self.maxExpandedTreePaths
+            let justAdded = expandedTreePaths.subtracting(oldValue)
+            let evictionOrder = Array(oldValue.subtracting(justAdded)) + Array(justAdded)
+            expandedTreePaths.subtract(evictionOrder.prefix(overflow))
         }
     }
 
@@ -140,17 +152,23 @@ public final class PreferencesStore {
         didSet { UserDefaults.standard.set(showFooter, forKey: DefaultsKey.showFooter.rawValue) }
     }
 
+    /// Persisted default for a *new* window's terminal drawer — see `sidebarWidth` above for the
+    /// seed/write-back pattern. The window's live shell process lives on `WindowUIState`
+    /// alongside `terminalViewCache`, never here, so toggling this in one window can't spawn a PTY
+    /// in every other open window.
     public var showTerminalDrawer: Bool = false {
         didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: DefaultsKey.showTerminalDrawer.rawValue) }
     }
 
-    /// `showPreviewSidebar` and `showDiskUsageSidebar` are mutually exclusive: both occupy the
-    /// same trailing pane of the content `HSplitView`. Letting both be true at once would put a
-    /// 3rd pane into that split view, which `HSplitView`/`NSSplitView` doesn't reliably size on
-    /// first appearance — newly-inserted panes there could render at ~0 width instead of honoring
-    /// their `.frame(minWidth:)`. Keeping it to a strict 2-pane split (content | one inspector) is
-    /// the same shape that already worked correctly, so enforce exclusivity here instead of
-    /// fighting NSSplitView's sizing from the view layer.
+    /// Persisted default for a *new* window — see `sidebarWidth` above. `showPreviewSidebar` and
+    /// `showDiskUsageSidebar` are mutually exclusive: both occupy the same trailing pane of the
+    /// content `HSplitView`. Letting both be true at once would put a 3rd pane into that split
+    /// view, which `HSplitView`/`NSSplitView` doesn't reliably size on first appearance —
+    /// newly-inserted panes there could render at ~0 width instead of honoring their
+    /// `.frame(minWidth:)`. Keeping it to a strict 2-pane split (content | one inspector) is the
+    /// same shape that already worked correctly, so enforce exclusivity here (and again on
+    /// `WindowUIState`, which owns each window's actual live value) instead of fighting
+    /// NSSplitView's sizing from the view layer.
     public var showPreviewSidebar: Bool = false {
         didSet {
             UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue)
@@ -160,6 +178,7 @@ public final class PreferencesStore {
         }
     }
 
+    /// Persisted default for a *new* window — see `showPreviewSidebar` above.
     public var showDiskUsageSidebar: Bool = false {
         didSet {
             UserDefaults.standard.set(showDiskUsageSidebar, forKey: DefaultsKey.showDiskUsageSidebar.rawValue)
@@ -186,11 +205,17 @@ public final class PreferencesStore {
     }
 
     /// Caps `expandedTreePaths` so an unbounded set of ever-expanded folders isn't retained forever.
-    /// Once at the cap, further insertions are dropped (see `expandedTreePaths`'s `didSet`).
+    /// Once at the cap, older paths are evicted to make room for newly-expanded ones (see
+    /// `expandedTreePaths`'s `didSet`).
     private static let maxExpandedTreePaths = 500
     /// Coalesces rapid expand/collapse toggles into a single `UserDefaults` write.
     private static let expandedTreePathsSaveDebounceInterval: TimeInterval = 0.5
     private var pendingExpandedTreePathsSave: DispatchWorkItem?
+
+    /// Caps `perFolderViewModes` for the same reason as `expandedTreePaths` above.
+    private static let maxPerFolderViewModes = 500
+    private static let perFolderViewModesSaveDebounceInterval: TimeInterval = 0.5
+    private var pendingPerFolderViewModesSave: DispatchWorkItem?
 
     public var favoriteURLs: [URL] = [] {
         didSet {
@@ -199,7 +224,8 @@ public final class PreferencesStore {
         }
     }
 
-    public var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
+    /// `private(set)`: mutations must go through the methods below so persistence can't be bypassed.
+    public internal(set) var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
 
     public var navigationMode: NavigationMode = .gnome {
         didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
@@ -211,15 +237,27 @@ public final class PreferencesStore {
 
     public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
         didSet {
+            columnStatesByColumn = Dictionary(uniqueKeysWithValues: listColumnStates.map { ($0.column, $0) })
             guard !suppressColumnStatePersistence else { return }
             saveListColumnStates()
         }
     }
 
+    /// `listColumnStates` keyed by column, kept in sync via `didSet` above — avoids an O(n) array
+    /// scan on every per-row/per-column width and visibility lookup while rendering the list.
+    public private(set) var columnStatesByColumn: [ListColumn: ListColumnState] =
+        Dictionary(uniqueKeysWithValues: ListColumnState.defaults().map { ($0.column, $0) })
+
     public var perFolderViewModes: [String: String] = (
         UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
         [:] {
-        didSet { UserDefaults.standard.set(perFolderViewModes, forKey: DefaultsKey.perFolderViewModes.rawValue) }
+        didSet {
+            if perFolderViewModes.count > Self.maxPerFolderViewModes {
+                perFolderViewModes = oldValue
+                return
+            }
+            schedulePerFolderViewModesSave()
+        }
     }
 
     var suppressColumnStatePersistence: Bool = false
@@ -298,6 +336,18 @@ public final class PreferencesStore {
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.expandedTreePathsSaveDebounceInterval, execute: workItem)
     }
 
+    /// Coalesces repeated `perFolderViewModes` edits into one `UserDefaults` write, mirroring
+    /// `scheduleExpandedTreePathsSave` above.
+    private func schedulePerFolderViewModesSave() {
+        pendingPerFolderViewModesSave?.cancel()
+        let modes = perFolderViewModes
+        let workItem = DispatchWorkItem {
+            UserDefaults.standard.set(modes, forKey: DefaultsKey.perFolderViewModes.rawValue)
+        }
+        pendingPerFolderViewModesSave = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.perFolderViewModesSaveDebounceInterval, execute: workItem)
+    }
+
     private func loadSavedPreferences() {
         let defaults = UserDefaults.standard
         loadViewPreferences(defaults)
@@ -305,6 +355,17 @@ public final class PreferencesStore {
         loadSidebarExpansionPreferences(defaults)
         loadSearchAndDisplayPreferences(defaults)
         loadFavoriteURLs(defaults)
+        loadListColumnStates(defaults)
+    }
+
+    /// Merges the saved per-column states onto `ListColumnState.defaults()` by `column` rather than
+    /// replacing the array wholesale, so a `ListColumn` case added after this data was saved still
+    /// gets a default entry instead of silently disappearing from the header/resize logic.
+    private func loadListColumnStates(_ defaults: UserDefaults) {
+        guard let data = defaults.data(forKey: DefaultsKey.listColumnStates.rawValue),
+              let saved = try? JSONDecoder().decode([ListColumnState].self, from: data) else { return }
+        let savedByColumn = Dictionary(uniqueKeysWithValues: saved.map { ($0.column, $0) })
+        listColumnStates = ListColumnState.defaults().map { savedByColumn[$0.column] ?? $0 }
     }
 
     private func loadViewPreferences(_ defaults: UserDefaults) {
@@ -377,7 +438,7 @@ public final class PreferencesStore {
     private func loadFavoriteURLs(_ defaults: UserDefaults) {
         if let savedFavs = defaults.stringArray(forKey: DefaultsKey.favoriteURLs.rawValue) {
             favoriteURLs = savedFavs.compactMap { path in
-                Self.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
+                SlowVolumePathValidator.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
             }
             Task { [weak self] in
                 await self?.validateSlowVolumeFavorites()
@@ -396,7 +457,7 @@ public final class PreferencesStore {
     /// `NavigationStore.init`, mirrored from `AppState+Navigation.swift`'s `navigateTo`). Verifies
     /// them afterward and drops any that turned out to be gone.
     private func validateSlowVolumeFavorites() async {
-        let pathsToCheck = Set(favoriteURLs.map(\.path).filter(Self.isLikelySlowVolume))
+        let pathsToCheck = Set(favoriteURLs.map(\.path).filter(SlowVolumePathValidator.isLikelySlowVolume))
         guard !pathsToCheck.isEmpty else { return }
 
         let existence = await Task.detached(priority: .utility) {
@@ -404,15 +465,5 @@ public final class PreferencesStore {
         }.value
 
         favoriteURLs = favoriteURLs.filter { existence[$0.path] ?? true }
-    }
-
-    private static func isLikelySlowVolume(_ path: String) -> Bool {
-        path.hasPrefix("/Volumes/")
-    }
-
-    /// Skips the synchronous `fileExists` check for a `/Volumes/` path — it's accepted as-is here
-    /// and verified later off-`@MainActor` by `validateSlowVolumeFavorites()`.
-    private static func existsOptimistically(atPath path: String) -> Bool {
-        isLikelySlowVolume(path) || FileManager.default.fileExists(atPath: path)
     }
 }

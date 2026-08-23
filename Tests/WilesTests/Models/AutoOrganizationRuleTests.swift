@@ -44,7 +44,7 @@ public struct AutoOrganizationRuleTests {
             destinationURL: URL(fileURLWithPath: testTemporaryDirectory()),
             conditionType: .nameContains,
             conditionValue: "invoice")
-        report("Model/AutoOrganizationRule", "POS: default initializer sets isEnabled to true when omitted", result: rule.isEnabled == true)
+        report("Model/AutoOrganizationRule", "POS: default initializer sets isEnabled to true when omitted", result: rule.isEnabled)
     }
 
     private static func testIdentityIsUniquePerInstance() {

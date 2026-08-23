@@ -57,13 +57,8 @@ struct SharedFileItemContextMenu: View {
         if item.isDirectory {
             Button(appState.tr(.shareFolderWifi)) {
                 windowUIState.httpShareFolderURL = item.url
-                windowUIState.showHttpShareSheet = true
             }
-            if appState.isFavorite(item.url) {
-                Button(appState.tr(.removeFromFavorites)) { appState.removeFavorite(item.url) }
-            } else {
-                Button(appState.tr(.addToFavorites)) { appState.addFavorite(item.url) }
-            }
+            FavoriteToggleButton(url: item.url, appState: appState)
             Divider()
         }
     }
@@ -78,24 +73,9 @@ struct SharedFileItemContextMenu: View {
             appState.copySelected()
         }
         Menu(appState.tr(.copyPath)) {
-            copyPathMenuContent
+            CopyPathMenuContent(urls: selectionURLsOrItem, relativeTo: appState.navigation.currentURL, appState: appState)
         }
         Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { appState.pasteToCurrentDirectory() }
-    }
-
-    @ViewBuilder private var copyPathMenuContent: some View {
-        Button(appState.tr(.copyPathAbsolute)) {
-            CopyPathService.copy(urls: selectionURLsOrItem, variant: .absolute)
-        }
-        Button(appState.tr(.copyPathRelative)) {
-            CopyPathService.copy(urls: selectionURLsOrItem, variant: .relative, relativeTo: appState.navigation.currentURL)
-        }
-        Button(appState.tr(.copyPathURL)) {
-            CopyPathService.copy(urls: selectionURLsOrItem, variant: .fileURL)
-        }
-        Button(appState.tr(.copyPathTerminal)) {
-            CopyPathService.copy(urls: selectionURLsOrItem, variant: .terminalEscaped)
-        }
     }
 
     @ViewBuilder private var contentActionsSection: some View {
@@ -147,7 +127,6 @@ struct SharedFileItemContextMenu: View {
         if ArchiveService.isArchive(url: item.url) {
             Button(appState.tr(.inspectArchive)) {
                 windowUIState.inspectArchiveURL = item.url
-                windowUIState.showArchiveInspectionSheet = true
             }
             Button(appState.tr(.extractArchive)) {
                 appState.extractArchive(url: item.url)
@@ -159,7 +138,6 @@ struct SharedFileItemContextMenu: View {
         }
         Button(appState.tr(.compressWithPassword)) {
             windowUIState.passwordCompressURLs = itemOrSelectionURLs
-            windowUIState.showPasswordCompressSheet = true
         }
     }
 
@@ -255,10 +233,9 @@ struct SharedFileItemContextMenu: View {
     }
 
     @ViewBuilder private var tagsMenuContent: some View {
-        let predefinedTags = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", "Gray"]
-        let tagKeys: [String: L10n.Key] = [
-            "Red": .red, "Orange": .orange, "Yellow": .yellow, "Green": .green, "Blue": .blue, "Purple": .purple, "Gray": .gray
-        ]
+        let predefinedTags = TagColor.allCases.map(\.rawValue.capitalized)
+        let tagKeys: [String: L10n.Key] = Dictionary(
+            uniqueKeysWithValues: TagColor.allCases.map { ($0.rawValue.capitalized, $0.localizationKey) })
         let targetURLs = itemOrSelectionURLs
         ForEach(predefinedTags, id: \.self) { tag in
             tagToggleButton(tag: tag, tagKeys: tagKeys, targetURLs: targetURLs)
@@ -291,11 +268,9 @@ struct SharedFileItemContextMenu: View {
     private func toggleTag(_ tag: String, targetURLs: [URL]) {
         let itemsSnapshot = appState.fileSystem.items
         Task.detached(priority: .userInitiated) {
-            let lastError = FileTaggingService.toggleTag(tag, for: targetURLs, itemsSnapshot: itemsSnapshot)
+            let failureCount = FileTaggingService.toggleTag(tag, for: targetURLs, itemsSnapshot: itemsSnapshot)
             await MainActor.run {
-                if let lastError {
-                    appState.showError(lastError)
-                }
+                reportTagFailures(failureCount, total: targetURLs.count)
                 appState.refreshCurrentDirectory()
             }
         }
@@ -303,13 +278,16 @@ struct SharedFileItemContextMenu: View {
 
     private func clearAllTags(targetURLs: [URL]) {
         Task.detached(priority: .userInitiated) {
-            let lastError = FileTaggingService.clearAllTags(for: targetURLs)
+            let failureCount = FileTaggingService.clearAllTags(for: targetURLs)
             await MainActor.run {
-                if let lastError {
-                    appState.showError(lastError)
-                }
+                reportTagFailures(failureCount, total: targetURLs.count)
                 appState.refreshCurrentDirectory()
             }
         }
+    }
+
+    private func reportTagFailures(_ failureCount: Int, total: Int) {
+        guard failureCount > 0 else { return }
+        appState.showError(String(format: appState.tr(.tagOperationPartialFailure), failureCount, total))
     }
 }

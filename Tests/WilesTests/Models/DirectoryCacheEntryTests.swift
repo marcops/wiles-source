@@ -7,7 +7,7 @@ public struct DirectoryCacheEntryTests {
     public static func run() {
         let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("a.txt")
         let items = [FileItem(url: tempFile, icon: NSImage())]
-        let loadResult = DirectoryLoadResult(items: items, isPermissionDenied: false)
+        let loadResult = DirectoryLoadResult(items: items)
         let entry = DirectoryCacheEntry(result: loadResult)
 
         report("Model/DirectoryCacheEntry", "POS: Cache entry wrapped result items count matches", result: entry.result.items.count == 1)

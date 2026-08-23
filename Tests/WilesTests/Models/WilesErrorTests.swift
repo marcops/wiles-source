@@ -35,10 +35,11 @@ public struct WilesErrorTests {
     private static func testLocalizedMessageForParameterlessCasesHasNoSubstitution() {
         let zipMessage = WilesError.invalidZipPassword.localizedMessage(lang: .english)
         let destinationMessage = WilesError.itemAlreadyInDestination.localizedMessage(lang: .english)
+        let notRedoableMessage = WilesError.fileCreationNotRedoable.localizedMessage(lang: .english)
         report(
             "Model/WilesError",
             "POS: localizedMessage for parameterless cases returns a non-empty message with no substitution performed",
-            result: !zipMessage.isEmpty && !destinationMessage.isEmpty)
+            result: !zipMessage.isEmpty && !destinationMessage.isEmpty && !notRedoableMessage.isEmpty)
     }
 
     private static func testErrorDescriptionsIncludeContext() {
@@ -72,6 +73,10 @@ public struct WilesErrorTests {
             "Model/WilesError",
             "POS: itemAlreadyInDestination has a non-empty description",
             result: !(WilesError.itemAlreadyInDestination.errorDescription ?? "").isEmpty)
+        report(
+            "Model/WilesError",
+            "POS: fileCreationNotRedoable has a non-empty description",
+            result: !(WilesError.fileCreationNotRedoable.errorDescription ?? "").isEmpty)
     }
 
     private static func testEquatableBehavior() {
@@ -91,7 +96,8 @@ public struct WilesErrorTests {
             "Model/WilesError",
             "POS: parameterless cases compare equal to themselves",
             result: WilesError.invalidZipPassword == WilesError.invalidZipPassword
-                && WilesError.itemAlreadyInDestination == WilesError.itemAlreadyInDestination)
+                && WilesError.itemAlreadyInDestination == WilesError.itemAlreadyInDestination
+                && WilesError.fileCreationNotRedoable == WilesError.fileCreationNotRedoable)
     }
 
     /// Exhaustively exercises every case so a future addition without a matching `report()` call
@@ -105,7 +111,8 @@ public struct WilesErrorTests {
             .itemNotFound(path: "/a"),
             .operationFailed(reason: "reason"),
             .invalidZipPassword,
-            .itemAlreadyInDestination
+            .itemAlreadyInDestination,
+            .fileCreationNotRedoable
         ]
         let allNonEmpty = allCases.allSatisfy { !($0.errorDescription ?? "").isEmpty }
         report("Model/WilesError", "POS: every WilesError case produces a non-empty errorDescription", result: allNonEmpty)

@@ -11,7 +11,7 @@ extension QLThumbnailRepresentation: @retroactive @unchecked Sendable { }
 /// Always generated once at `maxDimension`, cached per path — SwiftUI's `.resizable()` scales the
 /// same bitmap down for whatever icon size is on screen, so zooming never re-triggers QuickLook I/O.
 @MainActor
-public final class ThumbnailService: ThumbnailServiceProtocol {
+public final class ThumbnailService {
     public static let shared = ThumbnailService()
     private static let maxDimension: CGFloat = 512
     private let cache = NSCache<NSString, NSImage>()
@@ -97,6 +97,11 @@ public final class ThumbnailService: ThumbnailServiceProtocol {
                 _ = await self?.loadThumbnail(for: item.url, size: size)
             }
         }
+    }
+
+    /// Mirrors `DirectoryCacheService.invalidate` — evicts a stale thumbnail after its file is overwritten.
+    public func invalidate(url: URL) {
+        cache.removeObject(forKey: cacheKey(url: url))
     }
 
     private func cacheKey(url: URL) -> NSString {

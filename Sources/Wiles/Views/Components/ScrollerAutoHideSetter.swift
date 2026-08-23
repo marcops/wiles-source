@@ -14,6 +14,10 @@ struct ScrollerAutoHideSetter: NSViewRepresentable {
     }
 
     class ApplierView: NSView {
+        /// Set once the scroll view is found and styled, so later `layout()` passes skip the
+        /// subtree walk entirely, mirroring the sibling `SplitViewDividerSetter`'s `hasApplied` gate.
+        private var hasApplied = false
+
         override func hitTest(_: NSPoint) -> NSView? {
             nil
         }
@@ -29,7 +33,9 @@ struct ScrollerAutoHideSetter: NSViewRepresentable {
         }
 
         func applyIfNeeded() {
-            guard let scrollView = nearbyScrollView(), scrollView.scrollerStyle != .overlay else { return }
+            guard !hasApplied, let scrollView = nearbyScrollView() else { return }
+            hasApplied = true
+            guard scrollView.scrollerStyle != .overlay else { return }
             scrollView.scrollerStyle = .overlay
             scrollView.autohidesScrollers = true
             // Changing scrollerStyle on an already-instantiated NSScrollView doesn't reliably

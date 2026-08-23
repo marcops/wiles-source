@@ -11,11 +11,11 @@ public struct RenameTabModeTests {
 
     private static func testAllCasesAndRawValues() {
         let allCases = RenameTabMode.allCases
-        report("Feature/RenameTabMode", "POS: RenameTabMode.allCases has exactly 3 cases", result: allCases.count == 3)
+        report("Feature/RenameTabMode", "POS: RenameTabMode.allCases has exactly 4 cases", result: allCases.count == 4)
 
-        let expectedRawValues: Set = ["Find & Replace", "Prefix & Suffix", "Sequence"]
+        let expectedRawValues: Set = ["Find & Replace", "Prefix & Suffix", "Sequence", "Regex"]
         let actualRawValues = Set(allCases.map(\.rawValue))
-        report("Feature/RenameTabMode", "POS: allCases raw values match the 3 expected tab labels exactly", result: actualRawValues == expectedRawValues)
+        report("Feature/RenameTabMode", "POS: allCases raw values match the 4 expected tab labels exactly", result: actualRawValues == expectedRawValues)
     }
 
     private static func testIdMirrorsRawValue() {
@@ -29,6 +29,7 @@ public struct RenameTabModeTests {
         report("Feature/RenameTabMode", "POS: findReplace round-trips via rawValue", result: RenameTabMode(rawValue: "Find & Replace") == .findReplace)
         report("Feature/RenameTabMode", "POS: prefixSuffix round-trips via rawValue", result: RenameTabMode(rawValue: "Prefix & Suffix") == .prefixSuffix)
         report("Feature/RenameTabMode", "POS: sequence round-trips via rawValue", result: RenameTabMode(rawValue: "Sequence") == .sequence)
+        report("Feature/RenameTabMode", "POS: regex round-trips via rawValue", result: RenameTabMode(rawValue: "Regex") == .regex)
         report("Feature/RenameTabMode", "NEG: garbage rawValue returns nil", result: RenameTabMode(rawValue: "Not A Real Tab") == nil)
     }
 

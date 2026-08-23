@@ -2,6 +2,14 @@ import AppKit
 import SwiftUI
 
 struct HeaderBarView: View {
+    /// Minimum leading inset for the header row when there's no sidebar pane to its left reserving
+    /// room for the repositioned traffic-light window buttons (see `TrafficLightRepositioner`).
+    private static let trafficLightsSafeLeadingInset: CGFloat = 40.0
+    private static let defaultLeadingInset: CGFloat = 12.0
+    /// Trailing space after `rightControls` — 12pt row padding minus 2pt to bring the view
+    /// switcher closer to the trailing edge.
+    private static let rightControlsTrailingInset: CGFloat = 10.0
+
     var appState: AppState
     @Environment(WindowUIState.self)
     private var windowUIState
@@ -17,13 +25,12 @@ struct HeaderBarView: View {
                 PathBarView(appState: appState).frame(maxWidth: .infinity)
             }
             rightControls
-                .padding(.trailing, -2)
         }
-        .padding(.leading, sidebarProvidesSafeLeadingInset ? 12 : LayoutTokens.headerTrafficLightsSafeLeadingInset)
-        .padding(.trailing, 12)
+        .padding(.leading, sidebarProvidesSafeLeadingInset ? Self.defaultLeadingInset : Self.trafficLightsSafeLeadingInset)
+        .padding(.trailing, Self.rightControlsTrailingInset)
         .padding(.top, 6)
         .padding(.bottom, 6)
-        .background(TrafficLightRepositioner(offsetX: 6, offsetY: 6))
+        .background(TrafficLightRepositioner())
         .background(
             // Spans the whole header row (search field + the search toggle button included) so
             // clicking the search button itself never counts as an "outside" click — it used to,
@@ -61,7 +68,6 @@ struct HeaderBarView: View {
             .opacity(appState.navigation.historyBack.isEmpty ? 0.4 : 1.0)
             .help(appState.tr(.back))
             .accessibilityLabel(appState.tr(.back))
-            .accessibilityHint(appState.tr(.back))
 
             Button { appState.goForward() } label: {
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
@@ -72,7 +78,6 @@ struct HeaderBarView: View {
             .opacity(appState.navigation.historyForward.isEmpty ? 0.4 : 1.0)
             .help(appState.tr(.forward))
             .accessibilityLabel(appState.tr(.forward))
-            .accessibilityHint(appState.tr(.forward))
         }
     }
 
@@ -93,10 +98,7 @@ struct HeaderBarView: View {
                 searchQueryActionButtons
             }
         }
-        .padding(.horizontal, 10)
-        .frame(height: 28)
-        .background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.6), lineWidth: 1.5))
+        .headerFieldChrome()
     }
 
     private var searchTextField: some View {
@@ -105,14 +107,13 @@ struct HeaderBarView: View {
             .textFieldStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
             .focused($isSearchFocused)
-            .onAppear {
+            .task {
                 guard !appState.smartFolder.suppressNextSearchFocus else {
                     appState.smartFolder.suppressNextSearchFocus = false
                     return
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
-                    isSearchFocused = true
-                }
+                try? await Task.sleep(for: .seconds(AsyncDelayTokens.searchFieldFocusDelay))
+                isSearchFocused = true
             }
             .onSubmit {
                 NSApp.keyWindow?.makeFirstResponder(nil)
@@ -129,6 +130,8 @@ struct HeaderBarView: View {
         Button { windowUIState.showSaveSmartFolderSheet = true } label: {
             Image(systemName: "folder.badge.plus")
                 .foregroundColor(.accentColor)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(appState.tr(.saveAsSmartFolder))
@@ -137,6 +140,8 @@ struct HeaderBarView: View {
 
         Button { appState.selection.searchQuery = "" } label: {
             Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
+                .frame(width: 20, height: 20)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(appState.tr(.clearSearch))
@@ -180,7 +185,6 @@ struct HeaderBarView: View {
     /// re-runs the directory listing, shared by the large-files, date, and kind filter buttons.
     private func applyQuickFilter(_ token: String) {
         appState.selection.searchQuery = token
-        appState.refreshCurrentDirectory()
     }
 
     @ViewBuilder private var dateFilterButtons: some View {
@@ -231,14 +235,14 @@ struct HeaderBarView: View {
 
     private var searchButton: some View {
         Button {
-            withAnimation { appState.toggleSearching() }
+            withAnimation(MotionTokens.quickEase) { appState.toggleSearching() }
         } label: {
             Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium))
                 .frame(width: 30, height: 28)
                 .foregroundColor(appState.selection.isSearching ? .accentColor : .primary)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain).help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")
+        .buttonStyle(.plain).help(appState.trWithShortcutHint(.actSearch, shortcut: KeyLabel.cmdF))
         .accessibilityLabel(appState.tr(.actSearch))
         .accessibilityHint(appState.tr(.find))
     }
@@ -295,9 +299,9 @@ struct HeaderBarView: View {
         }
         .padding(2)
         .animation(MotionTokens.expandSpring, value: viewSwitcherExpanded)
-        .background(ClickOutsideDetector {
+        .background(Group {
             if viewSwitcherExpanded {
-                viewSwitcherExpanded = false
+                ClickOutsideDetector { viewSwitcherExpanded = false }
             }
         })
     }

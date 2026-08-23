@@ -11,8 +11,6 @@ import UniformTypeIdentifiers
 @MainActor
 public struct ImageConverterCoverageExtraTests {
     public static func run() {
-        testCustomCropRegionClampsOutOfRangeNormXAndNormY()
-        testCustomCropRegionClampsNormWidthAndHeightToRemainingSpace()
         testMax1080pWideAspectTakesWidthConstrainedBranch()
         testZeroSizedTargetThrowsRenderError()
         testReadOnlyDestinationDirectoryThrowsWriteError()
@@ -53,41 +51,6 @@ public struct ImageConverterCoverageExtraTests {
             return nil
         }
         return (width, height)
-    }
-
-    // MARK: - CustomCropRegion clamping
-
-    private static func testCustomCropRegionClampsOutOfRangeNormXAndNormY() {
-        // normX above 1.0 clamps to 1.0; normW is derived from the *raw* (unclamped) normX,
-        // so 1 - 2.0 = -1 forces normW down to its 0.01 floor.
-        let region = CustomCropRegion(normX: 2.0, normY: 0.5, normW: 0.9, normH: 0.9)
-        report(
-            "ImageConverter",
-            "POS: CustomCropRegion clamps an out-of-range normX to 1.0 and floors the derived normW",
-            result: region.normX == 1.0 && region.normW == 0.01 && region.normY == 0.5 && region.normH == 0.5)
-
-        // Negative normX/normY clamp to 0.0.
-        let negativeRegion = CustomCropRegion(normX: -1.0, normY: -2.0, normW: 0.5, normH: 0.5)
-        report(
-            "ImageConverter",
-            "NEG: CustomCropRegion clamps negative normX/normY to 0.0",
-            result: negativeRegion.normX == 0.0 && negativeRegion.normY == 0.0)
-    }
-
-    private static func testCustomCropRegionClampsNormWidthAndHeightToRemainingSpace() {
-        // normW/normH above the remaining space (1 - norm origin) clamp down to that remaining space.
-        let region = CustomCropRegion(normX: 0.5, normY: 0.5, normW: 2.0, normH: 2.0)
-        report(
-            "ImageConverter",
-            "POS: CustomCropRegion clamps oversized normW/normH to the remaining space from the origin",
-            result: region.normW == 0.5 && region.normH == 0.5)
-
-        // Negative normW/normH clamp up to the 0.01 floor.
-        let flooredRegion = CustomCropRegion(normX: 0.2, normY: 0.3, normW: -5, normH: -5)
-        report(
-            "ImageConverter",
-            "NEG: CustomCropRegion floors a negative normW/normH to 0.01",
-            result: flooredRegion.normW == 0.01 && flooredRegion.normH == 0.01)
     }
 
     // MARK: - constrainedSize width-limited branch

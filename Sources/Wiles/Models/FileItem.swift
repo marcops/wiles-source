@@ -2,6 +2,8 @@ import AppKit
 import Foundation
 
 public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
+    private static let highResIconSize: CGFloat = 512
+
     public var id: URL {
         url
     }
@@ -32,8 +34,9 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     /// hot path — loading a whole directory — should always supply the prefetched icon directly to
     /// avoid a blocking LaunchServices IPC call per file.
     public init(url: URL, icon: NSImage? = nil, fetchTags: Bool = false, needsOwnerGroup: Bool = true) {
-        self.url = url.standardizedFileURL
-        name = url.lastPathComponent
+        let std = url.standardizedFileURL
+        self.url = std
+        name = std.lastPathComponent
 
         let keys: Set<URLResourceKey> = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey,
@@ -70,7 +73,7 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
         // doesn't share the bulk-prefetched URLResourceValues above, so skip it entirely when the
         // caller knows the Owner/Group columns aren't visible.
         if needsOwnerGroup {
-            (ownerName, groupName) = Self.ownerAndGroup(atPath: url.path)
+            (ownerName, groupName) = Self.ownerAndGroup(atPath: std.path)
         } else {
             (ownerName, groupName) = ("--", "--")
         }
@@ -87,7 +90,7 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     private static func resolveHighResIcon(_ icon: NSImage?, values: URLResourceValues?, url: URL) -> NSImage {
         let resolvedIcon = icon ?? (values?.effectiveIcon as? NSImage) ?? NSWorkspace.shared.icon(forFile: url.path)
         let highResIcon = (resolvedIcon.copy() as? NSImage) ?? resolvedIcon
-        highResIcon.size = NSSize(width: 512, height: 512)
+        highResIcon.size = NSSize(width: Self.highResIconSize, height: Self.highResIconSize)
         return highResIcon
     }
 
@@ -122,24 +125,37 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
         return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
     }
 
-    private static let shortDateFormatter: DateFormatter = {
+    // Keyed by resolved language code so switching the in-app language mid-session reformats
+    // dates instead of sticking to whatever locale was captured on first use.
+    private static let dateFormatterCacheLock = NSLock()
+    private nonisolated(unsafe) static var dateFormatterCache: [String: DateFormatter] = [:]
+
+    private static func dateFormatter(for language: AppLanguage) -> DateFormatter {
+        let code = L10n.activeCode(language)
+        dateFormatterCacheLock.lock()
+        defer { dateFormatterCacheLock.unlock() }
+        if let cached = dateFormatterCache[code] {
+            return cached
+        }
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
+        formatter.locale = Locale(identifier: code)
+        dateFormatterCache[code] = formatter
         return formatter
-    }()
-
-    public var formattedDate: String {
-        Self.shortDateFormatter.string(from: dateModified)
     }
 
-    public var formattedDateCreated: String {
-        Self.shortDateFormatter.string(from: dateCreated)
+    public func formattedDate(language: AppLanguage) -> String {
+        Self.dateFormatter(for: language).string(from: dateModified)
     }
 
-    public var formattedDateAccessed: String {
+    public func formattedDateCreated(language: AppLanguage) -> String {
+        Self.dateFormatter(for: language).string(from: dateCreated)
+    }
+
+    public func formattedDateAccessed(language: AppLanguage) -> String {
         guard let date = dateAccessed else { return "--" }
-        return Self.shortDateFormatter.string(from: date)
+        return Self.dateFormatter(for: language).string(from: date)
     }
 
     public static func == (lhs: Self, rhs: Self) -> Bool {
@@ -147,8 +163,13 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
             lhs.isDirectory == rhs.isDirectory &&
             lhs.size == rhs.size &&
             lhs.dateModified == rhs.dateModified &&
+            lhs.dateCreated == rhs.dateCreated &&
+            lhs.dateAccessed == rhs.dateAccessed &&
             lhs.isHidden == rhs.isHidden &&
             lhs.tags == rhs.tags &&
+            lhs.tagColor == rhs.tagColor &&
+            lhs.ownerName == rhs.ownerName &&
+            lhs.groupName == rhs.groupName &&
             lhs.isUbiquitousNotDownloaded == rhs.isUbiquitousNotDownloaded
     }
 

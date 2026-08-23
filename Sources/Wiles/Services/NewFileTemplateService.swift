@@ -10,32 +10,13 @@ public struct NewFileTemplateService: Sendable {
         let finalName = trimmed.isEmpty ? template.defaultFileName : trimmed
 
         var targetURL = folderURL.appendingPathComponent(finalName)
-        if !targetURL.pathExtension.isEmpty == false {
+        if targetURL.pathExtension.isEmpty {
             targetURL = targetURL.appendingPathExtension(template.rawValue)
         }
 
-        let uniqueURL = generateUniqueURL(for: targetURL)
+        let uniqueURL = UniqueFileNaming.uniqueURL(for: targetURL, in: folderURL, isDirectory: false)
         let contentData = template.initialContent(language: language).data(using: .utf8) ?? Data()
         try contentData.write(to: uniqueURL, options: .atomic)
         return uniqueURL
-    }
-
-    private static func generateUniqueURL(for originalURL: URL) -> URL {
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: originalURL.path) else { return originalURL }
-
-        let folder = originalURL.deletingLastPathComponent()
-        let ext = originalURL.pathExtension
-        let baseName = originalURL.deletingPathExtension().lastPathComponent
-
-        var counter = 2
-        var candidateURL: URL
-        repeat {
-            let newName = ext.isEmpty ? "\(baseName) \(counter)" : "\(baseName) \(counter).\(ext)"
-            candidateURL = folder.appendingPathComponent(newName)
-            counter += 1
-        } while fm.fileExists(atPath: candidateURL.path)
-
-        return candidateURL
     }
 }

@@ -1,0 +1,45 @@
+import SwiftUI
+
+/// Shared "slice the dataset + grow-on-scroll" pagination logic used inside both the grid's
+/// `LazyVGrid` and the list's `LazyVStack` — the two leaf renderers differ only in the per-item
+/// view they render (`itemContent`) and the height reserved for the trailing loading spinner.
+///
+/// Above `LayoutTokens.paginationThreshold` items, only `visibleLimit` items are actually rendered;
+/// scrolling the trailing `ProgressView` into view grows the limit by
+/// `LayoutTokens.lazyLoadingBatchSize` until the full dataset is visible. Below the threshold, the
+/// whole dataset renders at once with the entrance animation `FileGridView`/`FileListView` already
+/// relied on.
+struct PaginatedItemsSection<ItemContent: View>: View {
+    /// `static let` isn't allowed on a generic type, so this is computed instead.
+    private static var lazyLoadingBatchSize: Int {
+        100
+    }
+
+    let items: [FileItem]
+    @Binding var visibleLimit: Int
+    let progressViewHeight: CGFloat
+    @ViewBuilder let itemContent: (FileItem) -> ItemContent
+
+    private var paginate: Bool {
+        items.count > LayoutTokens.paginationThreshold
+    }
+
+    private var visibleItems: [FileItem] {
+        paginate ? Array(items.prefix(visibleLimit)) : items
+    }
+
+    var body: some View {
+        ForEach(visibleItems) { item in
+            itemContent(item)
+                .transition(.opacity)
+        }
+        .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
+        if paginate, visibleLimit < items.count {
+            ProgressView()
+                .frame(height: progressViewHeight)
+                .onAppear {
+                    visibleLimit = min(items.count, visibleLimit + Self.lazyLoadingBatchSize)
+                }
+        }
+    }
+}

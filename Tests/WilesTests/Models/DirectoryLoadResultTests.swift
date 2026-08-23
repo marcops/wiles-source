@@ -7,10 +7,9 @@ public struct DirectoryLoadResultTests {
     public static func run() {
         let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("b.txt")
         let items = [FileItem(url: tempFile, icon: NSImage())]
-        let result = DirectoryLoadResult(items: items, isPermissionDenied: false)
+        let result = DirectoryLoadResult(items: items)
 
         report("Model/DirectoryLoadResult", "POS: DirectoryLoadResult items count matches", result: result.items.count == 1)
-        report("Model/DirectoryLoadResult", "NEG: DirectoryLoadResult permission denied is false", result: !result.isPermissionDenied)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

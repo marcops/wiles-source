@@ -14,21 +14,36 @@ public final class NavigationStore {
     public var pathText: String = ""
     public var historyBack: [URL] = []
     public var historyForward: [URL] = []
+    /// Cancelled and replaced whenever a new `/Volumes/` navigation starts, so a slow-resolving
+    /// mount can't finish after a faster subsequent navigation and yank the user back to it.
+    public var pendingSlowVolumeCheck: Task<Void, Never>?
     public var recentOpenedURLs: [URL] = [] {
         didSet {
+            guard !isInitializing else { return }
             let paths = recentOpenedURLs.map(\.path)
             UserDefaults.standard.set(paths, forKey: DefaultsKey.recentOpenedURLs.rawValue)
         }
     }
 
+    /// Suppresses `recentOpenedURLs`'s persistence `didSet` while `init` populates it from
+    /// already-persisted data, so construction doesn't redundantly write back what it just read.
+    private var isInitializing = true
+
     /// Caps `historyBack`/`historyForward` so a long session of folder-hopping doesn't grow these
     /// arrays (and the recent-folders UI they drive) without bound.
     private let maxNavigationHistoryCount = 200
+    private let maxRecentOpenedCount = 50
+
+    /// Set by `AppState.init` to `{ [weak self] fallback in self?.navigateTo(fallback) }` — lets a
+    /// dead saved volume route through the real navigation path (refresh, history, recents) instead
+    /// of `validateSlowVolumePaths` silently reassigning `currentURL` with no reload. Same idiom as
+    /// `SelectionStore.onSearchQueryChanged`.
+    public var onVolumeUnreachable: ((URL) -> Void)?
 
     public init(initialURL: URL = FileManager.default.homeDirectoryForCurrentUser) {
         let savedPath = UserDefaults.standard.string(forKey: DefaultsKey.lastOpenedFolder.rawValue)
         let resolvedURL: URL = if let path = savedPath, Self.existsOptimistically(atPath: path) {
-            URL(fileURLWithPath: path)
+            URL(fileURLWithPath: path).standardizedFileURL
         } else {
             initialURL
         }
@@ -40,6 +55,7 @@ public final class NavigationStore {
                 Self.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
             }
         }
+        isInitializing = false
 
         Task { [weak self] in
             await self?.validateSlowVolumePaths()
@@ -59,7 +75,12 @@ public final class NavigationStore {
         }.value
 
         if let exists = existence[currentURL.path], !exists {
-            currentURL = FileManager.default.homeDirectoryForCurrentUser
+            let fallback = FileManager.default.homeDirectoryForCurrentUser
+            if let onVolumeUnreachable {
+                onVolumeUnreachable(fallback)
+            } else {
+                currentURL = fallback
+            }
         }
         recentOpenedURLs = recentOpenedURLs.filter { existence[$0.path] ?? true }
     }
@@ -77,15 +98,18 @@ public final class NavigationStore {
     /// Inserts/refreshes `url` at the front of `recentOpenedURLs`, capped at 50 entries. Excludes
     /// the synthetic Recents-virtual-folder URL and any `wiles://`-scheme virtual URL, neither of
     /// which represents a real openable location worth remembering.
+    ///
+    /// Merges against `UserDefaults` (not the in-memory copy) so a concurrent write from another window isn't clobbered.
     public func addToRecents(_ url: URL) {
         let std = url.standardizedFileURL
         if std == AppState.recentsVirtualURL || std.scheme == "wiles" {
             return
         }
-        var current = recentOpenedURLs.filter { $0.standardizedFileURL != std }
+        let persistedPaths = UserDefaults.standard.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) ?? []
+        var current = persistedPaths.map { URL(fileURLWithPath: $0) }.filter { $0.standardizedFileURL != std }
         current.insert(std, at: 0)
-        if current.count > 50 {
-            current = Array(current.prefix(50))
+        if current.count > maxRecentOpenedCount {
+            current = Array(current.prefix(maxRecentOpenedCount))
         }
         recentOpenedURLs = current
     }
@@ -94,7 +118,7 @@ public final class NavigationStore {
     /// the limit. Shared by `recordVisit`/`popBackForGoBack`/`popForwardForGoForward` so the cap
     /// logic exists in exactly one place instead of being copy-pasted at each call site.
     private func cap(_ stack: inout [URL]) {
-        if stack.count > maxNavigationHistoryCount {
+        while stack.count > maxNavigationHistoryCount {
             stack.removeFirst()
         }
     }
@@ -105,7 +129,7 @@ public final class NavigationStore {
     /// existed. A no-op when `newURL` is the already-current folder — call this before actually
     /// updating `currentURL` to the new value.
     public func recordVisit(to newURL: URL) {
-        guard newURL != currentURL else { return }
+        guard newURL.standardizedFileURL != currentURL.standardizedFileURL else { return }
         historyBack.append(currentURL)
         cap(&historyBack)
         historyForward.removeAll()

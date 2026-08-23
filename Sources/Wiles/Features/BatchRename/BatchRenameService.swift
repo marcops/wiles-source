@@ -48,7 +48,7 @@ public enum BatchRenameService {
         return (try? NSRegularExpression(pattern: pattern, options: [])) == nil ? pattern : nil
     }
 
-    public static func performBatchRename(items: [FileItem], mode: BatchRenameMode) throws -> [URL] {
+    public static func performBatchRename(items: [FileItem], mode: BatchRenameMode) async throws -> BatchRenameResult {
         // previewNewNames silently falls back to the original base name for an invalid regex
         // pattern (that fallback is fine for the live preview text), but actually performing the
         // rename must not pretend the user didn't ask for anything - validate the pattern up front
@@ -59,11 +59,23 @@ public enum BatchRenameService {
 
         let previews = previewNewNames(items: items, mode: mode)
 
-        return try previews.map { item, newName in
+        var renamedURLs: [URL] = []
+        renamedURLs.reserveCapacity(previews.count)
+        var renamedPairs: [(old: URL, new: URL)] = []
+        var failures: [(item: FileItem, error: Error)] = []
+        for (item, newName) in previews {
             guard !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, newName != item.name else {
-                return item.url
+                renamedURLs.append(item.url)
+                continue
             }
-            return try FileSystemService.renameItem(at: item.url, newName: newName)
+            do {
+                let newURL = try await FileSystemService.renameItem(at: item.url, newName: newName)
+                renamedURLs.append(newURL)
+                renamedPairs.append((old: item.url, new: newURL))
+            } catch {
+                failures.append((item, error))
+            }
         }
+        return BatchRenameResult(renamedURLs: renamedURLs, renamedPairs: renamedPairs, failures: failures)
     }
 }

@@ -42,7 +42,7 @@ public final class AutomatedTestService {
         ExifMetadataTests.run()
         await ArchiveInspectionTests.run()
         ArchiveTests.run()
-        BatchRenameTests.run()
+        await BatchRenameTests.run()
         await FileShredderTests.run()
         SymlinkTests.run()
     }

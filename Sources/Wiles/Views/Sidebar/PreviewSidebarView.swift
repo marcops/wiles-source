@@ -6,31 +6,35 @@ struct PreviewSidebarView: View {
     @Environment(WindowUIState.self)
     private var windowUIState
     @State private var detailedProps: DetailedFileProperties?
+    @State private var resolvedItem: FileItem?
 
     var body: some View {
-        VStack {
-            if appState.selection.selectedURLs.isEmpty {
-                Text(appState.tr(.noSelection)).foregroundColor(.secondary)
-            } else if appState.selection.selectedURLs.count == 1 {
-                singleSelectionView
-            } else {
-                Text("\(appState.selection.selectedURLs.count) \(appState.tr(.itemsSelectedSuffix))").foregroundColor(.secondary)
+        ScrollView {
+            VStack {
+                if appState.selection.selectedURLs.isEmpty {
+                    Text(appState.tr(.noSelection)).foregroundColor(.secondary)
+                } else if appState.selection.selectedURLs.count == 1 {
+                    singleSelectionView
+                } else {
+                    Text("\(appState.selection.selectedURLs.count) \(appState.tr(.itemsSelectedSuffix))").foregroundColor(.secondary)
+                }
             }
+            .frame(minWidth: 200, idealWidth: 250, maxWidth: 350)
         }
         .frame(minWidth: 200, idealWidth: 250, maxWidth: 350, maxHeight: .infinity)
         .padding()
         .translucentBackground(material: .sidebar, opacity: appState.preferences.sidebarOverlayOpacity)
         .task(id: appState.selection.selectedURLs) {
-            if let first = appState.selection.selectedURLs.first, appState.selection.selectedURLs.count == 1 {
-                detailedProps = await FileMetadataService.shared.fetchProperties(for: first)
-            } else {
-                detailedProps = nil
-            }
+            detailedProps = nil
+            resolvedItem = nil
+            guard let first = appState.selection.selectedURLs.first, appState.selection.selectedURLs.count == 1 else { return }
+            resolvedItem = appState.fileSystem.items.first { $0.url.standardizedFileURL == first.standardizedFileURL }
+            detailedProps = await FileMetadataService.shared.fetchProperties(for: first)
         }
     }
 
     @ViewBuilder private var singleSelectionView: some View {
-        if let first = appState.selection.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
+        if let item = resolvedItem {
             VStack(alignment: .center, spacing: 16) {
                 FileItemIconView(item: item, size: 120)
                     .id(item.url)
@@ -54,6 +58,8 @@ struct PreviewSidebarView: View {
                 .accessibilityLabel(appState.tr(.moreInfo))
                 .accessibilityHint(appState.tr(.moreInfoAccessibilityHint))
             }
+        } else {
+            Text(appState.tr(.previewUnavailable)).foregroundColor(.secondary)
         }
     }
 
@@ -67,7 +73,7 @@ struct PreviewSidebarView: View {
             if let dur = detailedProps?.duration {
                 propertyRow(label: appState.tr(.duration), value: dur)
             }
-            propertyRow(label: appState.tr(.dateModified), value: item.formattedDate)
+            propertyRow(label: appState.tr(.dateModified), value: item.formattedDate(language: appState.preferences.appLanguage))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -77,7 +83,7 @@ struct PreviewSidebarView: View {
         if !item.isDirectory {
             Divider()
             VStack(alignment: .leading, spacing: 4) {
-                Text(appState.tr(.codePreview))
+                Text(appState.tr(.preview))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.secondary)
                 QLPreviewInlineView(url: item.url, appState: appState)

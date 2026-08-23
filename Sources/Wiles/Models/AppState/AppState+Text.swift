@@ -13,22 +13,25 @@ public extension AppState {
         let selCount = selection.selectedURLs.count
 
         if selCount == 0 {
-            let totalFilesSize = fileSystem.items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
-            if totalFilesSize > 0 {
-                let formattedSize = ByteCountFormatter.string(fromByteCount: totalFilesSize, countStyle: .file)
+            if let formattedSize = formattedSize(of: fileSystem.items) {
                 return String(format: tr(.itemsCountWithSize), totalCount, formattedSize)
             }
             return String(format: tr(.itemsCount), totalCount)
         } else {
             let selItems = fileSystem.items.filter { selection.selectedURLs.contains($0.url) }
-            let selFilesSize = selItems.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
-            if selFilesSize > 0 {
-                let formattedSize = ByteCountFormatter.string(fromByteCount: selFilesSize, countStyle: .file)
-                return "\(selCount) / \(totalCount) (\(formattedSize))"
-            } else {
-                return "\(selCount) / \(totalCount)"
+            if let formattedSize = formattedSize(of: selItems) {
+                return String(format: tr(.selectionCountWithSize), selCount, totalCount, formattedSize)
             }
+            return String(format: tr(.selectionCount), selCount, totalCount)
         }
+    }
+
+    /// `nil` when `items` contains no files with a nonzero total size (an empty/all-directories
+    /// selection) — lets both `statusText` branches share one "reduce → format" shape.
+    private func formattedSize(of items: [FileItem]) -> String? {
+        let totalSize = items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
+        guard totalSize > 0 else { return nil }
+        return ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
     }
 
     /// Reads volume free-space asynchronously off the main thread. `resourceValues(forKeys:)` is a

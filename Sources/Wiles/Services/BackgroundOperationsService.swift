@@ -16,9 +16,8 @@ public final class BackgroundOperationsService {
         return task.id
     }
 
-    public func updateProgress(id: UUID, progress: Double, bytesTransferred: Int64 = 0) {
+    public func updateProgress(id: UUID, bytesTransferred: Int64) {
         guard let index = activeTasks.firstIndex(where: { $0.id == id }) else { return }
-        activeTasks[index].progress = progress
         activeTasks[index].bytesTransferred = bytesTransferred
     }
 
@@ -27,9 +26,6 @@ public final class BackgroundOperationsService {
     }
 
     public func cancelTask(id: UUID) {
-        if let index = activeTasks.firstIndex(where: { $0.id == id }) {
-            activeTasks[index].isCancelled = true
-        }
         completeTask(id: id)
     }
 }

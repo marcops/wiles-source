@@ -2,20 +2,25 @@ import Foundation
 
 public extension AppState {
     func addFavorite(_ url: URL) {
-        let std = url.standardizedFileURL
-        if !preferences.favoriteURLs.contains(where: { $0.standardizedFileURL == std }) {
-            preferences.favoriteURLs.append(std)
+        if !preferences.favoriteURLs.contains(where: { isSameLocation($0, url) }) {
+            preferences.favoriteURLs.append(url.standardizedFileURL)
         }
     }
 
     func removeFavorite(_ url: URL) {
-        let std = url.standardizedFileURL
-        preferences.favoriteURLs.removeAll { $0.standardizedFileURL == std }
+        preferences.favoriteURLs.removeAll { isSameLocation($0, url) }
     }
 
     func isFavorite(_ url: URL) -> Bool {
-        let std = url.standardizedFileURL
-        return preferences.favoriteURLs.contains(where: { $0.standardizedFileURL == std })
+        preferences.favoriteURLs.contains(where: { isSameLocation($0, url) })
+    }
+
+    /// "Same location" for favorites/path comparisons — resolves symlinks so a path reached via a
+    /// symlinked ancestor (e.g. `~/Desktop` under iCloud Desktop & Documents sync) still matches its
+    /// real target instead of silently going stale. `favoriteURLs` is always a short, hand-curated
+    /// list, so the extra `stat` this involves is bounded and cheap here.
+    private func isSameLocation(_ lhs: URL, _ rhs: URL) -> Bool {
+        lhs.resolvingSymlinksInPath().standardizedFileURL == rhs.resolvingSymlinksInPath().standardizedFileURL
     }
 
     /// Single entry point for every in-app move (cut/paste, drag onto a folder row, breadcrumb
@@ -24,8 +29,8 @@ public extension AppState {
     /// second in-app move location can never again forget to re-sync favorites (see
     /// `remapFavorites` below for why it must be called after every move).
     @discardableResult
-    func moveItem(at url: URL, toFolder targetFolder: URL) throws -> URL {
-        let destURL = try FileSystemService.moveItem(at: url, toFolder: targetFolder)
+    func moveItem(at url: URL, toFolder targetFolder: URL) async throws -> URL {
+        let destURL = try await FileSystemService.moveItem(at: url, toFolder: targetFolder)
         remapFavorites(from: url, to: destURL)
         return destURL
     }
@@ -42,23 +47,30 @@ public extension AppState {
     /// AppState's own move paths. Handles both the favorited item itself moving and a favorited
     /// item nested inside a moved ancestor folder.
     func remapFavorites(from oldURL: URL, to newURL: URL) {
-        let oldStd = oldURL.standardizedFileURL
+        let oldStd = oldURL.resolvingSymlinksInPath().standardizedFileURL
         let newStd = newURL.standardizedFileURL
-        for (index, favorite) in preferences.favoriteURLs.enumerated() {
-            let favStd = favorite.standardizedFileURL
+        var updated = preferences.favoriteURLs
+        var didChange = false
+        for (index, favorite) in updated.enumerated() {
+            let favStd = favorite.resolvingSymlinksInPath().standardizedFileURL
             if favStd == oldStd {
-                preferences.favoriteURLs[index] = newStd
+                updated[index] = newStd
+                didChange = true
             } else if favStd.path.hasPrefix(oldStd.path + "/") {
+                // swiftlint:disable:previous no_naive_path_prefix_check — trailing "/" already appended above, the exact safe pattern this rule recommends.
                 let relativePath = String(favStd.path.dropFirst(oldStd.path.count))
-                preferences.favoriteURLs[index] = URL(fileURLWithPath: newStd.path + relativePath)
+                updated[index] = URL(fileURLWithPath: newStd.path + relativePath)
+                didChange = true
             }
         }
+        guard didChange else { return }
+        preferences.favoriteURLs = updated
     }
 
     func moveSelectedFavorite(offset: Int, windowUIState: WindowUIState) {
-        guard let selected = windowUIState.selectedFavoriteURL?.standardizedFileURL,
-              selected == navigation.currentURL.standardizedFileURL,
-              let index = preferences.favoriteURLs.firstIndex(where: { $0.standardizedFileURL == selected }) else { return }
+        guard let selected = windowUIState.selectedFavoriteURL,
+              isSameLocation(selected, navigation.currentURL),
+              let index = preferences.favoriteURLs.firstIndex(where: { isSameLocation($0, selected) }) else { return }
         let newIndex = index + offset
         guard preferences.favoriteURLs.indices.contains(newIndex) else { return }
         preferences.favoriteURLs.swapAt(index, newIndex)

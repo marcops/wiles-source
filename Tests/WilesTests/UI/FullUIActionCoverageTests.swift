@@ -116,13 +116,13 @@ public struct FullUIActionCoverageTests {
         report("UI/Modals", "POS: showSaveSmartFolderSheet sets flag", result: windowUIState.showSaveSmartFolderSheet)
         windowUIState.showSaveSmartFolderSheet = false
 
-        windowUIState.showPasswordCompressSheet = true
-        report("UI/Modals", "POS: showPasswordCompressSheet sets flag", result: windowUIState.showPasswordCompressSheet)
-        windowUIState.showPasswordCompressSheet = false
+        windowUIState.passwordCompressURLs = [URL(fileURLWithPath: "/tmp")]
+        report("UI/Modals", "POS: passwordCompressURLs sets payload", result: windowUIState.passwordCompressURLs != nil)
+        windowUIState.passwordCompressURLs = nil
 
-        windowUIState.showArchiveInspectionSheet = true
-        report("UI/Modals", "POS: showArchiveInspectionSheet sets flag", result: windowUIState.showArchiveInspectionSheet)
-        windowUIState.showArchiveInspectionSheet = false
+        windowUIState.inspectArchiveURL = URL(fileURLWithPath: "/tmp")
+        report("UI/Modals", "POS: inspectArchiveURL sets payload", result: windowUIState.inspectArchiveURL != nil)
+        windowUIState.inspectArchiveURL = nil
 
         windowUIState.showHelpSheet = true
         report("UI/Modals", "POS: showHelpSheet sets flag", result: windowUIState.showHelpSheet)

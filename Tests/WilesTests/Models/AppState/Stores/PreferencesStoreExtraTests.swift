@@ -213,14 +213,14 @@ public struct PreferencesStoreExtraTests {
         report(
             "Store/PreferencesStore",
             "POS: showFavorites keeps its compiled-in default (true) when nothing was ever saved",
-            result: neverSavedStore.showFavorites == true)
+            result: neverSavedStore.showFavorites)
 
         UserDefaults.standard.set(false, forKey: key)
         let explicitFalseStore = PreferencesStore()
         report(
             "Store/PreferencesStore",
             "NEG: an explicitly saved false for showFavorites is applied, not skipped as if absent",
-            result: explicitFalseStore.showFavorites == false)
+            result: !explicitFalseStore.showFavorites)
     }
 
     // MARK: - sidebarTranslucentLevel / contentTranslucentLevel load-from-UserDefaults

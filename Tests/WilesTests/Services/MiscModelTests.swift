@@ -55,7 +55,7 @@ public struct MiscModelTests {
     private static func testFolderNodeBuildRootTree() {
         let root = FolderNode.buildRootTree()
         report("FolderNode", "POS: buildRootTree() root id/url points at the filesystem root", result: root.url == URL(fileURLWithPath: "/"))
-        report("FolderNode", "POS: buildRootTree() finds at least one visible top-level folder", result: (root.children?.isEmpty ?? true) == false)
+        report("FolderNode", "POS: buildRootTree() finds at least one visible top-level folder", result: !(root.children?.isEmpty ?? true))
     }
 
     private static func testFolderNodeRootChildrenSortedAndHiddenExcluded() {
@@ -71,7 +71,7 @@ public struct MiscModelTests {
 
         // Note: an earlier version of this test assumed "/tmp" (a symlink into /private/tmp) would
         // appear as a resolved directory entry. Verified directly against this macOS version: /tmp
-        // reports BOTH isHidden == true AND isDirectory == false for the symlink itself (Foundation
+        // reports BOTH isHidden as true AND isDirectory as false for the symlink itself (Foundation
         // does not resolve isDirectoryKey through it here) — so FolderNode correctly excludes it,
         // for two independent reasons the original assumption got backwards. No real test value in
         // asserting a specific well-known path's presence; the hidden-name check above already

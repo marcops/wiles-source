@@ -15,14 +15,14 @@ enum FileSystemMoveRegressionTests {
     /// surfacing a confusing "couldn't be moved... doesn't exist" error while the item was gone
     /// forever (not even recoverable from Trash). This must be a safe no-op instead: the item must
     /// still exist afterward, with its original contents intact.
-    static func run(tempDir: URL) {
+    static func run(tempDir: URL) async {
         let alreadyThereDir = tempDir.appendingPathComponent("AlreadyThere")
         try? FileManager.default.createDirectory(at: alreadyThereDir, withIntermediateDirectories: true)
         let sameFolderItem = alreadyThereDir.appendingPathComponent("dont_delete_me.txt")
         let originalContent = "precious user data \(UUID().uuidString)"
         try? originalContent.write(to: sameFolderItem, atomically: true, encoding: .utf8)
 
-        _ = try? FileSystemService.moveItem(at: sameFolderItem, toFolder: alreadyThereDir)
+        _ = try? await FileSystemService.moveItem(at: sameFolderItem, toFolder: alreadyThereDir)
 
         let stillExists = FileManager.default.fileExists(atPath: sameFolderItem.path)
         let contentIntact = (try? String(contentsOf: sameFolderItem)) == originalContent

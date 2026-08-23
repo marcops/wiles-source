@@ -6,19 +6,32 @@ struct SmartFoldersSectionView: View {
     @Binding var renamingSmartFolderID: SmartFolder.ID?
     @Binding var smartFolderRenameText: String
     var isRenameFocused: FocusState<Bool>.Binding
+    @State private var rightClickedFolderID: SmartFolder.ID?
+    @State private var pendingDeleteFolder: SmartFolder?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if appState.preferences.showSidebarSectionTitles {
-                SidebarSectionHeaderView(
-                    title: appState.tr(.smartFolders), identifierKey: "SMART_FOLDERS", appState: appState, isExpanded: $isExpanded)
-            }
-            if !appState.preferences.showSidebarSectionTitles || isExpanded {
+        SidebarSectionContainer(
+            appState: appState, title: appState.tr(.smartFolders), identifierKey: "SMART_FOLDERS", isExpanded: $isExpanded) {
                 ForEach(appState.preferences.smartFolders) { folder in
                     smartFolderRow(folder: folder)
                 }
             }
-        }
+            .confirmationDialog(
+                appState.tr(.removeSmartFolderConfirm), isPresented: Binding(
+                    get: { pendingDeleteFolder != nil },
+                    set: {
+                        if !$0 {
+                            pendingDeleteFolder = nil
+                        }
+                    }),
+                titleVisibility: .visible) {
+                    Button(appState.tr(.moveToTrash), role: .destructive) {
+                        if let folder = pendingDeleteFolder {
+                            appState.removeSmartFolder(folder)
+                        }
+                        pendingDeleteFolder = nil
+                    }
+            }
     }
 
     @ViewBuilder
@@ -33,7 +46,7 @@ struct SmartFoldersSectionView: View {
     /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
     /// for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
     private func smartFolderButtonRow(folder: SmartFolder) -> some View {
-        let isSel = appState.smartFolder.activeFolderID == folder.id
+        let isSel = appState.smartFolder.activeFolderID == folder.id || rightClickedFolderID == folder.id
         return HStack(spacing: 10) {
             Image(systemName: folder.icon)
                 .font(.system(size: 15))
@@ -44,18 +57,16 @@ struct SmartFoldersSectionView: View {
                 .lineLimit(1)
             Spacer()
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(isSel ? Color.accentColor.opacity(0.18) : Color.clear)
-        .cornerRadius(8)
-        .contentShape(Rectangle())
+        .sidebarRowChrome(isSelected: isSel)
         .onTapGesture {
-            runSmartFolder(folder)
+            appState.runSmartFolder(folder)
         }
-        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .accessibilityLabel(folder.name)
-        .accessibilityHint(appState.tr(.folder))
+        .accessibilityHint(appState.tr(.smartFolderHint))
         .padding(.horizontal, 8)
+        .overlay(
+            RightClickDetector { rightClickedFolderID = folder.id })
         .contextMenu {
             Button(appState.tr(.rename)) {
                 smartFolderRenameText = folder.name
@@ -67,7 +78,7 @@ struct SmartFoldersSectionView: View {
             .disabled(appState.selection.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty)
             Divider()
             Button(appState.tr(.moveToTrash), role: .destructive) {
-                appState.removeSmartFolder(folder)
+                pendingDeleteFolder = folder
             }
         }
     }
@@ -82,10 +93,9 @@ struct SmartFoldersSectionView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .focused(isRenameFocused)
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.searchFieldFocusDelay) {
-                        isRenameFocused.wrappedValue = true
-                    }
+                .task {
+                    try? await Task.sleep(for: .seconds(AsyncDelayTokens.searchFieldFocusDelay))
+                    isRenameFocused.wrappedValue = true
                 }
                 .onSubmit { commitSmartFolderRename(folder) }
                 .onExitCommand { renamingSmartFolderID = nil }
@@ -104,9 +114,5 @@ struct SmartFoldersSectionView: View {
         guard renamingSmartFolderID == folder.id else { return }
         appState.renameSmartFolder(folder, to: smartFolderRenameText)
         renamingSmartFolderID = nil
-    }
-
-    private func runSmartFolder(_ folder: SmartFolder) {
-        appState.runSmartFolder(folder)
     }
 }

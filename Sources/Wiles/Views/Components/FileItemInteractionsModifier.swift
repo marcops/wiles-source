@@ -52,12 +52,10 @@ public struct FileItemInteractionsModifier: ViewModifier {
                 if !appState.selection.selectedURLs.contains(item.url) {
                     appState.selection.selectedURLs = [item.url]
                 }
-                let urls = Array(appState.selection.selectedURLs)
-                let provider = NSItemProvider()
-                for fileURL in urls {
-                    provider.registerObject(fileURL as NSURL, visibility: .all)
-                }
-                return provider
+                // One provider per row, representing only this row's own file — an NSItemProvider
+                // is a single drag item, so registering every selected URL's representation onto
+                // one shared provider (the old code) can't actually transfer more than one file.
+                return NSItemProvider(object: item.url as NSURL)
             }
             .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState, onTargetedChanged: onTargetedChanged)
             .overlay(

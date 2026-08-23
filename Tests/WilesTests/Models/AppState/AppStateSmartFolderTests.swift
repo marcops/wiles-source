@@ -29,8 +29,8 @@ public struct AppStateSmartFolderTests {
             }
         }
 
+        UserDefaults.standard.removeObject(forKey: DefaultsKey.smartFolders.rawValue)
         let appState = AppState()
-        appState.preferences.smartFolders = []
         let folder = SmartFolder(name: "My Folder", searchQuery: "report", scopePath: "/tmp")
 
         appState.addSmartFolder(folder)
@@ -46,7 +46,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "NEG: addSmartFolder() does not add an unrelated folder that was never added",
-            result: appState.preferences.smartFolders.contains { $0.id == other.id } == false)
+            result: !appState.preferences.smartFolders.contains { $0.id == other.id })
     }
 
     private static func testRemoveSmartFolder() {
@@ -59,10 +59,10 @@ public struct AppStateSmartFolderTests {
             }
         }
 
-        let appState = AppState()
         let keep = SmartFolder(name: "Keep", searchQuery: "a", scopePath: "/tmp")
         let removeTarget = SmartFolder(name: "Remove", searchQuery: "b", scopePath: "/tmp")
-        appState.preferences.smartFolders = [keep, removeTarget]
+        try? SmartFolderService.saveSmartFolders([keep, removeTarget])
+        let appState = AppState()
 
         appState.removeSmartFolder(removeTarget)
         report(
@@ -74,7 +74,7 @@ public struct AppStateSmartFolderTests {
         report(
             "AppState",
             "POS: removeSmartFolder() persists the updated list without the removed folder",
-            result: persisted.contains { $0.id == removeTarget.id } == false)
+            result: !persisted.contains { $0.id == removeTarget.id })
 
         appState.removeSmartFolder(removeTarget)
         report(
@@ -93,10 +93,10 @@ public struct AppStateSmartFolderTests {
             }
         }
 
-        let appState = AppState()
         let folder = SmartFolder(name: "Old Name", searchQuery: "kind:image", scopePath: "/tmp")
         let other = SmartFolder(name: "Untouched", searchQuery: "kind:pdf", scopePath: "/tmp")
-        appState.preferences.smartFolders = [folder, other]
+        try? SmartFolderService.saveSmartFolders([folder, other])
+        let appState = AppState()
 
         appState.renameSmartFolder(folder, to: "New Name")
         report(
@@ -131,10 +131,10 @@ public struct AppStateSmartFolderTests {
             }
         }
 
-        let appState = AppState()
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image jpg", scopePath: "/tmp")
         let other = SmartFolder(name: "Untouched", searchQuery: "kind:pdf", scopePath: "/tmp")
-        appState.preferences.smartFolders = [folder, other]
+        try? SmartFolderService.saveSmartFolders([folder, other])
+        let appState = AppState()
 
         appState.updateSmartFolderQuery(folder, to: "kind:image jpeg")
         report(

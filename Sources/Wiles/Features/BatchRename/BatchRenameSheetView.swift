@@ -18,6 +18,9 @@ struct BatchRenameSheetView: View {
     @State private var startNumber: Int = 1
     @State private var paddingDigits: Int = 3
 
+    @State private var regexPattern: String = ""
+    @State private var regexTemplate: String = ""
+
     private var currentMode: BatchRenameMode {
         switch tabMode {
         case .findReplace:
@@ -26,6 +29,8 @@ struct BatchRenameSheetView: View {
             .addPrefixSuffix(prefix: prefixText, suffix: suffixText)
         case .sequence:
             .sequenceNumber(prefix: sequencePrefix, startNumber: startNumber, paddingDigits: paddingDigits)
+        case .regex:
+            .regex(pattern: regexPattern, template: regexTemplate)
         }
     }
 
@@ -63,8 +68,10 @@ struct BatchRenameSheetView: View {
             Text(appState.tr(.find)).tag(RenameTabMode.findReplace)
             Text(appState.tr(.prefix)).tag(RenameTabMode.prefixSuffix)
             Text(appState.tr(.sequenceNumbering)).tag(RenameTabMode.sequence)
+            Text(appState.tr(.regexReplace)).tag(RenameTabMode.regex)
         }
         .pickerStyle(.segmented)
+        .accessibilityLabel(appState.tr(.batchRename))
     }
 
     private var previewLabel: some View {
@@ -75,7 +82,7 @@ struct BatchRenameSheetView: View {
 
     private var previewList: some View {
         ScrollView {
-            VStack(spacing: 4) {
+            LazyVStack(spacing: 4) {
                 ForEach(previews, id: \.original.url) { pair in
                     previewRow(pair)
                     Divider()
@@ -112,25 +119,48 @@ struct BatchRenameSheetView: View {
             HStack(spacing: 12) {
                 TextField(appState.tr(.find), text: $findText)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(appState.tr(.find))
                 TextField(appState.tr(.replaceWith), text: $replaceText)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(appState.tr(.replaceWith))
             }
         case .prefixSuffix:
             HStack(spacing: 12) {
                 TextField(appState.tr(.prefix), text: $prefixText)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(appState.tr(.prefix))
                 TextField(appState.tr(.suffix), text: $suffixText)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(appState.tr(.suffix))
             }
         case .sequence:
             HStack(spacing: 12) {
                 TextField(appState.tr(.prefix), text: $sequencePrefix)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(appState.tr(.prefix))
                 HStack(spacing: 4) {
                     Text(appState.tr(.startNumber) + ":")
                         .font(.system(size: 12))
                     Stepper("\(startNumber)", value: $startNumber, in: 0 ... 9999)
+                        .accessibilityLabel(appState.tr(.startNumber))
+                        .accessibilityValue("\(startNumber)")
                 }
+                HStack(spacing: 4) {
+                    Text(appState.tr(.paddingDigits) + ":")
+                        .font(.system(size: 12))
+                    Stepper("\(paddingDigits)", value: $paddingDigits, in: 1 ... 6)
+                        .accessibilityLabel(appState.tr(.paddingDigits))
+                        .accessibilityValue("\(paddingDigits)")
+                }
+            }
+        case .regex:
+            HStack(spacing: 12) {
+                TextField(appState.tr(.regexReplace), text: $regexPattern)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(appState.tr(.regexReplace))
+                TextField(appState.tr(.replaceWith), text: $regexTemplate)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityLabel(appState.tr(.replaceWith))
             }
         }
     }

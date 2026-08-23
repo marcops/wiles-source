@@ -8,7 +8,7 @@ import Foundation
 extension FileSystemTests {
     /// Covers moveItem's success path and its "remove existing destination before moving" branch,
     /// and compressToZIP/extractZIP, none of which are exercised elsewhere.
-    static func runMoveAndZipCoverageExtras() {
+    static func runMoveAndZipCoverageExtras() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
@@ -19,7 +19,7 @@ extension FileSystemTests {
         try? "move me".write(to: moveSource, atomically: true, encoding: .utf8)
         var movePassed = false
         do {
-            let moved = try FileSystemService.moveItem(at: moveSource, toFolder: moveTargetFolder)
+            let moved = try await FileSystemService.moveItem(at: moveSource, toFolder: moveTargetFolder)
             movePassed = FileManager.default.fileExists(atPath: moved.path) && !FileManager.default.fileExists(atPath: moveSource.path)
         } catch {
             print("moveItem error: \(error)")
@@ -33,7 +33,7 @@ extension FileSystemTests {
         try? "stale content".write(to: existingDest, atomically: true, encoding: .utf8)
         var overwritePassed = false
         do {
-            let moved = try FileSystemService.moveItem(at: overwriteSource, toFolder: moveTargetFolder)
+            let moved = try await FileSystemService.moveItem(at: overwriteSource, toFolder: moveTargetFolder)
             let readBack = try? String(contentsOf: moved)
             overwritePassed = readBack == newContent
         } catch {
@@ -41,7 +41,7 @@ extension FileSystemTests {
         }
         TestReporter.report("FileSystem", "POS: moveItem overwrites a pre-existing item at the destination", result: overwritePassed)
 
-        FileSystemMoveRegressionTests.run(tempDir: tempDir)
+        await FileSystemMoveRegressionTests.run(tempDir: tempDir)
         runZipRoundTripCoverageExtra(tempDir: tempDir)
     }
 
@@ -81,7 +81,7 @@ extension FileSystemTests {
         try? FileManager.default.createDirectory(at: copyTargetFolder, withIntermediateDirectories: true)
         var copyPassed = false
         do {
-            let copied = try FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
+            let copied = try await FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
             let sourceStillExists = FileManager.default.fileExists(atPath: copySource.path)
             let destExists = FileManager.default.fileExists(atPath: copied.path)
             copyPassed = sourceStillExists && destExists
@@ -93,7 +93,7 @@ extension FileSystemTests {
         var negCopyPassed = false
         do {
             let fakeFolder = tempDir.appendingPathComponent("NoSuchFolder")
-            _ = try FileSystemService.copyItem(at: copySource, toFolder: fakeFolder)
+            _ = try await FileSystemService.copyItem(at: copySource, toFolder: fakeFolder)
         } catch {
             negCopyPassed = true
         }
@@ -104,27 +104,27 @@ extension FileSystemTests {
         var collisionRenamePassed = false
         var secondCollisionRenamePassed = false
         do {
-            let firstCopy = try FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
-            collisionRenamePassed = firstCopy.lastPathComponent == "copy_source_1.txt"
+            let firstCopy = try await FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
+            collisionRenamePassed = firstCopy.lastPathComponent == "copy_source 2.txt"
                 && FileManager.default.fileExists(atPath: copySource.path)
 
-            let secondCopy = try FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
-            secondCollisionRenamePassed = secondCopy.lastPathComponent == "copy_source_2.txt"
+            let secondCopy = try await FileSystemService.copyItem(at: copySource, toFolder: copyTargetFolder)
+            secondCollisionRenamePassed = secondCopy.lastPathComponent == "copy_source 3.txt"
         } catch {
             print("copyItem collision error: \(error)")
         }
-        TestReporter.report("FileSystem", "POS: copyItem onto an existing name auto-renames to name_1.ext", result: collisionRenamePassed)
-        TestReporter.report("FileSystem", "POS: copyItem onto name_1.ext auto-renames to name_2.ext on the next collision", result: secondCollisionRenamePassed)
+        TestReporter.report("FileSystem", "POS: copyItem onto an existing name auto-renames to name 2.ext (Finder convention)", result: collisionRenamePassed)
+        TestReporter.report("FileSystem", "POS: copyItem onto name 2.ext auto-renames to name 3.ext on the next collision", result: secondCollisionRenamePassed)
 
-        runCreateUniqueDirectoryCoverageExtra(tempDir: tempDir)
+        await runCreateUniqueDirectoryCoverageExtra(tempDir: tempDir)
         await runTrashCoverageExtra(tempDir: tempDir)
     }
 
-    static func runCreateUniqueDirectoryCoverageExtra(tempDir: URL) {
+    static func runCreateUniqueDirectoryCoverageExtra(tempDir: URL) async {
         // POS: createUniqueDirectory creates baseName as-is when nothing conflicts (loop never executes)
         var freeNamePassed = false
         do {
-            let created = try FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
+            let created = try await FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
             freeNamePassed = created.lastPathComponent == "New Folder" && FileManager.default.fileExists(atPath: created.path)
         } catch {
             print("createUniqueDirectory free-name error: \(error)")
@@ -135,9 +135,9 @@ extension FileSystemTests {
         var secondCollisionPassed = false
         var thirdCollisionPassed = false
         do {
-            let second = try FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
+            let second = try await FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
             secondCollisionPassed = second.lastPathComponent == "New Folder 2" && FileManager.default.fileExists(atPath: second.path)
-            let third = try FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
+            let third = try await FileSystemService.createUniqueDirectory(at: tempDir, baseName: "New Folder")
             thirdCollisionPassed = third.lastPathComponent == "New Folder 3" && FileManager.default.fileExists(atPath: third.path)
         } catch {
             print("createUniqueDirectory collision error: \(error)")
@@ -149,7 +149,7 @@ extension FileSystemTests {
         var negPassed = false
         do {
             let missingParent = tempDir.appendingPathComponent("NoSuchParent_\(UUID().uuidString)")
-            _ = try FileSystemService.createUniqueDirectory(at: missingParent, baseName: "New Folder")
+            _ = try await FileSystemService.createUniqueDirectory(at: missingParent, baseName: "New Folder")
         } catch {
             negPassed = true
         }
@@ -162,7 +162,7 @@ extension FileSystemTests {
         try? "disposable".write(to: trashCandidate, atomically: true, encoding: .utf8)
         var trashPassed = false
         do {
-            _ = try FileSystemService.moveToTrash(url: trashCandidate)
+            _ = try await FileSystemService.moveToTrash(url: trashCandidate)
             trashPassed = !FileManager.default.fileExists(atPath: trashCandidate.path)
         } catch {
             print("moveToTrash error: \(error)")
@@ -172,7 +172,7 @@ extension FileSystemTests {
         var negTrashPassed = false
         do {
             let fakeFile = tempDir.appendingPathComponent("never_existed.txt")
-            _ = try FileSystemService.moveToTrash(url: fakeFile)
+            _ = try await FileSystemService.moveToTrash(url: fakeFile)
         } catch {
             negTrashPassed = true
         }

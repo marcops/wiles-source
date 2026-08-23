@@ -18,7 +18,7 @@ struct ClickOutsideDetector: NSViewRepresentable {
 
     class ClickView: NSView {
         var onOutsideClick: (() -> Void)?
-        private var monitor: Any?
+        private nonisolated(unsafe) var monitor: Any?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -35,6 +35,12 @@ struct ClickOutsideDetector: NSViewRepresentable {
         override func removeFromSuperview() {
             super.removeFromSuperview()
             removeMonitor()
+        }
+
+        deinit {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+            }
         }
 
         private func setupMonitor() {

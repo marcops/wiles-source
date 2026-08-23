@@ -3,18 +3,23 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct FileGridView: View {
+    private static let gridIconScaleMultiplier: CGFloat = 1.25
+    private static let cardWidthOffset: CGFloat = 20.0
+    private static let cardHeightOffset: CGFloat = 25.0
+    private static let gridSpacing: CGFloat = 20.0
+
     var appState: AppState
 
     private var iconSize: CGFloat {
-        CGFloat(appState.preferences.iconSize) * LayoutTokens.gridIconScaleMultiplier
+        CGFloat(appState.preferences.iconSize) * Self.gridIconScaleMultiplier
     }
 
     private var cardWidth: CGFloat {
-        iconSize + LayoutTokens.cardWidthOffset
+        iconSize + Self.cardWidthOffset
     }
 
     private var cardHeight: CGFloat {
-        iconSize + LayoutTokens.cardHeightOffset
+        iconSize + Self.cardHeightOffset
     }
 
     /// `maximum` used to be `cardWidth + 24`, letting each column stretch up to 24pt past the card's
@@ -25,115 +30,48 @@ struct FileGridView: View {
     /// itself never changed. Locking `maximum` to `cardWidth` removes the stretch entirely: any
     /// leftover row width becomes trailing margin instead of inflating the gap between icons.
     private var columns: [GridItem] {
-        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: LayoutTokens.gridSpacing)]
+        [GridItem(.adaptive(minimum: cardWidth, maximum: cardWidth), spacing: Self.gridSpacing)]
     }
 
     @Environment(WindowUIState.self)
     private var windowUIState
-    @State private var selectionRect: CGRect?
-    @State private var visibleLimit: Int = LayoutTokens.paginationThreshold
 
     var body: some View {
-        GeometryReader { geometry in
-            gridScrollArea(geometry: geometry)
-        }
-    }
-
-    private func gridScrollArea(geometry: GeometryProxy) -> some View {
-        ScrollViewReader { proxy in
-            gridScrollViewReaderContent(geometry: geometry, proxy: proxy)
-        }
-        .background(BackgroundContextMenuLayer(appState: appState))
-        .background(ScrollerAutoHideSetter())
-    }
-
-    private func gridScrollViewReaderContent(geometry: GeometryProxy, proxy: ScrollViewProxy) -> some View {
-        ScrollView {
-            gridScrollViewBody(geometry: geometry)
-        }
-        .resetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: $visibleLimit, thumbnailIconSize: iconSize)
-        .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
-        .scrollToLastMovedSelection(appState: appState, proxy: proxy)
-        .background(ScrollerAutoHideSetter())
-    }
-
-    private func gridScrollViewBody(geometry: GeometryProxy) -> some View {
-        ZStack(alignment: .topLeading) {
-            gridZStackContent
-        }
-        .coordinateSpace(name: "gridContainer")
-        .onPreferenceChange(URLFrameKey.self) { frames in
-            appState.selection.gridCellFrames = frames
-        }
-        .onPreferenceChange(LabelWidthKey.self) { widths in
-            appState.selection.gridLabelWidths = widths
-        }
-        .frame(minHeight: geometry.size.height - LayoutTokens.scrollbarReservedThickness, alignment: .topLeading)
-        .background(ScrollerAutoHideSetter())
-    }
-
-    @ViewBuilder private var gridZStackContent: some View {
-        Color.clear.frame(height: 1).id("top")
-
-        SelectionRectangleOverlay(
+        FileCollectionContainerView(
             appState: appState,
             coordinateSpaceName: "gridContainer",
-            selectionRect: $selectionRect,
-            cellFramesProvider: { appState.selection.gridCellFrames })
-
-        Group {
-            gridItemsGroup
-        }
-        .id(appState.navigation.currentURL)
-        .transition(.opacity)
-
-        SelectionRectangleOverlay.rectangleOverlay(selectionRect)
-
-        renameFieldOverlay
+            thumbnailIconSize: iconSize,
+            cellFramesProvider: { appState.selection.gridCellFrames },
+            onURLFramesChanged: { frames in appState.selection.gridCellFrames = frames },
+            onLabelWidthsChanged: { widths in appState.selection.gridLabelWidths = widths },
+            nonEmptyContent: { _, visibleLimit in
+                gridLazyGrid(visibleLimit: visibleLimit)
+            },
+            overlayContent: {
+                renameFieldOverlay
+            })
     }
 
-    @ViewBuilder private var gridItemsGroup: some View {
-        if appState.fileSystem.items.isEmpty, !appState.fileSystem.isLoading {
-            EmptyDirectoryView(appState: appState)
-        } else {
-            gridLazyGrid
-        }
-    }
-
-    private var gridLazyGrid: some View {
-        let paginate = appState.fileSystem.items.count > LayoutTokens.paginationThreshold
-        let visibleItems = paginate ? Array(appState.fileSystem.items.prefix(visibleLimit)) : appState.fileSystem.items
-
-        return LazyVGrid(columns: columns, spacing: LayoutTokens.gridSpacing) {
-            gridItems(visibleItems: visibleItems, paginate: paginate)
-        }
-        .padding(16)
-    }
-
-    @ViewBuilder
-    private func gridItems(visibleItems: [FileItem], paginate: Bool) -> some View {
-        ForEach(visibleItems) { item in
-            FileGridCardItemView(
-                item: item,
-                appState: appState,
-                iconSize: iconSize,
-                cardWidth: cardWidth,
-                cardHeight: cardHeight,
-                onRightClick: {
-                    if !appState.selection.selectedURLs.contains(item.url) {
-                        appState.selection.selectedURLs = [item.url]
-                    }
-                })
-                .transition(.opacity)
-        }
-        .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
-        if paginate, visibleLimit < appState.fileSystem.items.count {
-            ProgressView()
-                .frame(height: 50)
-                .onAppear {
-                    visibleLimit = min(appState.fileSystem.items.count, visibleLimit + LayoutTokens.lazyLoadingBatchSize)
+    private func gridLazyGrid(visibleLimit: Binding<Int>) -> some View {
+        LazyVGrid(columns: columns, spacing: Self.gridSpacing) {
+            PaginatedItemsSection(
+                items: appState.fileSystem.items,
+                visibleLimit: visibleLimit,
+                progressViewHeight: 50) { item in
+                    FileGridCardItemView(
+                        item: item,
+                        appState: appState,
+                        iconSize: iconSize,
+                        cardWidth: cardWidth,
+                        cardHeight: cardHeight,
+                        onRightClick: {
+                            if !appState.selection.selectedURLs.contains(item.url) {
+                                appState.selection.selectedURLs = [item.url]
+                            }
+                        })
                 }
         }
+        .padding(16)
     }
 
     /// Renders the active rename field as a grid-level overlay instead of inside its card's own

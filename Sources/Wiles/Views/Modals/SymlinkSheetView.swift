@@ -2,6 +2,8 @@ import GitBeacon
 import SwiftUI
 
 public struct SymlinkSheetView: View {
+    private static let sheetWidth: CGFloat = 380
+
     let item: FileItem
     var appState: AppState
 
@@ -11,6 +13,7 @@ public struct SymlinkSheetView: View {
 
     @State private var symlinkName: String = ""
     @State private var mode: SymlinkMode = .absolute
+    @State private var collisionWarning: String?
 
     public init(item: FileItem, appState: AppState) {
         self.item = item
@@ -21,7 +24,8 @@ public struct SymlinkSheetView: View {
         ModalScaffoldView(
             icon: .symbol("link"),
             title: appState.tr(.createSymbolicLink),
-            width: 380,
+            subtitle: appState.tr(.symlinkSubtitle),
+            width: Self.sheetWidth,
             primaryButton: ModalFooterButton(
                 title: appState.tr(.createLink),
                 isEnabled: !symlinkName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
@@ -30,7 +34,7 @@ public struct SymlinkSheetView: View {
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             content: { formContent })
             .onAppear {
-                symlinkName = item.name + " link"
+                symlinkName = Self.defaultSymlinkName(for: item, suffix: appState.tr(.symlinkNameSuffix))
                 isNameFocused = true
             }
     }
@@ -50,7 +54,7 @@ public struct SymlinkSheetView: View {
                 .foregroundColor(.secondary)
             Picker("", selection: $mode) {
                 ForEach(SymlinkMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
+                    Text(appState.tr(mode.l10nKey)).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
@@ -68,15 +72,54 @@ public struct SymlinkSheetView: View {
                 .focused($isNameFocused)
                 .onSubmit { createSymlink() }
                 .accessibilityLabel(appState.tr(.symlinkNameLabel))
+            if let collisionWarning {
+                Text(collisionWarning)
+                    .font(.system(size: 11))
+                    .foregroundColor(.red)
+            }
         }
     }
 
+    /// Inserts the "link" suffix before the extension so `report.pdf` becomes `report link.pdf`
+    /// rather than `report.pdf link`.
+    private static func defaultSymlinkName(for item: FileItem, suffix: String) -> String {
+        guard !item.isDirectory else { return "\(item.name) \(suffix)" }
+        let ext = item.url.pathExtension
+        let base = item.url.deletingPathExtension().lastPathComponent
+        return ext.isEmpty ? "\(base) \(suffix)" : "\(base) \(suffix).\(ext)"
+    }
+
     private func createSymlink() {
+        let trimmedName = symlinkName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        let destinationFolder = appState.navigation.currentURL
+        // fileExists(atPath:) is fine inline for a local path; under /Volumes/ it hops off @MainActor,
+        // mirroring FolderPickerSheet.commitPathText.
+        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
+        if destinationFolder.path.hasPrefix("/Volumes/") {
+            Task {
+                let collides = await Task.detached(priority: .userInitiated) {
+                    FileManager.default.fileExists(atPath: destinationFolder.appendingPathComponent(trimmedName).path)
+                }.value
+                finishCreatingSymlink(name: trimmedName, destinationFolder: destinationFolder, collides: collides)
+            }
+            return
+        }
+        let collides = FileManager.default.fileExists(atPath: destinationFolder.appendingPathComponent(trimmedName).path)
+        finishCreatingSymlink(name: trimmedName, destinationFolder: destinationFolder, collides: collides)
+    }
+
+    private func finishCreatingSymlink(name: String, destinationFolder: URL, collides: Bool) {
+        guard !collides else {
+            collisionWarning = appState.tr(.symlinkNameCollisionWarning)
+            return
+        }
+        collisionWarning = nil
         do {
             let createdURL = try SymlinkService.createSymlink(
                 targetURL: item.url,
-                destinationFolder: appState.navigation.currentURL,
-                symlinkName: symlinkName,
+                destinationFolder: destinationFolder,
+                symlinkName: name,
                 mode: mode)
             appState.refreshCurrentDirectory()
             appState.selection.selectedURLs = [createdURL]
@@ -84,7 +127,6 @@ public struct SymlinkSheetView: View {
         } catch {
             ErrorReporter.report(error, context: "Creating symbolic link")
             appState.showError(error.localizedDescription)
-            dismiss()
         }
     }
 }

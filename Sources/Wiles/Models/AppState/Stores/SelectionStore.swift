@@ -17,7 +17,10 @@ public final class SelectionStore {
     /// together with `listCellFrames`, to hit-test the drag-to-select marquee. Read only from
     /// SelectionRectangleOverlay's gesture handler (never from a view `body`), so updates here
     /// don't trigger a re-render of FileGridView/FileListView on every newly-visible lazy row.
-    public var gridCellFrames: [URL: CGRect] = [:]
+    public var gridCellFrames: [URL: CGRect] = [:] {
+        didSet { cachedGridColumnCount = nil }
+    }
+
     /// Cell frames from the List View — see `gridCellFrames`.
     public var listCellFrames: [URL: CGRect] = [:]
     /// The rendered width of each Grid card's name label while NOT being renamed — captured so the
@@ -27,12 +30,23 @@ public final class SelectionStore {
     /// Set when navigating up/back to a parent directory, so the child folder just left gets reselected instead of the first item.
     public var pendingSelectionURL: URL?
 
+    /// Tolerance for treating two cells' Y origins as "the same row" when counting Grid columns.
+    private static let sameRowYTolerance: CGFloat = 5
+    private var cachedGridColumnCount: Int?
+
     /// Actual number of columns currently rendered in Grid View — derived from real cell Y positions.
+    /// Cached and invalidated by `gridCellFrames`'s `didSet` since this can be read on every key repeat.
     public var gridColumnCount: Int {
-        guard gridCellFrames.count > 1 else { return 1 }
-        let ys = gridCellFrames.values.map(\.origin.y)
-        guard let firstY = ys.min() else { return 1 }
-        return ys.filter { abs($0 - firstY) < 5 }.count
+        if let cachedGridColumnCount {
+            return cachedGridColumnCount
+        }
+        let count: Int = if gridCellFrames.count > 1, let firstY = gridCellFrames.values.map(\.origin.y).min() {
+            gridCellFrames.values.filter { abs($0.origin.y - firstY) < Self.sameRowYTolerance }.count
+        } else {
+            1
+        }
+        cachedGridColumnCount = count
+        return count
     }
 
     public var searchQuery: String = "" {
@@ -52,8 +66,14 @@ public final class SelectionStore {
     /// Set by `AppState.init` to `{ [weak self] in self?.refreshCurrentDirectory() }` — lets
     /// `searchQuery`'s `didSet` trigger an `AppState`-level refresh without this store holding a
     /// reference back to `AppState`. Same idiom as `FileSystemStore.startDirectoryMonitoring`'s
-    /// `refreshHandler` closure.
-    public var onSearchQueryChanged: (() -> Void)?
+    /// `refreshHandler` closure. `private(set)`: only `AppState`'s own init may install this wiring —
+    /// a `public var` let any view silently overwrite it and kill refresh-on-search.
+    public private(set) var onSearchQueryChanged: (() -> Void)?
 
     public init() { }
+
+    /// Installs the refresh-on-search-change wiring. Called once, from `AppState.init`.
+    public func setSearchQueryHandler(_ handler: @escaping () -> Void) {
+        onSearchQueryChanged = handler
+    }
 }

@@ -73,12 +73,43 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         appState.performRename(item: item, newName: "after.txt")
 
         let renamedURL = dir.appendingPathComponent("after.txt")
-        XCTAssertTrue(FileManager.default.fileExists(atPath: renamedURL.path), "performRename() should move the file on disk to the new name")
+        var renamed = false
+        for _ in 0 ..< 6 {
+            renamed = FileManager.default.fileExists(atPath: renamedURL.path)
+            if renamed {
+                break
+            }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        XCTAssertTrue(renamed, "performRename() should move the file on disk to the new name")
         XCTAssertFalse(FileManager.default.fileExists(atPath: item.url.path), "performRename() should leave nothing behind at the old path")
         XCTAssertEqual(appState.selection.selectedURLs, [renamedURL], "performRename() should select the freshly renamed URL")
         XCTAssertTrue(appState.undoRedoService.canUndo(), "performRename() should record an undoable .rename action")
 
         await drainUndoRedoService(appState)
+    }
+
+    func testPerformRenameFailurePath() async {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        appState.modal.errorMessage = nil
+        let item = makeItem(named: "source.txt", in: dir)
+        _ = makeItem(named: "taken.txt", in: dir)
+
+        appState.performRename(item: item, newName: "taken.txt")
+
+        var errored = false
+        for _ in 0 ..< 6 {
+            errored = appState.modal.errorMessage != nil
+            if errored {
+                break
+            }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        XCTAssertTrue(errored, "performRename() should surface an error via showError() when renameItem() throws")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: item.url.path), "performRename() should leave the source file untouched on failure")
     }
 
     func testPerformImageConversionSuccessPath() async {

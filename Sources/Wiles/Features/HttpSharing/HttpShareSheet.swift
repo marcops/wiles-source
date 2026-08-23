@@ -2,6 +2,9 @@ import AppKit
 import SwiftUI
 
 struct HttpShareSheet: View {
+    private static let sheetWidth: CGFloat = 400.0
+    private static let sheetHeight: CGFloat = 320.0
+
     @Environment(\.dismiss)
     private var dismiss
     var appState: AppState
@@ -16,8 +19,8 @@ struct HttpShareSheet: View {
         ModalScaffoldView(
             icon: .symbol("wifi"),
             title: appState.tr(.shareFolderWifi),
-            width: LayoutTokens.httpShareSheetWidth,
-            height: LayoutTokens.httpShareSheetHeight,
+            width: Self.sheetWidth,
+            height: Self.sheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.close)) {
                 serverService.stop()
                 dismiss()
@@ -51,6 +54,7 @@ struct HttpShareSheet: View {
 
             Button(appState.tr(.startSharing)) {
                 isConfiguring = false
+                serverService.startError = nil
                 serverService.start(sharing: folderURL, password: requireAuth ? password : nil)
             }
             .buttonStyle(.borderedProminent)
@@ -111,14 +115,39 @@ struct HttpShareSheet: View {
         }
     }
 
-    private var startingServerView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "network.slash")
-                .font(.system(size: 40))
-                .foregroundColor(.secondary)
+    @ViewBuilder private var startingServerView: some View {
+        if let error = serverService.startError {
+            startFailedView(error)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "network.slash")
+                    .font(.system(size: 40))
+                    .foregroundColor(.secondary)
 
-            Text(appState.tr(.startingServer))
+                Text(appState.tr(.startingServer))
+                    .font(.headline)
+            }
+        }
+    }
+
+    private func startFailedView(_ error: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 40))
+                .foregroundColor(.orange)
+
+            Text(appState.tr(.wifiShareStartFailed))
                 .font(.headline)
+
+            Text(error)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button(appState.tr(.retry)) {
+                serverService.startError = nil
+                isConfiguring = true
+            }
         }
     }
 }

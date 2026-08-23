@@ -8,7 +8,7 @@ public struct AppStateCoreTests {
         testAddFavorite()
         testRemoveFavorite()
         testIsFavorite()
-        AppStateFavoritesMoveTests.run()
+        await AppStateFavoritesMoveTests.run()
         testMoveSelectedFavorite()
         testTranslucentLevelGetterSetter()
         testSidebarOverlayOpacity()
@@ -99,11 +99,11 @@ public struct AppStateCoreTests {
         try? "x".write(to: target, atomically: true, encoding: .utf8)
         appState.preferences.favoriteURLs = [target.standardizedFileURL]
 
-        report("AppState", "POS: isFavorite() returns true for a URL present in favoriteURLs", result: appState.isFavorite(target) == true)
+        report("AppState", "POS: isFavorite() returns true for a URL present in favoriteURLs", result: appState.isFavorite(target))
 
         let notFav = dir.appendingPathComponent("notfav.txt")
         try? "x".write(to: notFav, atomically: true, encoding: .utf8)
-        report("AppState", "NEG: isFavorite() returns false for a URL not present in favoriteURLs", result: appState.isFavorite(notFav) == false)
+        report("AppState", "NEG: isFavorite() returns false for a URL not present in favoriteURLs", result: !appState.isFavorite(notFav))
     }
 
     private static func testMoveSelectedFavorite() {
@@ -285,9 +285,9 @@ public struct AppStateCoreTests {
         report(
             "AppState",
             "POS: showError() sets errorMessage and flips showErrorAlert to true",
-            result: appState.modal.errorMessage == "Something failed" && appState.modal.showErrorAlert == true)
+            result: appState.modal.errorMessage == "Something failed" && appState.modal.showErrorAlert)
 
-        report("AppState", "NEG: showError() does not leave showErrorAlert false", result: appState.modal.showErrorAlert != false)
+        report("AppState", "NEG: showError() does not leave showErrorAlert false", result: appState.modal.showErrorAlert)
     }
 
     private static func testFreeSpaceText() async {

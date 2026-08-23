@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 public struct MainContentViewTests {
     public static func run() {
-        let view = MainContentView(sharedPreferences: PreferencesStore(), sharedModal: ModalStore(), sharedTransient: TransientStore())
+        let view = MainContentView(sharedPreferences: PreferencesStore(), sharedTransient: TransientStore())
         _ = view.body
         report("View/MainContentView", "POS: MainContentView initializes with shared stores", result: true)
     }

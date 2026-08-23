@@ -166,9 +166,9 @@ public struct PreferencesStoreTests {
 
     // MARK: - expandedTreePaths cap (500 entries)
 
-    /// `PreferencesStore.expandedTreePaths`'s `didSet` reverts to `oldValue` (dropping the update
-    /// entirely) whenever the new value would exceed `maxExpandedTreePaths` (500). This mutates the
-    /// real `UserDefaults.standard` key (`PreferencesStore` has no injectable suite), so per rule 17
+    /// `PreferencesStore.expandedTreePaths`'s `didSet` evicts down to `maxExpandedTreePaths` (500)
+    /// instead of reverting the whole assignment, so a disclosure triangle at the cap still opens.
+    /// This mutates the real `UserDefaults.standard` key (`PreferencesStore` has no injectable suite), so per rule 17
     /// we snapshot and restore the real value in `defer`. Every successful assignment also reschedules
     /// a debounced 0.5s write of the *current* `expandedTreePaths`; ending with an assignment back to
     /// the true prior value ensures that debounced write — whenever it eventually fires — persists the
@@ -191,8 +191,8 @@ public struct PreferencesStoreTests {
         store.expandedTreePaths = overCapInOneShot
         report(
             "Store/PreferencesStore",
-            "NEG: assigning a 600-entry set to expandedTreePaths in one shot is rejected (reverts to the prior value) since it exceeds the 500 cap",
-            result: store.expandedTreePaths.isEmpty)
+            "POS: assigning a 600-entry set to expandedTreePaths in one shot evicts down to the 500 cap instead of reverting",
+            result: store.expandedTreePaths.count == 500)
 
         for i in 0 ..< 510 {
             var updated = store.expandedTreePaths

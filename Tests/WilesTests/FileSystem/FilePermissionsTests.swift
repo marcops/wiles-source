@@ -16,7 +16,7 @@ public struct FilePermissionsTests {
             updated.ownerExecute = true
             try? FilePermissionsService.setPermissions(for: tempFile, permissions: updated)
             let check = FilePermissionsService.getPermissions(for: tempFile)
-            TestReporter.report("Permissions", "POS: setPermissions updates ownerExecute", result: check?.ownerExecute == true)
+            TestReporter.report("Permissions", "POS: setPermissions updates ownerExecute", result: check?.ownerExecute ?? false)
         } else {
             TestReporter.report("Permissions", "POS: getPermissions returns valid octalString", result: false)
         }

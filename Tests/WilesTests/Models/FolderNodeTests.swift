@@ -62,11 +62,11 @@ public struct FolderNodeTests {
         report("Model/FolderNode", "POS: loadChildren finds both immediate subfolders", result: children.count == 2)
 
         let withNested = children.first { $0.name == "withNestedSubfolder" }
-        report("Model/FolderNode", "POS: a folder with a nested subfolder has hasSubfolders true", result: withNested?.hasSubfolders == true)
+        report("Model/FolderNode", "POS: a folder with a nested subfolder has hasSubfolders true", result: withNested?.hasSubfolders ?? false)
         report("Model/FolderNode", "NEG: loadChildren doesn't eagerly recurse — children stays nil", result: withNested?.children == nil)
 
         let empty = children.first { $0.name == "emptyFolder" }
-        report("Model/FolderNode", "NEG: a folder with no subfolders has hasSubfolders false", result: empty?.hasSubfolders == false)
+        report("Model/FolderNode", "NEG: a folder with no subfolders has hasSubfolders false", result: !(empty?.hasSubfolders ?? true))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

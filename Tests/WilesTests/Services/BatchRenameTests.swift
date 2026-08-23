@@ -4,7 +4,7 @@ import Foundation
 
 @MainActor
 public struct BatchRenameTests {
-    public static func run() {
+    public static func run() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
@@ -17,30 +17,30 @@ public struct BatchRenameTests {
         let fileItem1 = FileItem(url: item1, icon: icon)
         let fileItem2 = FileItem(url: item2, icon: icon)
 
-        testFindReplaceAndPreviewModes(tempDir: tempDir, fileItem1: fileItem1, fileItem2: fileItem2)
+        await testFindReplaceAndPreviewModes(tempDir: tempDir, fileItem1: fileItem1, fileItem2: fileItem2)
         testRegexModesAndDirectoryItems(tempDir: tempDir, fileItem1: fileItem1)
 
         try? FileManager.default.removeItem(at: tempDir)
     }
 
-    private static func testFindReplaceAndPreviewModes(tempDir: URL, fileItem1: FileItem, fileItem2: FileItem) {
+    private static func testFindReplaceAndPreviewModes(tempDir: URL, fileItem1: FileItem, fileItem2: FileItem) async {
         // Positive: Find & Replace Batch Rename
-        let batchResult = try? BatchRenameService.performBatchRename(
+        let batchResult = try? await BatchRenameService.performBatchRename(
             items: [fileItem1, fileItem2],
             mode: .replace(find: "file_", replaceWith: "doc_"))
-        let batchPos = (batchResult?.count == 2) && FileManager.default.fileExists(atPath: tempDir.appendingPathComponent("doc_alpha.txt").path)
+        let batchPos = (batchResult?.renamedURLs.count == 2) && FileManager.default.fileExists(atPath: tempDir.appendingPathComponent("doc_alpha.txt").path)
         TestReporter.report("BatchRename", "POS: performBatchRename (.replace)", result: batchPos)
 
         // Negative: Empty Find String (No Change)
         let docAlphaURL = tempDir.appendingPathComponent("doc_alpha.txt")
         let currentItem1 = FileItem(url: docAlphaURL, icon: NSWorkspace.shared.icon(forFile: docAlphaURL.path))
-        let negBatchResult = try? BatchRenameService.performBatchRename(
+        let negBatchResult = try? await BatchRenameService.performBatchRename(
             items: [currentItem1],
             mode: .replace(find: "", replaceWith: "prefix_"))
         TestReporter.report(
             "BatchRename",
             "NEG: performBatchRename with empty pattern returns unchanged URLs",
-            result: negBatchResult?.first?.lastPathComponent == "doc_alpha.txt")
+            result: negBatchResult?.renamedURLs.first?.lastPathComponent == "doc_alpha.txt")
 
         // POS: addPrefixSuffix mode
         let prefixSuffixPreview = BatchRenameService.previewNewNames(items: [fileItem1], mode: .addPrefixSuffix(prefix: "PRE_", suffix: "_POST"))

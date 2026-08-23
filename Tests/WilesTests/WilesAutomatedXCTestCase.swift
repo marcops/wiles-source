@@ -71,7 +71,7 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testFeatureSuites() async {
         await ArchiveInspectorFeatureTests.run()
-        BatchRenameFeatureTests.run()
+        await BatchRenameFeatureTests.run()
         await DiskSpaceVisualizerFeatureTests.run()
         await DuplicateCleanerFeatureTests.run()
         await FileShredderFeatureTests.run()
@@ -144,8 +144,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testBatchRenameTests() {
-        BatchRenameTests.run()
+    func testBatchRenameTests() async {
+        await BatchRenameTests.run()
     }
 
     @MainActor

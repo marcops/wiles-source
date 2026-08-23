@@ -30,7 +30,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
     class KeyMonitorNSView: NSView {
         var appState: AppState?
         var windowUIState: WindowUIState?
-        private var monitor: Any?
+        private nonisolated(unsafe) var monitor: Any?
         private var zoomController = KeyboardZoomController()
         private let selectionNavigator = KeyboardSelectionNavigator()
 
@@ -62,12 +62,18 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             }
         }
 
+        deinit {
+            if let existingMonitor = monitor {
+                NSEvent.removeMonitor(existingMonitor)
+            }
+        }
+
         private func processLocalEvent(_ event: NSEvent) -> NSEvent? {
             guard let appState, let windowUIState else { return event }
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
                 return event
             }
-            if windowUIState.isAnyModalPresented {
+            if windowUIState.isAnyModalPresented || appState.modal.showErrorAlert {
                 return event
             }
 

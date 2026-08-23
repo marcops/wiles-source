@@ -28,6 +28,8 @@ struct TappableRow<Content: View>: View {
             row.accessibilityLabel(accessibilityLabel).accessibilityHint(accessibilityHint)
         } else if let accessibilityLabel {
             row.accessibilityLabel(accessibilityLabel)
+        } else if let accessibilityHint {
+            row.accessibilityHint(accessibilityHint)
         } else {
             row
         }

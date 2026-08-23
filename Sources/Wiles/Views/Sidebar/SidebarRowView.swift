@@ -3,6 +3,8 @@ import GitBeacon
 import SwiftUI
 
 struct SidebarRowView: View {
+    private static let staleFavoriteOpacity: Double = 0.4
+
     let item: SidebarItem
     var appState: AppState
     @Environment(WindowUIState.self)
@@ -15,8 +17,8 @@ struct SidebarRowView: View {
     let onLeftClick: () -> Void
 
     @State private var isDragTargeted = false
-
-    @State private var isHovered = false
+    @State private var isEjectable = false
+    @State private var isMissingFavorite = false
 
     /// `navigation.currentURL` doesn't change for a smart folder run, so without the
     /// `smartFolder.activeFolderID` check this row would incorrectly keep showing as the
@@ -37,19 +39,14 @@ struct SidebarRowView: View {
         // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
         // for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
         rowContent
-            .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(
-                isDragTargeted ? Color.accentColor.opacity(0.25) :
-                    (isSel ? Color.accentColor.opacity(0.18) :
-                        (isHovered ? Color.primary.opacity(0.06) : Color.clear)))
-            .cornerRadius(8)
-            .scaleEffect(isDragTargeted ? 1.02 : 1.0)
-            .animation(MotionTokens.snappySpring, value: isDragTargeted)
-            .animation(MotionTokens.quickEase, value: isHovered)
-            .contentShape(Rectangle())
+            .sidebarRowChrome(isSelected: isSel, isDragTargeted: isDragTargeted)
             .onTapGesture {
                 onLeftClick()
-                appState.navigateTo(item.url)
+                if item.url == SidebarItem.airDropURL {
+                    NSWorkspace.shared.open(item.url)
+                } else {
+                    appState.navigateTo(item.url)
+                }
                 windowUIState.selectedFavoriteURL = isFavoritesSection ? item.url : nil
             }
             .padding(.horizontal, 8)
@@ -57,16 +54,55 @@ struct SidebarRowView: View {
             .accessibilityIdentifier(item.name)
             .accessibilityLabel(item.name)
             .accessibilityHint(appState.tr(.folder))
-            .help(isCompact ? item.name : "")
-            .onHover { isHovered = $0 }
+            .help(item.name)
             .overlay(
                 RightClickDetector { onRightClick() })
             .springLoadedFolder(folderURL: item.url, isDirectory: true, appState: appState) { targeted in
-                withAnimation(MotionTokens.quickEase) { isDragTargeted = targeted }
+                isDragTargeted = targeted
             }
             .contextMenu {
                 rowContextMenu
             }
+            .opacity(isMissingFavorite ? Self.staleFavoriteOpacity : 1)
+            .task(id: item.url) {
+                await refreshEjectable()
+                await refreshMissingFavoriteStatus()
+            }
+    }
+
+    /// A favorite whose folder was deleted or whose volume was unmounted still rendered identically
+    /// to a live one before this check — dims it instead. Runs off `@MainActor` since a `/Volumes/`
+    /// path's existence check can block for seconds against a stalled network share.
+    private func refreshMissingFavoriteStatus() async {
+        guard isFavoritesSection else {
+            isMissingFavorite = false
+            return
+        }
+        let url = item.url
+        let exists = await Task.detached(priority: .utility) {
+            FileManager.default.fileExists(atPath: url.path)
+        }.value
+        guard !Task.isCancelled else { return }
+        isMissingFavorite = !exists
+    }
+
+    /// Real `URLResourceValues.volumeIsEjectable` check, not the old `/Volumes/` path-prefix
+    /// heuristic — that wrongly offered Eject on the boot volume when mounted under `/Volumes/`
+    /// (a modern macOS Data volume) and on non-ejectable network mounts. Runs off `@MainActor`
+    /// since a stalled network share can make `resourceValues` block for seconds.
+    private func refreshEjectable() async {
+        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
+        guard item.url.standardizedFileURL.path.hasPrefix("/Volumes/") else {
+            isEjectable = false
+            return
+        }
+        let url = item.url
+        let ejectable = await Task.detached(priority: .utility) { () -> Bool in
+            guard let values = try? url.resourceValues(forKeys: [.volumeIsEjectableKey, .volumeIsRemovableKey]) else { return false }
+            return (values.volumeIsEjectable ?? false) || (values.volumeIsRemovable ?? false)
+        }.value
+        guard !Task.isCancelled else { return }
+        isEjectable = ejectable
     }
 
     @ViewBuilder private var rowContent: some View {
@@ -87,22 +123,22 @@ struct SidebarRowView: View {
                 if isTrash {
                     trashSizeIndicator
                 }
-                if item.url.path.hasPrefix("/Volumes/"), item.url.path != "/" {
-                    ejectButton
+                if isEjectable {
+                    ejectButton.padding(.leading, 4)
                 }
             }
         }
     }
 
     @ViewBuilder private var trashSizeIndicator: some View {
-        if appState.transient.isTrashUpdating {
+        if appState.fileSystem.trash.isUpdating {
             ProgressView()
                 .progressViewStyle(.circular)
                 .controlSize(.mini)
                 .scaleEffect(0.6)
                 .frame(width: 16, height: 16)
-        } else if !appState.transient.trashSizeString.isEmpty, appState.transient.trashSizeBytes > 0 {
-            Text(appState.transient.trashSizeString)
+        } else if !appState.fileSystem.trash.sizeString.isEmpty, appState.fileSystem.trash.sizeBytes > 0 {
+            Text(appState.fileSystem.trash.sizeString)
                 .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 6)
@@ -126,6 +162,8 @@ struct SidebarRowView: View {
             Image(systemName: "eject.fill")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .help(appState.tr(.ejectVolume))
@@ -136,23 +174,11 @@ struct SidebarRowView: View {
     @ViewBuilder private var rowContextMenu: some View {
         SidebarItemContextMenu(url: item.url, appState: appState)
         Divider()
-        favoriteToggleButton
+        FavoriteToggleButton(url: item.url, appState: appState, forceRemove: isFavoritesSection)
         if isTrash {
             Divider()
             Button(appState.tr(.emptyTrashEllipsis)) {
                 windowUIState.showEmptyTrashAlert = true
-            }
-        }
-    }
-
-    @ViewBuilder private var favoriteToggleButton: some View {
-        if isFavoritesSection || appState.isFavorite(item.url) {
-            Button(appState.tr(.removeFromFavorites)) {
-                appState.removeFavorite(item.url)
-            }
-        } else {
-            Button(appState.tr(.addToFavorites)) {
-                appState.addFavorite(item.url)
             }
         }
     }

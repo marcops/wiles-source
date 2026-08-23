@@ -71,7 +71,7 @@ public struct SymlinkTests {
         TestReporter.report(
             "SymlinkService",
             "NEG: Empty symlink name auto-generates default link name",
-            result: defaultLink?.lastPathComponent.contains("link") == true)
+            result: defaultLink?.lastPathComponent.contains("link") ?? false)
 
         // POS: Relative symlink resolves back to the same target
         let relativeLinkURL = try? SymlinkService.createSymlink(

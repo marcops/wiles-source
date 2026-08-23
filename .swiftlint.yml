@@ -189,3 +189,100 @@ custom_rules:
     regex: '\b(Text|Button|Label)\("[^"\\]*[A-Za-z]{2}[^"\\]*"'
     message: "Hardcoded user-facing text passed directly to Text()/Button()/Label() — route it through tr()/L10n instead (SWIFT_LANG_RULES.md 'Zero Hardcoded User-Facing Text')."
     severity: warning
+  no_hardcoded_help_accessibility_text:
+    included: ".*/Sources/.*\\.swift"
+    name: "No Hardcoded .help()/Accessibility Text"
+    # Same "Zero Hardcoded User-Facing Text" rule as no_hardcoded_swiftui_text above, but for the
+    # three modifiers that rule doesn't cover: `.help(...)` (tooltip), `.accessibilityLabel(...)`,
+    # and `.accessibilityHint(...)`. Added after this review found HeaderBarView.swift's
+    # searchButton `.help("\(appState.tr(.searchPlaceholder)) (Cmd+F)")` — the interpolated part
+    # was already localized, but the trailing "(Cmd+F)" literal segment was hardcoded English
+    # smuggled in alongside a properly-localized call, which the plain "starts with a literal"
+    # check below still catches since the string literal argument itself starts with `"\(`, not a
+    # bare letter — wait: this specific case starts with an interpolation, not a leading literal,
+    # so it is NOT caught by this narrow regex (documented limitation, same class of gap as
+    # no_hardcoded_swiftui_text's own interpolation exclusion) — this rule instead catches the
+    # more common case of a `.help(...)`/accessibility call whose argument is a PURE hardcoded
+    # string with no localization at all, e.g. `.help("Delete this file")`. Same shape as
+    # no_hardcoded_swiftui_text: literal must directly follow the opening paren, contain 2+ letters
+    # (so icon-only "%"/empty strings aren't flagged), and contain no backslash (so interpolated
+    # calls that already route part of the string through tr() aren't flagged).
+    regex: '\.(help|accessibilityLabel|accessibilityHint)\("[^"\\]*[A-Za-z]{2}[^"\\]*"'
+    message: "Hardcoded user-facing text passed directly to .help()/.accessibilityLabel()/.accessibilityHint() — route it through tr()/L10n instead (SWIFT_LANG_RULES.md 'Zero Hardcoded User-Facing Text')."
+    severity: warning
+  no_hardcoded_secrets:
+    name: "No Hardcoded Credentials/API Tokens"
+    # Added after this review found a live-looking GitHub Personal Access Token hardcoded in
+    # Constants/CrashReportingConstants.swift and committed to source. Matches known secret-token
+    # prefixes (GitHub PAT/app tokens, OpenAI-style keys, AWS access keys, Slack tokens) followed by
+    # enough token-body characters to rule out matching just the prefix word in a comment/doc. Not
+    # scoped to Sources/ only (unlike the other rules here) — a leaked credential in Tests/ or
+    # anywhere else in the repo is just as real a leak once committed to git history.
+    regex: '(github_pat_[A-Za-z0-9_]{20,}|gh[oprsu]_[A-Za-z0-9]{30,}|sk-(proj-)?[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,})'
+    message: "This matches a known hardcoded-credential pattern (GitHub PAT/token, OpenAI-style key, AWS access key, or Slack token) committed directly to source. Move it to Keychain, an environment variable, or a git-ignored local config loaded at runtime — and rotate/revoke it immediately if it has already been committed."
+    severity: error
+  no_redundant_bool_comparison:
+    name: "No Redundant Boolean Comparison"
+    # There's no built-in SwiftLint rule for this in the installed version (0.65.1) — checked via
+    # `swiftlint rules`, no `redundant_bool_comparison` identifier exists — so this is a custom_rule
+    # instead. Added after this review found NewFileTemplateService.swift:13's
+    # `if !targetURL.pathExtension.isEmpty == false` — a confusing double negative that simply
+    # reduces to `if targetURL.pathExtension.isEmpty`. Matches any expression compared with
+    # `== true`/`== false`/`!= true`/`!= false`, which is always redundant (the comparison itself
+    # is either a no-op or a needless negation of whatever's on the left).
+    regex: '(==|!=)\s*(true|false)\b'
+    message: "Redundant comparison against true/false — simplify to the boolean expression itself (negate it with `!` instead of `== false`/`!= true` if needed)."
+    severity: warning
+  no_naive_path_prefix_check:
+    name: "No Naive .path.hasPrefix() for Path Containment"
+    # Added after this review found FolderNode.swift:42's `homeURL.path.hasPrefix(stdURL.path)` —
+    # a raw string-prefix check with no trailing separator, which misclassifies a sibling directory
+    # whose name is a string-prefix of another (e.g. "/Users/marco" vs "/Users/marco2") as an
+    # ancestor/descendant. The same family of mistake is the root cause class behind a real
+    # path-traversal-adjacent bug found in LocalHttpServerService.swift (a boundary check that
+    # doesn't account for symlinks). Not every hit here is necessarily buggy — e.g.
+    # AppState+Favorites.swift:51 already appends "/" before comparing, which is the correct
+    # pattern — but every occurrence is worth a manual glance to confirm the separator/symlink
+    # edge case was actually considered, hence `warning` not `error`.
+    regex: '\.path\.hasPrefix\('
+    message: "Raw .path.hasPrefix() for path containment/ancestor checks can misclassify sibling paths that share a string prefix (e.g. \"/Users/marco\" vs \"/Users/marco2\"), and doesn't account for symlinks resolving outside the expected boundary. Verify a trailing path separator is appended before comparing (see AppState+Favorites.swift's \"+ \\\"/\\\"\" pattern), or compare .pathComponents / resolvingSymlinksInPath() instead."
+    severity: warning
+  no_bare_with_animation:
+    name: "No Bare withAnimation (Use a Named MotionTokens Curve)"
+    # Added after this review found HeaderBarView.swift:234's bare `withAnimation { ... }` — the
+    # one animated interaction in that file (and its siblings) not routed through a named
+    # MotionTokens curve (`.quickEase`, `.smoothEase`, `.snappySpring`, `.expandSpring`, etc.),
+    # which reads as an oversight rather than an intentional choice given how consistently the rest
+    # of the codebase names its animation curves.
+    regex: '\bwithAnimation\s*\{'
+    message: "Bare withAnimation { ... } with no explicit curve — use a named MotionTokens case (e.g. withAnimation(MotionTokens.quickEase) { ... }) for consistency with the rest of the app's animation system."
+    severity: warning
+  event_monitor_should_have_deinit_backstop:
+    name: "NSEvent Monitor Should Have a deinit Backstop"
+    # Added after this review found ClickOutsideDetector.swift's local event monitor token is only
+    # released in viewWillMove(toWindow: nil) and removeFromSuperview() — never in deinit — so a
+    # view instance deallocated without going through either AppKit lifecycle override (a path that
+    # can't be ruled out for every future caller) leaks a permanent, unremovable monitor
+    # registration. This fires whenever a file registers an NSEvent local/global monitor but the
+    # word "deinit" never appears anywhere in that same file, regardless of what other cleanup
+    # exists (viewWillMove/removeFromSuperview/etc.) — deinit is the one backstop that always runs,
+    # so it's worth having in addition to those, not instead of them. `warning`, not `error`: this
+    # is a defense-in-depth recommendation, not a proven leak in every file it flags (e.g.
+    # GlobalKeyMonitor.swift's existing viewWillMove/removeFromSuperview cleanup was independently
+    # reviewed and found correct — adding a deinit backstop there is extra safety, not a fix to a
+    # confirmed bug).
+    regex: '\A(?:(?!\bdeinit\b)[\s\S])*\bNSEvent\.add(Local|Global)MonitorForEvents\b(?:(?!\bdeinit\b)[\s\S])*\z'
+    message: "This file registers an NSEvent local/global monitor but has no deinit anywhere as a backstop cleanup path. Add `deinit { /* remove the monitor token here */ }` in addition to whatever other lifecycle cleanup already exists, so the monitor can't outlive the object under an unanticipated teardown path."
+    severity: warning
+  notification_observer_needs_removal:
+    name: "Closure-Based NotificationCenter Observer Needs removeObserver"
+    # Added proactively per this review's own instructions to scrutinize closure-based
+    # `addObserver(forName:object:queue:using:)` registrations for a missing corresponding
+    # `removeObserver` call (the returned token must be stored and explicitly removed, or the
+    # observer becomes a permanent, unremovable registration that stacks further on every
+    # re-instantiation). No current violation was found (SmartFolderService.swift correctly calls
+    # removeObserver), but this guards against a future regression rather than re-deriving the
+    # check by hand each time new code is added.
+    regex: '\A(?:(?!removeObserver)[\s\S])*\baddObserver\(forName:(?:(?!removeObserver)[\s\S])*\z'
+    message: "This file registers a closure-based NotificationCenter observer via addObserver(forName:...) but never calls removeObserver anywhere in the file. Store the returned token and remove it in deinit/onDisappear, or the observer registration leaks permanently."
+    severity: warning

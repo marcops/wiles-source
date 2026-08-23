@@ -221,10 +221,10 @@ public struct DiskSpaceVisualizerTests {
         let fileItem = report.topItems.first { $0.name == "empty_file.txt" }
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: an empty subdirectory is classified isDirectory=true despite having zero size, same as a zero-byte file",
-            result: dirItem?.isDirectory == true)
+            result: dirItem?.isDirectory ?? false)
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: a zero-byte regular file is not misclassified as a directory",
-            result: fileItem?.isDirectory == false)
+            result: !(fileItem?.isDirectory ?? true))
     }
 
     // POS: percentages for top items plus others sum to ~100% of grand total

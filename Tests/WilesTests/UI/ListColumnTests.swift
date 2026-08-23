@@ -13,18 +13,18 @@ public struct ListColumnTests {
 
     private static func testDefaultColumnState(appState: AppState) {
         appState.preferences.listColumnStates = ListColumnState.defaults()
-        report("UI/ListColumns", "POS: Name column remains visible by default", result: appState.isColumnVisible(.name) == true)
+        report("UI/ListColumns", "POS: Name column remains visible by default", result: appState.isColumnVisible(.name))
     }
 
     private static func testColumnVisibilityToggling(appState: AppState) {
         appState.preferences.listColumnStates = ListColumnState.defaults()
         appState.toggleColumnVisibility(.name)
-        report("UI/ListColumns", "POS: Name column cannot be toggled off", result: appState.isColumnVisible(.name) == true)
+        report("UI/ListColumns", "POS: Name column cannot be toggled off", result: appState.isColumnVisible(.name))
 
         appState.toggleColumnVisibility(.size)
-        report("UI/ListColumns", "POS: Size column toggles to hidden", result: appState.isColumnVisible(.size) == false)
+        report("UI/ListColumns", "POS: Size column toggles to hidden", result: !appState.isColumnVisible(.size))
         appState.toggleColumnVisibility(.size)
-        report("UI/ListColumns", "POS: Size column toggles back to visible", result: appState.isColumnVisible(.size) == true)
+        report("UI/ListColumns", "POS: Size column toggles back to visible", result: appState.isColumnVisible(.size))
     }
 
     private static func testColumnWidthResizing(appState: AppState) {

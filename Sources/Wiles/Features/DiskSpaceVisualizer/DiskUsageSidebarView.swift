@@ -3,8 +3,6 @@ import SwiftUI
 
 struct DiskUsageSidebarView: View {
     var appState: AppState
-    @State private var report: DiskUsageReport?
-    @State private var isLoading = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -20,9 +18,6 @@ struct DiskUsageSidebarView: View {
                 Color(NSColor.windowBackgroundColor)
                     .opacity(1.0 - Double(appState.preferences.translucentLevel) / 100.0)
             })
-        .task(id: appState.navigation.currentURL) {
-            await loadUsage()
-        }
     }
 
     private var header: some View {
@@ -47,17 +42,19 @@ struct DiskUsageSidebarView: View {
     private var contentArea: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                if isLoading {
-                    loadingIndicator
-                } else if let report, !report.topItems.isEmpty {
-                    donutChart(report: report)
-                    Text(appState.tr(.topLargestItems))
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    itemsList(report: report)
-                } else {
-                    emptyStateView
-                }
+                AsyncResultView(
+                    id: appState.navigation.currentURL,
+                    operation: { await DiskSpaceVisualizerService.calculateDiskUsage(for: appState.navigation.currentURL) },
+                    isEmpty: { $0.topItems.isEmpty },
+                    loading: { loadingIndicator },
+                    empty: { emptyStateView },
+                    content: { report in
+                        donutChart(report: report)
+                        Text(appState.tr(.topLargestItems))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        itemsList(report: report)
+                    })
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -79,7 +76,7 @@ struct DiskUsageSidebarView: View {
         .chartLegend(.hidden)
         .frame(height: 110)
         .overlay {
-            Text(report.formattedTotalSize)
+            Text(report.isApproximate ? "~\(report.formattedTotalSize)" : report.formattedTotalSize)
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                 .multilineTextAlignment(.center)
         }
@@ -146,13 +143,5 @@ struct DiskUsageSidebarView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, minHeight: 220)
-    }
-
-    private func loadUsage() async {
-        isLoading = true
-        let current = appState.navigation.currentURL
-        let res = await DiskSpaceVisualizerService.calculateDiskUsage(for: current)
-        report = res
-        isLoading = false
     }
 }

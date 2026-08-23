@@ -6,53 +6,23 @@ public extension AppState {
         let urls = Array(selection.selectedURLs)
         guard !urls.isEmpty else { return }
         let current = navigation.currentURL
-        Task.detached(priority: .userInitiated) {
-            do {
-                try FileSystemService.compressToZIP(urls: urls, in: current)
-            } catch {
-                ErrorReporter.report(error, context: "Compressing items to ZIP")
-                await MainActor.run { [weak self] in
-                    self?.showError(error.localizedDescription)
-                }
-            }
-            await MainActor.run { [weak self] in
-                self?.refreshCurrentDirectory()
-            }
+        runDetachedFileOperation(context: "Compressing items to ZIP", taskTitle: tr(.compressingItemsEllipsis)) {
+            try FileSystemService.compressToZIP(urls: urls, in: current)
         }
     }
 
-    func compressSelectedToZIPWithPassword(_ password: String, urls: [URL]?) {
-        guard let urls, !urls.isEmpty else { return }
+    func compressSelectedToZIPWithPassword(_ password: String, urls: [URL]) {
+        guard !urls.isEmpty else { return }
         let current = navigation.currentURL
-        Task.detached(priority: .userInitiated) {
-            do {
-                try ArchiveService.compressToZIP(urls: urls, in: current, password: password)
-            } catch {
-                ErrorReporter.report(error, context: "Compressing items to password-protected ZIP")
-                await MainActor.run { [weak self] in
-                    self?.showError(error.localizedDescription)
-                }
-            }
-            await MainActor.run { [weak self] in
-                self?.refreshCurrentDirectory()
-            }
+        runDetachedFileOperation(context: "Compressing items to password-protected ZIP", taskTitle: tr(.compressingItemsEllipsis)) {
+            try ArchiveService.compressToZIP(urls: urls, in: current, password: password)
         }
     }
 
     func extractArchive(url: URL) {
         let current = navigation.currentURL
-        Task.detached(priority: .userInitiated) {
-            do {
-                try FileSystemService.extractZIP(archiveURL: url, to: current)
-            } catch {
-                ErrorReporter.report(error, context: "Extracting archive")
-                await MainActor.run { [weak self] in
-                    self?.showError(error.localizedDescription)
-                }
-            }
-            await MainActor.run { [weak self] in
-                self?.refreshCurrentDirectory()
-            }
+        runDetachedFileOperation(context: "Extracting archive", taskTitle: tr(.extractingArchiveEllipsis)) {
+            try FileSystemService.extractZIP(archiveURL: url, to: current)
         }
     }
 }

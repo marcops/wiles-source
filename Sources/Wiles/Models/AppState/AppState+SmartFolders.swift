@@ -25,29 +25,30 @@ public extension AppState {
     /// main actor before writing to AppState, matching every other Service-completion call site.
     func runSmartFolder(_ folder: SmartFolder) {
         prepareForSmartFolderRun(folder)
+        // `prepareForSmartFolderRun`'s `searchQuery` assignment above already fired a normal
+        // directory refresh via `onSearchQueryChanged` — that refresh and this Spotlight query
+        // would otherwise race to write `fileSystem.items` last. Cancel it so only the smart
+        // folder's own results land.
+        fileSystem.refreshTask?.cancel()
+        let target = navigation.currentURL
         SmartFolderService.shared.executeQuery(for: folder) { [weak self] items in
             Task { @MainActor in
-                self?.fileSystem.items = items
+                self?.applyLoadedItems(items, target: target)
             }
         }
     }
 
     func addSmartFolder(_ folder: SmartFolder) {
-        preferences.smartFolders.append(folder)
-        persistSmartFolders(context: "Adding smart folder")
+        preferences.addSmartFolder(folder)
     }
 
     func removeSmartFolder(_ folder: SmartFolder) {
-        preferences.smartFolders.removeAll { $0.id == folder.id }
-        persistSmartFolders(context: "Removing smart folder")
+        preferences.removeSmartFolder(folder)
     }
 
     /// Renames a smart folder in place (same id) — trims and ignores an empty/whitespace-only name.
     func renameSmartFolder(_ folder: SmartFolder, to newName: String) {
-        let trimmed = newName.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, let idx = preferences.smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
-        preferences.smartFolders[idx].name = trimmed
-        persistSmartFolders(context: "Renaming smart folder")
+        preferences.renameSmartFolder(folder, to: newName)
     }
 
     /// Overwrites a smart folder's saved query in place (same id) — e.g. "Update Search" after
@@ -55,17 +56,6 @@ public extension AppState {
     /// the query text only ever affected the current session; re-running the smart folder later
     /// always went back to whatever it was originally saved with.
     func updateSmartFolderQuery(_ folder: SmartFolder, to newQuery: String) {
-        guard let idx = preferences.smartFolders.firstIndex(where: { $0.id == folder.id }) else { return }
-        preferences.smartFolders[idx].searchQuery = newQuery
-        persistSmartFolders(context: "Updating smart folder search")
-    }
-
-    private func persistSmartFolders(context: String) {
-        do {
-            try SmartFolderService.saveSmartFolders(preferences.smartFolders)
-        } catch {
-            ErrorReporter.report(error, context: context)
-            showError(error.localizedDescription)
-        }
+        preferences.updateSmartFolderQuery(folder, to: newQuery)
     }
 }

@@ -5,14 +5,15 @@ import SwiftUI
 public struct FooterBarViewTests {
     public static func run() {
         let appState = AppState()
-        let view = FooterBarView(appState: appState)
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        let view = FooterBarView(appState: appState, windowUIState: windowUIState)
         report("View/FooterBarView", "POS: FooterBarView statusText matches appState", result: view.appState.statusText == appState.statusText)
 
-        let initialDrawer = appState.preferences.showTerminalDrawer
-        defer { appState.preferences.showTerminalDrawer = initialDrawer }
+        let initialDrawer = windowUIState.showTerminalDrawer
+        defer { windowUIState.showTerminalDrawer = initialDrawer }
 
-        appState.preferences.showTerminalDrawer.toggle()
-        report("View/FooterBarView", "POS: FooterBarView terminal drawer toggling works", result: appState.preferences.showTerminalDrawer != initialDrawer)
+        windowUIState.showTerminalDrawer.toggle()
+        report("View/FooterBarView", "POS: FooterBarView terminal drawer toggling works", result: windowUIState.showTerminalDrawer != initialDrawer)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

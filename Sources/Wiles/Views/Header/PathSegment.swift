@@ -7,5 +7,5 @@ struct PathSegment: Identifiable, Hashable {
 
     let name: String
     let url: URL
-    let isFirst: Bool
+    let isLast: Bool
 }

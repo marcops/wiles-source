@@ -37,10 +37,16 @@ struct WilesModalSheets: ViewModifier {
             .sheet(isPresented: $windowUIState.showDuplicateCleanerSheet) {
                 DuplicateCleanerSheetView(appState: appState)
             }
-            .sheet(isPresented: $windowUIState.showHttpShareSheet) {
-                if let url = windowUIState.httpShareFolderURL {
-                    HttpShareSheet(appState: appState, folderURL: url)
-                }
+            .sheet(isPresented: Binding(
+                get: { windowUIState.httpShareFolderURL != nil },
+                set: {
+                    if !$0 {
+                        windowUIState.httpShareFolderURL = nil
+                    }
+                })) {
+                    if let url = windowUIState.httpShareFolderURL {
+                        HttpShareSheet(appState: appState, folderURL: url)
+                    }
             }
             .modifier(WilesModalSheetsSecondary(appState: appState, windowUIState: windowUIState))
             .modifier(WilesModalAlerts(appState: appState, windowUIState: windowUIState))

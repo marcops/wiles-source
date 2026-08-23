@@ -55,32 +55,39 @@ public final class UndoRedoService {
     private func executeReverseAction(_ action: UndoActionType) async throws -> URL {
         switch action {
         case let .rename(oldURL, newURL):
-            return try FileSystemService.renameItem(at: newURL, newName: oldURL.lastPathComponent)
+            return try await FileSystemService.renameItem(at: newURL, newName: oldURL.lastPathComponent)
         case let .move(sourceURL, destinationURL):
-            return try FileSystemService.moveItem(at: destinationURL, toFolder: sourceURL.deletingLastPathComponent())
-        case let .create(url):
-            _ = try FileSystemService.moveToTrash(url: url)
+            return try await FileSystemService.moveItem(at: destinationURL, toFolder: sourceURL.deletingLastPathComponent())
+        case let .createFolder(url), let .createFile(url):
+            _ = try await FileSystemService.moveToTrash(url: url)
             return url.deletingLastPathComponent()
         case let .trash(originalURL, trashedURL):
-            return try FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
+            return try await FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
         }
     }
 
     private func executeForwardAction(_ action: UndoActionType) async throws -> URL {
         switch action {
         case let .rename(oldURL, newURL):
-            return try FileSystemService.renameItem(at: oldURL, newName: newURL.lastPathComponent)
+            return try await FileSystemService.renameItem(at: oldURL, newName: newURL.lastPathComponent)
         case let .move(sourceURL, destinationURL):
-            return try FileSystemService.moveItem(at: sourceURL, toFolder: destinationURL.deletingLastPathComponent())
-        case let .create(url):
+            return try await FileSystemService.moveItem(at: sourceURL, toFolder: destinationURL.deletingLastPathComponent())
+        case let .createFolder(url):
             let folder = url.deletingLastPathComponent()
             let name = url.lastPathComponent
-            return try FileSystemService.createDirectory(at: folder, name: name)
+            return try await FileSystemService.createDirectory(at: folder, name: name)
+        case .createFile:
+            // Unlike .createFolder (an empty folder has no content to lose, so recreating it via
+            // createDirectory is always faithful), a file's redo would need its original content —
+            // which .createFile never stored (the paste-from-pasteboard-content call site has no
+            // source at all to redo from). Throw explicitly instead of silently creating a folder
+            // where the file used to be.
+            throw WilesError.fileCreationNotRedoable
         case let .trash(originalURL, _):
             // originalURL, not the stale trashedURL: undo() already moved the file back to
             // originalURL, so the old trashedURL path no longer exists on disk by the time
             // redo runs (moveToTrash on it would throw, incorrectly failing every trash redo).
-            _ = try FileSystemService.moveToTrash(url: originalURL)
+            _ = try await FileSystemService.moveToTrash(url: originalURL)
             return originalURL.deletingLastPathComponent()
         }
     }

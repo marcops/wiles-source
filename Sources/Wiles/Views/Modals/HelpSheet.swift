@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct HelpSheet: View {
+    private static let sheetWidth: CGFloat = 660
+    private static let sheetHeight: CGFloat = 580
+    private static let tabPickerMaxWidth: CGFloat = 500
+
     @Environment(\.dismiss)
     private var dismiss
     var appState: AppState
@@ -35,8 +39,8 @@ struct HelpSheet: View {
             icon: .appIcon,
             title: appState.tr(.wilesFileManager),
             subtitle: appState.tr(.helpGuideTitle),
-            width: 660,
-            height: 580,
+            width: Self.sheetWidth,
+            height: Self.sheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
             headerAccessory: { tabPicker },
             content: { scrollableContent })
@@ -49,7 +53,7 @@ struct HelpSheet: View {
             }
         }
         .pickerStyle(.segmented)
-        .frame(maxWidth: 500)
+        .frame(maxWidth: Self.tabPickerMaxWidth)
     }
 
     private var scrollableContent: some View {
@@ -59,7 +63,7 @@ struct HelpSheet: View {
                 case .overview:
                     overviewSection
                     navigationModesSection
-                    sidebarAndTagsSection
+                    tagsSection
                 case .features:
                     featureHighlightsSection
                 case .system:
@@ -71,37 +75,23 @@ struct HelpSheet: View {
     }
 
     private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(appState.tr(.tabOverview))
-                .font(.system(size: 14, weight: .semibold))
-            Text(appState.tr(.overviewDesc))
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-        }
+        Text(appState.tr(.overviewDesc))
+            .font(.system(size: 12))
+            .foregroundColor(.secondary)
     }
 
     private var featureHighlightsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(appState.tr(.domainToolsTitle))
-                .font(.system(size: 14, weight: .semibold))
-
-            VStack(spacing: 8) {
-                ForEach(Self.domainToolsItems) { item in
-                    featureRow(item)
-                }
+        VStack(spacing: 8) {
+            ForEach(Self.domainToolsItems) { item in
+                featureRow(item)
             }
         }
     }
 
     private var navigationAndSystemSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(appState.tr(.navSystemTitle))
-                .font(.system(size: 14, weight: .semibold))
-
-            VStack(spacing: 8) {
-                ForEach(Self.navigationAndSystemItems) { item in
-                    featureRow(item)
-                }
+        VStack(spacing: 8) {
+            ForEach(Self.navigationAndSystemItems) { item in
+                featureRow(item)
             }
         }
     }
@@ -128,9 +118,9 @@ struct HelpSheet: View {
         .cornerRadius(6)
     }
 
-    private var sidebarAndTagsSection: some View {
+    private var tagsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(appState.tr(.sidebarMode))
+            Text(appState.tr(.helpTagsTitle))
                 .font(.system(size: 14, weight: .semibold))
             Text(appState.tr(.helpTagsDesc))
                 .font(.system(size: 12))

@@ -61,7 +61,7 @@ public struct DiskSpaceVisualizerFeatureTests {
         report(
             "Feature/DiskSpaceVisualizer",
             "POS: a subfolder's size reflects the recursive size of its own contents",
-            result: subfolderItem?.isDirectory == true && subfolderItem?.size == 2048)
+            result: (subfolderItem?.isDirectory ?? false) && subfolderItem?.size == 2048)
     }
 
     /// Covers `buildReport`'s `othersItem` construction: with more than 10 entries, everything past

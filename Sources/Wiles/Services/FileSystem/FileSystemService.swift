@@ -8,13 +8,12 @@ public extension URL {
         .first ?? URL(fileURLWithPath: "/Users/\(NSUserName())/.Trash")
 }
 
-public struct FileSystemService: FileSystemServiceProtocol, Sendable {
-    /// Mirrors `AppState.recentsVirtualURL.path` — kept as a separate literal here because
-    /// `AppState` is `@MainActor`-isolated and this function runs off the main actor.
-    private static let virtualRecentsPath = "/virtual/recents"
+public struct FileSystemService: Sendable {
+    static let recursiveSearchResultLimit: Int = 2000
+    static let recursiveSearchBatchSize: Int = 40
 
     public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async throws -> [FileItem] {
-        if url.path == virtualRecentsPath {
+        if url.path == AppState.recentsVirtualURL.path {
             return await loadRecentsVirtualDirectory(options: options)
         }
         return try await loadRealDirectoryContents(at: url, options: options)
@@ -118,7 +117,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
     /// Recursively enumerates every file under `root` (used when the user turns on "search
     /// everywhere" instead of the default single-folder, non-recursive search) and filters each
     /// one through the same `SearchFilterService` predicate as a normal folder listing. Capped at
-    /// `LayoutTokens.recursiveSearchResultLimit` so a query with very broad matches over the whole
+    /// `Self.recursiveSearchResultLimit` so a query with very broad matches over the whole
     /// home directory can't grow the result list — and the walk time — without bound.
     ///
     /// `includeHidden` is deliberately separate from `options.showHidden` (which only governs a
@@ -126,7 +125,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
     /// setting, since walking into every dotfile/cache folder under the home directory is both
     /// slow and rarely what a "search everywhere" query is looking for.
     ///
-    /// `onBatch` is invoked periodically (every `LayoutTokens.recursiveSearchBatchSize` matches,
+    /// `onBatch` is invoked periodically (every `Self.recursiveSearchBatchSize` matches,
     /// and once more with the final result) with the sorted matches found so far, so the UI can
     /// stream results in as they're found instead of blocking on the full walk.
     public static func loadRecursiveSearchResults(
@@ -202,11 +201,11 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
             }
 
             items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
-            if items.count - lastReportedCount >= LayoutTokens.recursiveSearchBatchSize {
+            if items.count - lastReportedCount >= Self.recursiveSearchBatchSize {
                 onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
                 lastReportedCount = items.count
             }
-            if items.count >= LayoutTokens.recursiveSearchResultLimit {
+            if items.count >= Self.recursiveSearchResultLimit {
                 break
             }
         }
@@ -220,7 +219,7 @@ public struct FileSystemService: FileSystemServiceProtocol, Sendable {
         if fileURL.lastPathComponent.hasPrefix(".") {
             return true
         }
-        return (try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden) == true
+        return (try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden) ?? false
     }
 
     private static func sortItems(_ items: [FileItem], by option: SortOption, ascending: Bool) -> [FileItem] {

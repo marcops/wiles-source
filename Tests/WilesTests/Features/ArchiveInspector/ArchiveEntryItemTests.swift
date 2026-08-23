@@ -20,13 +20,13 @@ public struct ArchiveEntryItemTests {
 
     private static func testDirectoryDetectionFromTrailingSlash() {
         let directory = ArchiveEntryItem(path: "photos/")
-        report("Feature/ArchiveEntryItem", "POS: a path ending in '/' is detected as a directory", result: directory.isDirectory == true)
+        report("Feature/ArchiveEntryItem", "POS: a path ending in '/' is detected as a directory", result: directory.isDirectory)
 
         let file = ArchiveEntryItem(path: "photos/image.png")
-        report("Feature/ArchiveEntryItem", "NEG: a path without a trailing '/' is not detected as a directory", result: file.isDirectory == false)
+        report("Feature/ArchiveEntryItem", "NEG: a path without a trailing '/' is not detected as a directory", result: !file.isDirectory)
 
         let rootFile = ArchiveEntryItem(path: "readme.txt")
-        report("Feature/ArchiveEntryItem", "NEG: a top-level file path is not detected as a directory", result: rootFile.isDirectory == false)
+        report("Feature/ArchiveEntryItem", "NEG: a top-level file path is not detected as a directory", result: !rootFile.isDirectory)
     }
 
     private static func testNameExtractsLastPathComponentOnly() {
@@ -45,13 +45,13 @@ public struct ArchiveEntryItemTests {
         report(
             "Feature/ArchiveEntryItem",
             "POS: deeply nested path preserves the full path while name resolves to only the leaf",
-            result: deeplyNested.path == "a/b/c/d/leaf.txt" && deeplyNested.name == "leaf.txt" && deeplyNested.isDirectory == false)
+            result: deeplyNested.path == "a/b/c/d/leaf.txt" && deeplyNested.name == "leaf.txt" && !deeplyNested.isDirectory)
 
         let topLevelDirectory = ArchiveEntryItem(path: "assets/")
         report(
             "Feature/ArchiveEntryItem",
             "POS: top-level directory entry is a directory and its name has the slash stripped",
-            result: topLevelDirectory.isDirectory == true && topLevelDirectory.name == "assets")
+            result: topLevelDirectory.isDirectory && topLevelDirectory.name == "assets")
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

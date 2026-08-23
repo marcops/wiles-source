@@ -10,11 +10,22 @@ public final class LocalHttpServerService: @unchecked Sendable {
     public var sharedFolder: URL?
     public var port: NWEndpoint.Port = 8080
     @MainActor public var serverURL: String?
+    /// Set when `start(sharing:password:)` fails to stand up the listener, so `HttpShareSheet`
+    /// (stuck otherwise on "Starting server…") has something to show and retry from.
+    @MainActor public var startError: String?
 
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.wiles.HttpServer")
     private var connections: [NWConnection] = []
+    private var idleTimeoutWorkItems: [ObjectIdentifier: DispatchWorkItem] = [:]
     private var requiredPassword: String?
+
+    /// Caps concurrent connections for this local file-sharing feature — plenty for normal LAN
+    /// browsing/downloads, low enough to bound memory/FD usage against a runaway client.
+    private static let maxConcurrentConnections = 32
+    /// A connection that opens and never sends a request is cancelled after this long instead of
+    /// sitting in `connections` forever.
+    private static let idleConnectionTimeout: TimeInterval = 15
 
     private init() { }
 
@@ -26,7 +37,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // proper happens-before relationship with that on-queue read, closing the data race.
         queue.sync {
             sharedFolder = folder
-            requiredPassword = (password?.isEmpty == false) ? password : nil
+            requiredPassword = !(password?.isEmpty ?? true) ? password : nil
         }
         do {
             let parameters = NWParameters.tcp
@@ -39,6 +50,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
                     case .ready:
                         self.updateServerURL()
                         self.isRunning = true
+                        self.startError = nil
                     case .failed, .cancelled:
                         self.isRunning = false
                         self.serverURL = nil
@@ -58,6 +70,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
             newListener.start(queue: queue)
         } catch {
             ErrorReporter.report(error, context: "Starting local HTTP share server")
+            let message = error.localizedDescription
+            Task { @MainActor [weak self] in self?.startError = message }
             stop()
         }
     }
@@ -70,6 +84,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 conn.cancel()
             }
             connections.removeAll()
+            idleTimeoutWorkItems.values.forEach { $0.cancel() }
+            idleTimeoutWorkItems.removeAll()
             sharedFolder = nil
             requiredPassword = nil
         }
@@ -79,39 +95,55 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }
     }
 
+    /// AF_INET-capable interfaces that can carry a real address but aren't a LAN link a client on
+    /// the same Wi-Fi network could actually reach — VPN tunnels, AWDL (AirDrop), bridges, etc.
+    private static let virtualInterfaceNamePrefixes = ["utun", "awdl", "llw", "bridge", "stf", "gif", "ipsec", "lo"]
+
+    /// Local IPv4 for LAN sharing: filters to up/running, non-loopback, non-link-local, non-virtual interfaces, preferring `en*` (Wi-Fi/Ethernet).
+    private func candidateLANIPv4Address() -> String? {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return nil }
+        defer { freeifaddrs(ifaddr) }
+
+        var candidates: [(name: String, address: String)] = []
+        var ptr: UnsafeMutablePointer<ifaddrs>? = firstAddr
+        while let current = ptr {
+            defer { ptr = current.pointee.ifa_next }
+            let interface = current.pointee
+            guard interface.ifa_addr.pointee.sa_family == UInt8(AF_INET) else { continue }
+
+            let flags = Int32(interface.ifa_flags)
+            guard flags & IFF_UP != 0, flags & IFF_RUNNING != 0, flags & IFF_LOOPBACK == 0 else { continue }
+
+            let name = String(cString: interface.ifa_name)
+            guard !Self.virtualInterfaceNamePrefixes.contains(where: { name.hasPrefix($0) }) else { continue }
+
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(
+                interface.ifa_addr,
+                socklen_t(interface.ifa_addr.pointee.sa_len),
+                &hostname,
+                socklen_t(hostname.count),
+                nil,
+                socklen_t(0),
+                NI_NUMERICHOST) == 0 else { continue }
+            let address = hostname.withUnsafeBufferPointer { buffer -> String in
+                guard let baseAddress = buffer.baseAddress else { return "" }
+                return String(cString: baseAddress)
+            }
+            guard !address.isEmpty, !address.hasPrefix("169.254.") else { continue }
+
+            candidates.append((name, address))
+        }
+
+        return candidates.first(where: { $0.name.hasPrefix("en") })?.address ?? candidates.first?.address
+    }
+
     /// Only ever called from the @MainActor `Task` in `start()`'s stateUpdateHandler, so this stays
     /// synchronous on the actor instead of hopping into a redundant nested `Task { @MainActor in }`.
     @MainActor
     private func updateServerURL() {
-        // Get local IP
-        var address: String?
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        if getifaddrs(&ifaddr) == 0 {
-            var ptr = ifaddr
-            while ptr != nil {
-                defer { ptr = ptr?.pointee.ifa_next }
-                guard let interface = ptr?.pointee else { continue }
-                let addrFamily = interface.ifa_addr.pointee.sa_family
-                if addrFamily == UInt8(AF_INET) {
-                    let name = String(cString: interface.ifa_name)
-                    if name == "en0" { // Wi-Fi interface usually
-                        var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                        getnameinfo(
-                            interface.ifa_addr,
-                            socklen_t(interface.ifa_addr.pointee.sa_len),
-                            &hostname,
-                            socklen_t(hostname.count),
-                            nil,
-                            socklen_t(0),
-                            NI_NUMERICHOST)
-                        let hostnameBytes = Array(hostname.map { UInt8(bitPattern: $0) }.prefix(while: { $0 != 0 }))
-                        address = String(bytes: hostnameBytes, encoding: .utf8) ?? ""
-                        break
-                    }
-                }
-            }
-            freeifaddrs(ifaddr)
-        }
+        let address = candidateLANIPv4Address()
 
         let finalServerURL = if let ip = address {
             "http://\(ip):\(port.rawValue)"
@@ -122,21 +154,53 @@ public final class LocalHttpServerService: @unchecked Sendable {
     }
 
     private func handleConnection(_ connection: NWConnection) {
+        guard connections.count < Self.maxConcurrentConnections else {
+            connection.cancel()
+            return
+        }
         connections.append(connection)
+        // Without this, a connection that never terminates via `sendResponse`/`streamFile` (one
+        // that opens then goes silent) stays in `connections` forever — this plus the idle timeout
+        // below are what actually prune it.
+        connection.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .cancelled, .failed:
+                self?.removeConnection(connection)
+            default:
+                break
+            }
+        }
         connection.start(queue: queue)
+        scheduleIdleTimeout(for: connection)
         receiveRequest(on: connection)
+    }
+
+    private func scheduleIdleTimeout(for connection: NWConnection) {
+        let workItem = DispatchWorkItem { [weak self] in
+            connection.cancel()
+            self?.removeConnection(connection)
+        }
+        idleTimeoutWorkItems[ObjectIdentifier(connection)] = workItem
+        queue.asyncAfter(deadline: .now() + Self.idleConnectionTimeout, execute: workItem)
+    }
+
+    private func removeConnection(_ connection: NWConnection) {
+        connections.removeAll(where: { $0 === connection })
+        idleTimeoutWorkItems.removeValue(forKey: ObjectIdentifier(connection))?.cancel()
     }
 
     private func receiveRequest(on connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] content, _, _, _ in
             guard let self, let content, !content.isEmpty else {
                 connection.cancel()
-                self?.connections.removeAll(where: { $0 === connection })
+                self?.removeConnection(connection)
                 return
             }
+            // A real request line arrived — this connection is no longer merely idle.
+            idleTimeoutWorkItems.removeValue(forKey: ObjectIdentifier(connection))?.cancel()
             guard let requestStr = String(bytes: content, encoding: .utf8) else {
                 connection.cancel()
-                connections.removeAll(where: { $0 === connection })
+                removeConnection(connection)
                 return
             }
             processRequest(requestStr, connection: connection)
@@ -254,9 +318,12 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // Prevent Path Traversal. A plain hasPrefix(stdFolder) is not enough: it would also let a
         // sibling directory through (e.g. shared folder "/tmp/abc" would wrongly permit
         // "/tmp/abcDEF/secret.txt", since that string also starts with "/tmp/abc"). Requiring the
-        // path separator boundary closes that gap.
-        let stdFolder = folder.standardizedFileURL.path
-        let stdFile = fileURL.standardizedFileURL.path
+        // path separator boundary closes that gap. `resolvingSymlinksInPath()` (not just
+        // `.standardizedFileURL`) also closes the symlink-escape gap, and works even when the final
+        // path component doesn't exist yet, so this must run before the existence check below —
+        // otherwise a traversal attempt with no real target behind it returns 404 instead of 403.
+        let stdFolder = folder.resolvingSymlinksInPath().path
+        let stdFile = fileURL.resolvingSymlinksInPath().path
         guard stdFile == stdFolder || stdFile.hasPrefix(stdFolder + "/") else {
             sendResponse(connection: connection, statusCode: HTTPStatus.forbidden, body: Data("Forbidden".utf8))
             return
@@ -292,7 +359,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 guard let self, error == nil else {
                     try? fileHandle.close()
                     connection.cancel()
-                    self?.connections.removeAll(where: { $0 === connection })
+                    self?.removeConnection(connection)
                     return
                 }
                 sendNextChunk(fileHandle: fileHandle, connection: connection)
@@ -309,7 +376,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         guard let chunk, !chunk.isEmpty else {
             try? fileHandle.close()
             connection.cancel()
-            connections.removeAll(where: { $0 === connection })
+            removeConnection(connection)
             return
         }
 
@@ -317,7 +384,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             guard let self, error == nil else {
                 try? fileHandle.close()
                 connection.cancel()
-                self?.connections.removeAll(where: { $0 === connection })
+                self?.removeConnection(connection)
                 return
             }
             sendNextChunk(fileHandle: fileHandle, connection: connection)
@@ -340,7 +407,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
         connection.send(content: responseData, completion: .contentProcessed { [weak self] _ in
             connection.cancel()
-            self?.connections.removeAll(where: { $0 === connection })
+            self?.removeConnection(connection)
         })
     }
 }

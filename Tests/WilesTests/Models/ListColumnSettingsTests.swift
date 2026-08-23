@@ -30,11 +30,11 @@ public struct ListColumnSettingsTests {
         let expectedHidden: Set<ListColumn> = [.dateCreated, .dateAccessed, .kind, .owner, .group]
         report("Model/ListColumnSettings", "NEG: defaults() leaves the remaining columns hidden", result: hiddenSet == expectedHidden)
 
-        report("Model/ListColumnSettings", "POS: Name column is always visible per isAlwaysVisible", result: ListColumn.name.isAlwaysVisible == true)
+        report("Model/ListColumnSettings", "POS: Name column is always visible per isAlwaysVisible", result: ListColumn.name.isAlwaysVisible)
         report(
             "Model/ListColumnSettings",
-            "NEG: non-name columns report isAlwaysVisible == false",
-            result: ListColumn.allCases.filter { $0 != .name }.allSatisfy { $0.isAlwaysVisible == false })
+            "NEG: non-name columns report isAlwaysVisible as false",
+            result: ListColumn.allCases.filter { $0 != .name }.allSatisfy { !$0.isAlwaysVisible })
 
         // POS: Identifiable.id mirrors rawValue exactly for every case (used by SwiftUI ForEach/Picker).
         report(
@@ -46,7 +46,7 @@ public struct ListColumnSettingsTests {
     private static func testListColumnDefaultWidths() {
         let defaults = ListColumnState.defaults()
         let withinBounds = defaults.allSatisfy { state in
-            state.column == .name || (state.width >= LayoutTokens.columnMinWidth && state.width <= LayoutTokens.columnMaxWidth)
+            state.column == .name || (state.width >= LayoutTokens.columnMinWidth && state.width <= ColumnAutoFitService.columnMaxWidth)
         }
         report("Model/ListColumnSettings", "POS: default widths for fixed-width columns fall within columnMinWidth...columnMaxWidth", result: withinBounds)
 

@@ -10,6 +10,7 @@ public enum DiskSpaceVisualizerService {
         let name: String
         let size: Int64
         let isDir: Bool
+        let wasTruncated: Bool
     }
 
     public static func calculateDiskUsage(for folderURL: URL) async -> DiskUsageReport {
@@ -34,7 +35,8 @@ public enum DiskSpaceVisualizerService {
                 return DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
             }
 
-            return buildReport(from: rawItems, grandTotal: grandTotal, folderURL: folderURL)
+            let isApproximate = rawItems.contains { $0.wasTruncated }
+            return buildReport(from: rawItems, grandTotal: grandTotal, folderURL: folderURL, isApproximate: isApproximate)
         }
 
         return await withTaskCancellationHandler {
@@ -50,18 +52,19 @@ public enum DiskSpaceVisualizerService {
             try Task.checkCancellation()
             let isDir = (try? itemURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             let size: Int64
+            var wasTruncated = false
             if isDir {
-                size = try computeFolderSizeFast(folderURL: itemURL)
+                (size, wasTruncated) = try computeFolderSizeFast(folderURL: itemURL)
             } else {
                 let values = try? itemURL.resourceValues(forKeys: [.fileSizeKey])
                 size = Int64(values?.fileSize ?? 0)
             }
-            rawItems.append(RawItem(url: itemURL, name: itemURL.lastPathComponent, size: size, isDir: isDir))
+            rawItems.append(RawItem(url: itemURL, name: itemURL.lastPathComponent, size: size, isDir: isDir, wasTruncated: wasTruncated))
         }
         return rawItems
     }
 
-    private static func buildReport(from rawItems: [RawItem], grandTotal: Int64, folderURL: URL) -> DiskUsageReport {
+    private static func buildReport(from rawItems: [RawItem], grandTotal: Int64, folderURL: URL, isApproximate: Bool) -> DiskUsageReport {
         let sorted = rawItems.sorted { $0.size > $1.size }
         let maxTop = 10
         let topSlice = sorted.prefix(maxTop)
@@ -90,14 +93,14 @@ public enum DiskSpaceVisualizerService {
                 colorHue: 0.0)
         }
 
-        return DiskUsageReport(totalSize: grandTotal, topItems: formattedTopItems, othersItem: othersItem)
+        return DiskUsageReport(totalSize: grandTotal, topItems: formattedTopItems, othersItem: othersItem, isApproximate: isApproximate)
     }
 
-    private static func computeFolderSizeFast(folderURL: URL) throws -> Int64 {
+    private static func computeFolderSizeFast(folderURL: URL) throws -> (total: Int64, wasTruncated: Bool) {
         let fm = FileManager.default
         guard let enumerator = fm.enumerator(at: folderURL, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles, .skipsPackageDescendants])
         else {
-            return 0
+            return (0, false)
         }
         var total: Int64 = 0
         var count = 0
@@ -108,9 +111,9 @@ public enum DiskSpaceVisualizerService {
             }
             count += 1
             if count > maxScannedFileCount {
-                break
+                return (total, true)
             }
         }
-        return total
+        return (total, false)
     }
 }

@@ -63,7 +63,7 @@ struct FileGridCardItemView: View {
                 .overlay(ICloudStatusBadgeView(item: item, appState: appState).padding(2), alignment: .topTrailing)
             cardLabel(isSel: isSel)
             if appState.preferences.showTags, !item.tags.isEmpty {
-                tagsView
+                TagsIndicatorView(tags: item.tags)
             }
         }
     }
@@ -105,17 +105,6 @@ struct FileGridCardItemView: View {
                     GeometryReader { geo in
                         Color.clear.preference(key: LabelWidthKey.self, value: [item.url: geo.size.width])
                     })
-        }
-    }
-
-    private var tagsView: some View {
-        HStack(spacing: -2) {
-            ForEach(item.tags, id: \.self) { tag in
-                Circle()
-                    .fill(colorForTag(tag))
-                    .frame(width: 8, height: 8)
-                    .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
-            }
         }
     }
 }

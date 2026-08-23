@@ -1,3 +1,5 @@
+// A flat CaseIterable enum's cases can't be split across files, same reasoning as type_body_length below.
+// swiftlint:disable file_length
 // swiftlint:disable:next type_body_length
 public enum L10n {
     // swiftlint:disable:next type_body_length
@@ -27,18 +29,24 @@ public enum L10n {
         case showHiddenFiles
         case showHiddenFilesGnome
         case showHiddenFilesMac
+        case showHiddenFilesHint
         case hideStatusBar
         case showStatusBar
         case showFavorites
+        case showFavoritesHint
         case showMacSection
         case showRecents
+        case showRecentsHint
         case showPlaces
+        case showPlacesHint
         case showSidebarSectionTitles
+        case showSidebarSectionTitlesHint
         case sidebarMode
         case sidebarMenuTitle
         case places
         case directoryTree
         case showDirectoryTree
+        case showDirectoryTreeHint
         case shortcutMode
         case refresh
         case copyPath
@@ -55,10 +63,13 @@ public enum L10n {
         case copy
         case copyContent
         case moveToTrash
+        case movingToTrashEllipsis
         case moveToTrashConfirm
         case createSymbolicLink
         case symlinkNameLabel
         case createLink
+        case symlinkModeAbsolute
+        case symlinkModeRelative
         case wilesFileManager
         case itemsSelectedSuffix
         case activeSuffix
@@ -97,7 +108,10 @@ public enum L10n {
         case freeSpace
         case itemsCount
         case itemsCountWithSize
+        case selectionCount
+        case selectionCountWithSize
         case moveToTrashPartialFailure
+        case tagOperationPartialFailure
         case selectedItemsCount
         case selectedItemsCountWithSize
         case language
@@ -126,6 +140,7 @@ public enum L10n {
         case suffix
         case sequenceNumbering
         case startNumber
+        case paddingDigits
         case preview
         case originalName
         case newName
@@ -144,6 +159,7 @@ public enum L10n {
         case fileNameLabel
         case extractArchive
         case connectToServer
+        case connectToServerSubtitle
         case goMenuTitle
         case toolsMenuTitle
         case connect
@@ -154,6 +170,7 @@ public enum L10n {
         case sidebarTranslucentLevel
         case contentTranslucentLevel
         case showTags
+        case showTagsHint
         case tags
         case red
         case orange
@@ -179,6 +196,7 @@ public enum L10n {
         case duration
         case fetchError
         case compactDensity
+        case compactDensityHint
         case helpGuideTitle
         case tabOverview
         case tabFeatures
@@ -276,6 +294,7 @@ public enum L10n {
         case showTerminal
         case hidePreview
         case showNetworkAndCloud
+        case showNetworkAndCloudHint
         case back
         case forward
         case goToFolder
@@ -292,6 +311,8 @@ public enum L10n {
         case sharingActive
         case wifiShareNotice
         case startingServer
+        case wifiShareStartFailed
+        case retry
         case linkType
         case symlinkName
         case noSelection
@@ -309,6 +330,21 @@ public enum L10n {
         case write
         case execute
         case applyPermissions
+        case applyToEnclosedItems
+        case applyToEnclosedItemsConfirmMessage
+        case deleteRule
+        case deleteAutoOrgRuleConfirmMessage
+        case ruleEnabledToggle
+        case ruleConditionTypePicker
+        case autoOrgRuleConflictNotice
+        case autoOrgRuleStatus
+        case pastingItemsEllipsis
+        case compressingItemsEllipsis
+        case extractingArchiveEllipsis
+        case showInFinder
+        case hideSectionMenuItem
+        case removeRecentServer
+        case folderPickerCantReadFolder
         case compressWithPassword
         case enterPassword
         case password
@@ -341,6 +377,8 @@ public enum L10n {
         case duplicateCleanerSubtitle
         case reclaimableSpace
         case noDuplicatesFound
+        case duplicateScanTruncatedNotice
+        case duplicateKeepFirstCopyNotice
         case batchRenameTitle
         case namingPattern
         case regexReplace
@@ -375,8 +413,11 @@ public enum L10n {
         case settingsThemeSection
         case settingsTranslucencySection
         case middleTruncateNames
+        case middleTruncateNamesHint
         case alwaysShowFullPathBar
+        case alwaysShowFullPathBarHint
         case autoHideSidebar
+        case autoHideSidebarHint
         case settingsSidebarSectionsSection
         case settingsViewSection
         case appearanceSystemOption
@@ -447,6 +488,7 @@ public enum L10n {
         case wilesErrorItemNotFound
         case wilesErrorOperationFailed
         case wilesErrorInvalidZipPassword
+        case wilesErrorFileCreationNotRedoable
         case tooltipFolder
         case tooltipModified
         case tooltipCreated
@@ -491,5 +533,18 @@ public enum L10n {
         case expandFolder
         case collapseFolder
         case expandCollapseFolderHint
+        case smartFolderHint
+        case removeSmartFolderConfirm
+
+        // MARK: - G5 Modals slice fixes
+
+        case discard
+        case discardPermissionChangesMessage
+        case confirmPassword
+        case passwordMismatchHint
+        case passwordCompressSubtitle
+        case symlinkNameSuffix
+        case symlinkNameCollisionWarning
+        case symlinkSubtitle
     }
 }

@@ -6,9 +6,8 @@ public struct DuplicateCleanerSheetView: View {
     @Environment(\.dismiss)
     private var dismiss
 
-    @State private var isScanning = true
-    @State private var scanResult: DuplicateScanResult?
     @State private var selectedURLsToTrash: Set<URL> = []
+    @State private var isTrashing = false
 
     public init(appState: AppState) {
         self.appState = appState
@@ -22,29 +21,26 @@ public struct DuplicateCleanerSheetView: View {
             width: 640,
             height: 480,
             primaryButton: ModalFooterButton(
-                title: appState.tr(.moveToTrash),
-                isEnabled: !selectedURLsToTrash.isEmpty) {
+                title: isTrashing ? appState.tr(.movingToTrashEllipsis) : appState.tr(.moveToTrash),
+                isEnabled: !selectedURLsToTrash.isEmpty && !isTrashing) {
+                    isTrashing = true
                     trashSelected()
-                    dismiss()
                 },
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             content: { mainContent })
-            .task {
-                let res = await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
-                scanResult = res
-                selectedURLsToTrash = Set(res.groups.flatMap { $0.items.dropFirst().map(\.url) })
-                isScanning = false
-            }
     }
 
-    @ViewBuilder private var mainContent: some View {
-        if isScanning {
-            scanningView
-        } else if let result = scanResult, !result.groups.isEmpty {
-            resultsView(result: result)
-        } else {
-            emptyView
-        }
+    private var mainContent: some View {
+        AsyncResultView(
+            operation: {
+                let res = await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
+                selectedURLsToTrash = Set(res.groups.flatMap { $0.items.dropFirst().map(\.url) })
+                return res
+            },
+            isEmpty: { $0.groups.isEmpty },
+            loading: { scanningView },
+            empty: { emptyView },
+            content: { result in resultsView(result: result) })
     }
 
     private var scanningView: some View {
@@ -73,6 +69,21 @@ public struct DuplicateCleanerSheetView: View {
 
     private func resultsView(result: DuplicateScanResult) -> some View {
         VStack(spacing: 0) {
+            resultsHeader(result: result)
+
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(result.groups) { group in
+                        duplicateGroupCard(group: group)
+                    }
+                }
+                .padding(16)
+            }
+        }
+    }
+
+    private func resultsHeader(result: DuplicateScanResult) -> some View {
+        VStack(spacing: 0) {
             HStack {
                 Text(appState.tr(.reclaimableSpace) + ": ")
                     .foregroundColor(.secondary)
@@ -85,13 +96,18 @@ public struct DuplicateCleanerSheetView: View {
             .padding(.vertical, 8)
             .background(Color(NSColor.controlBackgroundColor).opacity(0.4))
 
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(result.groups) { group in
-                        duplicateGroupCard(group: group)
-                    }
-                }
-                .padding(16)
+            Text(appState.tr(.duplicateKeepFirstCopyNotice))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+
+            if result.wasTruncated {
+                Text(appState.tr(.duplicateScanTruncatedNotice))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
             }
         }
     }
@@ -149,7 +165,7 @@ public struct DuplicateCleanerSheetView: View {
             var failureCount = 0
             for fileURL in urls {
                 do {
-                    _ = try FileSystemService.moveToTrash(url: fileURL)
+                    _ = try await FileSystemService.moveToTrash(url: fileURL)
                 } catch {
                     ErrorReporter.report(error, context: "Moving duplicate file to Trash")
                     failureCount += 1
@@ -162,6 +178,7 @@ public struct DuplicateCleanerSheetView: View {
                     let reason = String(format: appState.tr(.moveToTrashPartialFailure), failureCount, urls.count)
                     appState.showError(WilesError.operationFailed(reason: reason))
                 }
+                dismiss()
             }
         }
     }

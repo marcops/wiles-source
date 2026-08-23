@@ -2,10 +2,8 @@ import Foundation
 
 public struct DirectoryLoadResult: Sendable {
     public let items: [FileItem]
-    public let isPermissionDenied: Bool
 
-    public init(items: [FileItem], isPermissionDenied: Bool = false) {
+    public init(items: [FileItem]) {
         self.items = items
-        self.isPermissionDenied = isPermissionDenied
     }
 }

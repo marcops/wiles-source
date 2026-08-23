@@ -3,8 +3,12 @@ import Foundation
 import GitBeacon
 
 public struct FileTaggingService: Sendable {
-    public static func toggleTag(_ tag: String, for targetURLs: [URL], itemsSnapshot: [FileItem]) -> String? {
-        var lastError: String?
+    /// Synchronous, per-file xattr writes — callers (`SharedFileItemContextMenu`) already run this
+    /// inside `Task.detached`, so it must never be called directly on the main actor.
+    /// Returns the number of URLs that failed, so the caller can report "N of M items" instead of
+    /// just the last error's text.
+    public static func toggleTag(_ tag: String, for targetURLs: [URL], itemsSnapshot: [FileItem]) -> Int {
+        var failureCount = 0
         for url in targetURLs {
             let fallbackItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path), fetchTags: true)
             let currentItem = itemsSnapshot.first(where: { $0.url == url }) ?? fallbackItem
@@ -18,22 +22,23 @@ public struct FileTaggingService: Sendable {
                 try FileSystemService.setTags(for: url, tags: newTags)
             } catch {
                 ErrorReporter.report(error, context: "Toggling tag")
-                lastError = error.localizedDescription
+                failureCount += 1
             }
         }
-        return lastError
+        return failureCount
     }
 
-    public static func clearAllTags(for targetURLs: [URL]) -> String? {
-        var lastError: String?
+    /// Same off-main-thread requirement as `toggleTag` above.
+    public static func clearAllTags(for targetURLs: [URL]) -> Int {
+        var failureCount = 0
         for url in targetURLs {
             do {
                 try FileSystemService.setTags(for: url, tags: [])
             } catch {
                 ErrorReporter.report(error, context: "Clearing all tags")
-                lastError = error.localizedDescription
+                failureCount += 1
             }
         }
-        return lastError
+        return failureCount
     }
 }

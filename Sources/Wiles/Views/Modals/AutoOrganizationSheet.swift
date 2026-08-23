@@ -5,7 +5,10 @@ struct AutoOrganizationSheet: View {
     private static let ruleLabelWidth: CGFloat = 100
     private static let ruleFolderButtonWidth: CGFloat = 220
     private static let ruleConditionPickerWidth: CGFloat = 140
-    private static let ruleConditionValueFieldWidth: CGFloat = 60
+    private static let ruleConditionValueFieldWidthNarrow: CGFloat = 60
+    private static let ruleConditionValueFieldWidthWide: CGFloat = 140
+    private static let sheetWidth: CGFloat = 600.0
+    private static let sheetHeight: CGFloat = 500.0
 
     @Environment(\.dismiss)
     private var dismiss
@@ -19,14 +22,15 @@ struct AutoOrganizationSheet: View {
     @State private var conditionType: RuleConditionType = .extensionEquals
     @State private var conditionValue: String = "pdf"
     @State private var folderPickerTarget: FolderPickerTarget?
+    @State private var pendingDeleteRuleID: UUID?
 
     var body: some View {
         ModalScaffoldView(
             icon: .symbol("folder.badge.gearshape"),
             title: appState.tr(.autoOrganization),
             subtitle: appState.tr(.autoOrganizationSubtitle),
-            width: LayoutTokens.autoOrganizationSheetWidth,
-            height: LayoutTokens.autoOrganizationSheetHeight,
+            width: Self.sheetWidth,
+            height: Self.sheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
             content: { contentArea })
             .onAppear {
@@ -39,6 +43,23 @@ struct AutoOrganizationSheet: View {
                     case .destination: destinationURL = url
                     }
                 }
+            }
+            .confirmationDialog(
+                appState.tr(.deleteAutoOrgRuleConfirmMessage),
+                isPresented: Binding(get: { pendingDeleteRuleID != nil }, set: {
+                    if !$0 {
+                        pendingDeleteRuleID = nil
+                    }
+                }),
+                titleVisibility: .visible) {
+                    Button(appState.tr(.deleteRule), role: .destructive) {
+                        if let pendingDeleteRuleID {
+                            AutoOrganizationService.shared.deleteRule(id: pendingDeleteRuleID)
+                            refreshRules()
+                        }
+                        pendingDeleteRuleID = nil
+                    }
+                    Button(appState.tr(.cancel), role: .cancel) { pendingDeleteRuleID = nil }
             }
     }
 
@@ -96,6 +117,7 @@ struct AutoOrganizationSheet: View {
                 refreshRules()
             }))
             .labelsHidden()
+            .accessibilityLabel(appState.tr(.ruleEnabledToggle))
     }
 
     private func ruleSummary(_ rule: AutoOrganizationRule) -> some View {
@@ -112,21 +134,40 @@ struct AutoOrganizationSheet: View {
                 Text(rule.destinationURL.lastPathComponent)
                     .fontWeight(.semibold)
             }
-            Text(String(format: appState.tr(.autoOrgRuleCondition), displayName(for: rule.conditionType), rule.conditionValue))
+            Text(String(format: appState.tr(.autoOrgRuleCondition), appState.tr(rule.conditionType.l10nKey), rule.conditionValue))
                 .font(.caption)
                 .foregroundColor(.secondary)
+            if let statusText = ruleStatusText(rule) {
+                Text(statusText)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
         }
+    }
+
+    private static let lastTriggeredFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    /// nil when the rule has never fired, so a freshly-added rule doesn't imply activity it hasn't had yet.
+    private func ruleStatusText(_ rule: AutoOrganizationRule) -> String? {
+        guard let lastTriggeredAt = rule.lastTriggeredAt else { return nil }
+        let date = Self.lastTriggeredFormatter.string(from: lastTriggeredAt)
+        return String(format: appState.tr(.autoOrgRuleStatus), rule.totalMovedCount, date)
     }
 
     private func ruleDeleteButton(_ rule: AutoOrganizationRule) -> some View {
         Button {
-            AutoOrganizationService.shared.deleteRule(id: rule.id)
-            refreshRules()
+            pendingDeleteRuleID = rule.id
         } label: {
             Image(systemName: "trash")
                 .foregroundColor(.red)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(appState.tr(.deleteRule))
     }
 
     private var newRuleSection: some View {
@@ -135,6 +176,9 @@ struct AutoOrganizationSheet: View {
                 .font(.headline)
             newRuleConditionRow
             newRuleDestinationRow
+            Text(appState.tr(.autoOrgRuleConflictNotice))
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor))
@@ -157,17 +201,20 @@ struct AutoOrganizationSheet: View {
                 }
             }
             .frame(width: Self.ruleFolderButtonWidth)
+            .accessibilityLabel(appState.tr(.ifFileIn))
 
             Picker("", selection: $conditionType) {
                 ForEach(RuleConditionType.allCases) { type in
-                    Text(displayName(for: type)).tag(type)
+                    Text(appState.tr(type.l10nKey)).tag(type)
                 }
             }
             .frame(width: Self.ruleConditionPickerWidth)
+            .accessibilityLabel(appState.tr(.ruleConditionTypePicker))
 
             TextField(appState.tr(.ruleValuePlaceholder), text: $conditionValue)
                 .textFieldStyle(.roundedBorder)
-                .frame(width: Self.ruleConditionValueFieldWidth)
+                .frame(width: ruleConditionValueFieldWidth)
+                .onSubmit(addRule)
         }
     }
 
@@ -186,24 +233,35 @@ struct AutoOrganizationSheet: View {
                 }
             }
             .frame(width: Self.ruleFolderButtonWidth)
+            .accessibilityLabel(appState.tr(.moveTo))
 
             Spacer()
 
             Button(appState.tr(.addRule)) {
                 addRule()
             }
-            .buttonStyle(.borderedProminent)
             .disabled(!canAddRule)
         }
     }
 
+    /// `.extensionEquals` values are short ("pdf"); name-matching conditions need more room.
+    private var ruleConditionValueFieldWidth: CGFloat {
+        conditionType == .extensionEquals ? Self.ruleConditionValueFieldWidthNarrow : Self.ruleConditionValueFieldWidthWide
+    }
+
     private var canAddRule: Bool {
-        sourceURL != nil && destinationURL != nil && !conditionValue.isEmpty
+        guard let sourceURL, let destinationURL else { return false }
+        guard sourceURL.standardizedFileURL != destinationURL.standardizedFileURL else { return false }
+        return !conditionValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func addRule() {
         guard canAddRule, let src = sourceURL, let dest = destinationURL else { return }
-        let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: conditionValue)
+        var trimmedValue = conditionValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if conditionType == .extensionEquals, trimmedValue.hasPrefix(".") {
+            trimmedValue.removeFirst()
+        }
+        let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: trimmedValue)
         AutoOrganizationService.shared.addRule(rule)
         refreshRules()
         conditionValue = ""
@@ -211,15 +269,5 @@ struct AutoOrganizationSheet: View {
 
     private func refreshRules() {
         rules = AutoOrganizationService.shared.rules
-    }
-
-    /// `RuleConditionType.rawValue` is the persisted/matched identifier (`Codable`), always
-    /// English — never display it directly. This maps each case to its localized display string.
-    private func displayName(for type: RuleConditionType) -> String {
-        switch type {
-        case .extensionEquals: appState.tr(.ruleConditionExtensionEquals)
-        case .nameContains: appState.tr(.ruleConditionNameContains)
-        case .namePrefix: appState.tr(.ruleConditionNamePrefix)
-        }
     }
 }

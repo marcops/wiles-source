@@ -73,7 +73,7 @@ public final class PermissionTests {
         TestReporter.report(
             "Permission",
             "POS: requestInitialPermissions sets the flag and probes folders when not yet shown",
-            result: defaults.bool(forKey: key) == true)
+            result: defaults.bool(forKey: key))
     }
 
     private static func testFlagPersistenceRoundTrip() {
@@ -92,10 +92,10 @@ public final class PermissionTests {
         TestReporter.report(
             "Permission",
             "NEG: flag key absent after removeObject reads as false via bool(forKey:)",
-            result: defaults.bool(forKey: key) == false)
+            result: !defaults.bool(forKey: key))
 
         PermissionService.markFullDiskAccessPromptAsShown()
-        TestReporter.report("Permission", "POS: markFullDiskAccessPromptAsShown sets the UserDefaults flag to true", result: defaults.bool(forKey: key) == true)
+        TestReporter.report("Permission", "POS: markFullDiskAccessPromptAsShown sets the UserDefaults flag to true", result: defaults.bool(forKey: key))
 
         PermissionService.resetInitialPermissionsFlag()
         TestReporter.report(
@@ -130,7 +130,7 @@ public final class PermissionTests {
         TestReporter.report(
             "Permission",
             "POS: requestInitialPermissions leaves the flag unchanged (still true) when already shown",
-            result: before == true && after == true)
+            result: before && after)
     }
 
     /// Checks the exact URL string, not .scheme/.query - Foundation's component parsing for this
@@ -139,7 +139,7 @@ public final class PermissionTests {
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
         let expected = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
         TestReporter.report("Permission", "POS: settings deep link URL string is exact", result: url?.absoluteString == expected)
-        TestReporter.report("Permission", "NEG: settings deep link scheme is not https", result: url?.absoluteString.hasPrefix("https") != true)
+        TestReporter.report("Permission", "NEG: settings deep link scheme is not https", result: !(url?.absoluteString.hasPrefix("https") ?? false))
     }
 
     private static func testResetIsIdempotent() {

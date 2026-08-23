@@ -1,12 +1,14 @@
 import SwiftUI
 
 private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
+    private static let thumbnailPrefetchItemThreshold: Int = 500
+
     let appState: AppState
     @Binding var visibleLimit: Int
     let thumbnailIconSize: CGFloat
 
     private func prefetchIfNeeded(_ items: [FileItem]) {
-        if items.count > LayoutTokens.thumbnailPrefetchItemThreshold {
+        if items.count > Self.thumbnailPrefetchItemThreshold {
             ThumbnailService.shared.prefetchThumbnails(for: items, size: thumbnailIconSize)
         }
     }

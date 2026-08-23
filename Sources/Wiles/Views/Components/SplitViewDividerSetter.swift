@@ -15,7 +15,14 @@ struct SplitViewDividerSetter: NSViewRepresentable {
     }
 
     class ApplierView: NSView {
-        var position: CGFloat = 0
+        var position: CGFloat = 0 {
+            didSet {
+                guard position != oldValue else { return }
+                hasApplied = false
+                applyIfNeeded()
+            }
+        }
+
         private var hasApplied = false
 
         override func hitTest(_: NSPoint) -> NSView? {

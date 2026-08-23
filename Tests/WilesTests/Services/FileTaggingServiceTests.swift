@@ -30,9 +30,9 @@ public struct FileTaggingServiceTests {
         let file = dir.appendingPathComponent("no_tags.txt")
         try? "x".write(to: file, atomically: true, encoding: .utf8)
 
-        let error = FileTaggingService.toggleTag("Red", for: [file], itemsSnapshot: [])
+        let failureCount = FileTaggingService.toggleTag("Red", for: [file], itemsSnapshot: [])
         let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
-        report("POS: toggleTag adds a tag not currently present, with no error", result: error == nil && readBack.tags.contains("Red"))
+        report("POS: toggleTag adds a tag not currently present, with no error", result: failureCount == 0 && readBack.tags.contains("Red"))
     }
 
     private static func testToggleTagRemovesWhenPresent() {
@@ -42,9 +42,9 @@ public struct FileTaggingServiceTests {
         try? "x".write(to: file, atomically: true, encoding: .utf8)
         try? FileSystemService.setTags(for: file, tags: ["Red"])
 
-        let error = FileTaggingService.toggleTag("Red", for: [file], itemsSnapshot: [])
+        let failureCount = FileTaggingService.toggleTag("Red", for: [file], itemsSnapshot: [])
         let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
-        report("NEG: toggleTag removes a tag already present, with no error", result: error == nil && !readBack.tags.contains("Red"))
+        report("NEG: toggleTag removes a tag already present, with no error", result: failureCount == 0 && !readBack.tags.contains("Red"))
     }
 
     /// Proves `currentItem` comes from `itemsSnapshot` (when the URL is present there) rather than
@@ -69,17 +69,17 @@ public struct FileTaggingServiceTests {
         // instead re-read fresh from disk, it would have started from ["Green"], found "Blue" absent,
         // and added it — leaving both "Green" and "Blue" present. Asserting the tag set ends up empty
         // is therefore what actually distinguishes "used the snapshot" from "read fresh from disk".
-        let error = FileTaggingService.toggleTag("Blue", for: [file], itemsSnapshot: [snapshotItem])
+        let failureCount = FileTaggingService.toggleTag("Blue", for: [file], itemsSnapshot: [snapshotItem])
         let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report(
             "POS: toggleTag computes the new tag set from itemsSnapshot's tags, not a fresh disk read",
-            result: error == nil && readBack.tags.isEmpty)
+            result: failureCount == 0 && readBack.tags.isEmpty)
     }
 
     private static func testToggleTagReturnsErrorForMissingFile() {
         let missing = tempDir().appendingPathComponent("does_not_exist.txt")
-        let error = FileTaggingService.toggleTag("Red", for: [missing], itemsSnapshot: [])
-        report("NEG: toggleTag returns a non-nil error for a URL with no backing file", result: error != nil)
+        let failureCount = FileTaggingService.toggleTag("Red", for: [missing], itemsSnapshot: [])
+        report("NEG: toggleTag returns a failure count for a URL with no backing file", result: failureCount > 0)
     }
 
     private static func testToggleTagAcrossMultipleURLsReturnsLastError() {
@@ -89,11 +89,11 @@ public struct FileTaggingServiceTests {
         try? "x".write(to: realFile, atomically: true, encoding: .utf8)
         let missingFile = dir.appendingPathComponent("missing.txt")
 
-        let error = FileTaggingService.toggleTag("Red", for: [realFile, missingFile], itemsSnapshot: [])
+        let failureCount = FileTaggingService.toggleTag("Red", for: [realFile, missingFile], itemsSnapshot: [])
         let realFileTagged = FileItem(url: realFile, icon: NSWorkspace.shared.icon(forFile: realFile.path), fetchTags: true).tags.contains("Red")
         report(
-            "POS: toggleTag keeps processing every URL and returns the last error even after an earlier success",
-            result: error != nil && realFileTagged)
+            "POS: toggleTag keeps processing every URL and reports the failure count even after an earlier success",
+            result: failureCount == 1 && realFileTagged)
     }
 
     private static func testClearAllTagsRemovesExistingTags() {
@@ -103,14 +103,14 @@ public struct FileTaggingServiceTests {
         try? "x".write(to: file, atomically: true, encoding: .utf8)
         try? FileSystemService.setTags(for: file, tags: ["Red", "Important"])
 
-        let error = FileTaggingService.clearAllTags(for: [file])
+        let failureCount = FileTaggingService.clearAllTags(for: [file])
         let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
-        report("POS: clearAllTags removes every tag with no error", result: error == nil && readBack.tags.isEmpty)
+        report("POS: clearAllTags removes every tag with no error", result: failureCount == 0 && readBack.tags.isEmpty)
     }
 
     private static func testClearAllTagsReturnsErrorForMissingFile() {
         let missing = tempDir().appendingPathComponent("does_not_exist.txt")
-        let error = FileTaggingService.clearAllTags(for: [missing])
-        report("NEG: clearAllTags returns a non-nil error for a URL with no backing file", result: error != nil)
+        let failureCount = FileTaggingService.clearAllTags(for: [missing])
+        report("NEG: clearAllTags returns a failure count for a URL with no backing file", result: failureCount > 0)
     }
 }

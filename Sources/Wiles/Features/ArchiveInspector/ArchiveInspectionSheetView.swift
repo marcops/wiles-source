@@ -3,35 +3,31 @@ import GitBeacon
 import SwiftUI
 
 struct ArchiveInspectionSheetView: View {
+    private static let sheetWidth: CGFloat = 450.0
+    private static let sheetHeight: CGFloat = 400.0
+
     let archiveURL: URL
     var appState: AppState
     @Environment(\.dismiss)
     private var dismiss
-    @State private var entries: [ArchiveEntryItem] = []
-    @State private var isLoading = true
 
     var body: some View {
         ModalScaffoldView(
             icon: .symbol("doc.zipper"),
             title: archiveURL.lastPathComponent,
-            width: LayoutTokens.archiveInspectionSheetWidth,
-            height: LayoutTokens.archiveInspectionSheetHeight,
+            width: Self.sheetWidth,
+            height: Self.sheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.close)) { dismiss() },
             content: { contentArea })
-            .task {
-                entries = await ArchiveInspectionService.listEntries(in: archiveURL)
-                isLoading = false
-            }
     }
 
-    @ViewBuilder private var contentArea: some View {
-        if isLoading {
-            loadingView
-        } else if entries.isEmpty {
-            emptyStateView
-        } else {
-            entriesList
-        }
+    private var contentArea: some View {
+        AsyncResultView(
+            operation: { await ArchiveInspectionService.listEntries(in: archiveURL) },
+            isEmpty: { $0.isEmpty },
+            loading: { loadingView },
+            empty: { emptyStateView },
+            content: { entries in entriesList(entries) })
     }
 
     private var loadingView: some View {
@@ -58,7 +54,7 @@ struct ArchiveInspectionSheetView: View {
         .padding()
     }
 
-    private var entriesList: some View {
+    private func entriesList(_ entries: [ArchiveEntryItem]) -> some View {
         List(entries) { entry in
             entryRow(entry)
         }

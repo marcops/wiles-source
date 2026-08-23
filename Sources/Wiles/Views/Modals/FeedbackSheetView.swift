@@ -3,6 +3,9 @@ import GitBeacon
 import SwiftUI
 
 struct FeedbackSheetView: View {
+    private static let sheetWidth: CGFloat = 460.0
+    private static let descriptionFieldHeight: CGFloat = 160.0
+
     @Environment(\.dismiss)
     private var dismiss
     var appState: AppState
@@ -12,7 +15,6 @@ struct FeedbackSheetView: View {
     @State private var isSubmitting: Bool = false
     @State private var didSucceed: Bool = false
     @State private var submitError: String?
-    @State private var showConfirmation: Bool = false
 
     private var canSubmit: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -24,14 +26,10 @@ struct FeedbackSheetView: View {
             icon: .symbol("bubble.left.and.text.bubble.right.fill"),
             title: appState.tr(.feedbackMenuItem),
             subtitle: appState.tr(.feedbackSubtitle),
-            width: LayoutTokens.feedbackSheetWidth,
+            width: Self.sheetWidth,
             primaryButton: primaryButton,
             secondaryButton: didSucceed ? nil : secondaryButton,
             content: { contentArea.padding(20) })
-            .confirmationDialog(appState.tr(.feedbackConfirmMessage), isPresented: $showConfirmation, titleVisibility: .visible) {
-                Button(appState.tr(.feedbackSubmit)) { Task { await submit() } }
-                Button(appState.tr(.cancel), role: .cancel) { }
-            }
     }
 
     private var primaryButton: ModalFooterButton {
@@ -41,7 +39,7 @@ struct FeedbackSheetView: View {
             ModalFooterButton(
                 title: isSubmitting ? appState.tr(.feedbackSubmitting) : appState.tr(.feedbackSubmit),
                 isEnabled: canSubmit && !isSubmitting) {
-                    showConfirmation = true
+                    Task { await submit() }
                 }
         }
     }
@@ -68,6 +66,15 @@ struct FeedbackSheetView: View {
                 .accessibilityLabel(appState.tr(.feedbackTitleFieldPlaceholder))
 
             descriptionField
+
+            if isSubmitting {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(appState.tr(.feedbackSubmitting))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            }
 
             if let submitError {
                 errorBanner(submitError)
@@ -132,7 +139,7 @@ struct FeedbackSheetView: View {
                         .allowsHitTesting(false)
                 }
             }
-            .frame(height: LayoutTokens.feedbackDescriptionFieldHeight)
+            .frame(height: Self.descriptionFieldHeight)
             .padding(4)
             .background(Color(NSColor.textBackgroundColor))
             .cornerRadius(6)
@@ -157,8 +164,10 @@ struct FeedbackSheetView: View {
         guard !isSubmitting, !didSucceed else { return }
         isSubmitting = true
         submitError = nil
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = requestDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
-            _ = try await UserReportReporter.submit(UserReport(kind: kind, title: title, description: requestDescription))
+            _ = try await UserReportReporter.submit(UserReport(kind: kind, title: trimmedTitle, description: trimmedDescription))
             didSucceed = true
         } catch {
             ErrorReporter.report(error, context: "Submitting user feedback")

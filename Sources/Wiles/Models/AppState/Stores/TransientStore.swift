@@ -7,20 +7,7 @@ import Observation
 @Observable
 @MainActor
 public final class TransientStore {
-    /// In-flight `~/.Trash` enumeration spawned by `updateTrashSize()`. Cancelled and replaced on every
-    /// call so it never piles up multiple concurrent full-Trash walks.
-    var trashSizeTask: Task<Void, Never>?
-    /// Timestamp of the last trash-size enumeration triggered opportunistically from
-    /// `refreshCurrentDirectory()`, used to coalesce it to a coarse interval instead of firing on
-    /// every navigation/search keystroke/FSEvents refresh.
-    var lastOpportunisticTrashSizeCheck: Date = .distantPast
-    static let trashSizeCheckInterval: TimeInterval = 30
-
     public var clipboard: ClipboardState?
-
-    public var trashSizeString: String = ""
-    public var trashSizeBytes: Int64 = 0
-    public var isTrashUpdating: Bool = false
 
     public init() { }
 }

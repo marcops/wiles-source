@@ -16,6 +16,7 @@ public struct UndoRedoTests {
 
         await testRenameAndMoveRoundTrip(service: service, tempDir: tempDir, fileA: fileA)
         await testCreateTrashAndHistoryCap(service: service, tempDir: tempDir, fileA: fileA)
+        await testCreateFileRedoThrowsExplicitError(service: service, tempDir: tempDir)
         await testHistoryCap(service: service, tempDir: tempDir)
         await testTrashRedoAndGhostFailures(service: service, tempDir: tempDir)
         await testFailedUndoDoesNotCorruptStack(service: service, tempDir: tempDir)
@@ -49,7 +50,7 @@ public struct UndoRedoTests {
     private static func testRenameAndMoveRoundTrip(service: UndoRedoService, tempDir: URL, fileA: URL) async {
         let fileB = tempDir.appendingPathComponent("fileB.txt")
 
-        let renamed = try? FileSystemService.renameItem(at: fileA, newName: "fileB.txt")
+        let renamed = try? await FileSystemService.renameItem(at: fileA, newName: "fileB.txt")
         if let newURL = renamed {
             service.recordAction(.rename(oldURL: fileA, newURL: newURL))
             TestReporter.report("UndoRedo", "POS: canUndo() is true after recording action", result: service.canUndo())
@@ -67,7 +68,7 @@ public struct UndoRedoTests {
         let movable = sourceDir.appendingPathComponent("movable.txt")
         try? "move me".write(to: movable, atomically: true, encoding: .utf8)
 
-        if let movedURL = try? FileSystemService.moveItem(at: movable, toFolder: destDir) {
+        if let movedURL = try? await FileSystemService.moveItem(at: movable, toFolder: destDir) {
             service.recordAction(.move(sourceURL: movable, destinationURL: movedURL))
             let undoMove = try? await service.undo()
             let undoMovePos = undoMove != nil && FileManager.default.fileExists(atPath: movable.path) && !FileManager.default.fileExists(atPath: movedURL.path)
@@ -83,8 +84,8 @@ public struct UndoRedoTests {
     private static func testCreateTrashAndHistoryCap(service: UndoRedoService, tempDir: URL, fileA _: URL) async {
         // POS: create undo/redo round trip (undoing a "create" trashes it, redoing recreates the folder)
         let createdFolderName = "created_by_test"
-        if let createdURL = try? FileSystemService.createDirectory(at: tempDir, name: createdFolderName) {
-            service.recordAction(.create(url: createdURL))
+        if let createdURL = try? await FileSystemService.createDirectory(at: tempDir, name: createdFolderName) {
+            service.recordAction(.createFolder(url: createdURL))
             let undoCreate = try? await service.undo()
             let undoCreatePos = undoCreate != nil && !FileManager.default.fileExists(atPath: createdURL.path)
             TestReporter.report("UndoRedo", "POS: undo() on a create action trashes the created item", result: undoCreatePos)
@@ -97,7 +98,7 @@ public struct UndoRedoTests {
         // POS: trash undo/redo round trip
         let trashable = tempDir.appendingPathComponent("trashable.txt")
         try? "trash me".write(to: trashable, atomically: true, encoding: .utf8)
-        if let trashedURL = try? FileSystemService.moveToTrash(url: trashable) {
+        if let trashedURL = try? await FileSystemService.moveToTrash(url: trashable) {
             service.recordAction(.trash(originalURL: trashable, trashedURL: trashedURL))
             let undoTrash = try? await service.undo()
             let undoTrashPos = undoTrash != nil && FileManager.default.fileExists(atPath: trashable.path)
@@ -111,10 +112,47 @@ public struct UndoRedoTests {
         // record here would make that loop spin forever.
         let redoClearDummy = tempDir.appendingPathComponent("redo_clear_dummy.txt")
         try? "x".write(to: redoClearDummy, atomically: true, encoding: .utf8)
-        if let renamedDummy = try? FileSystemService.renameItem(at: redoClearDummy, newName: "redo_clear_dummy_renamed.txt") {
+        if let renamedDummy = try? await FileSystemService.renameItem(at: redoClearDummy, newName: "redo_clear_dummy_renamed.txt") {
             service.recordAction(.rename(oldURL: redoClearDummy, newURL: renamedDummy))
         }
         TestReporter.report("UndoRedo", "NEG: recording a new action clears the redo stack", result: !service.canRedo())
+    }
+
+    /// Regression coverage for the `.create(url:)` → `.createFolder`/`.createFile` split:
+    /// `.createFile`'s content was never stored, so redoing an undone file creation must throw
+    /// `WilesError.fileCreationNotRedoable` instead of silently recreating a FOLDER at the file's
+    /// former path (the bug this split fixes — `.createFolder`'s redo still recreates fine, covered
+    /// by `testCreateTrashAndHistoryCap` above).
+    private static func testCreateFileRedoThrowsExplicitError(service: UndoRedoService, tempDir: URL) async {
+        let createdFile = tempDir.appendingPathComponent("created_by_test.txt")
+        try? "created file content".write(to: createdFile, atomically: true, encoding: .utf8)
+        service.recordAction(.createFile(url: createdFile))
+
+        let undoCreateFile = try? await service.undo()
+        let undoCreateFilePos = undoCreateFile != nil && !FileManager.default.fileExists(atPath: createdFile.path)
+        TestReporter.report("UndoRedo", "POS: undo() on a createFile action trashes the created file", result: undoCreateFilePos)
+
+        var redoThrewFileCreationNotRedoable = false
+        do {
+            _ = try await service.redo()
+        } catch let error as WilesError {
+            redoThrewFileCreationNotRedoable = error == .fileCreationNotRedoable
+        } catch {
+            redoThrewFileCreationNotRedoable = false
+        }
+        TestReporter.report(
+            "UndoRedo",
+            "NEG: redo() on an undone createFile action throws WilesError.fileCreationNotRedoable instead of creating a folder",
+            result: redoThrewFileCreationNotRedoable)
+        TestReporter.report(
+            "UndoRedo",
+            "NEG: redo() on an undone createFile action does not create a folder at the file's former path",
+            result: !FileManager.default.fileExists(atPath: createdFile.path))
+
+        // A failed redo() re-pushes the record onto the redo stack (see redo()'s catch), not the
+        // undo stack — no explicit drain needed here: the next recordAction() call (in
+        // testHistoryCap below) clears the whole redo stack as a side effect, same as any other
+        // newly recorded action would.
     }
 
     private static func testHistoryCap(service: UndoRedoService, tempDir: URL) async {
@@ -192,7 +230,7 @@ public struct UndoRedoTests {
 
         // NEG: undo() throws for a create action whose folder was already externally removed
         let ghostCreatedURL = tempDir.appendingPathComponent("ghost_created_dir")
-        service.recordAction(.create(url: ghostCreatedURL)) // never actually created on disk
+        service.recordAction(.createFolder(url: ghostCreatedURL)) // never actually created on disk
         var ghostCreateUndoThrew = false
         do {
             _ = try await service.undo()

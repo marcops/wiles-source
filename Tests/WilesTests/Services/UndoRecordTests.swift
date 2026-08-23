@@ -11,10 +11,10 @@ public struct UndoRecordTests {
     private static func testInitStoresActionTypeAndGeneratesFreshIdAndTimestamp() {
         let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("created_\(UUID().uuidString).txt")
         let before = Date()
-        let record = UndoRecord(actionType: .create(url: url))
+        let record = UndoRecord(actionType: .createFolder(url: url))
         let after = Date()
 
-        if case let .create(storedURL) = record.actionType {
+        if case let .createFolder(storedURL) = record.actionType {
             report("Services/UndoRecord", "POS: init stores the actionType passed to it", result: storedURL == url)
         } else {
             report("Services/UndoRecord", "POS: init stores the actionType passed to it", result: false)
@@ -28,8 +28,8 @@ public struct UndoRecordTests {
 
     private static func testEachRecordGetsAUniqueId() {
         let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("dup_\(UUID().uuidString).txt")
-        let recordA = UndoRecord(actionType: .create(url: url))
-        let recordB = UndoRecord(actionType: .create(url: url))
+        let recordA = UndoRecord(actionType: .createFolder(url: url))
+        let recordB = UndoRecord(actionType: .createFolder(url: url))
         report("Services/UndoRecord", "NEG: two UndoRecords with the same actionType still get distinct ids", result: recordA.id != recordB.id)
     }
 

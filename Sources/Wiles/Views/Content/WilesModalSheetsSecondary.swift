@@ -27,13 +27,25 @@ struct WilesModalSheetsSecondary: ViewModifier {
             .sheet(isPresented: $windowUIState.showSaveSmartFolderSheet) {
                 SaveSmartFolderSheetView(appState: appState)
             }
-            .sheet(isPresented: $windowUIState.showPasswordCompressSheet) {
-                PasswordCompressSheetView(appState: appState)
+            .sheet(isPresented: Binding(
+                get: { windowUIState.passwordCompressURLs != nil },
+                set: {
+                    if !$0 {
+                        windowUIState.passwordCompressURLs = nil
+                    }
+                })) {
+                    PasswordCompressSheetView(appState: appState)
             }
-            .sheet(isPresented: $windowUIState.showArchiveInspectionSheet) {
-                if let url = windowUIState.inspectArchiveURL {
-                    ArchiveInspectionSheetView(archiveURL: url, appState: appState)
-                }
+            .sheet(isPresented: Binding(
+                get: { windowUIState.inspectArchiveURL != nil },
+                set: {
+                    if !$0 {
+                        windowUIState.inspectArchiveURL = nil
+                    }
+                })) {
+                    if let url = windowUIState.inspectArchiveURL {
+                        ArchiveInspectionSheetView(archiveURL: url, appState: appState)
+                    }
             }
     }
 }

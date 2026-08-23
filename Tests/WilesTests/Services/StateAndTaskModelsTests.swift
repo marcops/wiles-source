@@ -75,18 +75,13 @@ public struct StateAndTaskModelsTests {
     private static func testFileOperationTaskState() {
         var task = FileOperationTask(title: "Copying files", totalBytes: 1000)
         report("FileOperationTask", "POS: default progress starts at 0", result: task.progress == 0.0)
-        report("FileOperationTask", "POS: default isCancelled starts false", result: !task.isCancelled)
 
         task.bytesTransferred = 250
-        task.progress = Double(task.bytesTransferred) / Double(task.totalBytes)
-        report("FileOperationTask", "POS: progress computed from bytesTransferred/totalBytes matches expectation", result: abs(task.progress - 0.25) < 0.0001)
-
-        task.isCancelled = true
-        report("FileOperationTask", "POS: isCancelled can be mutated to true", result: task.isCancelled)
+        report("FileOperationTask", "POS: progress derives from bytesTransferred/totalBytes", result: abs(task.progress - 0.25) < 0.0001)
 
         let idBefore = task.id
-        task.progress = 0.9
-        report("FileOperationTask", "NEG: mutating progress does not change identity (id)", result: task.id == idBefore)
+        task.bytesTransferred = 900
+        report("FileOperationTask", "NEG: mutating bytesTransferred does not change identity (id)", result: task.id == idBefore)
 
         let generated1 = FileOperationTask(title: "A")
         let generated2 = FileOperationTask(title: "A")
@@ -97,10 +92,7 @@ public struct StateAndTaskModelsTests {
 
     private static func testDirectoryCacheEntryAndLoadResult() {
         let emptyResult = DirectoryLoadResult(items: [])
-        report("DirectoryLoadResult", "POS: default isPermissionDenied is false", result: !emptyResult.isPermissionDenied)
-
-        let deniedResult = DirectoryLoadResult(items: [], isPermissionDenied: true)
-        report("DirectoryLoadResult", "POS: isPermissionDenied honors the explicit value passed in", result: deniedResult.isPermissionDenied)
+        report("DirectoryLoadResult", "POS: holds the items passed in", result: emptyResult.items.isEmpty)
 
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

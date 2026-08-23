@@ -12,10 +12,20 @@ struct AdvancedSettingsView: View {
         return Form {
             Section(appState.tr(.settingsViewSection)) {
                 Toggle(appState.tr(showHiddenFilesKey), isOn: $appState.preferences.showHiddenFiles)
+                    .help(appState.tr(.showHiddenFilesHint))
+                    .accessibilityHint(Text(appState.tr(.showHiddenFilesHint)))
                 Toggle(appState.tr(.compactDensity), isOn: $appState.preferences.isCompactMode)
+                    .help(appState.tr(.compactDensityHint))
+                    .accessibilityHint(Text(appState.tr(.compactDensityHint)))
                 Toggle(appState.tr(.middleTruncateNames), isOn: $appState.preferences.middleTruncateNames)
+                    .help(appState.tr(.middleTruncateNamesHint))
+                    .accessibilityHint(Text(appState.tr(.middleTruncateNamesHint)))
                 Toggle(appState.tr(.alwaysShowFullPathBar), isOn: $appState.preferences.alwaysShowFullPathBar)
+                    .help(appState.tr(.alwaysShowFullPathBarHint))
+                    .accessibilityHint(Text(appState.tr(.alwaysShowFullPathBarHint)))
                 Toggle(appState.tr(.autoHideSidebar), isOn: $appState.preferences.isSidebarCollapsed)
+                    .help(appState.tr(.autoHideSidebarHint))
+                    .accessibilityHint(Text(appState.tr(.autoHideSidebarHint)))
             }
 
             defaultAppSection

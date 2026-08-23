@@ -8,20 +8,20 @@ public struct FileSystemTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         // Positive: Folder Creation
-        let createdDir = try? FileSystemService.createDirectory(at: tempDir, name: "TestFolder")
+        let createdDir = try? await FileSystemService.createDirectory(at: tempDir, name: "TestFolder")
         TestReporter.report("FileSystem", "POS: createDirectory", result: createdDir.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)
         // Positive: File Creation
         let testFile = tempDir.appendingPathComponent("sample.txt")
         try? "Sample Data".write(to: testFile, atomically: true, encoding: .utf8)
         TestReporter.report("FileSystem", "POS: File creation", result: FileManager.default.fileExists(atPath: testFile.path))
         // Positive: Rename
-        let renamedFile = try? FileSystemService.renameItem(at: testFile, newName: "renamed_sample.txt")
+        let renamedFile = try? await FileSystemService.renameItem(at: testFile, newName: "renamed_sample.txt")
         TestReporter.report("FileSystem", "POS: renameItem", result: renamedFile.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)
         // Negative: Rename Non-Existent File
         var negRenamePassed = false
         do {
             let fakeURL = tempDir.appendingPathComponent("fake_file.txt")
-            _ = try FileSystemService.renameItem(at: fakeURL, newName: "should_fail.txt")
+            _ = try await FileSystemService.renameItem(at: fakeURL, newName: "should_fail.txt")
         } catch {
             negRenamePassed = true
         }
@@ -31,7 +31,7 @@ public struct FileSystemTests {
         do {
             if let renamed = renamedFile {
                 let fakeFolder = tempDir.appendingPathComponent("NonExistentFolder")
-                _ = try FileSystemService.moveItem(at: renamed, toFolder: fakeFolder)
+                _ = try await FileSystemService.moveItem(at: renamed, toFolder: fakeFolder)
             }
         } catch {
             negMovePassed = true
@@ -39,7 +39,7 @@ public struct FileSystemTests {
         TestReporter.report("FileSystem", "NEG: moveItem to non-existent folder throws error", result: negMovePassed)
         try? FileManager.default.removeItem(at: tempDir)
         await runActionsCoverageExtras()
-        runMoveAndZipCoverageExtras()
+        await runMoveAndZipCoverageExtras()
         await runSearchAndSortCoverageExtras()
         await runAdditionalCoverageExtras()
     }

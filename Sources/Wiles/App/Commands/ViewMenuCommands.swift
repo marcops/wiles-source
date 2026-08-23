@@ -10,22 +10,37 @@ import SwiftUI
 struct ViewMenuCommands: LocalizedCommands {
     let sharedPreferences: PreferencesStore
 
+    @FocusedValue(\.windowUIState)
+    private var windowUIState
+
     var body: some Commands {
         CommandGroup(after: .sidebar) {
             sidebarViewMenuItems
         }
     }
 
+    /// Binds through the focused window's `WindowUIState` (falling back to a static `false` when no
+    /// window is focused) since terminal/preview/disk-usage visibility is per-window, not shared.
+    private func windowUIStateBinding(_ keyPath: ReferenceWritableKeyPath<WindowUIState, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { windowUIState?[keyPath: keyPath] ?? false },
+            set: { windowUIState?[keyPath: keyPath] = $0 })
+    }
+
     @ViewBuilder private var sidebarViewMenuItems: some View {
         @Bindable var sharedPreferences = sharedPreferences
         Divider()
-        Toggle(tr(sharedPreferences.showTerminalDrawer ? .hideTerminal : .showTerminal), isOn: $sharedPreferences.showTerminalDrawer)
+        Toggle(
+            tr(windowUIState?.showTerminalDrawer ?? false ? .hideTerminal : .showTerminal),
+            isOn: windowUIStateBinding(\.showTerminalDrawer))
             .keyboardShortcut("j", modifiers: .command)
-        Toggle(tr(sharedPreferences.showPreviewSidebar ? .hidePreview : .showPreviewSidebar), isOn: $sharedPreferences.showPreviewSidebar)
+        Toggle(
+            tr(windowUIState?.showPreviewSidebar ?? false ? .hidePreview : .showPreviewSidebar),
+            isOn: windowUIStateBinding(\.showPreviewSidebar))
             .keyboardShortcut("p", modifiers: [.command, .shift])
         Toggle(
-            tr(sharedPreferences.showDiskUsageSidebar ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
-            isOn: $sharedPreferences.showDiskUsageSidebar)
+            tr(windowUIState?.showDiskUsageSidebar ?? false ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
+            isOn: windowUIStateBinding(\.showDiskUsageSidebar))
             .keyboardShortcut("d", modifiers: [.command, .shift])
         Menu(tr(.sidebarMenuTitle)) {
             Toggle(tr(.showFavorites), isOn: $sharedPreferences.showFavorites)

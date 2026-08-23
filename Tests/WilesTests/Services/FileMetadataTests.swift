@@ -117,9 +117,8 @@ public struct FileMetadataTests {
         report("FileMetadata", "POS: pixel dimensions, when resolved, are formatted with × rather than malformed", result: dimensionsWellFormedOrAbsent)
         // Coverage note: the same Spotlight-indexing-latency limitation applies to the
         // kMDItemDurationSeconds branch in readSpotlightDimensionsAndDuration — a freshly written
-        // temp-dir file is never indexed in time for CI, so that branch's true side (real duration
-        // formatting) is left uncovered here as a real-network/Spotlight-dependent exception,
-        // consistent with this file's documented policy for SpotlightSearchService.
+        // temp-dir file is never indexed in time for CI, so that branch's true side is left
+        // uncovered here as a real-Spotlight-timing-dependent exception.
     }
 
     /// Coverage for `streamBatchProperties`'s loop body never running (empty input): the

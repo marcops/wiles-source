@@ -1,16 +1,24 @@
 import SwiftUI
 
 struct FolderPickerSheet: View {
+    /// GCD timer, not a sibling `Task`, mirroring `SidebarView`: a stuck detached scan can starve
+    /// the cooperative thread pool, and a `Task.sleep` timeout sharing that pool would starve too.
+    private static let rootTreeFallbackTimeout: TimeInterval = 6
+    private static let sheetWidth: CGFloat = 640
+    private static let sheetHeight: CGFloat = 560
+    private static let favoritesColumnWidth: CGFloat = 140
+
     @Environment(\.dismiss)
     private var dismiss
     var appState: AppState
     var initialURL: URL?
     var onSelect: (URL) -> Void
 
-    @State private var rootNode: FolderNode
+    @State private var rootNode: FolderNode?
     @State private var selectedURL: URL?
     @State private var expandedPaths: Set<URL> = []
     @State private var childrenCache: [URL: [FolderNode]] = [:]
+    @State private var loadingChildrenURLs: Set<URL> = []
     @State private var pathText: String = ""
     @State private var pathError: String?
 
@@ -18,7 +26,6 @@ struct FolderPickerSheet: View {
         self.appState = appState
         self.initialURL = initialURL
         self.onSelect = onSelect
-        _rootNode = State(initialValue: FolderNode.buildRootTree())
     }
 
     var body: some View {
@@ -26,8 +33,8 @@ struct FolderPickerSheet: View {
             icon: .symbol("folder"),
             title: appState.tr(.selectFolder),
             subtitle: appState.tr(.selectFolderSubtitle),
-            width: 640,
-            height: 560,
+            width: Self.sheetWidth,
+            height: Self.sheetHeight,
             primaryButton: ModalFooterButton(
                 title: appState.tr(.selectFolder),
                 isEnabled: selectedURL != nil) {
@@ -41,14 +48,35 @@ struct FolderPickerSheet: View {
             .onAppear {
                 selectedURL = initialURL ?? URL.userHome
                 pathText = selectedURL?.path ?? ""
-                if let selectedURL {
-                    expandAncestors(of: selectedURL)
-                }
             }
             .onChange(of: selectedURL) { _, newValue in
                 pathText = newValue?.path ?? ""
                 pathError = nil
             }
+            .task {
+                await buildRootNodeIfNeeded()
+            }
+    }
+
+    /// Builds the root tree off `@MainActor`, mirroring `SidebarView`'s `.task` — `FolderNode.buildRootTree()`
+    /// walks the whole home directory synchronously and would otherwise freeze the sheet on appear.
+    private func buildRootNodeIfNeeded() async {
+        guard rootNode == nil else { return }
+        let buildTask = Task.detached(priority: .userInitiated) { FolderNode.buildRootTree() }
+        let fallbackWorkItem = DispatchWorkItem {
+            guard rootNode == nil else { return }
+            buildTask.cancel()
+            let root = URL(fileURLWithPath: "/")
+            rootNode = FolderNode(id: root, name: appState.tr(.macintoshHDName), url: root, children: [], hasSubfolders: false)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.rootTreeFallbackTimeout, execute: fallbackWorkItem)
+        let node = await buildTask.value
+        guard rootNode == nil else { return }
+        fallbackWorkItem.cancel()
+        rootNode = node
+        if let selectedURL {
+            expandAncestors(of: selectedURL)
+        }
     }
 
     private var contentArea: some View {
@@ -94,16 +122,13 @@ struct FolderPickerSheet: View {
             }
             .padding(.trailing, 10)
         }
-        .frame(width: 140, alignment: .top)
+        .frame(width: Self.favoritesColumnWidth, alignment: .top)
     }
 
     private var treeColumn: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                FolderPickerNodeView(node: rootNode, depth: 0, selectedURL: $selectedURL, expandedPaths: $expandedPaths, childrenCache: $childrenCache)
-                    .padding(.leading, 10)
-                    .padding(.trailing, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                treeColumnContent
             }
             .onAppear {
                 scrollToSelection(using: proxy)
@@ -111,6 +136,29 @@ struct FolderPickerSheet: View {
             .onChange(of: selectedURL) { _, _ in
                 scrollToSelection(using: proxy)
             }
+            .onChange(of: expandedPaths) { _, _ in
+                scrollToSelection(using: proxy)
+            }
+        }
+    }
+
+    @ViewBuilder private var treeColumnContent: some View {
+        if let rootNode {
+            FolderPickerNodeView(
+                node: rootNode,
+                depth: 0,
+                appState: appState,
+                selectedURL: $selectedURL,
+                expandedPaths: $expandedPaths,
+                childrenCache: $childrenCache,
+                loadingURLs: $loadingChildrenURLs)
+                .padding(.leading, 10)
+                .padding(.trailing, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            ProgressView()
+                .controlSize(.small)
+                .padding(.top, 20)
         }
     }
 
@@ -125,25 +173,27 @@ struct FolderPickerSheet: View {
 
     private func favoriteRow(_ url: URL) -> some View {
         let isSelected = selectedURL?.standardizedFileURL == url.standardizedFileURL
-        return HStack(spacing: 6) {
-            Image(systemName: "folder")
-                .font(.system(size: 12))
-                .foregroundColor(.accentColor)
-            Text(url.lastPathComponent)
-                .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
-            Spacer()
-        }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 4)
-        .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
-        .cornerRadius(6)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedURL = url
-            expandAncestors(of: url)
-        }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(url.lastPathComponent)
+        return TappableRow(
+            accessibilityLabel: url.lastPathComponent,
+            isSelected: isSelected,
+            action: {
+                selectedURL = url
+                expandAncestors(of: url)
+            },
+            content: {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 12))
+                        .foregroundColor(.accentColor)
+                    Text(url.lastPathComponent)
+                        .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
+                    Spacer()
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(isSelected ? Color.accentColor.opacity(0.15) : Color.clear)
+                .cornerRadius(6)
+            })
     }
 
     private func commitPathText() {
@@ -152,6 +202,7 @@ struct FolderPickerSheet: View {
         // fileExists(atPath:) resolves in microseconds for a local path, so it stays inline. Under
         // /Volumes/ the same call can block for seconds against a stalled network share, so it hops
         // off @MainActor there (mirrors AppState+Navigation.navigateTo(_:addToHistory:)).
+        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
         if url.path.hasPrefix("/Volumes/") {
             Task {
                 let isValidDirectory = await Task.detached(priority: .userInitiated) {
@@ -191,11 +242,12 @@ struct FolderPickerSheet: View {
     /// The walk itself stays synchronous for local paths; under `/Volumes/` it runs off `@MainActor`
     /// since it calls `FolderNode.loadChildren(of:)` — a `FileManager` hit — once per ancestor level.
     private func expandAncestors(of url: URL) {
-        let home = rootNode.url
+        guard let home = rootNode?.url else { return }
         guard Self.isWithinOrEqual(url, home) else {
             return
         }
         let alreadyCached = Set(childrenCache.keys)
+        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
         if url.path.hasPrefix("/Volumes/") {
             Task {
                 let expansion = await Task.detached(priority: .userInitiated) {

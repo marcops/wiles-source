@@ -18,7 +18,8 @@ public struct AppStateColumnsAndSelectionTests {
         testHandleSelectionMouseCmdClick()
         testAutoFitColumnWidth()
         testPerformRenameNoOpCases()
-        testPerformRenameFailurePath()
+        // testPerformRenameFailurePath lives in AppStateColumnsAndActionsAsyncTests.swift (async
+        // companion) since performRename() dispatches via Task{} and needs polling.
     }
 
     private static func makeIcon() -> NSImage {
@@ -53,12 +54,12 @@ public struct AppStateColumnsAndSelectionTests {
     private static func testIsColumnVisible() {
         let appState = AppState()
         // Defaults: name, size, dateModified visible; others hidden.
-        report("AppState+Columns", "POS: isColumnVisible() is true for a column marked visible in defaults", result: appState.isColumnVisible(.name) == true)
-        report("AppState+Columns", "NEG: isColumnVisible() is false for a column marked hidden in defaults", result: appState.isColumnVisible(.owner) == false)
+        report("AppState+Columns", "POS: isColumnVisible() is true for a column marked visible in defaults", result: appState.isColumnVisible(.name))
+        report("AppState+Columns", "NEG: isColumnVisible() is false for a column marked hidden in defaults", result: !appState.isColumnVisible(.owner))
 
         // Missing state entry falls back to true.
         appState.preferences.listColumnStates.removeAll { $0.column == .group }
-        report("AppState+Columns", "NEG: isColumnVisible() defaults to true when no state entry exists", result: appState.isColumnVisible(.group) == true)
+        report("AppState+Columns", "NEG: isColumnVisible() defaults to true when no state entry exists", result: appState.isColumnVisible(.group))
     }
 
     private static func testSetColumnWidth() {
@@ -78,13 +79,13 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: setColumnWidth() is a no-op when the column has no existing state entry",
-            result: appState.preferences.listColumnStates.contains { $0.column == .kind } == false)
+            result: !appState.preferences.listColumnStates.contains { $0.column == .kind })
     }
 
     /// `setColumnWidth(_:width:persist:)` with `persist: false` (used by `ColumnResizeHandle`'s
     /// `DragGesture.onChanged` on every mouse-move delta) must update `listColumnStates` in memory
     /// without triggering `AppState.listColumnStates`'s `didSet` -> `saveListColumnStates()` write to
-    /// `UserDefaults.standard`. `persistColumnWidths()` (called once from `.onEnded`) must then persist
+    /// `UserDefaults.standard`. `preferences.saveListColumnStates()` (called once from `.onEnded`) must then persist
     /// the final width. `AppState`/`PreferencesStore` have no injectable `UserDefaults` suite, so per
     /// rule 17 this snapshots and restores the real `wiles_listColumnStates` key in `defer`.
     private static func testSetColumnWidthPersistFlagDefersUserDefaultsWrite() {
@@ -120,8 +121,8 @@ public struct AppStateColumnsAndSelectionTests {
             "NEG: setColumnWidth(persist: false) does not write the new width to UserDefaults yet",
             result: persistedWidth(for: .size) == 150 && persistedWidth(for: .size) != 321)
 
-        appState.persistColumnWidths()
-        report("AppState+Columns", "POS: persistColumnWidths() persists the width set earlier with persist: false", result: persistedWidth(for: .size) == 321)
+        appState.preferences.saveListColumnStates()
+        report("AppState+Columns", "POS: saveListColumnStates() persists the width set earlier with persist: false", result: persistedWidth(for: .size) == 321)
     }
 
     private static func testToggleColumnVisibility() {
@@ -139,7 +140,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: toggleColumnVisibility() is a no-op for the always-visible .name column",
-            result: appState.isColumnVisible(.name) == nameVisibleBefore && nameVisibleBefore == true)
+            result: appState.isColumnVisible(.name) == nameVisibleBefore && nameVisibleBefore)
     }
 
     private static func testViewModeForFolder() {
@@ -198,7 +199,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Selection",
             "NEG: handleSelection() without extend clears out any previously selected item",
-            result: appState.selection.selectedURLs.contains(itemA.url) == false)
+            result: !appState.selection.selectedURLs.contains(itemA.url))
     }
 
     private static func testHandleSelectionExtend() {
@@ -318,7 +319,7 @@ public struct AppStateColumnsAndSelectionTests {
         report(
             "AppState+Columns",
             "NEG: autoFitColumnWidth() is a no-op when the column has no existing state entry",
-            result: appState.preferences.listColumnStates.contains { $0.column == .size } == false)
+            result: !appState.preferences.listColumnStates.contains { $0.column == .size })
     }
 
     private static func testPerformRenameNoOpCases() {
@@ -340,23 +341,6 @@ public struct AppStateColumnsAndSelectionTests {
             "AppState+Columns",
             "NEG: performRename() with the item's unchanged name is a no-op",
             result: FileManager.default.fileExists(atPath: item.url.path))
-    }
-
-    private static func testPerformRenameFailurePath() {
-        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-
-        let appState = AppState()
-        appState.modal.errorMessage = nil
-        let item = makeItem(named: "source.txt", in: dir)
-        _ = makeItem(named: "taken.txt", in: dir)
-
-        appState.performRename(item: item, newName: "taken.txt")
-        report(
-            "AppState+Columns",
-            "NEG: performRename() surfaces an error via showError() when FileSystemService.renameItem() throws (destination name already taken)",
-            result: appState.modal.errorMessage != nil && FileManager.default.fileExists(atPath: item.url.path))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

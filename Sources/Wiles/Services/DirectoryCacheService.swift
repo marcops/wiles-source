@@ -23,7 +23,12 @@ public final class DirectoryCacheService: @unchecked Sendable {
 
     public func cachedResult(for url: URL) -> DirectoryLoadResult? {
         let key = url.standardizedFileURL as NSURL
-        return cache.object(forKey: key)?.result
+        guard let entry = cache.object(forKey: key) else { return nil }
+        guard !entry.isStale else {
+            cache.removeObject(forKey: key)
+            return nil
+        }
+        return entry.result
     }
 
     public func invalidate(url: URL) {

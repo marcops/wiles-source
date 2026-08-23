@@ -114,13 +114,13 @@ public struct FileSystemRecursiveSearchTests {
         report("NEG: loadRecursiveSearchResults omits files whose name doesn't match the query", result: names == ["keep_me.txt"])
     }
 
-    /// Creates more matching files than `LayoutTokens.recursiveSearchBatchSize` (40) so `onBatch` is
+    /// Creates more matching files than `FileSystemService.recursiveSearchBatchSize` (40) so `onBatch` is
     /// invoked once mid-walk in addition to the guaranteed final call.
     private static func testRecursiveSearchInvokesOnBatchWhenBatchSizeIsReached() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let fileCount = LayoutTokens.recursiveSearchBatchSize + 5
+        let fileCount = FileSystemService.recursiveSearchBatchSize + 5
         for index in 0 ..< fileCount {
             try? "x".write(to: dir.appendingPathComponent("batch_target_\(index).txt"), atomically: true, encoding: .utf8)
         }
@@ -131,13 +131,13 @@ public struct FileSystemRecursiveSearchTests {
             result: batches.count > 1 && batches.last?.count == fileCount)
     }
 
-    /// Creates more matching files than `LayoutTokens.recursiveSearchResultLimit` (2000) to prove the
+    /// Creates more matching files than `FileSystemService.recursiveSearchResultLimit` (2000) to prove the
     /// walk stops early instead of growing the result list without bound.
     private static func testRecursiveSearchCapsAtResultLimit() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let fileCount = LayoutTokens.recursiveSearchResultLimit + 5
+        let fileCount = FileSystemService.recursiveSearchResultLimit + 5
         for index in 0 ..< fileCount {
             try? Data().write(to: dir.appendingPathComponent("limit_target_\(index).bin"))
         }
@@ -145,6 +145,6 @@ public struct FileSystemRecursiveSearchTests {
         let batches = await recursiveSearchResults(at: dir, query: "limit_target")
         report(
             "POS: loadRecursiveSearchResults caps results at recursiveSearchResultLimit instead of matching every file",
-            result: batches.last?.count == LayoutTokens.recursiveSearchResultLimit)
+            result: batches.last?.count == FileSystemService.recursiveSearchResultLimit)
     }
 }

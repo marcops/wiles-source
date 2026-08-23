@@ -13,6 +13,8 @@ struct PathBarView: View {
     @FocusState private var isFocused: Bool
     @State private var isHovering = false
     @State private var isDragHovering = false
+    @State private var scrollWorkItem: DispatchWorkItem?
+    @State private var dragTargetSegmentID: String?
 
     var pathSegments: [PathSegment] {
         var res: [(name: String, url: URL)] = []
@@ -38,7 +40,7 @@ struct PathBarView: View {
             depth += 1
         }
         return res.enumerated().map { index, item in
-            PathSegment(name: item.name, url: item.url, isFirst: index == 0)
+            PathSegment(name: item.name, url: item.url, isLast: index == res.count - 1)
         }
     }
 
@@ -47,7 +49,7 @@ struct PathBarView: View {
             if windowUIState.isEditingPath {
                 textFieldMode
             } else {
-                breadcrumbMode
+                breadcrumbMode(segments: pathSegments)
             }
         }
         .animation(MotionTokens.quickEase, value: windowUIState.isEditingPath)
@@ -62,8 +64,13 @@ struct PathBarView: View {
                 .focused($isFocused)
                 .accessibilityIdentifier("PathBarTextField")
                 .onSubmit {
-                    let url = URL(fileURLWithPath: (appState.navigation.pathText as NSString).expandingTildeInPath)
-                    appState.navigateTo(url)
+                    let trimmed = appState.navigation.pathText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let url = URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath)
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        appState.navigateTo(url)
+                    } else {
+                        appState.showError(WilesError.itemNotFound(path: url.path))
+                    }
                     windowUIState.isEditingPath = false
                 }
                 .onExitCommand {
@@ -76,19 +83,16 @@ struct PathBarView: View {
                     }
                 }
         }
-        .padding(.horizontal, 10)
-        .frame(height: 28)
-        .background(Color(NSColor.controlBackgroundColor)).cornerRadius(6)
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.6), lineWidth: 1.5))
+        .headerFieldChrome()
         .background(ClickOutsideDetector {
             windowUIState.isEditingPath = false
         })
         .onAppear { isFocused = true }
     }
 
-    private var breadcrumbMode: some View {
+    private func breadcrumbMode(segments: [PathSegment]) -> some View {
         HStack(spacing: 0) {
-            breadcrumbScrollView
+            breadcrumbScrollView(segments: segments)
 
             Spacer(minLength: 4)
         }
@@ -110,34 +114,34 @@ struct PathBarView: View {
         isHovering || isDragHovering || appState.preferences.alwaysShowFullPathBar
     }
 
-    private var breadcrumbScrollView: some View {
+    private func breadcrumbScrollView(segments: [PathSegment]) -> some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                breadcrumbPillRow
+                breadcrumbPillRow(segments: segments)
                     .padding(.horizontal, 4)
                     .frame(height: 28)
             }
-            .onAppear { scrollToEnd(proxy: proxy) }
-            .onChange(of: isHovering) { _, _ in scrollToEnd(proxy: proxy) }
-            .onChange(of: isDragHovering) { _, _ in scrollToEnd(proxy: proxy) }
-            .onChange(of: appState.preferences.alwaysShowFullPathBar) { _, _ in scrollToEnd(proxy: proxy) }
-            .onChange(of: appState.navigation.currentURL) { _, _ in scrollToEnd(proxy: proxy) }
+            .onAppear { scrollToEnd(proxy: proxy, segments: segments) }
+            .onChange(of: isHovering) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
+            .onChange(of: isDragHovering) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
+            .onChange(of: appState.preferences.alwaysShowFullPathBar) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
+            .onChange(of: appState.navigation.currentURL) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
         }
     }
 
-    private var breadcrumbPillRow: some View {
+    private func breadcrumbPillRow(segments: [PathSegment]) -> some View {
         HStack(spacing: 2) {
             if showsFullBreadcrumb {
-                ForEach(pathSegments) { item in
+                ForEach(segments) { item in
                     breadcrumbPill(for: item)
                         .id(item.id)
-                    if item.url != appState.navigation.currentURL.standardizedFileURL {
+                    if !item.isLast {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(.secondary.opacity(0.6))
                     }
                 }
-            } else if let last = pathSegments.last {
+            } else if let last = segments.last {
                 breadcrumbPill(for: last, isCollapsed: true)
             }
         }
@@ -145,17 +149,22 @@ struct PathBarView: View {
 
     /// Waits out the row's own expand animation before scrolling — firing on the very next run
     /// loop tick lands against a still-animating (not yet final) content width and undershoots.
-    private func scrollToEnd(proxy: ScrollViewProxy) {
-        guard let lastID = pathSegments.last?.id else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.pathBarScrollDelay) {
+    private func scrollToEnd(proxy: ScrollViewProxy, segments: [PathSegment]) {
+        guard let lastID = segments.last?.id else { return }
+        scrollWorkItem?.cancel()
+        let workItem = DispatchWorkItem {
             withAnimation(.linear(duration: 0)) {
                 proxy.scrollTo(lastID, anchor: .trailing)
             }
         }
+        scrollWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.pathBarScrollDelay, execute: workItem)
     }
 
     private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {
         let isHome = item.url.standardizedFileURL == URL.userHome.standardizedFileURL
+        let currentURL = appState.navigation.currentURL.standardizedFileURL
+        let isCurrent = item.url == currentURL
         return HStack(spacing: 4) {
             if isHome {
                 Image(systemName: "house.fill").font(.system(size: 11))
@@ -165,36 +174,63 @@ struct PathBarView: View {
         .padding(.horizontal, 6)
         .frame(height: 22)
         .hoverHighlight(
-            isSelected: !isCollapsed && item.url == appState.navigation.currentURL,
+            isSelected: !isCollapsed && isCurrent,
             hoverBackground: Color.accentColor.opacity(0.12),
             selectedBackground: Color.accentColor.opacity(0.2),
             cornerRadius: 4)
-        .foregroundColor(isCollapsed || item.url == appState.navigation.currentURL ? .primary : .secondary)
+        .foregroundColor(isCollapsed || isCurrent ? .primary : .secondary)
+        .background(dragTargetSegmentID == item.id ? Color.accentColor.opacity(0.25) : Color.clear)
+        .cornerRadius(4)
+        .scaleEffect(dragTargetSegmentID == item.id ? 1.05 : 1.0)
+        .animation(MotionTokens.snappySpring, value: dragTargetSegmentID)
         .contentShape(Rectangle())
         .onTapGesture { appState.navigateTo(item.url) }
         .accessibilityLabel(item.name)
         .accessibilityHint(appState.tr(.folder))
-        .accessibilityAddTraits(item.url == appState.navigation.currentURL ? [.isButton, .isSelected] : [.isButton])
-        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+        .accessibilityAddTraits(isCurrent ? [.isButton, .isSelected] : [.isButton])
+        .onDrop(
+            of: [.fileURL],
+            isTargeted: Binding(
+                get: { dragTargetSegmentID == item.id },
+                set: { dragTargetSegmentID = $0 ? item.id : nil })) { providers in
             handleDrop(providers: providers, targetFolder: item.url)
-            return true
         }
     }
 
-    private func handleDrop(providers: [NSItemProvider], targetFolder: URL) {
+    /// All mutations happen inside `Task { @MainActor in }` below, serialized on the main actor
+    /// despite the `loadObject` completion handlers themselves arriving on arbitrary threads.
+    private final class PendingDropCount: @unchecked Sendable {
+        private var remaining: Int
+        init(_ count: Int) {
+            remaining = count
+        }
+
+        func decrementAndIsZero() -> Bool {
+            remaining -= 1
+            return remaining <= 0
+        }
+    }
+
+    @discardableResult
+    private func handleDrop(providers: [NSItemProvider], targetFolder: URL) -> Bool {
+        let remaining = PendingDropCount(providers.count)
         for provider in providers {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                guard let url else { return }
                 Task { @MainActor in
-                    do {
-                        _ = try appState.moveItem(at: url, toFolder: targetFolder)
-                    } catch {
-                        ErrorReporter.report(error, context: "Handling path bar drop")
-                        appState.showError(error)
+                    if let url, url.deletingLastPathComponent().standardizedFileURL != targetFolder.standardizedFileURL {
+                        do {
+                            _ = try await appState.moveItem(at: url, toFolder: targetFolder)
+                        } catch {
+                            ErrorReporter.report(error, context: "Handling path bar drop")
+                            appState.showError(error)
+                        }
                     }
-                    appState.refreshCurrentDirectory()
+                    if remaining.decrementAndIsZero() {
+                        appState.refreshCurrentDirectory()
+                    }
                 }
             }
         }
+        return !providers.isEmpty
     }
 }

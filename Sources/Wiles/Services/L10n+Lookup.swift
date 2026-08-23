@@ -19,10 +19,28 @@ public extension L10n {
         .wilesResources
     }
 
+    // Called on every label/tooltip/menu lookup, so the per-language `Bundle(path:)` resolution
+    // (a directory read on every call) is cached here — locked since callers span threads.
+    private static let bundleCacheLock = NSLock()
+    private nonisolated(unsafe) static var bundleCache: [String: Bundle] = [:]
+
+    private static func langBundle(forCode code: String) -> Bundle? {
+        bundleCacheLock.lock()
+        defer { bundleCacheLock.unlock() }
+        if let cached = bundleCache[code] {
+            return cached
+        }
+        guard let path = resourceBundle.path(forResource: code, ofType: "lproj") ?? resourceBundle.path(forResource: code.lowercased(), ofType: "lproj"),
+              let bundle = Bundle(path: path) else {
+            return nil
+        }
+        bundleCache[code] = bundle
+        return bundle
+    }
+
     static func string(_ key: Key, lang: AppLanguage) -> String {
         let code = activeCode(lang)
-        if let path = resourceBundle.path(forResource: code, ofType: "lproj") ?? resourceBundle.path(forResource: code.lowercased(), ofType: "lproj"),
-           let langBundle = Bundle(path: path) {
+        if let langBundle = langBundle(forCode: code) {
             return langBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
         }
         return resourceBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)

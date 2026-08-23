@@ -6,9 +6,9 @@ import Foundation
 /// in-app move" fix, just isolated into their own dedicated suite (rule 16).
 @MainActor
 public struct AppStateFavoritesMoveTests {
-    public static func run() {
+    public static func run() async {
         testRemapFavorites()
-        testMoveItemUpdatesFavorites()
+        await testMoveItemUpdatesFavorites()
     }
 
     /// Regression test for a real reported bug: favorite a folder, then move it (drag-and-drop or
@@ -62,7 +62,7 @@ public struct AppStateFavoritesMoveTests {
     /// site now shares: a real folder on disk, actually favorited, actually moved via
     /// `AppState.moveItem(at:toFolder:)` — proving the single shared wrapper both performs the real
     /// move and keeps favorites in sync, not just the internal `remapFavorites` logic in isolation.
-    private static func testMoveItemUpdatesFavorites() {
+    private static func testMoveItemUpdatesFavorites() async {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let sourceParent = dir.appendingPathComponent("Source")
         let destParent = dir.appendingPathComponent("Dest")
@@ -76,7 +76,7 @@ public struct AppStateFavoritesMoveTests {
         let appState = AppState()
         appState.preferences.favoriteURLs = [favoritedFolder.standardizedFileURL]
 
-        let destURL = try? appState.moveItem(at: favoritedFolder, toFolder: destParent)
+        let destURL = try? await appState.moveItem(at: favoritedFolder, toFolder: destParent)
 
         report(
             "AppState",

@@ -64,7 +64,7 @@ public struct ColumnAutoFitTests {
             items: appState.fileSystem.items,
             iconSize: appState.preferences.iconSize,
             language: appState.preferences.appLanguage)
-        let pos = width > LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth
+        let pos = width > LayoutTokens.columnMinWidth && width <= ColumnAutoFitService.columnMaxWidth
         TestReporter.report(
             "ColumnAutoFit", "POS: very long file name produces width above minimum but clamped at maximum",
             result: pos)
@@ -85,7 +85,7 @@ public struct ColumnAutoFitTests {
                 items: appState.fileSystem.items,
                 iconSize: appState.preferences.iconSize,
                 language: appState.preferences.appLanguage)
-            if !(width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth) {
+            if !(width >= LayoutTokens.columnMinWidth && width <= ColumnAutoFitService.columnMaxWidth) {
                 allValid = false
             }
         }
@@ -109,7 +109,7 @@ public struct ColumnAutoFitTests {
             language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: .owner column produces a valid clamped width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
+            result: width >= LayoutTokens.columnMinWidth && width <= ColumnAutoFitService.columnMaxWidth)
     }
 
     private static func testDateCreatedColumnProducesValidWidth() {
@@ -127,7 +127,7 @@ public struct ColumnAutoFitTests {
             language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: .dateCreated column produces a valid clamped width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
+            result: width >= LayoutTokens.columnMinWidth && width <= ColumnAutoFitService.columnMaxWidth)
     }
 
     private static func testDateAccessedColumnProducesValidWidth() {
@@ -145,7 +145,7 @@ public struct ColumnAutoFitTests {
             language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: .dateAccessed column produces a valid clamped width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
+            result: width >= LayoutTokens.columnMinWidth && width <= ColumnAutoFitService.columnMaxWidth)
     }
 
     private static func testTaggedItemNameColumnIsWiderThanUntagged() {
@@ -207,7 +207,7 @@ public struct ColumnAutoFitTests {
             language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: extremely small iconSize is clamped to listIconMinSize without producing an invalid width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
+            result: width >= LayoutTokens.columnMinWidth && width <= ColumnAutoFitService.columnMaxWidth)
     }
 
     private static func testIconSizeClampingAtUpperExtreme() {
@@ -226,6 +226,6 @@ public struct ColumnAutoFitTests {
             language: appState.preferences.appLanguage)
         TestReporter.report(
             "ColumnAutoFit", "POS: extremely large iconSize is clamped to listIconMaxSize without producing an invalid width",
-            result: width >= LayoutTokens.columnMinWidth && width <= LayoutTokens.columnMaxWidth)
+            result: width >= LayoutTokens.columnMinWidth && width <= ColumnAutoFitService.columnMaxWidth)
     }
 }

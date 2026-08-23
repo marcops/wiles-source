@@ -19,7 +19,7 @@ public struct DirectoryCacheTests {
         let tempDir = testTemporaryDirectory()
         let url = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("cache-test-item.txt"))
         let item = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
-        return DirectoryLoadResult(items: [item], isPermissionDenied: false)
+        return DirectoryLoadResult(items: [item])
     }
 
     private static func testCacheAndRetrieveRoundTrip() {
@@ -120,17 +120,16 @@ public struct DirectoryCacheTests {
 
         let itemURL = dir.appendingPathComponent("one-item.txt")
         let firstItem = FileItem(url: itemURL, icon: NSWorkspace.shared.icon(forFile: itemURL.path))
-        let firstResult = DirectoryLoadResult(items: [firstItem], isPermissionDenied: false)
+        let firstResult = DirectoryLoadResult(items: [firstItem])
         service.cacheDirectory(firstResult, for: url)
         report("DirectoryCache", "POS: first cacheDirectory() call stores a single-item result", result: service.cachedResult(for: url)?.items.count == 1)
 
         let itemURL2 = dir.appendingPathComponent("two-item.txt")
         let secondItem = FileItem(url: itemURL2, icon: NSWorkspace.shared.icon(forFile: itemURL2.path))
-        let secondResult = DirectoryLoadResult(items: [firstItem, secondItem], isPermissionDenied: true)
+        let secondResult = DirectoryLoadResult(items: [firstItem, secondItem])
         service.cacheDirectory(secondResult, for: url)
         let overwritten = service.cachedResult(for: url)
         report("DirectoryCache", "POS: re-caching the same URL overwrites item count", result: overwritten?.items.count == 2)
-        report("DirectoryCache", "POS: re-caching the same URL overwrites isPermissionDenied flag", result: overwritten?.isPermissionDenied == true)
     }
 
     private static func testStandardizedURLEquivalence() {

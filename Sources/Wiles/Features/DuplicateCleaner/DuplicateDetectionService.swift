@@ -34,11 +34,13 @@ public enum DuplicateDetectionService: Sendable {
 
         var sizeMap: [Int64: [URL]] = [:]
         var scannedCount = 0
+        var wasTruncated = false
 
         while let fileURL = enumerator.nextObject() as? URL {
             try Task.checkCancellation()
             scannedCount += 1
             if scannedCount > maxScannedFileCount {
+                wasTruncated = true
                 break
             }
             guard let resourceValues = try? fileURL.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey]),
@@ -59,7 +61,7 @@ public enum DuplicateDetectionService: Sendable {
             totalReclaimable += reclaimable
         }
 
-        return DuplicateScanResult(groups: finalGroups, totalReclaimableBytes: totalReclaimable)
+        return DuplicateScanResult(groups: finalGroups, totalReclaimableBytes: totalReclaimable, wasTruncated: wasTruncated)
     }
 
     /// Same-size candidates with a matching *partial* (first-4KB) hash are not yet proven

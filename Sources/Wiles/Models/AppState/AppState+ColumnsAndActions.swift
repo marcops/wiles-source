@@ -3,32 +3,28 @@ import GitBeacon
 
 public extension AppState {
     func columnWidth(for column: ListColumn) -> CGFloat {
-        preferences.listColumnStates.first { $0.column == column }?.width ?? column.defaultWidth
+        preferences.columnStatesByColumn[column]?.width ?? column.defaultWidth
     }
 
     func isColumnVisible(_ column: ListColumn) -> Bool {
-        preferences.listColumnStates.first { $0.column == column }?.isVisible ?? true
+        preferences.columnStatesByColumn[column]?.isVisible ?? true
     }
 
     /// - Parameter persist: When `false` (e.g. while a resize drag is still in progress), the width
     ///   update is applied without triggering `PreferencesStore.saveListColumnStates()`'s synchronous
     ///   encode + write. Callers driving high-frequency updates (drag deltas) must call
-    ///   `persistColumnWidths()` once when the interaction ends.
+    ///   `preferences.saveListColumnStates()` once when the interaction ends.
     func setColumnWidth(_ column: ListColumn, width: CGFloat, persist: Bool = true) {
         guard let idx = preferences.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
         if !persist {
             preferences.suppressColumnStatePersistence = true
         }
-        preferences.listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
-        if !persist {
-            preferences.suppressColumnStatePersistence = false
+        defer {
+            if !persist {
+                preferences.suppressColumnStatePersistence = false
+            }
         }
-    }
-
-    /// Persists the current `listColumnStates` once. Call this at the end of a high-frequency
-    /// interaction (drag end) that used `setColumnWidth(_:width:persist: false)` throughout.
-    func persistColumnWidths() {
-        preferences.saveListColumnStates()
+        preferences.listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
     }
 
     func autoFitColumnWidth(_ column: ListColumn) {
@@ -64,7 +60,7 @@ public extension AppState {
         preset: ResizePreset,
         cropPreset: CropPreset,
         quality: Double) {
-        Task.detached(priority: .userInitiated) {
+        Task.detached(priority: .userInitiated) { [weak self] in
             do {
                 let newURL = try ImageConverterService.convertImage(
                     at: item.url,
@@ -72,14 +68,16 @@ public extension AppState {
                     preset: preset,
                     cropPreset: cropPreset,
                     quality: quality)
-                await MainActor.run {
-                    self.refreshCurrentDirectory()
-                    self.selection.selectedURLs = [newURL]
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    undoRedoService.recordAction(.createFile(url: newURL))
+                    refreshCurrentDirectory()
+                    selection.selectedURLs = [newURL]
                 }
             } catch {
                 ErrorReporter.report(error, context: "Converting image")
-                await MainActor.run {
-                    self.showError(error.localizedDescription)
+                await MainActor.run { [weak self] in
+                    self?.showError(error)
                 }
             }
         }
@@ -88,29 +86,38 @@ public extension AppState {
     func performRename(item: FileItem, newName: String) {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != item.name else { return }
-        do {
-            let newURL = try FileSystemService.renameItem(at: item.url, newName: trimmed)
-            undoRedoService.recordAction(.rename(oldURL: item.url, newURL: newURL))
-            refreshCurrentDirectory()
-            selection.selectedURLs = [newURL]
-        } catch {
-            ErrorReporter.report(error, context: "Renaming item")
-            showError(error.localizedDescription)
+        Task {
+            do {
+                let newURL = try await FileSystemService.renameItem(at: item.url, newName: trimmed)
+                undoRedoService.recordAction(.rename(oldURL: item.url, newURL: newURL))
+                refreshCurrentDirectory()
+                selection.selectedURLs = [newURL]
+            } catch {
+                ErrorReporter.report(error, context: "Renaming item")
+                showError(error)
+            }
         }
     }
 
     func performBatchRename(items: [FileItem], mode: BatchRenameMode) {
-        Task.detached(priority: .userInitiated) {
+        Task.detached(priority: .userInitiated) { [weak self] in
             do {
-                let newURLs = try BatchRenameService.performBatchRename(items: items, mode: mode)
-                await MainActor.run {
-                    self.refreshCurrentDirectory()
-                    self.selection.selectedURLs = Set(newURLs)
+                let result = try await BatchRenameService.performBatchRename(items: items, mode: mode)
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    for pair in result.renamedPairs {
+                        undoRedoService.recordAction(.rename(oldURL: pair.old, newURL: pair.new))
+                    }
+                    refreshCurrentDirectory()
+                    selection.selectedURLs = Set(result.renamedURLs)
+                    if let message = result.failureSummaryMessage {
+                        showError(message)
+                    }
                 }
             } catch {
                 ErrorReporter.report(error, context: "Batch renaming items")
-                await MainActor.run {
-                    self.showError(error.localizedDescription)
+                await MainActor.run { [weak self] in
+                    self?.showError(error)
                 }
             }
         }

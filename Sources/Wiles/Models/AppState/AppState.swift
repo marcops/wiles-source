@@ -14,6 +14,10 @@ import SwiftUI
 public final class AppState: @unchecked Sendable {
     // MARK: - Domain Stores
 
+    // `var`, not `let`: SwiftUI's `$appState.preferences.someField`-style two-way bindings (used
+    // throughout Views/) only compose into a `ReferenceWritableKeyPath` when every intermediate
+    // stored property in the chain is mutable — even though `preferences` itself is a class and
+    // nothing here actually reassigns it, `let` breaks every such binding across the app.
     public var navigation: NavigationStore
     public var preferences: PreferencesStore
     public var modal: ModalStore
@@ -25,9 +29,9 @@ public final class AppState: @unchecked Sendable {
     /// so ⌘Z in one window never undoes an action performed in a different window.
     public let undoRedoService = UndoRedoService()
 
-    // MARK: - Operational State
-
-    public static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
+    /// `nonisolated`: a plain constant URL, safe from any context — lets `FileSystemService`
+    /// (off-`@MainActor`) reference it directly instead of duplicating the path as a literal.
+    public nonisolated static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
 
     public init(preferences: PreferencesStore = PreferencesStore(), modal: ModalStore = ModalStore(), transient: TransientStore = TransientStore()) {
         navigation = NavigationStore()
@@ -38,7 +42,8 @@ public final class AppState: @unchecked Sendable {
         smartFolder = SmartFolderStore()
         self.transient = transient
 
-        selection.onSearchQueryChanged = { [weak self] in self?.refreshCurrentDirectory() }
+        selection.setSearchQueryHandler { [weak self] in self?.refreshCurrentDirectory() }
+        navigation.onVolumeUnreachable = { [weak self] fallback in self?.navigateTo(fallback) }
 
         updateTrashSize()
     }

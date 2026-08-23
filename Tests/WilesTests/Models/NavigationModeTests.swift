@@ -5,7 +5,6 @@ import Foundation
 public struct NavigationModeTests {
     public static func run() {
         testAllCasesAndIdentifiable()
-        testShortName()
         testL10nKey()
     }
 
@@ -15,11 +14,6 @@ public struct NavigationModeTests {
             "Model/NavigationMode",
             "POS: id mirrors rawValue for every case",
             result: NavigationMode.allCases.allSatisfy { $0.id == $0.rawValue })
-    }
-
-    private static func testShortName() {
-        report("Model/NavigationMode", "POS: gnome mode's shortName is Windows Mode", result: NavigationMode.gnome.shortName == "Windows Mode")
-        report("Model/NavigationMode", "POS: macOS mode's shortName is macOS Mode", result: NavigationMode.macOS.shortName == "macOS Mode")
     }
 
     private static func testL10nKey() {

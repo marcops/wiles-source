@@ -65,13 +65,7 @@ public final class PDFMergeService: Sendable {
 
     private static func uniqueDestination(for outputName: String?, in destinationFolder: URL) -> URL {
         let fileName = outputName ?? "Merged_\(Int(Date().timeIntervalSince1970)).pdf"
-        var destURL = destinationFolder.appendingPathComponent(fileName)
-        var counter = 2
-        while FileManager.default.fileExists(atPath: destURL.path) {
-            let baseName = (fileName as NSString).deletingPathExtension
-            destURL = destinationFolder.appendingPathComponent("\(baseName) \(counter).pdf")
-            counter += 1
-        }
-        return destURL
+        let candidateURL = destinationFolder.appendingPathComponent(fileName)
+        return UniqueFileNaming.uniqueURL(for: candidateURL, in: destinationFolder, isDirectory: false)
     }
 }

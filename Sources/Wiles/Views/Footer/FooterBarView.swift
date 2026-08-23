@@ -3,6 +3,7 @@ import SwiftUI
 
 struct FooterBarView: View {
     var appState: AppState
+    var windowUIState: WindowUIState
     @State private var isIconSizeControlExpanded = false
     /// Free-space lookup is a synchronous disk call (`resourceValues(forKeys:)`) that can block for
     /// seconds on a stalled SMB mount. It's loaded asynchronously via `.task` below and read passively
@@ -76,11 +77,11 @@ struct FooterBarView: View {
 
     private var terminalToggleButton: some View {
         Button {
-            withAnimation(MotionTokens.smoothEase) { appState.preferences.showTerminalDrawer.toggle() }
+            withAnimation(MotionTokens.smoothEase) { windowUIState.showTerminalDrawer.toggle() }
         } label: {
             Image(systemName: "terminal")
                 .font(.system(size: 11, weight: .medium))
-                .foregroundColor(appState.preferences.showTerminalDrawer ? .accentColor : .secondary)
+                .foregroundColor(windowUIState.showTerminalDrawer ? .accentColor : .secondary)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(appState.tr(.actToggleTerminal))

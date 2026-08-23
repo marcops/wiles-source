@@ -17,11 +17,8 @@ public struct SmallModelEnumsTests {
         for mode in NavigationMode.allCases {
             report("NavigationMode", "POS: rawValue round-trips for \(mode)", result: NavigationMode(rawValue: mode.rawValue) == mode)
             report("NavigationMode", "POS: id equals rawValue for \(mode)", result: mode.id == mode.rawValue)
-            report("NavigationMode", "POS: shortName is non-empty for \(mode)", result: !mode.shortName.isEmpty)
-            report("NavigationMode", "POS: shortName is shorter than the verbose rawValue for \(mode)", result: mode.shortName.count < mode.rawValue.count)
         }
         report("NavigationMode", "NEG: garbage rawValue returns nil", result: NavigationMode(rawValue: "vim mode") == nil)
-        report("NavigationMode", "POS: shortName differs between gnome and macOS", result: NavigationMode.gnome.shortName != NavigationMode.macOS.shortName)
     }
 
     private static func testViewMode() {
@@ -90,11 +87,15 @@ public struct SmallModelEnumsTests {
         let url = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let itemA = SidebarItem(name: "Downloads", iconName: "folder", url: url)
         let itemB = SidebarItem(name: "Downloads", iconName: "folder", url: url)
-        report("SidebarItem", "NEG: two items with identical name/icon/url are NOT equal because id is a freshly-generated UUID", result: itemA != itemB)
+        report("SidebarItem", "POS: two items with the same url ARE equal — id is url-derived, not a random UUID", result: itemA == itemB)
         report("SidebarItem", "POS: an item is equal to itself", result: itemA == itemA)
         report("SidebarItem", "POS: id is stable across repeated reads of the same instance", result: itemA.id == itemA.id)
         let setOfItems: Set<SidebarItem> = [itemA, itemB]
-        report("SidebarItem", "POS: distinct-id items with equal content are NOT deduped by a Set", result: setOfItems.count == 2)
+        report("SidebarItem", "POS: same-url items ARE deduped by a Set, since identity is url-derived", result: setOfItems.count == 1)
+
+        let otherURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let itemC = SidebarItem(name: "Downloads", iconName: "folder", url: otherURL)
+        report("SidebarItem", "NEG: items with different urls are not equal", result: itemA != itemC)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

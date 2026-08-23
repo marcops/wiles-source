@@ -19,9 +19,8 @@ public struct ListColumnState: Codable, Sendable {
 
 extension ListColumnState {
     static func defaults() -> [ListColumnState] {
-        let initialVisible: Set<ListColumn> = [.name, .size, .dateModified]
-        return ListColumn.allCases.map { col in
-            ListColumnState(column: col, width: col.defaultWidth, isVisible: initialVisible.contains(col))
+        ListColumn.allCases.map { col in
+            ListColumnState(column: col, width: col.defaultWidth, isVisible: col.isVisibleByDefault)
         }
     }
 }

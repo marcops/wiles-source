@@ -89,7 +89,7 @@ public struct SmartFoldersFeatureTests {
             report(
                 "Feature/SmartFolders",
                 "POS: single-field predicate (executeQuery pattern) with '\(maliciousQuery)' evaluates without crashing",
-                result: singleFieldResult == false)
+                result: !singleFieldResult)
 
             // Mirrors SmartFolderService.executeContentQuery's predicate construction exactly.
             let contentPredicate = NSPredicate(format: "(kMDItemTextContent ==[cd] %@) || (kMDItemFSName ==[cd] %@)", wildcardQuery, wildcardQuery)
@@ -97,7 +97,7 @@ public struct SmartFoldersFeatureTests {
             report(
                 "Feature/SmartFolders",
                 "POS: compound OR predicate (executeContentQuery pattern) with '\(maliciousQuery)' evaluates without crashing",
-                result: contentResult == false)
+                result: !contentResult)
         }
     }
 

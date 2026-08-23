@@ -17,6 +17,7 @@ public struct AppStateOperationsExtraTests {
         testPasteClipboardContentAsFile()
         await runHandleDropTests()
         await runFailureTests()
+        await runCreateFolderTests()
     }
 
     static func makeFile(named name: String, in dir: URL, content: String = "content") -> URL {
@@ -302,7 +303,7 @@ public struct AppStateOperationsExtraTests {
         try? FileManager.default.createDirectory(at: createdDirURL, withIntermediateDirectories: true)
 
         let appState = AppState()
-        appState.undoRedoService.recordAction(.create(url: createdDirURL))
+        appState.undoRedoService.recordAction(.createFolder(url: createdDirURL))
         appState.selection.selectedURLs = []
         appState.undoLastAction()
         try? await Task.sleep(nanoseconds: 400_000_000)
@@ -386,7 +387,7 @@ public struct AppStateOperationsExtraTests {
         defer { try? FileManager.default.removeItem(at: emptyDir) }
         let emptyAppState = AppState()
         emptyAppState.navigation.currentURL = emptyDir
-        emptyAppState.compressSelectedToZIPWithPassword("irrelevant", urls: nil)
+        emptyAppState.compressSelectedToZIPWithPassword("irrelevant", urls: [])
         try? await Task.sleep(nanoseconds: 300_000_000)
         let emptyDirContents = (try? FileManager.default.contentsOfDirectory(atPath: emptyDir.path)) ?? ["unexpected-error"]
         report(

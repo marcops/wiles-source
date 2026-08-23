@@ -48,6 +48,15 @@ public final class AutoOrganizationService {
         ruleStore.deleteRule(id: id)
     }
 
+    /// Bumps a rule's "last fired" stats after a background move actually succeeds, so the user
+    /// has a way to tell whether a rule has ever done anything.
+    private func recordSuccessfulMove(ruleID: UUID) {
+        guard var rule = rules.first(where: { $0.id == ruleID }) else { return }
+        rule.lastTriggeredAt = Date()
+        rule.totalMovedCount += 1
+        ruleStore.updateRule(rule)
+    }
+
     private func restartMonitoring() {
         let activeRules = rules.filter(\.isEnabled)
         let uniqueSourceFolders = Set(activeRules.map(\.sourceURL.standardizedFileURL))
@@ -94,7 +103,7 @@ public final class AutoOrganizationService {
                 continue
             }
             let resourceValues = try? file.resourceValues(forKeys: Set(resourceKeys))
-            if resourceValues?.isDirectory == true {
+            if resourceValues?.isDirectory ?? false {
                 continue
             }
 
@@ -106,6 +115,8 @@ public final class AutoOrganizationService {
                 let stabilityCheckDelay = self.stabilityCheckDelay
                 let destinationURL = rule.destinationURL
                 let undoRedoService = self.undoRedoService
+                let service = self
+                let ruleID = rule.id
                 Task.detached(priority: .utility) {
                     guard let sizeBefore = Self.fileSize(file) else { return }
                     try? await Task.sleep(nanoseconds: stabilityCheckDelay)
@@ -113,11 +124,12 @@ public final class AutoOrganizationService {
                         return // still being written — skip this round
                     }
                     do {
-                        _ = try FileSystemService.moveItem(at: file, toFolder: destinationURL)
+                        _ = try await FileSystemService.moveItem(at: file, toFolder: destinationURL)
                         await MainActor.run {
                             undoRedoService.recordAction(.move(
                                 sourceURL: file,
                                 destinationURL: destinationURL.appendingPathComponent(file.lastPathComponent)))
+                            service.recordSuccessfulMove(ruleID: ruleID)
                         }
                     } catch {
                         // Unexpected failure — user has no other way to learn this move silently

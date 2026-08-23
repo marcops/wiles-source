@@ -5,7 +5,6 @@ import SwiftUI
 @main
 struct WilesApp: App {
     @State private var sharedPreferences = PreferencesStore()
-    @State private var sharedModal = ModalStore()
     @State private var sharedTransient = TransientStore()
 
     init() {
@@ -20,6 +19,15 @@ struct WilesApp: App {
             appVersion: AppConstants.appVersion,
             build: AppConstants.appBuild)
         GitBeacon.installCrashHandler()
+
+        // App-global work, run once here — `onAppear` re-runs per window (e.g. Cmd+N).
+        if !CommandLine.arguments.contains("--ui-testing") {
+            PermissionService.requestInitialPermissions(language: sharedPreferences.appLanguage)
+        }
+        AutoOrganizationService.shared.startMonitoring()
+        Task {
+            await GitBeacon.processPendingReports()
+        }
     }
 
     /// Never `nil` — "System" resolves to a concrete `.light`/`.dark` via `SystemAppearanceObserver`
@@ -50,7 +58,7 @@ struct WilesApp: App {
     }
 
     private var mainWindowContent: some View {
-        MainContentView(sharedPreferences: sharedPreferences, sharedModal: sharedModal, sharedTransient: sharedTransient)
+        MainContentView(sharedPreferences: sharedPreferences, sharedTransient: sharedTransient)
             .preferredColorScheme(resolvedColorScheme)
             .onChange(of: resolvedColorScheme, initial: true) { _, newValue in
                 // Belt-and-suspenders: force it explicitly too, since `resolvedColorScheme` is
@@ -78,13 +86,6 @@ struct WilesApp: App {
                     window.isMovableByWindowBackground = false
                     window.setFrameAutosaveName("WilesMainWindow")
                     window.isRestorable = false
-                }
-                if !CommandLine.arguments.contains("--ui-testing") {
-                    PermissionService.requestInitialPermissions(language: sharedPreferences.appLanguage)
-                }
-                AutoOrganizationService.shared.startMonitoring()
-                Task {
-                    await GitBeacon.processPendingReports()
                 }
             }
     }

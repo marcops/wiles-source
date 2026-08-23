@@ -19,7 +19,18 @@ import Observation
 @MainActor
 public final class WindowUIState {
     public var propertiesItem: FileItem?
-    public var renameItem: FileItem?
+    public var renameItem: FileItem? {
+        didSet {
+            guard renameItem == nil, oldValue != nil else { return }
+            onRenameCleared?()
+        }
+    }
+
+    /// Set by `AppState.enterRenameForNewlyCreated` to clear `FileSystemStore.renamingURL` (the
+    /// per-window refresh-suppression flag for the item being renamed) whenever `renameItem` goes
+    /// back to nil, regardless of which of this rename session's several cancel/commit paths did it —
+    /// keeping the two flags in sync without every call site having to remember both.
+    public var onRenameCleared: (() -> Void)?
     public var imageConverterItem: FileItem?
     public var symlinkItem: FileItem?
     public var showBatchRenameSheet: Bool = false
@@ -28,14 +39,15 @@ public final class WindowUIState {
     public var showConnectToServerSheet: Bool = false
     public var showAutoOrganizationSheet: Bool = false
     public var showDuplicateCleanerSheet: Bool = false
-    public var showHttpShareSheet: Bool = false
+    /// Sheet visibility *is* `httpShareFolderURL != nil` — a single optional payload instead of a
+    /// paired flag+URL, so "sheet shown, no folder to share" can no longer happen.
     public var httpShareFolderURL: URL?
     public var showShortcutsHUD: Bool = false
     public var showSaveSmartFolderSheet: Bool = false
-    public var showPasswordCompressSheet: Bool = false
+    /// See `httpShareFolderURL` — visibility is `passwordCompressURLs != nil`.
     public var passwordCompressURLs: [URL]?
+    /// See `httpShareFolderURL` — visibility is `inspectArchiveURL != nil`.
     public var inspectArchiveURL: URL?
-    public var showArchiveInspectionSheet: Bool = false
     public var showHelpSheet: Bool = false
     public var showFeedbackSheet: Bool = false
     public var showAboutSheet: Bool = false
@@ -51,6 +63,52 @@ public final class WindowUIState {
     /// (`IntegratedTerminalView`, `MainContentView`) lives in this same module.
     let terminalViewCache = TerminalViewCache()
 
+    /// Backing store for `preferences`-mirrored defaults below — see that property's doc comment.
+    private let preferences: PreferencesStore
+
+    /// This window's own terminal drawer state, seeded from `preferences.showTerminalDrawer` (the
+    /// persisted default for a *new* window) and written back on change so the next new window
+    /// picks up the last-toggled state. Kept per-window — unlike a shared flag — so toggling the
+    /// drawer in one window never spawns a PTY in every other open window.
+    public var showTerminalDrawer: Bool {
+        didSet {
+            guard showTerminalDrawer != oldValue else { return }
+            preferences.showTerminalDrawer = showTerminalDrawer
+        }
+    }
+
+    /// This window's own sidebar width, mirrored the same way as `showTerminalDrawer` above.
+    public var sidebarWidth: Double {
+        didSet {
+            guard sidebarWidth != oldValue else { return }
+            preferences.sidebarWidth = sidebarWidth
+        }
+    }
+
+    /// This window's own preview-sidebar visibility. See `showTerminalDrawer` for the
+    /// seed/write-back pattern; mutual exclusivity with `showDiskUsageSidebar` is enforced here
+    /// (per-window) rather than only on the shared default.
+    public var showPreviewSidebar: Bool {
+        didSet {
+            guard showPreviewSidebar != oldValue else { return }
+            if showPreviewSidebar {
+                showDiskUsageSidebar = false
+            }
+            preferences.showPreviewSidebar = showPreviewSidebar
+        }
+    }
+
+    /// This window's own disk-usage-sidebar visibility — see `showPreviewSidebar`.
+    public var showDiskUsageSidebar: Bool {
+        didSet {
+            guard showDiskUsageSidebar != oldValue else { return }
+            if showDiskUsageSidebar {
+                showPreviewSidebar = false
+            }
+            preferences.showDiskUsageSidebar = showDiskUsageSidebar
+        }
+    }
+
     /// True while any sheet or alert owned by this window is on screen. `GlobalKeyMonitor` checks
     /// this before acting on a keypress so a Return/Delete meant for the presented alert's own
     /// button doesn't also fall through to the file list underneath (e.g. opening/renaming the
@@ -58,13 +116,19 @@ public final class WindowUIState {
     public var isAnyModalPresented: Bool {
         showBatchRenameSheet || showEmptyTrashAlert
             || showDeleteConfirmAlert || showConnectToServerSheet || showAutoOrganizationSheet
-            || showDuplicateCleanerSheet || showHttpShareSheet || showSaveSmartFolderSheet
-            || showPasswordCompressSheet || showArchiveInspectionSheet || showHelpSheet
-            || showFeedbackSheet || showAboutSheet || showSettingsSheet || showShortcutsHUD
+            || showDuplicateCleanerSheet || showSaveSmartFolderSheet
+            || showHelpSheet || showFeedbackSheet || showAboutSheet || showSettingsSheet || showShortcutsHUD
             || propertiesItem != nil || imageConverterItem != nil || symlinkItem != nil
+            || httpShareFolderURL != nil || passwordCompressURLs != nil || inspectArchiveURL != nil
     }
 
-    public init() { }
+    public init(preferences: PreferencesStore = PreferencesStore()) {
+        self.preferences = preferences
+        showTerminalDrawer = preferences.showTerminalDrawer
+        sidebarWidth = preferences.sidebarWidth
+        showPreviewSidebar = preferences.showPreviewSidebar
+        showDiskUsageSidebar = preferences.showDiskUsageSidebar
+    }
 
     /// Cancels an active in-place rename in response to a folder navigation. The row rendering
     /// `InlineRenameField` belongs to whatever folder was current when rename began; once

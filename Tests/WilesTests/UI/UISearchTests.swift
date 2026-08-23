@@ -40,7 +40,7 @@ public struct UISearchTests {
 
         // Toggling search off resets query
         appState.selection.isSearching = true
-        report("UI/Search", "POS: Search mode enables correctly", result: appState.selection.isSearching == true)
+        report("UI/Search", "POS: Search mode enables correctly", result: appState.selection.isSearching)
 
         appState.selection.isSearching = false
         appState.selection.searchQuery = ""

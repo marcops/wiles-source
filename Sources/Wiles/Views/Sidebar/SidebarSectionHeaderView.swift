@@ -10,6 +10,9 @@ struct SidebarSectionHeaderView: View {
     let identifierKey: String
     var appState: AppState
     @Binding var isExpanded: Bool
+    /// Sections with a corresponding `preferences.showX` toggle pass this in so the header offers
+    /// a one-item "Hide <Section>" context menu — the same toggle Settings already exposes.
+    var hideAction: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 4) {
@@ -19,6 +22,7 @@ struct SidebarSectionHeaderView: View {
                 .frame(width: 12)
             Text(title)
                 .font(.system(size: 11, weight: .bold, design: .rounded))
+                .textCase(.uppercase)
                 .foregroundColor(.secondary)
             Spacer()
         }
@@ -33,6 +37,8 @@ struct SidebarSectionHeaderView: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("Section_\(identifierKey)")
         .accessibilityLabel(title)
-        .accessibilityHint(appState.tr(.folder))
+        .accessibilityHint(appState.tr(.expandCollapseFolderHint))
+        .accessibilityValue(appState.tr(isExpanded ? .collapseFolder : .expandFolder))
+        .modifier(HideSectionContextMenuModifier(title: title, hideAction: hideAction, appState: appState))
     }
 }

@@ -3,6 +3,10 @@ import GitBeacon
 import SwiftUI
 
 struct FilePropertiesSheet: View {
+    private static let headerIconSizeLarge: CGFloat = 64.0
+    private static let sheetWidth: CGFloat = 400.0
+    private static let sheetHeight: CGFloat = 500.0
+
     let item: FileItem
     var appState: AppState
     @Environment(\.dismiss)
@@ -15,22 +19,49 @@ struct FilePropertiesSheet: View {
     @State private var isExifExpanded = true
     @State private var isPermissionsExpanded = true
     @State private var permissions = POSIXPermissions(posixPermissions: 0o644)
+    @State private var lastAppliedPermissions: POSIXPermissions?
     @State private var hasPermissions = false
     @State private var exifData: ExifMetadata?
+    @State private var showDiscardConfirmation = false
+    @State private var applyToEnclosedItems = false
+    @State private var showRecursivePermissionsConfirmation = false
+
+    private var hasPendingPermissionChanges: Bool {
+        hasPermissions && permissions != (lastAppliedPermissions ?? permissions)
+    }
 
     var body: some View {
         ModalScaffoldView(
             icon: .image(item.icon),
             title: item.name,
             subtitle: "\(kindText) • \(item.formattedSize)",
-            iconSize: LayoutTokens.modalHeaderIconSizeLarge,
-            width: LayoutTokens.filePropertiesSheetWidth,
-            height: LayoutTokens.filePropertiesSheetHeight,
-            primaryButton: ModalFooterButton(title: appState.tr(.close)) { dismiss() },
+            iconSize: Self.headerIconSizeLarge,
+            width: Self.sheetWidth,
+            height: Self.sheetHeight,
+            primaryButton: ModalFooterButton(title: appState.tr(.close)) { attemptClose() },
             content: { contentArea })
+            .confirmationDialog(appState.tr(.discardPermissionChangesMessage), isPresented: $showDiscardConfirmation, titleVisibility: .visible) {
+                Button(appState.tr(.discard), role: .destructive) { dismiss() }
+                Button(appState.tr(.cancel), role: .cancel) { }
+            }
+            .confirmationDialog(
+                appState.tr(.applyToEnclosedItemsConfirmMessage),
+                isPresented: $showRecursivePermissionsConfirmation,
+                titleVisibility: .visible) {
+                    Button(appState.tr(.apply), role: .destructive) { Task { await applyPermissions() } }
+                    Button(appState.tr(.cancel), role: .cancel) { }
+            }
             .task {
                 await loadProperties()
             }
+    }
+
+    private func attemptClose() {
+        if hasPendingPermissionChanges {
+            showDiscardConfirmation = true
+        } else {
+            dismiss()
+        }
     }
 
     private var kindText: String {
@@ -69,8 +100,8 @@ struct FilePropertiesSheet: View {
                     propertyRow(label: appState.tr(.kind), value: kind)
                 }
                 propertyRow(label: appState.tr(.size), value: item.formattedSize)
-                propertyRow(label: appState.tr(.location), value: item.url.deletingLastPathComponent().path)
-                propertyRow(label: appState.tr(.dateModified), value: item.formattedDate)
+                propertyRow(label: appState.tr(.location), value: item.url.deletingLastPathComponent().path, wraps: true)
+                propertyRow(label: appState.tr(.dateModified), value: item.formattedDate(language: appState.preferences.appLanguage))
             }
             .padding(.top, 8)
         } label: {
@@ -160,20 +191,30 @@ struct FilePropertiesSheet: View {
             permissionsRow(title: appState.tr(.group), read: $permissions.groupRead, write: $permissions.groupWrite, execute: $permissions.groupExecute)
             permissionsRow(title: appState.tr(.others), read: $permissions.othersRead, write: $permissions.othersWrite, execute: $permissions.othersExecute)
 
-            Button(appState.tr(.applyPermissions)) {
-                do {
-                    try FilePermissionsService.setPermissions(for: item.url, permissions: permissions)
-                } catch {
-                    ErrorReporter.report(error, context: "Applying file permissions")
-                    appState.showError(error.localizedDescription)
-                }
+            if item.isDirectory {
+                Toggle(appState.tr(.applyToEnclosedItems), isOn: $applyToEnclosedItems)
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 11))
+                    .accessibilityLabel(appState.tr(.applyToEnclosedItems))
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .padding(.top, 4)
-            .accessibilityLabel(appState.tr(.applyPermissions))
-            .accessibilityHint(appState.tr(.applyPermissionsHint))
+
+            applyPermissionsButton
         }
+    }
+
+    private var applyPermissionsButton: some View {
+        Button(appState.tr(.applyPermissions)) {
+            if applyToEnclosedItems {
+                showRecursivePermissionsConfirmation = true
+            } else {
+                Task { await applyPermissions() }
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+        .padding(.top, 4)
+        .accessibilityLabel(appState.tr(.applyPermissions))
+        .accessibilityHint(appState.tr(.applyPermissionsHint))
     }
 
     private func loadProperties() async {
@@ -181,9 +222,42 @@ struct FilePropertiesSheet: View {
         exifData = await Task.detached(priority: .userInitiated) {
             ExifMetadataService.extractExif(from: item.url)
         }.value
-        if let loadedPermissions = FilePermissionsService.getPermissions(for: item.url) {
+        let url = item.url
+        if let loadedPermissions = await Task.detached(priority: .userInitiated, operation: {
+            FilePermissionsService.getPermissions(for: url)
+        }).value {
             permissions = loadedPermissions
+            lastAppliedPermissions = loadedPermissions
             hasPermissions = true
+        }
+    }
+
+    private func applyPermissions() async {
+        let url = item.url
+        let permissionsToApply = permissions
+        if applyToEnclosedItems {
+            let errors = await Task.detached(priority: .userInitiated) {
+                FilePermissionsService.setPermissionsRecursively(for: url, permissions: permissionsToApply)
+            }.value
+            if let firstError = errors.first {
+                ErrorReporter.report(firstError, context: "Applying recursive file permissions")
+                appState.showError(firstError.localizedDescription)
+            }
+        } else {
+            do {
+                try await Task.detached(priority: .userInitiated) {
+                    try FilePermissionsService.setPermissions(for: url, permissions: permissionsToApply)
+                }.value
+            } catch {
+                ErrorReporter.report(error, context: "Applying file permissions")
+                appState.showError(error.localizedDescription)
+            }
+        }
+        if let reloaded = await Task.detached(priority: .userInitiated, operation: {
+            FilePermissionsService.getPermissions(for: url)
+        }).value {
+            permissions = reloaded
+            lastAppliedPermissions = reloaded
         }
     }
 
@@ -212,17 +286,18 @@ struct FilePropertiesSheet: View {
         }
     }
 
-    private func propertyRow(label: String, value: String) -> some View {
+    private func propertyRow(label: String, value: String, wraps: Bool = false) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Text(label + ":")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.secondary)
-                .frame(width: 100, alignment: .trailing)
+            Spacer(minLength: 8)
             Text(value)
                 .font(.system(size: 12))
-                .lineLimit(2)
+                .lineLimit(wraps ? nil : 2)
+                .multilineTextAlignment(.trailing)
                 .textSelection(.enabled)
-            Spacer()
+                .help(wraps ? value : "")
         }
     }
 }

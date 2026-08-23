@@ -4,7 +4,7 @@ import Foundation
 
 @MainActor
 public struct BatchRenameFeatureTests {
-    public static func run() {
+    public static func run() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
@@ -21,7 +21,7 @@ public struct BatchRenameFeatureTests {
         let regexPreviews = BatchRenameService.previewNewNames(items: [item1], mode: regexMode)
         report("Feature/BatchRename", "POS: Regex replace template works", result: regexPreviews.first?.newName == "document_a.txt")
 
-        testInvalidRegexPatternThrowsInsteadOfSilentlyNoOpingRename()
+        await testInvalidRegexPatternThrowsInsteadOfSilentlyNoOpingRename()
     }
 
     /// Bug: performBatchRename used to fall through NSRegularExpression's `try?` failure by
@@ -29,7 +29,7 @@ public struct BatchRenameFeatureTests {
     /// no rename was requested instead of telling the user their pattern was invalid. This proves
     /// performBatchRename now throws for an invalid regex pattern, and that it aborts before
     /// touching the filesystem (the file keeps its original name) rather than silently no-op'ing.
-    private static func testInvalidRegexPatternThrowsInsteadOfSilentlyNoOpingRename() {
+    private static func testInvalidRegexPatternThrowsInsteadOfSilentlyNoOpingRename() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
@@ -42,7 +42,7 @@ public struct BatchRenameFeatureTests {
 
         var didThrow = false
         do {
-            _ = try BatchRenameService.performBatchRename(items: [item], mode: invalidRegexMode)
+            _ = try await BatchRenameService.performBatchRename(items: [item], mode: invalidRegexMode)
         } catch {
             didThrow = true
         }

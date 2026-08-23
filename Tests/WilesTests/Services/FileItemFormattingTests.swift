@@ -79,8 +79,11 @@ public struct FileItemFormattingTests {
         try? "hello".write(to: file, atomically: true, encoding: .utf8)
         let item = makeFileItem(at: file)
 
-        report("FileItem.formattedDate", "POS: formattedDate is non-empty for a freshly created file", result: !item.formattedDate.isEmpty)
-        report("FileItem.formattedDateCreated", "POS: formattedDateCreated is non-empty for a freshly created file", result: !item.formattedDateCreated.isEmpty)
+        report("FileItem.formattedDate", "POS: formattedDate is non-empty for a freshly created file", result: !item.formattedDate(language: .system).isEmpty)
+        report(
+            "FileItem.formattedDateCreated",
+            "POS: formattedDateCreated is non-empty for a freshly created file",
+            result: !item.formattedDateCreated(language: .system).isEmpty)
 
         // FileItem formats dates with DateFormatter's .short/.short style (system-standard short
         // date+time, e.g. "8/5/26, 6:01 PM"), which renders a 2-digit year — not the 4-digit year
@@ -93,15 +96,15 @@ public struct FileItemFormattingTests {
         report(
             "FileItem.formattedDate",
             "POS: formattedDate for a file just created now includes the current (short-style) year",
-            result: item.formattedDate.contains(expectedYearToken))
+            result: item.formattedDate(language: .system).contains(expectedYearToken))
         report(
             "FileItem.formattedDateCreated",
             "POS: formattedDateCreated for a file just created now includes the current (short-style) year",
-            result: item.formattedDateCreated.contains(expectedYearToken))
+            result: item.formattedDateCreated(language: .system).contains(expectedYearToken))
         report(
             "FileItem.formattedDate",
             "NEG: formattedDate is not the raw placeholder \"--\" for a real file with a modification date",
-            result: item.formattedDate != "--")
+            result: item.formattedDate(language: .system) != "--")
     }
 
     private static func testFormattedDateAccessedHandlesNil() {
@@ -118,17 +121,17 @@ public struct FileItemFormattingTests {
         report(
             "FileItem.formattedDateAccessed",
             "POS: formattedDateAccessed does not crash and produces a non-empty string either way",
-            result: !item.formattedDateAccessed.isEmpty)
+            result: !item.formattedDateAccessed(language: .system).isEmpty)
         if item.dateAccessed == nil {
             report(
                 "FileItem.formattedDateAccessed",
                 "POS: formattedDateAccessed falls back to \"--\" when dateAccessed is nil",
-                result: item.formattedDateAccessed == "--")
+                result: item.formattedDateAccessed(language: .system) == "--")
         } else {
             report(
                 "FileItem.formattedDateAccessed",
                 "POS: formattedDateAccessed is not the \"--\" placeholder when dateAccessed is present",
-                result: item.formattedDateAccessed != "--")
+                result: item.formattedDateAccessed(language: .system) != "--")
         }
     }
 

@@ -46,7 +46,7 @@ extension AppStateOperationsExtraTests {
         let neverCreatedURL = dir.appendingPathComponent("never-created-\(UUID().uuidString)")
 
         let appState = AppState()
-        appState.undoRedoService.recordAction(.create(url: neverCreatedURL))
+        appState.undoRedoService.recordAction(.createFolder(url: neverCreatedURL))
         appState.modal.errorMessage = nil
         appState.selection.selectedURLs = []
         appState.undoLastAction()
@@ -72,7 +72,7 @@ extension AppStateOperationsExtraTests {
         try? FileManager.default.createDirectory(at: createdDirURL, withIntermediateDirectories: true)
 
         let appState = AppState()
-        appState.undoRedoService.recordAction(.create(url: createdDirURL))
+        appState.undoRedoService.recordAction(.createFolder(url: createdDirURL))
         appState.selection.selectedURLs = []
         appState.undoLastAction()
         let trashedAway = await pollUntilTrue { !FileManager.default.fileExists(atPath: createdDirURL.path) }

@@ -2,6 +2,11 @@ import AppKit
 import SwiftUI
 
 struct SidebarView: View {
+    private static let trafficLightInset: CGFloat = 12.0
+    private static let doubleClickZoneHeight: CGFloat = trafficLightInset
+    private static let peekCollapseDelayMs: Int = 250
+    private static let rootTreeFallbackTimeout: TimeInterval = 6
+
     var appState: AppState
     @Environment(WindowUIState.self)
     private var windowUIState
@@ -18,36 +23,21 @@ struct SidebarView: View {
     var devices: [SidebarItem] {
         let home = URL.userHome
         let cloudDocs = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
-        let airDrop = URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app/Contents/Applications/AirDrop.app")
         let trashURL = URL.userTrash
 
         return [
             SidebarItem(name: appState.tr(.applications), iconName: "square.grid.3x3.fill", url: URL(fileURLWithPath: "/Applications")),
-            SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: airDrop),
+            SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: SidebarItem.airDropURL),
             SidebarItem(name: appState.tr(.iCloudDrive), iconName: "icloud.fill", url: cloudDocs),
             SidebarItem(name: appState.tr(.macintoshHDName), iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/")),
             SidebarItem(name: appState.tr(.sidebarTrash), iconName: "trash.fill", url: trashURL)
         ]
     }
 
-    var recentItems: [SidebarItem] {
-        var seen = Set<URL>()
-        var items: [SidebarItem] = []
-        for url in appState.navigation.historyBack.reversed() {
-            let std = url.standardizedFileURL
-            if !seen.contains(std), std != appState.navigation.currentURL.standardizedFileURL {
-                seen.insert(std)
-                items.append(sidebarItem(for: std))
-                if items.count >= LayoutTokens.maxRecentItemsCount {
-                    break
-                }
-            }
-        }
-        return items
-    }
-
     @State private var rootFolderNode: FolderNode?
     @State private var treeChildrenCache = BoundedFolderNodeCache()
+    @State private var treeBuildTimedOut = false
+    @State private var treeBuildGeneration = 0
 
     var body: some View {
         @Bindable var appState = appState
@@ -63,57 +53,66 @@ struct SidebarView: View {
                     maxWidth: proxy.size.width,
                     minHeight: proxy.size.height - LayoutTokens.scrollbarReservedThickness,
                     alignment: .topLeading)
-                .padding(.top, LayoutTokens.sidebarTrafficLightInset)
+                .padding(.top, Self.trafficLightInset)
                 .padding(.bottom, 12)
             }
             .background(ScrollerAutoHideSetter())
         }
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
-        .onHover { hovering in
-            guard appState.preferences.isSidebarCollapsed else { return }
-            collapseWorkItem?.cancel()
-            if hovering {
-                windowUIState.isSidebarPeeking = true
-            } else {
-                let workItem = DispatchWorkItem { windowUIState.isSidebarPeeking = false }
-                collapseWorkItem = workItem
-                DispatchQueue.main.asyncAfter(
-                    deadline: .now() + .milliseconds(LayoutTokens.sidebarPeekCollapseDelayMs), execute: workItem)
-            }
-        }
-        .task {
-            guard rootFolderNode == nil else { return }
-            let buildTask = Task.detached(priority: .userInitiated) { FolderNode.buildRootTree() }
-            // GCD timer, not a sibling Task: a stuck detached scan can starve the cooperative thread
-            // pool, and a `Task.sleep` timeout sharing that pool would starve right along with it.
-            let fallbackWorkItem = DispatchWorkItem {
-                guard rootFolderNode == nil else { return }
-                buildTask.cancel()
-                let root = URL(fileURLWithPath: "/")
-                rootFolderNode = FolderNode(id: root, name: "Root (/)", url: root, children: [], hasSubfolders: false)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 6, execute: fallbackWorkItem)
-            let node = await buildTask.value
-            guard rootFolderNode == nil else { return }
-            fallbackWorkItem.cancel()
-            rootFolderNode = node
-        }
-        .background(
-            ZStack {
-                TranslucentVisualEffectView(material: .sidebar)
-                Color(NSColor.windowBackgroundColor)
-                    .opacity(appState.preferences.sidebarOverlayOpacity)
-            }
-            .ignoresSafeArea())
+        .onHover(perform: handleSidebarHover)
+        .onDisappear { collapseWorkItem?.cancel() }
+        .task(id: treeBuildGeneration, buildDirectoryTree)
+        .translucentBackground(material: .sidebar, opacity: appState.preferences.sidebarOverlayOpacity, ignoresSafeArea: true)
         .overlay(alignment: .top) {
             Color.clear
                 .frame(maxWidth: .infinity)
-                .frame(height: LayoutTokens.sidebarDoubleClickZoneHeight)
+                .frame(height: Self.doubleClickZoneHeight)
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) {
                     NSApp.keyWindow?.zoom(nil)
                 }
         }
+    }
+
+    private func handleSidebarHover(_ hovering: Bool) {
+        guard appState.preferences.isSidebarCollapsed else { return }
+        collapseWorkItem?.cancel()
+        if hovering {
+            windowUIState.isSidebarPeeking = true
+        } else {
+            let workItem = DispatchWorkItem { windowUIState.isSidebarPeeking = false }
+            collapseWorkItem = workItem
+            DispatchQueue.main.asyncAfter(
+                deadline: .now() + .milliseconds(Self.peekCollapseDelayMs), execute: workItem)
+        }
+    }
+
+    /// Builds the directory tree in the background with a fallback placeholder after
+    /// `rootTreeFallbackTimeout`. The placeholder never blocks the real scan from replacing it once
+    /// it finishes — `retryTreeBuild()` also re-runs this via `treeBuildGeneration`.
+    private func buildDirectoryTree() async {
+        guard rootFolderNode == nil else { return }
+        treeBuildTimedOut = false
+        let buildTask = Task.detached(priority: .userInitiated) { FolderNode.buildRootTree() }
+        // GCD timer, not a sibling Task: a stuck detached scan can starve the cooperative thread
+        // pool, and a `Task.sleep` timeout sharing that pool would starve right along with it.
+        let fallbackWorkItem = DispatchWorkItem {
+            guard rootFolderNode == nil else { return }
+            treeBuildTimedOut = true
+            let root = URL(fileURLWithPath: "/")
+            rootFolderNode = FolderNode(id: root, name: appState.tr(.macintoshHDName), url: root, children: [], hasSubfolders: false)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.rootTreeFallbackTimeout, execute: fallbackWorkItem)
+        let node = await buildTask.value
+        fallbackWorkItem.cancel()
+        treeBuildTimedOut = false
+        rootFolderNode = node
+    }
+
+    private func retryTreeBuild() {
+        rootFolderNode = nil
+        treeBuildTimedOut = false
+        treeBuildGeneration += 1
     }
 
     private var favoriteItems: [SidebarItem] {
@@ -134,22 +133,25 @@ struct SidebarView: View {
 
         if appState.preferences.showRecents {
             let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
-            sidebarRow(for: recentsItem, sectionKey: "Recents")
+            sidebarRow(for: recentsItem, sectionKey: "RECENTS")
         }
         if appState.preferences.showFavorites, !favoriteItems.isEmpty {
             collapsibleSection(
                 title: appState.tr(.favorites), identifierKey: "FAVORITES",
-                isExpanded: $appState.preferences.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true)
+                isExpanded: $appState.preferences.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true,
+                hideAction: { appState.preferences.showFavorites = false })
         }
         if appState.preferences.showNetworkAndCloud {
             collapsibleSection(
                 title: appState.tr(.networkAndCloud), identifierKey: "NETWORK",
-                isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false)
+                isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false,
+                hideAction: { appState.preferences.showNetworkAndCloud = false })
         }
         if appState.preferences.showPlaces {
             collapsibleSection(
                 title: appState.tr(.places), identifierKey: "PLACES",
-                isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false)
+                isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false,
+                hideAction: { appState.preferences.showPlaces = false })
         }
         // The tree/tags/smart-folder sections have their own nested structure that doesn't reduce
         // to a flat icon list, so they're skipped in the collapsed rail rather than shown.
@@ -157,7 +159,8 @@ struct SidebarView: View {
             if appState.preferences.showDirectoryTree {
                 DirectoryTreeSectionView(
                     appState: appState, isExpanded: $appState.preferences.isTreeExpanded,
-                    rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache)
+                    rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache,
+                    didTimeOut: treeBuildTimedOut, onRetry: retryTreeBuild)
             }
             if appState.preferences.showTags {
                 TagsSectionView(appState: appState, isExpanded: $appState.preferences.isTagsExpanded)
@@ -171,57 +174,57 @@ struct SidebarView: View {
         }
     }
 
-    private func shouldShowSectionItems(isExpanded: Bool) -> Bool {
-        isCompact || !appState.preferences.showSidebarSectionTitles || isExpanded
-    }
-
     private func collapsibleSection(
         title: String,
         identifierKey: String,
         isExpanded: Binding<Bool>,
         items: [SidebarItem],
-        isFavoritesSection: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if appState.preferences.showSidebarSectionTitles, !isCompact {
-                SidebarSectionHeaderView(title: title, identifierKey: identifierKey, appState: appState, isExpanded: isExpanded)
-            }
-            if shouldShowSectionItems(isExpanded: isExpanded.wrappedValue) {
+        isFavoritesSection: Bool = false,
+        hideAction: (() -> Void)? = nil) -> some View {
+        SidebarSectionContainer(
+            appState: appState, title: title, identifierKey: identifierKey, isExpanded: isExpanded,
+            hideHeader: isCompact, forceShowContent: isCompact, hideAction: hideAction) {
                 ForEach(items) { item in
-                    sidebarRow(for: item, sectionKey: title, isFavoritesSection: isFavoritesSection)
+                    sidebarRow(for: item, sectionKey: identifierKey, isFavoritesSection: isFavoritesSection)
                 }
             }
-        }
     }
 
-    private func sidebarItem(for url: URL) -> SidebarItem {
+    /// Path -> (localization key, icon) for well-known folders, built once since `URL.userHome`
+    /// is fixed for the process. Avoids re-constructing ~9 URLs via `appendingPathComponent`
+    /// on every sidebar row on every render.
+    private static let wellKnownPaths: [String: (key: L10n.Key, icon: String)] = {
         let home = URL.userHome.standardizedFileURL
-        let std = url.standardizedFileURL
-        let path = std.path
+        return [
+            home.path: (.home, "house.fill"),
+            home.appendingPathComponent("Desktop").path: (.desktop, "desktopcomputer"),
+            home.appendingPathComponent("Documents").path: (.sidebarDocuments, "doc.fill"),
+            home.appendingPathComponent("Downloads").path: (.downloads, "arrow.down.circle.fill"),
+            "/Applications": (.applications, "square.grid.3x3.fill"),
+            home.appendingPathComponent("Music").path: (.music, "music.note"),
+            home.appendingPathComponent("Pictures").path: (.pictures, "photo.fill"),
+            home.appendingPathComponent("Movies").path: (.movies, "film.fill"),
+            URL.userTrash.standardizedFileURL.path: (.sidebarTrash, "trash.fill"),
+            "/": (.macintoshHDName, "internaldrive.fill")
+        ]
+    }()
 
-        if url == AppState.recentsVirtualURL || std.absoluteString == AppState.recentsVirtualURL.absoluteString {
+    private func sidebarItem(for url: URL) -> SidebarItem {
+        let std = url.standardizedFileURL
+
+        if std == AppState.recentsVirtualURL.standardizedFileURL {
             return SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: std)
         }
-        if let wellKnown = wellKnownSidebarInfo(forPath: path, home: home) {
+        if let wellKnown = wellKnownSidebarInfo(forPath: std.path) {
             return SidebarItem(name: wellKnown.name, iconName: wellKnown.icon, url: std)
         }
         let name = std.lastPathComponent.isEmpty ? "/" : std.lastPathComponent
         return SidebarItem(name: name, iconName: "folder.fill", url: std)
     }
 
-    private func wellKnownSidebarInfo(forPath path: String, home: URL) -> (name: String, icon: String)? {
-        switch path {
-        case home.path: (appState.tr(.home), "house.fill")
-        case home.appendingPathComponent("Desktop").path: (appState.tr(.desktop), "desktopcomputer")
-        case home.appendingPathComponent("Documents").path: (appState.tr(.sidebarDocuments), "doc.fill")
-        case home.appendingPathComponent("Downloads").path: (appState.tr(.downloads), "arrow.down.circle.fill")
-        case "/Applications": (appState.tr(.applications), "square.grid.3x3.fill")
-        case home.appendingPathComponent("Music").path: (appState.tr(.music), "music.note")
-        case home.appendingPathComponent("Pictures").path: (appState.tr(.pictures), "photo.fill")
-        case home.appendingPathComponent("Movies").path: (appState.tr(.movies), "film.fill")
-        case home.appendingPathComponent(".Trash").path: (appState.tr(.sidebarTrash), "trash.fill")
-        case "/": (appState.tr(.macintoshHDName), "internaldrive.fill")
-        default: nil
-        }
+    private func wellKnownSidebarInfo(forPath path: String) -> (name: String, icon: String)? {
+        guard let entry = Self.wellKnownPaths[path] else { return nil }
+        return (appState.tr(entry.key), entry.icon)
     }
 
     private func sidebarRow(for item: SidebarItem, sectionKey: String, isFavoritesSection: Bool = false) -> some View {

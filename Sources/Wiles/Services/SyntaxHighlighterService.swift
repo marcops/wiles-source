@@ -16,35 +16,29 @@ public struct SyntaxHighlighterService: Sendable {
             return attributed
         }
 
-        highlightKeywords(in: &attributed, content: truncatedContent)
-        highlightStrings(in: &attributed, content: truncatedContent)
-        highlightComments(in: &attributed, content: truncatedContent)
+        applyColor(regex: Self.keywordsRegex, color: .systemPink, in: &attributed, content: truncatedContent)
+        applyColor(regex: Self.stringsRegex, color: .systemOrange, in: &attributed, content: truncatedContent)
+        applyColor(regex: Self.slashCommentRegex, color: .systemGreen, in: &attributed, content: truncatedContent)
+        applyColor(regex: Self.hashCommentRegex, color: .systemGreen, in: &attributed, content: truncatedContent)
 
         return attributed
     }
 
-    private static func highlightKeywords(in attributed: inout AttributedString, content: String) {
-        let keywords = [
-            "func", "var", "let", "class", "struct", "import", "return", "if", "else", "for", "in",
-            "while", "guard", "public", "private", "true", "false", "def", "self", "function", "const"
-        ]
-        for kw in keywords {
-            let pattern = "\\b\(kw)\\b"
-            applyColor(pattern: pattern, color: .systemPink, in: &attributed, content: content)
-        }
-    }
+    private static let keywords = [
+        "func", "var", "let", "class", "struct", "import", "return", "if", "else", "for", "in",
+        "while", "guard", "public", "private", "true", "false", "def", "self", "function", "const"
+    ]
 
-    private static func highlightStrings(in attributed: inout AttributedString, content: String) {
-        applyColor(pattern: "\"[^\"]*\"", color: .systemOrange, in: &attributed, content: content)
-    }
+    /// Compiled once and reused across every highlight call: one alternation pass over all
+    /// keywords instead of a separate NSRegularExpression scan per keyword.
+    private static let keywordsRegex = try? NSRegularExpression(
+        pattern: "\\b(\(keywords.joined(separator: "|")))\\b", options: [.anchorsMatchLines])
+    private static let stringsRegex = try? NSRegularExpression(pattern: "\"[^\"]*\"", options: [.anchorsMatchLines])
+    private static let slashCommentRegex = try? NSRegularExpression(pattern: "//.*$", options: [.anchorsMatchLines])
+    private static let hashCommentRegex = try? NSRegularExpression(pattern: "#.*$", options: [.anchorsMatchLines])
 
-    private static func highlightComments(in attributed: inout AttributedString, content: String) {
-        applyColor(pattern: "//.*$", color: .systemGreen, in: &attributed, content: content)
-        applyColor(pattern: "#.*$", color: .systemGreen, in: &attributed, content: content)
-    }
-
-    private static func applyColor(pattern: String, color: NSColor, in attributed: inout AttributedString, content: String) {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else { return }
+    private static func applyColor(regex: NSRegularExpression?, color: NSColor, in attributed: inout AttributedString, content: String) {
+        guard let regex else { return }
         let matches = regex.matches(in: content, options: [], range: NSRange(location: 0, length: content.utf16.count))
         for match in matches {
             if let range = Range(match.range, in: content),

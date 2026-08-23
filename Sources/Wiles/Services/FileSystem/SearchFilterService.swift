@@ -93,7 +93,7 @@ public struct SearchFilterService: Sendable {
         }
 
         let (op, valueStr) = splitOperator(from: lower)
-        guard let num = Int(valueStr.compactMap { $0.isNumber ? $0 : nil }.map(String.init).joined()) else { return false }
+        guard let num = Int(valueStr.filter(\.isNumber)) else { return false }
         let unit = valueStr.filter(\.isLetter)
         let seconds = dateFilterSeconds(num: num, unit: unit)
 
@@ -180,7 +180,7 @@ public struct SearchFilterService: Sendable {
         case "pdf":
             return ext == "pdf"
         case "folder", "dir", "directory":
-            return (try? fileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+            return (try? fileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
         case "archive", "zip":
             return ["zip", "tar", "gz", "7z", "rar", "bz2"].contains(ext)
         default:

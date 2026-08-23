@@ -36,7 +36,7 @@ public struct NewFileTemplateTests {
     }
 
     // POS: a file name with no extension at all gets the template's extension appended
-    // (covers the `!targetURL.pathExtension.isEmpty == false` branch, which is true when there's no extension)
+    // (covers the `!targetURL.pathExtension.isEmpty` branch evaluating to false, which is true when there's no extension)
     private static func testCreateTemplateFileWithoutExtensionAppendsTemplateExtension(tempDir: URL) {
         let url = try? NewFileTemplateService.createTemplateFile(in: tempDir, fileName: "NoExtensionName", template: .python)
         let matches = url?.pathExtension == FileTemplate.python.rawValue && url?.lastPathComponent == "NoExtensionName.py"

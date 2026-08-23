@@ -26,14 +26,14 @@ public struct BackgroundOperationsTests {
 
     private static func testUpdateProgressMutatesTheCorrectTask() {
         let service = BackgroundOperationsService.shared
-        let idA = service.addTask(title: "Task A")
-        let idB = service.addTask(title: "Task B")
+        let idA = service.addTask(title: "Task A", totalBytes: 1000)
+        let idB = service.addTask(title: "Task B", totalBytes: 1000)
         defer {
             service.completeTask(id: idA)
             service.completeTask(id: idB)
         }
 
-        service.updateProgress(id: idA, progress: 0.5, bytesTransferred: 500)
+        service.updateProgress(id: idA, bytesTransferred: 500)
 
         let taskA = service.activeTasks.first(where: { $0.id == idA })
         let taskB = service.activeTasks.first(where: { $0.id == idB })
@@ -47,7 +47,7 @@ public struct BackgroundOperationsTests {
     private static func testUpdateProgressForUnknownIdIsANoOp() {
         let service = BackgroundOperationsService.shared
         let before = service.activeTasks
-        service.updateProgress(id: UUID(), progress: 0.9)
+        service.updateProgress(id: UUID(), bytesTransferred: 900)
         report(
             "BackgroundOperations",
             "NEG: updateProgress() with an unknown id does not crash or mutate existing tasks",

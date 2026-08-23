@@ -8,27 +8,51 @@ struct PasswordCompressSheetView: View {
     @Environment(\.dismiss)
     private var dismiss
     @State private var password: String = ""
+    @State private var confirmPassword: String = ""
+
+    private var urls: [URL] {
+        windowUIState.passwordCompressURLs ?? []
+    }
+
+    private var passwordsMatch: Bool {
+        password == confirmPassword
+    }
+
+    private var canSubmit: Bool {
+        !password.isEmpty && passwordsMatch && !urls.isEmpty
+    }
 
     var body: some View {
         ModalScaffoldView(
             icon: .symbol("lock.fill"),
             title: appState.tr(.compressWithPassword),
+            subtitle: appState.tr(.passwordCompressSubtitle),
             width: 300,
             primaryButton: ModalFooterButton(
                 title: appState.tr(.confirm),
-                isEnabled: !password.isEmpty) {
-                    appState.compressSelectedToZIPWithPassword(password, urls: windowUIState.passwordCompressURLs)
+                isEnabled: canSubmit) {
+                    appState.compressSelectedToZIPWithPassword(password, urls: urls)
                     dismiss()
                 },
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
-            content: { passwordField })
+            content: { passwordFields })
     }
 
-    private var passwordField: some View {
-        SecureField(appState.tr(.enterPassword), text: $password)
-            .textFieldStyle(.roundedBorder)
-            .padding(20)
-            .accessibilityLabel(appState.tr(.enterPassword))
-            .accessibilityHint(appState.tr(.archivePasswordFieldHint))
+    private var passwordFields: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SecureField(appState.tr(.enterPassword), text: $password)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel(appState.tr(.enterPassword))
+                .accessibilityHint(appState.tr(.archivePasswordFieldHint))
+            SecureField(appState.tr(.confirmPassword), text: $confirmPassword)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel(appState.tr(.confirmPassword))
+            if !confirmPassword.isEmpty, !passwordsMatch {
+                Text(appState.tr(.passwordMismatchHint))
+                    .font(.system(size: 11))
+                    .foregroundColor(.red)
+            }
+        }
+        .padding(20)
     }
 }

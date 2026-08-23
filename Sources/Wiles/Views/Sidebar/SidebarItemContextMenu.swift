@@ -12,19 +12,9 @@ struct SidebarItemContextMenu: View {
 
     var body: some View {
         Button(appState.tr(.open)) { appState.navigateTo(url) }
+        Button(appState.tr(.showInFinder)) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         Menu(appState.tr(.copyPath)) {
-            Button(appState.tr(.copyPathAbsolute)) {
-                CopyPathService.copy(urls: [url], variant: .absolute)
-            }
-            Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(urls: [url], variant: .relative, relativeTo: appState.navigation.currentURL)
-            }
-            Button(appState.tr(.copyPathURL)) {
-                CopyPathService.copy(urls: [url], variant: .fileURL)
-            }
-            Button(appState.tr(.copyPathTerminal)) {
-                CopyPathService.copy(urls: [url], variant: .terminalEscaped)
-            }
+            CopyPathMenuContent(urls: [url], relativeTo: appState.navigation.currentURL, appState: appState)
         }
         Divider()
         Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {

@@ -3,23 +3,42 @@ import QuickLook
 import SwiftUI
 
 struct MainContentView: View {
+    private static let sidebarMaxWidth: CGFloat = 260.0
+    private static let sidebarCollapsedWidth: CGFloat = 48.0
+    private static let sidebarWidthSaveDebounceMs: Int = 400
+    private static let contentMinWidth: CGFloat = 400.0
+    private static let windowMinWidth: CGFloat = 650.0
+    private static let windowMinHeight: CGFloat = 450.0
+    private static let diskUsageSidebarMinWidth: CGFloat = 240.0
+    private static let previewSidebarMinWidth: CGFloat = 200.0
+    private static let terminalDrawerHeight: CGFloat = 200.0
+
     let sharedPreferences: PreferencesStore
-    let sharedModal: ModalStore
     let sharedTransient: TransientStore
     @State private var appState: AppState
-    @State private var windowUIState = WindowUIState()
+    @State private var windowUIState: WindowUIState
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
 
     /// Constructs `AppState` directly with the shared stores it needs, instead of default-
     /// initializing throwaway stores and swapping them in later — a default `AppState()` would run
     /// its own Trash scan and smart-folder reload only to discard the result immediately.
-    init(sharedPreferences: PreferencesStore, sharedModal: ModalStore, sharedTransient: TransientStore) {
+    /// `ModalStore` (error alert state) is deliberately *not* one of the shared stores passed in
+    /// here — each window gets its own fresh instance, since it holds a window-scoped, user-
+    /// initiated action's error, not app-wide state (see `WindowUIState`'s doc comment on this
+    /// exact bug class).
+    ///
+    /// Deliberately does NOT call `refreshCurrentDirectory()` here. `init()` runs on *every*
+    /// reconstruction of this struct value (i.e. every time the parent view re-renders it) — that's
+    /// normal, cheap SwiftUI behavior for the struct itself, but calling a real disk-scanning
+    /// refresh here means every single one of those re-renders kicks off a full directory
+    /// scan/icon-load on a throwaway `AppState` that's immediately discarded (`@State` only keeps
+    /// its *first* `initialValue` per view identity), pegging CPU with wasted work. The refresh
+    /// instead runs from `.task` below, which SwiftUI guarantees fires once per view identity.
+    init(sharedPreferences: PreferencesStore, sharedTransient: TransientStore) {
         self.sharedPreferences = sharedPreferences
-        self.sharedModal = sharedModal
         self.sharedTransient = sharedTransient
-        let newAppState = AppState(preferences: sharedPreferences, modal: sharedModal, transient: sharedTransient)
-        newAppState.refreshCurrentDirectory()
-        _appState = State(initialValue: newAppState)
+        _appState = State(initialValue: AppState(preferences: sharedPreferences, modal: ModalStore(), transient: sharedTransient))
+        _windowUIState = State(initialValue: WindowUIState(preferences: sharedPreferences))
     }
 
     var body: some View {
@@ -31,6 +50,8 @@ struct MainContentView: View {
         .focusedSceneValue(\.windowUIState, windowUIState)
         .focusedSceneValue(\.appState, appState)
         .focusedSceneValue(\.isTextFieldEditingActive, windowUIState.renameItem != nil || windowUIState.isEditingPath)
+        .task { appState.refreshCurrentDirectory() }
+        .onDisappear { appState.fileSystem.tearDown() }
     }
 
     /// The primary sidebar/content split plus its full modifier chain (window sizing, Quick Look,
@@ -45,7 +66,7 @@ struct MainContentView: View {
             contentColumn
         }
         .ignoresSafeArea(.all, edges: .top)
-        .frame(minWidth: effectiveWindowMinWidth, maxWidth: .infinity, minHeight: LayoutTokens.windowMinHeight, maxHeight: .infinity)
+        .frame(minWidth: effectiveWindowMinWidth, maxWidth: .infinity, minHeight: Self.windowMinHeight, maxHeight: .infinity)
         .quickLookPreview($windowUIState.quickLookURL)
         .onChange(of: appState.navigation.currentURL) { oldURL, newURL in
             windowUIState.cancelRenameIfNavigated(from: oldURL, to: newURL)
@@ -88,12 +109,12 @@ struct MainContentView: View {
         if appState.preferences.hasVisibleSidebarContent {
             SidebarView(appState: appState)
                 .frame(
-                    minWidth: isSidebarRail ? LayoutTokens.sidebarCollapsedWidth : LayoutTokens.sidebarMinWidth,
-                    idealWidth: isSidebarRail ? LayoutTokens.sidebarCollapsedWidth : CGFloat(appState.preferences.sidebarWidth),
-                    maxWidth: isSidebarRail ? LayoutTokens.sidebarCollapsedWidth : LayoutTokens.sidebarMaxWidth,
+                    minWidth: isSidebarRail ? Self.sidebarCollapsedWidth : LayoutTokens.sidebarMinWidth,
+                    idealWidth: isSidebarRail ? Self.sidebarCollapsedWidth : CGFloat(windowUIState.sidebarWidth),
+                    maxWidth: isSidebarRail ? Self.sidebarCollapsedWidth : Self.sidebarMaxWidth,
                     maxHeight: .infinity)
                 .background(sidebarWidthTracker)
-                .background(SplitViewDividerSetter(position: CGFloat(appState.preferences.sidebarWidth)))
+                .background(SplitViewDividerSetter(position: CGFloat(windowUIState.sidebarWidth)))
                 .layoutPriority(0)
         }
     }
@@ -105,7 +126,7 @@ struct MainContentView: View {
             terminalDrawer
             footer
         }
-        .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minWidth: Self.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.all, edges: .top)
         .background(contentTranslucentBackground)
         .layoutPriority(1)
@@ -114,7 +135,7 @@ struct MainContentView: View {
     private var contentAndInspectorRow: some View {
         HSplitView {
             contentArea
-                .frame(minWidth: LayoutTokens.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
+                .frame(minWidth: Self.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
                 .background(contentTranslucentBackground)
             inspectorPane
         }
@@ -122,10 +143,10 @@ struct MainContentView: View {
     }
 
     @ViewBuilder private var inspectorPane: some View {
-        if appState.preferences.showDiskUsageSidebar {
+        if windowUIState.showDiskUsageSidebar {
             DiskUsageSidebarView(appState: appState)
                 .frame(maxHeight: .infinity)
-        } else if appState.preferences.showPreviewSidebar {
+        } else if windowUIState.showPreviewSidebar {
             PreviewSidebarView(appState: appState)
                 .frame(maxHeight: .infinity)
         }
@@ -138,17 +159,17 @@ struct MainContentView: View {
     /// toward center. The PTY process itself survives unmount via TerminalViewCache, so
     /// removing the view here doesn't crash or leave anything running orphaned.
     @ViewBuilder private var terminalDrawer: some View {
-        if appState.preferences.showTerminalDrawer {
+        if windowUIState.showTerminalDrawer {
             Divider()
             IntegratedTerminalView(appState: appState, windowUIState: windowUIState)
-                .frame(height: LayoutTokens.terminalDrawerHeight)
+                .frame(height: Self.terminalDrawerHeight)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
     @ViewBuilder private var footer: some View {
         if appState.preferences.showFooter {
-            FooterBarView(appState: appState)
+            FooterBarView(appState: appState, windowUIState: windowUIState)
         }
     }
 
@@ -158,14 +179,14 @@ struct MainContentView: View {
     /// combined, and `HSplitView` has nowhere to take the missing width from except by crushing
     /// a pane below its own declared `.frame(minWidth:)`.
     private var effectiveWindowMinWidth: CGFloat {
-        let inspectorMinWidth: CGFloat = if appState.preferences.showDiskUsageSidebar {
-            LayoutTokens.diskUsageSidebarMinWidth
-        } else if appState.preferences.showPreviewSidebar {
-            LayoutTokens.previewSidebarMinWidth
+        let inspectorMinWidth: CGFloat = if windowUIState.showDiskUsageSidebar {
+            Self.diskUsageSidebarMinWidth
+        } else if windowUIState.showPreviewSidebar {
+            Self.previewSidebarMinWidth
         } else {
             0
         }
-        return LayoutTokens.windowMinWidth + inspectorMinWidth
+        return Self.windowMinWidth + inspectorMinWidth
     }
 
     private var contentTranslucentBackground: some View {
@@ -190,9 +211,9 @@ struct MainContentView: View {
         guard newWidth > 0, !isSidebarRail else { return }
         sidebarWidthSaveTask?.cancel()
         sidebarWidthSaveTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(LayoutTokens.sidebarWidthSaveDebounceMs))
+            try? await Task.sleep(for: .milliseconds(Self.sidebarWidthSaveDebounceMs))
             guard !Task.isCancelled else { return }
-            appState.preferences.sidebarWidth = Double(newWidth)
+            windowUIState.sidebarWidth = Double(newWidth)
         }
     }
 

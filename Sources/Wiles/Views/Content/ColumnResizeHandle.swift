@@ -48,7 +48,7 @@ struct ColumnResizeHandle: View {
                 }
                 .onEnded { _ in
                     dragStartWidth = nil
-                    appState.persistColumnWidths()
+                    appState.preferences.saveListColumnStates()
                 })
         .cursor(.resizeLeftRight)
     }
