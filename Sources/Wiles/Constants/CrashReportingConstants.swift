@@ -7,10 +7,11 @@ public enum CrashReportingConstants {
     public static let githubOwner = "marcops"
     public static let githubRepo = "wiles"
 
-    /// Fine-grained GitHub Personal Access Token, scoped to `githubRepo` only,
-    /// with `Issues: Read and write` and nothing else. Read from the `WILES_GITHUB_TOKEN`
-    /// environment variable (set it in your local shell profile or Xcode scheme) rather than
-    /// hardcoded in source — until it's set, GitBeacon still captures and stores reports locally,
-    /// it just can't deliver them.
-    public static let githubToken = ProcessInfo.processInfo.environment["WILES_GITHUB_TOKEN"] ?? ""
+    /// Fine-grained GitHub Personal Access Token, scoped to `githubRepo` only, with `Issues: Read
+    /// and write` and nothing else. Deliberately hardcoded, not read from an env var/Keychain: no
+    /// paid Apple Developer account means no Xcode-managed signing/provisioning to inject secrets
+    /// at build time for distributed release builds, so this is the only way a shipped .app can
+    /// actually deliver crash reports. Keep it hardcoded here — do not move it to an env var.
+    public static let githubToken =
+        "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" // swiftlint:disable:this no_hardcoded_secrets
 }
