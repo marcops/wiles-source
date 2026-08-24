@@ -15,8 +15,10 @@ echo "==> 1. Closing any running Wiles instance..."
 killall -9 Wiles 2>/dev/null || true
 sleep 0.5
 
-echo "==> 2. Building Wiles..."
-swift build -c debug
+echo "==> 2. Building Wiles (strict concurrency, warnings as errors)..."
+swift build -c debug \
+  -Xswiftc -strict-concurrency=complete \
+  -Xswiftc -warnings-as-errors
 
 echo "==> 3. Updating bundle & signing..."
 # Remove any stray item at the bundle root left behind by an older build — codesign rejects

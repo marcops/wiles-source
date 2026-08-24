@@ -28,11 +28,15 @@ section() {
   STEP_START=$SECONDS
 }
 
-section "swift build -c release (zero warnings required)"
-swift build -c release --arch arm64 2>&1 | tee /tmp/wiles_build.log
-if grep -qi "warning:" /tmp/wiles_build.log; then
-  echo "FAIL: build produced warnings:"
-  grep -i "warning:" /tmp/wiles_build.log
+section "swift build -c release (zero warnings required, strict concurrency, warnings as errors)"
+swift build -c release --arch arm64 \
+  -Xswiftc -strict-concurrency=complete \
+  -Xswiftc -warnings-as-errors \
+  2>&1 | tee /tmp/wiles_build.log
+BUILD_STATUS=$?
+if [[ "$BUILD_STATUS" -ne 0 ]] || grep -qi "warning:" /tmp/wiles_build.log; then
+  echo "FAIL: build failed or produced warnings:"
+  grep -i "warning:\|error:" /tmp/wiles_build.log
   FAILED=1
 else
   echo "swift build OK"

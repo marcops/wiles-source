@@ -98,18 +98,20 @@ public extension AppState {
             let taskID = await MainActor.run { BackgroundOperationsService.shared.addTask(title: titleKey, totalBytes: Int64(urls.count)) }
             let context = PasteContext(targetFolder: targetFolder, isCut: isCut, undoRedoService: undoRedoService, taskID: taskID, owner: self)
             let (failureCount, movedDestinations) = await Self.pasteAllItems(urls: urls, context: context)
+            // swiftformat:disable redundantSelf
             await MainActor.run { [weak self] in
                 BackgroundOperationsService.shared.completeTask(id: taskID)
                 guard let self else { return }
                 if isCut, !movedDestinations.isEmpty {
-                    selection.selectedURLs = Set(movedDestinations)
+                    self.selection.selectedURLs = Set(movedDestinations)
                 }
                 if failureCount > 0 {
-                    showError(WilesError.operationFailed(
+                    self.showError(WilesError.operationFailed(
                         reason: "\(failureCount) of \(urls.count) items could not be pasted."))
                 }
-                refreshCurrentDirectory()
+                self.refreshCurrentDirectory()
             }
+            // swiftformat:enable redundantSelf
         }
     }
 

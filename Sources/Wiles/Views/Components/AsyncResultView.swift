@@ -16,7 +16,7 @@ import SwiftUI
 /// backing data never changes for the sheet's lifetime) can omit `id` via the `ID == Int`
 /// convenience initializer below, which behaves like the bare `.task { ... }` (no `id:`) each of
 /// those call sites used before.
-struct AsyncResultView<Result, ID: Equatable, Loading: View, Empty: View, Content: View>: View {
+struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: View, Content: View>: View {
     let id: ID
     let operation: () async -> Result
     let isEmpty: (Result) -> Bool

@@ -68,12 +68,17 @@ public extension AppState {
                     preset: preset,
                     cropPreset: cropPreset,
                     quality: quality)
+                // A CI toolchain version needs these qualified explicitly inside this nested
+                // weak-self closure even though this one compiles fine unqualified locally —
+                // don't let swiftformat's --self remove strip them back out.
+                // swiftformat:disable redundantSelf
                 await MainActor.run { [weak self] in
                     guard let self else { return }
-                    undoRedoService.recordAction(.createFile(url: newURL))
-                    refreshCurrentDirectory()
-                    selection.selectedURLs = [newURL]
+                    self.undoRedoService.recordAction(.createFile(url: newURL))
+                    self.refreshCurrentDirectory()
+                    self.selection.selectedURLs = [newURL]
                 }
+                // swiftformat:enable redundantSelf
             } catch {
                 ErrorReporter.report(error, context: "Converting image")
                 await MainActor.run { [weak self] in
@@ -103,17 +108,19 @@ public extension AppState {
         Task.detached(priority: .userInitiated) { [weak self] in
             do {
                 let result = try await BatchRenameService.performBatchRename(items: items, mode: mode)
+                // swiftformat:disable redundantSelf
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     for pair in result.renamedPairs {
-                        undoRedoService.recordAction(.rename(oldURL: pair.old, newURL: pair.new))
+                        self.undoRedoService.recordAction(.rename(oldURL: pair.old, newURL: pair.new))
                     }
-                    refreshCurrentDirectory()
-                    selection.selectedURLs = Set(result.renamedURLs)
+                    self.refreshCurrentDirectory()
+                    self.selection.selectedURLs = Set(result.renamedURLs)
                     if let message = result.failureSummaryMessage {
-                        showError(message)
+                        self.showError(message)
                     }
                 }
+                // swiftformat:enable redundantSelf
             } catch {
                 ErrorReporter.report(error, context: "Batch renaming items")
                 await MainActor.run { [weak self] in

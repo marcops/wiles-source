@@ -1,3 +1,26 @@
+colocar no build
+
+Ordem	Feature	Ganho	Dificuldade	Minha recomendação
+1	-warnings-as-errors	🔴 Muito alto	🟢 Baixa	Agora
+2	-strict-concurrency=complete	🔴 Muito alto	🟠 Média/Alta	Agora
+3	RegionBasedIsolation	🔴 Alto	🟠 Média	Próximo
+4	DynamicActorIsolation	🔴 Alto	🟠 Média	Próximo
+5	GlobalConcurrency	🔴 Alto	🟠 Média	Próximo
+6	InferSendableFromCaptures	🔴 Alto	🟡 Baixa/Média	Próximo
+7	DisableOutwardActorInference	🟠 Alto	🟡 Baixa/Média	Próximo
+8	IsolatedDefaultValues	🟠 Alto	🟡 Média	Depois
+9	NonfrozenEnumExhaustivity	🟠 Médio/Alto	🟢 Baixa	Depois
+10	GlobalActorIsolatedTypesUsability	🟠 Médio/Alto	🟡 Baixa/Média	Depois
+11	ImplicitOpenExistentials	🟡 Médio	🟢 Baixa	Depois
+12	ExistentialAny	🟡 Médio	🔴 Alta	Auditoria
+13	MemberImportVisibility	🟡 Médio	🟠 Média/Alta	Auditoria
+14	InferIsolatedConformances	🟡 Médio	🟠 Média/Alta	Auditoria
+15	NonisolatedNonsendingByDefault	🟠 Alto	🔴 Alta	Auditoria posterior
+16	InternalImportsByDefault	🟡 Médio	🔴 Alta	Auditoria
+17	ImmutableWeakCaptures	🟢 Baixo/Médio	🟡 Média	Baixa prioridade
+18	StrictMemorySafety	🔴 Potencialmente enorme
+
+adicionar no build
 ## Low priority / undecided
 
 -  o gridview tem que mostrar 2 linhas igual o ifinder se o texto for muito grande, e se for maior que isto ai sim coloca os 3 ppontos
