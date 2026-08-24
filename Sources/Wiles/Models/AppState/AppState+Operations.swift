@@ -130,7 +130,7 @@ public extension AppState {
                     // MainActor), so it can't be reused for this loop — only the MainActor-only
                     // favorites sync is shared via remapFavorites below.
                     let destURL = try await FileSystemService.moveItem(at: url, toFolder: context.targetFolder)
-                    await context.undoRedoService.recordAction(.move(sourceURL: url, destinationURL: destURL))
+                    context.undoRedoService.recordAction(.move(sourceURL: url, destinationURL: destURL))
                     await MainActor.run { context.owner?.remapFavorites(from: url, to: destURL) }
                     movedDestinations.append(destURL)
                 } else {

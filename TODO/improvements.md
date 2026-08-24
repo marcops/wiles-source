@@ -1,4 +1,31 @@
-colocar no build
+colocar no build vakudate, release (gh), push and relunch
+
+FASE 1
+warnings-as-errors
+strict-concurrency=complete
+        ↓
+FASE 2
+RegionBasedIsolation
+DynamicActorIsolation
+GlobalConcurrency
+InferSendableFromCaptures
+        ↓
+FASE 3
+DisableOutwardActorInference
+IsolatedDefaultValues
+NonfrozenEnumExhaustivity
+GlobalActorIsolatedTypesUsability
+ImplicitOpenExistentials
+        ↓
+FASE 4
+ExistentialAny
+MemberImportVisibility
+InferIsolatedConformances
+NonisolatedNonsendingByDefault
+InternalImportsByDefault
+        ↓
+FASE 5
+StrictMemorySafety
 
 Ordem	Feature	Ganho	Dificuldade	Minha recomendação
 1	-warnings-as-errors	🔴 Muito alto	🟢 Baixa	Agora

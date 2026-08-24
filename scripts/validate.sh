@@ -29,6 +29,10 @@ section() {
 }
 
 section "swift build -c release (zero warnings required, strict concurrency, warnings as errors)"
+# SPM's incremental build does not always re-run diagnostics on unchanged files just because
+# -Xswiftc flags changed, so a warm .build/ can silently hide a warning this exact build would
+# catch on CI's always-fresh checkout — wipe it here so this step has the same fidelity as CI.
+rm -rf .build
 swift build -c release --arch arm64 \
   -Xswiftc -strict-concurrency=complete \
   -Xswiftc -warnings-as-errors \
