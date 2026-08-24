@@ -73,28 +73,32 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         }
         queryObserver = NotificationCenter.default
             .addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
-                MainActor.assumeIsolated {
+                // `NSNotification`/`NSMetadataQuery` handling stays outside any actor-hop closure —
+                // neither is Sendable, and `MainActor.assumeIsolated`'s manual assertion doesn't
+                // prove that to the region-based isolation checker on every Swift toolchain version
+                // (CI runs an older one than local) the way an actual `await`/`Task { @MainActor }`
+                // hop does. Extract the plain data first, then hop once for the `self`-touching part.
+                guard let query = notification.object as? NSMetadataQuery else {
+                    completion([])
+                    return
+                }
+                query.stop()
+                guard let results = query.results as? [NSMetadataItem] else {
+                    completion([])
+                    return
+                }
+                let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
+                Task { @MainActor [weak self] in
                     guard let self else { return }
                     if let observer = self.queryObserver {
                         NotificationCenter.default.removeObserver(observer)
                         self.queryObserver = nil
                     }
-                }
-                guard let query = notification.object as? NSMetadataQuery else { completion([])
-                    return
-                }
-                query.stop()
-                guard let results = query.results as? [NSMetadataItem] else { completion([])
-                    return
-                }
-                let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-                Self.fetchFileItems(forPaths: paths) { [weak self] items in
-                    // fetchFileItems always invokes this via `await MainActor.run`, so it's safe
-                    // to touch MainActor-isolated state here despite the closure's inferred
-                    // `@Sendable` type — matches the `MainActor.assumeIsolated` use just above.
-                    MainActor.assumeIsolated {
-                        guard let self, self.currentQueryToken == token else { return }
-                        completion(items)
+                    Self.fetchFileItems(forPaths: paths) { [weak self] items in
+                        Task { @MainActor in
+                            guard let self, self.currentQueryToken == token else { return }
+                            completion(items)
+                        }
                     }
                 }
             }
