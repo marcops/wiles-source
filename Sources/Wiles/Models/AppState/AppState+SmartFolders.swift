@@ -33,7 +33,8 @@ public extension AppState {
         let target = navigation.currentURL
         SmartFolderService.shared.executeQuery(for: folder) { [weak self] items in
             Task { @MainActor in
-                self?.applyLoadedItems(items, target: target)
+                guard let self else { return }
+                self.applyLoadedItems(items, target: target)
             }
         }
     }

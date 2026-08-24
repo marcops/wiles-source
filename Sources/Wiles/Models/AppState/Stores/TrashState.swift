@@ -84,13 +84,24 @@ public final class TrashState {
             switch Self.computeTrashSize() {
             case let .success(totalSize):
                 let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
+                // A CI toolchain version needs these qualified explicitly inside this nested
+                // weak-self closure even though this one compiles fine unqualified locally —
+                // don't let swiftformat's --self remove strip them back out.
+                // swiftformat:disable redundantSelf
                 await MainActor.run { [weak self] in
-                    self?.sizeString = sizeStr
-                    self?.sizeBytes = totalSize
-                    self?.isUpdating = false
+                    guard let self else { return }
+                    self.sizeString = sizeStr
+                    self.sizeBytes = totalSize
+                    self.isUpdating = false
                 }
+            // swiftformat:enable redundantSelf
             case .noTrash:
-                await MainActor.run { [weak self] in self?.isUpdating = false }
+                // swiftformat:disable redundantSelf
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.isUpdating = false
+                }
+            // swiftformat:enable redundantSelf
             case .cancelled:
                 break
             }
@@ -105,18 +116,24 @@ public final class TrashState {
         Task.detached(priority: .userInitiated) { [weak self] in
             let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
             guard let url = trashURL else {
-                await MainActor.run {
-                    self?.isUpdating = false
+                // swiftformat:disable redundantSelf
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.isUpdating = false
                     onComplete(0)
                 }
+                // swiftformat:enable redundantSelf
                 return
             }
             let fm = FileManager.default
             guard let paths = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: []) else {
-                await MainActor.run {
-                    self?.isUpdating = false
+                // swiftformat:disable redundantSelf
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.isUpdating = false
                     onComplete(0)
                 }
+                // swiftformat:enable redundantSelf
                 return
             }
             let failedCount = Self.removeTrashContents(paths, using: fm)

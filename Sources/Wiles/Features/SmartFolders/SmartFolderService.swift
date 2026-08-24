@@ -74,9 +74,10 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         queryObserver = NotificationCenter.default
             .addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
                 MainActor.assumeIsolated {
-                    if let observer = self?.queryObserver {
+                    guard let self else { return }
+                    if let observer = self.queryObserver {
                         NotificationCenter.default.removeObserver(observer)
-                        self?.queryObserver = nil
+                        self.queryObserver = nil
                     }
                 }
                 guard let query = notification.object as? NSMetadataQuery else { completion([])
@@ -92,7 +93,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
                     // to touch MainActor-isolated state here despite the closure's inferred
                     // `@Sendable` type — matches the `MainActor.assumeIsolated` use just above.
                     MainActor.assumeIsolated {
-                        guard self?.currentQueryToken == token else { return }
+                        guard let self, self.currentQueryToken == token else { return }
                         completion(items)
                     }
                 }

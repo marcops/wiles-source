@@ -27,7 +27,8 @@ public final class NetworkDiscoveryService {
 
         browser.browseResultsChangedHandler = { [weak self] results, _ in
             Task { @MainActor in
-                self?.updateDiscoveredShares(from: results)
+                guard let self else { return }
+                self.updateDiscoveredShares(from: results)
             }
         }
 

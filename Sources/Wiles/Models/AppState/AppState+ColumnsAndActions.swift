@@ -81,9 +81,12 @@ public extension AppState {
                 // swiftformat:enable redundantSelf
             } catch {
                 ErrorReporter.report(error, context: "Converting image")
+                // swiftformat:disable redundantSelf
                 await MainActor.run { [weak self] in
-                    self?.showError(error)
+                    guard let self else { return }
+                    self.showError(error)
                 }
+                // swiftformat:enable redundantSelf
             }
         }
     }
@@ -123,9 +126,12 @@ public extension AppState {
                 // swiftformat:enable redundantSelf
             } catch {
                 ErrorReporter.report(error, context: "Batch renaming items")
+                // swiftformat:disable redundantSelf
                 await MainActor.run { [weak self] in
-                    self?.showError(error)
+                    guard let self else { return }
+                    self.showError(error)
                 }
+                // swiftformat:enable redundantSelf
             }
         }
     }

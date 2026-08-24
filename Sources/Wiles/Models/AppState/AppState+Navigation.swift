@@ -118,7 +118,8 @@ public extension AppState {
     func startDirectoryMonitoring(for url: URL) {
         fileSystem.startDirectoryMonitoring(for: url) { [weak self] in
             Task { @MainActor in
-                self?.refreshCurrentDirectory(isUserInitiated: false)
+                guard let self else { return }
+                self.refreshCurrentDirectory(isUserInitiated: false)
             }
         }
     }
