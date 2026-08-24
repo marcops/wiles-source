@@ -18,6 +18,11 @@ sleep 0.5
 echo "==> 2. Building Wiles (strict concurrency, warnings as errors)..."
 swift build -c debug \
   -Xswiftc -strict-concurrency=complete \
+  -Xswiftc -enable-upcoming-feature -Xswiftc ImmutableWeakCaptures \
+  -Xswiftc -enable-upcoming-feature -Xswiftc InferIsolatedConformances \
+  -Xswiftc -enable-upcoming-feature -Xswiftc NonisolatedNonsendingByDefault \
+  -Xswiftc -enable-upcoming-feature -Xswiftc StrictMemorySafety \
+  -Xswiftc -enable-upcoming-feature -Xswiftc ExistentialAny \
   -Xswiftc -warnings-as-errors
 
 echo "==> 3. Updating bundle & signing..."

@@ -105,7 +105,7 @@ public final class TrashState {
         Task.detached(priority: .userInitiated) { [weak self] in
             let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
             guard let url = trashURL else {
-                await MainActor.run { [weak self] in
+                await MainActor.run {
                     self?.isUpdating = false
                     onComplete(0)
                 }
@@ -113,7 +113,7 @@ public final class TrashState {
             }
             let fm = FileManager.default
             guard let paths = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: []) else {
-                await MainActor.run { [weak self] in
+                await MainActor.run {
                     self?.isUpdating = false
                     onComplete(0)
                 }

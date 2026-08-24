@@ -35,6 +35,11 @@ section "swift build -c release (zero warnings required, strict concurrency, war
 rm -rf .build
 swift build -c release --arch arm64 \
   -Xswiftc -strict-concurrency=complete \
+  -Xswiftc -enable-upcoming-feature -Xswiftc ImmutableWeakCaptures \
+  -Xswiftc -enable-upcoming-feature -Xswiftc InferIsolatedConformances \
+  -Xswiftc -enable-upcoming-feature -Xswiftc NonisolatedNonsendingByDefault \
+  -Xswiftc -enable-upcoming-feature -Xswiftc StrictMemorySafety \
+  -Xswiftc -enable-upcoming-feature -Xswiftc ExistentialAny \
   -Xswiftc -warnings-as-errors \
   2>&1 | tee /tmp/wiles_build.log
 BUILD_STATUS=$?

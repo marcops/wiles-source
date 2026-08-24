@@ -6,7 +6,7 @@ public struct BatchRenameResult {
     /// old→new URL for every item actually renamed on disk (excludes no-op skips where the
     /// computed name matched the original) — lets the caller record one undo action per rename.
     public let renamedPairs: [(old: URL, new: URL)]
-    public let failures: [(item: FileItem, error: Error)]
+    public let failures: [(item: FileItem, error: any Error)]
 
     /// `nil` when every item succeeded; a single-item batch reports its one error directly.
     public var failureSummaryMessage: String? {

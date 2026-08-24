@@ -353,7 +353,7 @@ public extension AppState {
     }
 
     @MainActor
-    private func handleDetachedOperationFailure(_ error: Error, taskID: UUID?) {
+    private func handleDetachedOperationFailure(_ error: any Error, taskID: UUID?) {
         if let taskID {
             BackgroundOperationsService.shared.completeTask(id: taskID)
         }

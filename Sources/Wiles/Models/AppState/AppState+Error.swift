@@ -6,7 +6,7 @@ public extension AppState {
     /// Prefer this over `showError(error.localizedDescription)` for errors that can come from
     /// `FileSystemService` operations: known `WilesError` cases get a real localized message via
     /// `appState.tr(...)` instead of surfacing an unlocalized system/English string.
-    func showError(_ error: Error) {
+    func showError(_ error: any Error) {
         if let wilesError = error as? WilesError {
             showError(wilesError.localizedMessage(lang: preferences.appLanguage))
         } else {

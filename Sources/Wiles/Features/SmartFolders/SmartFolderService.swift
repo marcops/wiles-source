@@ -5,7 +5,7 @@ import Foundation
 public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @unchecked Sendable {
     public static let shared = SmartFolderService()
     private var query: NSMetadataQuery?
-    private var queryObserver: NSObjectProtocol?
+    private var queryObserver: (any NSObjectProtocol)?
     /// Identifies the most recently started query. `fetchFileItems` resolves icons on a detached
     /// task, so a slower-finishing older query (e.g. one with more results) could otherwise still
     /// call its `completion` after a faster newer one already did, silently overwriting the newer,

@@ -6,7 +6,7 @@ import Foundation
 /// decoupled from any matching/dispatch logic that decides what to do about it.
 @MainActor
 final class FolderWatcher {
-    private var fileMonitors: [String: DispatchSourceFileSystemObject] = [:]
+    private var fileMonitors: [String: any DispatchSourceFileSystemObject] = [:]
     private var fileDescriptors: [String: CInt] = [:]
     /// Debounces rapid-fire `.write` events on a watched folder (e.g. a browser writing a large
     /// download incrementally can fire this thousands of times) into a single `onChange` call

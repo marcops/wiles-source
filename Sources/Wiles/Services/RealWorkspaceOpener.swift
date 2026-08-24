@@ -7,7 +7,7 @@ public struct RealWorkspaceOpener: WorkspaceOpening {
         _ urls: [URL],
         withApplicationAt applicationURL: URL,
         configuration: NSWorkspace.OpenConfiguration,
-        completionHandler: (@Sendable (NSRunningApplication?, Error?) -> Void)?) {
+        completionHandler: (@Sendable (NSRunningApplication?, (any Error)?) -> Void)?) {
         NSWorkspace.shared.open(urls, withApplicationAt: applicationURL, configuration: configuration, completionHandler: completionHandler)
     }
 

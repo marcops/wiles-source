@@ -18,7 +18,7 @@ public final class SystemAppearanceObserver {
     /// a permanent `.shared` singleton that lives for the entire app lifetime, same as
     /// `ThumbnailService.shared`/`PermissionService`, so there's no teardown point to remove it at
     /// and no risk of duplicate registration since `init()` only ever runs once.
-    private let observerToken: NSObjectProtocol
+    private let observerToken: any NSObjectProtocol
 
     private init() {
         isDark = Self.currentIsDark()

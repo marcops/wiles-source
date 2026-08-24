@@ -13,7 +13,7 @@ public protocol WorkspaceOpening: Sendable {
         _ urls: [URL],
         withApplicationAt applicationURL: URL,
         configuration: NSWorkspace.OpenConfiguration,
-        completionHandler: (@Sendable (NSRunningApplication?, Error?) -> Void)?)
+        completionHandler: (@Sendable (NSRunningApplication?, (any Error)?) -> Void)?)
     @discardableResult
     func open(_ url: URL) -> Bool
 }

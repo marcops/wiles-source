@@ -62,7 +62,7 @@ public enum BatchRenameService {
         var renamedURLs: [URL] = []
         renamedURLs.reserveCapacity(previews.count)
         var renamedPairs: [(old: URL, new: URL)] = []
-        var failures: [(item: FileItem, error: Error)] = []
+        var failures: [(item: FileItem, error: any Error)] = []
         for (item, newName) in previews {
             guard !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, newName != item.name else {
                 renamedURLs.append(item.url)

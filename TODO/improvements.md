@@ -1,51 +1,12 @@
-colocar no build vakudate, release (gh), push and relunch
+colocar no build do validate, release (gh), push and relaunch (ordem por ganho vs dificuldade)
 
-FASE 1
-warnings-as-errors
-strict-concurrency=complete
-        ↓
-FASE 2
-RegionBasedIsolation
-DynamicActorIsolation
-GlobalConcurrency
-InferSendableFromCaptures
-        ↓
-FASE 3
-DisableOutwardActorInference
-IsolatedDefaultValues
-NonfrozenEnumExhaustivity
-GlobalActorIsolatedTypesUsability
-ImplicitOpenExistentials
-        ↓
-FASE 4
-ExistentialAny
-MemberImportVisibility
-InferIsolatedConformances
-NonisolatedNonsendingByDefault
-InternalImportsByDefault
-        ↓
-FASE 5
-StrictMemorySafety
-
-Ordem	Feature	Ganho	Dificuldade	Minha recomendação
-1	-warnings-as-errors	🔴 Muito alto	🟢 Baixa	Agora
-2	-strict-concurrency=complete	🔴 Muito alto	🟠 Média/Alta	Agora
-3	RegionBasedIsolation	🔴 Alto	🟠 Média	Próximo
-4	DynamicActorIsolation	🔴 Alto	🟠 Média	Próximo
-5	GlobalConcurrency	🔴 Alto	🟠 Média	Próximo
-6	InferSendableFromCaptures	🔴 Alto	🟡 Baixa/Média	Próximo
-7	DisableOutwardActorInference	🟠 Alto	🟡 Baixa/Média	Próximo
-8	IsolatedDefaultValues	🟠 Alto	🟡 Média	Depois
-9	NonfrozenEnumExhaustivity	🟠 Médio/Alto	🟢 Baixa	Depois
-10	GlobalActorIsolatedTypesUsability	🟠 Médio/Alto	🟡 Baixa/Média	Depois
-11	ImplicitOpenExistentials	🟡 Médio	🟢 Baixa	Depois
-12	ExistentialAny	🟡 Médio	🔴 Alta	Auditoria
-13	MemberImportVisibility	🟡 Médio	🟠 Média/Alta	Auditoria
-14	InferIsolatedConformances	🟡 Médio	🟠 Média/Alta	Auditoria
-15	NonisolatedNonsendingByDefault	🟠 Alto	🔴 Alta	Auditoria posterior
-16	InternalImportsByDefault	🟡 Médio	🔴 Alta	Auditoria
-17	ImmutableWeakCaptures	🟢 Baixo/Médio	🟡 Média	Baixa prioridade
-18	StrictMemorySafety	🔴 Potencialmente enorme
+1. ImmutableWeakCaptures        ✅ feito (validate.sh, push_and_relaunch.sh, release.yml)
+2. MemberImportVisibility       🚫 bloqueado — SwiftTerm (dependência) precisa de `import AppKit` em vários arquivos internos; código vendored, não dá pra corrigir sem fork
+3. InferIsolatedConformances    ✅ feito (validate.sh, push_and_relaunch.sh, release.yml)
+4. NonisolatedNonsendingByDefault  ✅ feito (validate.sh, push_and_relaunch.sh, release.yml)
+5. StrictMemorySafety           ✅ feito (validate.sh, push_and_relaunch.sh, release.yml)
+6. ExistentialAny                ✅ feito (validate.sh, push_and_relaunch.sh, release.yml) — 17 usos corrigidos com `any`
+7. InternalImportsByDefault      🚫 bloqueado — GitBeacon corrigido e confirmado v0.0.4 (revalidado, zero erros de lá); único bloqueio restante é o SwiftTerm (mesma causa raiz do item 2)
 
 adicionar no build
 ## Low priority / undecided

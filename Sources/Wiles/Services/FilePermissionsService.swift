@@ -23,8 +23,8 @@ public enum FilePermissionsService: Sendable {
     /// Applies `permissions` to `url` and every item nested inside it (Finder "apply to enclosed
     /// items" behavior). Continues past individual failures and returns them all rather than
     /// aborting partway, since a partially-applied recursive change is still useful to know about.
-    public static func setPermissionsRecursively(for url: URL, permissions: POSIXPermissions) -> [Error] {
-        var errors: [Error] = []
+    public static func setPermissionsRecursively(for url: URL, permissions: POSIXPermissions) -> [any Error] {
+        var errors: [any Error] = []
         do {
             try setPermissions(for: url, permissions: permissions)
         } catch {

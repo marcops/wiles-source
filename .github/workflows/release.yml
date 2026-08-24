@@ -22,6 +22,12 @@ jobs:
           token: ${{ secrets.WILES_PUBLIC_DEPLOY_KEY }}
           path: wiles-public
 
+      - name: Select Xcode
+        run: |
+          LATEST_XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          sudo xcode-select -s "${LATEST_XCODE:-/Applications/Xcode.app}"
+          swift --version
+
       - name: Guard rails (tag matches appVersion, release notes exist)
         run: |
           VERSION=$(grep -o 'appVersion = "[^"]*"' wiles-source/Sources/Wiles/Constants/AppConstants.swift | cut -d'"' -f2)
@@ -70,7 +76,7 @@ jobs:
         continue-on-error: true
         run: |
           scripts/setup_test_ramdisk.sh
-          swift test --filter WilesTests -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
+          swift test --filter WilesTests -Xswiftc -strict-concurrency=complete -Xswiftc -enable-upcoming-feature -Xswiftc ImmutableWeakCaptures -Xswiftc -enable-upcoming-feature -Xswiftc InferIsolatedConformances -Xswiftc -enable-upcoming-feature -Xswiftc NonisolatedNonsendingByDefault -Xswiftc -enable-upcoming-feature -Xswiftc StrictMemorySafety -Xswiftc -enable-upcoming-feature -Xswiftc ExistentialAny -Xswiftc -warnings-as-errors
 
       - name: Build & package (.zip + .dmg)
         working-directory: wiles-source
@@ -90,6 +96,11 @@ jobs:
           echo "==> 1. Building release binary (swift build -c release --arch arm64, strict concurrency, warnings as errors)..."
           swift build -c release --arch arm64 \
             -Xswiftc -strict-concurrency=complete \
+            -Xswiftc -enable-upcoming-feature -Xswiftc ImmutableWeakCaptures \
+            -Xswiftc -enable-upcoming-feature -Xswiftc InferIsolatedConformances \
+            -Xswiftc -enable-upcoming-feature -Xswiftc NonisolatedNonsendingByDefault \
+            -Xswiftc -enable-upcoming-feature -Xswiftc StrictMemorySafety \
+            -Xswiftc -enable-upcoming-feature -Xswiftc ExistentialAny \
             -Xswiftc -warnings-as-errors \
             2>&1 | tee /tmp/wiles_build.log
           BUILD_STATUS=$?

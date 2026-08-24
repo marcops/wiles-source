@@ -208,7 +208,7 @@ public extension AppState {
         navigation.currentURL == target && selection.searchQuery == query
     }
 
-    private func reportRefreshFailure(_ error: Error, target: URL, query: String, context: String) async {
+    private func reportRefreshFailure(_ error: any Error, target: URL, query: String, context: String) async {
         ErrorReporter.report(error, context: context)
         guard isStillCurrent(target: target, query: query) else { return }
         await MainActor.run {

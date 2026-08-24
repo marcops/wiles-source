@@ -8,7 +8,7 @@ public struct FileShredderService: Sendable {
     /// Direct immediate deletion bypassing Trash. Continues past per-item failures and aggregates them.
     public static func deletePermanently(urls: [URL]) throws {
         let fm = FileManager.default
-        var failures: [(url: URL, error: Error)] = []
+        var failures: [(url: URL, error: any Error)] = []
         for url in urls where fm.fileExists(atPath: url.path) {
             try Task.checkCancellation()
             do {
@@ -33,7 +33,7 @@ public struct FileShredderService: Sendable {
         resourceValuesProvider: @Sendable (URL) throws
             -> URLResourceValues = { try $0.resourceValues(forKeys: [.fileSizeKey, .isDirectoryKey, .isSymbolicLinkKey]) }) async throws {
         let fm = FileManager.default
-        var failures: [(url: URL, error: Error)] = []
+        var failures: [(url: URL, error: any Error)] = []
         for url in urls {
             try Task.checkCancellation()
             guard fm.fileExists(atPath: url.path) else { continue }
@@ -110,7 +110,7 @@ public struct FileShredderService: Sendable {
     }
 
     /// A single-item batch surfaces its one error directly instead of a "0 of 1" summary.
-    private static func summarizeFailures(_ failures: [(url: URL, error: Error)], totalCount: Int) -> Error {
+    private static func summarizeFailures(_ failures: [(url: URL, error: any Error)], totalCount: Int) -> any Error {
         if totalCount == 1, let onlyFailure = failures.first {
             return onlyFailure.error
         }

@@ -32,7 +32,7 @@ public struct AutoOrganizationRule: Codable, Identifiable, Hashable {
 
     /// Custom so a rule decoded from persisted JSON also gets its URLs normalized — the
     /// memberwise `init` above only covers newly constructed rules.
-    public init(from decoder: Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         sourceURL = try container.decode(URL.self, forKey: .sourceURL).standardizedFileURL.resolvingSymlinksInPath()
