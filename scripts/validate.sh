@@ -56,18 +56,30 @@ section "swift build (CI-toolchain check — catches Swift-version-specific diag
 # installed locally (see release.yml's "Select Xcode" step) — its region-based concurrency
 # checker has repeatedly flagged patterns (e.g. a weak `self` reused across a nested
 # MainActor closure) that the local, newer compiler proves safe and says nothing about. This
-# reruns the same build against a real installed CI-equivalent toolchain when available, so
-# that class of failure surfaces here instead of after a push.
+# reruns the same build against a real installed CI-equivalent toolchain, so that class of
+# failure surfaces here instead of after a push. Mandatory (this step fails if the toolchain
+# isn't installed), not skipped — a green validate.sh must mean CI will actually pass too.
 #
-# Optional: `swift build` alone (rm -rf .build; swift build -c debug) with TOOLCHAINS set to
-# this identifier is what installs it locally: download the .pkg for the version CI is
+# To install: download the .pkg for the version CI is
 # currently running (see "swift --version" in the release.yml log) from
 # https://www.swift.org/install/macos/, `sudo installer -pkg <file> -target /`, then read the
 # identifier back out of /Library/Developer/Toolchains/<name>.xctoolchain/Info.plist
 # (CFBundleIdentifier). Update CI_TOOLCHAIN_ID below to match.
 CI_TOOLCHAIN_ID="org.swift.624202602241a"
-if ! [[ -d "/Library/Developer/Toolchains" ]] || ! xcrun --toolchain "$CI_TOOLCHAIN_ID" --find swift >/dev/null 2>&1; then
-  echo "SKIP: CI-equivalent toolchain ($CI_TOOLCHAIN_ID) not installed locally — this step is optional, everything else above already ran"
+# `xcrun --toolchain <bogus-id>` silently falls back to the default toolchain instead of
+# failing, so this checks the installed toolchains' own Info.plist identifiers directly rather
+# than trusting xcrun to tell us the requested one doesn't exist.
+CI_TOOLCHAIN_FOUND=0
+for _toolchain_plist in /Library/Developer/Toolchains/*.xctoolchain/Info.plist; do
+  [[ -f "$_toolchain_plist" ]] || continue
+  if [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$_toolchain_plist" 2>/dev/null)" == "$CI_TOOLCHAIN_ID" ]]; then
+    CI_TOOLCHAIN_FOUND=1
+    break
+  fi
+done
+if [[ "$CI_TOOLCHAIN_FOUND" -eq 0 ]]; then
+  echo "FAIL: CI-equivalent toolchain ($CI_TOOLCHAIN_ID) not installed locally — install it (see comment above) to run this check"
+  FAILED=1
 else
   # This toolchain (installed from swift.org, not bundled with Xcode) can't see the private
   # SwiftUI/QuickLook overlay Xcode ships — `.quickLookPreview` is the one call site that
