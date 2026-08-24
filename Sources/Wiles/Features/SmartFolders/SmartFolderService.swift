@@ -88,6 +88,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
                     return
                 }
                 let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
+                // swiftformat:disable redundantSelf
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     if let observer = self.queryObserver {
@@ -101,6 +102,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
                         }
                     }
                 }
+                // swiftformat:enable redundantSelf
             }
         metadataQuery.start()
         query = metadataQuery
