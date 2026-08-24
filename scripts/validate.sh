@@ -51,6 +51,62 @@ else
   echo "swift build OK"
 fi
 
+section "swift build (CI-toolchain check — catches Swift-version-specific diagnostics)"
+# CI's release runner selects the newest Xcode available on it, which can lag behind what's
+# installed locally (see release.yml's "Select Xcode" step) — its region-based concurrency
+# checker has repeatedly flagged patterns (e.g. a weak `self` reused across a nested
+# MainActor closure) that the local, newer compiler proves safe and says nothing about. This
+# reruns the same build against a real installed CI-equivalent toolchain when available, so
+# that class of failure surfaces here instead of after a push.
+#
+# Optional: `swift build` alone (rm -rf .build; swift build -c debug) with TOOLCHAINS set to
+# this identifier is what installs it locally: download the .pkg for the version CI is
+# currently running (see "swift --version" in the release.yml log) from
+# https://www.swift.org/install/macos/, `sudo installer -pkg <file> -target /`, then read the
+# identifier back out of /Library/Developer/Toolchains/<name>.xctoolchain/Info.plist
+# (CFBundleIdentifier). Update CI_TOOLCHAIN_ID below to match.
+CI_TOOLCHAIN_ID="org.swift.624202602241a"
+if ! [[ -d "/Library/Developer/Toolchains" ]] || ! xcrun --toolchain "$CI_TOOLCHAIN_ID" --find swift >/dev/null 2>&1; then
+  echo "SKIP: CI-equivalent toolchain ($CI_TOOLCHAIN_ID) not installed locally — this step is optional, everything else above already ran"
+else
+  # This toolchain (installed from swift.org, not bundled with Xcode) can't see the private
+  # SwiftUI/QuickLook overlay Xcode ships — `.quickLookPreview` is the one call site that
+  # needs stubbing out for this build to get past it. Add more entries here if a future Xcode-
+  # only API trips the same wall; each is restored unconditionally via the trap below.
+  CI_TOOLCHAIN_PATCH_FILE="Sources/Wiles/Views/Content/MainContentView.swift"
+  CI_TOOLCHAIN_PATCH_BACKUP="$(mktemp)"
+  cp "$CI_TOOLCHAIN_PATCH_FILE" "$CI_TOOLCHAIN_PATCH_BACKUP"
+  restore_ci_toolchain_patch() {
+    cp "$CI_TOOLCHAIN_PATCH_BACKUP" "$CI_TOOLCHAIN_PATCH_FILE"
+    rm -f "$CI_TOOLCHAIN_PATCH_BACKUP"
+  }
+  trap restore_ci_toolchain_patch EXIT
+  sed -i '' 's|\.quickLookPreview(\$windowUIState\.quickLookURL)|.onAppear { _ = windowUIState.quickLookURL }|' "$CI_TOOLCHAIN_PATCH_FILE"
+
+  CI_BUILD_LOG="$(mktemp)"
+  TOOLCHAINS="$CI_TOOLCHAIN_ID" xcrun swift build -c release --arch arm64 \
+    -Xswiftc -strict-concurrency=complete \
+    -Xswiftc -enable-upcoming-feature -Xswiftc ImmutableWeakCaptures \
+    -Xswiftc -enable-upcoming-feature -Xswiftc InferIsolatedConformances \
+    -Xswiftc -enable-upcoming-feature -Xswiftc NonisolatedNonsendingByDefault \
+    -Xswiftc -enable-upcoming-feature -Xswiftc StrictMemorySafety \
+    -Xswiftc -enable-upcoming-feature -Xswiftc ExistentialAny \
+    -Xswiftc -warnings-as-errors \
+    2>&1 | tee "$CI_BUILD_LOG"
+  CI_BUILD_STATUS=$?
+
+  restore_ci_toolchain_patch
+  trap - EXIT
+
+  if [[ "$CI_BUILD_STATUS" -ne 0 ]] || grep -qi "warning:" "$CI_BUILD_LOG"; then
+    echo "FAIL: build failed or produced warnings on the CI-equivalent toolchain:"
+    grep -i "warning:\|error:" "$CI_BUILD_LOG"
+    FAILED=1
+  else
+    echo "CI-toolchain build OK"
+  fi
+fi
+
 section "swift test (unit tests — WilesTests, with code coverage)"
 scripts/setup_test_ramdisk.sh
 TEST_LOG="$(mktemp)"
