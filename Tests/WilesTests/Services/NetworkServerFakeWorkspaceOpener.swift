@@ -16,7 +16,7 @@ final class NetworkServerFakeWorkspaceOpener: WorkspaceOpening {
         _: [URL],
         withApplicationAt _: URL,
         configuration _: NSWorkspace.OpenConfiguration,
-        completionHandler _: (@Sendable (NSRunningApplication?, Error?) -> Void)?) { }
+        completionHandler _: (@Sendable (NSRunningApplication?, (any Error)?) -> Void)?) { }
 
     func open(_ url: URL) -> Bool {
         openedSingleURLs.append(url)

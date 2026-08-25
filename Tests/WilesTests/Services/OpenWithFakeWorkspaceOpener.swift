@@ -14,7 +14,7 @@ final class OpenWithFakeWorkspaceOpener: WorkspaceOpening {
         _ urls: [URL],
         withApplicationAt applicationURL: URL,
         configuration _: NSWorkspace.OpenConfiguration,
-        completionHandler: (@Sendable (NSRunningApplication?, Error?) -> Void)?) {
+        completionHandler: (@Sendable (NSRunningApplication?, (any Error)?) -> Void)?) {
         openedURLPairs.append((urls, applicationURL))
         completionHandler?(nil, nil)
     }

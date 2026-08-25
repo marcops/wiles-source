@@ -18,7 +18,7 @@ import XCTest
 @MainActor
 final class RealWorkspaceOpenerTests: XCTestCase {
     func testConformsToWorkspaceOpeningProtocol() {
-        let opener: WorkspaceOpening = RealWorkspaceOpener()
+        let opener: any WorkspaceOpening = RealWorkspaceOpener()
         XCTAssertNotNil(opener)
     }
 }
