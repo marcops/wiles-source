@@ -26,8 +26,32 @@ final class RepositionerView: NSView {
         nil
     }
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        NotificationCenter.default.removeObserver(self)
+        if let window {
+            // `layout()` only fires when *this* view's own layout is invalidated, but AppKit can
+            // reset the traffic-light buttons to their native position as part of a window resize
+            // without ever touching this view's layout (e.g. the sidebar collapsing/peeking
+            // reflows content without resizing the window itself, yet a live window resize's own
+            // button re-layout can land on a tick where this view doesn't relayout). Listening to
+            // the window directly guarantees a correction fires for every resize regardless of
+            // which subview AppKit decided needed relayout.
+            for name: Notification.Name in [
+                NSWindow.didResizeNotification, NSWindow.willStartLiveResizeNotification, NSWindow.didEndLiveResizeNotification
+            ] {
+                NotificationCenter.default.addObserver(
+                    self, selector: #selector(handleWindowResize), name: name, object: window)
+            }
+        }
+        reposition()
+    }
+
+    @objc private func handleWindowResize() {
         reposition()
     }
 

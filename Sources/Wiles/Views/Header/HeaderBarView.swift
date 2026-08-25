@@ -30,23 +30,6 @@ struct HeaderBarView: View {
         .padding(.trailing, Self.rightControlsTrailingInset)
         .padding(.top, 6)
         .padding(.bottom, 6)
-        // Content sits clear of the traffic lights at rest, but the leading inset above animates
-        // (sidebar collapsing/appearing), so content can transiently slide through that reserved
-        // zone. Fading it out there instead of letting it visibly pass under the (unclickable)
-        // buttons reads as intentional rather than a layout glitch.
-        .mask(alignment: .leading) {
-            if sidebarProvidesSafeLeadingInset {
-                Color.black
-            } else {
-                HStack(spacing: 0) {
-                    LinearGradient(
-                        colors: [.black.opacity(0), .black],
-                        startPoint: .leading, endPoint: .trailing)
-                        .frame(width: Self.trafficLightsSafeLeadingInset)
-                    Color.black
-                }
-            }
-        }
         .background(TrafficLightRepositioner())
         .background(
             // Spans the whole header row (search field + the search toggle button included) so
