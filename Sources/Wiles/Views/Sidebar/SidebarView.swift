@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct SidebarView: View {
-    private static let trafficLightInset: CGFloat = 12.0
+    private static let trafficLightInset: CGFloat = 16.0
     private static let doubleClickZoneHeight: CGFloat = trafficLightInset
     private static let peekCollapseDelayMs: Int = 250
     private static let rootTreeFallbackTimeout: TimeInterval = 6
