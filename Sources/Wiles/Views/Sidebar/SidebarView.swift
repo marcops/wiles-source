@@ -2,8 +2,13 @@ import AppKit
 import SwiftUI
 
 struct SidebarView: View {
-    private static let trafficLightInset: CGFloat = 16.0
+    private static let trafficLightInset: CGFloat = 12.0
     private static let doubleClickZoneHeight: CGFloat = trafficLightInset
+    /// Taller than `trafficLightInset` on purpose: its bottom few points reach slightly into the
+    /// first row's normal (non-overscrolled) position, so that row's label starts a soft fade-in
+    /// instead of a hard edge — without moving `trafficLightInset` (and therefore the first row's
+    /// resting position) itself.
+    private static let topFadeHeight: CGFloat = 20.0
     private static let peekCollapseDelayMs: Int = 250
     private static let rootTreeFallbackTimeout: TimeInterval = 6
 
@@ -67,7 +72,7 @@ struct SidebarView: View {
                     LinearGradient(
                         colors: [.black.opacity(0), .black],
                         startPoint: .top, endPoint: .bottom)
-                        .frame(height: Self.trafficLightInset)
+                        .frame(height: Self.topFadeHeight)
                     Color.black
                 }
             }
