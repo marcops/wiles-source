@@ -57,6 +57,20 @@ struct SidebarView: View {
                 .padding(.bottom, 12)
             }
             .background(ScrollerAutoHideSetter())
+            // Rows normally start clear of the traffic lights (the top padding above), but
+            // elastic overscroll can still drag a row's label up into that reserved strip. Fading
+            // it out there instead of letting it run under the (unclickable) buttons reads as
+            // intentional. Masking only the `ScrollView` — not the whole `SidebarView` — keeps the
+            // translucent sidebar material behind it fully intact; only the scrolling rows fade.
+            .mask(alignment: .top) {
+                VStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [.black.opacity(0), .black],
+                        startPoint: .top, endPoint: .bottom)
+                        .frame(height: Self.trafficLightInset)
+                    Color.black
+                }
+            }
         }
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
         .onHover(perform: handleSidebarHover)
