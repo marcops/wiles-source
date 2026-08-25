@@ -69,11 +69,8 @@ jobs:
           fi
           swiftformat --lint .
 
-      # SKIP-CI-ENV: crashes on the macos-15 runner (unrelated to any specific test), passes
-      # locally via validate.sh, which remains the real gate. See TODO/ci_cd.md.
-      - name: Unit tests (WilesTests, RAM-backed scratch disk) [non-blocking, see TODO/ci_cd.md]
+      - name: Unit tests (WilesTests, RAM-backed scratch disk)
         working-directory: wiles-source
-        continue-on-error: true
         run: |
           scripts/setup_test_ramdisk.sh
           swift test --filter WilesTests -Xswiftc -strict-concurrency=complete -Xswiftc -enable-upcoming-feature -Xswiftc ImmutableWeakCaptures -Xswiftc -enable-upcoming-feature -Xswiftc InferIsolatedConformances -Xswiftc -enable-upcoming-feature -Xswiftc NonisolatedNonsendingByDefault -Xswiftc -enable-upcoming-feature -Xswiftc StrictMemorySafety -Xswiftc -enable-upcoming-feature -Xswiftc ExistentialAny -Xswiftc -warnings-as-errors
