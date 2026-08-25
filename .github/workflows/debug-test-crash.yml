@@ -1,0 +1,29 @@
+name: Debug Test Crash
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-test:
+    runs-on: macos-15
+    steps:
+      - name: Checkout wiles-source
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          LATEST_XCODE=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          sudo xcode-select -s "${LATEST_XCODE:-/Applications/Xcode.app}"
+          swift --version
+
+      - name: Unit tests, verbose (capturing the compile-time crash from TODO/ci_cd.md)
+        run: |
+          scripts/setup_test_ramdisk.sh
+          swift test -v --filter WilesTests \
+            -Xswiftc -strict-concurrency=complete \
+            -Xswiftc -enable-upcoming-feature -Xswiftc ImmutableWeakCaptures \
+            -Xswiftc -enable-upcoming-feature -Xswiftc InferIsolatedConformances \
+            -Xswiftc -enable-upcoming-feature -Xswiftc NonisolatedNonsendingByDefault \
+            -Xswiftc -enable-upcoming-feature -Xswiftc StrictMemorySafety \
+            -Xswiftc -enable-upcoming-feature -Xswiftc ExistentialAny \
+            -Xswiftc -warnings-as-errors
