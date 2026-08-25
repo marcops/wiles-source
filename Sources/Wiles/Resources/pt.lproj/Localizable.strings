@@ -420,7 +420,7 @@
 "middleTruncateNamesHint" = "Trunca nomes longos no meio em vez do final.";
 "alwaysShowFullPathBar" = "Mostrar Sempre o Caminho Completo";
 "alwaysShowFullPathBarHint" = "Sempre mostra o caminho completo da pasta em vez de só a pasta atual.";
-"autoHideSidebar" = "Ocultar barra lateral automaticamente";
+"autoHideSidebar" = "Ocultar Barra Lateral Automaticamente";
 "autoHideSidebarHint" = "Recolhe a barra lateral só para ícones até passar o mouse.";
 "settingsSidebarSectionsSection" = "Seções da Barra Lateral";
 "settingsViewSection" = "Visualização";

@@ -15,7 +15,10 @@ final class RepositionerView: NSView {
         let superview: ObjectIdentifier
     }
 
-    private static var baseOrigins: [BaselineKey: CGFloat] = [:]
+    /// What we last actually wrote to `button.frame.origin.x`, so `reposition()` can tell "AppKit
+    /// left the button exactly where I put it" apart from "AppKit reset it to native this pass" —
+    /// see `reposition()`.
+    private static var lastAppliedX: [BaselineKey: CGFloat] = [:]
 
     /// Purely a passive layout observer — must never intercept clicks meant for whatever's
     /// drawn on top of or behind it, since the default NSView.hitTest claims everything.
@@ -56,16 +59,29 @@ final class RepositionerView: NSView {
 
         for (button, superview) in resolved {
             let key = BaselineKey(button: ObjectIdentifier(button), superview: ObjectIdentifier(superview))
-            // AppKit re-centers these buttons on every window layout pass, so the stock
-            // x-position (before our offset) has to be captured once per superview and reused —
-            // otherwise offsetX compounds further right on every subsequent `layout()` call.
-            let baseX = Self.baseOrigins[key] ?? button.frame.origin.x
-            Self.baseOrigins[key] = baseX
+            let currentX = button.frame.origin.x
+
+            // AppKit only *occasionally* resets these buttons back to their native x (most layout
+            // passes leave whatever we last set alone) — most visibly during live resize, where a
+            // reset briefly shows the buttons at their native position until our next pass corrects
+            // it. A one-time "capture baseline on first sight" cache can permanently latch onto a
+            // stale/transient value from exactly one of those reset moments and never let go. So
+            // instead: if the button is still sitting where we last put it, its native x hasn't
+            // changed under us — reuse the known baseline. If it isn't (AppKit just reset it this
+            // pass), that reset value *is* the fresh native x — rebaseline from it immediately
+            // rather than trusting a cached one, so a bad snapshot self-heals on the very next pass.
+            let lastApplied = Self.lastAppliedX[key]
+            let baseX: CGFloat = if let lastApplied, abs(currentX - lastApplied) < 0.5 {
+                lastApplied - offsetX
+            } else {
+                currentX
+            }
 
             var buttonFrame = button.frame
             buttonFrame.origin.x = baseX + offsetX
             buttonFrame.origin.y = (superview.bounds.height - buttonFrame.height) / 2 - offsetY
             button.setFrameOrigin(buttonFrame.origin)
+            Self.lastAppliedX[key] = buttonFrame.origin.x
         }
     }
 }

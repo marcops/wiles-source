@@ -74,10 +74,12 @@ struct FileGridCardItemView: View {
             LayoutTokens.gridCardLabelMinFontSize,
             min(LayoutTokens.gridCardLabelMaxFontSize, Double(iconSize) * LayoutTokens.gridCardLabelFontScaleMultiplier))
         let fontWeight: Font.Weight = isSel ? .semibold : .regular
-        // Truncation is measured with a selection-independent weight so the visible character
-        // count can't shift the instant a card is selected (bold glyphs measure wider/narrower
-        // than regular ones, which nudged the middle-truncation boundary by a couple characters).
-        let nsFont = NSFont.systemFont(ofSize: fontSize, weight: .regular)
+        // Truncation is always measured at .semibold — the wider of the two weights the label can
+        // render at — regardless of selection. Measuring at .regular let the pre-truncated string
+        // fit fine unselected, but overflow once rendered .semibold on selection, so SwiftUI's own
+        // `.lineLimit`/`.truncationMode(.middle)` silently re-truncated it further at render time,
+        // changing the visible text. Always sizing for the wider weight guarantees it fits either way.
+        let nsFont = NSFont.systemFont(ofSize: fontSize, weight: .semibold)
         // Same height a normal 2-line label occupies, so the icon above never shifts when entering
         // rename. A LazyVGrid cell clips its own content to its allocated row height, so the actual
         // growing field can't live here — this is just an invisible placeholder reserving the
