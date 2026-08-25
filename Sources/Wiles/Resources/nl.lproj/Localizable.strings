@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "Verkort lange namen in het midden in plaats van aan het einde.";
 "alwaysShowFullPathBar" = "Altijd volledig pad tonen";
 "alwaysShowFullPathBarHint" = "Toont altijd het volledige mappad in plaats van alleen de huidige map.";
-"autoHideSidebar" = "Zijbalk automatisch verbergen";
+"autoHideSidebar" = "Automatisch Verbergen";
 "autoHideSidebarHint" = "Verkleint de zijbalk tot alleen pictogrammen totdat je erover zweeft.";
 "settingsSidebarSectionsSection" = "Zijbalksecties";
 "settingsViewSection" = "Beeld";

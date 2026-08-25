@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "Skraca długie nazwy w środku zamiast na końcu.";
 "alwaysShowFullPathBar" = "Zawsze pokazuj pełną ścieżkę";
 "alwaysShowFullPathBarHint" = "Zawsze pokazuje pełną ścieżkę folderu zamiast tylko bieżącego folderu.";
-"autoHideSidebar" = "Automatycznie ukryj pasek boczny";
+"autoHideSidebar" = "Automatycznie Ukryj";
 "autoHideSidebarHint" = "Zwija pasek boczny do samych ikon, dopóki nie najedziesz na niego kursorem.";
 "settingsSidebarSectionsSection" = "Sekcje paska bocznego";
 "settingsViewSection" = "Widok";

@@ -420,7 +420,7 @@
 "middleTruncateNamesHint" = "Kürzt lange Namen in der Mitte statt am Ende.";
 "alwaysShowFullPathBar" = "Immer vollständigen Pfad anzeigen";
 "alwaysShowFullPathBarHint" = "Zeigt immer den vollständigen Ordnerpfad statt nur den aktuellen Ordner.";
-"autoHideSidebar" = "Seitenleiste automatisch ausblenden";
+"autoHideSidebar" = "Automatisch Ausblenden";
 "autoHideSidebarHint" = "Reduziert die Seitenleiste auf Symbole, bis der Mauszeiger darüber schwebt.";
 "settingsSidebarSectionsSection" = "Seitenleistenbereiche";
 "settingsViewSection" = "Ansicht";

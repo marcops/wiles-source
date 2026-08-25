@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "長い名前を末尾ではなく中央で省略します。";
 "alwaysShowFullPathBar" = "常に完全なパスを表示";
 "alwaysShowFullPathBarHint" = "現在のフォルダだけでなく、常にフルパスを表示します。";
-"autoHideSidebar" = "サイドバーを自動的に隠す";
+"autoHideSidebar" = "自動的に隠す";
 "autoHideSidebarHint" = "ホバーするまでサイドバーをアイコンのみに折りたたみます。";
 "settingsSidebarSectionsSection" = "サイドバーのセクション";
 "settingsViewSection" = "表示";

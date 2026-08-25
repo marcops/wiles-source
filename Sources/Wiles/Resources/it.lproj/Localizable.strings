@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "Tronca i nomi lunghi al centro invece che alla fine.";
 "alwaysShowFullPathBar" = "Mostra sempre il percorso completo";
 "alwaysShowFullPathBarHint" = "Mostra sempre il percorso completo della cartella invece della sola cartella corrente.";
-"autoHideSidebar" = "Nascondi automaticamente la barra laterale";
+"autoHideSidebar" = "Nascondi Automaticamente";
 "autoHideSidebarHint" = "Riduce la barra laterale alle sole icone finché non viene passato il mouse sopra.";
 "settingsSidebarSectionsSection" = "Sezioni della barra laterale";
 "settingsViewSection" = "Vista";

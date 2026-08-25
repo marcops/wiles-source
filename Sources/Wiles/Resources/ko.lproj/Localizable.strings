@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "긴 이름을 끝이 아닌 중간에서 줄입니다.";
 "alwaysShowFullPathBar" = "항상 전체 경로 표시";
 "alwaysShowFullPathBarHint" = "현재 폴더만이 아니라 항상 전체 폴더 경로를 표시합니다.";
-"autoHideSidebar" = "사이드바 자동 숨김";
+"autoHideSidebar" = "자동 숨김";
 "autoHideSidebarHint" = "마우스를 올리기 전까지 사이드바를 아이콘만 표시하도록 축소합니다.";
 "settingsSidebarSectionsSection" = "사이드바 섹션";
 "settingsViewSection" = "보기";

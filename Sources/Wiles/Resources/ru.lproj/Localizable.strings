@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "Обрезает длинные имена посередине, а не в конце.";
 "alwaysShowFullPathBar" = "Всегда показывать полный путь";
 "alwaysShowFullPathBarHint" = "Всегда показывает полный путь к папке, а не только текущую папку.";
-"autoHideSidebar" = "Автоматически скрывать боковую панель";
+"autoHideSidebar" = "Автоматически Скрывать";
 "autoHideSidebarHint" = "Сворачивает боковую панель до значков, пока на неё не наведён курсор.";
 "settingsSidebarSectionsSection" = "Разделы боковой панели";
 "settingsViewSection" = "Вид";

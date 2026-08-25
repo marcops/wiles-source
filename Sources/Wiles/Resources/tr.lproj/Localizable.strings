@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "Uzun adları sonundan değil ortasından kısaltır.";
 "alwaysShowFullPathBar" = "Her Zaman Tam Yolu Göster";
 "alwaysShowFullPathBarHint" = "Yalnızca geçerli klasör yerine her zaman tam klasör yolunu gösterir.";
-"autoHideSidebar" = "Kenar Çubuğunu Otomatik Gizle";
+"autoHideSidebar" = "Otomatik Gizle";
 "autoHideSidebarHint" = "Kenar çubuğunu üzerine gelene kadar yalnızca simgelere daraltır.";
 "settingsSidebarSectionsSection" = "Kenar Çubuğu Bölümleri";
 "settingsViewSection" = "Görünüm";

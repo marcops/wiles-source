@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "Trunkerar långa namn i mitten istället för i slutet.";
 "alwaysShowFullPathBar" = "Visa alltid hela sökvägen";
 "alwaysShowFullPathBarHint" = "Visar alltid hela mappsökvägen istället för bara den aktuella mappen.";
-"autoHideSidebar" = "Dölj sidofält automatiskt";
+"autoHideSidebar" = "Dölj Automatiskt";
 "autoHideSidebarHint" = "Fäller ihop sidofältet till enbart ikoner tills du hovrar över det.";
 "settingsSidebarSectionsSection" = "Sidopanelsavsnitt";
 "settingsViewSection" = "Vy";

@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "يقتطع الأسماء الطويلة من المنتصف بدلاً من النهاية.";
 "alwaysShowFullPathBar" = "عرض المسار الكامل دائمًا";
 "alwaysShowFullPathBarHint" = "يعرض دائمًا المسار الكامل للمجلد بدلاً من المجلد الحالي فقط.";
-"autoHideSidebar" = "إخفاء الشريط الجانبي تلقائيًا";
+"autoHideSidebar" = "إخفاء تلقائيًا";
 "autoHideSidebarHint" = "يطوي الشريط الجانبي إلى أيقونات فقط حتى يتم التمرير فوقه.";
 "settingsSidebarSectionsSection" = "أقسام الشريط الجانبي";
 "settingsViewSection" = "العرض";

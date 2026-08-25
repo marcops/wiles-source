@@ -420,7 +420,7 @@
 "middleTruncateNamesHint" = "Tronque les noms longs au milieu plutôt qu'à la fin.";
 "alwaysShowFullPathBar" = "Toujours afficher le chemin complet";
 "alwaysShowFullPathBarHint" = "Affiche toujours le chemin complet du dossier au lieu du seul dossier actuel.";
-"autoHideSidebar" = "Masquer automatiquement la barre latérale";
+"autoHideSidebar" = "Masquer Automatiquement";
 "autoHideSidebarHint" = "Réduit la barre latérale aux icônes seules jusqu'au survol.";
 "settingsSidebarSectionsSection" = "Sections de la barre latérale";
 "settingsViewSection" = "Affichage";

@@ -410,7 +410,7 @@
 "middleTruncateNamesHint" = "Truncate long names in the middle instead of at the end.";
 "alwaysShowFullPathBar" = "Always Show Full Path Bar";
 "alwaysShowFullPathBarHint" = "Always show the full folder path instead of just the current folder.";
-"autoHideSidebar" = "Auto-Hide Sidebar";
+"autoHideSidebar" = "Auto-Hide";
 "autoHideSidebarHint" = "Collapse the sidebar to icons only until hovered.";
 "settingsSidebarSectionsSection" = "Sidebar Sections";
 "settingsViewSection" = "View";

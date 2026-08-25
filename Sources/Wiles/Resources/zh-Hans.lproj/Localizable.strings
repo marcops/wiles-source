@@ -421,7 +421,7 @@
 "middleTruncateNamesHint" = "在中间而不是末尾截断长名称。";
 "alwaysShowFullPathBar" = "始终显示完整路径";
 "alwaysShowFullPathBarHint" = "始终显示完整文件夹路径，而不仅仅是当前文件夹。";
-"autoHideSidebar" = "自动隐藏侧边栏";
+"autoHideSidebar" = "自动隐藏";
 "autoHideSidebarHint" = "将侧边栏收起为仅显示图标，悬停时展开。";
 "settingsSidebarSectionsSection" = "侧边栏部分";
 "settingsViewSection" = "显示";
