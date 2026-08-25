@@ -30,28 +30,34 @@ final class RepositionerView: NSView {
         NotificationCenter.default.removeObserver(self)
     }
 
+    /// Registered once, ever, per instance — observing `object: nil` (any window) sidesteps
+    /// needing to swap the observed object if this view is ever re-parented to a different
+    /// window, which would otherwise mean removing the old registration outside `deinit`.
+    private var didRegisterResizeObservers = false
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        NotificationCenter.default.removeObserver(self)
-        if let window {
+        if !didRegisterResizeObservers {
+            didRegisterResizeObservers = true
             // `layout()` only fires when *this* view's own layout is invalidated, but AppKit can
             // reset the traffic-light buttons to their native position as part of a window resize
             // without ever touching this view's layout (e.g. the sidebar collapsing/peeking
             // reflows content without resizing the window itself, yet a live window resize's own
             // button re-layout can land on a tick where this view doesn't relayout). Listening to
             // the window directly guarantees a correction fires for every resize regardless of
-            // which subview AppKit decided needed relayout.
+            // which subview AppKit decided needed relayout. `reposition()` itself resolves
+            // buttons from `self.window`, so it's harmless if this fires for some other window.
             for name: Notification.Name in [
                 NSWindow.didResizeNotification, NSWindow.willStartLiveResizeNotification, NSWindow.didEndLiveResizeNotification
             ] {
-                NotificationCenter.default.addObserver(
-                    self, selector: #selector(handleWindowResize), name: name, object: window)
+                NotificationCenter.default.addObserver(self, selector: #selector(handleWindowResize), name: name, object: nil)
             }
         }
         reposition()
     }
 
-    @objc private func handleWindowResize() {
+    @objc
+    private func handleWindowResize() {
         reposition()
     }
 
