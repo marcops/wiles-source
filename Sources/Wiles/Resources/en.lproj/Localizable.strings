@@ -328,7 +328,7 @@
 "showRecentsHint" = "Show the Recents section in the sidebar.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "Show the expandable folder tree in the sidebar.";
-"showSidebarSectionTitles" = "Show Sidebar Section Titles";
+"showSidebarSectionTitles" = "Show Section Titles";
 "showSidebarSectionTitlesHint" = "Show section titles above sidebar lists.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

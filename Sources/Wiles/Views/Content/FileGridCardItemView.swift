@@ -74,8 +74,10 @@ struct FileGridCardItemView: View {
             LayoutTokens.gridCardLabelMinFontSize,
             min(LayoutTokens.gridCardLabelMaxFontSize, Double(iconSize) * LayoutTokens.gridCardLabelFontScaleMultiplier))
         let fontWeight: Font.Weight = isSel ? .semibold : .regular
-        let nsWeight: NSFont.Weight = isSel ? .semibold : .regular
-        let nsFont = NSFont.systemFont(ofSize: fontSize, weight: nsWeight)
+        // Truncation is measured with a selection-independent weight so the visible character
+        // count can't shift the instant a card is selected (bold glyphs measure wider/narrower
+        // than regular ones, which nudged the middle-truncation boundary by a couple characters).
+        let nsFont = NSFont.systemFont(ofSize: fontSize, weight: .regular)
         // Same height a normal 2-line label occupies, so the icon above never shifts when entering
         // rename. A LazyVGrid cell clips its own content to its allocated row height, so the actual
         // growing field can't live here — this is just an invisible placeholder reserving the
@@ -91,7 +93,7 @@ struct FileGridCardItemView: View {
                 name: item.name,
                 isSelected: isSel,
                 font: .system(size: fontSize, weight: fontWeight),
-                nsFont: .systemFont(ofSize: fontSize, weight: nsWeight),
+                nsFont: nsFont,
                 color: isSel ? .white : .primary,
                 collapsedLineLimit: 2,
                 availableWidth: cardWidth - LayoutTokens.gridCardLabelHorizontalInset,

@@ -335,7 +335,7 @@
 "showRecentsHint" = "Pokazuje sekcję Ostatnie na pasku bocznym.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "Pokazuje rozwijalne drzewo folderów na pasku bocznym.";
-"showSidebarSectionTitles" = "Pokaż Tytuły Paska Bocznego";
+"showSidebarSectionTitles" = "Pokaż Tytuły Sekcji";
 "showSidebarSectionTitlesHint" = "Pokazuje tytuły sekcji nad listami na pasku bocznym.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

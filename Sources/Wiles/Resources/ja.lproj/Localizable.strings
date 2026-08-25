@@ -335,7 +335,7 @@
 "showRecentsHint" = "サイドバーに「最近使った項目」セクションを表示します。";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "サイドバーに展開可能なフォルダツリーを表示します。";
-"showSidebarSectionTitles" = "サイドバーのタイトルを表示";
+"showSidebarSectionTitles" = "セクションタイトルを表示";
 "showSidebarSectionTitlesHint" = "サイドバーのリストの上にセクションタイトルを表示します。";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

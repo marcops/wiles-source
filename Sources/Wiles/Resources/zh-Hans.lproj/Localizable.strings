@@ -335,7 +335,7 @@
 "showRecentsHint" = "在侧边栏中显示“最近使用”部分。";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "在侧边栏中显示可展开的文件夹树。";
-"showSidebarSectionTitles" = "显示侧边栏标题";
+"showSidebarSectionTitles" = "显示分区标题";
 "showSidebarSectionTitlesHint" = "在侧边栏列表上方显示分区标题。";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

@@ -22,7 +22,7 @@ public struct PermissionService: Sendable {
     /// never appears as a selectable entry in System Settings' Full Disk Access list at all.
     private static func probeProtectedFolders() {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        for name in ["Desktop", "Documents", "Downloads", "Music", "Pictures"] {
+        for name in ["Desktop", "Documents", "Downloads", "Music", "Movies", "Pictures"] {
             _ = try? FileManager.default.contentsOfDirectory(atPath: home.appendingPathComponent(name).path)
         }
     }

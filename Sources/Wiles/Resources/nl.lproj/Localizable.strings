@@ -335,7 +335,7 @@
 "showRecentsHint" = "Toont de sectie Onlangs gebruikt in de zijbalk.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "Toont de uitklapbare mappenstructuur in de zijbalk.";
-"showSidebarSectionTitles" = "Toon Titels Zijbalk";
+"showSidebarSectionTitles" = "Toon Sectietitels";
 "showSidebarSectionTitlesHint" = "Toont sectietitels boven de lijsten in de zijbalk.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

@@ -335,7 +335,7 @@
 "showRecentsHint" = "사이드바에 최근 항목 섹션을 표시합니다.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "사이드바에 확장 가능한 폴더 트리를 표시합니다.";
-"showSidebarSectionTitles" = "사이드바 섹션 제목 표시";
+"showSidebarSectionTitles" = "섹션 제목 표시";
 "showSidebarSectionTitlesHint" = "사이드바 목록 위에 섹션 제목을 표시합니다.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

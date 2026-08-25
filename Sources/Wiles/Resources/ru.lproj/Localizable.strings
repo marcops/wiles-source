@@ -335,7 +335,7 @@
 "showRecentsHint" = "Показывает раздел «Недавние» на боковой панели.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "Показывает раскрывающееся дерево папок на боковой панели.";
-"showSidebarSectionTitles" = "Показать Заголовки Боковой Панели";
+"showSidebarSectionTitles" = "Показать Заголовки Разделов";
 "showSidebarSectionTitlesHint" = "Показывает заголовки разделов над списками боковой панели.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

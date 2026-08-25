@@ -335,7 +335,7 @@
 "showRecentsHint" = "Visar avsnittet Senaste i sidofältet.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "Visar det expanderbara mappträdet i sidofältet.";
-"showSidebarSectionTitles" = "Visa Sidofältstitlar";
+"showSidebarSectionTitles" = "Visa Avsnittsrubriker";
 "showSidebarSectionTitlesHint" = "Visar avsnittsrubriker ovanför listorna i sidofältet.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

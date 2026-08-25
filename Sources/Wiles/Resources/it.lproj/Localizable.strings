@@ -335,7 +335,7 @@
 "showRecentsHint" = "Mostra la sezione Recenti nella barra laterale.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "Mostra l'albero delle cartelle espandibile nella barra laterale.";
-"showSidebarSectionTitles" = "Mostra Titoli Sezioni Laterali";
+"showSidebarSectionTitles" = "Mostra Titoli delle Sezioni";
 "showSidebarSectionTitlesHint" = "Mostra i titoli delle sezioni sopra gli elenchi della barra laterale.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

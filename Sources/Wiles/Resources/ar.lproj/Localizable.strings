@@ -335,7 +335,7 @@
 "showRecentsHint" = "يعرض قسم العناصر الأخيرة في الشريط الجانبي.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "يعرض شجرة المجلدات القابلة للتوسيع في الشريط الجانبي.";
-"showSidebarSectionTitles" = "إظهار عناوين الشريط الجانبي";
+"showSidebarSectionTitles" = "إظهار عناوين الأقسام";
 "showSidebarSectionTitlesHint" = "يعرض عناوين الأقسام أعلى قوائم الشريط الجانبي.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

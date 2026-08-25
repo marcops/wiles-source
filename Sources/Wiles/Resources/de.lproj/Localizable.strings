@@ -335,7 +335,7 @@
 "showRecentsHint" = "Zeigt den Bereich Zuletzt verwendet in der Seitenleiste.";
 "showDirectoryTree" = "Verzeichnisbaum anzeigen";
 "showDirectoryTreeHint" = "Zeigt den erweiterbaren Ordnerbaum in der Seitenleiste.";
-"showSidebarSectionTitles" = "Seitenleisten-Titel anzeigen";
+"showSidebarSectionTitles" = "Abschnittstitel anzeigen";
 "showSidebarSectionTitlesHint" = "Zeigt Abschnittstitel über den Listen der Seitenleiste.";
 "showStatusBar" = "Statusleiste anzeigen";
 "showTags" = "Tags anzeigen";

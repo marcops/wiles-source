@@ -335,7 +335,7 @@
 "showRecentsHint" = "Kenar çubuğunda Son Kullanılanlar bölümünü gösterir.";
 "showDirectoryTree" = "Show Directory Tree";
 "showDirectoryTreeHint" = "Kenar çubuğunda genişletilebilir klasör ağacını gösterir.";
-"showSidebarSectionTitles" = "Yan Çubuk Başlıklarını Göster";
+"showSidebarSectionTitles" = "Bölüm Başlıklarını Göster";
 "showSidebarSectionTitlesHint" = "Kenar çubuğu listelerinin üzerinde bölüm başlıklarını gösterir.";
 "showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";

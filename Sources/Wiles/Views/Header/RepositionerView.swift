@@ -34,9 +34,7 @@ final class RepositionerView: NSView {
     }
 
     private func reposition() {
-        guard let window,
-              let closeBtn = window.standardWindowButton(.closeButton),
-              let superview = closeBtn.superview else { return }
+        guard let window else { return }
 
         let buttons = [
             window.standardWindowButton(.closeButton),
@@ -44,9 +42,20 @@ final class RepositionerView: NSView {
             window.standardWindowButton(.zoomButton)
         ]
 
-        for btn in buttons {
-            guard let button = btn, let buttonSuperview = button.superview else { continue }
-            let key = BaselineKey(button: ObjectIdentifier(button), superview: ObjectIdentifier(buttonSuperview))
+        // During live resize AppKit can momentarily tear down and rebuild the title bar's
+        // button hierarchy, so any one button's superview can be transiently unavailable. Only
+        // three-out-of-three resolving is allowed to move anything — repositioning a subset
+        // would leave that pass's untouched button(s) at AppKit's native position while the
+        // rest sit at our offset, which reads as the buttons swapping places until the next
+        // `layout()` call catches up.
+        let resolved = buttons.compactMap { btn -> (button: NSButton, superview: NSView)? in
+            guard let button = btn, let superview = button.superview else { return nil }
+            return (button, superview)
+        }
+        guard resolved.count == buttons.count else { return }
+
+        for (button, superview) in resolved {
+            let key = BaselineKey(button: ObjectIdentifier(button), superview: ObjectIdentifier(superview))
             // AppKit re-centers these buttons on every window layout pass, so the stock
             // x-position (before our offset) has to be captured once per superview and reused —
             // otherwise offsetX compounds further right on every subsequent `layout()` call.

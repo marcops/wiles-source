@@ -335,7 +335,7 @@
 "showRecentsHint" = "Affiche la section Récents dans la barre latérale.";
 "showDirectoryTree" = "Afficher l'arborescence";
 "showDirectoryTreeHint" = "Affiche l'arborescence des dossiers extensible dans la barre latérale.";
-"showSidebarSectionTitles" = "Afficher les titres de la barre latérale";
+"showSidebarSectionTitles" = "Afficher les titres de section";
 "showSidebarSectionTitlesHint" = "Affiche les titres de section au-dessus des listes de la barre latérale.";
 "showStatusBar" = "Afficher la barre d'état";
 "showTags" = "Afficher les étiquettes";
