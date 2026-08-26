@@ -106,9 +106,11 @@ struct SidebarView: View {
         }
     }
 
-    /// Builds the directory tree in the background with a fallback placeholder after
-    /// `rootTreeFallbackTimeout`. The placeholder never blocks the real scan from replacing it once
-    /// it finishes — `retryTreeBuild()` also re-runs this via `treeBuildGeneration`.
+    /// Builds the directory tree in the background. After `rootTreeFallbackTimeout`, surfaces a
+    /// Retry affordance instead of a fake node — leaving `rootFolderNode` nil is what keeps
+    /// `DirectoryTreeSectionView` on its `loadingState`/Retry branch; the still-running scan can
+    /// still complete afterward and populate the real tree. `retryTreeBuild()` re-runs this via
+    /// `treeBuildGeneration`.
     private func buildDirectoryTree() async {
         guard rootFolderNode == nil else { return }
         treeBuildTimedOut = false
@@ -118,8 +120,6 @@ struct SidebarView: View {
         let fallbackWorkItem = DispatchWorkItem {
             guard rootFolderNode == nil else { return }
             treeBuildTimedOut = true
-            let root = URL(fileURLWithPath: "/")
-            rootFolderNode = FolderNode(id: root, name: appState.tr(.macintoshHDName), url: root, children: [], hasSubfolders: false)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.rootTreeFallbackTimeout, execute: fallbackWorkItem)
         let node = await buildTask.value

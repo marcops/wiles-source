@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "Visar alltid hela mappsökvägen istället för bara den aktuella mappen.";
 "autoHideSidebar" = "Dölj Automatiskt";
 "autoHideSidebarHint" = "Fäller ihop sidofältet till enbart ikoner tills du hovrar över det.";
+"perFolderViewMode" = "Kom Ihåg Vy Per Mapp";
+"perFolderViewModeHint" = "Varje mapp kommer ihåg om den visas som Rutnät eller Lista.";
 "settingsSidebarSectionsSection" = "Sidopanelsavsnitt";
 "settingsViewSection" = "Vy";
 "appearanceSystemOption" = "System";

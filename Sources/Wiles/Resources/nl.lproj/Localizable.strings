@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "Toont altijd het volledige mappad in plaats van alleen de huidige map.";
 "autoHideSidebar" = "Automatisch Verbergen";
 "autoHideSidebarHint" = "Verkleint de zijbalk tot alleen pictogrammen totdat je erover zweeft.";
+"perFolderViewMode" = "Weergave Per Map Onthouden";
+"perFolderViewModeHint" = "Elke map onthoudt of deze als Raster of Lijst wordt weergegeven.";
 "settingsSidebarSectionsSection" = "Zijbalksecties";
 "settingsViewSection" = "Beeld";
 "appearanceSystemOption" = "Systeem";

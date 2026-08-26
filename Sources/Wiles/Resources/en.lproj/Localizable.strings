@@ -412,6 +412,8 @@
 "alwaysShowFullPathBarHint" = "Always show the full folder path instead of just the current folder.";
 "autoHideSidebar" = "Auto-Hide";
 "autoHideSidebarHint" = "Collapse the sidebar to icons only until hovered.";
+"perFolderViewMode" = "Remember View Per Folder";
+"perFolderViewModeHint" = "Each folder remembers whether it's shown as Grid or List.";
 "settingsSidebarSectionsSection" = "Sidebar Sections";
 "settingsViewSection" = "View";
 "appearanceSystemOption" = "System";

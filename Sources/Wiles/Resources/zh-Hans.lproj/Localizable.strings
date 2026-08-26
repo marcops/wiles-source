@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "始终显示完整文件夹路径，而不仅仅是当前文件夹。";
 "autoHideSidebar" = "自动隐藏";
 "autoHideSidebarHint" = "将侧边栏收起为仅显示图标，悬停时展开。";
+"perFolderViewMode" = "按文件夹记住视图";
+"perFolderViewModeHint" = "每个文件夹会记住是以网格还是列表显示。";
 "settingsSidebarSectionsSection" = "侧边栏部分";
 "settingsViewSection" = "显示";
 "appearanceSystemOption" = "系统";

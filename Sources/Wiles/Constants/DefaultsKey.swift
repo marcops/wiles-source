@@ -24,6 +24,7 @@ enum DefaultsKey: String {
     case listColumnStates = "wiles_listColumnStates"
     case middleTruncateNames = "wiles_middleTruncateNames"
     case navigationMode = "wiles_navigationMode"
+    case perFolderViewModeEnabled = "wiles_perFolderViewModeEnabled"
     case perFolderViewModes = "wiles_perFolderViewModes"
     case recentConnectServers = "wiles_recentConnectServers"
     case recentOpenedURLs = "wiles_recentOpenedURLs"

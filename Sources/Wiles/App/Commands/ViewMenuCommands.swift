@@ -12,6 +12,8 @@ struct ViewMenuCommands: LocalizedCommands {
 
     @FocusedValue(\.windowUIState)
     private var windowUIState
+    @FocusedValue(\.appState)
+    private var appState
 
     var body: some Commands {
         CommandGroup(after: .sidebar) {
@@ -25,6 +27,20 @@ struct ViewMenuCommands: LocalizedCommands {
         Binding(
             get: { windowUIState?[keyPath: keyPath] ?? false },
             set: { windowUIState?[keyPath: keyPath] = $0 })
+    }
+
+    /// Falls back to the shared global `viewMode` when no window is focused (no folder to key
+    /// a per-folder mode off of yet).
+    private var viewModeBinding: Binding<ViewMode> {
+        Binding(
+            get: { appState?.currentViewMode ?? sharedPreferences.viewMode },
+            set: { newValue in
+                if let appState {
+                    appState.setViewModeForFolder(newValue, for: appState.navigation.currentURL)
+                } else {
+                    sharedPreferences.viewMode = newValue
+                }
+            })
     }
 
     @ViewBuilder private var sidebarViewMenuItems: some View {
@@ -54,7 +70,7 @@ struct ViewMenuCommands: LocalizedCommands {
             Toggle(tr(.autoHideSidebar), isOn: $sharedPreferences.isSidebarCollapsed)
         }
         Divider()
-        Picker(selection: $sharedPreferences.viewMode) {
+        Picker(selection: viewModeBinding) {
             Text(tr(.gridView)).tag(ViewMode.grid)
             Text(tr(.listView)).tag(ViewMode.list)
         } label: {

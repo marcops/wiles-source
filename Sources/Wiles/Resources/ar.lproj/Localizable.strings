@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "يعرض دائمًا المسار الكامل للمجلد بدلاً من المجلد الحالي فقط.";
 "autoHideSidebar" = "إخفاء تلقائيًا";
 "autoHideSidebarHint" = "يطوي الشريط الجانبي إلى أيقونات فقط حتى يتم التمرير فوقه.";
+"perFolderViewMode" = "تذكر العرض لكل مجلد";
+"perFolderViewModeHint" = "يتذكر كل مجلد ما إذا كان يُعرض كشبكة أو كقائمة.";
 "settingsSidebarSectionsSection" = "أقسام الشريط الجانبي";
 "settingsViewSection" = "العرض";
 "appearanceSystemOption" = "النظام";

@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "Всегда показывает полный путь к папке, а не только текущую папку.";
 "autoHideSidebar" = "Автоматически Скрывать";
 "autoHideSidebarHint" = "Сворачивает боковую панель до значков, пока на неё не наведён курсор.";
+"perFolderViewMode" = "Запоминать Вид Для Папки";
+"perFolderViewModeHint" = "Каждая папка запоминает, отображается ли она в виде Сетки или Списка.";
 "settingsSidebarSectionsSection" = "Разделы боковой панели";
 "settingsViewSection" = "Вид";
 "appearanceSystemOption" = "Системная";

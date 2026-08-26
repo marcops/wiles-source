@@ -218,7 +218,7 @@ struct MainContentView: View {
     }
 
     @ViewBuilder private var contentArea: some View {
-        if appState.preferences.viewMode == .grid {
+        if appState.currentViewMode == .grid {
             FileGridView(appState: appState)
         } else {
             FileListView(appState: appState)

@@ -422,6 +422,8 @@
 "alwaysShowFullPathBarHint" = "Sempre mostra o caminho completo da pasta em vez de só a pasta atual.";
 "autoHideSidebar" = "Ocultar Automaticamente";
 "autoHideSidebarHint" = "Recolhe a barra lateral só para ícones até passar o mouse.";
+"perFolderViewMode" = "Lembrar Visualização Por Pasta";
+"perFolderViewModeHint" = "Cada pasta lembra se é mostrada em Grade ou Lista.";
 "settingsSidebarSectionsSection" = "Seções da Barra Lateral";
 "settingsViewSection" = "Visualização";
 "appearanceSystemOption" = "Sistema";

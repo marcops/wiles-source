@@ -248,6 +248,12 @@ public final class PreferencesStore {
     public private(set) var columnStatesByColumn: [ListColumn: ListColumnState] =
         Dictionary(uniqueKeysWithValues: ListColumnState.defaults().map { ($0.column, $0) })
 
+    /// When off, `AppState.viewModeForFolder`/`setViewModeForFolder` behave exactly like the single
+    /// global `viewMode` did before per-folder view modes existed.
+    public var perFolderViewModeEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(perFolderViewModeEnabled, forKey: DefaultsKey.perFolderViewModeEnabled.rawValue) }
+    }
+
     public var perFolderViewModes: [String: String] = (
         UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
         [:] {
@@ -374,6 +380,7 @@ public final class PreferencesStore {
         loadBool(.showDirectoryTree, into: \.showDirectoryTree, from: defaults)
         loadEnum(.sortOption, into: \.sortOption, from: defaults)
         loadBool(.sortAscending, into: \.sortAscending, from: defaults)
+        loadBool(.perFolderViewModeEnabled, into: \.perFolderViewModeEnabled, from: defaults)
 
         let width = defaults.double(forKey: DefaultsKey.sidebarWidth.rawValue)
         if width > 0 {

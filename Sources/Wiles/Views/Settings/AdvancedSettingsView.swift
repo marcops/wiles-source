@@ -26,6 +26,9 @@ struct AdvancedSettingsView: View {
                 Toggle(appState.tr(.autoHideSidebar), isOn: $appState.preferences.isSidebarCollapsed)
                     .help(appState.tr(.autoHideSidebarHint))
                     .accessibilityHint(Text(appState.tr(.autoHideSidebarHint)))
+                Toggle(appState.tr(.perFolderViewMode), isOn: $appState.preferences.perFolderViewModeEnabled)
+                    .help(appState.tr(.perFolderViewModeHint))
+                    .accessibilityHint(Text(appState.tr(.perFolderViewModeHint)))
             }
 
             defaultAppSection

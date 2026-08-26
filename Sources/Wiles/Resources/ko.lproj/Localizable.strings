@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "현재 폴더만이 아니라 항상 전체 폴더 경로를 표시합니다.";
 "autoHideSidebar" = "자동 숨김";
 "autoHideSidebarHint" = "마우스를 올리기 전까지 사이드바를 아이콘만 표시하도록 축소합니다.";
+"perFolderViewMode" = "폴더별 보기 기억";
+"perFolderViewModeHint" = "각 폴더는 그리드 또는 목록으로 표시되는지 기억합니다.";
 "settingsSidebarSectionsSection" = "사이드바 섹션";
 "settingsViewSection" = "보기";
 "appearanceSystemOption" = "시스템";

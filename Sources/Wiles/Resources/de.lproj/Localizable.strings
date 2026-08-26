@@ -422,6 +422,8 @@
 "alwaysShowFullPathBarHint" = "Zeigt immer den vollständigen Ordnerpfad statt nur den aktuellen Ordner.";
 "autoHideSidebar" = "Automatisch Ausblenden";
 "autoHideSidebarHint" = "Reduziert die Seitenleiste auf Symbole, bis der Mauszeiger darüber schwebt.";
+"perFolderViewMode" = "Ansicht Pro Ordner Merken";
+"perFolderViewModeHint" = "Jeder Ordner merkt sich, ob er als Raster oder Liste angezeigt wird.";
 "settingsSidebarSectionsSection" = "Seitenleistenbereiche";
 "settingsViewSection" = "Ansicht";
 "appearanceSystemOption" = "System";

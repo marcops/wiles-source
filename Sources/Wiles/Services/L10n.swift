@@ -418,6 +418,8 @@ public enum L10n {
         case alwaysShowFullPathBarHint
         case autoHideSidebar
         case autoHideSidebarHint
+        case perFolderViewMode
+        case perFolderViewModeHint
         case settingsSidebarSectionsSection
         case settingsViewSection
         case appearanceSystemOption

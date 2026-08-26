@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "Zawsze pokazuje pełną ścieżkę folderu zamiast tylko bieżącego folderu.";
 "autoHideSidebar" = "Automatycznie Ukryj";
 "autoHideSidebarHint" = "Zwija pasek boczny do samych ikon, dopóki nie najedziesz na niego kursorem.";
+"perFolderViewMode" = "Zapamiętaj Widok Dla Folderu";
+"perFolderViewModeHint" = "Każdy folder zapamiętuje, czy jest wyświetlany jako Siatka czy Lista.";
 "settingsSidebarSectionsSection" = "Sekcje paska bocznego";
 "settingsViewSection" = "Widok";
 "appearanceSystemOption" = "System";

@@ -310,14 +310,14 @@ struct HeaderBarView: View {
         ForEach(ViewMode.allCases) { mode in
             Button {
                 withAnimation(MotionTokens.snappySpring) {
-                    appState.preferences.viewMode = mode
+                    appState.setViewModeForFolder(mode, for: appState.navigation.currentURL)
                     viewSwitcherExpanded = false
                 }
             } label: {
                 Image(systemName: iconName(for: mode)).font(.system(size: 12))
                     .frame(width: 26, height: 24)
-                    .background(appState.preferences.viewMode == mode ? Color.accentColor : Color.clear)
-                    .foregroundColor(appState.preferences.viewMode == mode ? .white : .primary)
+                    .background(appState.currentViewMode == mode ? Color.accentColor : Color.clear)
+                    .foregroundColor(appState.currentViewMode == mode ? .white : .primary)
                     .cornerRadius(4)
                     .contentShape(Rectangle())
             }
@@ -325,7 +325,7 @@ struct HeaderBarView: View {
             .accessibilityIdentifier(accessibilityID(for: mode))
             .accessibilityLabel(accessibilityLabel(for: mode))
             .accessibilityHint(appState.tr(.viewMode))
-            .accessibilityAddTraits(appState.preferences.viewMode == mode ? [.isButton, .isSelected] : [.isButton])
+            .accessibilityAddTraits(appState.currentViewMode == mode ? [.isButton, .isSelected] : [.isButton])
             .transition(.scale(scale: 0.7).combined(with: .opacity))
         }
     }
@@ -336,7 +336,7 @@ struct HeaderBarView: View {
                 viewSwitcherExpanded = true
             }
         } label: {
-            Image(systemName: iconName(for: appState.preferences.viewMode)).font(.system(size: 12))
+            Image(systemName: iconName(for: appState.currentViewMode)).font(.system(size: 12))
                 .frame(width: 26, height: 24)
                 .background(Color.clear)
                 .foregroundColor(.primary)
@@ -345,7 +345,7 @@ struct HeaderBarView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("View Mode")
-        .accessibilityLabel(accessibilityLabel(for: appState.preferences.viewMode))
+        .accessibilityLabel(accessibilityLabel(for: appState.currentViewMode))
         .accessibilityHint(appState.tr(.viewMode))
         .transition(.scale(scale: 0.7).combined(with: .opacity))
     }

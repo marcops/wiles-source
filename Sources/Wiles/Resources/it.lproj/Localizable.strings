@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "Mostra sempre il percorso completo della cartella invece della sola cartella corrente.";
 "autoHideSidebar" = "Nascondi Automaticamente";
 "autoHideSidebarHint" = "Riduce la barra laterale alle sole icone finché non viene passato il mouse sopra.";
+"perFolderViewMode" = "Ricorda Vista Per Cartella";
+"perFolderViewModeHint" = "Ogni cartella ricorda se è mostrata a Griglia o Elenco.";
 "settingsSidebarSectionsSection" = "Sezioni della barra laterale";
 "settingsViewSection" = "Vista";
 "appearanceSystemOption" = "Sistema";

@@ -50,19 +50,19 @@ struct KeyboardSelectionNavigator {
     private func handleArrowKeyDown(_ key: ArrowKey, isShift: Bool, appState: AppState) {
         switch key {
         case .up:
-            let offset = appState.preferences.viewMode == .grid ? -appState.selection.gridColumnCount : -1
+            let offset = appState.currentViewMode == .grid ? -appState.selection.gridColumnCount : -1
             moveSelection(by: offset, isShift: isShift, appState: appState)
         case .down:
-            let offset = appState.preferences.viewMode == .grid ? appState.selection.gridColumnCount : 1
+            let offset = appState.currentViewMode == .grid ? appState.selection.gridColumnCount : 1
             moveSelection(by: offset, isShift: isShift, appState: appState)
         case .left:
-            if appState.preferences.viewMode == .grid {
+            if appState.currentViewMode == .grid {
                 moveSelection(by: -1, isShift: isShift, appState: appState)
             } else {
                 appState.goUp()
             }
         case .right:
-            if appState.preferences.viewMode == .grid {
+            if appState.currentViewMode == .grid {
                 moveSelection(by: 1, isShift: isShift, appState: appState)
             } else if let target = directoryToEnter(from: appState) {
                 appState.navigateTo(target)

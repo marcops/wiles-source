@@ -42,7 +42,13 @@ public extension AppState {
         preferences.listColumnStates[idx].isVisible.toggle()
     }
 
+    /// The view mode for the currently browsed folder — respects `perFolderViewModeEnabled`.
+    var currentViewMode: ViewMode {
+        viewModeForFolder(navigation.currentURL)
+    }
+
     func viewModeForFolder(_ url: URL) -> ViewMode {
+        guard preferences.perFolderViewModeEnabled else { return preferences.viewMode }
         if let raw = preferences.perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
             return mode
         }
@@ -50,6 +56,10 @@ public extension AppState {
     }
 
     func setViewModeForFolder(_ mode: ViewMode, for url: URL) {
+        guard preferences.perFolderViewModeEnabled else {
+            preferences.viewMode = mode
+            return
+        }
         preferences.perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
         preferences.viewMode = mode
     }

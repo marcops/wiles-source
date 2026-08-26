@@ -422,6 +422,8 @@
 "alwaysShowFullPathBarHint" = "Muestra siempre la ruta completa de la carpeta en lugar de solo la carpeta actual.";
 "autoHideSidebar" = "Ocultar Automáticamente";
 "autoHideSidebarHint" = "Contrae la barra lateral a solo iconos hasta pasar el cursor.";
+"perFolderViewMode" = "Recordar Vista Por Carpeta";
+"perFolderViewModeHint" = "Cada carpeta recuerda si se muestra en Cuadrícula o Lista.";
 "settingsSidebarSectionsSection" = "Secciones de la Barra Lateral";
 "settingsViewSection" = "Vista";
 "appearanceSystemOption" = "Sistema";

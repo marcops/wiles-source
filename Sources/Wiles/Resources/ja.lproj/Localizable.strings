@@ -423,6 +423,8 @@
 "alwaysShowFullPathBarHint" = "現在のフォルダだけでなく、常にフルパスを表示します。";
 "autoHideSidebar" = "自動的に隠す";
 "autoHideSidebarHint" = "ホバーするまでサイドバーをアイコンのみに折りたたみます。";
+"perFolderViewMode" = "フォルダごとに表示を記憶";
+"perFolderViewModeHint" = "各フォルダはグリッド表示かリスト表示かを記憶します。";
 "settingsSidebarSectionsSection" = "サイドバーのセクション";
 "settingsViewSection" = "表示";
 "appearanceSystemOption" = "システム";
