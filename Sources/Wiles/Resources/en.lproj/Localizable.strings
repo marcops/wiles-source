@@ -33,6 +33,7 @@
 "ruleEnabledToggle" = "Enabled";
 "ruleConditionTypePicker" = "Match Type";
 "autoOrgRuleConflictNotice" = "If a file with the same name already exists at the destination, it will be replaced.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "Moved %d file(s) · Last: %@";
 "pastingItemsEllipsis" = "Pasting Items…";
 "compressingItemsEllipsis" = "Compressing…";
@@ -70,9 +71,12 @@
 "connectToServer" = "Connect to Server";
 "connectToServerSubtitle" = "Connect to a shared folder on your network";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "Copy";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Copy Path";
 "copyPathAbsolute" = "Absolute Path";
 "copyPathRelative" = "Relative Path";
@@ -166,8 +170,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -245,6 +247,8 @@
 "paste" = "Paste";
 "permissionDeniedNotice" = "Permission Denied: Wiles cannot read contents of this folder.";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Pictures";
 "places" = "PLACES";
 "prefix" = "Prefix";
@@ -279,7 +283,6 @@
 "searchCaseSensitive" = "Case Sensitive";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Search Scope";
-"secureShred" = "Secure Shred File...";
 "selectAll" = "Select All";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "Choose a folder on your Mac";
@@ -469,6 +472,7 @@
 "wilesErrorFileInUse" = "File in Use: '{path}' is currently open by another application.";
 "wilesErrorItemNotFound" = "Item Not Found: '{path}' does not exist.";
 "wilesErrorOperationFailed" = "Operation Failed: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Invalid Password: Unable to decrypt ZIP archive.";
 "wilesErrorFileCreationNotRedoable" = "Can't Redo: Wiles doesn't store the original file's content, so this creation can't be redone.";
 "tooltipFolder" = "Folder";
@@ -483,8 +487,8 @@
 "pdfMergeNoValidPages" = "No valid pages found in the provided files.";
 "pdfMergeWriteFailed" = "Could not write the merged PDF to disk.";
 "invalidServerURL" = "Invalid server URL";
-"serverConnectionFailed" = "Could not connect to %@";
-"imageConverterLoadFailed" = "Failed to load image at %@";
+"serverConnectionFailed" = "Could not connect to {0}";
+"imageConverterLoadFailed" = "Failed to load image at {0}";
 "imageConverterContextFailed" = "Failed to create graphics context";
 "imageConverterRenderFailed" = "Failed to render resized image";
 "imageConverterDestinationFailed" = "Failed to create image destination";
@@ -520,3 +524,9 @@
 "symlinkNameSuffix" = "link";
 "symlinkNameCollisionWarning" = "A file with that name already exists here.";
 "symlinkSubtitle" = "Creates a shortcut that points to the original item.";
+
+"moveCollisionTitle" = "An item named \"{name}\" already exists here.";
+"moveCollisionMessage" = "Replace moves the existing item to the Trash. Keep Both adds a number to the new name.";
+"moveCollisionReplace" = "Replace";
+"moveCollisionKeepBoth" = "Keep Both";
+"moveCollisionApplyToAll" = "Apply to all";

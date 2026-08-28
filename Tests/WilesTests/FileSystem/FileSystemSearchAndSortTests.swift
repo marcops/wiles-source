@@ -208,8 +208,9 @@ public struct FileSystemSearchAndSortTests {
     }
 
     /// Covers matchesSizeFilter's default (">=") operator branch — reached when the value has no
-    /// explicit </<=/=/> prefix — and sizeFilterMultiplier's default (megabyte) branch, reached for
-    /// any unit other than "k"/"b"/"g" (including no unit at all, or "m").
+    /// explicit </<=/=/> prefix — and sizeFilterMultiplier's unit matching: bare/`m` → MB,
+    /// recognized words (`b`/`bytes`, `k`/`kb`, `g`/`gb`), and an unrecognized unit → filter fails
+    /// (L5 regression: `10bytes` used to be silently read as 10 MB).
     private static func testSizeFilterEdgeCases() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -224,6 +225,14 @@ public struct FileSystemSearchAndSortTests {
 
         let defaultMultiplier = await load(at: dir, query: "size:>1m")
         report("NEG: \"size:>Nm\" applies the default megabyte multiplier, excluding a 500-byte file", result: defaultMultiplier.isEmpty)
+
+        // L5: the full word "bytes" is a byte unit, not MB — a 500-byte file matches "size:>100bytes".
+        let wordUnit = await load(at: dir, query: "size:>100bytes")
+        report("POS: \"size:>Nbytes\" is treated as bytes, not megabytes", result: wordUnit.count == 1)
+
+        // An unrecognized unit makes the whole size filter fail rather than defaulting to MB.
+        let unknownUnit = await load(at: dir, query: "size:>1bogus")
+        report("NEG: \"size:>Nbogus\" (unknown unit) matches nothing instead of silently meaning MB", result: unknownUnit.isEmpty)
     }
 
     /// Covers guard-failure branches reached only when resourceValues() itself fails or the file's
@@ -279,6 +288,9 @@ public struct FileSystemSearchAndSortTests {
             "POS: extractHiddenFlag matches \"hidden:true\" case-insensitively",
             result: includeHiddenCase && strippedCase == "report")
     }
+
+    // `toggleToken`/`containsToken` back the composing quick-filter buttons in `HeaderBarView`:
+    // a `prefix:value` token is appended if absent, stripped if present, and free text is kept.
 
     /// Regression: "jpg" used to match Swift files that only mention "jpg" in their source.
     private static func testSearchScopeNameExcludesContentMatches() async {

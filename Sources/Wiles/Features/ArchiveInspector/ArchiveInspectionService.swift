@@ -3,18 +3,19 @@ import Foundation
 import GitBeacon
 
 public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable {
-    public static func listEntries(in archiveURL: URL) async -> [ArchiveEntryItem] {
-        await Task.detached(priority: .userInitiated) {
+    public static func listEntries(in archiveURL: URL) async throws -> [ArchiveEntryItem] {
+        try await Task.detached(priority: .userInitiated) {
             // `unzip -Z1` mangles non-ASCII filenames (e.g. emoji) on this system: Apple's
             // bundled unzip lacks proper UTF-8 support and re-encodes names through the
             // process locale, even though tools like `ditto`/`zip` store genuine UTF-8 bytes
             // in the ZIP central directory. Parsing the central directory ourselves and
             // decoding names directly as UTF-8 sidesteps that mangling entirely.
-            guard let data = try? Data(contentsOf: archiveURL, options: .mappedIfSafe) else {
-                ErrorReporter.report(
-                    NSError(domain: "ArchiveInspectionService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not read archive data."]),
-                    context: "Listing archive entries")
-                return []
+            let data: Data
+            do {
+                data = try Data(contentsOf: archiveURL, options: .mappedIfSafe)
+            } catch {
+                // Can't read the archive at all — surface it instead of showing "no entries".
+                throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
             }
             return ZIPCentralDirectoryReader.readEntryNames(from: data).map { ArchiveEntryItem(path: $0) }
         }.value
@@ -43,9 +44,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
 
         FileManager.default.createFile(atPath: tempURL.path, contents: nil, attributes: nil)
         guard let fileHandle = try? FileHandle(forWritingTo: tempURL) else {
-            throw NSError(
-                domain: "ArchiveInspectionService", code: 1,
-                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveCouldNotCreateDestinationFile, lang: .system)])
+            throw WilesError.localized(key: .archiveCouldNotCreateDestinationFile, arguments: [])
         }
         defer { try? fileHandle.close() }
 
@@ -63,10 +62,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
 
         if process.terminationStatus != 0 {
             try? FileManager.default.removeItem(at: tempURL)
-            throw NSError(
-                domain: "ArchiveInspectionService",
-                code: Int(process.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveExtractionFailed, lang: .system)])
+            throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }
 
         // Extraction succeeded — only now is it safe to replace any pre-existing file at

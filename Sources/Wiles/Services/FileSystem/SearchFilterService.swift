@@ -15,6 +15,24 @@ public struct SearchFilterService: Sendable {
         return (remaining, true)
     }
 
+    /// Whole-token, case-insensitive membership test for a `prefix:value` filter token in `query`.
+    public static func containsToken(_ token: String, in query: String) -> Bool {
+        let lowerToken = token.lowercased()
+        return query.components(separatedBy: .whitespaces).contains { $0.lowercased() == lowerToken }
+    }
+
+    /// Toggles a single `prefix:value` filter token in `query`: strips it if already present
+    /// (case-insensitive, whole-token), otherwise appends it — all other free text and filter
+    /// tokens are preserved. Generalizes the append/strip behavior of `extractHiddenFlag`.
+    public static func toggleToken(_ token: String, in query: String) -> String {
+        let parts = query.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let lowerToken = token.lowercased()
+        if parts.contains(where: { $0.lowercased() == lowerToken }) {
+            return parts.filter { $0.lowercased() != lowerToken }.joined(separator: " ")
+        }
+        return (parts + [token]).joined(separator: " ")
+    }
+
     /// Builds a regex for each individual token that looks like one (`r:` prefix, or contains
     /// `*`/`^`/`$`), keyed by the token text — computed once per query and reused across every
     /// candidate file, instead of recompiling per file. Filter tokens (`date:`/`size:`/`kind:`/
@@ -144,7 +162,8 @@ public struct SearchFilterService: Sendable {
         let digits = valueStr.filter(\.isNumber)
         guard let num = Int64(digits), !digits.isEmpty else { return false }
         let unit = valueStr.filter(\.isLetter)
-        let targetBytes = num * sizeFilterMultiplier(unit: unit)
+        guard let multiplier = sizeFilterMultiplier(unit: unit) else { return false }
+        let targetBytes = num * multiplier
 
         switch op {
         case "<": return size < targetBytes
@@ -155,15 +174,17 @@ public struct SearchFilterService: Sendable {
         }
     }
 
-    private static func sizeFilterMultiplier(unit: String) -> Int64 {
-        if unit.hasPrefix("k") {
-            return 1024
-        } else if unit.hasPrefix("b"), !unit.hasPrefix("by") {
-            return 1
-        } else if unit.hasPrefix("g") {
-            return 1024 * 1024 * 1024
+    /// Matches an explicit unit word exactly. An empty unit defaults to MB (the documented bare
+    /// `size:>10` behavior); an unrecognized unit (`10bites`, `10xb`) returns `nil` so the whole
+    /// size filter fails instead of silently being treated as MB.
+    private static func sizeFilterMultiplier(unit: String) -> Int64? {
+        switch unit {
+        case "", "m", "mb", "mib": 1024 * 1024
+        case "b", "byte", "bytes": 1
+        case "k", "kb", "kib": 1024
+        case "g", "gb", "gib": 1024 * 1024 * 1024
+        default: nil
         }
-        return 1024 * 1024
     }
 
     private static func matchesKindFilter(fileURL: URL, token: String) -> Bool {

@@ -44,7 +44,5 @@ public final class AppState: @unchecked Sendable {
 
         selection.setSearchQueryHandler { [weak self] in self?.refreshCurrentDirectory() }
         navigation.onVolumeUnreachable = { [weak self] fallback in self?.navigateTo(fallback) }
-
-        updateTrashSize()
     }
 }

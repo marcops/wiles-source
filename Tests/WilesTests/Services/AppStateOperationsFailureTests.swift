@@ -9,7 +9,6 @@ extension AppStateOperationsExtraTests {
     static func runFailureTests() async {
         await testPerformDeleteSelectedFailureReportsError()
         await testDeletePermanentlySelectedFailureReportsError()
-        await testShredSelectedFailureReportsError()
         await testUndoLastActionFailureReportsError()
         await testRedoLastActionFailureReportsError()
     }
@@ -27,14 +26,6 @@ extension AppStateOperationsExtraTests {
         report(
             "AppState+Operations",
             "NEG: deletePermanentlySelected() reports an error when fm.removeItem fails (read-only parent directory)",
-            result: errorShown)
-    }
-
-    private static func testShredSelectedFailureReportsError() async {
-        let errorShown = await expectErrorFromReadOnlyParent(fileName: "locked-shred.txt") { $0.shredSelected() }
-        report(
-            "AppState+Operations",
-            "NEG: shredSelected() reports an error when fm.removeItem fails (read-only parent directory)",
             result: errorShown)
     }
 

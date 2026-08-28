@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 struct SharedBackgroundContextMenu: View {
@@ -17,7 +16,7 @@ struct SharedBackgroundContextMenu: View {
         }
         if appState.transient.clipboard != nil {
             Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) {
-                appState.pasteToCurrentDirectory()
+                appState.pasteToCurrentDirectory(windowUIState: windowUIState)
             }
         } else {
             Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { }.disabled(true)
@@ -48,7 +47,9 @@ struct SharedBackgroundContextMenu: View {
         }
         Divider()
         Button(appState.tr(.folderProperties)) {
-            let fileItem = FileItem(url: appState.navigation.currentURL, icon: NSWorkspace.shared.icon(forFile: appState.navigation.currentURL.path))
+            // Properties sheet shows Owner/Group, so keep needsOwnerGroup default; let init resolve
+            // the icon from .effectiveIcon instead of a blocking NSWorkspace LaunchServices IPC.
+            let fileItem = FileItem(url: appState.navigation.currentURL)
             windowUIState.propertiesItem = fileItem
         }
     }

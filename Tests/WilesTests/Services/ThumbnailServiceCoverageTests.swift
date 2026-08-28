@@ -14,6 +14,47 @@ public struct ThumbnailServiceCoverageTests {
         await testPrefetchThumbnailsWithMixedEligibility()
         await testLoadThumbnailServesFromCacheOnSecondCall()
         await testPrefetchThumbnailsCancellationBreaksLoop()
+        await testCacheKeyChangesWhenFileModificationDateChanges()
+    }
+
+    /// M7 regression: the cache key folds in `contentModificationDate`, so a file edited/replaced
+    /// on disk after its thumbnail was cached must be a cache MISS (forcing regeneration) rather
+    /// than returning the stale bitmap the old path-only key would have served.
+    private static func testCacheKeyChangesWhenFileModificationDateChanges() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let pngURL = tempDir.appendingPathComponent("mtime-sample.png")
+        writeSamplePNG(to: pngURL)
+
+        let loaded = await ThumbnailService.shared.loadThumbnail(for: pngURL, size: 32)
+        guard loaded != nil else {
+            // Headless CI without QuickLook support — generation returns nil, nothing to cache.
+            TestReporter.report(
+                "ThumbnailService",
+                "SKIP: mtime cache-key regression not exercisable (QuickLook unavailable in this environment)",
+                result: true)
+            return
+        }
+
+        let beforeBump = ThumbnailService.shared.cachedThumbnail(for: pngURL, size: 32)
+        TestReporter.report(
+            "ThumbnailService",
+            "POS: thumbnail is cached immediately after a successful loadThumbnail",
+            result: beforeBump != nil)
+
+        // Rewrite the file so its contentModificationDate advances.
+        try? await Task.sleep(nanoseconds: 1_100_000_000)
+        let newDate = Date()
+        writeSamplePNG(to: pngURL)
+        try? FileManager.default.setAttributes([.modificationDate: newDate], ofItemAtPath: pngURL.path)
+
+        let afterBump = ThumbnailService.shared.cachedThumbnail(for: pngURL, size: 32)
+        TestReporter.report(
+            "ThumbnailService",
+            "POS: cachedThumbnail is a MISS after the file's modification date changes (stale bitmap not served)",
+            result: afterBump == nil)
     }
 
     private static func makeFakeIcon() -> NSImage {

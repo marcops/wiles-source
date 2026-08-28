@@ -25,22 +25,8 @@ extension FileSystemTests {
             print("moveItem error: \(error)")
         }
         TestReporter.report("FileSystem", "POS: moveItem moves file into target folder and removes it from the source location", result: movePassed)
-        // POS: moveItem overwrites a pre-existing item at the destination rather than throwing
-        let overwriteSource = tempDir.appendingPathComponent("overwrite_source.txt")
-        let newContent = "new content \(UUID().uuidString)"
-        try? newContent.write(to: overwriteSource, atomically: true, encoding: .utf8)
-        let existingDest = moveTargetFolder.appendingPathComponent("overwrite_source.txt")
-        try? "stale content".write(to: existingDest, atomically: true, encoding: .utf8)
-        var overwritePassed = false
-        do {
-            let moved = try await FileSystemService.moveItem(at: overwriteSource, toFolder: moveTargetFolder)
-            let readBack = try? String(contentsOf: moved)
-            overwritePassed = readBack == newContent
-        } catch {
-            print("moveItem overwrite error: \(error)")
-        }
-        TestReporter.report("FileSystem", "POS: moveItem overwrites a pre-existing item at the destination", result: overwritePassed)
 
+        // Destination-collision behavior (C1) — never a silent overwrite — is covered exhaustively by:
         await FileSystemMoveRegressionTests.run(tempDir: tempDir)
         runZipRoundTripCoverageExtra(tempDir: tempDir)
     }
@@ -195,30 +181,26 @@ extension FileSystemTests {
         let clipboardFile = tempDir.appendingPathComponent("clipboard_source.txt")
         let clipboardContent = "clipboard content \(UUID().uuidString)"
         try? clipboardContent.write(to: clipboardFile, atomically: true, encoding: .utf8)
-        PasteboardService.copyFileContentToClipboard(url: clipboardFile)
-        // copyFileContentToClipboard dispatches its file read via Task.detached internally (fixed
-        // to keep it off the main actor for slow volumes), so the pasteboard write lands
-        // asynchronously — poll instead of asserting immediately.
-        var pasteboardString: String?
-        for _ in 0 ..< 20 {
-            pasteboardString = NSPasteboard.general.string(forType: .string)
-            if pasteboardString == clipboardContent {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 100_000_000)
-        }
+        try? await PasteboardService.copyFileContentToClipboard(url: clipboardFile)
+        let pasteboardString = NSPasteboard.general.string(forType: .string)
         TestReporter.report(
             "FileSystem",
             "POS: copyFileContentToClipboard writes the file's text content to the pasteboard",
             result: pasteboardString == clipboardContent)
-        // NEG: copyFileContentToClipboard on a non-existent file does not overwrite pasteboard with stale/empty content
+        // NEG: copyFileContentToClipboard on a non-existent file throws and does not overwrite the pasteboard
         let priorMarker = "prior marker \(UUID().uuidString)"
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.setString(priorMarker, forType: .string)
         let missingFile = tempDir.appendingPathComponent("does_not_exist_clip.txt")
-        PasteboardService.copyFileContentToClipboard(url: missingFile)
+        var threw = false
+        do {
+            try await PasteboardService.copyFileContentToClipboard(url: missingFile)
+        } catch {
+            threw = true
+        }
         let unchangedString = NSPasteboard.general.string(forType: .string)
+        TestReporter.report("FileSystem", "NEG: copyFileContentToClipboard on missing file throws", result: threw)
         TestReporter.report("FileSystem", "NEG: copyFileContentToClipboard on missing file leaves pasteboard untouched", result: unchangedString == priorMarker)
 
         runCreateFileFromPasteboardContentCoverageExtras(tempDir: tempDir)

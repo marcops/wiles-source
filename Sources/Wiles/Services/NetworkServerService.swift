@@ -17,13 +17,11 @@ public struct NetworkServerService {
         }
 
         guard let url = URL(string: fullAddress) else {
-            throw NSError(domain: "NetworkServerService", code: 400, userInfo: [NSLocalizedDescriptionKey: L10n.string(.invalidServerURL, lang: .system)])
+            throw WilesError.localized(key: .invalidServerURL, arguments: [])
         }
 
         guard opener.open(url) else {
-            throw NSError(
-                domain: "NetworkServerService", code: 401,
-                userInfo: [NSLocalizedDescriptionKey: String(format: L10n.string(.serverConnectionFailed, lang: .system), fullAddress)])
+            throw WilesError.localized(key: .serverConnectionFailed, arguments: [fullAddress])
         }
     }
 }

@@ -27,7 +27,7 @@ public struct AppStateTrashTests {
 
     private static func testUpdateTrashSizeSetsUpdatingFlagAndResolves() async {
         let appState = AppState()
-        // Let the updateTrashSize() triggered by AppState.init() settle first so it can't race this test.
+        // Drain any trash-size task already in flight (none from init anymore) so it can't race this test.
         await appState.fileSystem.trash.task?.value
 
         appState.updateTrashSize()

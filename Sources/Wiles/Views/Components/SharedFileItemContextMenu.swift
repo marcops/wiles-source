@@ -75,7 +75,7 @@ struct SharedFileItemContextMenu: View {
         Menu(appState.tr(.copyPath)) {
             CopyPathMenuContent(urls: selectionURLsOrItem, relativeTo: appState.navigation.currentURL, appState: appState)
         }
-        Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { appState.pasteToCurrentDirectory() }
+        Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { appState.pasteToCurrentDirectory(windowUIState: windowUIState) }
     }
 
     @ViewBuilder private var contentActionsSection: some View {
@@ -158,10 +158,6 @@ struct SharedFileItemContextMenu: View {
         Button(appState.trWithShortcutHint(.deleteImmediately, shortcut: "Opt+Cmd+Del"), role: .destructive) {
             ensureItemIsSelected()
             appState.deletePermanentlySelected()
-        }
-        Button(appState.tr(.secureShred), role: .destructive) {
-            ensureItemIsSelected()
-            appState.shredSelected()
         }
         Button(appState.tr(.createSymlink)) {
             ensureItemIsSelected()

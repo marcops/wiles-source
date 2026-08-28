@@ -45,6 +45,23 @@ final class FinderStyleTruncationServiceTests: XCTestCase {
         XCTAssertEqual(FinderStyleTruncationService.truncatedMiddle(name, font: font, maxWidth: 200, maxLines: 0), name)
     }
 
+    /// P5: results are memoized in a bounded `NSCache`. A repeated call with identical inputs must
+    /// return an identical result (cache hit), and varying any key component must not collide.
+    func testMemoizationReturnsConsistentResultsAcrossInputs() {
+        let longName = String(repeating: "d", count: 180) + ".txt"
+        let first = FinderStyleTruncationService.truncatedMiddle(longName, font: font, maxWidth: 130, maxLines: 2)
+        let second = FinderStyleTruncationService.truncatedMiddle(longName, font: font, maxWidth: 130, maxLines: 2)
+        XCTAssertEqual(first, second)
+
+        // A different width is a different cache key — must recompute, not return the 130pt result.
+        let wider = FinderStyleTruncationService.truncatedMiddle(longName, font: font, maxWidth: 400, maxLines: 2)
+        XCTAssertGreaterThanOrEqual(wider.count, first.count)
+
+        // A different line cap is a different cache key.
+        let oneLine = FinderStyleTruncationService.truncatedMiddle(longName, font: font, maxWidth: 130, maxLines: 1)
+        XCTAssertLessThanOrEqual(oneLine.split(separator: "\n", omittingEmptySubsequences: false).count, 1)
+    }
+
     func testMoreAvailableLinesTruncatesLessAggressively() {
         let longName = String(repeating: "c", count: 200) + ".txt"
         let oneLine = FinderStyleTruncationService.truncatedMiddle(longName, font: font, maxWidth: 120, maxLines: 1)

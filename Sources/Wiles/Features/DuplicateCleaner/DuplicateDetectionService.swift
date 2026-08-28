@@ -5,7 +5,7 @@ import Foundation
 public enum DuplicateDetectionService: Sendable {
     private static let maxScannedFileCount = 50000
 
-    public static func findDuplicates(in folderURL: URL) async -> DuplicateScanResult {
+    public static func findDuplicates(in folderURL: URL) async throws -> DuplicateScanResult {
         // `.task { }` cancellation on the calling side does NOT automatically cancel a
         // `Task.detached` — detached tasks are unlinked from their creator, so the scan
         // would otherwise become a zombie that keeps enumerating/hashing after the sheet
@@ -16,8 +16,8 @@ public enum DuplicateDetectionService: Sendable {
             try Self.scanForDuplicateGroups(in: folderURL)
         }
 
-        return await withTaskCancellationHandler {
-            await (try? scanTask.value) ?? DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
+        return try await withTaskCancellationHandler {
+            try await scanTask.value
         } onCancel: {
             scanTask.cancel()
         }
@@ -29,7 +29,9 @@ public enum DuplicateDetectionService: Sendable {
             at: folderURL,
             includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
             options: [.skipsHiddenFiles]) else {
-            return DuplicateScanResult(groups: [], totalReclaimableBytes: 0)
+            // enumerator is nil when the folder can't be traversed (missing, not a directory, or —
+            // most often for a user-chosen folder — no read access). Surface it, don't report "0 found".
+            throw WilesError.permissionDenied(path: folderURL.path)
         }
 
         var sizeMap: [Int64: [URL]] = [:]
@@ -89,7 +91,7 @@ public enum DuplicateDetectionService: Sendable {
                 }
             }
             for (fullHashKey, matchedURLs) in fullHashGroups where matchedURLs.count > 1 {
-                let fileItems = matchedURLs.map { FileItem(url: $0, icon: NSWorkspace.shared.icon(forFile: $0.path)) }
+                let fileItems = matchedURLs.map { FileItem(url: $0) }
                 let group = DuplicateGroup(hash: fullHashKey, fileSize: size, items: fileItems)
                 groups.append(group)
                 reclaimable += group.reclaimableBytes

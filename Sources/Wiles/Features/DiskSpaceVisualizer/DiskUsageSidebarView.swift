@@ -44,10 +44,11 @@ struct DiskUsageSidebarView: View {
             VStack(alignment: .leading, spacing: 14) {
                 AsyncResultView(
                     id: appState.navigation.currentURL,
-                    operation: { await DiskSpaceVisualizerService.calculateDiskUsage(for: appState.navigation.currentURL) },
+                    operation: { try await DiskSpaceVisualizerService.calculateDiskUsage(for: appState.navigation.currentURL) },
                     isEmpty: { $0.topItems.isEmpty },
                     loading: { loadingIndicator },
                     empty: { emptyStateView },
+                    failure: { error in AsyncErrorStateView(message: appState.errorText(for: error)) },
                     content: { report in
                         donutChart(report: report)
                         Text(appState.tr(.topLargestItems))

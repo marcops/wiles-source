@@ -45,16 +45,6 @@ public struct AutoOrganizationTests {
         await testMoveFailureIsReportedNotCrashed(service: service, inputDir: inputDir)
         await testFileDeletedDuringStabilityCheckIsSkippedNotCrashed(service: service, inputDir: inputDir, targetDir: targetDir)
 
-        // AutoOrganizationService.processFolder() records every real move it performs on its own
-        // undoRedoService (AutoOrganizationService.shared has no owning window, so it keeps a
-        // private instance rather than any one window's AppState — see AutoOrganizationService.swift).
-        // Drain this test's own leaked records now, while the moved files still exist, so they don't
-        // poison later tests — undoing a record after baseTemp is removed below would fail forever
-        // under that service's retry-on-failure semantics, hanging whatever test runs next.
-        for _ in 0 ..< 10 where service.undoRedoService.canUndo() {
-            _ = try? await service.undoRedoService.undo()
-        }
-
         service.rules = oldRules
         try? FileManager.default.removeItem(at: baseTemp)
     }

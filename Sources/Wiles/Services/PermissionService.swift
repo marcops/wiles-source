@@ -22,8 +22,10 @@ public struct PermissionService: Sendable {
     /// never appears as a selectable entry in System Settings' Full Disk Access list at all.
     private static func probeProtectedFolders() {
         let home = FileManager.default.homeDirectoryForCurrentUser
+        // A readability check is enough to trip TCC and register Wiles as a requester; enumerating
+        // contents (the old approach) added a synchronous, potentially slow directory read per folder.
         for name in ["Desktop", "Documents", "Downloads", "Music", "Movies", "Pictures"] {
-            _ = try? FileManager.default.contentsOfDirectory(atPath: home.appendingPathComponent(name).path)
+            _ = FileManager.default.isReadableFile(atPath: home.appendingPathComponent(name).path)
         }
     }
 

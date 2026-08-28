@@ -29,11 +29,13 @@ struct PaginatedItemsSection<ItemContent: View>: View {
     }
 
     var body: some View {
+        // No collection-level `.animation` here: it animated a full grid/list reflow on any change
+        // to the item set and re-allocated a `[URL]` every `body`. Entrance animation is now the
+        // per-row `.transition`, played when the caller wraps the dataset swap in `withAnimation`.
         ForEach(visibleItems) { item in
             itemContent(item)
                 .transition(.opacity)
         }
-        .animation(paginate ? nil : MotionTokens.smoothEase, value: visibleItems.map(\.url))
         if paginate, visibleLimit < items.count {
             ProgressView()
                 .frame(height: progressViewHeight)

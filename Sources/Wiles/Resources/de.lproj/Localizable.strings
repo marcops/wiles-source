@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Dadurch werden die Berechtigungen aller Elemente in diesem Ordner geändert. Dies kann nicht rückgängig gemacht werden.";
 "ascending" = "Aufsteigend";
 "autoOrgRuleConflictNotice" = "Falls am Ziel bereits eine Datei mit demselben Namen existiert, wird sie ersetzt.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d Datei(en) verschoben · Zuletzt: %@";
 "autoOrganization" = "Regeln für automatische Organisation...";
 "autoOrganizationSubtitle" = "Verschiebt Dateien automatisch zwischen Ordnern basierend auf von dir definierten Regeln";
@@ -73,9 +74,12 @@
 "connect" = "Verbinden";
 "connectToServer" = "Mit Server Verbinden";
 "contentTranslucentLevel" = "Inhalts-Transparenz";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Konvertieren";
 "copy" = "Kopieren";
 "copyContent" = "Inhalt kopieren";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Pfad kopieren";
 "copyPathAbsolute" = "Absoluter Pfad";
 "copyPathRelative" = "Relativer Pfad";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Drücken Sie Cmd+K, um eine Verbindung zu einem Netzwerkserver herzustellen.";
 "helpServerTitle" = "Mit Netzwerkserver verbinden";
 "helpShortcuts" = "Hilfe & Tastenkürzel";
-"helpShredDesc" = "Rechtsklick -> 'Datei sicher schreddern...'.";
-"helpShredTitle" = "Sicherer Datei-Schredder";
 "helpSymlinkDesc" = "Rechtsklick -> 'Symbolischen Link erstellen...'.";
 "helpSymlinkTitle" = "Erstellung Symbolischer Links";
 "helpTagsDesc" = "Aktivieren Sie 'Tags anzeigen' im Menü Ansicht.";
@@ -252,6 +254,8 @@
 "paste" = "Einfügen";
 "permissionDeniedNotice" = "Zugriff verweigert: Wiles kann den Inhalt dieses Ordners nicht lesen.";
 "permissions" = "Freigabe & Zugriffsrechte";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Bilder";
 "places" = "Orte & Geräte";
 "prefix" = "Präfix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Groß-/Kleinschreibung beachten";
 "searchPlaceholder" = "Suchen in";
 "searchScope" = "Suchbereich";
-"secureShred" = "Datei sicher vernichten...";
 "selectAll" = "Alles auswählen";
 "selectFolder" = "Ordner auswählen...";
 "selectFolderSubtitle" = "Wählen Sie einen Ordner auf Ihrem Mac";
@@ -479,6 +482,7 @@
 "wilesErrorFileInUse" = "Datei in Verwendung: '{path}' ist derzeit in einer anderen Anwendung geöffnet.";
 "wilesErrorItemNotFound" = "Element Nicht Gefunden: '{path}' existiert nicht.";
 "wilesErrorOperationFailed" = "Vorgang Fehlgeschlagen: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Ungültiges Passwort: ZIP-Archiv konnte nicht entschlüsselt werden.";
 "wilesErrorFileCreationNotRedoable" = "Kann Nicht Wiederholt Werden: Wiles speichert den ursprünglichen Dateiinhalt nicht, daher kann diese Erstellung nicht wiederholt werden.";
 "tooltipFolder" = "Ordner";
@@ -493,8 +497,8 @@
 "pdfMergeNoValidPages" = "Keine gültigen Seiten in den angegebenen Dateien gefunden.";
 "pdfMergeWriteFailed" = "Das zusammengeführte PDF konnte nicht auf die Festplatte geschrieben werden.";
 "invalidServerURL" = "Ungültige Server-URL";
-"serverConnectionFailed" = "Verbindung zu %@ konnte nicht hergestellt werden";
-"imageConverterLoadFailed" = "Bild konnte nicht geladen werden unter %@";
+"serverConnectionFailed" = "Verbindung zu {0} konnte nicht hergestellt werden";
+"imageConverterLoadFailed" = "Bild konnte nicht geladen werden unter {0}";
 "imageConverterContextFailed" = "Grafikkontext konnte nicht erstellt werden";
 "imageConverterRenderFailed" = "Größenangepasstes Bild konnte nicht gerendert werden";
 "imageConverterDestinationFailed" = "Bildziel konnte nicht erstellt werden";
@@ -520,3 +524,9 @@
 "expandFolder" = "Erweitern";
 "collapseFolder" = "Einklappen";
 "expandCollapseFolderHint" = "Doppeltippen, um die Unterordner dieses Ordners ein- oder auszublenden.";
+
+"moveCollisionTitle" = "Ein Objekt namens \"{name}\" existiert hier bereits.";
+"moveCollisionMessage" = "Ersetzen verschiebt das vorhandene Objekt in den Papierkorb. Beide behalten hängt eine Nummer an den neuen Namen an.";
+"moveCollisionReplace" = "Ersetzen";
+"moveCollisionKeepBoth" = "Beide behalten";
+"moveCollisionApplyToAll" = "Auf alle anwenden";

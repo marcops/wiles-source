@@ -39,14 +39,19 @@ public struct DiskSpaceVisualizerTests {
         try? dataB.write(to: fileB)
 
         // Positive: Disk Usage Report Calculation
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let reportPos = report.totalSize >= 3072 && report.topItems.count >= 2
         TestReporter.report("DiskSpaceVisualizer", "POS: calculateDiskUsage returns accurate item sizes", result: reportPos)
 
-        // Negative: Non-existent folder calculates zero size gracefully
+        // Negative (M20): a non-existent folder now throws so the sidebar can show an error state.
         let fakeFolder = tempDir.appendingPathComponent("NonExistent")
-        let emptyReport = await DiskSpaceVisualizerService.calculateDiskUsage(for: fakeFolder)
-        TestReporter.report("DiskSpaceVisualizer", "NEG: Non-existent directory returns zero size report without crashing", result: emptyReport.totalSize == 0)
+        var fakeFolderThrew = false
+        do {
+            _ = try await DiskSpaceVisualizerService.calculateDiskUsage(for: fakeFolder)
+        } catch {
+            fakeFolderThrew = true
+        }
+        TestReporter.report("DiskSpaceVisualizer", "NEG: Non-existent directory throws instead of returning a zero report", result: fakeFolderThrew)
 
         try? FileManager.default.removeItem(at: tempDir)
     }
@@ -59,7 +64,10 @@ public struct DiskSpaceVisualizerTests {
             let itemFile = manyDir.appendingPathComponent("item\(i).bin")
             try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: itemFile)
         }
-        let manyReport = await DiskSpaceVisualizerService.calculateDiskUsage(for: manyDir)
+        let manyReport = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: manyDir)) ?? DiskUsageReport(
+            totalSize: 0,
+            topItems: [],
+            othersItem: nil))
         TestReporter.report(
             "DiskSpaceVisualizer",
             "POS: more than 10 items caps topItems at 10 and groups the rest into othersItem",
@@ -73,7 +81,10 @@ public struct DiskSpaceVisualizerTests {
         let subDir = nestedDir.appendingPathComponent("sub")
         try? FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
         try? Data(repeating: 0, count: 4096).write(to: subDir.appendingPathComponent("nested.bin"))
-        let nestedReport = await DiskSpaceVisualizerService.calculateDiskUsage(for: nestedDir)
+        let nestedReport = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: nestedDir)) ?? DiskUsageReport(
+            totalSize: 0,
+            topItems: [],
+            othersItem: nil))
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: a subdirectory's size is computed recursively from its contents",
             result: nestedReport.topItems.first(where: { $0.name == "sub" })?.size == 4096)
@@ -96,7 +107,7 @@ public struct DiskSpaceVisualizerTests {
 
         try? Data(repeating: 0, count: 1024).write(to: dir.appendingPathComponent("readable.bin"))
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let lockedItem = report.topItems.first { $0.name == "locked" }
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: a permission-denied subdirectory is scanned as zero-size instead of crashing",
@@ -112,7 +123,7 @@ public struct DiskSpaceVisualizerTests {
         try? Data(repeating: 0, count: 1_000_000).write(to: dir.appendingPathComponent("huge.bin"))
         try? Data(repeating: 0, count: 1).write(to: dir.appendingPathComponent("tiny.bin"))
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let hugeItem = report.topItems.first { $0.name == "huge.bin" }
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: a single very large file dominates the percentage breakdown near 100%",
@@ -125,7 +136,7 @@ public struct DiskSpaceVisualizerTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: an existing empty directory returns zero total size and no top items",
             result: report.totalSize == 0 && report.topItems.isEmpty && report.othersItem == nil)
@@ -140,7 +151,7 @@ public struct DiskSpaceVisualizerTests {
         try? Data(repeating: 0, count: 1024).write(to: dir.appendingPathComponent("visible.bin"))
         try? Data(repeating: 0, count: 1024 * 1024).write(to: dir.appendingPathComponent(".hidden.bin"))
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let hasHidden = report.topItems.contains { $0.name == ".hidden.bin" }
         TestReporter.report(
             "DiskSpaceVisualizer", "NEG: hidden dotfiles are excluded from disk usage scan and total size",
@@ -157,7 +168,7 @@ public struct DiskSpaceVisualizerTests {
         try? Data(repeating: 0, count: 8192).write(to: dir.appendingPathComponent("large.bin"))
         try? Data(repeating: 0, count: 2048).write(to: dir.appendingPathComponent("medium.bin"))
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let sizes = report.topItems.map(\.size)
         let isDescending = sizes == sizes.sorted(by: >)
         TestReporter.report(
@@ -175,7 +186,7 @@ public struct DiskSpaceVisualizerTests {
             try? Data(repeating: 0, count: 1024 * (i + 1)).write(to: dir.appendingPathComponent("f\(i).bin"))
         }
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: exactly 10 items produces a full topItems list with no othersItem",
             result: report.topItems.count == 10 && report.othersItem == nil)
@@ -192,7 +203,7 @@ public struct DiskSpaceVisualizerTests {
         let link = dir.appendingPathComponent("link.bin")
         try? FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let linkItem = report.topItems.first { $0.name == "link.bin" }
         TestReporter.report(
             "DiskSpaceVisualizer", "POS: a symlink entry appears in the report without crashing the scan",
@@ -216,7 +227,7 @@ public struct DiskSpaceVisualizerTests {
         // A non-empty file too, so the grand total isn't 0 and the scan actually returns items.
         try? Data(repeating: 0, count: 2048).write(to: dir.appendingPathComponent("anchor.bin"))
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let dirItem = report.topItems.first { $0.name == "empty_dir" }
         let fileItem = report.topItems.first { $0.name == "empty_file.txt" }
         TestReporter.report(
@@ -236,7 +247,7 @@ public struct DiskSpaceVisualizerTests {
         try? Data(repeating: 0, count: 1024).write(to: dir.appendingPathComponent("a.bin"))
         try? Data(repeating: 0, count: 3072).write(to: dir.appendingPathComponent("b.bin"))
 
-        let report = await DiskSpaceVisualizerService.calculateDiskUsage(for: dir)
+        let report = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: dir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         let totalPct = report.topItems.reduce(0.0) { $0 + $1.percentage } + (report.othersItem?.percentage ?? 0.0)
         let aItem = report.topItems.first { $0.name == "a.bin" }
         let withinTolerance = abs(totalPct - 100.0) < 0.001

@@ -13,8 +13,10 @@ extension QLThumbnailRepresentation: @retroactive @unchecked Sendable { }
 @MainActor
 public final class ThumbnailService {
     public static let shared = ThumbnailService()
-    private static let maxDimension: CGFloat = 512
-    private let cache = NSCache<NSString, NSImage>()
+    private nonisolated static let maxDimension: CGFloat = 512
+    /// `nonisolated(unsafe)`: `NSCache` is documented thread-safe, so the off-actor generate/prefetch
+    /// paths can read/write it directly without hopping to `@MainActor`.
+    private nonisolated(unsafe) let cache = NSCache<NSString, NSImage>()
     private var prefetchTask: Task<Void, Never>?
 
     private init() {
@@ -57,18 +59,23 @@ public final class ThumbnailService {
             type.conforms(to: .presentation)
     }
 
-    public func cachedThumbnail(for url: URL, size _: CGFloat) -> NSImage? {
+    public nonisolated func cachedThumbnail(for url: URL, size _: CGFloat) -> NSImage? {
         cache.object(forKey: cacheKey(url: url))
     }
 
-    public func loadThumbnail(for url: URL, size _: CGFloat) async -> NSImage? {
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+    public nonisolated func loadThumbnail(for url: URL, size _: CGFloat) async -> NSImage? {
+        // Scale must be read on the main actor; a single view-driven load can afford one hop.
+        let scale = await MainActor.run { NSScreen.main?.backingScaleFactor ?? 2.0 }
+        return await thumbnail(for: url, scale: scale)
+    }
+
+    /// Cache-check + generate, entirely off `@MainActor`. `QLThumbnailGenerator` tolerates a missing
+    /// file (returns nil via the thrown error), so no synchronous `fileExists` pre-check is needed.
+    private nonisolated func thumbnail(for url: URL, scale: CGFloat) async -> NSImage? {
         let key = cacheKey(url: url)
         if let cached = cache.object(forKey: key) {
             return cached
         }
-
-        let scale = NSScreen.main?.backingScaleFactor ?? 2.0
         let request = QLThumbnailGenerator.Request(
             fileAt: url,
             size: CGSize(width: Self.maxDimension, height: Self.maxDimension),
@@ -83,28 +90,35 @@ public final class ThumbnailService {
         return image
     }
 
-    public func prefetchThumbnails(for items: [FileItem], size: CGFloat) {
-        let eligibleItems = items.filter { Self.supportsThumbnail(item: $0) }
-        guard !eligibleItems.isEmpty else { return }
+    public func prefetchThumbnails(for items: [FileItem], size _: CGFloat) {
+        let eligibleURLs = items.filter { Self.supportsThumbnail(item: $0) }.map(\.url)
+        guard !eligibleURLs.isEmpty else { return }
         // Cancel any prefetch still running for a previously-viewed folder — otherwise it keeps
         // burning CPU generating thumbnails for a folder the user already navigated away from.
         prefetchTask?.cancel()
-        prefetchTask = Task(priority: .userInitiated) { [weak self] in
-            for item in eligibleItems {
+        // Read the backing scale here (main actor) once, before detaching the loop off-actor.
+        let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+        prefetchTask = Task.detached(priority: .userInitiated) { [weak self] in
+            for url in eligibleURLs {
                 if Task.isCancelled {
                     break
                 }
-                _ = await self?.loadThumbnail(for: item.url, size: size)
+                _ = await self?.thumbnail(for: url, scale: scale)
             }
         }
     }
 
     /// Mirrors `DirectoryCacheService.invalidate` — evicts a stale thumbnail after its file is overwritten.
-    public func invalidate(url: URL) {
+    public nonisolated func invalidate(url: URL) {
         cache.removeObject(forKey: cacheKey(url: url))
     }
 
-    private func cacheKey(url: URL) -> NSString {
-        url.standardizedFileURL.path as NSString
+    /// Keyed by path + `contentModificationDate`, so a file edited/replaced externally gets a fresh
+    /// thumbnail instead of the stale cached bitmap. Costs one cheap local `stat` per lookup.
+    private nonisolated func cacheKey(url: URL) -> NSString {
+        let std = url.standardizedFileURL
+        let mtime = (try? std.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        let stamp = mtime.map { String($0.timeIntervalSinceReferenceDate) } ?? "0"
+        return "\(std.path)|\(stamp)" as NSString
     }
 }

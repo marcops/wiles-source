@@ -45,6 +45,12 @@ When asked to act as architect / improve / design something (not just "fix X"), 
 - A destructive operation (move, delete, overwrite) must never leave the user with less than they started with. If any precondition isn't clearly safe, abort before touching anything — never "clean up" the destination, delete-then-recreate, or perform a partial/irreversible step before the operation is confirmed possible.
 - Any function that removes/overwrites a destination "to make room" for a write MUST first verify the destination isn't the source itself, and MUST NOT proceed with the destructive half unless the constructive half is actually going to happen. Prefer erroring out over guessing.
 
+### Destination-Collision Handling Must Be Explicit and Non-Destructive
+
+- Any filesystem operation that writes to a path which may already exist must either (a) auto-pick a free name (e.g. `UniqueFileNaming`), or (b) surface a replace / keep-both / cancel decision to the user. It must never silently overwrite (`replaceItem`), and never delete the destination (`removeItem`) before the constructive step is proven possible.
+- Unattended callers (background rules, auto-organization) must take path (a) — there is no user present to prompt.
+- Each collision fix ships with the red→green regression test the "Never Destroy User Data" rule mandates: the old code destroys the destination, the new code doesn't.
+
 ## Full Rule Self-Audit Before Every Commit
 
 - Before every commit, run the project's validation tooling (build/tests/lint/format — see `WILES_RULES.md` for this project's specific command) **and** perform an explicit self-audit of the diff (staged + unstaged) against the applicable rules in `DEV_RULES.md`, `SWIFT_LANG_RULES.md`, `WILES_RULES.md`, and `WILES_UI_UX_RULES.md` — scoped to the code the diff actually touches, not a full-repo re-audit every time.

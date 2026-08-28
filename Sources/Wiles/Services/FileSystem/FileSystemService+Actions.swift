@@ -2,39 +2,45 @@ import Foundation
 import GitBeacon
 
 public extension FileSystemService {
+    /// `onCollision` decides what happens when `targetFolder` already contains an item named the same
+    /// as `url` — never a silent overwrite. Defaults to `.failIfExists` so a caller that doesn't
+    /// think about collisions can't lose data; the interactive callers catch that and prompt the user.
     @discardableResult
-    static func moveItem(at url: URL, toFolder targetFolder: URL) async throws -> URL {
+    static func moveItem(
+        at url: URL,
+        toFolder targetFolder: URL,
+        onCollision: MoveCollisionPolicy = .failIfExists) async throws -> URL {
         try await Task.detached(priority: .userInitiated) {
             let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
 
             // If the destination is the exact same path as the source (moving an item to the folder
-            // it's already in), the "remove existing destination before moving" branch below would
-            // delete destURL — which IS the source — before the subsequent moveItem() ever runs,
-            // permanently destroying the item and leaving nothing for moveItem() to move. Must check
-            // this before touching the filesystem at all, not after.
+            // it's already in), any "make room at the destination" branch below would act on the
+            // source itself. Must check this before touching the filesystem at all, not after.
             guard url.standardizedFileURL != destURL.standardizedFileURL else {
                 throw WilesError.itemAlreadyInDestination
             }
 
-            // When the destination doesn't exist yet, there's nothing to replace — a plain move
-            // is correct and matches prior behavior.
+            // When the destination doesn't exist yet, there's nothing to resolve — a plain move.
             guard FileManager.default.fileExists(atPath: destURL.path) else {
                 try FileManager.default.moveItem(at: url, to: destURL)
                 return destURL
             }
 
-            // When the destination already exists, `replaceItemAt` performs an atomic overwrite-move:
-            // the source only replaces the destination's contents once the operation is guaranteed to
-            // succeed. Unlike remove-then-move, a failure here (permissions, disk full, source vanishing
-            // mid-operation) can never leave the destination half-deleted with nothing to replace it.
-            var resultingURL: NSURL?
-            try FileManager.default.replaceItem(
-                at: destURL,
-                withItemAt: url,
-                backupItemName: nil,
-                options: [],
-                resultingItemURL: &resultingURL)
-            return (resultingURL as URL?) ?? destURL
+            switch onCollision {
+            case .failIfExists:
+                throw WilesError.destinationExists(name: url.lastPathComponent)
+            case .keepBoth:
+                let freeURL = uniqueDestination(for: url.lastPathComponent, in: targetFolder)
+                try FileManager.default.moveItem(at: url, to: freeURL)
+                return freeURL
+            case .replace:
+                // Send the existing file to Trash (recoverable) before moving the source into place —
+                // never obliterate it. If the move then fails, the source is still untouched and the
+                // old file is in Trash, so nothing is destroyed.
+                try FileManager.default.trashItem(at: destURL, resultingItemURL: nil)
+                try FileManager.default.moveItem(at: url, to: destURL)
+                return destURL
+            }
         }.value
     }
 

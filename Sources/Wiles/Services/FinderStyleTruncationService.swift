@@ -8,17 +8,38 @@ public enum FinderStyleTruncationService {
     /// `.lineLimit` when it measures a hair wider than TextKit did.
     private static let measurementSafetyMargin: CGFloat = 2.0
 
+    /// `truncatedMiddle` is read from SwiftUI `body` for every visible cell on every render, and its
+    /// inputs (name, font, rounded width, line cap) repeat heavily across renders of one folder.
+    /// `NSCache` is internally synchronized, so this is safe to touch from any actor without a lock.
+    private nonisolated(unsafe) static let truncationCache: NSCache<NSString, NSString> = {
+        let cache = NSCache<NSString, NSString>()
+        cache.countLimit = 4000
+        return cache
+    }()
+
     public static func truncatedMiddle(_ name: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> String {
-        let maxWidth = maxWidth - measurementSafetyMargin
-        guard maxWidth > 0, maxLines > 0, !name.isEmpty else { return name }
+        let clampedWidth = maxWidth - measurementSafetyMargin
+        guard clampedWidth > 0, maxLines > 0, !name.isEmpty else { return name }
 
-        let content = fits(name, font: font, maxWidth: maxWidth, maxLines: maxLines)
+        let cacheKey = "\(font.fontName)|\(font.pointSize)|\(Int(clampedWidth.rounded()))|\(maxLines)|\(name)" as NSString
+        if let cached = truncationCache.object(forKey: cacheKey) {
+            return cached as String
+        }
+
+        let content = fits(name, font: font, maxWidth: clampedWidth, maxLines: maxLines)
             ? name
-            : middleTruncatedCandidate(for: name, font: font, maxWidth: maxWidth, maxLines: maxLines)
+            : middleTruncatedCandidate(for: name, font: font, maxWidth: clampedWidth, maxLines: maxLines)
 
-        guard maxLines > 1 else { return content }
-        let lines = wrappedLines(content, font: font, maxWidth: maxWidth, maxLines: maxLines)
-        return lines.isEmpty ? content : lines.joined(separator: "\n")
+        let result: String
+        if maxLines > 1 {
+            let lines = wrappedLines(content, font: font, maxWidth: clampedWidth, maxLines: maxLines)
+            result = lines.isEmpty ? content : lines.joined(separator: "\n")
+        } else {
+            result = content
+        }
+
+        truncationCache.setObject(result as NSString, forKey: cacheKey)
+        return result
     }
 
     /// Wraps `text` into as many lines as it needs, no truncation, no line cap — for showing the

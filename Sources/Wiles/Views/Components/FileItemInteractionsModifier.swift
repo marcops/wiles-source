@@ -32,32 +32,26 @@ public struct FileItemInteractionsModifier: ViewModifier {
         self.onTargetedChanged = onTargetedChanged
     }
 
+    /// True when the grabbed row is one of several selected items — the case a single SwiftUI
+    /// `NSItemProvider` can't carry, so `MultiFileDragView` takes over the drag.
+    private var isMultiSelectionDrag: Bool {
+        appState.selection.selectedURLs.count > 1 && appState.selection.selectedURLs.contains(item.url)
+    }
+
     public func body(content: Content) -> some View {
         content
-            .onTapGesture(count: 2) {
-                renameRequestGeneration += 1
-                appState.navigateTo(item.url)
-            }
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    let wasAlreadySelected = appState.selection.selectedURLs.count == 1 && appState.selection.selectedURLs.contains(item.url)
-                    if let onSelect {
-                        onSelect()
-                    } else {
-                        appState.handleSelection(for: item)
-                    }
-                    scheduleRenameIfAlreadySelected(wasAlreadySelected)
-                })
+            .onTapGesture(count: 2) { handleDoubleTap() }
+            .simultaneousGesture(TapGesture().onEnded { handleSingleTap() })
             .onDrag {
                 if !appState.selection.selectedURLs.contains(item.url) {
                     appState.selection.selectedURLs = [item.url]
                 }
-                // One provider per row, representing only this row's own file — an NSItemProvider
-                // is a single drag item, so registering every selected URL's representation onto
-                // one shared provider (the old code) can't actually transfer more than one file.
+                // Single-item fallback: one NSItemProvider carries one file. The multi-selection
+                // case is handled by the MultiFileDragView overlay below (one drag item per URL).
                 return NSItemProvider(object: item.url as NSURL)
             }
             .springLoadedFolder(folderURL: item.url, isDirectory: item.isDirectory, appState: appState, onTargetedChanged: onTargetedChanged)
+            .overlay(multiSelectionDragOverlay)
             .overlay(
                 RightClickDetector {
                     if let onRightClick {
@@ -67,6 +61,35 @@ public struct FileItemInteractionsModifier: ViewModifier {
                     }
                 })
             .fileItemContextMenu(for: item, appState: appState)
+    }
+
+    /// Left-mouse drag source for a multi-selection; inert (passes clicks/right-clicks through) for
+    /// a single selection. `onClick`/`onDoubleClick` mirror the SwiftUI tap handlers for the case a
+    /// press never becomes a drag.
+    @ViewBuilder private var multiSelectionDragOverlay: some View {
+        if isMultiSelectionDrag {
+            MultiFileDragView(
+                isActive: true,
+                draggedURLs: Array(appState.selection.selectedURLs),
+                dragImage: item.icon,
+                onClick: { handleSingleTap() },
+                onDoubleClick: { handleDoubleTap() })
+        }
+    }
+
+    private func handleDoubleTap() {
+        renameRequestGeneration += 1
+        appState.navigateTo(item.url)
+    }
+
+    private func handleSingleTap() {
+        let wasAlreadySelected = appState.selection.selectedURLs.count == 1 && appState.selection.selectedURLs.contains(item.url)
+        if let onSelect {
+            onSelect()
+        } else {
+            appState.handleSelection(for: item)
+        }
+        scheduleRenameIfAlreadySelected(wasAlreadySelected)
     }
 
     /// Clicking an item that's already the sole selection triggers rename after a short delay,

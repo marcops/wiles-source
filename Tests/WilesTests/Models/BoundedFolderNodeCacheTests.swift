@@ -31,6 +31,10 @@ public struct BoundedFolderNodeCacheTests {
         let nodes = [node(name: "a", base: base), node(name: "b", base: base)]
         cache[key] = nodes
         report("Model/BoundedFolderNodeCache", "POS: get after set returns the stored nodes", result: cache[key] == nodes)
+        report(
+            "Model/BoundedFolderNodeCache",
+            "POS: cachedURLs reports the standardized key of a stored entry",
+            result: cache.cachedURLs == [key.standardizedFileURL])
     }
 
     private static func testOverwriteExistingKeyUpdatesValueAndAccounting() {

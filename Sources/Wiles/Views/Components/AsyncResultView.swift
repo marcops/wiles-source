@@ -16,19 +16,23 @@ import SwiftUI
 /// backing data never changes for the sheet's lifetime) can omit `id` via the `ID == Int`
 /// convenience initializer below, which behaves like the bare `.task { ... }` (no `id:`) each of
 /// those call sites used before.
-struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: View, Content: View>: View {
+struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: View, Failure: View, Content: View>: View {
     let id: ID
-    let operation: () async -> Result
+    let operation: () async throws -> Result
     let isEmpty: (Result) -> Bool
     @ViewBuilder let loading: () -> Loading
     @ViewBuilder let empty: () -> Empty
+    @ViewBuilder let failure: (Error) -> Failure
     @ViewBuilder let content: (Result) -> Content
 
     @State private var result: Result?
+    @State private var loadError: Error?
 
     var body: some View {
         Group {
-            if let result {
+            if let loadError {
+                failure(loadError)
+            } else if let result {
                 if isEmpty(result) {
                     empty()
                 } else {
@@ -43,12 +47,21 @@ struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: Vi
             // that re-triggers the operation (e.g. navigating to a new directory) shows loading
             // again instead of leaving the previous directory's stale results on screen.
             result = nil
-            let value = await operation()
-            // Guards against a superseded run: if `id` changed again (or the view disappeared)
-            // while `operation` was in flight, this task was cancelled and must not overwrite
-            // whatever the newer run already produced.
-            if !Task.isCancelled {
-                result = value
+            loadError = nil
+            do {
+                let value = try await operation()
+                // Guards against a superseded run: if `id` changed again (or the view disappeared)
+                // while `operation` was in flight, this task was cancelled and must not overwrite
+                // whatever the newer run already produced.
+                if !Task.isCancelled {
+                    result = value
+                }
+            } catch is CancellationError {
+                // Superseded/cancelled run — leave state for the newer run to own.
+            } catch {
+                if !Task.isCancelled {
+                    loadError = error
+                }
             }
         }
     }
@@ -57,11 +70,12 @@ struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: Vi
 extension AsyncResultView where ID == Int {
     /// Convenience for a one-shot operation with no re-run key.
     init(
-        operation: @escaping () async -> Result,
+        operation: @escaping () async throws -> Result,
         isEmpty: @escaping (Result) -> Bool,
         @ViewBuilder loading: @escaping () -> Loading,
         @ViewBuilder empty: @escaping () -> Empty,
+        @ViewBuilder failure: @escaping (Error) -> Failure,
         @ViewBuilder content: @escaping (Result) -> Content) {
-        self.init(id: 0, operation: operation, isEmpty: isEmpty, loading: loading, empty: empty, content: content)
+        self.init(id: 0, operation: operation, isEmpty: isEmpty, loading: loading, empty: empty, failure: failure, content: content)
     }
 }

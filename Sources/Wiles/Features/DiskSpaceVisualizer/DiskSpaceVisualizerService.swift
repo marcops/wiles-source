@@ -13,7 +13,7 @@ public enum DiskSpaceVisualizerService {
         let wasTruncated: Bool
     }
 
-    public static func calculateDiskUsage(for folderURL: URL) async -> DiskUsageReport {
+    public static func calculateDiskUsage(for folderURL: URL) async throws -> DiskUsageReport {
         // `.task(id:)` cancellation on the calling side does NOT automatically cancel a
         // `Task.detached` — detached tasks are unlinked from their creator, so the scan
         // would otherwise become a zombie that keeps recursively walking a folder the user
@@ -22,12 +22,11 @@ public enum DiskSpaceVisualizerService {
         // `CancellationError` promptly instead of running to completion.
         let scanTask = Task.detached(priority: .userInitiated) { () throws -> DiskUsageReport in
             let fm = FileManager.default
-            guard let contents = try? fm.contentsOfDirectory(
+            // A read failure here (no access to the folder) must surface, not read as "0 bytes".
+            let contents = try fm.contentsOfDirectory(
                 at: folderURL,
                 includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
-                options: [.skipsHiddenFiles]) else {
-                return DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
-            }
+                options: [.skipsHiddenFiles])
 
             let rawItems = try collectRawItems(in: contents, fm: fm)
             let grandTotal = rawItems.reduce(0) { $0 + $1.size }
@@ -39,8 +38,8 @@ public enum DiskSpaceVisualizerService {
             return buildReport(from: rawItems, grandTotal: grandTotal, folderURL: folderURL, isApproximate: isApproximate)
         }
 
-        return await withTaskCancellationHandler {
-            await (try? scanTask.value) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
+        return try await withTaskCancellationHandler {
+            try await scanTask.value
         } onCancel: {
             scanTask.cancel()
         }
@@ -86,6 +85,8 @@ public enum DiskSpaceVisualizerService {
             let dummyURL = folderURL.appendingPathComponent("Others (\(othersSlice.count))")
             othersItem = DiskUsageItem(
                 url: dummyURL,
+                // M5 follow-up: a chart label, not a thrown error — localizing needs a `lang:`
+                // parameter threaded from the @MainActor caller.
                 name: String(format: L10n.string(.diskUsageOthersItemsFormat, lang: .system), othersSlice.count),
                 size: othersTotalSize,
                 percentage: pct,

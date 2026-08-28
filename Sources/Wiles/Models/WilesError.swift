@@ -13,6 +13,10 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
     /// silently no-op'ing would still leave the user without feedback, and proceeding is what used
     /// to destroy the item (see the regression test in FileSystemTests.swift).
     case itemAlreadyInDestination
+    /// Thrown when a move/symlink/create would land on a name that already exists at the
+    /// destination, instead of overwriting or deleting what's there. The caller decides what to do
+    /// (prompt the user, auto-rename); if it reaches an alert unhandled, the message names the item.
+    case destinationExists(name: String)
     /// Thrown by `UndoRedoService.executeForwardAction(_:)`'s `.createFile` case: redoing an undone
     /// file creation would require recreating the original file's exact content, which `.createFile`
     /// never stored (unlike `.createFolder`, whose redo can always just call `createDirectory` again
@@ -20,6 +24,11 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
     /// folder in the file's place is the whole point of splitting `.create` into `.createFolder`/
     /// `.createFile` — see `UndoActionType.swift`.
     case fileCreationNotRedoable
+    /// A user-facing failure from a stateless service (`ArchiveService`, `ImageConverterService`, …)
+    /// that has no access to the in-app language. Carrying the `L10n.Key` (+ any `%@` args) instead
+    /// of a pre-rendered string lets `AppState.showError` localize it at display time in the app's
+    /// chosen language, not the system one. See lint rule LR2.
+    case localized(key: L10n.Key, arguments: [String])
 
     public var errorDescription: String? {
         switch self {
@@ -37,9 +46,23 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
             "Invalid Password: Unable to decrypt ZIP archive."
         case .itemAlreadyInDestination:
             "This item is already in that location."
+        case let .destinationExists(name):
+            "An item named '\(name)' already exists in the destination."
         case .fileCreationNotRedoable:
             "Can't Redo: Wiles doesn't store the original file's content, so this creation can't be redone."
+        case let .localized(key, arguments):
+            Self.substitute(L10n.string(key, lang: .system), arguments)
         }
+    }
+
+    /// Positional `{0}`, `{1}`, … substitution — same no-crash rationale as `localizedMessage`'s
+    /// `{path}`/`{reason}` tokens (a translation missing a token just no-ops, unlike `String(format:)`).
+    private static func substitute(_ template: String, _ arguments: [String]) -> String {
+        var result = template
+        for (index, value) in arguments.enumerated() {
+            result = result.replacingOccurrences(of: "{\(index)}", with: value)
+        }
+        return result
     }
 
     public var l10nKey: L10n.Key {
@@ -51,7 +74,9 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
         case .operationFailed: .wilesErrorOperationFailed
         case .invalidZipPassword: .wilesErrorInvalidZipPassword
         case .itemAlreadyInDestination: .itemAlreadyInDestination
+        case .destinationExists: .wilesErrorDestinationExists
         case .fileCreationNotRedoable: .wilesErrorFileCreationNotRedoable
+        case let .localized(key, _): key
         }
     }
 
@@ -69,6 +94,10 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
             return template.replacingOccurrences(of: "{path}", with: path)
         case let .operationFailed(reason):
             return template.replacingOccurrences(of: "{reason}", with: reason)
+        case let .destinationExists(name):
+            return template.replacingOccurrences(of: "{name}", with: name)
+        case let .localized(_, arguments):
+            return Self.substitute(template, arguments)
         case .invalidZipPassword, .itemAlreadyInDestination, .fileCreationNotRedoable:
             return template
         }

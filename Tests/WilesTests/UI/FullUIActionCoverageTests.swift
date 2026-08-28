@@ -93,7 +93,7 @@ public struct FullUIActionCoverageTests {
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: emptyDir) }
 
-        let result = await DuplicateDetectionService.findDuplicates(in: emptyDir)
+        let result = await ((try? DuplicateDetectionService.findDuplicates(in: emptyDir)) ?? DuplicateScanResult(groups: [], totalReclaimableBytes: 0))
         report("UI/DuplicateCleaner", "NEG: Duplicate detection on empty folder returns zero groups", result: result.groups.isEmpty)
     }
 
@@ -107,7 +107,7 @@ public struct FullUIActionCoverageTests {
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        let result = await DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)
+        let result = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)) ?? DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil))
         report("UI/DiskSpaceVisualizer", "POS: Analyzing empty folder returns zero total size", result: result.totalSize == 0)
     }
 

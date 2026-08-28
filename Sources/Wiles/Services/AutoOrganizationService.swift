@@ -12,9 +12,6 @@ public final class AutoOrganizationService {
 
     private let ruleStore = AutoOrganizationRuleStore()
     private let watcher = FolderWatcher(debounceInterval: AutoOrganizationService.scanDebounceInterval)
-    /// This service has no owning window (a background scan can fire with no window focused), so
-    /// its own moves are recorded on their own instance rather than any one window's `AppState`.
-    let undoRedoService = UndoRedoService()
     /// How long a matched file's size must stay unchanged before it's considered done writing and
     /// safe to move. FileHandle/POSIX lock checks don't work for this: most writers (browsers,
     /// curl, Finder copies) never take an advisory lock, so a locked-file check would never detect
@@ -93,10 +90,18 @@ public final class AutoOrganizationService {
     /// changed while the detached scan above was in flight) and matches the freshly-scanned
     /// `files`, dispatching each match's move exactly as before. Split out of `processFolder` only
     /// so the initial (potentially slow, /Volumes-backed) directory scan can run detached.
+    /// One matched file queued for a background move: `(file, destination, ruleID)`.
+    private struct PendingMove: Sendable {
+        let file: URL
+        let destinationURL: URL
+        let ruleID: UUID
+    }
+
     private func matchAndDispatchMoves(folder: URL, files: [URL], resourceKeys: [URLResourceKey]) {
         let activeRules = rules.filter { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
         guard !activeRules.isEmpty else { return }
 
+        var pending: [PendingMove] = []
         for file in files {
             // Ignore hidden files and directories
             if file.lastPathComponent.hasPrefix(".") {
@@ -106,38 +111,36 @@ public final class AutoOrganizationService {
             if resourceValues?.isDirectory ?? false {
                 continue
             }
+            if let rule = activeRules.first(where: { matches(file: file, rule: $0) }) {
+                pending.append(PendingMove(file: file, destinationURL: rule.destinationURL, ruleID: rule.id))
+            }
+        }
+        guard !pending.isEmpty else { return }
 
-            for rule in activeRules where matches(file: file, rule: rule) {
-                // Move file natively using UndoRedoService for safe undo.
-                // Runs detached off the main actor: the stability check sleeps, and
-                // FileSystemService.moveItem falls back to a synchronous copy+delete for
-                // cross-volume moves, which would otherwise freeze the UI on large files.
-                let stabilityCheckDelay = self.stabilityCheckDelay
-                let destinationURL = rule.destinationURL
-                let undoRedoService = self.undoRedoService
-                let service = self
-                let ruleID = rule.id
-                Task.detached(priority: .utility) {
-                    guard let sizeBefore = Self.fileSize(file) else { return }
-                    try? await Task.sleep(nanoseconds: stabilityCheckDelay)
-                    guard let sizeAfter = Self.fileSize(file), sizeBefore == sizeAfter else {
-                        return // still being written — skip this round
-                    }
-                    do {
-                        _ = try await FileSystemService.moveItem(at: file, toFolder: destinationURL)
-                        await MainActor.run {
-                            undoRedoService.recordAction(.move(
-                                sourceURL: file,
-                                destinationURL: destinationURL.appendingPathComponent(file.lastPathComponent)))
-                            service.recordSuccessfulMove(ruleID: ruleID)
-                        }
-                    } catch {
-                        // Unexpected failure — user has no other way to learn this move silently
-                        // failed, since it runs unattended from background file monitoring.
-                        ErrorReporter.report(error, context: "Auto-organization: moving file to rule destination")
-                    }
+        // One detached task processes every match sequentially, rather than fanning out a separate
+        // task (each holding the 150ms stability timer) per file. Runs off the main actor: the
+        // stability check sleeps, and FileSystemService.moveItem falls back to a synchronous
+        // copy+delete for cross-volume moves that would otherwise freeze the UI on large files.
+        // Rule moves are not added to any window's undo stack — the sheet says so.
+        let stabilityCheckDelay = stabilityCheckDelay
+        let service = self
+        Task.detached(priority: .utility) {
+            for move in pending {
+                guard let sizeBefore = Self.fileSize(move.file) else { continue }
+                try? await Task.sleep(nanoseconds: stabilityCheckDelay)
+                guard let sizeAfter = Self.fileSize(move.file), sizeBefore == sizeAfter else {
+                    continue // still being written — skip this round
                 }
-                break // Stop checking other rules for this file if one matched
+                do {
+                    // Unattended — no user to prompt on a name collision, so keep both (unique-rename)
+                    // rather than overwrite. See C1/H3.
+                    _ = try await FileSystemService.moveItem(at: move.file, toFolder: move.destinationURL, onCollision: .keepBoth)
+                    await MainActor.run { service.recordSuccessfulMove(ruleID: move.ruleID) }
+                } catch {
+                    // Unexpected failure — user has no other way to learn this move silently
+                    // failed, since it runs unattended from background file monitoring.
+                    ErrorReporter.report(error, context: "Auto-organization: moving file to rule destination")
+                }
             }
         }
     }

@@ -53,8 +53,15 @@ final class NetworkServerServiceTests: XCTestCase {
         defer { NetworkServerService.opener = previousOpener }
 
         XCTAssertThrowsError(try NetworkServerService.connectToServer(urlAddress: "unreachable.local")) { error in
-            XCTAssertEqual((error as NSError).domain, "NetworkServerService")
-            XCTAssertEqual((error as NSError).code, 401)
+            // M5: now throws WilesError.localized so AppState.showError localizes it in the in-app
+            // language; the message still carries the address via the {0} token.
+            guard case let WilesError.localized(key, arguments) = error else {
+                return XCTFail("expected WilesError.localized, got \(error)")
+            }
+            XCTAssertEqual(key, .serverConnectionFailed)
+            XCTAssertEqual(arguments, ["smb://unreachable.local"])
+            XCTAssertTrue(
+                (error as? WilesError)?.localizedMessage(lang: .english).contains("smb://unreachable.local") ?? false)
         }
     }
 }

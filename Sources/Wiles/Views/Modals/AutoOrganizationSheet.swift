@@ -14,7 +14,11 @@ struct AutoOrganizationSheet: View {
     private var dismiss
     var appState: AppState
 
-    @State private var rules: [AutoOrganizationRule] = []
+    /// Read straight from the `@Observable` store — no local copy, no manual refresh. Updates on
+    /// every add/update/delete and on background `totalMovedCount`/`lastTriggeredAt` bumps.
+    private var rules: [AutoOrganizationRule] {
+        AutoOrganizationService.shared.rules
+    }
 
     // New rule state
     @State private var sourceURL: URL? = URL.userHome.appendingPathComponent("Downloads")
@@ -33,9 +37,6 @@ struct AutoOrganizationSheet: View {
             height: Self.sheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.done)) { dismiss() },
             content: { contentArea })
-            .onAppear {
-                refreshRules()
-            }
             .sheet(item: $folderPickerTarget) { target in
                 FolderPickerSheet(appState: appState, initialURL: target == .source ? sourceURL : destinationURL) { url in
                     switch target {
@@ -55,7 +56,6 @@ struct AutoOrganizationSheet: View {
                     Button(appState.tr(.deleteRule), role: .destructive) {
                         if let pendingDeleteRuleID {
                             AutoOrganizationService.shared.deleteRule(id: pendingDeleteRuleID)
-                            refreshRules()
                         }
                         pendingDeleteRuleID = nil
                     }
@@ -114,7 +114,6 @@ struct AutoOrganizationSheet: View {
                 var updated = rule
                 updated.isEnabled = newVal
                 AutoOrganizationService.shared.updateRule(updated)
-                refreshRules()
             }))
             .labelsHidden()
             .accessibilityLabel(appState.tr(.ruleEnabledToggle))
@@ -177,6 +176,9 @@ struct AutoOrganizationSheet: View {
             newRuleConditionRow
             newRuleDestinationRow
             Text(appState.tr(.autoOrgRuleConflictNotice))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(appState.tr(.autoOrgNoUndoNotice))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -263,11 +265,6 @@ struct AutoOrganizationSheet: View {
         }
         let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: trimmedValue)
         AutoOrganizationService.shared.addRule(rule)
-        refreshRules()
         conditionValue = ""
-    }
-
-    private func refreshRules() {
-        rules = AutoOrganizationService.shared.rules
     }
 }

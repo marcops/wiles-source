@@ -1,10 +1,14 @@
 import Foundation
 import GitBeacon
+import Observation
 import os
 
 /// Owns persistence (load/save/CRUD) for auto-organization rules, backed by `UserDefaults`.
 /// Notifies `onChange` after every mutation so an owner can react (e.g. restart folder watching)
 /// without this store knowing anything about watching.
+/// `@Observable` so `AutoOrganizationSheet` can bind straight to `rules` (incl. background
+/// `totalMovedCount`/`lastTriggeredAt` bumps) instead of keeping a manually-refreshed copy.
+@Observable
 @MainActor
 final class AutoOrganizationRuleStore {
     private let rulesKey = DefaultsKey.autoOrganizationRules.rawValue
@@ -13,8 +17,14 @@ final class AutoOrganizationRuleStore {
     /// Invoked after every mutation to `rules` (load, direct assignment, add/update/delete).
     var onChange: (() -> Void)?
 
+    /// Set while `load()` seeds `rules` from disk, so its `didSet` doesn't immediately re-encode the
+    /// identical data back to `UserDefaults` and fire an extra `onChange` (→ redundant
+    /// `restartMonitoring`). Mirrors `NavigationStore`'s `isInitializing` guard.
+    private var isLoading = false
+
     var rules: [AutoOrganizationRule] = [] {
         didSet {
+            guard !isLoading else { return }
             saveRules()
             onChange?()
         }
@@ -25,6 +35,8 @@ final class AutoOrganizationRuleStore {
     func load() {
         guard let data = UserDefaults.standard.data(forKey: rulesKey) else { return }
         do {
+            isLoading = true
+            defer { isLoading = false }
             rules = try JSONDecoder().decode([AutoOrganizationRule].self, from: data)
         } catch {
             Self.logger.error("Failed to decode auto-organization rules from UserDefaults: \(error.localizedDescription, privacy: .public)")

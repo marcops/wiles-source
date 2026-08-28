@@ -9,7 +9,7 @@ public final class PDFMergeService: Sendable {
     /// to be declared) froze the entire UI for that whole duration.
     public static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String? = nil) async throws -> URL {
         guard !urls.isEmpty else {
-            throw NSError(domain: "PDFMergeService", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.string(.pdfMergeNoFilesProvided, lang: .system)])
+            throw WilesError.localized(key: .pdfMergeNoFilesProvided, arguments: [])
         }
 
         return try await Task.detached(priority: .userInitiated) {
@@ -25,14 +25,12 @@ public final class PDFMergeService: Sendable {
             // platform it silently produces a valid PDF with one blank page. Throw here
             // instead of letting that surprise the caller with an unrequested blank page.
             guard pageIndex > 0 else {
-                throw NSError(
-                    domain: "PDFMergeService", code: 3,
-                    userInfo: [NSLocalizedDescriptionKey: L10n.string(.pdfMergeNoValidPages, lang: .system)])
+                throw WilesError.localized(key: .pdfMergeNoValidPages, arguments: [])
             }
 
             let destURL = uniqueDestination(for: outputName, in: destinationFolder)
             guard outputPDF.write(to: destURL) else {
-                throw NSError(domain: "PDFMergeService", code: 2, userInfo: [NSLocalizedDescriptionKey: L10n.string(.pdfMergeWriteFailed, lang: .system)])
+                throw WilesError.localized(key: .pdfMergeWriteFailed, arguments: [])
             }
             return destURL
         }.value

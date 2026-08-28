@@ -23,10 +23,11 @@ struct ArchiveInspectionSheetView: View {
 
     private var contentArea: some View {
         AsyncResultView(
-            operation: { await ArchiveInspectionService.listEntries(in: archiveURL) },
+            operation: { try await ArchiveInspectionService.listEntries(in: archiveURL) },
             isEmpty: { $0.isEmpty },
             loading: { loadingView },
             empty: { emptyStateView },
+            failure: { error in AsyncErrorStateView(message: appState.errorText(for: error)) },
             content: { entries in entriesList(entries) })
     }
 

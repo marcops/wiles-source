@@ -257,11 +257,22 @@ public final class PreferencesStore {
         UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
         [:] {
         didSet {
-            if perFolderViewModes.count > Self.maxPerFolderViewModes {
-                perFolderViewModes = oldValue
+            guard perFolderViewModes.count > Self.maxPerFolderViewModes else {
+                schedulePerFolderViewModesSave()
                 return
             }
-            schedulePerFolderViewModesSave()
+            // Evict existing keys rather than reverting the whole assignment — reverting left
+            // every subsequent per-folder view-mode change a silent no-op once the cap was hit.
+            // Mirrors `expandedTreePaths`: prior keys go first, falling back to the just-added batch.
+            // Trim in a single reassignment so this `didSet` re-enters at most once.
+            let overflow = perFolderViewModes.count - Self.maxPerFolderViewModes
+            let justAdded = Set(perFolderViewModes.keys).subtracting(oldValue.keys)
+            let evictionOrder = oldValue.keys.filter { !justAdded.contains($0) } + Array(justAdded)
+            var trimmed = perFolderViewModes
+            for key in evictionOrder.prefix(overflow) {
+                trimmed.removeValue(forKey: key)
+            }
+            perFolderViewModes = trimmed
         }
     }
 
@@ -279,6 +290,8 @@ public final class PreferencesStore {
         }
     }
 
+    /// Unified slider: getter reports `sidebarTranslucentLevel`; setter deliberately writes BOTH it
+    /// and `contentTranslucentLevel`. Adjust the two underlying properties directly if they must differ.
     public var translucentLevel: Int {
         get { sidebarTranslucentLevel }
         set {
@@ -376,6 +389,7 @@ public final class PreferencesStore {
     private func loadViewPreferences(_ defaults: UserDefaults) {
         loadEnum(.viewMode, into: \.viewMode, from: defaults)
         loadEnum(.appAppearance, into: \.appAppearance, from: defaults)
+        loadEnum(.navigationMode, into: \.navigationMode, from: defaults)
         loadBool(.showDirectoryTree, into: \.showDirectoryTree, from: defaults)
         loadEnum(.sortOption, into: \.sortOption, from: defaults)
         loadBool(.sortAscending, into: \.sortAscending, from: defaults)

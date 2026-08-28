@@ -20,7 +20,6 @@ struct HelpSheet: View {
         FeatureHelpItem(icon: "link", titleKey: .helpSymlinkTitle, descKey: .helpSymlinkDesc),
         FeatureHelpItem(icon: "doc.badge.plus", titleKey: .helpTemplateTitle, descKey: .helpTemplateDesc),
         FeatureHelpItem(icon: "doc.on.clipboard", titleKey: .helpCopyContentTitle, descKey: .helpCopyContentDesc),
-        FeatureHelpItem(icon: "trash.slash.fill", titleKey: .helpShredTitle, descKey: .helpShredDesc),
         FeatureHelpItem(icon: "network", titleKey: .helpServerTitle, descKey: .helpServerDesc),
         FeatureHelpItem(icon: "wifi", titleKey: .helpWifiShareTitle, descKey: .helpWifiShareDesc),
         FeatureHelpItem(icon: "wand.and.stars", titleKey: .helpAutoOrgTitle, descKey: .helpAutoOrgDesc)

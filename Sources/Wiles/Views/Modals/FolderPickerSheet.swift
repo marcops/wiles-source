@@ -15,9 +15,11 @@ struct FolderPickerSheet: View {
     var onSelect: (URL) -> Void
 
     @State private var rootNode: FolderNode?
+    @State private var rootTreeTimedOut = false
+    @State private var treeBuildGeneration = 0
     @State private var selectedURL: URL?
     @State private var expandedPaths: Set<URL> = []
-    @State private var childrenCache: [URL: [FolderNode]] = [:]
+    @State private var childrenCache = BoundedFolderNodeCache()
     @State private var loadingChildrenURLs: Set<URL> = []
     @State private var pathText: String = ""
     @State private var pathError: String?
@@ -53,30 +55,38 @@ struct FolderPickerSheet: View {
                 pathText = newValue?.path ?? ""
                 pathError = nil
             }
-            .task {
+            .task(id: treeBuildGeneration) {
                 await buildRootNodeIfNeeded()
             }
     }
 
     /// Builds the root tree off `@MainActor`, mirroring `SidebarView`'s `.task` — `FolderNode.buildRootTree()`
     /// walks the whole home directory synchronously and would otherwise freeze the sheet on appear.
+    /// On the fallback timeout it leaves `rootNode == nil` and shows a Retry state (like `SidebarView`);
+    /// the still-running scan can still finish and populate the tree, or Retry restarts it.
     private func buildRootNodeIfNeeded() async {
         guard rootNode == nil else { return }
+        rootTreeTimedOut = false
         let buildTask = Task.detached(priority: .userInitiated) { FolderNode.buildRootTree() }
         let fallbackWorkItem = DispatchWorkItem {
             guard rootNode == nil else { return }
-            buildTask.cancel()
-            let root = URL(fileURLWithPath: "/")
-            rootNode = FolderNode(id: root, name: appState.tr(.macintoshHDName), url: root, children: [], hasSubfolders: false)
+            rootTreeTimedOut = true
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.rootTreeFallbackTimeout, execute: fallbackWorkItem)
         let node = await buildTask.value
         guard rootNode == nil else { return }
         fallbackWorkItem.cancel()
+        rootTreeTimedOut = false
         rootNode = node
         if let selectedURL {
             expandAncestors(of: selectedURL)
         }
+    }
+
+    private func retryTreeBuild() {
+        rootNode = nil
+        rootTreeTimedOut = false
+        treeBuildGeneration += 1
     }
 
     private var contentArea: some View {
@@ -155,6 +165,16 @@ struct FolderPickerSheet: View {
                 .padding(.leading, 10)
                 .padding(.trailing, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
+        } else if rootTreeTimedOut {
+            Button {
+                retryTreeBuild()
+            } label: {
+                Label(appState.tr(.retry), systemImage: "arrow.clockwise")
+                    .font(.system(size: 12))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.secondary)
+            .padding(.top, 20)
         } else {
             ProgressView()
                 .controlSize(.small)
@@ -246,7 +266,7 @@ struct FolderPickerSheet: View {
         guard Self.isWithinOrEqual(url, home) else {
             return
         }
-        let alreadyCached = Set(childrenCache.keys)
+        let alreadyCached = childrenCache.cachedURLs
         // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
         if url.path.hasPrefix("/Volumes/") {
             Task {

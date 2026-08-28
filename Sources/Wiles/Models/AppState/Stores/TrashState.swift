@@ -114,32 +114,22 @@ public final class TrashState {
     public func emptyTrash(onComplete: @escaping @MainActor (Int) -> Void) {
         isUpdating = true
         Task.detached(priority: .userInitiated) { [weak self] in
-            let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
-            guard let url = trashURL else {
-                // swiftformat:disable redundantSelf
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.isUpdating = false
-                    onComplete(0)
-                }
-                // swiftformat:enable redundantSelf
-                return
-            }
             let fm = FileManager.default
-            guard let paths = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: []) else {
-                // swiftformat:disable redundantSelf
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.isUpdating = false
-                    onComplete(0)
-                }
-                // swiftformat:enable redundantSelf
+            guard let url = fm.urls(for: .trashDirectory, in: .userDomainMask).first,
+                  let paths = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: []) else {
+                await self?.finishEmptyTrash(failed: 0, onComplete: onComplete)
                 return
             }
             let failedCount = Self.removeTrashContents(paths, using: fm)
-            await MainActor.run {
-                onComplete(failedCount)
-            }
+            await self?.finishEmptyTrash(failed: failedCount, onComplete: onComplete)
         }
+    }
+
+    /// Single main-actor exit point for `emptyTrash`: clears `isUpdating` and hands the caller the
+    /// failure count, so every early return and the success path stay in sync.
+    @MainActor
+    private func finishEmptyTrash(failed: Int, onComplete: @MainActor (Int) -> Void) {
+        isUpdating = false
+        onComplete(failed)
     }
 }

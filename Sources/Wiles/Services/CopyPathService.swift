@@ -40,10 +40,20 @@ public final class CopyPathService: Sendable {
         return targetPath
     }
 
+    /// Backslash-escapes shell metacharacters for use as an **unquoted** token (the "copy path,
+    /// terminal-escaped" menu item). Do not also wrap the result in quotes — use
+    /// `posixSingleQuoted` for that case instead.
     public static func escapeForTerminal(_ path: String) -> String {
         let specialChars = ["\\", " ", "\t", "(", ")", "[", "]", "{", "}", "'", "\"", "&", "$", "|", ";", "*", "?", "<", ">", "#", "!", "`"]
         return specialChars.reduce(path) { result, char in
             result.replacingOccurrences(of: char, with: "\\" + char)
         }
+    }
+
+    /// Wraps a raw string in POSIX single quotes, so every character inside is literal. The only
+    /// escaping needed is for an embedded `'`, closed and reopened as `'\''`. Use this when the
+    /// value goes into a quoted position (e.g. `cd '<path>'`), never `escapeForTerminal`.
+    public static func posixSingleQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 }

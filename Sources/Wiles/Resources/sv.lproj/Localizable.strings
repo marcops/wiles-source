@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Detta ändrar behörigheterna för alla objekt i den här mappen. Detta kan inte ångras.";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "Om en fil med samma namn redan finns på målet ersätts den.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d fil(er) flyttade · Senaste: %@";
 "autoOrganization" = "Regler för Automatisk Organisering...";
 "autoOrganizationSubtitle" = "Flyttar filer automatiskt mellan mappar baserat på regler du anger";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "Kopiera";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Kopiera Sökväg";
 "copyPathAbsolute" = "Absolut Sökväg";
 "copyPathRelative" = "Relativ Sökväg";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "Klistra in";
 "permissionDeniedNotice" = "Åtkomst nekad: Wiles kan inte läsa innehållet i denna mapp.";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Bilder";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Skiftlägeskänslig";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Sökområde";
-"secureShred" = "Förstör Fil Säkert...";
 "selectAll" = "Markera alla";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "Välj en mapp på din Mac";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "Filen Används: '{path}' är för närvarande öppen i ett annat program.";
 "wilesErrorItemNotFound" = "Objektet Hittades Inte: '{path}' finns inte.";
 "wilesErrorOperationFailed" = "Åtgärden Misslyckades: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Ogiltigt Lösenord: kunde inte dekryptera ZIP-arkivet.";
 "wilesErrorFileCreationNotRedoable" = "Kan Inte Göra Om: Wiles sparar inte det ursprungliga filinnehållet, så denna skapelse kan inte göras om.";
 "tooltipFolder" = "Mapp";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "Inga giltiga sidor hittades i de angivna filerna.";
 "pdfMergeWriteFailed" = "Det gick inte att skriva den sammanslagna PDF-filen till disken.";
 "invalidServerURL" = "Ogiltig server-URL";
-"serverConnectionFailed" = "Det gick inte att ansluta till %@";
-"imageConverterLoadFailed" = "Det gick inte att läsa in bilden vid %@";
+"serverConnectionFailed" = "Det gick inte att ansluta till {0}";
+"imageConverterLoadFailed" = "Det gick inte att läsa in bilden vid {0}";
 "imageConverterContextFailed" = "Det gick inte att skapa grafikkontexten";
 "imageConverterRenderFailed" = "Det gick inte att rendera den ändrade bilden";
 "imageConverterDestinationFailed" = "Det gick inte att skapa bildmålet";
@@ -521,3 +525,9 @@
 "expandFolder" = "Expandera";
 "collapseFolder" = "Fäll ihop";
 "expandCollapseFolderHint" = "Dubbeltryck för att visa eller dölja den här mappens undermappar.";
+
+"moveCollisionTitle" = "Det finns redan ett objekt med namnet \"{name}\" här.";
+"moveCollisionMessage" = "Ersätt flyttar det befintliga objektet till papperskorgen. Behåll båda lägger till ett nummer i det nya namnet.";
+"moveCollisionReplace" = "Ersätt";
+"moveCollisionKeepBoth" = "Behåll båda";
+"moveCollisionApplyToAll" = "Använd på alla";

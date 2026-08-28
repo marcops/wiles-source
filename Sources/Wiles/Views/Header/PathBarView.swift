@@ -15,16 +15,41 @@ struct PathBarView: View {
     @State private var isDragHovering = false
     @State private var scrollWorkItem: DispatchWorkItem?
     @State private var dragTargetSegmentID: String?
+    @State private var pathSegments: [PathSegment] = []
 
-    var pathSegments: [PathSegment] {
+    var body: some View {
+        HStack(spacing: 4) {
+            if windowUIState.isEditingPath {
+                textFieldMode
+            } else {
+                breadcrumbMode(segments: pathSegments)
+            }
+        }
+        .animation(MotionTokens.quickEase, value: windowUIState.isEditingPath)
+        .onAppear { recomputePathSegments() }
+        .onChange(of: appState.navigation.currentURL) { _, _ in recomputePathSegments() }
+        .onChange(of: appState.preferences.appLanguage) { _, _ in recomputePathSegments() }
+    }
+
+    /// Breadcrumb trail is a pure function of currentURL + localized Root/Trash labels; cache it in
+    /// @State and rebuild only on those changes, not on every hover/drag re-render.
+    private func recomputePathSegments() {
+        pathSegments = Self.buildSegments(
+            currentURL: appState.navigation.currentURL,
+            rootLabel: appState.tr(.root),
+            trashLabel: appState.tr(.sidebarTrash))
+    }
+
+    static func buildSegments(currentURL: URL, rootLabel: String, trashLabel: String) -> [PathSegment] {
+        let trashPath = URL.userTrash.standardizedFileURL
         var res: [(name: String, url: URL)] = []
-        var cur = appState.navigation.currentURL.standardizedFileURL
+        var cur = currentURL.standardizedFileURL
         var depth = 0
-        while depth < Self.maxPathDepth {
+        while depth < maxPathDepth {
             let name: String = if cur.path == "/" {
-                appState.tr(.root)
-            } else if cur.standardizedFileURL == URL.userTrash.standardizedFileURL {
-                appState.tr(.sidebarTrash)
+                rootLabel
+            } else if cur.standardizedFileURL == trashPath {
+                trashLabel
             } else {
                 cur.lastPathComponent
             }
@@ -42,17 +67,6 @@ struct PathBarView: View {
         return res.enumerated().map { index, item in
             PathSegment(name: item.name, url: item.url, isLast: index == res.count - 1)
         }
-    }
-
-    var body: some View {
-        HStack(spacing: 4) {
-            if windowUIState.isEditingPath {
-                textFieldMode
-            } else {
-                breadcrumbMode(segments: pathSegments)
-            }
-        }
-        .animation(MotionTokens.quickEase, value: windowUIState.isEditingPath)
     }
 
     private var textFieldMode: some View {
@@ -197,40 +211,30 @@ struct PathBarView: View {
         }
     }
 
-    /// All mutations happen inside `Task { @MainActor in }` below, serialized on the main actor
-    /// despite the `loadObject` completion handlers themselves arriving on arbitrary threads.
-    private final class PendingDropCount: @unchecked Sendable {
-        private var remaining: Int
-        init(_ count: Int) {
-            remaining = count
-        }
-
-        func decrementAndIsZero() -> Bool {
-            remaining -= 1
-            return remaining <= 0
-        }
-    }
-
     @discardableResult
     private func handleDrop(providers: [NSItemProvider], targetFolder: URL) -> Bool {
-        let remaining = PendingDropCount(providers.count)
-        for provider in providers {
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                Task { @MainActor in
-                    if let url, url.deletingLastPathComponent().standardizedFileURL != targetFolder.standardizedFileURL {
-                        do {
-                            _ = try await appState.moveItem(at: url, toFolder: targetFolder)
-                        } catch {
-                            ErrorReporter.report(error, context: "Handling path bar drop")
-                            appState.showError(error)
-                        }
-                    }
-                    if remaining.decrementAndIsZero() {
-                        appState.refreshCurrentDirectory()
-                    }
+        Task { @MainActor in
+            var urls: [URL] = []
+            for provider in providers {
+                if let url = await Self.loadDroppedURL(from: provider) {
+                    urls.append(url)
                 }
             }
+            let movable = urls.filter {
+                $0.deletingLastPathComponent().standardizedFileURL != targetFolder.standardizedFileURL
+            }
+            guard !movable.isEmpty else { return }
+            _ = await appState.moveItemsResolvingCollisions(movable, toFolder: targetFolder, windowUIState: windowUIState)
+            appState.refreshCurrentDirectory()
         }
         return !providers.isEmpty
+    }
+
+    private static func loadDroppedURL(from provider: NSItemProvider) async -> URL? {
+        await withCheckedContinuation { continuation in
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                continuation.resume(returning: url)
+            }
+        }
     }
 }

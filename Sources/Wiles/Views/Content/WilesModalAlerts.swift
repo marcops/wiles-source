@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The window's confirmation/error alerts — split out of `WilesModalSheets` purely to keep that
-/// modifier's `body(content:)` under this project's ~40-line function-body-length limit (pure code
-/// motion, no behavior change).
+/// The window's confirmation/error alerts plus the move name-collision prompt — split out of
+/// `WilesModalSheets` purely to keep that modifier's `body(content:)` under this project's ~40-line
+/// function-body-length limit (pure code motion, no behavior change).
 struct WilesModalAlerts: ViewModifier {
     let appState: AppState
     let windowUIState: WindowUIState
@@ -33,6 +33,9 @@ struct WilesModalAlerts: ViewModifier {
                 Button(appState.tr(.errorAlertOKButton), role: .cancel) { }
             } message: {
                 Text(appState.modal.errorMessage ?? appState.tr(.errorAlertGenericMessage))
+            }
+            .sheet(item: $windowUIState.moveCollisionPrompt) { prompt in
+                MoveCollisionSheet(appState: appState, prompt: prompt)
             }
     }
 }

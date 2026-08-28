@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Esto cambiará los permisos de todos los elementos dentro de esta carpeta. Esta acción no se puede deshacer.";
 "ascending" = "Ascendente";
 "autoOrgRuleConflictNotice" = "Si ya existe un archivo con el mismo nombre en el destino, será reemplazado.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d archivo(s) movido(s) · Último: %@";
 "autoOrganization" = "Reglas de Organización Automática...";
 "autoOrganizationSubtitle" = "Mueve archivos automáticamente entre carpetas según las reglas que definas";
@@ -73,9 +74,12 @@
 "connect" = "Conectar";
 "connectToServer" = "Conectarse al Servidor";
 "contentTranslucentLevel" = "Transparencia del Contenido";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convertir";
 "copy" = "Copiar";
 "copyContent" = "Copiar Contenido";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Copiar Ruta";
 "copyPathAbsolute" = "Ruta Absoluta";
 "copyPathRelative" = "Ruta Relativa";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Presione Cmd+K para conectarse a servidores de red.";
 "helpServerTitle" = "Conectarse al Servidor de Red";
 "helpShortcuts" = "Ayuda y Atajos";
-"helpShredDesc" = "Haga clic derecho -> 'Triturar Archivo...'.";
-"helpShredTitle" = "Trituradora Segura de Archivos";
 "helpSymlinkDesc" = "Haga clic derecho -> 'Crear Enlace Simbólico...'.";
 "helpSymlinkTitle" = "Creación de Enlaces Simbólicos";
 "helpTagsDesc" = "Active 'Mostrar Etiquetas' en el menú Vista u Opciones.";
@@ -252,6 +254,8 @@
 "paste" = "Pegar";
 "permissionDeniedNotice" = "Permiso Denegado: Wiles no puede leer el contenido de esta carpeta.";
 "permissions" = "Compartir y Permisos";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Imágenes";
 "places" = "Lugares y Dispositivos";
 "prefix" = "Prefijo";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Distinguir Mayúsculas y Minúsculas";
 "searchPlaceholder" = "Buscar en";
 "searchScope" = "Ámbito de Búsqueda";
-"secureShred" = "Destruir Archivo de Forma Segura...";
 "selectAll" = "Seleccionar Todo";
 "selectFolder" = "Seleccionar carpeta...";
 "selectFolderSubtitle" = "Elige una carpeta en tu Mac";
@@ -479,6 +482,7 @@
 "wilesErrorFileInUse" = "Archivo en Uso: '{path}' está abierto en otra aplicación.";
 "wilesErrorItemNotFound" = "Elemento No Encontrado: '{path}' no existe.";
 "wilesErrorOperationFailed" = "Operación Fallida: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Contraseña Inválida: no se pudo descifrar el archivo ZIP.";
 "wilesErrorFileCreationNotRedoable" = "No Se Puede Rehacer: Wiles no guarda el contenido original del archivo, por lo que esta creación no se puede rehacer.";
 "tooltipFolder" = "Carpeta";
@@ -493,8 +497,8 @@
 "pdfMergeNoValidPages" = "No se encontraron páginas válidas en los archivos proporcionados.";
 "pdfMergeWriteFailed" = "No se pudo escribir el PDF combinado en el disco.";
 "invalidServerURL" = "URL de servidor inválida";
-"serverConnectionFailed" = "No se pudo conectar a %@";
-"imageConverterLoadFailed" = "No se pudo cargar la imagen en %@";
+"serverConnectionFailed" = "No se pudo conectar a {0}";
+"imageConverterLoadFailed" = "No se pudo cargar la imagen en {0}";
 "imageConverterContextFailed" = "No se pudo crear el contexto gráfico";
 "imageConverterRenderFailed" = "No se pudo renderizar la imagen redimensionada";
 "imageConverterDestinationFailed" = "No se pudo crear el destino de la imagen";
@@ -520,3 +524,9 @@
 "expandFolder" = "Expandir";
 "collapseFolder" = "Contraer";
 "expandCollapseFolderHint" = "Toque dos veces para mostrar u ocultar las subcarpetas de esta carpeta.";
+
+"moveCollisionTitle" = "Ya existe un elemento llamado \"{name}\" aquí.";
+"moveCollisionMessage" = "Reemplazar mueve el elemento existente a la Papelera. Conservar ambos añade un número al nombre nuevo.";
+"moveCollisionReplace" = "Reemplazar";
+"moveCollisionKeepBoth" = "Conservar ambos";
+"moveCollisionApplyToAll" = "Aplicar a todo";

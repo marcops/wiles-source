@@ -177,6 +177,9 @@ struct SidebarView: View {
                 title: appState.tr(.networkAndCloud), identifierKey: "NETWORK",
                 isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false,
                 hideAction: { appState.preferences.showNetworkAndCloud = false })
+                // SMB discovery runs only while this section is on screen, not for the whole app run.
+                .onAppear { NetworkDiscoveryService.shared.start() }
+                .onDisappear { NetworkDiscoveryService.shared.stop() }
         }
         if appState.preferences.showPlaces {
             collapsibleSection(

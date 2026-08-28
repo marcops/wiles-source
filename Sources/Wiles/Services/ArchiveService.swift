@@ -71,27 +71,51 @@ public final class ArchiveService: Sendable {
         return UniqueFileNaming.uniqueURL(for: candidateURL, in: destinationFolder, isDirectory: false)
     }
 
-    /// Blocks on `waitUntilExit()` — every caller (`AppState+Archive`) already runs this inside
-    /// `Task.detached`, so it must never be called directly on the main actor.
-    private static func runCompressionProcess(
-        executable: String, arguments: [String], currentDirectoryURL: URL? = nil, environment: [String: String]? = nil) throws {
+    private struct ProcessRunResult {
+        let terminationStatus: Int32
+        let standardOutput: Data
+    }
+
+    /// Runs a subprocess to completion and returns its exit status (and stdout, when
+    /// `captureStandardOutput` is set). Blocks on `waitUntilExit()` — every caller
+    /// (`AppState+Archive`) already runs this inside `Task.detached`, so it must never be called
+    /// directly on the main actor. Only `process.run()` throws here; a non-zero exit is returned,
+    /// not thrown, so each caller maps it to its own localized error (or, for the listing probe,
+    /// treats it as "no collision").
+    @discardableResult
+    private static func runProcess(
+        executable: String, arguments: [String], currentDirectoryURL: URL? = nil,
+        environment: [String: String]? = nil, captureStandardOutput: Bool = false) throws -> ProcessRunResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         process.currentDirectoryURL = currentDirectoryURL
         process.environment = environment
+
         let errorPipe = Pipe()
         process.standardError = errorPipe
         // Drain stderr continuously — an unread pipe fills its kernel buffer once the subprocess
         // writes enough to it, and the subprocess then blocks forever on write, hanging waitUntilExit().
         errorPipe.fileHandleForReading.readabilityHandler = { handle in _ = handle.availableData }
+
+        let outputPipe = captureStandardOutput ? Pipe() : nil
+        process.standardOutput = outputPipe
+
         try process.run()
+        // Read stdout to EOF *before* waitUntilExit to avoid the same pipe-buffer deadlock.
+        let output = outputPipe?.fileHandleForReading.readDataToEndOfFile() ?? Data()
         process.waitUntilExit()
         errorPipe.fileHandleForReading.readabilityHandler = nil
-        if process.terminationStatus != 0 {
-            throw NSError(
-                domain: "ArchiveService", code: Int(process.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveCompressionFailed, lang: .system)])
+        return ProcessRunResult(terminationStatus: process.terminationStatus, standardOutput: output)
+    }
+
+    private static func runCompressionProcess(
+        executable: String, arguments: [String], currentDirectoryURL: URL? = nil, environment: [String: String]? = nil) throws {
+        let result = try runProcess(
+            executable: executable, arguments: arguments,
+            currentDirectoryURL: currentDirectoryURL, environment: environment)
+        if result.terminationStatus != 0 {
+            throw WilesError.localized(key: .archiveCompressionFailed, arguments: [])
         }
     }
 
@@ -111,28 +135,20 @@ public final class ArchiveService: Sendable {
             : destinationFolder
         try FileManager.default.createDirectory(at: extractionFolder, withIntermediateDirectories: true)
 
-        let process = Process()
-        if ext == "zip" {
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-            process.arguments = ["-x", "-k", archiveURL.path, extractionFolder.path]
-        } else if isTarArchive(ext: ext, name: name) {
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-            process.arguments = ["-xf", archiveURL.path, "-C", extractionFolder.path]
+        let executable: String
+        let arguments: [String]
+        if isTarArchive(ext: ext, name: name) {
+            executable = "/usr/bin/tar"
+            arguments = ["-xf", archiveURL.path, "-C", extractionFolder.path]
         } else {
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-            process.arguments = ["-x", "-k", archiveURL.path, extractionFolder.path]
+            // `.zip` and everything else fall back to ditto's zip extraction.
+            executable = "/usr/bin/ditto"
+            arguments = ["-x", "-k", archiveURL.path, extractionFolder.path]
         }
-        let errorPipe = Pipe()
-        process.standardError = errorPipe
-        // Drain stderr continuously so a chatty subprocess can't fill the pipe buffer and deadlock waitUntilExit().
-        errorPipe.fileHandleForReading.readabilityHandler = { handle in _ = handle.availableData }
-        try process.run()
-        process.waitUntilExit()
-        errorPipe.fileHandleForReading.readabilityHandler = nil
-        if process.terminationStatus != 0 {
-            throw NSError(
-                domain: "ArchiveService", code: Int(process.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: L10n.string(.archiveExtractionFailed, lang: .system)])
+
+        let result = try runProcess(executable: executable, arguments: arguments)
+        if result.terminationStatus != 0 {
+            throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }
     }
 
@@ -140,23 +156,20 @@ public final class ArchiveService: Sendable {
     /// `destinationFolder` — a listing failure is treated as "no collision" (falls back to the
     /// prior flat-extraction behavior) rather than blocking extraction over a diagnostic-only step.
     private static func collidesWithExisting(archiveURL: URL, ext: String, name: String, in destinationFolder: URL) -> Bool {
-        let listProcess = Process()
+        let executable: String
+        let arguments: [String]
         if ext == "zip" {
-            listProcess.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-            listProcess.arguments = ["-Z1", archiveURL.path]
+            executable = "/usr/bin/unzip"
+            arguments = ["-Z1", archiveURL.path]
         } else if isTarArchive(ext: ext, name: name) {
-            listProcess.executableURL = URL(fileURLWithPath: "/usr/bin/tar")
-            listProcess.arguments = ["-tf", archiveURL.path]
+            executable = "/usr/bin/tar"
+            arguments = ["-tf", archiveURL.path]
         } else {
             return false
         }
-        let outputPipe = Pipe()
-        listProcess.standardOutput = outputPipe
-        listProcess.standardError = Pipe()
-        guard (try? listProcess.run()) != nil else { return false }
-        let output = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        listProcess.waitUntilExit()
-        guard listProcess.terminationStatus == 0, let listing = String(data: output, encoding: .utf8) else { return false }
+        guard let result = try? runProcess(executable: executable, arguments: arguments, captureStandardOutput: true),
+              result.terminationStatus == 0,
+              let listing = String(data: result.standardOutput, encoding: .utf8) else { return false }
 
         let topLevelEntryNames = Set(listing.split(separator: "\n").compactMap { $0.split(separator: "/").first.map(String.init) })
         let existingNames = (try? FileManager.default.contentsOfDirectory(atPath: destinationFolder.path)) ?? []

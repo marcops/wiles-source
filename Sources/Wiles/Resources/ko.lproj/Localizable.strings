@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "이 폴더 내 모든 항목의 권한이 변경됩니다. 이 작업은 되돌릴 수 없습니다.";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "대상에 동일한 이름의 파일이 이미 있으면 교체됩니다.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d개 파일 이동됨 · 최근: %@";
 "autoOrganization" = "자동 정리 규칙...";
 "autoOrganizationSubtitle" = "사용자가 정의한 규칙에 따라 폴더 간에 파일을 자동으로 이동합니다";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "복사";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "경로 복사";
 "copyPathAbsolute" = "절대 경로";
 "copyPathRelative" = "상대 경로";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "붙여넣기";
 "permissionDeniedNotice" = "권한 거부됨: Wiles가 이 폴더의 내용을 읽을 수 없습니다.";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "사진";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "대소문자 구분";
 "searchPlaceholder" = "Search in";
 "searchScope" = "검색 범위";
-"secureShred" = "파일 완전 삭제...";
 "selectAll" = "전체 선택";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "Mac에서 폴더를 선택하세요";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "파일 사용 중: '{path}'이(가) 현재 다른 응용 프로그램에서 열려 있습니다.";
 "wilesErrorItemNotFound" = "항목을 찾을 수 없음: '{path}'이(가) 존재하지 않습니다.";
 "wilesErrorOperationFailed" = "작업 실패: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "잘못된 암호: ZIP 압축 파일을 해독할 수 없습니다.";
 "wilesErrorFileCreationNotRedoable" = "다시 실행할 수 없음: Wiles는 원본 파일 내용을 저장하지 않으므로 이 생성 작업은 다시 실행할 수 없습니다.";
 "tooltipFolder" = "폴더";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "제공된 파일에서 유효한 페이지를 찾을 수 없습니다.";
 "pdfMergeWriteFailed" = "병합된 PDF를 디스크에 쓸 수 없습니다.";
 "invalidServerURL" = "잘못된 서버 URL";
-"serverConnectionFailed" = "%@에 연결할 수 없습니다";
-"imageConverterLoadFailed" = "%@에서 이미지를 로드하지 못했습니다";
+"serverConnectionFailed" = "{0}에 연결할 수 없습니다";
+"imageConverterLoadFailed" = "{0}에서 이미지를 로드하지 못했습니다";
 "imageConverterContextFailed" = "그래픽 컨텍스트를 만들지 못했습니다";
 "imageConverterRenderFailed" = "크기가 조정된 이미지를 렌더링하지 못했습니다";
 "imageConverterDestinationFailed" = "이미지 대상 위치를 만들지 못했습니다";
@@ -521,3 +525,9 @@
 "expandFolder" = "펼치기";
 "collapseFolder" = "접기";
 "expandCollapseFolderHint" = "두 번 탭하면 이 폴더의 하위 폴더를 표시하거나 숨깁니다.";
+
+"moveCollisionTitle" = "\"{name}\" 항목이 여기에 이미 있습니다.";
+"moveCollisionMessage" = "바꾸기를 선택하면 기존 항목이 휴지통으로 이동합니다. 둘 다 유지를 선택하면 새 이름에 번호가 추가됩니다.";
+"moveCollisionReplace" = "바꾸기";
+"moveCollisionKeepBoth" = "둘 다 유지";
+"moveCollisionApplyToAll" = "모두에 적용";

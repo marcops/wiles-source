@@ -35,6 +35,9 @@ public struct HttpSharingFeatureTests {
         await testAuthorizationHeaderWithoutBasicPrefixReturns401()
         await testSharedFolderClearedMidFlightReturns500()
         await testStopCancelsActiveConnections()
+        // C2 (stored XSS) + M11 (fragmented/oversized request head) regressions — see
+        // LocalHttpServerServiceSecurityTests.swift (split out to keep this file under the length cap).
+        await runSecurityAndRobustnessChecks()
 
         server.stop()
     }
@@ -370,21 +373,21 @@ public struct HttpSharingFeatureTests {
 
     // MARK: - Helpers
 
-    private static let requestSession: URLSession = {
+    static let requestSession: URLSession = {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 3
         config.timeoutIntervalForResource = 3
         return URLSession(configuration: config)
     }()
 
-    private static func waitUntil(timeoutSeconds: Double = 1.0, _ condition: () -> Bool) async {
+    static func waitUntil(timeoutSeconds: Double = 1.0, _ condition: () -> Bool) async {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         while !condition(), Date() < deadline {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
     }
 
-    private static func rawConnect(port: UInt16) -> Int32? {
+    static func rawConnect(port: UInt16) -> Int32? {
         let sock = socket(AF_INET, SOCK_STREAM, 0)
         guard sock >= 0 else { return nil }
         var addr = sockaddr_in()
@@ -403,17 +406,17 @@ public struct HttpSharingFeatureTests {
         return sock
     }
 
-    private static func rawSend(_ sock: Int32, _ text: String) {
+    static func rawSend(_ sock: Int32, _ text: String) {
         rawSendBytes(sock, Array(text.utf8))
     }
 
-    private static func rawSendBytes(_ sock: Int32, _ bytes: [UInt8]) {
+    static func rawSendBytes(_ sock: Int32, _ bytes: [UInt8]) {
         bytes.withUnsafeBufferPointer { buf in
             _ = Darwin.send(sock, buf.baseAddress, buf.count, 0)
         }
     }
 
-    private static func rawRecvAll(_ sock: Int32, timeoutMs: Int) -> Data {
+    static func rawRecvAll(_ sock: Int32, timeoutMs: Int) -> Data {
         var tv = timeval(tv_sec: timeoutMs / 1000, tv_usec: Int32((timeoutMs % 1000) * 1000))
         setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
         var data = Data()
@@ -430,7 +433,7 @@ public struct HttpSharingFeatureTests {
         return data
     }
 
-    private static func report(_ category: String, _ name: String, result: Bool) {
+    static func report(_ category: String, _ name: String, result: Bool) {
         TestReporter.report(category, name, result: result)
     }
 }

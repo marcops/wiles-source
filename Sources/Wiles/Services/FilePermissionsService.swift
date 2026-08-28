@@ -23,23 +23,33 @@ public enum FilePermissionsService: Sendable {
     /// Applies `permissions` to `url` and every item nested inside it (Finder "apply to enclosed
     /// items" behavior). Continues past individual failures and returns them all rather than
     /// aborting partway, since a partially-applied recursive change is still useful to know about.
-    public static func setPermissionsRecursively(for url: URL, permissions: POSIXPermissions) -> [any Error] {
+    /// `applied` is the count of items whose permissions were set successfully (for user feedback).
+    public static func setPermissionsRecursively(
+        for url: URL, permissions: POSIXPermissions) -> (applied: Int, errors: [any Error]) {
         var errors: [any Error] = []
+        var applied = 0
         do {
             try setPermissions(for: url, permissions: permissions)
+            applied += 1
         } catch {
             errors.append(error)
         }
         guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil) else {
-            return errors
+            return (applied, errors)
         }
         for case let childURL as URL in enumerator {
+            // Deep trees can take seconds; stop as soon as the caller's task is cancelled
+            // (e.g. the properties sheet was dismissed) instead of running on invisibly.
+            if Task.isCancelled {
+                break
+            }
             do {
                 try setPermissions(for: childURL, permissions: permissions)
+                applied += 1
             } catch {
                 errors.append(error)
             }
         }
-        return errors
+        return (applied, errors)
     }
 }

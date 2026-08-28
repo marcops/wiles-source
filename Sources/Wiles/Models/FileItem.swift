@@ -1,6 +1,8 @@
 import AppKit
 import Foundation
 
+/// `@unchecked Sendable`: `icon` is an `NSImage` reference, but it is never mutated after `init`
+/// (only formatted once during construction); that post-init immutability is what makes this safe.
 public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     private static let highResIconSize: CGFloat = 512
 

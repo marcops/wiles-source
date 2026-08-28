@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Dit wijzigt de machtigingen van alle items in deze map. Dit kan niet ongedaan worden gemaakt.";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "Als er al een bestand met dezelfde naam op de bestemming bestaat, wordt het vervangen.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d bestand(en) verplaatst · Laatste: %@";
 "autoOrganization" = "Regels voor Automatische Organisatie...";
 "autoOrganizationSubtitle" = "Verplaatst bestanden automatisch tussen mappen op basis van de regels die je instelt";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "Kopiëren";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Pad Kopiëren";
 "copyPathAbsolute" = "Absoluut Pad";
 "copyPathRelative" = "Relatief Pad";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "Plakken";
 "permissionDeniedNotice" = "Toegang geweigerd: Wiles kan de inhoud van deze map niet lezen.";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Afbeeldingen";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Hoofdlettergevoelig";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Zoekbereik";
-"secureShred" = "Bestand Veilig Vernietigen...";
 "selectAll" = "Selecteer alles";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "Kies een map op je Mac";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "Bestand in Gebruik: '{path}' is momenteel geopend in een andere toepassing.";
 "wilesErrorItemNotFound" = "Item Niet Gevonden: '{path}' bestaat niet.";
 "wilesErrorOperationFailed" = "Bewerking Mislukt: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Ongeldig Wachtwoord: kan het ZIP-archief niet ontsleutelen.";
 "wilesErrorFileCreationNotRedoable" = "Kan Niet Opnieuw Uitvoeren: Wiles slaat de oorspronkelijke bestandsinhoud niet op, dus deze aanmaak kan niet opnieuw worden uitgevoerd.";
 "tooltipFolder" = "Map";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "Geen geldige pagina's gevonden in de opgegeven bestanden.";
 "pdfMergeWriteFailed" = "Kon de samengevoegde PDF niet naar schijf schrijven.";
 "invalidServerURL" = "Ongeldige server-URL";
-"serverConnectionFailed" = "Kan geen verbinding maken met %@";
-"imageConverterLoadFailed" = "Kon afbeelding niet laden op %@";
+"serverConnectionFailed" = "Kan geen verbinding maken met {0}";
+"imageConverterLoadFailed" = "Kon afbeelding niet laden op {0}";
 "imageConverterContextFailed" = "Kon grafische context niet maken";
 "imageConverterRenderFailed" = "Kon het formaat gewijzigde afbeelding niet renderen";
 "imageConverterDestinationFailed" = "Kon afbeeldingsbestemming niet maken";
@@ -521,3 +525,9 @@
 "expandFolder" = "Uitvouwen";
 "collapseFolder" = "Invouwen";
 "expandCollapseFolderHint" = "Dubbeltik om de submappen van deze map te tonen of te verbergen.";
+
+"moveCollisionTitle" = "Er bestaat hier al een item met de naam \"{name}\".";
+"moveCollisionMessage" = "Vervangen verplaatst het bestaande item naar de prullenmand. Beide bewaren voegt een nummer toe aan de nieuwe naam.";
+"moveCollisionReplace" = "Vervangen";
+"moveCollisionKeepBoth" = "Beide bewaren";
+"moveCollisionApplyToAll" = "Op alles toepassen";

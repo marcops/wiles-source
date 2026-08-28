@@ -8,6 +8,10 @@ public final class ColumnAutoFitService {
     private static let columnCellFontSize: CGFloat = 12
     private static let columnNameFontSize: CGFloat = 13
     static let columnMaxWidth: CGFloat = 600.0
+    /// Auto-fit is a convenience (double-click a divider), not a pixel-perfect layout. Measuring
+    /// every row's text with `NSString.size` on `@MainActor` hangs for a directory of tens of
+    /// thousands of items, so above this count we only measure the widest candidates.
+    private static let maxMeasuredSampleCount = 400
     private static let columnHeaderExtraPadding: CGFloat = 32.0
     private static let columnCellExtraPadding: CGFloat = 24.0
     private static let columnNameIconSpacing: CGFloat = 8.0
@@ -24,9 +28,18 @@ public final class ColumnAutoFitService {
         iconSize: Double,
         language: AppLanguage) -> CGFloat {
         let headerWidth = calculateHeaderWidth(for: column, language: language)
-        let itemsMax = items.map { calculateItemWidth(for: $0, column: column, iconSize: iconSize, language: language) }.max() ?? 0
+        let sample = measurementSample(from: items)
+        let itemsMax = sample.map { calculateItemWidth(for: $0, column: column, iconSize: iconSize, language: language) }.max() ?? 0
         let maxRequired = max(headerWidth, itemsMax)
         return min(Self.columnMaxWidth, max(LayoutTokens.columnMinWidth, maxRequired))
+    }
+
+    /// For a large directory, measure only the `maxMeasuredSampleCount` items with the longest
+    /// names — a cheap proxy for the widest row across every column (date/size/kind values are
+    /// near-uniform width, so any subset represents them).
+    private static func measurementSample(from items: [FileItem]) -> [FileItem] {
+        guard items.count > maxMeasuredSampleCount else { return items }
+        return Array(items.sorted { $0.name.count > $1.name.count }.prefix(maxMeasuredSampleCount))
     }
 
     private static func calculateHeaderWidth(for column: ListColumn, language: AppLanguage) -> CGFloat {

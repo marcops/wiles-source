@@ -18,7 +18,9 @@ struct SidebarItemContextMenu: View {
         }
         Divider()
         Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {
-            let fileItem = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
+            // Properties sheet shows Owner/Group, so keep needsOwnerGroup default; let init resolve
+            // the icon from .effectiveIcon instead of a blocking NSWorkspace LaunchServices IPC.
+            let fileItem = FileItem(url: url)
             windowUIState.propertiesItem = fileItem
         }
     }

@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "سيؤدي هذا إلى تغيير أذونات كل عنصر داخل هذا المجلد. لا يمكن التراجع عن هذا.";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "إذا كان هناك ملف بالاسم نفسه موجودًا بالفعل في الوجهة، فسيتم استبداله.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "تم نقل %d ملف(ات) · الأخير: %@";
 "autoOrganization" = "قواعد التنظيم التلقائي...";
 "autoOrganizationSubtitle" = "ينقل الملفات تلقائيًا بين المجلدات استنادًا إلى القواعد التي تحددها";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "نسخ";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "نسخ المسار";
 "copyPathAbsolute" = "المسار المطلق";
 "copyPathRelative" = "المسار النسبي";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "لصق";
 "permissionDeniedNotice" = "تم رفض الإذن: لا يمكن لـ Wiles قراءة محتويات هذا المجلد.";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "الصور";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "مطابقة حالة الأحرف";
 "searchPlaceholder" = "Search in";
 "searchScope" = "نطاق البحث";
-"secureShred" = "إتلاف الملف بأمان...";
 "selectAll" = "تحديد الكل";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "اختر مجلدًا على جهاز Mac الخاص بك";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "الملف قيد الاستخدام: '{path}' مفتوح حاليًا في تطبيق آخر.";
 "wilesErrorItemNotFound" = "العنصر غير موجود: '{path}' غير موجود.";
 "wilesErrorOperationFailed" = "فشلت العملية: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "كلمة مرور غير صالحة: تعذر فك تشفير أرشيف ZIP.";
 "wilesErrorFileCreationNotRedoable" = "لا يمكن الإعادة: لا يخزن Wiles محتوى الملف الأصلي، لذا لا يمكن إعادة هذا الإنشاء.";
 "tooltipFolder" = "مجلد";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "لم يتم العثور على صفحات صالحة في الملفات المقدمة.";
 "pdfMergeWriteFailed" = "تعذرت كتابة ملف PDF المدمج على القرص.";
 "invalidServerURL" = "عنوان URL للخادم غير صالح";
-"serverConnectionFailed" = "تعذر الاتصال بـ %@";
-"imageConverterLoadFailed" = "تعذر تحميل الصورة في %@";
+"serverConnectionFailed" = "تعذر الاتصال بـ {0}";
+"imageConverterLoadFailed" = "تعذر تحميل الصورة في {0}";
 "imageConverterContextFailed" = "تعذر إنشاء سياق الرسومات";
 "imageConverterRenderFailed" = "تعذر عرض الصورة المعاد تحجيمها";
 "imageConverterDestinationFailed" = "تعذر إنشاء وجهة الصورة";
@@ -521,3 +525,9 @@
 "expandFolder" = "توسيع";
 "collapseFolder" = "طي";
 "expandCollapseFolderHint" = "انقر نقرًا مزدوجًا لإظهار أو إخفاء المجلدات الفرعية لهذا المجلد.";
+
+"moveCollisionTitle" = "يوجد عنصر باسم \"{name}\" هنا بالفعل.";
+"moveCollisionMessage" = "الاستبدال ينقل العنصر الموجود إلى المهملات. الاحتفاظ بكليهما يضيف رقمًا إلى الاسم الجديد.";
+"moveCollisionReplace" = "استبدال";
+"moveCollisionKeepBoth" = "الاحتفاظ بكليهما";
+"moveCollisionApplyToAll" = "تطبيق على الكل";

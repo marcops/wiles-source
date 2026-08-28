@@ -18,6 +18,9 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.wiles.HttpServer")
     private var connections: [NWConnection] = []
     private var idleTimeoutWorkItems: [ObjectIdentifier: DispatchWorkItem] = [:]
+    /// Bytes received so far per connection, accumulated until the `\r\n\r\n` request-head
+    /// terminator arrives — HTTP does not guarantee the head lands in a single TCP segment.
+    private var requestBuffers: [ObjectIdentifier: Data] = [:]
     private var requiredPassword: String?
 
     /// Caps concurrent connections for this local file-sharing feature — plenty for normal LAN
@@ -26,6 +29,11 @@ public final class LocalHttpServerService: @unchecked Sendable {
     /// A connection that opens and never sends a request is cancelled after this long instead of
     /// sitting in `connections` forever.
     private static let idleConnectionTimeout: TimeInterval = 15
+    /// Upper bound on the buffered request head before the `\r\n\r\n` terminator; a client that
+    /// keeps sending header bytes past this gets `431` instead of growing memory unbounded.
+    private static let maxRequestHeadBytes = 32 * 1024
+    /// Per-`connection.receive` read size while accumulating the request head.
+    private static let requestReadChunkSize = 8192
 
     private init() { }
 
@@ -86,6 +94,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             connections.removeAll()
             idleTimeoutWorkItems.values.forEach { $0.cancel() }
             idleTimeoutWorkItems.removeAll()
+            requestBuffers.removeAll()
             sharedFolder = nil
             requiredPassword = nil
         }
@@ -186,25 +195,62 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
     private func removeConnection(_ connection: NWConnection) {
         connections.removeAll(where: { $0 === connection })
-        idleTimeoutWorkItems.removeValue(forKey: ObjectIdentifier(connection))?.cancel()
+        let key = ObjectIdentifier(connection)
+        idleTimeoutWorkItems.removeValue(forKey: key)?.cancel()
+        requestBuffers.removeValue(forKey: key)
     }
 
     private func receiveRequest(on connection: NWConnection) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] content, _, _, _ in
-            guard let self, let content, !content.isEmpty else {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: Self.requestReadChunkSize) { [weak self] content, _, isComplete, _ in
+            guard let self else {
                 connection.cancel()
-                self?.removeConnection(connection)
                 return
             }
-            // A real request line arrived — this connection is no longer merely idle.
-            idleTimeoutWorkItems.removeValue(forKey: ObjectIdentifier(connection))?.cancel()
-            guard let requestStr = String(bytes: content, encoding: .utf8) else {
+            handleReceivedBytes(content, isComplete: isComplete, on: connection)
+        }
+    }
+
+    /// Accumulates request bytes per connection until the `\r\n\r\n` head terminator, then parses;
+    /// caps the buffer at `maxRequestHeadBytes` (→ 431) and keeps reading while the head is partial.
+    private func handleReceivedBytes(_ content: Data?, isComplete: Bool, on connection: NWConnection) {
+        let key = ObjectIdentifier(connection)
+        if let content, !content.isEmpty {
+            // A real request byte arrived — this connection is no longer merely idle.
+            idleTimeoutWorkItems.removeValue(forKey: key)?.cancel()
+            requestBuffers[key, default: Data()].append(content)
+        }
+
+        guard let buffer = requestBuffers[key], !buffer.isEmpty else {
+            connection.cancel()
+            removeConnection(connection)
+            return
+        }
+
+        if let headEnd = buffer.range(of: Data("\r\n\r\n".utf8)) {
+            let head = buffer.subdata(in: buffer.startIndex ..< headEnd.lowerBound)
+            requestBuffers.removeValue(forKey: key)
+            guard let requestStr = String(bytes: head, encoding: .utf8) else {
                 connection.cancel()
                 removeConnection(connection)
                 return
             }
             processRequest(requestStr, connection: connection)
+            return
         }
+
+        if buffer.count > Self.maxRequestHeadBytes {
+            requestBuffers.removeValue(forKey: key)
+            sendResponse(connection: connection, statusCode: HTTPStatus.requestHeaderFieldsTooLarge, body: Data("Request Header Fields Too Large".utf8))
+            return
+        }
+
+        if isComplete {
+            connection.cancel()
+            removeConnection(connection)
+            return
+        }
+
+        receiveRequest(on: connection)
     }
 
     private func processRequest(_ request: String, connection: NWConnection) {
@@ -277,13 +323,34 @@ public final class LocalHttpServerService: @unchecked Sendable {
         return zip(lhsBytes, rhsBytes).reduce(into: UInt8(0)) { result, pair in result |= pair.0 ^ pair.1 } == 0
     }
 
+    /// The listing page is static HTML with inline styles and no scripts; lock everything else down
+    /// so an entry name that still slipped markup through can't load or run anything.
+    private static let listingContentSecurityPolicy =
+        "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'"
+
+    /// URL-path prefix (percent-encoded, leading slash, no trailing slash) locating `folder` inside
+    /// the share root, so a nested listing's links stay root-relative like the request paths
+    /// `serveFile` resolves. Empty when `folder` is the share root itself.
+    private func listingLinkPrefix(for folder: URL) -> String {
+        let rootComponents = (sharedFolder ?? folder).resolvingSymlinksInPath().pathComponents
+        let relativeComponents = folder.resolvingSymlinksInPath().pathComponents.dropFirst(rootComponents.count)
+        return relativeComponents.reduce(into: "") { result, component in
+            result += "/" + (component.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? component)
+        }
+    }
+
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {
         do {
-            let urls = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            let urls = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey])
+            let linkPrefix = listingLinkPrefix(for: folder)
             let items = urls.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).map { url -> String in
                 let name = url.lastPathComponent
+                let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
                 let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-                return "<li style='margin-bottom: 8px;'><a href=\"/\(encoded)\" style='text-decoration: none; color: #0066cc;'>\(name)</a></li>"
+                let href = "\(linkPrefix)/\(encoded)" + (isDirectory ? "/" : "")
+                let label = HTMLEscaping.escape(name) + (isDirectory ? "/" : "")
+                let marker = isDirectory ? "\u{1F4C1} " : ""
+                return "<li style='margin-bottom: 8px;'><a href=\"\(href)\" style='text-decoration: none; color: #0066cc;'>\(marker)\(label)</a></li>"
             }.joined()
 
             let rawLanguage = UserDefaults.standard.string(forKey: DefaultsKey.appLanguage.rawValue) ?? AppLanguage.system.rawValue
@@ -292,7 +359,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             guard let html = TemplateRenderingService.render(
                 resource: "SharedFolder",
                 replacements: [
-                    "FOLDER_NAME": folder.lastPathComponent,
+                    "FOLDER_NAME": HTMLEscaping.escape(folder.lastPathComponent),
                     "ITEMS": items,
                     "PAGE_TITLE": L10n.string(.sharedFolderPageTitle, lang: language),
                     "HEADING": L10n.string(.sharedFolderHeading, lang: language)
@@ -300,7 +367,12 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Missing SharedFolder template".utf8))
                 return
             }
-            sendResponse(connection: connection, statusCode: HTTPStatus.ok, body: Data(html.utf8), contentType: "text/html")
+            sendResponse(
+                connection: connection,
+                statusCode: HTTPStatus.ok,
+                body: Data(html.utf8),
+                contentType: "text/html",
+                extraHeaders: ["Content-Security-Policy": Self.listingContentSecurityPolicy])
         } catch {
             ErrorReporter.report(error, context: "Serving directory listing over local HTTP share")
             sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading directory".utf8))
@@ -329,8 +401,16 @@ public final class LocalHttpServerService: @unchecked Sendable {
             return
         }
 
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDirectory) else {
             sendResponse(connection: connection, statusCode: HTTPStatus.notFound, body: Data("Not Found".utf8))
+            return
+        }
+
+        // A subfolder link from the listing lands here too; recurse into its listing (still inside
+        // the path-traversal boundary checked above) instead of trying to stream a directory.
+        if isDirectory.boolValue {
+            serveDirectoryListing(folder: fileURL, connection: connection)
             return
         }
 

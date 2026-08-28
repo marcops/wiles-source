@@ -17,4 +17,16 @@ final class TerminalViewCache {
     var view: LocalProcessTerminalView?
     var coordinator: IntegratedTerminalView.Coordinator?
     init() { }
+
+    /// Called from `MainContentView.onDisappear` so a closed window doesn't leak its `/bin/zsh -l`.
+    /// SwiftTerm exposes no public way to kill the PTY child from `LocalProcessTerminalView` (its
+    /// `process` is module-internal and there is no killing `deinit`), so the best available teardown
+    /// is to ask the login shell to exit, then drop our references. `view` is cleared first so
+    /// `Coordinator.processTerminated` sees no cached view and doesn't respawn a replacement shell.
+    func tearDown() {
+        let closingView = view
+        view = nil
+        coordinator = nil
+        closingView?.send(txt: "exit\r")
+    }
 }

@@ -70,51 +70,24 @@ public extension AppState {
         preset: ResizePreset,
         cropPreset: CropPreset,
         quality: Double) {
-        Task.detached(priority: .userInitiated) { [weak self] in
-            do {
-                let newURL = try ImageConverterService.convertImage(
-                    at: item.url,
-                    targetFormat: targetFormat,
-                    preset: preset,
-                    cropPreset: cropPreset,
-                    quality: quality)
-                // A CI toolchain version needs these qualified explicitly inside this nested
-                // weak-self closure even though this one compiles fine unqualified locally —
-                // don't let swiftformat's --self remove strip them back out.
-                // swiftformat:disable redundantSelf
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.undoRedoService.recordAction(.createFile(url: newURL))
-                    self.refreshCurrentDirectory()
-                    self.selection.selectedURLs = [newURL]
-                }
-                // swiftformat:enable redundantSelf
-            } catch {
-                ErrorReporter.report(error, context: "Converting image")
-                // swiftformat:disable redundantSelf
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.showError(error)
-                }
-                // swiftformat:enable redundantSelf
-            }
-        }
+        let sourceURL = item.url
+        runDetachedFileOperation(context: "Converting image", operation: {
+            try ImageConverterService.convertImage(
+                at: sourceURL,
+                targetFormat: targetFormat,
+                preset: preset,
+                cropPreset: cropPreset,
+                quality: quality)
+        }, recordUndo: { .createFile(url: $0) })
     }
 
     func performRename(item: FileItem, newName: String) {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != item.name else { return }
-        Task {
-            do {
-                let newURL = try await FileSystemService.renameItem(at: item.url, newName: trimmed)
-                undoRedoService.recordAction(.rename(oldURL: item.url, newURL: newURL))
-                refreshCurrentDirectory()
-                selection.selectedURLs = [newURL]
-            } catch {
-                ErrorReporter.report(error, context: "Renaming item")
-                showError(error)
-            }
-        }
+        let oldURL = item.url
+        runDetachedFileOperation(context: "Renaming item", operation: {
+            try await FileSystemService.renameItem(at: oldURL, newName: trimmed)
+        }, recordUndo: { .rename(oldURL: oldURL, newURL: $0) })
     }
 
     func performBatchRename(items: [FileItem], mode: BatchRenameMode) {

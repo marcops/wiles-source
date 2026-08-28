@@ -44,7 +44,7 @@ public struct HttpServerTests {
         await checkMethodNotAllowed()
         await checkHeadMethodNotAllowed()
         await checkNestedFileServed()
-        await checkRequestingDirectoryPathReturns500()
+        await checkRequestingDirectoryPathReturnsListing()
         await checkNoMimeTypeSniffing()
         await checkFileWithSpaceInNameServed()
         await checkEncodedPathTraversalBlocked()
@@ -52,7 +52,7 @@ public struct HttpServerTests {
         await checkDirectoryListingSortedOrder()
         await checkContentLengthMatchesBodySize()
         await checkSiblingDirectoryTraversalBlocked(tempDir: tempDir)
-        await checkTrailingSlashDirectoryReturns500()
+        await checkTrailingSlashDirectoryReturnsListing()
         await checkEmptyDirectoryListing()
 
         server.stop()
@@ -177,18 +177,18 @@ public struct HttpServerTests {
         TestReporter.report("LocalHttpServer", "POS: GET /subdir/nested.txt (nested subdirectory file) returns 200 OK & correct payload", result: passed)
     }
 
-    private static func checkRequestingDirectoryPathReturns500() async {
-        // Requesting a path that resolves to a directory (not a file) passes the fileExists()
-        // check (which is true for directories too) but then Data(contentsOf:) fails,
-        // exercising the internalServerError branch in serveFile.
+    private static func checkRequestingDirectoryPathReturnsListing() async {
+        // A path resolving to a directory now recurses into serveDirectoryListing (M12) instead of
+        // failing with 500 — GET /subdir returns 200 with that subfolder's contents.
         var passed = false
         if let url = URL(string: "http://localhost:8080/subdir") {
-            if let (_, resp) = try? await Self.requestSession.data(from: url),
+            if let (data, resp) = try? await Self.requestSession.data(from: url),
                let httpResp = resp as? HTTPURLResponse {
-                passed = httpResp.statusCode == 500
+                let body = String(data: data, encoding: .utf8) ?? ""
+                passed = httpResp.statusCode == 200 && body.contains("nested.txt")
             }
         }
-        TestReporter.report("LocalHttpServer", "NEG: Requesting a directory path (not a file) as a download returns 500 Internal Server Error", result: passed)
+        TestReporter.report("LocalHttpServer", "POS: Requesting a directory path returns a 200 listing of that subfolder", result: passed)
     }
 
     private static func checkNoMimeTypeSniffing() async {
@@ -296,21 +296,20 @@ public struct HttpServerTests {
             result: blocked)
     }
 
-    private static func checkTrailingSlashDirectoryReturns500() async {
-        // A path with a trailing slash (e.g. /subdir/) does not equal "/" and is not empty, so
-        // it goes through serveFile (not serveDirectoryListing). It resolves to a directory,
-        // passes fileExists(), then fails Data(contentsOf:), exercising the same 500 branch as
-        // the no-trailing-slash case but via a distinct path-parsing route.
+    private static func checkTrailingSlashDirectoryReturnsListing() async {
+        // /subdir/ (trailing slash) goes through serveFile, resolves to a directory, and now
+        // recurses into serveDirectoryListing (M12) — 200 with the subfolder's contents.
         var passed = false
         if let url = URL(string: "http://localhost:8080/subdir/") {
-            if let (_, resp) = try? await Self.requestSession.data(from: url),
+            if let (data, resp) = try? await Self.requestSession.data(from: url),
                let httpResp = resp as? HTTPURLResponse {
-                passed = httpResp.statusCode == 500
+                let body = String(data: data, encoding: .utf8) ?? ""
+                passed = httpResp.statusCode == 200 && body.contains("nested.txt")
             }
         }
         TestReporter.report(
             "LocalHttpServer",
-            "NEG: Requesting a directory path with a trailing slash (/subdir/) returns 500 Internal Server Error",
+            "POS: Requesting a directory path with a trailing slash (/subdir/) returns a 200 listing",
             result: passed)
     }
 

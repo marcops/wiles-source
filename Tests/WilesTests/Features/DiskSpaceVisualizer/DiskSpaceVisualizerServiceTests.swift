@@ -11,25 +11,30 @@ public struct DiskSpaceVisualizerFeatureTests {
         let file = tempDir.appendingPathComponent("data.bin")
         try? Data(repeating: 0x41, count: 1024).write(to: file)
 
-        let reportResult = await DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)
+        let reportResult = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)) ?? DiskUsageReport(
+            totalSize: 0,
+            topItems: [],
+            othersItem: nil))
         report("Feature/DiskSpaceVisualizer", "POS: Disk space report calculates totalSize > 0", result: reportResult.totalSize >= 1024)
         report("Feature/DiskSpaceVisualizer", "POS: Report contains topItems", result: !reportResult.topItems.isEmpty)
 
-        await testMissingFolderReturnsEmptyReport()
+        await testMissingFolderThrows()
         await testEmptyFolderReturnsEmptyReport()
         await testSubfolderSizeIsIncludedViaComputeFolderSizeFast()
         await testOthersBucketAggregatesItemsPastTop10()
     }
 
-    /// Covers the `guard let contents = try? fm.contentsOfDirectory(...)` failure branch: a folder
-    /// URL that doesn't exist on disk returns the zero-value report instead of throwing/crashing.
-    private static func testMissingFolderReturnsEmptyReport() async {
+    /// Covers the `contentsOfDirectory` failure branch: a folder URL that doesn't exist on disk (or
+    /// can't be read) now throws (M20), so the sidebar shows an error state rather than "0 bytes".
+    private static func testMissingFolderThrows() async {
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString)")
-        let reportResult = await DiskSpaceVisualizerService.calculateDiskUsage(for: missing)
-        report(
-            "Feature/DiskSpaceVisualizer",
-            "NEG: calculateDiskUsage for a nonexistent folder returns a zero-value report",
-            result: reportResult.totalSize == 0 && reportResult.topItems.isEmpty && reportResult.othersItem == nil)
+        var threw = false
+        do {
+            _ = try await DiskSpaceVisualizerService.calculateDiskUsage(for: missing)
+        } catch {
+            threw = true
+        }
+        report("Feature/DiskSpaceVisualizer", "NEG: calculateDiskUsage for a nonexistent folder throws", result: threw)
     }
 
     /// Covers the `guard grandTotal > 0` branch: a folder that exists but contains nothing (or only
@@ -39,7 +44,10 @@ public struct DiskSpaceVisualizerFeatureTests {
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        let reportResult = await DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)
+        let reportResult = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)) ?? DiskUsageReport(
+            totalSize: 0,
+            topItems: [],
+            othersItem: nil))
         report(
             "Feature/DiskSpaceVisualizer",
             "NEG: calculateDiskUsage for an empty folder returns a zero-value report",
@@ -56,7 +64,10 @@ public struct DiskSpaceVisualizerFeatureTests {
 
         try? Data(repeating: 0x41, count: 2048).write(to: subfolder.appendingPathComponent("inner.bin"))
 
-        let reportResult = await DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)
+        let reportResult = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)) ?? DiskUsageReport(
+            totalSize: 0,
+            topItems: [],
+            othersItem: nil))
         let subfolderItem = reportResult.topItems.first { $0.name == "subfolder" }
         report(
             "Feature/DiskSpaceVisualizer",
@@ -77,7 +88,10 @@ public struct DiskSpaceVisualizerFeatureTests {
             try? Data(repeating: 0x42, count: size).write(to: tempDir.appendingPathComponent("file\(index).bin"))
         }
 
-        let reportResult = await DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)
+        let reportResult = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: tempDir)) ?? DiskUsageReport(
+            totalSize: 0,
+            topItems: [],
+            othersItem: nil))
         report(
             "Feature/DiskSpaceVisualizer",
             "POS: with more than 10 entries, topItems is capped at 10 and the remainder is aggregated into othersItem",

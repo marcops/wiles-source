@@ -25,6 +25,8 @@ struct FilePropertiesSheet: View {
     @State private var showDiscardConfirmation = false
     @State private var applyToEnclosedItems = false
     @State private var showRecursivePermissionsConfirmation = false
+    @State private var isApplyingPermissions = false
+    @State private var applyPermissionsResult: String?
 
     private var hasPendingPermissionChanges: Bool {
         hasPermissions && permissions != (lastAppliedPermissions ?? permissions)
@@ -203,18 +205,29 @@ struct FilePropertiesSheet: View {
     }
 
     private var applyPermissionsButton: some View {
-        Button(appState.tr(.applyPermissions)) {
-            if applyToEnclosedItems {
-                showRecursivePermissionsConfirmation = true
-            } else {
-                Task { await applyPermissions() }
+        HStack(spacing: 8) {
+            Button(appState.tr(.applyPermissions)) {
+                if applyToEnclosedItems {
+                    showRecursivePermissionsConfirmation = true
+                } else {
+                    Task { await applyPermissions() }
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .disabled(isApplyingPermissions)
+            .accessibilityLabel(appState.tr(.applyPermissions))
+            .accessibilityHint(appState.tr(.applyPermissionsHint))
+
+            if isApplyingPermissions {
+                ProgressView().controlSize(.small)
+            } else if let applyPermissionsResult {
+                Text(applyPermissionsResult)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.small)
         .padding(.top, 4)
-        .accessibilityLabel(appState.tr(.applyPermissions))
-        .accessibilityHint(appState.tr(.applyPermissionsHint))
     }
 
     private func loadProperties() async {
@@ -235,19 +248,28 @@ struct FilePropertiesSheet: View {
     private func applyPermissions() async {
         let url = item.url
         let permissionsToApply = permissions
+        isApplyingPermissions = true
+        applyPermissionsResult = nil
+        defer { isApplyingPermissions = false }
         if applyToEnclosedItems {
-            let errors = await Task.detached(priority: .userInitiated) {
+            let result = await Task.detached(priority: .userInitiated) {
                 FilePermissionsService.setPermissionsRecursively(for: url, permissions: permissionsToApply)
             }.value
-            if let firstError = errors.first {
+            if let firstError = result.errors.first {
                 ErrorReporter.report(firstError, context: "Applying recursive file permissions")
                 appState.showError(firstError.localizedDescription)
             }
+            var message = String(format: appState.tr(.permissionsAppliedCount), result.applied)
+            if !result.errors.isEmpty {
+                message += " · " + String(format: appState.tr(.permissionsApplyFailedCount), result.errors.count)
+            }
+            applyPermissionsResult = message
         } else {
             do {
                 try await Task.detached(priority: .userInitiated) {
                     try FilePermissionsService.setPermissions(for: url, permissions: permissionsToApply)
                 }.value
+                applyPermissionsResult = String(format: appState.tr(.permissionsAppliedCount), 1)
             } catch {
                 ErrorReporter.report(error, context: "Applying file permissions")
                 appState.showError(error.localizedDescription)

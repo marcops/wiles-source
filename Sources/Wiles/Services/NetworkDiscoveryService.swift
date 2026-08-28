@@ -11,11 +11,11 @@ public final class NetworkDiscoveryService {
     private var browser: NWBrowser?
     private let queue = DispatchQueue(label: "com.wiles.NetworkDiscovery")
 
-    private init() {
-        startBrowsing()
-    }
+    /// No discovery on construction — `SidebarView` calls `start()`/`stop()` tied to the
+    /// "Network & Cloud" section's visibility so the SMB browser isn't live for the whole app run.
+    private init() { }
 
-    public func startBrowsing() {
+    public func start() {
         if browser != nil {
             return
         }
@@ -36,7 +36,7 @@ public final class NetworkDiscoveryService {
         self.browser = browser
     }
 
-    public func stopBrowsing() {
+    public func stop() {
         browser?.cancel()
         browser = nil
         discoveredShares = []

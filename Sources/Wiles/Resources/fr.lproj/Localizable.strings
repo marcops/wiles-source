@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Cela modifiera les autorisations de tous les éléments de ce dossier. Cette action est irréversible.";
 "ascending" = "Croissant";
 "autoOrgRuleConflictNotice" = "Si un fichier portant le même nom existe déjà à destination, il sera remplacé.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d fichier(s) déplacé(s) · Dernier : %@";
 "autoOrganization" = "Règles d'organisation automatique...";
 "autoOrganizationSubtitle" = "Déplace automatiquement les fichiers entre les dossiers selon les règles que vous définissez";
@@ -73,9 +74,12 @@
 "connect" = "Connecter";
 "connectToServer" = "Se Connecter au Serveur";
 "contentTranslucentLevel" = "Translucidité du Contenu";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convertir";
 "copy" = "Copier";
 "copyContent" = "Copier le contenu";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Copier le chemin";
 "copyPathAbsolute" = "Chemin absolu";
 "copyPathRelative" = "Chemin relatif";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Appuyez sur Cmd+K pour vous connecter à un serveur réseau.";
 "helpServerTitle" = "Se Connecter au Serveur Réseau";
 "helpShortcuts" = "Aide et raccourcis";
-"helpShredDesc" = "Clic droit -> 'Broyer le fichier...'.";
-"helpShredTitle" = "Broyeur Sécurisé de Fichiers";
 "helpSymlinkDesc" = "Clic droit -> 'Créer un lien symbolique...'.";
 "helpSymlinkTitle" = "Création de Liens Symboliques";
 "helpTagsDesc" = "Activez 'Afficher les étiquettes' dans le menu Présentation.";
@@ -252,6 +254,8 @@
 "paste" = "Coller";
 "permissionDeniedNotice" = "Permission refusée : Wiles ne peut pas lire le contenu de ce dossier.";
 "permissions" = "Partage et permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Images";
 "places" = "Emplacements & Dispositifs";
 "prefix" = "Préfixe";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Sensible à la Casse";
 "searchPlaceholder" = "Rechercher dans";
 "searchScope" = "Périmètre de recherche";
-"secureShred" = "Broyer le fichier en toute sécurité...";
 "selectAll" = "Tout sélectionner";
 "selectFolder" = "Sélectionner un dossier...";
 "selectFolderSubtitle" = "Choisissez un dossier sur votre Mac";
@@ -479,6 +482,7 @@
 "wilesErrorFileInUse" = "Fichier en Cours d'Utilisation : '{path}' est actuellement ouvert dans une autre application.";
 "wilesErrorItemNotFound" = "Élément Introuvable : '{path}' n'existe pas.";
 "wilesErrorOperationFailed" = "Échec de l'Opération : {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Mot de Passe Invalide : impossible de déchiffrer l'archive ZIP.";
 "wilesErrorFileCreationNotRedoable" = "Impossible de Rétablir : Wiles ne conserve pas le contenu original du fichier, cette création ne peut donc pas être rétablie.";
 "tooltipFolder" = "Dossier";
@@ -493,8 +497,8 @@
 "pdfMergeNoValidPages" = "Aucune page valide trouvée dans les fichiers fournis.";
 "pdfMergeWriteFailed" = "Impossible d'écrire le PDF fusionné sur le disque.";
 "invalidServerURL" = "URL de serveur invalide";
-"serverConnectionFailed" = "Impossible de se connecter à %@";
-"imageConverterLoadFailed" = "Échec du chargement de l'image à %@";
+"serverConnectionFailed" = "Impossible de se connecter à {0}";
+"imageConverterLoadFailed" = "Échec du chargement de l'image à {0}";
 "imageConverterContextFailed" = "Échec de la création du contexte graphique";
 "imageConverterRenderFailed" = "Échec du rendu de l'image redimensionnée";
 "imageConverterDestinationFailed" = "Échec de la création de la destination de l'image";
@@ -520,3 +524,9 @@
 "expandFolder" = "Développer";
 "collapseFolder" = "Réduire";
 "expandCollapseFolderHint" = "Double-tapez pour afficher ou masquer les sous-dossiers de ce dossier.";
+
+"moveCollisionTitle" = "Un élément nommé « {name} » existe déjà ici.";
+"moveCollisionMessage" = "Remplacer place l’élément existant dans la corbeille. Conserver les deux ajoute un numéro au nouveau nom.";
+"moveCollisionReplace" = "Remplacer";
+"moveCollisionKeepBoth" = "Conserver les deux";
+"moveCollisionApplyToAll" = "Tout appliquer";

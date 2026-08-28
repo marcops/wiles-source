@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Isso alterará as permissões de todos os itens dentro desta pasta. Isso não pode ser desfeito.";
 "ascending" = "Crescente";
 "autoOrgRuleConflictNotice" = "Se já existir um arquivo com o mesmo nome no destino, ele será substituído.";
+"autoOrgNoUndoNotice" = "Arquivos movidos por uma regra não entram no Desfazer — mova-os de volta manualmente se precisar.";
 "autoOrgRuleStatus" = "%d arquivo(s) movido(s) · Último: %@";
 "autoOrganization" = "Regras de Organização Automática...";
 "autoOrganizationSubtitle" = "Mova arquivos automaticamente entre pastas com base em regras que você define";
@@ -73,9 +74,12 @@
 "connect" = "Conectar";
 "connectToServer" = "Conectar ao Servidor";
 "contentTranslucentLevel" = "Transparência do Conteúdo";
+"contentSearchHint" = "Busca por conteúdo: 3+ caracteres, arquivos de texto abaixo de 2 MB.";
 "convert" = "Converter";
 "copy" = "Copiar";
 "copyContent" = "Copiar Conteúdo";
+"copyContentFileTooLarge" = "Este arquivo é muito grande para copiar como texto.";
+"copyContentNotText" = "Este arquivo não é texto, então seu conteúdo não pode ser copiado.";
 "copyPath" = "Copiar Caminho";
 "copyPathAbsolute" = "Caminho Absoluto";
 "copyPathRelative" = "Caminho Relativo";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Pressione Cmd+K ou escolha 'Conectar ao Servidor...' no menu de opções para conectar a compartilhamentos remotos (SMB, FTP, SFTP).";
 "helpServerTitle" = "Conectar ao Servidor de Rede";
 "helpShortcuts" = "Ajuda e Atalhos";
-"helpShredDesc" = "Clique com o botão direito em arquivos sensíveis -> 'Triturar Arquivo...' para sobrescrever blocos de dados antes de excluir permanentemente.";
-"helpShredTitle" = "Triturador Seguro de Arquivos";
 "helpSymlinkDesc" = "Clique com o botão direito -> 'Criar Link Simbólico...' para gerar atalhos de sistema relativos ou absolutos.";
 "helpSymlinkTitle" = "Criação de Links Simbólicos (Symlinks)";
 "helpTagsDesc" = "Ative 'Mostrar Etiquetas' no menu Visualizar ou Opções. Clique com o botão direito no arquivo > Etiquetas. Clique na barra lateral ou busque 'tag:cor' para filtrar.";
@@ -252,6 +254,8 @@
 "paste" = "Colar";
 "permissionDeniedNotice" = "Permissão Negada: O Wiles não pode ler o conteúdo desta pasta.";
 "permissions" = "Compartilhamento e Permissões";
+"permissionsApplyFailedCount" = "%d falharam";
+"permissionsAppliedCount" = "Aplicado a %d itens";
 "pictures" = "Imagens";
 "places" = "LOCAIS";
 "prefix" = "Prefixo";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Diferenciar Maiúsculas de Minúsculas";
 "searchPlaceholder" = "Buscar em";
 "searchScope" = "Escopo de Busca";
-"secureShred" = "Triturar Arquivo com Segurança...";
 "selectAll" = "Selecionar Tudo";
 "selectFolder" = "Selecionar Pasta...";
 "selectFolderSubtitle" = "Escolha uma pasta no seu Mac";
@@ -479,6 +482,7 @@
 "wilesErrorFileInUse" = "Arquivo em Uso: '{path}' está aberto em outro aplicativo.";
 "wilesErrorItemNotFound" = "Item Não Encontrado: '{path}' não existe.";
 "wilesErrorOperationFailed" = "Falha na Operação: {reason}";
+"wilesErrorDestinationExists" = "Já existe um item chamado '{name}' no destino.";
 "wilesErrorInvalidZipPassword" = "Senha Inválida: não foi possível descriptografar o arquivo ZIP.";
 "wilesErrorFileCreationNotRedoable" = "Não É Possível Refazer: O Wiles não armazena o conteúdo original do arquivo, portanto esta criação não pode ser refeita.";
 "tooltipFolder" = "Pasta";
@@ -493,8 +497,8 @@
 "pdfMergeNoValidPages" = "Nenhuma página válida encontrada nos arquivos fornecidos.";
 "pdfMergeWriteFailed" = "Não foi possível gravar o PDF mesclado no disco.";
 "invalidServerURL" = "URL do servidor inválida";
-"serverConnectionFailed" = "Não foi possível conectar a %@";
-"imageConverterLoadFailed" = "Falha ao carregar a imagem em %@";
+"serverConnectionFailed" = "Não foi possível conectar a {0}";
+"imageConverterLoadFailed" = "Falha ao carregar a imagem em {0}";
 "imageConverterContextFailed" = "Falha ao criar o contexto gráfico";
 "imageConverterRenderFailed" = "Falha ao renderizar a imagem redimensionada";
 "imageConverterDestinationFailed" = "Falha ao criar o destino da imagem";
@@ -520,3 +524,9 @@
 "expandFolder" = "Expandir";
 "collapseFolder" = "Recolher";
 "expandCollapseFolderHint" = "Toque duas vezes para mostrar ou ocultar as subpastas desta pasta.";
+
+"moveCollisionTitle" = "Já existe um item chamado \"{name}\" aqui.";
+"moveCollisionMessage" = "Substituir move o item existente para o Lixo. Manter ambos adiciona um número ao novo nome.";
+"moveCollisionReplace" = "Substituir";
+"moveCollisionKeepBoth" = "Manter ambos";
+"moveCollisionApplyToAll" = "Aplicar a todos";

@@ -55,3 +55,18 @@ Estes arquivos são triviais (enums simples, protocolos vazios, structs de const
 **Nota:** arquivos pequenos que *geraram* algum achado (ex.: `BatchRenameMode.swift`, `UndoActionType.swift`, `SymlinkMode.swift`, `ThumbnailServiceProtocol.swift`, `CrashReportingConstants.swift`, `FilePermissionsService.swift`, `CursorModifier.swift`, `CustomCropRegion.swift`) **não** estão nesta lista — mesmo sendo curtos, têm um problema real documentado em `BUG.md`/`ARCHITECTURE.md`/etc. e merecem atenção.
 
 Arquivos monitor/lifecycle de alto risco (`GlobalKeyMonitor`, `KeyboardSelectionNavigator`, `KeyboardZoomController`, `TerminalViewCache`) foram checados a fundo e considerados limpos — também não estão listados aqui, pois "sem achados" ali é um resultado positivo de uma verificação importante, não trivialidade do arquivo.
+
+### Adicionados na rodada ARCHITECTURE_CODE_REVIEW.md (2ª passada) — enums/structs planos, sem lógica
+
+- `Models/ListColumn.swift` — enum de colunas + defaults estáticos, sem lógica
+- `Models/ListColumnState.swift` — struct Codable de 3 campos + `defaults()`
+- `Models/SortOption.swift` — enum + `l10nKey` switch
+- `Models/AppAppearance.swift` — enum de 3 casos + `l10nKey`
+- `Models/NavigationMode.swift` — enum de 2 casos + `init?(rawValue:)` de compat + `l10nKey`
+- `Models/SystemTag.swift` — struct de 2 campos
+- `Models/FileOperationTask.swift` — struct de progresso, `progress` derivado (correto)
+- `Services/FileTemplate.swift` — enum de templates + conteúdo inicial (strings via L10n)
+- `Services/L10n.swift` — apenas a lista plana de ~500 casos do enum `L10n.Key` (a lógica de lookup está em `L10n+Lookup.swift`, que NÃO deve ser ignorado). Estilo "arquivo gerado".
+- `Views/Content/TerminalViewCache.swift` — wrapper de 2 campos (mas ver `L14` no relatório: falta `tearDown()` do processo — revisitar se mexer em ciclo de vida do terminal)
+
+**NÃO adicionados** (curtos, mas geraram achado real — ver relatório): `Services/AppLanguage.swift` (L: "System Default" não localizado + lista de locales hardcoded), `Services/POSIXPermissions.swift` (L6: perde bits setuid/setgid/sticky), `Constants/CrashReportingConstants.swift` (C3: token hardcoded), `Constants/DefaultsKey.swift` (trivial como código, mas é a superfície do audit de persistência R1 — manter visível).

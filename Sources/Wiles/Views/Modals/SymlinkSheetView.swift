@@ -126,7 +126,7 @@ public struct SymlinkSheetView: View {
             dismiss()
         } catch {
             ErrorReporter.report(error, context: "Creating symbolic link")
-            appState.showError(error.localizedDescription)
+            appState.showError(error)
         }
     }
 }

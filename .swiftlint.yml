@@ -286,3 +286,34 @@ custom_rules:
     regex: '\A(?:(?!removeObserver)[\s\S])*\baddObserver\(forName:(?:(?!removeObserver)[\s\S])*\z'
     message: "This file registers a closure-based NotificationCenter observer via addObserver(forName:...) but never calls removeObserver anywhere in the file. Store the returned token and remove it in deinit/onDisappear, or the observer registration leaks permanently."
     severity: warning
+  no_service_baked_in_language:
+    name: "Stateless Service Must Not Bake In a Display Language"
+    # Added by this review's fix pass (finding M5 / rule R2). A stateless service (enum/struct of
+    # static funcs, no PreferencesStore access) that renders a user-facing string via
+    # `L10n.string(.someLiteralKey, lang: .system)` locks that string to the *system* language,
+    # ignoring the in-app language setting — AppState.showError only re-localizes WilesError.
+    # Throw `WilesError.localized(key:arguments:)` instead (localized at display time), or take a
+    # `lang:` parameter from a @MainActor caller. Matches only a literal `.caseName` first argument,
+    # so WilesError.swift's own `L10n.string(key, lang: .system)` fallback (a variable key) is not
+    # flagged. `excluded`: OpenWithService (NSOpenPanel title) and DiskSpaceVisualizerService
+    # (chart label) are the two non-throwing call sites left for a follow-up pass.
+    included: ".*/Sources/.*\\.swift"
+    excluded: ".*/(OpenWithService|DiskSpaceVisualizerService)\\.swift"
+    regex: 'L10n\.string\(\s*\.[A-Za-z]\w*\s*,\s*lang:\s*\.system'
+    message: "Stateless service renders a user-facing string in the system language, ignoring the in-app language. Throw WilesError.localized(key:arguments:) (localized at display time) or take a lang: parameter from a @MainActor caller (SWIFT_LANG_RULES.md / M5)."
+    severity: warning
+  no_wholesale_didset_revert:
+    name: "No Wholesale didSet Revert (Assigning oldValue Back)"
+    # The H1 bug class (finding LR1). A `didSet` that reassigns `oldValue` back to the property on a
+    # cap/validation failure silently discards the whole user action — the fix H1 needed was to
+    # trim/evict down to the cap instead (see PreferencesStore's `expandedTreePaths` /
+    # `perFolderViewModes` didSets, which now evict rather than revert). Flags a single-line-body
+    # `= oldValue` assignment inside a `didSet` (`didSet { ... = oldValue ... }`), scoped to
+    # `.../Stores/` where the persisted-preference pattern lives. `warning`, not `error`: a
+    # deliberate "reject invalid input, keep previous value" is occasionally correct, but it must be
+    # a conscious revert-vs-clamp-vs-evict decision, not a copy-paste default. Currently flags
+    # nothing (H1 is already fixed) — purely preventive.
+    included: ".*/Stores/.*\\.swift"
+    regex: 'didSet\s*\{[^}]*=\s*oldValue'
+    message: "A didSet that assigns oldValue back to its property wholesale silently discards the user's action when a cap/validation fails (finding H1). Evict/clamp down to the limit instead, or make the revert a conscious, commented choice."
+    severity: warning

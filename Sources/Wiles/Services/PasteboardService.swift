@@ -1,6 +1,5 @@
 import AppKit
 import Foundation
-import GitBeacon
 
 public final class PasteboardService: Sendable {
     public static func writeToPasteboard(urls: [URL]) {
@@ -44,22 +43,30 @@ public final class PasteboardService: Sendable {
         return bitmap.representation(using: .png, properties: [:])
     }
 
-    public static func copyFileContentToClipboard(url: URL) {
-        // Reading the file (up to 10MB) can stall for seconds on a slow or stalled
-        // network/SMB mount. Perform the read off the main actor and round-trip only the
-        // resulting string back, mirroring the /Volumes slow-mount pattern used by
-        // AppState+Navigation.swift's navigateTo. The signature stays synchronous so callers
-        // don't need to change; the heavy work is dispatched internally instead.
-        Task.detached(priority: .userInitiated) {
-            do {
-                let values = try url.resourceValues(forKeys: [.fileSizeKey])
-                guard let size = values.fileSize, size < 10_000_000 else { return }
-                let content = try String(contentsOf: url)
-                await copyToClipboard(content)
-            } catch {
-                ErrorReporter.report(error, context: "Copying file content to clipboard for \(url.path)")
+    /// Text files at or above this size aren't copied as clipboard text (they'd also stall the read).
+    private static let maxCopyableTextBytes = 10_000_000
+
+    /// Copies the file's text content to the clipboard. Throws `WilesError.localized` for the two
+    /// user-visible failure cases — file too large, or not decodable as text — so the caller
+    /// (`AppState.copyContentOfSelected`) can surface them instead of the copy silently no-op'ing.
+    /// The read runs off the main actor: it can stall for seconds on a slow/stalled network mount.
+    public static func copyFileContentToClipboard(url: URL) async throws {
+        let content = try await readTextForClipboard(at: url)
+        await copyToClipboard(content)
+    }
+
+    private static func readTextForClipboard(at url: URL) async throws -> String {
+        try await Task.detached(priority: .userInitiated) {
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
+            if let size, size >= maxCopyableTextBytes {
+                throw WilesError.localized(key: .copyContentFileTooLarge, arguments: [])
             }
-        }
+            do {
+                return try String(contentsOf: url)
+            } catch {
+                throw WilesError.localized(key: .copyContentNotText, arguments: [])
+            }
+        }.value
     }
 
     private static func copyToClipboard(_ content: String) async {

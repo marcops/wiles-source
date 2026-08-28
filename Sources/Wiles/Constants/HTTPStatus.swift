@@ -7,5 +7,6 @@ enum HTTPStatus {
     static let forbidden = 403
     static let notFound = 404
     static let methodNotAllowed = 405
+    static let requestHeaderFieldsTooLarge = 431
     static let internalServerError = 500
 }

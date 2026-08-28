@@ -7,6 +7,8 @@ struct EditMenuCommands: LocalizedCommands {
     let sharedPreferences: PreferencesStore
     @FocusedValue(\.appState)
     private var appState
+    @FocusedValue(\.windowUIState)
+    private var windowUIState
     @FocusedValue(\.isTextFieldEditingActive)
     private var isTextFieldEditingActive
 
@@ -61,8 +63,8 @@ struct EditMenuCommands: LocalizedCommands {
         Button(tr(.paste)) {
             if isRenaming {
                 NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: nil)
-            } else {
-                appState?.pasteToCurrentDirectory()
+            } else if let appState, let windowUIState {
+                appState.pasteToCurrentDirectory(windowUIState: windowUIState)
             }
         }
         .keyboardShortcut("v", modifiers: .command)

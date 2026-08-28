@@ -6,7 +6,7 @@ struct FolderPickerNodeView: View {
     var appState: AppState
     @Binding var selectedURL: URL?
     @Binding var expandedPaths: Set<URL>
-    @Binding var childrenCache: [URL: [FolderNode]]
+    @Binding var childrenCache: BoundedFolderNodeCache
     @Binding var loadingURLs: Set<URL>
 
     private var children: [FolderNode]? {

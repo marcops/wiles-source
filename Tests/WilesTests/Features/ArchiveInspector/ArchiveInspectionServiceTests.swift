@@ -5,8 +5,14 @@ import Foundation
 public struct ArchiveInspectorFeatureTests {
     public static func run() async {
         let nonExistentArchive = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("nonexistent_\(UUID().uuidString).zip")
-        let entries = await ArchiveInspectionService.listEntries(in: nonExistentArchive)
-        report("Feature/ArchiveInspector", "NEG: Nonexistent zip returns empty entries", result: entries.isEmpty)
+        // M20: an unreadable archive throws now, so the sheet can show an error instead of "no entries".
+        var listThrew = false
+        do {
+            _ = try await ArchiveInspectionService.listEntries(in: nonExistentArchive)
+        } catch {
+            listThrew = true
+        }
+        report("Feature/ArchiveInspector", "NEG: listEntries on an unreadable archive throws instead of returning empty", result: listThrew)
         await runExtractionFailurePreservesExistingDestination()
         await runReplaceItemFailureCleansUpTempFileAndRethrows()
     }

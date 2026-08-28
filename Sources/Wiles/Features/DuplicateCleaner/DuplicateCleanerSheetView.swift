@@ -33,13 +33,14 @@ public struct DuplicateCleanerSheetView: View {
     private var mainContent: some View {
         AsyncResultView(
             operation: {
-                let res = await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
+                let res = try await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
                 selectedURLsToTrash = Set(res.groups.flatMap { $0.items.dropFirst().map(\.url) })
                 return res
             },
             isEmpty: { $0.groups.isEmpty },
             loading: { scanningView },
             empty: { emptyView },
+            failure: { error in AsyncErrorStateView(message: appState.errorText(for: error)) },
             content: { result in resultsView(result: result) })
     }
 

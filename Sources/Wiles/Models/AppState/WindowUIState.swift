@@ -48,6 +48,9 @@ public final class WindowUIState {
     public var passwordCompressURLs: [URL]?
     /// See `httpShareFolderURL` — visibility is `inspectArchiveURL != nil`.
     public var inspectArchiveURL: URL?
+    /// A pending move name-collision decision (Replace / Keep Both / Cancel). Set by
+    /// `promptMoveCollision` while a move loop is suspended waiting for the user; the sheet clears it.
+    var moveCollisionPrompt: MoveCollisionPrompt?
     public var showHelpSheet: Bool = false
     public var showFeedbackSheet: Bool = false
     public var showAboutSheet: Bool = false
@@ -120,6 +123,18 @@ public final class WindowUIState {
             || showHelpSheet || showFeedbackSheet || showAboutSheet || showSettingsSheet || showShortcutsHUD
             || propertiesItem != nil || imageConverterItem != nil || symlinkItem != nil
             || httpShareFolderURL != nil || passwordCompressURLs != nil || inspectArchiveURL != nil
+            || moveCollisionPrompt != nil
+    }
+
+    /// Suspends the caller until the user answers a move name-collision prompt for `itemName`.
+    /// Pass `showApplyToAll: true` when more collisions may follow in the same batch.
+    func promptMoveCollision(itemName: String, showApplyToAll: Bool) async -> MoveCollisionChoice {
+        await withCheckedContinuation { continuation in
+            moveCollisionPrompt = MoveCollisionPrompt(itemName: itemName, showApplyToAll: showApplyToAll) { [weak self] choice in
+                self?.moveCollisionPrompt = nil
+                continuation.resume(returning: choice)
+            }
+        }
     }
 
     public init(preferences: PreferencesStore = PreferencesStore()) {

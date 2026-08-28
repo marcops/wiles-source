@@ -108,19 +108,19 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         query = metadataQuery
     }
 
-    /// Resolves `FileItem`s (including their `NSWorkspace` icon) for a Spotlight result set's paths
-    /// off the main thread. With large result sets, doing this icon lookup inline inside the
-    /// synchronous `NSMetadataQueryDidFinishGathering` callback caused a mild UI hitch; batching it
-    /// into a detached task and hopping back to the main actor once done keeps that work off the hot
-    /// path, mirroring the off-main pattern used for `/Volumes/` navigation in `AppState+Navigation.swift`.
+    /// Resolves `FileItem`s for a Spotlight result set's paths off the main thread. Building them
+    /// inline inside the synchronous `NSMetadataQueryDidFinishGathering` callback caused a mild UI
+    /// hitch on large result sets; batching into a detached task and hopping back to the main actor
+    /// once done keeps that work off the hot path, mirroring the off-main pattern used for
+    /// `/Volumes/` navigation in `AppState+Navigation.swift`.
     private nonisolated static func fetchFileItems(forPaths paths: [String], completion: @escaping @Sendable ([FileItem]) -> Void) {
         Task.detached(priority: .userInitiated) {
             var items: [FileItem] = []
             items.reserveCapacity(paths.count)
             for path in paths {
-                let url = URL(fileURLWithPath: path)
-                let icon = NSWorkspace.shared.icon(forFile: path)
-                items.append(FileItem(url: url, icon: icon))
+                // FileItem resolves the icon from `.effectiveIcon` in its resourceValues batch;
+                // a per-path NSWorkspace.icon IPC here cost seconds on a broad Spotlight result set.
+                items.append(FileItem(url: URL(fileURLWithPath: path)))
             }
             await MainActor.run {
                 completion(items)

@@ -86,19 +86,28 @@ public struct SymlinkTests {
         }
         TestReporter.report("SymlinkService", "POS: createSymlink (.relative) resolves back to the original target", result: relativeResolvesCorrectly)
 
-        // POS: Creating a symlink at a path that already has one overwrites it instead of throwing
-        let overwriteName = "overwrite_link.txt"
-        let firstLink = try? SymlinkService.createSymlink(targetURL: targetFile, destinationFolder: tempDir, symlinkName: overwriteName, mode: .absolute)
-        let secondLink = try? SymlinkService.createSymlink(targetURL: targetFile, destinationFolder: tempDir, symlinkName: overwriteName, mode: .absolute)
-        let overwriteSucceeded: Bool = if let secondLink, firstLink != nil {
-            FileManager.default.fileExists(atPath: secondLink.path)
-        } else {
-            false
-        }
+        // NEG (H4 regression): creating a symlink at a name that already exists must throw
+        // `destinationExists` and NOT delete/replace what's there — the old code did an unconditional
+        // `removeItem` first, so a real file sitting at that name was permanently destroyed even
+        // when the subsequent link creation then failed.
+        let occupiedName = "already_here.txt"
+        let occupied = tempDir.appendingPathComponent(occupiedName)
+        let occupantContent = "do not delete \(UUID().uuidString)"
+        try? occupantContent.write(to: occupied, atomically: true, encoding: .utf8)
+        var threwDestinationExists = false
+        do {
+            _ = try SymlinkService.createSymlink(targetURL: targetFile, destinationFolder: tempDir, symlinkName: occupiedName, mode: .absolute)
+        } catch let error as WilesError {
+            if case .destinationExists = error {
+                threwDestinationExists = true
+            }
+        } catch { }
+        let occupantIntact = (try? String(contentsOf: occupied)) == occupantContent
+        let occupantStillRegularFile = (try? FileManager.default.destinationOfSymbolicLink(atPath: occupied.path)) == nil
         TestReporter.report(
             "SymlinkService",
-            "POS: creating a symlink at an existing path overwrites it instead of throwing",
-            result: overwriteSucceeded)
+            "NEG: createSymlink onto an existing name throws destinationExists and leaves that item untouched",
+            result: threwDestinationExists && occupantIntact && occupantStillRegularFile)
 
         runAdvancedSymlinkCoverage(tempDir: tempDir, targetFile: targetFile, linkURL: linkURL)
     }

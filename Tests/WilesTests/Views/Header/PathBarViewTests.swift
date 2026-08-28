@@ -5,8 +5,9 @@ import SwiftUI
 public struct PathBarViewTests {
     public static func run() {
         let appState = AppState()
-        let view = PathBarView(appState: appState)
-        report("View/PathBarView", "POS: PathBarView constructs pathSegments for root directory", result: !view.pathSegments.isEmpty)
+        let segments = PathBarView.buildSegments(
+            currentURL: appState.navigation.currentURL, rootLabel: "Root", trashLabel: "Trash")
+        report("View/PathBarView", "POS: PathBarView constructs pathSegments for root directory", result: !segments.isEmpty)
 
         let windowUIState = WindowUIState()
         windowUIState.isEditingPath = true

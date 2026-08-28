@@ -62,6 +62,8 @@ public enum L10n {
         case cut
         case copy
         case copyContent
+        case copyContentFileTooLarge
+        case copyContentNotText
         case moveToTrash
         case movingToTrashEllipsis
         case moveToTrashConfirm
@@ -214,8 +216,6 @@ public enum L10n {
         case helpTemplateDesc
         case helpCopyContentTitle
         case helpCopyContentDesc
-        case helpShredTitle
-        case helpShredDesc
         case helpServerTitle
         case helpServerDesc
         case navSystemTitle
@@ -280,7 +280,6 @@ public enum L10n {
         case openSystemSettings
         case notNow
         case deleteImmediately
-        case secureShred
         case createSymlink
         case compressToTarGz
         case hideTerminal
@@ -297,6 +296,7 @@ public enum L10n {
         case filterFolders
         case filterPDFs
         case filterLargeFiles
+        case contentSearchHint
         case filterModified7Days
         case scanningFolderSize
         case backgroundOperations
@@ -325,12 +325,20 @@ public enum L10n {
         case applyPermissions
         case applyToEnclosedItems
         case applyToEnclosedItemsConfirmMessage
+        case permissionsAppliedCount
+        case permissionsApplyFailedCount
         case deleteRule
         case deleteAutoOrgRuleConfirmMessage
         case ruleEnabledToggle
         case ruleConditionTypePicker
         case autoOrgRuleConflictNotice
+        case autoOrgNoUndoNotice
         case autoOrgRuleStatus
+        case moveCollisionTitle
+        case moveCollisionMessage
+        case moveCollisionReplace
+        case moveCollisionKeepBoth
+        case moveCollisionApplyToAll
         case pastingItemsEllipsis
         case compressingItemsEllipsis
         case extractingArchiveEllipsis
@@ -484,6 +492,7 @@ public enum L10n {
         case wilesErrorOperationFailed
         case wilesErrorInvalidZipPassword
         case wilesErrorFileCreationNotRedoable
+        case wilesErrorDestinationExists
         case tooltipFolder
         case tooltipModified
         case tooltipCreated

@@ -20,6 +20,12 @@ final class RepositionerView: NSView {
     /// see `reposition()`.
     private static var lastAppliedX: [BaselineKey: CGFloat] = [:]
 
+    /// `lastAppliedX` keys are (button, superview) identities that are never individually removed —
+    /// each opened window adds ~3. A missing baseline is a handled case (`reposition()` recaptures
+    /// it next pass), so once the map is clearly larger than any plausible live window count, drop
+    /// it wholesale rather than letting it grow unbounded across a long multi-window session.
+    private static let maxBaselineEntries = 90
+
     /// Purely a passive layout observer — must never intercept clicks meant for whatever's
     /// drawn on top of or behind it, since the default NSView.hitTest claims everything.
     override func hitTest(_: NSPoint) -> NSView? {
@@ -86,6 +92,10 @@ final class RepositionerView: NSView {
             return (button, superview)
         }
         guard resolved.count == buttons.count else { return }
+
+        if Self.lastAppliedX.count > Self.maxBaselineEntries {
+            Self.lastAppliedX.removeAll(keepingCapacity: true)
+        }
 
         for (button, superview) in resolved {
             let key = BaselineKey(button: ObjectIdentifier(button), superview: ObjectIdentifier(superview))

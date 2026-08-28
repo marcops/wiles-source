@@ -20,6 +20,11 @@ struct BoundedFolderNodeCache {
         self.maxBytes = maxBytes
     }
 
+    /// Standardized URLs currently held, for callers that need to skip an already-loaded folder.
+    var cachedURLs: Set<URL> {
+        Set(storage.keys)
+    }
+
     subscript(url: URL) -> [FolderNode]? {
         get { storage[url.standardizedFileURL] }
         set {

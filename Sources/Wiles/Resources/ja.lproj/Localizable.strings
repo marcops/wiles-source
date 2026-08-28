@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "このフォルダ内のすべての項目の権限が変更されます。この操作は元に戻せません。";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "移動先に同名のファイルがすでに存在する場合、置き換えられます。";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d 個のファイルを移動しました · 最終: %@";
 "autoOrganization" = "自動整理ルール...";
 "autoOrganizationSubtitle" = "定義したルールに基づいてファイルをフォルダ間で自動的に移動します";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "コピー";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "パスをコピー";
 "copyPathAbsolute" = "絶対パス";
 "copyPathRelative" = "相対パス";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "貼り付け";
 "permissionDeniedNotice" = "アクセス権がありません：Wilesはこのフォルダを読み取れません。";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "ピクチャ";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "大文字と小文字を区別";
 "searchPlaceholder" = "Search in";
 "searchScope" = "検索範囲";
-"secureShred" = "ファイルを完全に消去...";
 "selectAll" = "すべて選択";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "Macでフォルダを選択してください";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "ファイル使用中: 「{path}」は現在別のアプリケーションで開かれています。";
 "wilesErrorItemNotFound" = "項目が見つかりません: 「{path}」は存在しません。";
 "wilesErrorOperationFailed" = "操作に失敗しました: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "パスワードが無効です: ZIPアーカイブを復号できませんでした。";
 "wilesErrorFileCreationNotRedoable" = "やり直しできません: Wilesは元のファイルの内容を保存していないため、この作成操作はやり直せません。";
 "tooltipFolder" = "フォルダ";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "指定されたファイルに有効なページが見つかりませんでした。";
 "pdfMergeWriteFailed" = "結合したPDFをディスクに書き込めませんでした。";
 "invalidServerURL" = "無効なサーバーURLです";
-"serverConnectionFailed" = "%@ に接続できませんでした";
-"imageConverterLoadFailed" = "%@ の画像を読み込めませんでした";
+"serverConnectionFailed" = "{0} に接続できませんでした";
+"imageConverterLoadFailed" = "{0} の画像を読み込めませんでした";
 "imageConverterContextFailed" = "グラフィックコンテキストを作成できませんでした";
 "imageConverterRenderFailed" = "リサイズした画像をレンダリングできませんでした";
 "imageConverterDestinationFailed" = "画像の出力先を作成できませんでした";
@@ -521,3 +525,9 @@
 "expandFolder" = "展開";
 "collapseFolder" = "折りたたむ";
 "expandCollapseFolderHint" = "ダブルタップでこのフォルダのサブフォルダを表示または非表示にします。";
+
+"moveCollisionTitle" = "「{name}」という名前の項目はすでにここにあります。";
+"moveCollisionMessage" = "「置き換える」を選ぶと既存の項目はゴミ箱に移動します。「両方残す」を選ぶと新しい名前に番号が付きます。";
+"moveCollisionReplace" = "置き換える";
+"moveCollisionKeepBoth" = "両方残す";
+"moveCollisionApplyToAll" = "すべてに適用";

@@ -90,15 +90,28 @@ struct HeaderBarView: View {
 
     private var searchField: some View {
         @Bindable var appState = appState
-        return HStack(spacing: 6) {
-            searchTextField
-            searchEverywhereToggle
-            searchFilterMenu
-            if !appState.selection.searchQuery.isEmpty {
-                searchQueryActionButtons
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                searchTextField
+                searchEverywhereToggle
+                searchFilterMenu
+                if !appState.selection.searchQuery.isEmpty {
+                    searchQueryActionButtons
+                }
+            }
+            .headerFieldChrome()
+            if isContentSearchScope {
+                Text(appState.tr(.contentSearchHint))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.leading, 4)
             }
         }
-        .headerFieldChrome()
+    }
+
+    /// The search-thresholds hint only makes sense when content is actually being searched.
+    private var isContentSearchScope: Bool {
+        appState.preferences.searchScope == .content || appState.preferences.searchScope == .both
     }
 
     private var searchTextField: some View {
@@ -176,45 +189,38 @@ struct HeaderBarView: View {
         Divider()
         kindFilterButtons
         Divider()
-        Button(appState.tr(.filterLargeFiles)) {
-            applyQuickFilter("size:>100m")
-        }
+        quickFilterButton(.filterLargeFiles, token: "size:>100m")
     }
 
-    /// Sets the search query to a quick-filter token (e.g. `date:today`, `kind:image`) and
-    /// re-runs the directory listing, shared by the large-files, date, and kind filter buttons.
-    private func applyQuickFilter(_ token: String) {
-        appState.selection.searchQuery = token
+    /// Toggles a quick-filter token (e.g. `date:today`, `kind:image`) in/out of the current search
+    /// query — appended if absent, stripped if present — preserving any free text the user typed,
+    /// and shows a checkmark while the token is active. Shared by the date, kind, and size buttons.
+    @ViewBuilder
+    private func quickFilterButton(_ titleKey: L10n.Key, token: String) -> some View {
+        let isActive = SearchFilterService.containsToken(token, in: appState.selection.searchQuery)
+        Button {
+            appState.selection.searchQuery = SearchFilterService.toggleToken(token, in: appState.selection.searchQuery)
+        } label: {
+            if isActive {
+                Label(appState.tr(titleKey), systemImage: "checkmark")
+            } else {
+                Text(appState.tr(titleKey))
+            }
+        }
     }
 
     @ViewBuilder private var dateFilterButtons: some View {
-        Button(appState.tr(.filterModifiedToday)) {
-            applyQuickFilter("date:today")
-        }
-        Button(appState.tr(.filterModified7Days)) {
-            applyQuickFilter("date:7d")
-        }
-        Button(appState.tr(.filterModified30Days)) {
-            applyQuickFilter("date:30d")
-        }
+        quickFilterButton(.filterModifiedToday, token: "date:today")
+        quickFilterButton(.filterModified7Days, token: "date:7d")
+        quickFilterButton(.filterModified30Days, token: "date:30d")
     }
 
     @ViewBuilder private var kindFilterButtons: some View {
-        Button(appState.tr(.filterImages)) {
-            applyQuickFilter("kind:image")
-        }
-        Button(appState.tr(.filterDocuments)) {
-            applyQuickFilter("kind:doc")
-        }
-        Button(appState.tr(.filterCodeFiles)) {
-            applyQuickFilter("kind:code")
-        }
-        Button(appState.tr(.filterPDFs)) {
-            applyQuickFilter("kind:pdf")
-        }
-        Button(appState.tr(.filterFolders)) {
-            applyQuickFilter("kind:folder")
-        }
+        quickFilterButton(.filterImages, token: "kind:image")
+        quickFilterButton(.filterDocuments, token: "kind:doc")
+        quickFilterButton(.filterCodeFiles, token: "kind:code")
+        quickFilterButton(.filterPDFs, token: "kind:pdf")
+        quickFilterButton(.filterFolders, token: "kind:folder")
     }
 
     /// Mirrors the `hidden:true` token in `appState.selection.searchQuery` — same query-language convention

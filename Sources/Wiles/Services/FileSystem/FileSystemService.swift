@@ -32,8 +32,9 @@ public struct FileSystemService: Sendable {
                 let fileURL = URL(fileURLWithPath: path)
                 guard fm.fileExists(atPath: fileURL.path) else { continue }
 
-                let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
-                items.append(FileItem(url: fileURL, icon: icon, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+                // Let FileItem resolve the icon from `.effectiveIcon` in its own resourceValues
+                // batch instead of a separate blocking NSWorkspace LaunchServices IPC per entry.
+                items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             if !options.searchQuery.isEmpty {
                 let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)

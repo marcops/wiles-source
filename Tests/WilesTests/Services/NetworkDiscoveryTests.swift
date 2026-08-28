@@ -5,24 +5,24 @@ import Foundation
 public struct NetworkDiscoveryTests {
     public static func run() {
         let service = NetworkDiscoveryService.shared
-        service.startBrowsing()
-        service.stopBrowsing()
+        service.start()
+        service.stop()
         TestReporter.report("NetworkDiscovery", "POS: Bonjour NWBrowser service starts and stops cleanly", result: true)
 
-        // POS: calling startBrowsing() a second time in a row hits the `if browser != nil` guard and safely no-ops
-        service.startBrowsing()
-        service.startBrowsing()
-        TestReporter.report("NetworkDiscovery", "POS: calling startBrowsing() twice in a row is a safe no-op", result: true)
+        // POS: calling start() a second time in a row hits the `if browser != nil` guard and safely no-ops
+        service.start()
+        service.start()
+        TestReporter.report("NetworkDiscovery", "POS: calling start() twice in a row is a safe no-op", result: true)
 
-        // POS: stopBrowsing() clears discoveredShares immediately, and a subsequent startBrowsing() works again
-        service.stopBrowsing()
+        // POS: stop() clears discoveredShares immediately, and a subsequent start() works again
+        service.stop()
         let clearedAfterStop = service.discoveredShares.isEmpty
-        TestReporter.report("NetworkDiscovery", "POS: stopBrowsing() clears discoveredShares to empty", result: clearedAfterStop)
+        TestReporter.report("NetworkDiscovery", "POS: stop() clears discoveredShares to empty", result: clearedAfterStop)
 
-        service.startBrowsing()
-        TestReporter.report("NetworkDiscovery", "POS: startBrowsing() after stopBrowsing() restarts without crashing", result: true)
+        service.start()
+        TestReporter.report("NetworkDiscovery", "POS: start() after stop() restarts without crashing", result: true)
 
-        service.stopBrowsing()
+        service.stop()
 
         testNetworkShareInitialization()
         testNetworkShareIdentityIsUniquePerInstance()
@@ -35,8 +35,7 @@ public struct NetworkDiscoveryTests {
         // in a unit test. Per WILES_RULES.md this service is explicitly called out as a legitimate
         // real-network-dependent exception to the 100% branch-coverage target; the tests above cover
         // every piece of its logic (NetworkShare construction, identity, localizedStandardCompare
-        // sorting) in isolation instead, and startBrowsing()/stopBrowsing() cover the lifecycle
-        // around it.
+        // sorting) in isolation instead, and start()/stop() cover the lifecycle around it.
     }
 
     // POS: NetworkShare's initializer stores the name and url exactly as provided

@@ -22,7 +22,7 @@ public struct ArchiveInspectionTests {
         do {
             try ArchiveService.compressToZIP(urls: [subDir], in: nestedRoot)
             let nestedZip = nestedRoot.appendingPathComponent("subfolder.zip")
-            let nestedEntries = await ArchiveInspectionService.listEntries(in: nestedZip)
+            let nestedEntries = await ((try? ArchiveInspectionService.listEntries(in: nestedZip)) ?? [ArchiveEntryItem]())
             // Note: ArchiveService.compressToZIP uses `ditto -c -k --sequesterRsrc`, which zips the
             // CONTENTS of a source directory rather than the directory itself (same quirk documented
             // in AGENTS.md rule 12 for release packaging) — so "subfolder/" is never a real entry here,
@@ -76,7 +76,7 @@ public struct ArchiveInspectionTests {
         do {
             try ArchiveService.compressToZIP(urls: [emojiFile], in: archiveDir)
             let resolvedZip = archiveDir.appendingPathComponent("\(emojiFile.deletingPathExtension().lastPathComponent).zip")
-            let entries = await ArchiveInspectionService.listEntries(in: resolvedZip)
+            let entries = await ((try? ArchiveInspectionService.listEntries(in: resolvedZip)) ?? [ArchiveEntryItem]())
 
             if let emojiEntry = entries.first(where: { $0.name == emojiFileName }) {
                 unicodeListPassed = true
@@ -138,7 +138,7 @@ public struct ArchiveInspectionTests {
         let zipURL = tempDir.appendingPathComponent("inspect_test_file.zip")
         try? ArchiveService.compressToZIP(urls: [fileToZip], in: tempDir)
 
-        let entries = await ArchiveInspectionService.listEntries(in: zipURL)
+        let entries = await ((try? ArchiveInspectionService.listEntries(in: zipURL)) ?? [ArchiveEntryItem]())
         TestReporter.report(
             "ArchiveInspection",
             "POS: listEntries lists files in zip",
@@ -152,7 +152,7 @@ public struct ArchiveInspectionTests {
         // NEG: listEntries on a non-existent / corrupt archive returns empty results, not a crash
         let corruptArchive = nestedRoot.appendingPathComponent("corrupt.zip")
         try? "this is not a real zip file".write(to: corruptArchive, atomically: true, encoding: .utf8)
-        let corruptEntries = await ArchiveInspectionService.listEntries(in: corruptArchive)
+        let corruptEntries = await ((try? ArchiveInspectionService.listEntries(in: corruptArchive)) ?? [ArchiveEntryItem]())
         TestReporter.report("ArchiveInspection", "NEG: listEntries on corrupt archive returns empty list", result: corruptEntries.isEmpty)
 
         // NEG: extractSingleEntry for a non-existent entry path produces an empty extracted file, not a match
@@ -208,7 +208,7 @@ public struct ArchiveInspectionTests {
         var specialCharExtractPassed = false
         do {
             let zipURL = try makeMultiEntryArchive(in: root)
-            let entries = await ArchiveInspectionService.listEntries(in: zipURL)
+            let entries = await ((try? ArchiveInspectionService.listEntries(in: zipURL)) ?? [ArchiveEntryItem]())
             multiListPassed = entries.contains(where: { $0.name == "alpha.txt" })
                 && entries.contains(where: { $0.name == "beta.txt" })
 
@@ -252,7 +252,7 @@ public struct ArchiveInspectionTests {
         do {
             try ArchiveService.compressToZIP(urls: [level1], in: root)
             let zipURL = root.appendingPathComponent("level1.zip")
-            let entries = await ArchiveInspectionService.listEntries(in: zipURL)
+            let entries = await ((try? ArchiveInspectionService.listEntries(in: zipURL)) ?? [ArchiveEntryItem]())
             // Entry path should be nested (e.g. "level2/deep.txt"), but the parsed `name`
             // should be just the last path component, not the full nested path.
             if let deepEntry = entries.first(where: { !$0.isDirectory && $0.name == "deep.txt" }) {
@@ -276,13 +276,19 @@ public struct ArchiveInspectionTests {
     }
 
     private static func runMissingArchiveTests(root: URL) async {
-        // NEG: archive file does not exist at all (unzip should fail cleanly, not crash).
+        // NEG (M20): archive file does not exist — listEntries throws so the sheet can show an error,
+        // instead of returning empty (which read as "the archive has no files").
         let missingArchive = root.appendingPathComponent("does_not_exist.zip")
-        let missingEntries = await ArchiveInspectionService.listEntries(in: missingArchive)
+        var missingThrew = false
+        do {
+            _ = try await ArchiveInspectionService.listEntries(in: missingArchive)
+        } catch {
+            missingThrew = true
+        }
         TestReporter.report(
             "ArchiveInspection",
-            "NEG: listEntries on a nonexistent archive file returns empty list without crashing",
-            result: missingEntries.isEmpty)
+            "NEG: listEntries on a nonexistent archive file throws instead of returning empty",
+            result: missingThrew)
 
         // NEG: extractSingleEntry from a nonexistent archive should not silently succeed with real content.
         var missingArchiveExtractPassed = false

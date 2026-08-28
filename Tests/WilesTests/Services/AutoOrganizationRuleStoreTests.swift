@@ -26,6 +26,29 @@ public struct AutoOrganizationRuleStoreTests {
         testAddUpdateDeleteRuleMutateAndPersist()
         testUpdateRuleWithUnknownIdIsNoOp()
         testOnChangeFiresOnEveryMutation()
+        testLoadDoesNotReSaveOrFireOnChange()
+    }
+
+    /// P3: `load()` seeds `rules` from disk; its `didSet` must not immediately re-encode the same
+    /// data back or fire `onChange` (which would trigger a redundant `restartMonitoring`).
+    private static func testLoadDoesNotReSaveOrFireOnChange() {
+        let rule = makeRule()
+        UserDefaults.standard.set(try? JSONEncoder().encode([rule]), forKey: rulesKey)
+        let before = UserDefaults.standard.data(forKey: rulesKey)
+
+        let store = AutoOrganizationRuleStore()
+        var onChangeCalls = 0
+        store.onChange = { onChangeCalls += 1 }
+        store.load()
+
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "NEG: load() does not fire onChange",
+            result: onChangeCalls == 0)
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: load() leaves the persisted bytes untouched (no round-trip re-save)",
+            result: UserDefaults.standard.data(forKey: rulesKey) == before && store.rules.map(\.id) == [rule.id])
     }
 
     private static func makeRule(name: String = "pdf") -> AutoOrganizationRule {

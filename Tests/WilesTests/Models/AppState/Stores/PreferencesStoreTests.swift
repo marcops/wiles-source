@@ -17,6 +17,7 @@ public struct PreferencesStoreTests {
         report("Store/PreferencesStore", "POS: showHiddenFiles toggles correctly", result: store.showHiddenFiles != initialHidden)
 
         testExpandedTreePathsCapsInsertionsAt500()
+        testPerFolderViewModesEvictsInsteadOfRevertingAtCap()
         testExpandedTreePathsTruncatesOnLoadWhenSavedSetExceedsCap()
         testShowDirectoryTreePersistsAcrossStoreInstances()
         testIconSizeLoadsSavedValueWithinBounds()
@@ -206,6 +207,51 @@ public struct PreferencesStoreTests {
 
         // Restore in-memory + reschedule the pending debounced save with the real prior data (see doc comment above).
         store.expandedTreePaths = Set(priorArray ?? [])
+    }
+
+    // MARK: - perFolderViewModes cap (500 entries) — H1 regression
+
+    /// `PreferencesStore.perFolderViewModes`'s `didSet` must evict down to `maxPerFolderViewModes`
+    /// (500) instead of reverting the whole assignment. The old code did `perFolderViewModes =
+    /// oldValue; return`, so once a user had 500 per-folder view modes stored, every subsequent
+    /// `setViewModeForFolder` silently no-op'd. Mutates the real `UserDefaults.standard` key, so
+    /// per rule 17 the value is snapshotted and restored in `defer`.
+    private static func testPerFolderViewModesEvictsInsteadOfRevertingAtCap() {
+        let key = DefaultsKey.perFolderViewModes.rawValue
+        let priorDict = UserDefaults.standard.dictionary(forKey: key) as? [String: String]
+        defer {
+            if let priorDict {
+                UserDefaults.standard.set(priorDict, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        let store = PreferencesStore()
+        store.perFolderViewModes = [:]
+
+        var overCap: [String: String] = [:]
+        for i in 0 ..< 600 {
+            overCap["/tmp/wiles-pfvm-oneshot-\(i)-\(UUID().uuidString)"] = "list"
+        }
+        store.perFolderViewModes = overCap
+        report(
+            "Store/PreferencesStore",
+            "POS: assigning a 600-entry dictionary to perFolderViewModes evicts down to the 500 cap instead of reverting",
+            result: store.perFolderViewModes.count == 500)
+
+        // At the cap, a fresh per-folder change must take effect (old code reverted it away).
+        let atCapCount = store.perFolderViewModes.count
+        var withNewKey = store.perFolderViewModes
+        let newKey = "/tmp/wiles-pfvm-latest-\(UUID().uuidString)"
+        withNewKey[newKey] = "grid"
+        store.perFolderViewModes = withNewKey
+        report(
+            "Store/PreferencesStore",
+            "POS: setting a new folder's view mode at the cap keeps the new key and stays at 500",
+            result: store.perFolderViewModes[newKey] == "grid" && store.perFolderViewModes.count == min(atCapCount, 500))
+
+        store.perFolderViewModes = priorDict ?? [:]
     }
 
     // MARK: - expandedTreePaths truncate-on-load

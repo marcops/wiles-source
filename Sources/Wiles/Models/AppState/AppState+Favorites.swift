@@ -1,4 +1,5 @@
 import Foundation
+import GitBeacon
 
 public extension AppState {
     func addFavorite(_ url: URL) {
@@ -29,10 +30,65 @@ public extension AppState {
     /// second in-app move location can never again forget to re-sync favorites (see
     /// `remapFavorites` below for why it must be called after every move).
     @discardableResult
-    func moveItem(at url: URL, toFolder targetFolder: URL) async throws -> URL {
-        let destURL = try await FileSystemService.moveItem(at: url, toFolder: targetFolder)
+    func moveItem(
+        at url: URL,
+        toFolder targetFolder: URL,
+        onCollision: MoveCollisionPolicy = .failIfExists) async throws -> URL {
+        let destURL = try await FileSystemService.moveItem(at: url, toFolder: targetFolder, onCollision: onCollision)
         remapFavorites(from: url, to: destURL)
         return destURL
+    }
+
+    /// Moves each URL in `urls` into `targetFolder` sequentially, asking the user how to resolve any
+    /// name collision (Replace / Keep Both / Cancel, with "apply to all"). A `.cancel` stops the
+    /// whole batch. Returns the destination URLs that landed. Used by the drag-onto-folder and
+    /// breadcrumb-drop paths, which don't record undo (unchanged from before C1).
+    @discardableResult
+    func moveItemsResolvingCollisions(
+        _ urls: [URL],
+        toFolder targetFolder: URL,
+        windowUIState: WindowUIState) async -> [URL] {
+        var sticky: MoveCollisionChoice.Action?
+        var moved: [URL] = []
+        for (index, url) in urls.enumerated() {
+            do {
+                let destURL = try await moveItem(at: url, toFolder: targetFolder)
+                moved.append(destURL)
+            } catch WilesError.destinationExists {
+                let resolution = await resolveCollision(
+                    itemName: url.lastPathComponent,
+                    moreCollisionsPossible: index < urls.count - 1,
+                    sticky: sticky,
+                    windowUIState: windowUIState)
+                sticky = resolution.sticky
+                if resolution.action == .cancel {
+                    return moved
+                }
+                let policy: MoveCollisionPolicy = resolution.action == .replace ? .replace : .keepBoth
+                if let destURL = try? await moveItem(at: url, toFolder: targetFolder, onCollision: policy) {
+                    moved.append(destURL)
+                }
+            } catch {
+                ErrorReporter.report(error, context: "Moving item into folder")
+                showError(error)
+            }
+        }
+        return moved
+    }
+
+    /// Resolves one name collision: returns the remembered `sticky` action if the user already chose
+    /// "apply to all", otherwise prompts and returns the new sticky (non-nil only if they checked it).
+    /// Shared by `moveItemsResolvingCollisions` and the cut/paste loop.
+    func resolveCollision(
+        itemName: String,
+        moreCollisionsPossible: Bool,
+        sticky: MoveCollisionChoice.Action?,
+        windowUIState: WindowUIState) async -> (action: MoveCollisionChoice.Action, sticky: MoveCollisionChoice.Action?) {
+        if let sticky {
+            return (sticky, sticky)
+        }
+        let choice = await windowUIState.promptMoveCollision(itemName: itemName, showApplyToAll: moreCollisionsPossible)
+        return (choice.action, choice.applyToAll ? choice.action : nil)
     }
 
     /// Favorites are stored as plain paths (`PreferencesStore.favoriteURLs`), not macOS bookmark

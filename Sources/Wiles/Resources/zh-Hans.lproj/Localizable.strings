@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "这将更改此文件夹内每个项目的权限。此操作无法撤销。";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "如果目标位置已存在同名文件，它将被替换。";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "已移动 %d 个文件 · 最近：%@";
 "autoOrganization" = "自动整理规则…";
 "autoOrganizationSubtitle" = "根据您定义的规则在文件夹之间自动移动文件";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "复制";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "复制路径";
 "copyPathAbsolute" = "绝对路径";
 "copyPathRelative" = "相对路径";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "粘贴";
 "permissionDeniedNotice" = "权限拒绝：Wiles 无法读取此文件夹的内容。";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "图片";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "区分大小写";
 "searchPlaceholder" = "Search in";
 "searchScope" = "搜索范围";
-"secureShred" = "安全粉碎文件...";
 "selectAll" = "全选";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "在您的 Mac 上选择一个文件夹";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "文件正在使用：“{path}”当前在另一个应用程序中打开。";
 "wilesErrorItemNotFound" = "未找到项目：“{path}”不存在。";
 "wilesErrorOperationFailed" = "操作失败：{reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "密码无效：无法解密 ZIP 存档。";
 "wilesErrorFileCreationNotRedoable" = "无法重做：Wiles 未保存原始文件内容，因此无法重做此创建操作。";
 "tooltipFolder" = "文件夹";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "在提供的文件中未找到有效页面。";
 "pdfMergeWriteFailed" = "无法将合并的 PDF 写入磁盘。";
 "invalidServerURL" = "服务器 URL 无效";
-"serverConnectionFailed" = "无法连接到 %@";
-"imageConverterLoadFailed" = "无法加载位于 %@ 的图像";
+"serverConnectionFailed" = "无法连接到 {0}";
+"imageConverterLoadFailed" = "无法加载位于 {0} 的图像";
 "imageConverterContextFailed" = "无法创建图形上下文";
 "imageConverterRenderFailed" = "无法渲染调整大小后的图像";
 "imageConverterDestinationFailed" = "无法创建图像目标";
@@ -521,3 +525,9 @@
 "expandFolder" = "展开";
 "collapseFolder" = "折叠";
 "expandCollapseFolderHint" = "双击以显示或隐藏此文件夹的子文件夹。";
+
+"moveCollisionTitle" = "此处已存在名为“{name}”的项目。";
+"moveCollisionMessage" = "“替换”会将现有项目移到废纸篓。“两者都保留”会在新名称后添加编号。";
+"moveCollisionReplace" = "替换";
+"moveCollisionKeepBoth" = "两者都保留";
+"moveCollisionApplyToAll" = "全部应用";

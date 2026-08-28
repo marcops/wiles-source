@@ -6,6 +6,8 @@ public struct SpringLoadedFolderModifier: ViewModifier {
     var appState: AppState
     let onTargetedChanged: (Bool) -> Void
 
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @State private var isTargeted = false
     @State private var springTask: Task<Void, Never>?
 
@@ -21,7 +23,7 @@ public struct SpringLoadedFolderModifier: ViewModifier {
             .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
                 springTask?.cancel()
                 guard isDirectory else { return false }
-                appState.handleDrop(providers: providers, targetFolder: folderURL)
+                appState.handleDrop(providers: providers, targetFolder: folderURL, windowUIState: windowUIState)
                 return true
             }
             .onChange(of: isTargeted) { _, targeted in

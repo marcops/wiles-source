@@ -8,7 +8,6 @@ public struct AppStateOperationsExtraTests {
         await testDeletePermanentlySelected()
         await testCopyContentOfSelected()
         await testDeleteSelected()
-        await testShredSelected()
         await testPasteToCurrentDirectory()
         await testUndoRedoLastAction()
         await testDownloadFromiCloudFailure()
@@ -73,11 +72,10 @@ public struct AppStateOperationsExtraTests {
         return await pollUntilTrue { appState.modal.errorMessage != nil }
     }
 
-    /// deletePermanentlySelected() moved its shred call into a Task.detached (see
-    /// AppState+Operations.swift) so the file removal and selection-clearing now happen
+    /// deletePermanentlySelected() runs its removal in a Task.detached (see
+    /// AppState+Operations.swift) so the file removal and selection-clearing happen
     /// asynchronously off @MainActor. A synchronous check right after calling it is racy —
-    /// poll with a bounded timeout, matching the pattern already used by
-    /// testDeleteSelected()/testShredSelected() below for the same reason.
+    /// poll with a bounded timeout, matching the pattern used by testDeleteSelected() below.
     private static func testDeletePermanentlySelected() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -217,37 +215,6 @@ public struct AppStateOperationsExtraTests {
             result: keepWindowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: keepFile.path))
     }
 
-    private static func testShredSelected() async {
-        let dir = makeTempDir()
-        defer { try? FileManager.default.removeItem(at: dir) }
-
-        let appState = AppState()
-        appState.selection.selectedURLs = []
-        appState.shredSelected()
-        report(
-            "AppState+Operations",
-            "NEG: shredSelected() with empty selection does nothing and does not crash",
-            result: appState.selection.selectedURLs.isEmpty)
-
-        appState.navigation.currentURL = dir
-        appState.preferences.viewMode = .grid
-        let fileURL = makeFile(named: "to-shred.txt", in: dir, content: "secret data")
-        appState.selection.selectedURLs = [fileURL]
-        appState.shredSelected()
-        var stillExists = true
-        for _ in 0 ..< 20 {
-            stillExists = FileManager.default.fileExists(atPath: fileURL.path)
-            if !stillExists {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 200_000_000)
-        }
-        report(
-            "AppState+Operations",
-            "POS: shredSelected() permanently removes the file and clears the selection",
-            result: !stillExists && appState.selection.selectedURLs.isEmpty)
-    }
-
     private static func testPasteToCurrentDirectory() async {
         let sourceDir = makeTempDir()
         let destDir = makeTempDir()
@@ -261,7 +228,7 @@ public struct AppStateOperationsExtraTests {
         let appState = AppState()
         appState.navigateTo(destDir)
         appState.transient.clipboard = ClipboardState(urls: [sourceFile], action: .copy)
-        appState.pasteToCurrentDirectory()
+        appState.pasteToCurrentDirectory(windowUIState: WindowUIState())
         try? await Task.sleep(nanoseconds: 400_000_000)
         let destFile = destDir.appendingPathComponent("paste-me.txt")
         let copiedExists = FileManager.default.fileExists(atPath: destFile.path)
@@ -276,7 +243,7 @@ public struct AppStateOperationsExtraTests {
         let appState2 = AppState()
         appState2.navigateTo(destDir)
         appState2.transient.clipboard = ClipboardState(urls: [cutFile], action: .cut)
-        appState2.pasteToCurrentDirectory()
+        appState2.pasteToCurrentDirectory(windowUIState: WindowUIState())
         let clipboardClearedImmediately = appState2.transient.clipboard == nil
         report(
             "AppState+Operations",
@@ -411,7 +378,7 @@ public struct AppStateOperationsExtraTests {
         let appState = AppState()
         appState.navigateTo(destDir)
         appState.transient.clipboard = nil
-        appState.pasteToCurrentDirectory()
+        appState.pasteToCurrentDirectory(windowUIState: WindowUIState())
         let destFile = destDir.appendingPathComponent("fallback-paste.txt")
         let copied = await pollUntilTrue { FileManager.default.fileExists(atPath: destFile.path) }
         report(
@@ -425,7 +392,7 @@ public struct AppStateOperationsExtraTests {
         appState2.modal.errorMessage = nil
         appState2.navigateTo(destDir)
         appState2.transient.clipboard = ClipboardState(urls: [missingFile], action: .cut)
-        appState2.pasteToCurrentDirectory()
+        appState2.pasteToCurrentDirectory(windowUIState: WindowUIState())
         let errorShown = await pollUntilTrue { appState2.modal.errorMessage != nil }
         report(
             "AppState+Operations",
@@ -451,7 +418,7 @@ public struct AppStateOperationsExtraTests {
         appState.navigation.currentURL = dir
         appState.transient.clipboard = nil
         appState.selection.selectedURLs = []
-        appState.pasteToCurrentDirectory()
+        appState.pasteToCurrentDirectory(windowUIState: WindowUIState())
         let createdFile = dir.appendingPathComponent("Pasted Text.txt")
         report(
             "AppState+Operations",
@@ -465,7 +432,7 @@ public struct AppStateOperationsExtraTests {
         appState2.navigation.currentURL = dir
         appState2.transient.clipboard = nil
         appState2.selection.selectedURLs = []
-        appState2.pasteToCurrentDirectory()
+        appState2.pasteToCurrentDirectory(windowUIState: WindowUIState())
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() with nothing on the clipboard or pasteboard is a safe no-op",
@@ -485,7 +452,7 @@ public struct AppStateOperationsExtraTests {
         appState3.modal.errorMessage = nil
         appState3.navigation.currentURL = readOnlyDir
         appState3.transient.clipboard = nil
-        appState3.pasteToCurrentDirectory()
+        appState3.pasteToCurrentDirectory(windowUIState: WindowUIState())
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() reports an error when materializing pasteboard content fails (read-only current directory)",

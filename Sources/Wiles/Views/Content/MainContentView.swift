@@ -50,8 +50,14 @@ struct MainContentView: View {
         .focusedSceneValue(\.windowUIState, windowUIState)
         .focusedSceneValue(\.appState, appState)
         .focusedSceneValue(\.isTextFieldEditingActive, windowUIState.renameItem != nil || windowUIState.isEditingPath)
-        .task { appState.refreshCurrentDirectory() }
-        .onDisappear { appState.fileSystem.tearDown() }
+        .task {
+            appState.refreshCurrentDirectory()
+            appState.updateTrashSize()
+        }
+        .onDisappear {
+            appState.fileSystem.tearDown()
+            windowUIState.terminalViewCache.tearDown()
+        }
     }
 
     /// The primary sidebar/content split plus its full modifier chain (window sizing, Quick Look,
@@ -250,8 +256,9 @@ struct MainContentView: View {
     }
 
     private func toggleHiddenFiles() {
+        // The `.onChange(of: showHiddenFiles)` above is the single source of the refresh — don't
+        // also call it here or the shortcut fires two back-to-back directory reloads.
         appState.preferences.showHiddenFiles.toggle()
-        appState.refreshCurrentDirectory()
     }
 
     private func handleDownArrowKey() {

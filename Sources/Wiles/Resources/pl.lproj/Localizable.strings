@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Spowoduje to zmianę uprawnień wszystkich elementów w tym folderze. Tej operacji nie można cofnąć.";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "Jeśli plik o tej samej nazwie już istnieje w miejscu docelowym, zostanie zastąpiony.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "Przeniesiono %d plik(ów) · Ostatnio: %@";
 "autoOrganization" = "Reguły Automatycznej Organizacji...";
 "autoOrganizationSubtitle" = "Automatycznie przenosi pliki między folderami na podstawie zdefiniowanych reguł";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "Kopiuj";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Kopiuj Ścieżkę";
 "copyPathAbsolute" = "Ścieżka Bezwzględna";
 "copyPathRelative" = "Ścieżka Względna";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "Wklej";
 "permissionDeniedNotice" = "Brak dostępu: Wiles nie może odczytać zawartości tego folderu.";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Obrazki";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Uwzględniaj Wielkość Liter";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Zakres wyszukiwania";
-"secureShred" = "Bezpiecznie Zniszcz Plik...";
 "selectAll" = "Zaznacz wszystko";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "Wybierz folder na swoim Macu";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "Plik w Użyciu: „{path}” jest obecnie otwarty w innej aplikacji.";
 "wilesErrorItemNotFound" = "Nie Znaleziono Elementu: „{path}” nie istnieje.";
 "wilesErrorOperationFailed" = "Operacja Nie Powiodła Się: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Nieprawidłowe Hasło: nie można odszyfrować archiwum ZIP.";
 "wilesErrorFileCreationNotRedoable" = "Nie Można Ponowić: Wiles nie przechowuje oryginalnej zawartości pliku, więc tego utworzenia nie można ponowić.";
 "tooltipFolder" = "Folder";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "Nie znaleziono prawidłowych stron w podanych plikach.";
 "pdfMergeWriteFailed" = "Nie można zapisać scalonego pliku PDF na dysku.";
 "invalidServerURL" = "Nieprawidłowy adres URL serwera";
-"serverConnectionFailed" = "Nie można połączyć się z %@";
-"imageConverterLoadFailed" = "Nie można wczytać obrazu w %@";
+"serverConnectionFailed" = "Nie można połączyć się z {0}";
+"imageConverterLoadFailed" = "Nie można wczytać obrazu w {0}";
 "imageConverterContextFailed" = "Nie można utworzyć kontekstu graficznego";
 "imageConverterRenderFailed" = "Nie można wyrenderować przeskalowanego obrazu";
 "imageConverterDestinationFailed" = "Nie można utworzyć miejsca docelowego obrazu";
@@ -521,3 +525,9 @@
 "expandFolder" = "Rozwiń";
 "collapseFolder" = "Zwiń";
 "expandCollapseFolderHint" = "Stuknij dwukrotnie, aby pokazać lub ukryć podfoldery tego folderu.";
+
+"moveCollisionTitle" = "Element o nazwie \"{name}\" już tu istnieje.";
+"moveCollisionMessage" = "Zastąp przenosi istniejący element do Kosza. Zachowaj oba dodaje numer do nowej nazwy.";
+"moveCollisionReplace" = "Zastąp";
+"moveCollisionKeepBoth" = "Zachowaj oba";
+"moveCollisionApplyToAll" = "Zastosuj do wszystkich";

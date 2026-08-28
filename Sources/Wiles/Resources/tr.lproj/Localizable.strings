@@ -30,6 +30,7 @@
 "applyToEnclosedItemsConfirmMessage" = "Bu, klasördeki her öğenin izinlerini değiştirecek. Bu işlem geri alınamaz.";
 "ascending" = "Ascending";
 "autoOrgRuleConflictNotice" = "Hedefte aynı ada sahip bir dosya zaten varsa, değiştirilecektir.";
+"autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "%d dosya taşındı · Son: %@";
 "autoOrganization" = "Otomatik Düzenleme Kuralları...";
 "autoOrganizationSubtitle" = "Tanımladığınız kurallara göre dosyaları klasörler arasında otomatik olarak taşır";
@@ -73,9 +74,12 @@
 "connect" = "Connect";
 "connectToServer" = "Connect to Server";
 "contentTranslucentLevel" = "Content Translucency";
+"contentSearchHint" = "Content search: 3+ characters, text files under 2 MB.";
 "convert" = "Convert";
 "copy" = "Kopyala";
 "copyContent" = "Copy Content";
+"copyContentFileTooLarge" = "This file is too large to copy as text.";
+"copyContentNotText" = "This file isn't text, so its content can't be copied.";
 "copyPath" = "Yolu Kopyala";
 "copyPathAbsolute" = "Mutlak Yol";
 "copyPathRelative" = "Göreceli Yol";
@@ -173,8 +177,6 @@
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
 "helpShortcuts" = "Help & Shortcuts";
-"helpShredDesc" = "Right-click sensitive files -> 'Secure Shred File...' to permanently overwrite data blocks before unlinking.";
-"helpShredTitle" = "Secure File Shredder";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -252,6 +254,8 @@
 "paste" = "Yapıştır";
 "permissionDeniedNotice" = "Erişim Engellendi: Wiles bu klasörün içeriğini okuyamıyor.";
 "permissions" = "Sharing & Permissions";
+"permissionsApplyFailedCount" = "%d failed";
+"permissionsAppliedCount" = "Applied to %d items";
 "pictures" = "Resimler";
 "places" = "Places & Devices";
 "prefix" = "Prefix";
@@ -286,7 +290,6 @@
 "searchCaseSensitive" = "Büyük/Küçük Harf Duyarlı";
 "searchPlaceholder" = "Search in";
 "searchScope" = "Arama Kapsamı";
-"secureShred" = "Dosyayı Güvenli Şekilde Yok Et...";
 "selectAll" = "Tümünü Seç";
 "selectFolder" = "Select Folder...";
 "selectFolderSubtitle" = "Mac'inizde bir klasör seçin";
@@ -480,6 +483,7 @@
 "wilesErrorFileInUse" = "Dosya Kullanımda: '{path}' şu anda başka bir uygulamada açık.";
 "wilesErrorItemNotFound" = "Öge Bulunamadı: '{path}' mevcut değil.";
 "wilesErrorOperationFailed" = "İşlem Başarısız: {reason}";
+"wilesErrorDestinationExists" = "An item named '{name}' already exists in the destination.";
 "wilesErrorInvalidZipPassword" = "Geçersiz Parola: ZIP arşivinin şifresi çözülemedi.";
 "wilesErrorFileCreationNotRedoable" = "Yinelenemiyor: Wiles orijinal dosya içeriğini saklamadığından bu oluşturma işlemi yinelenemez.";
 "tooltipFolder" = "Klasör";
@@ -494,8 +498,8 @@
 "pdfMergeNoValidPages" = "Sağlanan dosyalarda geçerli sayfa bulunamadı.";
 "pdfMergeWriteFailed" = "Birleştirilmiş PDF diske yazılamadı.";
 "invalidServerURL" = "Geçersiz sunucu URL'si";
-"serverConnectionFailed" = "%@ bağlantısı kurulamadı";
-"imageConverterLoadFailed" = "%@ konumundaki görüntü yüklenemedi";
+"serverConnectionFailed" = "{0} bağlantısı kurulamadı";
+"imageConverterLoadFailed" = "{0} konumundaki görüntü yüklenemedi";
 "imageConverterContextFailed" = "Grafik bağlamı oluşturulamadı";
 "imageConverterRenderFailed" = "Yeniden boyutlandırılan görüntü işlenemedi";
 "imageConverterDestinationFailed" = "Görüntü hedefi oluşturulamadı";
@@ -521,3 +525,9 @@
 "expandFolder" = "Genişlet";
 "collapseFolder" = "Daralt";
 "expandCollapseFolderHint" = "Bu klasörün alt klasörlerini göstermek veya gizlemek için iki kez dokunun.";
+
+"moveCollisionTitle" = "Burada zaten \"{name}\" adlı bir öğe var.";
+"moveCollisionMessage" = "Değiştir, var olan öğeyi Çöp’e taşır. İkisini de tut, yeni ada bir numara ekler.";
+"moveCollisionReplace" = "Değiştir";
+"moveCollisionKeepBoth" = "İkisini de tut";
+"moveCollisionApplyToAll" = "Tümüne uygula";
