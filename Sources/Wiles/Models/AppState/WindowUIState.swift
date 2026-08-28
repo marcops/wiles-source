@@ -3,18 +3,21 @@ import Observation
 
 /// Per-window UI presentation state: sheets, alerts, and their associated items that must NOT be
 /// shared across multiple open Wiles windows. `AppState` is now constructed fresh per window (see
-/// `MainContentView.init`); only its `preferences`/`modal`/`transient` stores are shared instances.
-/// Before that split, `AppState` was a single instance shared by every window, so any field that
-/// lived on it (or on `ModalStore`) showed up in every open window at once — e.g. opening
-/// "Properties" in one window popped the properties sheet in every other window too. Anything
-/// toggled by an explicit, window-scoped user action belongs here instead.
+/// `MainContentView.init`); only its `preferences`/`transient` stores are shared instances —
+/// `modal` (`ModalStore`, the error-alert state) is also per-window. Before that split, `AppState`
+/// was a single instance shared by every window, so any field that lived on it (or on `ModalStore`)
+/// showed up in every open window at once — e.g. opening "Properties" in one window popped the
+/// properties sheet in every other window too. Anything toggled by an explicit, window-scoped user
+/// action belongs here instead.
 ///
 /// Instantiated once per window as `@State` in `MainContentView`, injected into that window's view
 /// hierarchy via `.environment(_:)` and read by descendants with `@Environment(WindowUIState.self)`,
 /// and published to the app-level menu commands in `WilesApp.swift` — which live outside any single
 /// window's view hierarchy — via `.focusedSceneValue(\.windowUIState, windowUIState)` /
-/// `@FocusedValue(\.windowUIState)`. Background-originated alerts with no window of their own
-/// (`ModalStore.showErrorAlert`) intentionally stay on the shared `AppState`.
+/// `@FocusedValue(\.windowUIState)`. Every error alert is per-window (each window's own `ModalStore`).
+/// A background service with no window in front of it holds no `AppState`, so it reports via
+/// `ErrorReporter` (GitBeacon) only — accepted; add a dedicated shared alert channel if one ever
+/// needs to be user-visible.
 @Observable
 @MainActor
 public final class WindowUIState {
