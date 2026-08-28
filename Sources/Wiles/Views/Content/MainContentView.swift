@@ -4,7 +4,7 @@ import SwiftUI
 
 struct MainContentView: View {
     private static let sidebarMaxWidth: CGFloat = 260.0
-    private static let sidebarCollapsedWidth: CGFloat = 48.0
+    private static let sidebarCollapsedWidth: CGFloat = 46.0
     private static let sidebarWidthSaveDebounceMs: Int = 400
     private static let contentMinWidth: CGFloat = 400.0
     private static let windowMinWidth: CGFloat = 650.0

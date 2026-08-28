@@ -233,12 +233,9 @@ struct SharedFileItemContextMenu: View {
     }
 
     @ViewBuilder private var tagsMenuContent: some View {
-        let predefinedTags = TagColor.allCases.map(\.rawValue.capitalized)
-        let tagKeys: [String: L10n.Key] = Dictionary(
-            uniqueKeysWithValues: TagColor.allCases.map { ($0.rawValue.capitalized, $0.localizationKey) })
         let targetURLs = itemOrSelectionURLs
-        ForEach(predefinedTags, id: \.self) { tag in
-            tagToggleButton(tag: tag, tagKeys: tagKeys, targetURLs: targetURLs)
+        ForEach(SystemTagsService.favoriteTags, id: \.self) { systemTag in
+            tagToggleButton(tag: systemTag.name, targetURLs: targetURLs)
         }
         if !item.tags.isEmpty || targetURLs.count > 1 {
             Divider()
@@ -248,16 +245,12 @@ struct SharedFileItemContextMenu: View {
         }
     }
 
-    private func tagToggleButton(tag: String, tagKeys: [String: L10n.Key], targetURLs: [URL]) -> some View {
+    private func tagToggleButton(tag: String, targetURLs: [URL]) -> some View {
         Button {
             toggleTag(tag, targetURLs: targetURLs)
         } label: {
             HStack {
-                if let key = tagKeys[tag] {
-                    Text(appState.tr(key))
-                } else {
-                    Text(tag)
-                }
+                Text(tag)
                 if item.tags.contains(tag) {
                     Image(systemName: "checkmark")
                 }

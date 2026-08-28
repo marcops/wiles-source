@@ -57,7 +57,6 @@
 "backgroundTasksSuffix" = "tareas en segundo plano";
 "batchRename" = "Renombrar en Lote";
 "batchRenameTitle" = "Renombrar archivos en lote";
-"blue" = "Azul";
 "camera" = "Cámara";
 "cancel" = "Cancelar";
 "changeAllDefaultApp" = "Abrir Siempre Con";
@@ -154,8 +153,6 @@
 "goMenuTitle" = "Ir";
 "goToFolder" = "Ir a la Carpeta...";
 "grantFullDiskAccess" = "Conceder acceso total al disco (Todas las carpetas)...";
-"gray" = "Gris";
-"green" = "Verde";
 "gridView" = "Vista de Cuadrícula";
 "group" = "Grupo";
 "helpAutoOrgDesc" = "Crea reglas para mover archivos automáticamente a carpetas específicas.";
@@ -246,7 +243,6 @@
 "open" = "Abrir";
 "openSystemSettings" = "Abrir Ajustes del Sistema";
 "openWith" = "Abrir con";
-"orange" = "Naranja";
 "originalName" = "Nombre Original";
 "others" = "Otros";
 "overviewDesc" = "Wiles es un administrador de archivos totalmente nativo para macOS, creado desde cero para sentirse parte de tu Mac. Cada interacción, desde abrir una carpeta hasta renombrar mil archivos a la vez, está diseñada para sentirse instantánea.";
@@ -261,7 +257,6 @@
 "prefix" = "Prefijo";
 "preview" = "Previsualización";
 "properties" = "Propiedades";
-"purple" = "Morado";
 "quality" = "Calidad";
 "quickConvertImage" = "Conversión Rápida de Imagen...";
 "quickLook" = "Vista Rápida";
@@ -270,7 +265,6 @@
 "recentServers" = "Servidores Recientes";
 "recents" = "RECIENTES";
 "reclaimableSpace" = "Espacio recuperable";
-"red" = "Rojo";
 "redo" = "Rehacer";
 "refresh" = "Actualizar";
 "regexReplace" = "Patrón Regex";
@@ -389,7 +383,6 @@
 "feedbackSuccessMessage" = "¡Gracias! Tu comentario ha sido enviado.";
 "feedbackConfirmMessage" = "¿Enviar este comentario?";
 "write" = "Escritura";
-"yellow" = "Amarillo";
 "yes" = "Sí";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";

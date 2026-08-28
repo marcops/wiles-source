@@ -85,10 +85,10 @@ public struct FileItemFormattingTests {
             "POS: formattedDateCreated is non-empty for a freshly created file",
             result: !item.formattedDateCreated(language: .system).isEmpty)
 
-        // FileItem formats dates with DateFormatter's .short/.short style (system-standard short
-        // date+time, e.g. "8/5/26, 6:01 PM"), which renders a 2-digit year — not the 4-digit year
-        // a .medium style would produce. Derive the expected token the same way rather than
-        // hardcoding either digit count, so this stays correct regardless of locale.
+        // FileItem formats dates from a locale-templated pattern with 2-digit fields (e.g.
+        // "01/01/12 01:02") — a 2-digit year, not the 4-digit year a .medium style would produce.
+        // Derive the expected token the same way rather than hardcoding either digit count, so this
+        // stays correct regardless of locale.
         let shortFormatter = DateFormatter()
         shortFormatter.dateStyle = .short
         shortFormatter.timeStyle = .none

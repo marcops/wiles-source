@@ -172,13 +172,6 @@ public enum L10n {
         case showTags
         case showTagsHint
         case tags
-        case red
-        case orange
-        case yellow
-        case green
-        case blue
-        case purple
-        case gray
         case clearAllTags
         case services
 

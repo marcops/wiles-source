@@ -53,7 +53,6 @@
 "backgroundTasksSuffix" = "background tasks";
 "batchRename" = "Batch Rename";
 "batchRenameTitle" = "Batch Rename Files";
-"blue" = "Blue";
 "camera" = "Camera";
 "cancel" = "Cancel";
 "changeAllDefaultApp" = "Always Open With";
@@ -147,8 +146,6 @@
 "goMenuTitle" = "Go";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "Grant Full Disk Access (All Folders)...";
-"gray" = "Gray";
-"green" = "Green";
 "gridView" = "Grid View";
 "group" = "Group";
 "helpAutoOrgDesc" = "Set rules to automatically move incoming files into specific folders.";
@@ -239,7 +236,6 @@
 "open" = "Open";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Open With";
-"orange" = "Orange";
 "originalName" = "Original Name";
 "others" = "Others";
 "overviewDesc" = "Wiles is a fully native macOS file manager, built from the ground up to feel like it belongs on your Mac. Every interaction, from opening a folder to renaming a thousand files at once, is designed to feel instant.";
@@ -254,7 +250,6 @@
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "Properties";
-"purple" = "Purple";
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "Quick Look";
@@ -263,7 +258,6 @@
 "recentServers" = "Recent Servers";
 "recents" = "Recents";
 "reclaimableSpace" = "Reclaimable Space";
-"red" = "Red";
 "redo" = "Redo";
 "refresh" = "Refresh";
 "regexReplace" = "Regex Pattern";
@@ -379,7 +373,6 @@
 "feedbackSuccessMessage" = "Thanks! Your feedback has been submitted.";
 "feedbackConfirmMessage" = "Send this feedback?";
 "write" = "Write";
-"yellow" = "Yellow";
 "yes" = "Yes";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";

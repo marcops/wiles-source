@@ -57,7 +57,6 @@
 "backgroundTasksSuffix" = "tâches en arrière-plan";
 "batchRename" = "Renommer en lot";
 "batchRenameTitle" = "Renommer les fichiers en lot";
-"blue" = "Bleu";
 "camera" = "Appareil photo";
 "cancel" = "Annuler";
 "changeAllDefaultApp" = "Toujours ouvrir avec";
@@ -154,8 +153,6 @@
 "goMenuTitle" = "Aller";
 "goToFolder" = "Aller au dossier...";
 "grantFullDiskAccess" = "Accorder un accès complet au disque (Tous les dossiers)...";
-"gray" = "Gris";
-"green" = "Vert";
 "gridView" = "Affichage en grille";
 "group" = "Groupe";
 "helpAutoOrgDesc" = "Définissez des règles pour déplacer automatiquement les fichiers entrants.";
@@ -246,7 +243,6 @@
 "open" = "Ouvrir";
 "openSystemSettings" = "Ouvrir Réglages Système";
 "openWith" = "Ouvrir avec";
-"orange" = "Orange";
 "originalName" = "Nom d'origine";
 "others" = "Autres";
 "overviewDesc" = "Wiles est un gestionnaire de fichiers entièrement natif pour macOS, conçu de A à Z pour donner l'impression d'avoir toujours fait partie de votre Mac. Chaque interaction, qu'il s'agisse d'ouvrir un dossier ou de renommer mille fichiers à la fois, est pensée pour paraître instantanée.";
@@ -261,7 +257,6 @@
 "prefix" = "Préfixe";
 "preview" = "Aperçu";
 "properties" = "Propriétés";
-"purple" = "Violet";
 "quality" = "Qualité";
 "quickConvertImage" = "Conversion rapide d'image...";
 "quickLook" = "Aperçu rapide";
@@ -270,7 +265,6 @@
 "recentServers" = "Serveurs récents";
 "recents" = "RÉCENTS";
 "reclaimableSpace" = "Espace récupérable";
-"red" = "Rouge";
 "redo" = "Rétablir";
 "refresh" = "Actualiser";
 "regexReplace" = "Modèle Regex";
@@ -389,7 +383,6 @@
 "feedbackSuccessMessage" = "Merci ! Votre commentaire a été envoyé.";
 "feedbackConfirmMessage" = "Envoyer ce commentaire ?";
 "write" = "Écriture";
-"yellow" = "Jaune";
 "yes" = "Oui";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";

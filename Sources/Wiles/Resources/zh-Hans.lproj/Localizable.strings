@@ -57,7 +57,6 @@
 "backgroundTasksSuffix" = "个后台任务";
 "batchRename" = "Batch Rename";
 "batchRenameTitle" = "批量重命名文件";
-"blue" = "Blue";
 "camera" = "相机";
 "cancel" = "取消";
 "changeAllDefaultApp" = "始终使用此应用打开";
@@ -154,8 +153,6 @@
 "goMenuTitle" = "前往";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "授予完全磁盘访问权限（所有文件夹）...";
-"gray" = "Gray";
-"green" = "Green";
 "gridView" = "Grid View";
 "group" = "Group";
 "helpAutoOrgDesc" = "Set rules to automatically move incoming files into specific folders.";
@@ -246,7 +243,6 @@
 "open" = "打开";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "打开方式";
-"orange" = "Orange";
 "originalName" = "Original Name";
 "others" = "其他";
 "overviewDesc" = "Wiles 是一款完全原生的 macOS 文件管理器，从零打造，让它感觉就像 Mac 与生俱来的一部分。从打开一个文件夹到一次性重命名一千个文件，每一次操作都力求即时响应。";
@@ -261,7 +257,6 @@
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "属性";
-"purple" = "Purple";
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "快速查看";
@@ -270,7 +265,6 @@
 "recentServers" = "最近的服务器";
 "recents" = "RECENTS";
 "reclaimableSpace" = "可回收空间";
-"red" = "Red";
 "redo" = "重做";
 "refresh" = "刷新";
 "regexReplace" = "正则表达式";
@@ -386,7 +380,6 @@
 "feedbackSuccessMessage" = "谢谢！您的反馈已提交。";
 "feedbackConfirmMessage" = "发送此反馈？";
 "write" = "写入";
-"yellow" = "Yellow";
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";

@@ -57,7 +57,6 @@
 "backgroundTasksSuffix" = "مهام في الخلفية";
 "batchRename" = "Batch Rename";
 "batchRenameTitle" = "إعادة تسمية الملفات دفعة واحدة";
-"blue" = "Blue";
 "camera" = "الكاميرا";
 "cancel" = "إلغاء";
 "changeAllDefaultApp" = "الفتح دائماً بواسطة";
@@ -154,8 +153,6 @@
 "goMenuTitle" = "الانتقال";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "منح وصول كامل للقرص (جميع المجلدات)...";
-"gray" = "Gray";
-"green" = "Green";
 "gridView" = "Grid View";
 "group" = "Group";
 "helpAutoOrgDesc" = "Set rules to automatically move incoming files into specific folders.";
@@ -246,7 +243,6 @@
 "open" = "فتح";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "فتح بواسطة";
-"orange" = "Orange";
 "originalName" = "Original Name";
 "others" = "آخرون";
 "overviewDesc" = "‏Wiles هو مدير ملفات أصلي بالكامل لنظام macOS، صُمم من الصفر ليبدو وكأنه كان دائمًا جزءًا من جهاز Mac الخاص بك. كل تفاعل، من فتح مجلد إلى إعادة تسمية ألف ملف دفعة واحدة، صُمم ليبدو فوريًا.";
@@ -261,7 +257,6 @@
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "جلب المعلومات";
-"purple" = "Purple";
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "معاينة السريعة";
@@ -270,7 +265,6 @@
 "recentServers" = "الخوادم الأخيرة";
 "recents" = "RECENTS";
 "reclaimableSpace" = "المساحة القابلة للاسترداد";
-"red" = "Red";
 "redo" = "إعادة";
 "refresh" = "تحديث";
 "regexReplace" = "نمط التعبير العادي";
@@ -386,7 +380,6 @@
 "feedbackSuccessMessage" = "شكرًا! تم إرسال ملاحظاتك.";
 "feedbackConfirmMessage" = "هل تريد إرسال هذه الملاحظات؟";
 "write" = "كتابة";
-"yellow" = "Yellow";
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";

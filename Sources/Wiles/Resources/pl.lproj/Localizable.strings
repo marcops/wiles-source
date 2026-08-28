@@ -57,7 +57,6 @@
 "backgroundTasksSuffix" = "zadań w tle";
 "batchRename" = "Batch Rename";
 "batchRenameTitle" = "Wsadowa zmiana nazw plików";
-"blue" = "Blue";
 "camera" = "Aparat";
 "cancel" = "Anuluj";
 "changeAllDefaultApp" = "Zawsze otwieraj w";
@@ -154,8 +153,6 @@
 "goMenuTitle" = "Idź";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "Przyznaj pełny dostęp do dysku (Wszystkie foldery)...";
-"gray" = "Gray";
-"green" = "Green";
 "gridView" = "Grid View";
 "group" = "Group";
 "helpAutoOrgDesc" = "Set rules to automatically move incoming files into specific folders.";
@@ -246,7 +243,6 @@
 "open" = "Otwórz";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Otwórz w programie";
-"orange" = "Orange";
 "originalName" = "Original Name";
 "others" = "Inni";
 "overviewDesc" = "Wiles to w pełni natywny menedżer plików dla macOS, zbudowany od podstaw tak, by wydawał się częścią Twojego Maca od zawsze. Każda interakcja, od otwarcia folderu po zmianę nazwy tysiąca plików naraz, została zaprojektowana tak, by działać natychmiastowo.";
@@ -261,7 +257,6 @@
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "Informacje";
-"purple" = "Purple";
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "Szybki podgląd";
@@ -270,7 +265,6 @@
 "recentServers" = "Ostatnie serwery";
 "recents" = "RECENTS";
 "reclaimableSpace" = "Miejsce do odzyskania";
-"red" = "Red";
 "redo" = "Ponów";
 "refresh" = "Odśwież";
 "regexReplace" = "Wzorzec Regex";
@@ -386,7 +380,6 @@
 "feedbackSuccessMessage" = "Dzięki! Twoja opinia została wysłana.";
 "feedbackConfirmMessage" = "Wysłać tę opinię?";
 "write" = "Zapis";
-"yellow" = "Yellow";
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";

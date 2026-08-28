@@ -9,8 +9,8 @@ struct TagsSectionView: View {
             appState: appState, title: appState.tr(.tags), identifierKey: "TAGS", isExpanded: $isExpanded,
             hideAction: { appState.preferences.showTags = false },
             content: {
-                ForEach(TagColor.allCases, id: \.self) { tagColor in
-                    tagRow(tagColor: tagColor)
+                ForEach(SystemTagsService.favoriteTags, id: \.self) { systemTag in
+                    tagRow(systemTag: systemTag)
                 }
             })
     }
@@ -29,13 +29,13 @@ struct TagsSectionView: View {
 
     /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
     /// for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
-    private func tagRow(tagColor: TagColor) -> some View {
-        let tag = tagColor.rawValue
+    private func tagRow(systemTag: SystemTag) -> some View {
+        let tag = systemTag.name
         let (remainingQuery, currentTag) = extractTagToken(from: appState.selection.searchQuery)
         let isSel = currentTag?.lowercased() == tag.lowercased()
         return HStack(spacing: 10) {
-            Circle().fill(tagColor.displayColor).frame(width: 10, height: 10).padding(5)
-            Text(appState.tr(tagColor.localizationKey))
+            Circle().fill(systemTag.color?.displayColor ?? .secondary).frame(width: 10, height: 10).padding(5)
+            Text(tag)
                 .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                 .foregroundColor(.primary)
             Spacer()
@@ -51,7 +51,7 @@ struct TagsSectionView: View {
         .padding(.horizontal, 8)
         .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .accessibilityIdentifier("Tag_\(tag)")
-        .accessibilityLabel(appState.tr(tagColor.localizationKey))
+        .accessibilityLabel(tag)
         .accessibilityHint(appState.tr(.tags))
     }
 }

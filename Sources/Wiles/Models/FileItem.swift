@@ -138,9 +138,13 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
             return cached
         }
         let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
         formatter.locale = Locale(identifier: code)
+        // Locale sets field order/separators/clock; widen every field to 2 digits for leading zeros
+        // (01/01/12 01:02) — the skeleton honors that for date fields but not the hour, so pad it.
+        formatter.setLocalizedDateFormatFromTemplate("ddMMyyjjmm")
+        formatter.dateFormat = formatter.dateFormat?
+            .replacingOccurrences(of: "h{1,2}", with: "hh", options: .regularExpression)
+            .replacingOccurrences(of: "H{1,2}", with: "HH", options: .regularExpression)
         dateFormatterCache[code] = formatter
         return formatter
     }

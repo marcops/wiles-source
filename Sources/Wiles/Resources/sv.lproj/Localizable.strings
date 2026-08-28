@@ -57,7 +57,6 @@
 "backgroundTasksSuffix" = "bakgrundsuppgifter";
 "batchRename" = "Batch Rename";
 "batchRenameTitle" = "Bylte döpa om filer";
-"blue" = "Blue";
 "camera" = "Kamera";
 "cancel" = "Avbryt";
 "changeAllDefaultApp" = "Öppna alltid med";
@@ -154,8 +153,6 @@
 "goMenuTitle" = "Gå till";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "Bevilja full skivtillgång (Alla mappar)...";
-"gray" = "Gray";
-"green" = "Green";
 "gridView" = "Grid View";
 "group" = "Group";
 "helpAutoOrgDesc" = "Set rules to automatically move incoming files into specific folders.";
@@ -246,7 +243,6 @@
 "open" = "Öppna";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Öppna med";
-"orange" = "Orange";
 "originalName" = "Original Name";
 "others" = "Andra";
 "overviewDesc" = "Wiles är en helt nativ filhanterare för macOS, byggd från grunden för att kännas som en del av din Mac från första stund. Varje interaktion, från att öppna en mapp till att döpa om tusen filer på en gång, är gjord för att kännas omedelbar.";
@@ -261,7 +257,6 @@
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "Visa info";
-"purple" = "Purple";
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "Snabbvisning";
@@ -270,7 +265,6 @@
 "recentServers" = "Senaste servrar";
 "recents" = "RECENTS";
 "reclaimableSpace" = "Återvinningsbart utrymme";
-"red" = "Red";
 "redo" = "Gör om";
 "refresh" = "Uppdatera";
 "regexReplace" = "Regex-mönster";
@@ -386,7 +380,6 @@
 "feedbackSuccessMessage" = "Tack! Din feedback har skickats.";
 "feedbackConfirmMessage" = "Skicka denna feedback?";
 "write" = "Skriv";
-"yellow" = "Yellow";
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";

@@ -57,7 +57,6 @@
 "backgroundTasksSuffix" = "백그라운드 작업";
 "batchRename" = "Batch Rename";
 "batchRenameTitle" = "일괄 파일 이름 변경";
-"blue" = "Blue";
 "camera" = "카메라";
 "cancel" = "취소";
 "changeAllDefaultApp" = "항상 이 앱으로 열기";
@@ -154,8 +153,6 @@
 "goMenuTitle" = "이동";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "전체 디스크 접근 권한 허용 (모든 폴더)...";
-"gray" = "Gray";
-"green" = "Green";
 "gridView" = "Grid View";
 "group" = "Group";
 "helpAutoOrgDesc" = "Set rules to automatically move incoming files into specific folders.";
@@ -246,7 +243,6 @@
 "open" = "열기";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "다음으로 열기";
-"orange" = "Orange";
 "originalName" = "Original Name";
 "others" = "기타";
 "overviewDesc" = "Wiles는 완전히 네이티브한 macOS 파일 관리자로, 처음부터 Mac의 일부였던 것처럼 느껴지도록 만들어졌습니다. 폴더를 여는 것부터 파일 천 개를 한 번에 이름 바꾸는 것까지, 모든 동작이 즉각적으로 느껴지도록 설계되었습니다.";
@@ -261,7 +257,6 @@
 "prefix" = "Prefix";
 "preview" = "Preview";
 "properties" = "정보 가져오기";
-"purple" = "Purple";
 "quality" = "Quality";
 "quickConvertImage" = "Quick Convert & Resize...";
 "quickLook" = "훑어보기";
@@ -270,7 +265,6 @@
 "recentServers" = "최근 서버";
 "recents" = "RECENTS";
 "reclaimableSpace" = "복구 가능한 공간";
-"red" = "Red";
 "redo" = "다시 실행";
 "refresh" = "새로고침";
 "regexReplace" = "정규식 패턴";
@@ -386,7 +380,6 @@
 "feedbackSuccessMessage" = "감사합니다! 피드백이 제출되었습니다.";
 "feedbackConfirmMessage" = "이 피드백을 보내시겠습니까?";
 "write" = "쓰기";
-"yellow" = "Yellow";
 "yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
