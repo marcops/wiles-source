@@ -22,11 +22,11 @@ struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: Vi
     let isEmpty: (Result) -> Bool
     @ViewBuilder let loading: () -> Loading
     @ViewBuilder let empty: () -> Empty
-    @ViewBuilder let failure: (Error) -> Failure
+    @ViewBuilder let failure: (any Error) -> Failure
     @ViewBuilder let content: (Result) -> Content
 
     @State private var result: Result?
-    @State private var loadError: Error?
+    @State private var loadError: (any Error)?
 
     var body: some View {
         Group {
@@ -74,7 +74,7 @@ extension AsyncResultView where ID == Int {
         isEmpty: @escaping (Result) -> Bool,
         @ViewBuilder loading: @escaping () -> Loading,
         @ViewBuilder empty: @escaping () -> Empty,
-        @ViewBuilder failure: @escaping (Error) -> Failure,
+        @ViewBuilder failure: @escaping (any Error) -> Failure,
         @ViewBuilder content: @escaping (Result) -> Content) {
         self.init(id: 0, operation: operation, isEmpty: isEmpty, loading: loading, empty: empty, failure: failure, content: content)
     }
