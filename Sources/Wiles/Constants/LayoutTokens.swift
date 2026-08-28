@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 
@@ -21,6 +22,19 @@ public enum LayoutTokens {
     public static let gridCardLabelMinFontSize: Double = 8.0
     public static let gridCardLabelMaxFontSize: Double = 12.0
     public static let gridCardLabelFontScaleMultiplier: Double = 0.22
+    /// The label pill's own top+bottom padding (`.padding(.vertical, 2)` applied once, so 2 edges).
+    public static let gridCardLabelVerticalPadding: CGFloat = 4.0
+
+    /// Shared by `FileGridCardItemView` and `FileGridView` so they can't drift apart.
+    public static func gridCardLabelFontSize(forIconSize iconSize: CGFloat) -> CGFloat {
+        CGFloat(max(gridCardLabelMinFontSize, min(gridCardLabelMaxFontSize, Double(iconSize) * gridCardLabelFontScaleMultiplier)))
+    }
+
+    /// Vertical room `FileGridView.cardHeight` must reserve for a wrapped 2-line label.
+    public static func gridCardTwoLineLabelHeight(forIconSize iconSize: CGFloat) -> CGFloat {
+        let font = NSFont.systemFont(ofSize: gridCardLabelFontSize(forIconSize: iconSize), weight: .semibold)
+        return (font.ascender - font.descender + font.leading) * 2 + gridCardLabelVerticalPadding
+    }
 
     // List Icons (shared between FileListView and ColumnAutoFitService)
     public static let listIconMinSize: CGFloat = 16.0

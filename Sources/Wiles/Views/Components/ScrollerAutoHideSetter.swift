@@ -35,9 +35,7 @@ struct ScrollerAutoHideSetter: NSViewRepresentable {
         func applyIfNeeded() {
             guard !hasApplied, let scrollView = nearbyScrollView() else { return }
             hasApplied = true
-            // `autohidesScrollers` must be set even when `scrollerStyle` is already `.overlay` —
-            // its default is false, which keeps an already-overlay scroller permanently visible
-            // instead of fading on inactivity.
+            // Must set this even when scrollerStyle is already .overlay — its default is false.
             scrollView.scrollerStyle = .overlay
             scrollView.autohidesScrollers = true
             // Changing scrollerStyle on an already-instantiated NSScrollView doesn't reliably

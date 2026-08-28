@@ -1,16 +1,9 @@
 import SwiftUI
 
-/// A file/folder name label that stays truncated normally, but un-truncates in place (no tooltip)
-/// after the item has been selected continuously for a short delay — matches selecting an item and
-/// pausing on it, without popping open on every quick click-through.
-///
-/// Finder-style middle-ellipsis truncation (equal characters kept from the start and end) instead
-/// of the default end-only truncation:
-/// - Single-line (`collapsedLineLimit == 1`, List): SwiftUI's native `.truncationMode(.middle)`
-///   already does exactly this, using the real layout engine — no width math needed at all.
-/// - Multi-line (`collapsedLineLimit > 1`, Grid's 2-line wrap): macOS `Text` doesn't support
-///   `.truncationMode(.middle)` across multiple lines, so `FinderStyleTruncationService`
-///   pre-computes an equivalent truncated string against the caller-supplied `availableWidth`.
+/// A file/folder name label that un-truncates in place after being selected and left alone for a
+/// short delay. Single-line (List) relies on native `.truncationMode(.middle)`; multi-line (Grid)
+/// uses `FinderStyleTruncationService`'s pre-broken lines instead, since `Text` won't reliably
+/// wrap an unbroken filename on its own.
 struct SelectionAwareNameText: View {
     let name: String
     let isSelected: Bool
@@ -18,32 +11,76 @@ struct SelectionAwareNameText: View {
     let nsFont: NSFont
     let color: Color
     let collapsedLineLimit: Int
-    /// Only consulted for the multi-line (Grid) case — ignored for single-line labels, which rely
-    /// on native `.truncationMode(.middle)` instead.
+    /// Only consulted for the multi-line (Grid) case.
     var availableWidth: CGFloat = 0
     var alignment: TextAlignment = .leading
     var middleTruncate: Bool = true
+    /// Tag dots shown inline before the first line — empty for callers showing tags separately.
+    var tags: [String] = []
+    /// Grid disables this — it renders the reveal as its own grid-level overlay instead.
+    var revealsOnSelect: Bool = true
 
     @State private var showFull = false
 
+    private var isRevealingFull: Bool {
+        revealsOnSelect && isSelected && showFull
+    }
+
     private var displayName: String {
-        guard middleTruncate, !(isSelected && showFull), collapsedLineLimit > 1 else { return name }
+        guard middleTruncate, !isRevealingFull, collapsedLineLimit > 1 else { return name }
         return FinderStyleTruncationService.truncatedMiddle(name, font: nsFont, maxWidth: availableWidth, maxLines: collapsedLineLimit)
     }
 
+    private var horizontalAlignment: HorizontalAlignment {
+        switch alignment {
+        case .leading: .leading
+        case .trailing: .trailing
+        case .center: .center
+        @unknown default: .center
+        }
+    }
+
     var body: some View {
-        Text(displayName)
-            .font(font)
-            .lineLimit(isSelected && showFull ? nil : collapsedLineLimit)
-            .truncationMode(middleTruncate ? .middle : .tail)
-            .multilineTextAlignment(alignment)
-            .foregroundColor(color)
-            .task(id: isSelected) {
-                showFull = false
-                guard isSelected else { return }
-                try? await Task.sleep(nanoseconds: AsyncDelayTokens.nameRevealDelay)
-                guard !Task.isCancelled else { return }
-                showFull = true
+        Group {
+            if collapsedLineLimit > 1 {
+                multilineBody
+            } else {
+                Text(displayName)
+                    .font(font)
+                    .lineLimit(collapsedLineLimit)
+                    .truncationMode(middleTruncate ? .middle : .tail)
+                    .multilineTextAlignment(alignment)
+                    .foregroundColor(color)
             }
+        }
+        .task(id: isSelected) {
+            showFull = false
+            guard revealsOnSelect, isSelected else { return }
+            try? await Task.sleep(nanoseconds: AsyncDelayTokens.nameRevealDelay)
+            guard !Task.isCancelled else { return }
+            showFull = true
+        }
+    }
+
+    /// One independent single-line `Text` per pre-broken line, instead of one multi-line `Text`.
+    private var multilineBody: some View {
+        let lines = isRevealingFull
+            ? FinderStyleTruncationService.wrappedLines(name, font: nsFont, maxWidth: availableWidth)
+            : displayName.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        return VStack(alignment: horizontalAlignment, spacing: 0) {
+            ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
+                HStack(spacing: 3) {
+                    if index == 0, !tags.isEmpty {
+                        TagsIndicatorView(tags: tags, dotSize: nsFont.capHeight)
+                    }
+                    // Natural width + clip, not .lineLimit(1), so Text can't add its own "…" on top of ours.
+                    Text(line)
+                        .font(font)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .foregroundColor(color)
+                }
+            }
+        }
+        .clipped()
     }
 }

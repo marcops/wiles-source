@@ -155,6 +155,8 @@ public struct AppStateColumnsAndSelectionTests {
             "NEG: viewModeForFolder() falls back to the global viewMode when no per-folder override exists",
             result: appState.viewModeForFolder(dir) == .list)
 
+        // Per-folder overrides only apply once opted into via Advanced Settings.
+        appState.preferences.perFolderViewModeEnabled = true
         appState.preferences.perFolderViewModes[dir.standardizedFileURL.path] = ViewMode.grid.rawValue
         report("AppState+Columns", "POS: viewModeForFolder() returns the stored per-folder override", result: appState.viewModeForFolder(dir) == .grid)
     }
@@ -166,6 +168,8 @@ public struct AppStateColumnsAndSelectionTests {
 
         let appState = AppState()
         appState.preferences.viewMode = .list
+        // Per-folder overrides only apply once opted into via Advanced Settings.
+        appState.preferences.perFolderViewModeEnabled = true
         appState.setViewModeForFolder(.grid, for: dir)
         report(
             "AppState+Columns",

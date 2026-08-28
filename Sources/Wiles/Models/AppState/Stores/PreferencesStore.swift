@@ -248,8 +248,7 @@ public final class PreferencesStore {
     public private(set) var columnStatesByColumn: [ListColumn: ListColumnState] =
         Dictionary(uniqueKeysWithValues: ListColumnState.defaults().map { ($0.column, $0) })
 
-    /// When off, `AppState.viewModeForFolder`/`setViewModeForFolder` behave exactly like the single
-    /// global `viewMode` did before per-folder view modes existed.
+    /// When off, `viewModeForFolder`/`setViewModeForFolder` just use the single global `viewMode`.
     public var perFolderViewModeEnabled: Bool = false {
         didSet { UserDefaults.standard.set(perFolderViewModeEnabled, forKey: DefaultsKey.perFolderViewModeEnabled.rawValue) }
     }

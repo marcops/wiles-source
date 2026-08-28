@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 struct FileGridView: View {
     private static let gridIconScaleMultiplier: CGFloat = 1.25
     private static let cardWidthOffset: CGFloat = 20.0
-    private static let cardHeightOffset: CGFloat = 25.0
     private static let gridSpacing: CGFloat = 20.0
 
     var appState: AppState
@@ -18,8 +17,9 @@ struct FileGridView: View {
         iconSize + Self.cardWidthOffset
     }
 
+    /// Icon + spacing + a genuine 2-line label, so a wrapped second line isn't clipped.
     private var cardHeight: CGFloat {
-        iconSize + Self.cardHeightOffset
+        iconSize + LayoutTokens.gridCardVStackSpacing + LayoutTokens.gridCardTwoLineLabelHeight(forIconSize: iconSize)
     }
 
     /// `maximum` used to be `cardWidth + 24`, letting each column stretch up to 24pt past the card's
@@ -49,6 +49,7 @@ struct FileGridView: View {
             },
             overlayContent: {
                 renameFieldOverlay
+                revealFieldOverlay
             })
     }
 
@@ -86,9 +87,7 @@ struct FileGridView: View {
         if let renameItem = windowUIState.renameItem,
            let item = appState.fileSystem.items.first(where: { $0.url == renameItem.url }),
            let cellFrame = appState.selection.gridCellFrames[renameItem.url] {
-            let fontSize = max(
-                LayoutTokens.gridCardLabelMinFontSize,
-                min(LayoutTokens.gridCardLabelMaxFontSize, Double(iconSize) * LayoutTokens.gridCardLabelFontScaleMultiplier))
+            let fontSize = LayoutTokens.gridCardLabelFontSize(forIconSize: iconSize)
             let isSel = appState.selection.selectedURLs.contains(item.url)
             // card padding + icon + VStack spacing, matching FileGridCardItemView
             let topInset: CGFloat = LayoutTokens.gridCardPadding + iconSize + LayoutTokens.gridCardVStackSpacing
@@ -103,6 +102,39 @@ struct FileGridView: View {
                 .frame(width: fieldWidth, alignment: .top)
                 .offset(x: cellFrame.midX - fieldWidth / 2, y: cellFrame.minY + topInset)
                 .zIndex(10)
+        }
+    }
+
+    /// Fully-revealed name, same clipped-cell reason and positioning as `renameFieldOverlay`.
+    @ViewBuilder private var revealFieldOverlay: some View {
+        if let revealURL = appState.selection.revealingFullNameURL,
+           let item = appState.fileSystem.items.first(where: { $0.url == revealURL }),
+           let cellFrame = appState.selection.gridCellFrames[revealURL] {
+            let fontSize = LayoutTokens.gridCardLabelFontSize(forIconSize: iconSize)
+            let nsFont = NSFont.systemFont(ofSize: fontSize, weight: .semibold)
+            let topInset: CGFloat = LayoutTokens.gridCardPadding + iconSize + LayoutTokens.gridCardVStackSpacing
+            let textAvailableWidth = cardWidth - LayoutTokens.gridCardLabelHorizontalInset
+            let lines = FinderStyleTruncationService.wrappedLines(item.name, font: nsFont, maxWidth: textAvailableWidth)
+
+            VStack(spacing: 0) {
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                    // Natural width + clip, not .lineLimit(1) — see SelectionAwareNameText.multilineBody.
+                    Text(line)
+                        .font(.system(size: fontSize, weight: .semibold))
+                        .fixedSize(horizontal: true, vertical: false)
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(width: textAvailableWidth)
+            .clipped()
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor)
+            .cornerRadius(4)
+            // Center on cardWidth (the pill's true post-padding width), not the narrower text width.
+            .offset(x: cellFrame.midX - cardWidth / 2, y: cellFrame.minY + topInset)
+            .zIndex(10)
+            .allowsHitTesting(false)
         }
     }
 }

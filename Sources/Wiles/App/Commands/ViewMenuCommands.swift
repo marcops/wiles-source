@@ -29,8 +29,7 @@ struct ViewMenuCommands: LocalizedCommands {
             set: { windowUIState?[keyPath: keyPath] = $0 })
     }
 
-    /// Falls back to the shared global `viewMode` when no window is focused (no folder to key
-    /// a per-folder mode off of yet).
+    /// Falls back to the shared global `viewMode` when no window is focused.
     private var viewModeBinding: Binding<ViewMode> {
         Binding(
             get: { appState?.currentViewMode ?? sharedPreferences.viewMode },

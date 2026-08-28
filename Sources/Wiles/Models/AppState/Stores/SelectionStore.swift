@@ -27,6 +27,10 @@ public final class SelectionStore {
     /// rename field that replaces it can reuse that exact width instead of guessing/forcing one.
     public var gridLabelWidths: [URL: CGFloat] = [:]
 
+    /// Grid item currently showing its full name after being selected and left alone — same
+    /// clipped-cell overlay pattern as `WindowUIState.renameItem`.
+    public var revealingFullNameURL: URL?
+
     /// Set when navigating up/back to a parent directory, so the child folder just left gets reselected instead of the first item.
     public var pendingSelectionURL: URL?
 

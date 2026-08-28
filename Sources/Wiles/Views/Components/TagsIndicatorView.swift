@@ -7,10 +7,14 @@ import SwiftUI
 /// whether to reserve any layout space at all, and apply any mode-specific styling (e.g. the list's
 /// compact-mode vertical offset) on top of this view rather than as a parameter here.
 public struct TagsIndicatorView: View {
-    let tags: [String]
+    public static let defaultDotSize: CGFloat = 8
 
-    public init(tags: [String]) {
+    let tags: [String]
+    let dotSize: CGFloat
+
+    public init(tags: [String], dotSize: CGFloat = Self.defaultDotSize) {
         self.tags = tags
+        self.dotSize = dotSize
     }
 
     public var body: some View {
@@ -18,7 +22,7 @@ public struct TagsIndicatorView: View {
             ForEach(tags, id: \.self) { tag in
                 Circle()
                     .fill(colorForTag(tag))
-                    .frame(width: 8, height: 8)
+                    .frame(width: dotSize, height: dotSize)
                     .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
             }
         }

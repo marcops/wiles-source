@@ -106,11 +106,8 @@ struct SidebarView: View {
         }
     }
 
-    /// Builds the directory tree in the background. After `rootTreeFallbackTimeout`, surfaces a
-    /// Retry affordance instead of a fake node — leaving `rootFolderNode` nil is what keeps
-    /// `DirectoryTreeSectionView` on its `loadingState`/Retry branch; the still-running scan can
-    /// still complete afterward and populate the real tree. `retryTreeBuild()` re-runs this via
-    /// `treeBuildGeneration`.
+    /// After `rootTreeFallbackTimeout`, leaves `rootFolderNode` nil so the Retry button shows
+    /// instead of a fake node — the still-running scan can still finish and populate it later.
     private func buildDirectoryTree() async {
         guard rootFolderNode == nil else { return }
         treeBuildTimedOut = false

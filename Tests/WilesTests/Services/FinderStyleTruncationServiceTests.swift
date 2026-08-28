@@ -24,17 +24,11 @@ final class FinderStyleTruncationServiceTests: XCTestCase {
         XCTAssertTrue(result.hasSuffix(".txt"))
     }
 
+    /// The result is pre-split into real lines joined by "\n" — count those directly.
     func testTruncatedResultActuallyFitsWithinMaxLines() {
         let longName = String(repeating: "b", count: 300)
         let result = FinderStyleTruncationService.truncatedMiddle(longName, font: font, maxWidth: 100, maxLines: 2)
-
-        let attributed = NSAttributedString(string: result, attributes: [.font: font])
-        let bounding = attributed.boundingRect(
-            with: CGSize(width: 100, height: CGFloat.greatestFiniteMagnitude),
-            options: [.usesLineFragmentOrigin, .usesFontLeading])
-        let lineHeight = font.ascender - font.descender + font.leading
-        let lines = (bounding.height / lineHeight).rounded(.up)
-        XCTAssertLessThanOrEqual(lines, 2)
+        XCTAssertLessThanOrEqual(result.split(separator: "\n", omittingEmptySubsequences: false).count, 2)
     }
 
     func testEmptyNameReturnsEmpty() {
