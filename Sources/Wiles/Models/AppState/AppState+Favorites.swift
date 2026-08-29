@@ -1,4 +1,5 @@
 import Foundation
+import GitBeacon
 
 public extension AppState {
     func addFavorite(_ url: URL) {
@@ -12,7 +13,15 @@ public extension AppState {
     }
 
     func isFavorite(_ url: URL) -> Bool {
-        preferences.favoriteURLs.contains(where: { isSameLocation($0, url) })
+        preferences.resolvedFavoritePaths.contains(url.resolvingSymlinksInPath().standardizedFileURL.path)
+    }
+
+    /// Follows all path-keyed per-item state to an in-app relocation: `remapFavorites` (kept public
+    /// for favorites-only cases and tests) plus the per-folder view mode key. Call after
+    /// every in-app move.
+    func remapRelocatedState(from oldURL: URL, to newURL: URL) {
+        remapFavorites(from: oldURL, to: newURL)
+        remapPerFolderViewMode(from: oldURL, to: newURL)
     }
 
     /// "Same location" for favorites/path comparisons — resolves symlinks so a path reached via a
@@ -34,14 +43,13 @@ public extension AppState {
         toFolder targetFolder: URL,
         onCollision: MoveCollisionPolicy = .failIfExists) async throws -> URL {
         let destURL = try await FileSystemService.moveItem(at: url, toFolder: targetFolder, onCollision: onCollision)
-        remapFavorites(from: url, to: destURL)
+        remapRelocatedState(from: url, to: destURL)
         return destURL
     }
 
-    /// Moves each URL in `urls` into `targetFolder` sequentially, asking the user how to resolve any
-    /// name collision (Replace / Keep Both / Cancel, with "apply to all"). A `.cancel` stops the
-    /// whole batch. Returns the destination URLs that landed. Used by the drag-onto-folder and
-    /// breadcrumb-drop paths, which don't record undo (unchanged from before C1).
+    /// Moves each URL into `targetFolder` sequentially via `moveOneResolvingCollision` (the same
+    /// per-item mover the cut/paste loop uses), aggregating failures into one alert. `.cancel` stops
+    /// the batch. Used by the drag-onto-folder and breadcrumb-drop paths, which don't record undo.
     @discardableResult
     func moveItemsResolvingCollisions(
         _ urls: [URL],
@@ -49,29 +57,62 @@ public extension AppState {
         windowUIState: WindowUIState) async -> [URL] {
         var sticky: MoveCollisionChoice.Action?
         var moved: [URL] = []
+        var failureCount = 0
         for (index, url) in urls.enumerated() {
+            guard !Task.isCancelled else { break }
             do {
-                let destURL = try await moveItem(at: url, toFolder: targetFolder)
-                moved.append(destURL)
-            } catch WilesError.destinationExists {
-                let resolution = await resolveCollision(
-                    itemName: url.lastPathComponent,
-                    moreCollisionsPossible: index < urls.count - 1,
-                    sticky: sticky,
-                    windowUIState: windowUIState)
-                sticky = resolution.sticky
-                if resolution.action == .cancel {
-                    return moved
-                }
-                let policy: MoveCollisionPolicy = resolution.action == .replace ? .replace : .keepBoth
-                if let destURL = try? await moveItem(at: url, toFolder: targetFolder, onCollision: policy) {
-                    moved.append(destURL)
+                let (outcome, newSticky) = try await moveOneResolvingCollision(
+                    url, into: targetFolder, sticky: sticky,
+                    moreFollow: index < urls.count - 1, windowUIState: windowUIState)
+                sticky = newSticky
+                switch outcome {
+                case let .moved(dest, _): moved.append(dest)
+                case .skipped: break
+                case .cancelled: return finishBatchMove(moved, failureCount: failureCount, total: urls.count)
                 }
             } catch {
-                showError(error, context: "Moving item into folder")
+                ErrorReporter.report(error, context: "Moving item into folder")
+                failureCount += 1
             }
         }
+        return finishBatchMove(moved, failureCount: failureCount, total: urls.count)
+    }
+
+    private func finishBatchMove(_ moved: [URL], failureCount: Int, total: Int) -> [URL] {
+        if failureCount > 0 {
+            showError(WilesError.operationFailed(reason: "\(failureCount) of \(total) items could not be moved."))
+        }
         return moved
+    }
+
+    /// Moves one item into `targetFolder`, resolving a name collision via the per-window prompt
+    /// (Replace / Keep Both / Cancel, with "apply to all") and keeping favorites/view-mode keys in
+    /// sync. Records no undo — the caller does, since only some callers want it. Returns the outcome
+    /// and the (possibly updated) sticky choice for the rest of the batch.
+    internal func moveOneResolvingCollision(
+        _ url: URL,
+        into targetFolder: URL,
+        sticky: MoveCollisionChoice.Action?,
+        moreFollow: Bool,
+        windowUIState: WindowUIState?) async throws -> (BatchMoveOutcome, MoveCollisionChoice.Action?) {
+        do {
+            let dest = try await FileSystemService.moveItem(at: url, toFolder: targetFolder)
+            remapRelocatedState(from: url, to: dest)
+            return (.moved(to: dest, displacedExisting: false), sticky)
+        } catch WilesError.destinationExists {
+            guard let windowUIState else { return (.skipped, sticky) }
+            let resolution = await resolveCollision(
+                itemName: url.lastPathComponent, moreCollisionsPossible: moreFollow,
+                sticky: sticky, windowUIState: windowUIState)
+            if resolution.action == .cancel {
+                return (.cancelled, resolution.sticky)
+            }
+            let isReplace = resolution.action == .replace
+            let policy: MoveCollisionPolicy = isReplace ? .replace : .keepBoth
+            let dest = try await FileSystemService.moveItem(at: url, toFolder: targetFolder, onCollision: policy)
+            remapRelocatedState(from: url, to: dest)
+            return (.moved(to: dest, displacedExisting: isReplace), resolution.sticky)
+        }
     }
 
     /// Resolves one name collision: returns the remembered `sticky` action if the user already chose

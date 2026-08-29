@@ -104,6 +104,25 @@ public struct AppStateCoreTests {
         let notFav = dir.appendingPathComponent("notfav.txt")
         try? "x".write(to: notFav, atomically: true, encoding: .utf8)
         report("AppState", "NEG: isFavorite() returns false for a URL not present in favoriteURLs", result: !appState.isFavorite(notFav))
+
+        // M25: isFavorite now matches on symlink-resolved paths (via preferences.resolvedFavoritePaths),
+        // so a file reached through a symlinked ancestor directory still resolves to the same favorite —
+        // same behavior as the old isSameLocation-based implementation.
+        let realSub = dir.appendingPathComponent("RealSub")
+        try? FileManager.default.createDirectory(at: realSub, withIntermediateDirectories: true)
+        let fileInReal = realSub.appendingPathComponent("doc.txt")
+        try? "x".write(to: fileInReal, atomically: true, encoding: .utf8)
+        let linkedSub = dir.appendingPathComponent("LinkedSub")
+        try? FileManager.default.createSymbolicLink(at: linkedSub, withDestinationURL: realSub)
+        appState.preferences.favoriteURLs = [fileInReal.standardizedFileURL]
+        report(
+            "AppState",
+            "POS: isFavorite() returns true for the favorited file reached through a symlinked ancestor directory",
+            result: appState.isFavorite(linkedSub.appendingPathComponent("doc.txt")))
+        report(
+            "AppState",
+            "POS: isFavorite() returns true for the favorited file via its own real path",
+            result: appState.isFavorite(fileInReal))
     }
 
     private static func testMoveSelectedFavorite() {
@@ -121,7 +140,7 @@ public struct AppStateCoreTests {
         let appState = AppState()
         appState.preferences.favoriteURLs = [favA, favB, favC]
         appState.navigation.currentURL = favB
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         windowUIState.selectedFavoriteURL = favB
 
         appState.moveSelectedFavorite(offset: -1, windowUIState: windowUIState)

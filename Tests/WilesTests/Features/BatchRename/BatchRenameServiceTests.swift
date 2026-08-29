@@ -22,6 +22,115 @@ public struct BatchRenameFeatureTests {
         report("Feature/BatchRename", "POS: Regex replace template works", result: regexPreviews.first?.newName == "document_a.txt")
 
         await testInvalidRegexPatternThrowsInsteadOfSilentlyNoOpingRename()
+        testValidateTargets()
+        testSequenceNumberPaddingIsClamped(item1: item1)
+        await testPerformBatchRenameAbortsUpFrontOnCollision()
+        await testPerformBatchRenameSurfacesCancellation()
+    }
+
+    /// Lote 15 (M61): `validateTargets` is the pure pre-flight collision check.
+    private static func testValidateTargets() {
+        let dup = BatchRenameService.validateTargets(
+            targetNames: ["report.txt", "report.txt", "notes.txt"], renamedOriginalNames: [], directoryContents: [])
+        report(
+            "Feature/BatchRename",
+            "POS: validateTargets reports two batch entries mapping to one target once as .duplicateWithinBatch",
+            result: dup == [BatchRenameConflict(targetName: "report.txt", kind: .duplicateWithinBatch)])
+
+        let onDisk = BatchRenameService.validateTargets(
+            targetNames: ["taken.txt"], renamedOriginalNames: [], directoryContents: ["taken.txt", "other.txt"])
+        report(
+            "Feature/BatchRename",
+            "POS: validateTargets reports a target that already exists on disk as .existsOnDisk",
+            result: onDisk == [BatchRenameConflict(targetName: "taken.txt", kind: .existsOnDisk)])
+
+        let selfRenamed = BatchRenameService.validateTargets(
+            targetNames: ["b.txt"], renamedOriginalNames: ["b.txt"], directoryContents: ["b.txt"])
+        report(
+            "Feature/BatchRename",
+            "NEG: validateTargets does not flag an on-disk target that is itself being renamed away (swap/rotate)",
+            result: selfRenamed.isEmpty)
+
+        let clean = BatchRenameService.validateTargets(
+            targetNames: ["x1.txt", "x2.txt"], renamedOriginalNames: ["a.txt", "b.txt"],
+            directoryContents: ["a.txt", "b.txt", "unrelated.txt"])
+        report("Feature/BatchRename", "NEG: validateTargets returns empty when there are no collisions", result: clean.isEmpty)
+    }
+
+    /// L60: `.sequenceNumber` clamps `paddingDigits` into `1...10` instead of trusting the caller.
+    private static func testSequenceNumberPaddingIsClamped(item1: FileItem) {
+        let tooWide = BatchRenameService.previewNewNames(
+            items: [item1], mode: .sequenceNumber(prefix: "P", startNumber: 1, paddingDigits: 99))
+        report(
+            "Feature/BatchRename",
+            "POS: .sequenceNumber padding of 99 is clamped to 10 digits",
+            result: tooWide.first?.newName == "P_0000000001.txt")
+
+        let tooNarrow = BatchRenameService.previewNewNames(
+            items: [item1], mode: .sequenceNumber(prefix: "P", startNumber: 5, paddingDigits: 0))
+        report(
+            "Feature/BatchRename",
+            "POS: .sequenceNumber padding of 0 is clamped to 1 digit",
+            result: tooNarrow.first?.newName == "P_5.txt")
+    }
+
+    /// M61: a batch whose targets would collapse to one name throws up front — nothing is renamed on disk.
+    private static func testPerformBatchRenameAbortsUpFrontOnCollision() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let a = dir.appendingPathComponent("IMG_001.txt")
+        let b = dir.appendingPathComponent("IMG_002.txt")
+        try? "a".write(to: a, atomically: true, encoding: .utf8)
+        try? "b".write(to: b, atomically: true, encoding: .utf8)
+        let itemA = FileItem.load(url: a, icon: NSWorkspace.shared.icon(forFile: a.path))
+        let itemB = FileItem.load(url: b, icon: NSWorkspace.shared.icon(forFile: b.path))
+
+        var threw = false
+        do {
+            _ = try await BatchRenameService.performBatchRename(items: [itemA, itemB], mode: .regex(pattern: "IMG_\\d+", template: "IMG"))
+        } catch {
+            threw = true
+        }
+        report("Feature/BatchRename", "NEG: performBatchRename throws up front when two targets collapse to one name", result: threw)
+        report(
+            "Feature/BatchRename",
+            "NEG: performBatchRename leaves both originals on disk when it aborts on a collision (no partial renames)",
+            result: FileManager.default.fileExists(atPath: a.path) && FileManager.default.fileExists(atPath: b.path))
+    }
+
+    /// M60: a cancelled `performBatchRename` surfaces `CancellationError`; renames done before the
+    /// cancellation stay on disk (the loop checks `Task.checkCancellation()` per iteration).
+    private static func testPerformBatchRenameSurfacesCancellation() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        var items: [FileItem] = []
+        for i in 0 ..< 40 {
+            let url = dir.appendingPathComponent(String(format: "f%02d.txt", i))
+            try? "x".write(to: url, atomically: true, encoding: .utf8)
+            items.append(FileItem.load(url: url, icon: NSWorkspace.shared.icon(forFile: url.path)))
+        }
+
+        let task = Task { _ = try await BatchRenameService.performBatchRename(items: items, mode: .addPrefixSuffix(prefix: "R_", suffix: "")) }
+        task.cancel()
+
+        var cancelled = false
+        do {
+            try await task.value
+        } catch is CancellationError {
+            cancelled = true
+        } catch {
+            cancelled = false
+        }
+        let renamedCount = (try? FileManager.default.contentsOfDirectory(atPath: dir.path))?.filter { $0.hasPrefix("R_") }.count ?? -1
+        report("Feature/BatchRename", "POS: a cancelled performBatchRename surfaces CancellationError", result: cancelled)
+        report(
+            "Feature/BatchRename",
+            "POS: renames completed before the cancellation are kept on disk (partial progress not rolled back)",
+            result: renamedCount >= 0 && renamedCount < items.count)
     }
 
     /// Bug: performBatchRename used to fall through NSRegularExpression's `try?` failure by

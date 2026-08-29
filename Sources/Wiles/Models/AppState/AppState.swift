@@ -2,16 +2,11 @@ import GitBeacon
 import Observation
 import SwiftUI
 
-/// AppState is @MainActor-isolated (see the annotation below); @unchecked Sendable exists only to
-/// satisfy `Task.detached`'s requirement that its `@Sendable` closure's captures conform to
-/// Sendable — `self`/`[weak self]` is captured this way throughout this file and
-/// AppState+Navigation.swift/AppState+Operations.swift/AppState+ColumnsAndActions.swift. In every
-/// one of those closures, `self`'s mutable state is only ever read or written after hopping back
-/// via `await MainActor.run { ... }` (or `Task { @MainActor in ... }`) — never directly inside the
-/// detached body — so all real mutation stays confined to the main actor.
+/// `@MainActor` makes this implicitly `Sendable`. Background file work runs in `Task { @MainActor }`
+/// awaiting a `nonisolated` op, so no closure captures `self` and only `Sendable` values cross back.
 @Observable
 @MainActor
-public final class AppState: @unchecked Sendable {
+public final class AppState {
     // MARK: - Domain Stores
 
     // `var`, not `let`: SwiftUI's `$appState.preferences.someField`-style two-way bindings (used
@@ -50,6 +45,6 @@ public final class AppState: @unchecked Sendable {
 
         selection.setSearchQueryHandler { [weak self] in self?.scheduleSearchRefresh() }
         navigation.onVolumeUnreachable = { [weak self] fallback in self?.navigateTo(fallback) }
-        undoRedoService.onFileRelocated = { [weak self] from, to in self?.remapFavorites(from: from, to: to) }
+        undoRedoService.onFileRelocated = { [weak self] from, to in self?.remapRelocatedState(from: from, to: to) }
     }
 }

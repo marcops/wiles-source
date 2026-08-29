@@ -48,7 +48,7 @@ public struct UITests {
             "UI/PathBar", "POS: Clicking path bar segment navigates to exact parent directory",
             result: appState.navigation.currentURL.standardizedFileURL == parentURL.standardizedFileURL)
 
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         windowUIState.isEditingPath = true
         appState.navigation.pathText = "/Applications"
         appState.navigateTo(URL(fileURLWithPath: appState.navigation.pathText))

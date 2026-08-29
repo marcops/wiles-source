@@ -7,7 +7,9 @@ public final class PDFMergeService: Sendable {
     /// NSImage(contentsOf:) synchronously decompresses each image's full bitmap into RAM — for
     /// several large photos this alone can take seconds, and doing it on @MainActor (as this used
     /// to be declared) froze the entire UI for that whole duration.
-    public static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String? = nil) async throws -> URL {
+    /// `skippedCount` is the number of inputs that contributed no pages (unreadable PDF / image) —
+    /// the merge still produces a PDF from the rest; the caller can tell the user how many were dropped.
+    public static func mergeFiles(urls: [URL], in destinationFolder: URL, outputName: String? = nil) async throws -> (url: URL, skippedCount: Int) {
         guard !urls.isEmpty else {
             throw WilesError.localized(key: .pdfMergeNoFilesProvided, arguments: [])
         }
@@ -15,10 +17,13 @@ public final class PDFMergeService: Sendable {
         return try await Task.detached(priority: .userInitiated) {
             let outputPDF = PDFDocument()
             var pageIndex = 0
+            var skippedCount = 0
 
             for url in urls {
                 try Task.checkCancellation()
+                let before = pageIndex
                 pageIndex = try appendPages(from: url, into: outputPDF, startingAt: pageIndex)
+                if pageIndex == before { skippedCount += 1 }
             }
 
             // PDFDocument.write(to:) does not fail for a zero-page document — on this
@@ -32,7 +37,7 @@ public final class PDFMergeService: Sendable {
             guard outputPDF.write(to: destURL) else {
                 throw WilesError.localized(key: .pdfMergeWriteFailed, arguments: [])
             }
-            return destURL
+            return (destURL, skippedCount)
         }.value
     }
 

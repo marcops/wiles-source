@@ -41,6 +41,29 @@ public struct FileSystemTests {
         } catch { }
         TestReporter.report("FileSystem", "NEG: renameItem onto an existing name throws WilesError.destinationExists", result: collisionIsExplicit)
 
+        // M36: renameItem(onCollision:) — .keepBoth lands on a free " 2" name keeping both files;
+        // .replace trashes the occupant and lands at the intended name.
+        let kbSource = tempDir.appendingPathComponent("kb_source.txt")
+        try? "kb-src".write(to: kbSource, atomically: true, encoding: .utf8)
+        try? "kb-occupant".write(to: tempDir.appendingPathComponent("kb_target.txt"), atomically: true, encoding: .utf8)
+        let kbResult = try? await FileSystemService.renameItem(at: kbSource, newName: "kb_target.txt", onCollision: .keepBoth)
+        let keepBothOK = kbResult != nil
+            && kbResult?.lastPathComponent != "kb_target.txt"
+            && (kbResult.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)
+            && FileManager.default.fileExists(atPath: tempDir.appendingPathComponent("kb_target.txt").path)
+            && !FileManager.default.fileExists(atPath: kbSource.path)
+        TestReporter.report("FileSystem", "POS: renameItem(onCollision: .keepBoth) lands on a free name and keeps both files", result: keepBothOK)
+
+        let rpSource = tempDir.appendingPathComponent("rp_source.txt")
+        let rpTarget = tempDir.appendingPathComponent("rp_target.txt")
+        try? "rp-src".write(to: rpSource, atomically: true, encoding: .utf8)
+        try? "rp-occupant".write(to: rpTarget, atomically: true, encoding: .utf8)
+        let rpResult = try? await FileSystemService.renameItem(at: rpSource, newName: "rp_target.txt", onCollision: .replace)
+        let replaceOK = rpResult?.lastPathComponent == "rp_target.txt"
+            && !FileManager.default.fileExists(atPath: rpSource.path)
+            && (try? String(contentsOf: rpTarget, encoding: .utf8)) == "rp-src"
+        TestReporter.report("FileSystem", "POS: renameItem(onCollision: .replace) overwrites the intended name, displacing the occupant", result: replaceOK)
+
         // Positive: a case-only rename ("renamed_sample.txt" -> "Renamed_Sample.txt") succeeds even
         // on a case-insensitive volume.
         var caseOnlyURL: URL?
@@ -74,7 +97,8 @@ public struct FileSystemTests {
         ascending: Bool = true,
         showHidden: Bool = false,
         showTags: Bool = false,
-        scope: SearchScope = .name) async -> [FileItem] {
+        scope: SearchScope = .name,
+        recentURLs: [URL] = []) async -> [FileItem] {
         await (try? FileSystemService.loadDirectoryContents(
             at: url,
             options: DirectoryLoadOptions(
@@ -83,7 +107,8 @@ public struct FileSystemTests {
                 searchQuery: query,
                 sortOption: sort,
                 sortAscending: ascending,
-                searchScope: scope))) ?? []
+                searchScope: scope),
+            recentURLs: recentURLs)) ?? []
     }
 
     private static func runSearchAndSortCoverageExtras() async {
@@ -303,28 +328,19 @@ public struct FileSystemTests {
         let realFile = dir.appendingPathComponent("recent_real_file.txt")
         try? "x".write(to: realFile, atomically: true, encoding: .utf8)
         let fakeFile = dir.appendingPathComponent("recent_fake_file.txt")
-        let defaultsKey = "wiles_recentOpenedURLs"
-        let priorValue = UserDefaults.standard.stringArray(forKey: defaultsKey)
-        UserDefaults.standard.set([realFile.path, fakeFile.path], forKey: defaultsKey)
-        defer {
-            if let priorValue {
-                UserDefaults.standard.set(priorValue, forKey: defaultsKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: defaultsKey)
-            }
-        }
+        let recents = [realFile, fakeFile]
         let recentsURL = URL(fileURLWithPath: "/virtual/recents")
-        let items = await loadItems(at: recentsURL)
+        let items = await loadItems(at: recentsURL, recentURLs: recents)
         await TestReporter.report(
             "FileSystem/SearchAndSort",
             "POS: virtual recents directory includes only entries that still exist on disk",
             result: items.count == 1 && items.first?.name == "recent_real_file.txt")
-        let filtered = await loadItems(at: recentsURL, query: "recent_real")
+        let filtered = await loadItems(at: recentsURL, query: "recent_real", recentURLs: recents)
         await TestReporter.report(
             "FileSystem/SearchAndSort",
             "POS: virtual recents directory applies search filtering like a real directory",
             result: filtered.count == 1 && filtered.first?.name == "recent_real_file.txt")
-        let filteredOut = await loadItems(at: recentsURL, query: "no_such_match_token")
+        let filteredOut = await loadItems(at: recentsURL, query: "no_such_match_token", recentURLs: recents)
         await TestReporter.report(
             "FileSystem/SearchAndSort",
             "NEG: virtual recents directory excludes entries that don't match the search query",

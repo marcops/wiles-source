@@ -9,6 +9,164 @@ public struct AppStateFavoritesMoveTests {
     public static func run() async {
         testRemapFavorites()
         await testMoveItemUpdatesFavorites()
+        await testMoveItemsResolvingCollisionsAggregatesFailures()
+        await testMoveOneResolvingCollisionOutcomes()
+    }
+
+    /// Resolves the move-collision prompt `windowUIState` is about to raise while `operation` is
+    /// suspended on it, then returns `operation`'s result. Polls up to ~1s for the prompt.
+    private static func withResolvedCollisionPrompt<T: Sendable>(
+        _ windowUIState: WindowUIState,
+        answer: MoveCollisionChoice,
+        _ operation: @escaping @Sendable () async throws -> T) async -> T? {
+        let task = Task { try await operation() }
+        for _ in 0 ..< 50 {
+            if windowUIState.moveCollisionPrompt != nil { break }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        windowUIState.moveCollisionPrompt?.resolve(answer)
+        return try? await task.value
+    }
+
+    /// M23: `moveOneResolvingCollision` returns a `BatchMoveOutcome` whose `displacedExisting` flag
+    /// tells the caller whether to record an undo step — false for a clean move or KeepBoth, true
+    /// only for a Replace — plus `.cancelled` / `.skipped`. It also syncs favorites + per-folder mode.
+    private static func testMoveOneResolvingCollisionOutcomes() async {
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dest = root.appendingPathComponent("Dest")
+        try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        func makeFile(_ name: String, in dir: URL, _ body: String = "x") -> URL {
+            let url = dir.appendingPathComponent(name)
+            try? body.write(to: url, atomically: true, encoding: .utf8)
+            return url
+        }
+
+        // Happy path: no collision -> .moved(displacedExisting:false); favorite + per-folder mode follow.
+        let cleanSrcParent = root.appendingPathComponent("Clean")
+        try? FileManager.default.createDirectory(at: cleanSrcParent, withIntermediateDirectories: true)
+        let cleanSrc = makeFile("clean.txt", in: cleanSrcParent)
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        let priorFavs = appState.preferences.favoriteURLs
+        let priorModes = appState.preferences.perFolderViewModes
+        defer {
+            appState.preferences.favoriteURLs = priorFavs
+            appState.preferences.perFolderViewModes = priorModes
+        }
+        appState.preferences.favoriteURLs = [cleanSrc.standardizedFileURL]
+        appState.preferences.perFolderViewModes[cleanSrc.standardizedFileURL.path] = ViewMode.list.rawValue
+
+        let cleanResult = try? await appState.moveOneResolvingCollision(
+            cleanSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
+        var cleanOK = false
+        if case let .moved(to: movedURL, displacedExisting: false)? = cleanResult?.0 {
+            cleanOK = movedURL.lastPathComponent == "clean.txt"
+                && appState.preferences.favoriteURLs.first?.lastPathComponent == "clean.txt"
+                && appState.preferences.favoriteURLs.first?.path.contains("/Dest/") == true
+                && appState.preferences.perFolderViewModes[movedURL.standardizedFileURL.path] == ViewMode.list.rawValue
+        }
+        report("AppState", "POS: moveOneResolvingCollision clean move returns .moved(displacedExisting:false) and syncs favorites + per-folder mode", result: cleanOK)
+
+        // KeepBoth: dest occupied -> .moved(displacedExisting:false) at a fresh ' 2' name, both files kept.
+        _ = makeFile("dup.txt", in: dest, "existing")
+        let keepBothSrc = makeFile("dup.txt", in: cleanSrcParent, "incoming")
+        let keepBothResult = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .keepBoth, applyToAll: false)) {
+            try await appState.moveOneResolvingCollision(keepBothSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
+        }
+        var keepBothOK = false
+        if case let .moved(to: kbURL, displacedExisting: false)? = keepBothResult?.0 {
+            keepBothOK = kbURL.lastPathComponent != "dup.txt"
+                && FileManager.default.fileExists(atPath: kbURL.path)
+                && FileManager.default.fileExists(atPath: dest.appendingPathComponent("dup.txt").path)
+        }
+        report("AppState", "POS: moveOneResolvingCollision KeepBoth returns .moved(displacedExisting:false) at a fresh name, keeping both files", result: keepBothOK)
+
+        // Replace: dest occupied -> .moved(displacedExisting:true), incoming lands at the intended name.
+        let replaceSrc = makeFile("dup.txt", in: cleanSrcParent, "replacement")
+        let replaceResult = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .replace, applyToAll: false)) {
+            try await appState.moveOneResolvingCollision(replaceSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
+        }
+        var replaceOK = false
+        if case let .moved(to: rURL, displacedExisting: true)? = replaceResult?.0 {
+            replaceOK = rURL.lastPathComponent == "dup.txt" && !FileManager.default.fileExists(atPath: replaceSrc.path)
+        }
+        report("AppState", "POS: moveOneResolvingCollision Replace returns .moved(displacedExisting:true)", result: replaceOK)
+
+        // Cancel: dest occupied, user cancels -> .cancelled, source untouched.
+        let cancelSrc = makeFile("dup.txt", in: cleanSrcParent, "cancelled")
+        let cancelResult = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .cancel, applyToAll: false)) {
+            try await appState.moveOneResolvingCollision(cancelSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
+        }
+        var cancelOK = false
+        if case .cancelled? = cancelResult?.0 {
+            cancelOK = FileManager.default.fileExists(atPath: cancelSrc.path)
+        }
+        report("AppState", "POS: moveOneResolvingCollision Cancel returns .cancelled and leaves the source in place", result: cancelOK)
+
+        // windowUIState nil + on-disk collision -> .skipped, no move.
+        let skipSrc = makeFile("dup.txt", in: cleanSrcParent, "skipme")
+        let skipResult = try? await appState.moveOneResolvingCollision(
+            skipSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: nil)
+        var skipOK = false
+        if case .skipped? = skipResult?.0 {
+            skipOK = FileManager.default.fileExists(atPath: skipSrc.path)
+        }
+        report("AppState", "NEG: moveOneResolvingCollision with windowUIState nil + collision returns .skipped without moving", result: skipOK)
+    }
+
+    /// L19: `moveItemsResolvingCollisions` now counts per-item failures and surfaces ONE aggregated
+    /// `showError` after the loop instead of one alert per failed item mid-loop, and returns only the
+    /// URLs that actually moved. A fully-successful batch surfaces nothing.
+    private static func testMoveItemsResolvingCollisionsAggregatesFailures() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dest = dir.appendingPathComponent("Dest")
+        try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let realSource = dir.appendingPathComponent("real.txt")
+        try? "move me".write(to: realSource, atomically: true, encoding: .utf8)
+        // Two sources that don't exist on disk: FileSystemService.moveItem throws (not
+        // destinationExists), so each is counted as a failure with no collision prompt.
+        let ghostA = dir.appendingPathComponent("ghost-a-\(UUID().uuidString).txt")
+        let ghostB = dir.appendingPathComponent("ghost-b-\(UUID().uuidString).txt")
+
+        let appState = AppState()
+        appState.modal.errorMessage = nil
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+
+        let moved = await appState.moveItemsResolvingCollisions(
+            [realSource, ghostA, ghostB], toFolder: dest, windowUIState: windowUIState)
+
+        let onlyRealMoved = moved.count == 1
+            && moved.first?.lastPathComponent == "real.txt"
+            && FileManager.default.fileExists(atPath: dest.appendingPathComponent("real.txt").path)
+        report(
+            "AppState",
+            "POS: moveItemsResolvingCollisions returns only the URL that actually moved when 2 of 3 fail",
+            result: onlyRealMoved)
+
+        // Structural, not word-for-word (M56 will localize the "N of M" string): the single surfaced
+        // message carries both the failure count (2) and the batch total (3).
+        let msg = appState.modal.errorMessage ?? ""
+        report(
+            "AppState",
+            "POS: a 2-of-3-failed batch surfaces exactly one aggregated error carrying the 2/3 counts",
+            result: !msg.isEmpty && msg.contains("2") && msg.contains("3"))
+
+        let dest2 = dir.appendingPathComponent("Dest2")
+        try? FileManager.default.createDirectory(at: dest2, withIntermediateDirectories: true)
+        let okSource = dir.appendingPathComponent("ok.txt")
+        try? "ok".write(to: okSource, atomically: true, encoding: .utf8)
+        let appState2 = AppState()
+        appState2.modal.errorMessage = nil
+        let windowUIState2 = WindowUIState(preferences: appState2.preferences)
+        let moved2 = await appState2.moveItemsResolvingCollisions([okSource], toFolder: dest2, windowUIState: windowUIState2)
+        report(
+            "AppState",
+            "NEG: a fully-successful moveItemsResolvingCollisions batch moves every item and surfaces no error",
+            result: moved2.count == 1 && appState2.modal.errorMessage == nil)
     }
 
     /// Regression test for a real reported bug: favorite a folder, then move it (drag-and-drop or

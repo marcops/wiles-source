@@ -88,17 +88,10 @@ public enum ImageConverterService {
         }
     }
 
-    private static func renderResizedImage(_ image: CGImage, targetSize: CGSize) throws -> CGImage {
-        let context = CGContext(
-            data: nil,
-            width: Int(targetSize.width),
-            height: Int(targetSize.height),
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    private static let bitmapBitsPerComponent = 8
 
-        guard let ctx = context else {
+    private static func renderResizedImage(_ image: CGImage, targetSize: CGSize) throws -> CGImage {
+        guard let ctx = bitmapContext(for: image, targetSize: targetSize) else {
             throw WilesError.localized(key: .imageConverterContextFailed, arguments: [])
         }
 
@@ -111,17 +104,63 @@ public enum ImageConverterService {
         return resizedImage
     }
 
+    /// Renders in the source image's own color space (keeps Display-P3, grayscale, CMYK fidelity),
+    /// falling back to sRGB-with-profile - never bare device RGB - when that space can't back one.
+    private static func bitmapContext(for image: CGImage, targetSize: CGSize) -> CGContext? {
+        if let ctx = sourceColorSpaceContext(for: image, targetSize: targetSize) {
+            return ctx
+        }
+        let fallbackSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        return makeBitmapContext(targetSize: targetSize, colorSpace: fallbackSpace, alphaInfo: .premultipliedLast)
+    }
+
+    private static func sourceColorSpaceContext(for image: CGImage, targetSize: CGSize) -> CGContext? {
+        guard let sourceSpace = image.colorSpace else { return nil }
+        guard let alphaInfo = bitmapAlphaInfo(for: image, colorSpace: sourceSpace) else { return nil }
+        return makeBitmapContext(targetSize: targetSize, colorSpace: sourceSpace, alphaInfo: alphaInfo)
+    }
+
+    private static func makeBitmapContext(
+        targetSize: CGSize,
+        colorSpace: CGColorSpace,
+        alphaInfo: CGImageAlphaInfo) -> CGContext? {
+        CGContext(
+            data: nil,
+            width: Int(targetSize.width),
+            height: Int(targetSize.height),
+            bitsPerComponent: bitmapBitsPerComponent,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: alphaInfo.rawValue)
+    }
+
+    /// The alpha layout a bitmap context can accept for a given source color-space model, or `nil`
+    /// when the model can't back a bitmap context and the caller should fall back to sRGB.
+    private static func bitmapAlphaInfo(for image: CGImage, colorSpace: CGColorSpace) -> CGImageAlphaInfo? {
+        switch colorSpace.model {
+        case .rgb:
+            return .premultipliedLast
+        case .monochrome, .cmyk:
+            return imageHasAlpha(image) ? nil : CGImageAlphaInfo.none
+        default:
+            return nil
+        }
+    }
+
+    private static func imageHasAlpha(_ image: CGImage) -> Bool {
+        switch image.alphaInfo {
+        case .none, .noneSkipFirst, .noneSkipLast:
+            return false
+        default:
+            return true
+        }
+    }
+
     private static func uniqueDestinationURL(for url: URL, format: ImageFormat) -> URL {
         let parentFolder = url.deletingLastPathComponent()
         let baseName = url.deletingPathExtension().lastPathComponent
-        var destURL = parentFolder.appendingPathComponent("\(baseName)_converted.\(format.fileExtension)")
-
-        var counter = 2
-        while FileManager.default.fileExists(atPath: destURL.path) {
-            destURL = parentFolder.appendingPathComponent("\(baseName)_converted_\(counter).\(format.fileExtension)")
-            counter += 1
-        }
-        return destURL
+        let desiredURL = parentFolder.appendingPathComponent("\(baseName)_converted.\(format.fileExtension)")
+        return UniqueFileNaming.uniqueURL(for: desiredURL, in: parentFolder, isDirectory: false)
     }
 
     private static func writeImage(_ image: CGImage, to destURL: URL, format: ImageFormat, quality: Double) throws {

@@ -12,17 +12,23 @@ public extension AppState {
                     urls.append(url)
                 }
             }
-            // Comparing the `URL` values themselves (even standardized) isn't reliable here: a URL
-            // round-tripped through `NSItemProvider` can gain a directory trailing slash that a URL
-            // built locally never gets. `.path` (after resolving symlinks, e.g. ~/Desktop under
-            // iCloud Desktop & Documents sync) has no such ambiguity — so "drop a folder onto
-            // itself" is caught reliably.
-            let targetPath = targetFolder.resolvingSymlinksInPath().standardizedFileURL.path
-            let movable = urls.filter { $0.resolvingSymlinksInPath().standardizedFileURL.path != targetPath }
+            let movable = await Self.droppableExcludingSelf(urls, targetFolder: targetFolder)
             guard !movable.isEmpty else { return }
             _ = await moveItemsResolvingCollisions(movable, toFolder: targetFolder, windowUIState: windowUIState)
             refreshCurrentDirectory()
         }
+    }
+
+    /// Off-main: drops any URL that resolves to `targetFolder` itself. Comparing the `URL`s
+    /// directly isn't reliable — one round-tripped through `NSItemProvider` can gain a trailing
+    /// slash a locally built URL never has; the symlink-resolved `.path` has no such ambiguity.
+    /// `resolvingSymlinksInPath` is disk I/O, so it must not run on `@MainActor` (a `/Volumes` drop
+    /// target could stall it).
+    private static func droppableExcludingSelf(_ urls: [URL], targetFolder: URL) async -> [URL] {
+        await Task.detached(priority: .userInitiated) {
+            let targetPath = targetFolder.resolvingSymlinksInPath().standardizedFileURL.path
+            return urls.filter { $0.resolvingSymlinksInPath().standardizedFileURL.path != targetPath }
+        }.value
     }
 
     private static func loadDroppedURL(from provider: NSItemProvider) async -> URL? {
@@ -100,7 +106,7 @@ public extension AppState {
         let targetFolder = navigation.currentURL
         let undoRedoService = undoRedoService
         let titleKey = tr(.pastingItemsEllipsis)
-        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalBytes: Int64(urls.count))
+        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalUnits: Int64(urls.count))
         let pasteTask = Task(priority: .userInitiated) { @MainActor [weak self] in
             let context = PasteContext(
                 targetFolder: targetFolder, isCut: isCut, undoRedoService: undoRedoService,
@@ -120,16 +126,10 @@ public extension AppState {
         BackgroundOperationsService.shared.registerCancellation(id: taskID) { pasteTask.cancel() }
     }
 
-    private enum CutPasteOutcome {
-        case moved(URL)
-        case skipped
-        /// The user picked Cancel (or a sticky "apply to all → Cancel") — stop the whole paste.
-        case cancelled
-    }
-
     /// Extracted out of `executePaste` so that closure stays short — pastes every item sequentially
-    /// and reports per-item progress as it goes. The per-file heavy I/O is delegated to
-    /// `FileSystemService.moveItem`/`copyItem`, which each detach their own off-actor copy/delete.
+    /// and reports per-item progress. Cut items go through `AppState.moveOneResolvingCollision`, the
+    /// same per-item mover the drag-onto-folder path uses; heavy I/O is detached inside
+    /// `FileSystemService`.
     private static func pasteAllItems(urls: [URL], context: PasteContext) async -> (failureCount: Int, movedDestinations: [URL]) {
         var failureCount = 0
         var movedDestinations: [URL] = []
@@ -138,10 +138,17 @@ public extension AppState {
             guard !Task.isCancelled else { break }
             do {
                 if context.isCut {
-                    let (outcome, newSticky) = try await moveCutPasteItem(url: url, index: index, total: urls.count, context: context, sticky: sticky)
+                    guard let owner = context.owner else { break }
+                    let (outcome, newSticky) = try await owner.moveOneResolvingCollision(
+                        url, into: context.targetFolder, sticky: sticky,
+                        moreFollow: index < urls.count - 1, windowUIState: context.windowUIState)
                     sticky = newSticky
                     switch outcome {
-                    case let .moved(destURL): movedDestinations.append(destURL)
+                    case let .moved(destURL, displacedExisting):
+                        movedDestinations.append(destURL)
+                        if !displacedExisting {
+                            context.undoRedoService.recordAction(.move(sourceURL: url, destinationURL: destURL))
+                        }
                     case .skipped: break
                     case .cancelled: return (failureCount, movedDestinations)
                     }
@@ -153,46 +160,9 @@ public extension AppState {
                 ErrorReporter.report(error, context: "Pasting items to current directory")
                 failureCount += 1
             }
-            BackgroundOperationsService.shared.updateProgress(id: context.taskID, bytesTransferred: Int64(index + 1))
+            BackgroundOperationsService.shared.updateProgress(id: context.taskID, unitsDone: Int64(index + 1))
         }
         return (failureCount, movedDestinations)
-    }
-
-    /// Moves one cut item into the paste target, resolving a name collision via the per-window
-    /// prompt (Replace / Keep Both / Cancel, "apply to all"). A `.replace` iteration does **not**
-    /// record an undo action — the displaced file only lives in Trash. Returns the (possibly
-    /// updated) sticky choice for the rest of the batch.
-    private static func moveCutPasteItem(
-        url: URL,
-        index: Int,
-        total: Int,
-        context: PasteContext,
-        sticky: MoveCollisionChoice.Action?) async throws -> (CutPasteOutcome, MoveCollisionChoice.Action?) {
-        do {
-            let destURL = try await FileSystemService.moveItem(at: url, toFolder: context.targetFolder)
-            context.undoRedoService.recordAction(.move(sourceURL: url, destinationURL: destURL))
-            context.owner?.remapFavorites(from: url, to: destURL)
-            return (.moved(destURL), sticky)
-        } catch WilesError.destinationExists {
-            guard let owner = context.owner, let windowUIState = context.windowUIState else {
-                return (.skipped, sticky)
-            }
-            let resolution = await owner.resolveCollision(
-                itemName: url.lastPathComponent,
-                moreCollisionsPossible: index < total - 1,
-                sticky: sticky,
-                windowUIState: windowUIState)
-            if resolution.action == .cancel {
-                return (.cancelled, resolution.sticky)
-            }
-            let policy: MoveCollisionPolicy = resolution.action == .replace ? .replace : .keepBoth
-            let destURL = try await FileSystemService.moveItem(at: url, toFolder: context.targetFolder, onCollision: policy)
-            if resolution.action == .keepBoth {
-                context.undoRedoService.recordAction(.move(sourceURL: url, destinationURL: destURL))
-            }
-            context.owner?.remapFavorites(from: url, to: destURL)
-            return (.moved(destURL), resolution.sticky)
-        }
     }
 
     func deleteSelected(windowUIState: WindowUIState) {
@@ -208,33 +178,36 @@ public extension AppState {
         guard !selection.selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selection.selectedURLs)
-        let undoRedoService = undoRedoService
         let titleKey = tr(.movingToTrashEllipsis)
-        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalBytes: Int64(urls.count))
-        let deleteTask = Task.detached(priority: .userInitiated) {
-            var failureCount = 0
-            for (index, url) in urls.enumerated() {
-                guard !Task.isCancelled else { break }
-                do {
-                    let trashed = try await FileSystemService.moveToTrash(url: url)
-                    await undoRedoService.recordAction(.trash(originalURL: url, trashedURL: trashed))
-                } catch {
-                    ErrorReporter.report(error, context: "Moving item to Trash")
-                    failureCount += 1
-                }
-                await MainActor.run { BackgroundOperationsService.shared.updateProgress(id: taskID, bytesTransferred: Int64(index + 1)) }
+        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalUnits: Int64(urls.count))
+        let deleteTask = Task(priority: .userInitiated) { @MainActor [weak self] in
+            let failureCount = await Self.trashItems(urls: urls, taskID: taskID, undoRedoService: self?.undoRedoService)
+            BackgroundOperationsService.shared.completeTask(id: taskID)
+            guard let self else { return }
+            selection.selectedURLs.removeAll()
+            if failureCount > 0 {
+                showError(String(format: tr(.moveToTrashPartialFailure), failureCount, urls.count))
             }
-            await MainActor.run { [weak self] in
-                BackgroundOperationsService.shared.completeTask(id: taskID)
-                guard let self else { return }
-                selection.selectedURLs.removeAll()
-                if failureCount > 0 {
-                    showError(String(format: tr(.moveToTrashPartialFailure), failureCount, urls.count))
-                }
-                refreshCurrentDirectory()
-            }
+            refreshCurrentDirectory()
         }
         BackgroundOperationsService.shared.registerCancellation(id: taskID) { deleteTask.cancel() }
+    }
+
+    /// Off-main trash loop: no `self` capture, per-item progress hopped back to `@MainActor`.
+    private static func trashItems(urls: [URL], taskID: UUID, undoRedoService: UndoRedoService?) async -> Int {
+        var failureCount = 0
+        for (index, url) in urls.enumerated() {
+            guard !Task.isCancelled else { break }
+            do {
+                let trashed = try await FileSystemService.moveToTrash(url: url)
+                await undoRedoService?.recordAction(.trash(originalURL: url, trashedURL: trashed))
+            } catch {
+                ErrorReporter.report(error, context: "Moving item to Trash")
+                failureCount += 1
+            }
+            await MainActor.run { BackgroundOperationsService.shared.updateProgress(id: taskID, unitsDone: Int64(index + 1)) }
+        }
+        return failureCount
     }
 
     func deletePermanentlySelected(windowUIState: WindowUIState) {
@@ -250,7 +223,7 @@ public extension AppState {
         guard !selection.selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selection.selectedURLs)
-        runDetachedFileOperation(context: "Deleting item permanently", onSuccess: { [weak self] in
+        runDetachedFileOperation(context: "Deleting item permanently", onSuccess: { [weak self] _ in
             self?.selection.selectedURLs.removeAll()
         }, operation: {
             try FileShredderService.deletePermanently(urls: urls)
@@ -259,39 +232,23 @@ public extension AppState {
 
     func copyContentOfSelected() {
         guard let firstURL = primarySelectedURL else { return }
-        Task {
-            do {
-                try await PasteboardService.copyFileContentToClipboard(url: firstURL)
-            } catch {
-                showError(error, context: "Copying file content to clipboard")
-            }
+        runDetachedFileOperation(context: "Copying file content to clipboard", refreshOnSuccess: false) {
+            try await PasteboardService.copyFileContentToClipboard(url: firstURL)
         }
     }
 
     func undoLastAction() {
-        Task {
-            do {
-                if let targetURL = try await self.undoRedoService.undo() {
-                    self.refreshCurrentDirectory()
-                    self.selection.selectedURLs = [targetURL]
-                }
-            } catch {
-                self.showError(error, context: "Undoing last action")
-            }
-        }
+        let service = undoRedoService
+        runDetachedFileOperation(context: "Undoing last action", onSuccess: { [weak self] (target: URL?) in
+            if let target { self?.selection.selectedURLs = [target] }
+        }, operation: { try await service.undo() })
     }
 
     func redoLastAction() {
-        Task {
-            do {
-                if let targetURL = try await self.undoRedoService.redo() {
-                    self.refreshCurrentDirectory()
-                    self.selection.selectedURLs = [targetURL]
-                }
-            } catch {
-                self.showError(error, context: "Redoing last action")
-            }
-        }
+        let service = undoRedoService
+        runDetachedFileOperation(context: "Redoing last action", onSuccess: { [weak self] (target: URL?) in
+            if let target { self?.selection.selectedURLs = [target] }
+        }, operation: { try await service.redo() })
     }
 
     func selectAllItems() {
@@ -323,26 +280,22 @@ public extension AppState {
 
     func createNewFolderAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
         let targetFolder = folder ?? navigation.currentURL
-        Task {
-            do {
-                let createdURL = try await FileSystemService.createUniqueDirectory(
-                    at: targetFolder, baseName: tr(.defaultFolderName))
-                enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
-            } catch {
-                showError(error, context: "Creating new folder")
-            }
-        }
+        let baseName = tr(.defaultFolderName)
+        runDetachedFileOperation(context: "Creating new folder", refreshOnSuccess: false, onSuccess: { [weak self] (url: URL) in
+            self?.enterRenameForNewlyCreated(at: url, inFolder: targetFolder, windowUIState: windowUIState)
+        }, operation: {
+            try await FileSystemService.createUniqueDirectory(at: targetFolder, baseName: baseName)
+        })
     }
 
     func createNewFileAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
         let targetFolder = folder ?? navigation.currentURL
-        do {
-            let createdURL = try NewFileTemplateService.createTemplateFile(
-                in: targetFolder, fileName: "", template: .text, language: preferences.appLanguage)
-            enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
-        } catch {
-            showError(error, context: "Creating new file")
-        }
+        let language = preferences.appLanguage
+        runDetachedFileOperation(context: "Creating new file", refreshOnSuccess: false, onSuccess: { [weak self] (url: URL) in
+            self?.enterRenameForNewlyCreated(at: url, inFolder: targetFolder, windowUIState: windowUIState)
+        }, operation: {
+            try NewFileTemplateService.createTemplateFile(in: targetFolder, fileName: "", template: .text, language: language)
+        })
     }
 
     /// `folder` may differ from `navigation.currentURL` — only touch `fileSystem.items` when
@@ -363,47 +316,41 @@ public extension AppState {
             fileSystem.items + [newItem], by: preferences.sortOption, ascending: preferences.sortAscending)
     }
 
-    /// Shared shape for a whole-selection file operation: run `operation` off the main actor, then
-    /// re-enter the main actor exactly once — either to run `onSuccess` and refresh (operation
-    /// succeeded), or to report and surface the error (operation threw). `operation` may be
-    /// synchronous or asynchronous throwing work; either coerces fine to the `async throws`
-    /// closure type. Not a fit for operations that need to keep going after a per-item failure
-    /// (e.g. a loop that reports one error per failed URL but still processes the rest) — those
-    /// stay bespoke.
+    /// Shared shape for a whole-selection file operation: `await` `operation` (a `nonisolated`
+    /// `@Sendable` closure, so the heavy I/O runs off the main actor while this suspends), then
+    /// re-enter the main actor exactly once — run `onSuccess` with the result and refresh, or
+    /// report and surface the error. `operation` may be synchronous or asynchronous throwing work.
+    /// Not a fit for operations that keep going after a per-item failure (a loop reporting one
+    /// error per failed URL but still processing the rest) — those stay bespoke.
     /// `taskTitle`, when supplied, publishes a `BackgroundOperationsService` entry for the
-    /// operation's duration (an all-or-nothing 0→1 progress bar, since these operations don't
-    /// report incremental progress internally) — otherwise this ran with zero UI signal until
-    /// the final refresh, indistinguishable from the app being frozen on a large file.
-    func runDetachedFileOperation(
+    /// operation's duration (an all-or-nothing 0→1 bar, since these don't report incremental
+    /// progress) — otherwise this ran with zero UI signal until the final refresh,
+    /// indistinguishable from the app being frozen on a large file.
+    func runDetachedFileOperation<T: Sendable>(
         context: String,
         priority: TaskPriority = .userInitiated,
         taskTitle: String? = nil,
-        onSuccess: (@MainActor () -> Void)? = nil,
-        operation: @escaping @Sendable () async throws -> Void) {
-        let taskID: UUID? = taskTitle.map { BackgroundOperationsService.shared.addTask(title: $0, totalBytes: 1) }
-        let opTask = Task.detached(priority: priority) { [weak self] in
+        refreshOnSuccess: Bool = true,
+        reportError: Bool = true,
+        onSuccess: @escaping @MainActor (T) -> Void = { _ in },
+        operation: @escaping @Sendable () async throws -> T) {
+        let taskID: UUID? = taskTitle.map { BackgroundOperationsService.shared.addTask(title: $0, totalUnits: 1) }
+        let opTask = Task(priority: priority) { @MainActor [weak self] in
             do {
-                try await operation()
+                let result = try await operation()
                 guard let self else { return }
-                await handleDetachedOperationSuccess(onSuccess: onSuccess, taskID: taskID)
+                if let taskID { BackgroundOperationsService.shared.completeTask(id: taskID) }
+                onSuccess(result)
+                if refreshOnSuccess { refreshCurrentDirectory() }
             } catch {
-                ErrorReporter.report(error, context: context)
-                guard let self else { return }
-                await handleDetachedOperationFailure(error, taskID: taskID)
+                // Skipped when `operation` already reports richer diagnostics itself (e.g. ArchiveService's stderr capture).
+                if reportError { ErrorReporter.report(error, context: context) }
+                self?.handleDetachedOperationFailure(error, taskID: taskID)
             }
         }
         if let taskID {
             BackgroundOperationsService.shared.registerCancellation(id: taskID) { opTask.cancel() }
         }
-    }
-
-    @MainActor
-    private func handleDetachedOperationSuccess(onSuccess: (@MainActor () -> Void)?, taskID: UUID?) {
-        if let taskID {
-            BackgroundOperationsService.shared.completeTask(id: taskID)
-        }
-        onSuccess?()
-        refreshCurrentDirectory()
     }
 
     @MainActor
@@ -414,42 +361,22 @@ public extension AppState {
         showError(error)
     }
 
-    /// Same shape as `runDetachedFileOperation` above, for the common case where the operation
-    /// produces a single new/renamed URL: on success it records the undo action `recordUndo`
-    /// returns (if any), refreshes, and selects `[url]`; on failure it reports + `showError`.
-    /// Consolidates the hand-copied "detached op → hop → record undo + refresh + select" block.
-    func runDetachedFileOperation(
+    /// `runDetachedFileOperation` for the common case where the operation produces a single
+    /// new/renamed URL: records the undo action `recordUndo` returns (if any), then selects `[url]`.
+    func runDetachedURLOperation(
         context: String,
         priority: TaskPriority = .userInitiated,
         taskTitle: String? = nil,
         operation: @escaping @Sendable () async throws -> URL,
         recordUndo: @escaping @MainActor (URL) -> UndoActionType?) {
-        let taskID: UUID? = taskTitle.map { BackgroundOperationsService.shared.addTask(title: $0, totalBytes: 1) }
-        let opTask = Task.detached(priority: priority) { [weak self] in
-            do {
-                let url = try await operation()
+        runDetachedFileOperation(
+            context: context, priority: priority, taskTitle: taskTitle,
+            onSuccess: { [weak self] url in
                 guard let self else { return }
-                await finishDetachedURLOperation(url: url, recordUndo: recordUndo, taskID: taskID)
-            } catch {
-                ErrorReporter.report(error, context: context)
-                guard let self else { return }
-                await handleDetachedOperationFailure(error, taskID: taskID)
-            }
-        }
-        if let taskID {
-            BackgroundOperationsService.shared.registerCancellation(id: taskID) { opTask.cancel() }
-        }
-    }
-
-    @MainActor
-    private func finishDetachedURLOperation(url: URL, recordUndo: @MainActor (URL) -> UndoActionType?, taskID: UUID?) {
-        if let taskID {
-            BackgroundOperationsService.shared.completeTask(id: taskID)
-        }
-        if let action = recordUndo(url) {
-            undoRedoService.recordAction(action)
-        }
-        refreshCurrentDirectory()
-        selection.selectedURLs = [url]
+                if let action = recordUndo(url) {
+                    undoRedoService.recordAction(action)
+                }
+                selection.selectedURLs = [url]
+            }, operation: operation)
     }
 }

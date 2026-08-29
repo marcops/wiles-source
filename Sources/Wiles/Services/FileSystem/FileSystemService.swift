@@ -2,34 +2,27 @@ import AppKit
 import Foundation
 import GitBeacon
 
-public extension URL {
-    static let userHome: URL = FileManager.default.homeDirectoryForCurrentUser
-    static let userTrash: URL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask)
-        .first ?? URL(fileURLWithPath: "/Users/\(NSUserName())/.Trash")
-}
-
 public struct FileSystemService: Sendable {
     static let recursiveSearchResultLimit: Int = 2000
     static let recursiveSearchBatchSize: Int = 40
 
-    public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions) async throws -> [FileItem] {
+    /// `recentURLs` is the caller's in-memory recents list (`NavigationStore.recentOpenedURLs`) —
+    /// passed in rather than re-read from `UserDefaults` here, so the two can't diverge before a save.
+    public static func loadDirectoryContents(at url: URL, options: DirectoryLoadOptions, recentURLs: [URL] = []) async throws -> [FileItem] {
         if url.path == AppState.recentsVirtualURL.path {
-            return await loadRecentsVirtualDirectory(options: options)
+            return await loadRecentsVirtualDirectory(recentURLs: recentURLs, options: options)
         }
         return try await loadRealDirectoryContents(at: url, options: options)
     }
 
-    private static func loadRecentsVirtualDirectory(options: DirectoryLoadOptions) async -> [FileItem] {
+    private static func loadRecentsVirtualDirectory(recentURLs: [URL], options: DirectoryLoadOptions) async -> [FileItem] {
         await Task.detached(priority: .userInitiated) {
-            let defaults = UserDefaults.standard
-            let paths = defaults.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) ?? []
             let fm = FileManager.default
             var items: [FileItem] = []
-            for path in paths {
+            for fileURL in recentURLs {
                 if Task.isCancelled {
                     break
                 }
-                let fileURL = URL(fileURLWithPath: path)
                 guard fm.fileExists(atPath: fileURL.path) else { continue }
 
                 // Let FileItem resolve the icon from `.effectiveIcon` in its own resourceValues
@@ -186,6 +179,7 @@ public struct FileSystemService: Sendable {
         }
 
         let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+        let isOrderedBefore = sortComparator(for: options.sortOption, ascending: options.sortAscending)
         var items: [FileItem] = []
         var lastReportedCount = 0
         while let fileURL = enumerator.nextObject() as? URL {
@@ -201,32 +195,37 @@ public struct FileSystemService: Sendable {
                 continue
             }
 
-            items.append(FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+            let newItem = FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup)
+            items.insert(newItem, at: insertionIndex(for: newItem, in: items, isOrderedBefore: isOrderedBefore))
             if items.count - lastReportedCount >= Self.recursiveSearchBatchSize {
-                onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
+                onBatch(items)
                 lastReportedCount = items.count
             }
             if items.count >= Self.recursiveSearchResultLimit {
                 break
             }
         }
-        onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
+        onBatch(items)
     }
 
     private static func isFileHidden(fileURL: URL, showHidden: Bool) -> Bool {
-        if showHidden {
-            return false
-        }
-        if fileURL.lastPathComponent.hasPrefix(".") {
-            return true
-        }
-        return (try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden) ?? false
+        guard !showHidden else { return false }
+        // Fast path: skip the stat for dotfiles during recursive enumeration.
+        if fileURL.lastPathComponent.hasPrefix(".") { return true }
+        return FileItem.isHidden(
+            url: fileURL,
+            isHiddenResourceValue: try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden)
     }
 
     /// `internal` (not `private`): also used by `AppState` to re-sort `items` in memory after an
     /// in-place create/rename, without re-reading the directory from disk.
     static func sortItems(_ items: [FileItem], by option: SortOption, ascending: Bool) -> [FileItem] {
-        // Pick the comparison once, not per pair inside `.sorted`.
+        items.sorted(by: sortComparator(for: option, ascending: ascending))
+    }
+
+    /// The "directories first, then `option` order" predicate, built once. Reused by the recursive
+    /// search's binary-insertion so it never re-sorts a growing array per batch.
+    static func sortComparator(for option: SortOption, ascending: Bool) -> (FileItem, FileItem) -> Bool {
         let isBefore: (FileItem, FileItem) -> Bool = switch option {
         case .name: { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         case .dateModified: { $0.dateModified < $1.dateModified }
@@ -237,12 +236,25 @@ public struct FileSystemService: Sendable {
         case .owner: { $0.ownerName.localizedStandardCompare($1.ownerName) == .orderedAscending }
         case .group: { $0.groupName.localizedStandardCompare($1.groupName) == .orderedAscending }
         }
-        return items.sorted { lhs, rhs in
+        return { lhs, rhs in
             if lhs.isDirectory != rhs.isDirectory {
                 return lhs.isDirectory && !rhs.isDirectory
             }
             return ascending ? isBefore(lhs, rhs) : !isBefore(lhs, rhs)
         }
+    }
+
+    /// Lower-bound index for `item` in an array already ordered by `isOrderedBefore`.
+    static func insertionIndex(
+        for item: FileItem, in sorted: [FileItem],
+        isOrderedBefore: (FileItem, FileItem) -> Bool) -> Int {
+        var low = 0
+        var high = sorted.count
+        while low < high {
+            let mid = (low + high) / 2
+            if isOrderedBefore(sorted[mid], item) { low = mid + 1 } else { high = mid }
+        }
+        return low
     }
 
     public static func setTags(for url: URL, tags: [String]) throws {

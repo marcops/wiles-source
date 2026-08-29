@@ -51,18 +51,18 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
         case .fileCreationNotRedoable:
             "Can't Redo: Wiles doesn't store the original file's content, so this creation can't be redone."
         case let .localized(key, arguments):
-            Self.substitute(L10n.string(key, lang: .system), arguments)
+            Self.substitute(L10n.string(key, lang: .system), Self.positionalTokens(arguments))
         }
     }
 
-    /// Positional `{0}`, `{1}`, … substitution — same no-crash rationale as `localizedMessage`'s
-    /// `{path}`/`{reason}` tokens (a translation missing a token just no-ops, unlike `String(format:)`).
-    private static func substitute(_ template: String, _ arguments: [String]) -> String {
-        var result = template
-        for (index, value) in arguments.enumerated() {
-            result = result.replacingOccurrences(of: "{\(index)}", with: value)
-        }
-        return result
+    /// The one token-substitution mechanism for every case. A translation missing a token just
+    /// no-ops (unlike `String(format:)`, which can misread the varargs stack on bad translation data).
+    private static func substitute(_ template: String, _ tokens: [String: String]) -> String {
+        tokens.reduce(template) { $0.replacingOccurrences(of: $1.key, with: $1.value) }
+    }
+
+    private static func positionalTokens(_ arguments: [String]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: arguments.enumerated().map { ("{\($0.offset)}", $0.element) })
     }
 
     public var l10nKey: L10n.Key {
@@ -84,20 +84,17 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
     /// template via `l10nKey`. Prefer this over `errorDescription`/`localizedDescription` wherever
     /// a `WilesError` reaches a visible alert.
     ///
-    /// Uses `{path}`/`{reason}` token substitution rather than `String(format:)` with positional
-    /// `%@`: if a translator's string is missing the token, substitution just no-ops instead of
-    /// `String(format:)` misreading the varargs stack (a real crash risk driven by translation data).
     public func localizedMessage(lang: AppLanguage) -> String {
         let template = L10n.string(l10nKey, lang: lang)
         switch self {
         case let .permissionDenied(path), let .diskFull(path), let .fileInUse(path), let .itemNotFound(path):
-            return template.replacingOccurrences(of: "{path}", with: path)
+            return Self.substitute(template, ["{path}": path])
         case let .operationFailed(reason):
-            return template.replacingOccurrences(of: "{reason}", with: reason)
+            return Self.substitute(template, ["{reason}": reason])
         case let .destinationExists(name):
-            return template.replacingOccurrences(of: "{name}", with: name)
+            return Self.substitute(template, ["{name}": name])
         case let .localized(_, arguments):
-            return Self.substitute(template, arguments)
+            return Self.substitute(template, Self.positionalTokens(arguments))
         case .invalidZipPassword, .itemAlreadyInDestination, .fileCreationNotRedoable:
             return template
         }

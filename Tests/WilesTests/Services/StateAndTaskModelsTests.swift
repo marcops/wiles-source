@@ -73,15 +73,15 @@ public struct StateAndTaskModelsTests {
     // MARK: - FileOperationTask
 
     private static func testFileOperationTaskState() {
-        var task = FileOperationTask(title: "Copying files", totalBytes: 1000)
+        var task = FileOperationTask(title: "Copying files", unitsTotal: 1000)
         report("FileOperationTask", "POS: default progress starts at 0", result: task.progress == 0.0)
 
-        task.bytesTransferred = 250
-        report("FileOperationTask", "POS: progress derives from bytesTransferred/totalBytes", result: abs(task.progress - 0.25) < 0.0001)
+        task.unitsDone = 250
+        report("FileOperationTask", "POS: progress derives from unitsDone/unitsTotal", result: abs(task.progress - 0.25) < 0.0001)
 
         let idBefore = task.id
-        task.bytesTransferred = 900
-        report("FileOperationTask", "NEG: mutating bytesTransferred does not change identity (id)", result: task.id == idBefore)
+        task.unitsDone = 900
+        report("FileOperationTask", "NEG: mutating unitsDone does not change identity (id)", result: task.id == idBefore)
 
         let generated1 = FileOperationTask(title: "A")
         let generated2 = FileOperationTask(title: "A")

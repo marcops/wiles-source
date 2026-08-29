@@ -232,9 +232,7 @@ struct FilePropertiesSheet: View {
 
     private func loadProperties() async {
         detailedProps = await FileMetadataService.shared.fetchProperties(for: item.url)
-        exifData = await Task.detached(priority: .userInitiated) {
-            ExifMetadataService.extractExif(from: item.url)
-        }.value
+        exifData = await ExifMetadataService.extractExif(from: item.url)
         let url = item.url
         if let loadedPermissions = await Task.detached(priority: .userInitiated, operation: {
             FilePermissionsService.getPermissions(for: url)
@@ -252,9 +250,7 @@ struct FilePropertiesSheet: View {
         applyPermissionsResult = nil
         defer { isApplyingPermissions = false }
         if applyToEnclosedItems {
-            let result = await Task.detached(priority: .userInitiated) {
-                FilePermissionsService.setPermissionsRecursively(for: url, permissions: permissionsToApply)
-            }.value
+            let result = await FilePermissionsService.setPermissionsRecursively(for: url, permissions: permissionsToApply)
             if let firstError = result.errors.first {
                 ErrorReporter.report(firstError, context: "Applying recursive file permissions")
                 appState.showError(firstError)

@@ -27,7 +27,7 @@ extension AppStateOperationsExtraTests {
         provider.registerObject(sourceFile as NSURL, visibility: .all)
 
         let appState = AppState()
-        appState.handleDrop(providers: [provider], targetFolder: targetDir, windowUIState: WindowUIState())
+        appState.handleDrop(providers: [provider], targetFolder: targetDir, windowUIState: WindowUIState(preferences: appState.preferences))
 
         let destFile = targetDir.appendingPathComponent("dropped.txt")
         let moved = await pollUntilTrue { FileManager.default.fileExists(atPath: destFile.path) }
@@ -51,7 +51,7 @@ extension AppStateOperationsExtraTests {
         provider.registerObject(folderToMove as NSURL, visibility: .all)
 
         let appState = AppState()
-        appState.handleDrop(providers: [provider], targetFolder: folderToMove, windowUIState: WindowUIState())
+        appState.handleDrop(providers: [provider], targetFolder: folderToMove, windowUIState: WindowUIState(preferences: appState.preferences))
 
         // Give the async loadObject callback a moment to run; there's nothing to poll for since
         // the expected outcome is "nothing changes."
@@ -76,7 +76,7 @@ extension AppStateOperationsExtraTests {
 
         let appState = AppState()
         appState.modal.errorMessage = nil
-        appState.handleDrop(providers: [provider], targetFolder: dir, windowUIState: WindowUIState())
+        appState.handleDrop(providers: [provider], targetFolder: dir, windowUIState: WindowUIState(preferences: appState.preferences))
 
         let errorShown = await pollUntilTrue { appState.modal.errorMessage != nil }
         report(
@@ -102,7 +102,7 @@ extension AppStateOperationsExtraTests {
 
         let appState = AppState()
         appState.modal.errorMessage = nil
-        appState.handleDrop(providers: [provider], targetFolder: targetDir, windowUIState: WindowUIState())
+        appState.handleDrop(providers: [provider], targetFolder: targetDir, windowUIState: WindowUIState(preferences: appState.preferences))
 
         let errorShown = await pollUntilTrue { appState.modal.errorMessage != nil }
         report("AppState+Operations", "NEG: handleDrop() reports an error when the move fails (read-only target folder)", result: errorShown)

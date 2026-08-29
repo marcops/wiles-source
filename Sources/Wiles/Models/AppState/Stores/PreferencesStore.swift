@@ -150,32 +150,9 @@ public final class PreferencesStore {
         didSet { persist(showTerminalDrawer, .showTerminalDrawer) }
     }
 
-    /// Persisted default for a *new* window — see `sidebarWidth` above. `showPreviewSidebar` and
-    /// `showDiskUsageSidebar` are mutually exclusive: both occupy the same trailing pane of the
-    /// content `HSplitView`. Letting both be true at once would put a 3rd pane into that split
-    /// view, which `HSplitView`/`NSSplitView` doesn't reliably size on first appearance —
-    /// newly-inserted panes there could render at ~0 width instead of honoring their
-    /// `.frame(minWidth:)`. Keeping it to a strict 2-pane split (content | one inspector) is the
-    /// same shape that already worked correctly, so enforce exclusivity here (and again on
-    /// `WindowUIState`, which owns each window's actual live value) instead of fighting
-    /// NSSplitView's sizing from the view layer.
-    public var showPreviewSidebar: Bool = false {
-        didSet {
-            persist(showPreviewSidebar, .showPreviewSidebar)
-            if showPreviewSidebar, showDiskUsageSidebar {
-                showDiskUsageSidebar = false
-            }
-        }
-    }
-
-    /// Persisted default for a *new* window — see `showPreviewSidebar` above.
-    public var showDiskUsageSidebar: Bool = false {
-        didSet {
-            persist(showDiskUsageSidebar, .showDiskUsageSidebar)
-            if showDiskUsageSidebar, showPreviewSidebar {
-                showPreviewSidebar = false
-            }
-        }
+    /// Persisted default trailing inspector for a *new* window — see `sidebarWidth` above.
+    public var trailingInspector: TrailingInspector = .none {
+        didSet { persist(trailingInspector, .trailingInspector) }
     }
 
     public var skipDeleteConfirmation: Bool = false {
@@ -210,8 +187,14 @@ public final class PreferencesStore {
     public var favoriteURLs: [URL] = [] {
         didSet {
             persist(favoriteURLs.map(\.path), .favoriteURLs)
+            resolvedFavoritePaths = Set(favoriteURLs.map { $0.resolvingSymlinksInPath().standardizedFileURL.path })
         }
     }
+
+    /// Symlink-resolved paths of `favoriteURLs`, recomputed only when the list changes — so
+    /// `AppState.isFavorite(_:)` (called per visible row) is an O(1) `Set` lookup instead of an
+    /// O(favorites) `resolvingSymlinksInPath()` stat storm every render.
+    public private(set) var resolvedFavoritePaths: Set<String> = []
 
     /// `private(set)`: mutations must go through the methods below so persistence can't be bypassed.
     /// Populated from disk in `loadSavedPreferences()`, not as a stored-property default (that would
@@ -260,7 +243,16 @@ public final class PreferencesStore {
         }
     }
 
-    var suppressColumnStatePersistence: Bool = false
+    private var suppressColumnStatePersistence: Bool = false
+
+    /// Applies `body` with `listColumnStates` persistence held off, restoring the prior state on exit
+    /// (via `defer`, so an early return or throw inside `body` can't leave persistence stuck off).
+    func withColumnStatePersistenceSuppressed(_ body: () -> Void) {
+        let previous = suppressColumnStatePersistence
+        suppressColumnStatePersistence = true
+        defer { suppressColumnStatePersistence = previous }
+        body()
+    }
 
     func saveListColumnStates() {
         do {
@@ -307,6 +299,18 @@ public final class PreferencesStore {
         _ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<PreferencesStore, T>, from defaults: UserDefaults) where T.RawValue == String {
         if let raw = defaults.string(forKey: key.rawValue), let value = T(rawValue: raw) {
             self[keyPath: keyPath] = value
+        }
+    }
+
+    /// Restores `trailingInspector`, falling back to the pre-enum `wiles_showPreviewSidebar` /
+    /// `wiles_showDiskUsageSidebar` bools so an upgrade doesn't lose the open inspector.
+    private func loadTrailingInspector(_ defaults: UserDefaults) {
+        if let raw = defaults.string(forKey: DefaultsKey.trailingInspector.rawValue), let value = TrailingInspector(rawValue: raw) {
+            trailingInspector = value
+        } else if defaults.bool(forKey: "wiles_showPreviewSidebar") {
+            trailingInspector = .preview
+        } else if defaults.bool(forKey: "wiles_showDiskUsageSidebar") {
+            trailingInspector = .diskUsage
         }
     }
 
@@ -416,8 +420,7 @@ public final class PreferencesStore {
         loadBool(.alwaysShowFullPathBar, into: \.alwaysShowFullPathBar, from: defaults)
         loadBool(.showFooter, into: \.showFooter, from: defaults)
         loadBool(.showTerminalDrawer, into: \.showTerminalDrawer, from: defaults)
-        loadBool(.showPreviewSidebar, into: \.showPreviewSidebar, from: defaults)
-        loadBool(.showDiskUsageSidebar, into: \.showDiskUsageSidebar, from: defaults)
+        loadTrailingInspector(defaults)
         loadBool(.skipDeleteConfirmation, into: \.skipDeleteConfirmation, from: defaults)
         loadBool(.isCompactMode, into: \.isCompactMode, from: defaults)
 

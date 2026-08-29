@@ -23,6 +23,70 @@ public struct PreferencesStoreTests {
         testIconSizeLoadsSavedValueWithinBounds()
         testFavoriteURLsFallsBackToDefaultsWhenNoneSaved()
         testFavoriteURLsLoadsSavedArrayOptimisticallyAcceptingVolumesPaths()
+        testResolvedFavoritePathsStaysInSyncWithFavoriteURLs()
+    }
+
+    // MARK: - resolvedFavoritePaths (M25)
+
+    /// `resolvedFavoritePaths` is recomputed in `favoriteURLs`'s `didSet` as the symlink-resolved,
+    /// standardized path set — the O(1) lookup backing `AppState.isFavorite`. It must track every
+    /// mutation (assign / append / remove / reorder) and resolve symlinks. Mutates the real
+    /// `DefaultsKey.favoriteURLs`, so per rule 17 it's snapshotted and restored in `defer`.
+    private static func testResolvedFavoritePathsStaysInSyncWithFavoriteURLs() {
+        let key = DefaultsKey.favoriteURLs.rawValue
+        let priorArray = UserDefaults.standard.stringArray(forKey: key)
+        defer {
+            if let priorArray {
+                UserDefaults.standard.set(priorArray, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let real = dir.appendingPathComponent("RealFolder")
+        let other = dir.appendingPathComponent("Other")
+        try? FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        let link = dir.appendingPathComponent("LinkToReal")
+        try? FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+
+        func resolved(_ urls: [URL]) -> Set<String> {
+            Set(urls.map { $0.resolvingSymlinksInPath().standardizedFileURL.path })
+        }
+
+        let store = PreferencesStore()
+
+        store.favoriteURLs = []
+        report("Store/PreferencesStore", "POS: resolvedFavoritePaths is empty when favoriteURLs is empty", result: store.resolvedFavoritePaths.isEmpty)
+
+        store.favoriteURLs = [real, other]
+        report(
+            "Store/PreferencesStore",
+            "POS: resolvedFavoritePaths equals the symlink-resolved set of favoriteURLs after assignment",
+            result: store.resolvedFavoritePaths == resolved([real, other]))
+
+        store.favoriteURLs.append(link)
+        report(
+            "Store/PreferencesStore",
+            "POS: appending a symlink to favoriteURLs recomputes resolvedFavoritePaths with the symlink's real target path",
+            result: store.resolvedFavoritePaths == resolved([real, other, link])
+                && store.resolvedFavoritePaths.contains(real.resolvingSymlinksInPath().standardizedFileURL.path))
+
+        store.favoriteURLs.swapAt(0, 2)
+        report(
+            "Store/PreferencesStore",
+            "POS: reordering favoriteURLs keeps resolvedFavoritePaths correct (order-independent set)",
+            result: store.resolvedFavoritePaths == resolved([real, other, link]))
+
+        store.favoriteURLs.removeAll { $0 == other }
+        report(
+            "Store/PreferencesStore",
+            "POS: removing from favoriteURLs recomputes resolvedFavoritePaths",
+            result: store.resolvedFavoritePaths == resolved([real, link])
+                && !store.resolvedFavoritePaths.contains(other.resolvingSymlinksInPath().standardizedFileURL.path))
     }
 
     // MARK: - favoriteURLs load-from-saved-array branch

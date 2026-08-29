@@ -1,11 +1,5 @@
 # Architecture & Code Review
 
-Revisão arquitetural e de código do Wiles, linha a linha, de todos os arquivos de
-`Sources/` **exceto** os 40 listados em `TODO/eval/IGNORAR.md` e **exceto** qualquer
-código de teste. Escrito em modo *append* — cada lote de arquivos gera seu bloco de
-achados assim que é avaliado. As seções de síntese (Executive Summary, Roadmap,
-Grades, Lint Rules) são preenchidas ao final, a partir dos achados já registrados.
-
 Formato de cada achado:
 `[ID] SEVERIDADE · Categoria · arquivo:símbolo` seguido de
 **Problema / Por que / Impacto / Solução / Esforço / Quando**.
@@ -18,21 +12,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 ## Achados (em ordem de revisão)
 
-### Lote 1 — `Models/AppState/` (core + stores)
-
-**[A1] ARCHITECTURAL CONCERN · concorrência · `AppState.swift:14` — `@unchecked Sendable`**
-- **Problema:** `AppState` é `@unchecked Sendable` para poder ser capturado em closures de `Task.detached` espalhadas por `AppState+Operations.swift` (449 linhas), `+Navigation.swift`, `+ColumnsAndActions.swift`. A segurança depende 100% da convenção "só toque em `self.x` depois de `await MainActor.run`", **sem nenhuma verificação do compilador**.
-- **Por que é problema:** qualquer edição futura que leia/escreva um campo de `self` diretamente dentro do corpo detached compila sem aviso e introduz data race silenciosa. É a exata armadilha que `@unchecked` cria.
-- **Impacto:** race conditions difíceis de reproduzir, corrupção de estado de navegação/seleção.
-- **Solução:** parar de capturar `self` no `Task.detached`. Extrair os poucos valores `Sendable` que o corpo detached precisa (URLs, opções) para constantes locais e capturar só elas; o resultado volta por `return` e é aplicado no `await MainActor.run`. Onde isso for inviável, encapsular o trabalho detached num `actor` ou função `nonisolated static`.
-- **Esforço:** médio (varre os call sites de `Task.detached`).
-- **Quando:** posteriormente, mas antes de crescer mais o `+Operations`.
-
-**[L4] LOW · SRP/tamanho · `PreferencesStore.swift` (489 linhas) partido por pressão de lint**
-- **Problema:** `PreferencesStore+SmartFolders.swift` diz textualmente que foi separado "to keep that file under the 500-line lint cap". Split por limite de linha, não por coesão.
-- **Impacto:** sinal de god object; ver análise dedicada no lote de `PreferencesStore.swift`.
-- **Quando:** ver lote específico.
-
 ### Lote 2 — `PreferencesStore.swift` (489 linhas)
 
 **[A2] ARCHITECTURAL CONCERN · SRP · `PreferencesStore.swift` — god object de preferências**
@@ -41,51 +20,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 - **Impacto:** cada nova pref infla o arquivo; o split por lint vai se repetir.
 - **Solução:** separar em stores coesos (`ViewPreferences`, `SidebarPreferences`, `SearchPreferences`, `AppearancePreferences`) e mover `favoriteURLs` para um `FavoritesStore` junto da lógica de `AppState+Favorites`. **Custo/migração:** médio — atualizar call sites `appState.preferences.x` → `appState.preferences.view.x` etc.; fazer incremental, um grupo por vez.
 - **Quando:** posteriormente; não é urgente, mas decidir a direção antes do próximo split forçado por lint.
-
-**[L8] LOW · flags de supressão espalhadas · `suppressColumnStatePersistence`, `NavigationStore.isInitializing`, `SmartFolderStore.suppressNextSearchFocus`**
-- **Problema:** padrão recorrente de flag booleana mutável para suprimir um efeito colateral durante um trecho. Frágil (um early-return/throw pode deixar a flag presa).
-- **Solução:** onde possível, um helper `withSuppressed(_:)` que garante reset em `defer`.
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-### Lote 3 — `AppState+Navigation / +Selection / +Text / +Trash / +Archive / +SmartFolders`
-
-### Lote 4 — `AppState+Operations.swift` (449 linhas)
-
-**[M14] MEDIUM · UX / naming · `AppState+Operations.swift:105,156,214,225` — progresso rotulado "bytes" mas alimentado com contagem de itens**
-- **Problema:** `BackgroundOperationsService.addTask(totalBytes: Int64(urls.count))` e `updateProgress(bytesTransferred: Int64(index+1))`. O modelo (`FileOperationTask.bytesTransferred/totalBytes`, ver [50] da revisão IGNORAR) diz bytes; recebe count.
-- **Por que é problema:** colar/deletar **um** arquivo gigante mostra 0%→100% sem progresso real; a barra é inútil justo no caso que mais precisa dela. Nome de parâmetro mente.
-- **Impacto:** UX de operação longa ruim; parece travado.
-- **Solução:** ou renomear o modelo para `unitsDone/unitsTotal` (genérico), ou fazer `FileSystemService.copyItem`/`moveItem` reportarem bytes reais via callback de progresso.
-- **Esforço:** baixo (rename) / médio (progresso real). **Quando:** rename agora; progresso real posteriormente.
-
-**[M15] MEDIUM · concorrência / consistência · `AppState+Operations.swift` — ~6 idiomas diferentes para "operação em background"**
-- **Problema:** `handleDrop` (`Task { @MainActor }`), `executePaste` (`Task(priority:) { @MainActor }`), `performDeleteSelected` (`Task.detached` + `MainActor.run` manual), `deletePermanentlySelected` (`runDetachedFileOperation`), `copyContentOfSelected`/`undo`/`redo`/`createNewFolderAndRename` (`Task {}` puro), `createNewFileAndRename` (**síncrono no MainActor**, sem Task).
-- **Por que é problema:** o helper `runDetachedFileOperation` foi feito pra unificar isso e só ~3 das ~10 operações o usam. Difícil auditar concorrência; `createNewFileAndRename` faz I/O de disco síncrono no MainActor por descuido.
-- **Impacto:** manutenção; risco de race; inconsistência de tratamento de erro/progresso.
-- **Solução:** migrar `undo`/`redo`/`copyContentOfSelected`/`createNewFolder`/`createNewFile` para um helper comum; documentar por que `executePaste`/`performDeleteSelected`/`handleDrop` continuam bespoke (progresso por item + colisão).
-- **Esforço:** médio. **Quando:** posteriormente.
-
-**[M16] MEDIUM · DRY · `AppState+Operations.swift:369-448` — as duas sobrecargas de `runDetachedFileOperation` são quase idênticas**
-- **Problema:** setup de `taskID` (linhas 376-380 vs 421-425) e bloco `catch` são copy-paste; só muda `Void` vs `URL + recordUndo`.
-- **Solução:** uma versão genérica `runDetachedFileOperation<T>(... operation: () async throws -> T, onSuccess: @MainActor (T) -> Void)`. A variante Void passa `T == Void`.
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-**[L13] LOW · perf · `AppState+Operations.swift:20-21` — resolução de symlink por URL no MainActor no drop**
-- **Problema:** `handleDrop` faz `resolvingSymlinksInPath().standardizedFileURL.path` para o alvo e cada URL solto, dentro de `Task { @MainActor }`. É I/O de disco; para alvo em `/Volumes/` pode travar (o resto do app evita isso off-actor).
-- **Solução:** fazer o cálculo de "drop em si mesmo" num `Task.detached`.
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-**[L14] LOW · perf · `AppState+Operations.swift:331-341` — `createNewFileAndRename` síncrono no MainActor**
-- **Problema:** `NewFileTemplateService.createTemplateFile(...)` (cria arquivo no disco) chamado direto no MainActor, sem `Task`. Inconsistente com `createNewFolderAndRename` (async).
-- **Solução:** mesmo shape async da versão de pasta.
-- **Esforço:** trivial. **Quando:** posteriormente.
-
-**[L15] LOW · perf · `AppState+Operations.swift:10-14` — `handleDrop` carrega URLs soltas sequencialmente**
-- **Problema:** `for provider in providers { await loadDroppedURL(...) }` — continuations em série.
-- **Solução:** `withTaskGroup` para carregar em paralelo, preservando ordem.
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-**[V1] A VERIFICAR · `FileSystemService.moveItem(onCollision: .replace)` — garantir que desloca o arquivo existente para o Trash e NÃO faz `removeItem` antes de provar que o move acontece (DEV_RULES "Never Destroy User Data"). Checar no lote de `FileSystemService`.**
 
 ### Lote 5 — `AppState+Favorites / +ColumnsAndActions`, `WindowUIState`, `TrashState`
 
@@ -101,72 +35,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 - **Solução:** todo sheet que carrega dado migra para `payload: X?`; `Bool` só para sheets sem dado (Help/About/Settings/Feedback).
 - **Esforço:** médio. **Quando:** posteriormente.
 
-**[M21] MEDIUM · rules violation · `swiftformat:disable redundantSelf` em `AppState+ColumnsAndActions.swift:97,109,112,117` e `TrashState.swift:90,97,99,104`**
-- **Problema:** `SWIFT_LANG_RULES` → "Never Resolve a Lint/Format/Config Conflict Unilaterally": `swiftformat:disable`/`:enable` são explicitamente proibidos, mesma regra do `swiftlint:disable`. Há 8 ocorrências, com comentário dizendo que uma versão de toolchain do CI exige `self.` qualificado onde o local não exige.
-- **Por que é problema:** é uma decisão unilateral de config de tooling que a regra manda **escalar para o usuário**, não suprimir. O comentário de 3 linhas também fere a regra de comentário curto.
-- **Impacto:** processo; e mascara uma divergência real CI vs. local que ninguém decidiu como resolver.
-- **Solução:** levar ao usuário: alinhar a versão de swiftformat CI/local, ou ajustar `.swiftformat` (`--self`), ou aceitar `self.` em todo lugar. Remover os `disable`.
-- **Esforço:** baixo (a decisão é do usuário). **Quando:** agora (é regra dura sendo quebrada).
-
-**[M22] MEDIUM · DRY · invariante "preview e disk-usage sidebar são mutuamente exclusivos" em 4 `didSet`**
-- **Problema:** `PreferencesStore.showPreviewSidebar`/`showDiskUsageSidebar` didSets + `WindowUIState.showPreviewSidebar`/`showDiskUsageSidebar` didSets — 4 lugares zerando o outro.
-- **Solução:** um único `enum TrailingInspector { case none, preview, diskUsage }` (persistido) em vez de 2 bools; exclusividade vira impossível de violar.
-- **Esforço:** médio (mexe em call sites de view). **Quando:** posteriormente.
-
-**[M23] MEDIUM · DRY · `AppState+Favorites.swift:46-77` (`moveItemsResolvingCollisions`) duplica `AppState+Operations.swift:133-196` (`pasteAllItems`/`moveCutPasteItem`)**
-- **Problema:** dois loops "move batch com escolha sticky Replace/KeepBoth/Cancel". Diferença: o de Operations grava undo + remap favoritos + progresso; este não grava undo.
-- **Impacto:** correção de bug na resolução de colisão precisa ser feita 2x.
-- **Solução:** um único `moveBatch(_:toFolder:recordUndo:progress:windowUIState:)` parametrizado.
-- **Esforço:** médio. **Quando:** posteriormente.
-
-**[M24] MEDIUM · produto · `TrashState.swift:43-62,116-125` — só cobre `~/.Trash`, ignora `.Trashes` de volumes externos**
-- **Problema:** `computeTrashSize`/`emptyTrash` usam só `FileManager.default.urls(for: .trashDirectory, in: .userDomainMask)`. Itens deletados de drives externos vão para `/Volumes/X/.Trashes/<uid>` e não entram na conta nem no "Empty Trash".
-- **Por que é problema:** "Esvaziei a lixeira mas o disco continua cheio"; tamanho exibido subestima.
-- **Impacto:** confusão do usuário; feature parece quebrada.
-- **Solução:** enumerar também os `.Trashes/<uid>` dos volumes montados (ou usar `NSFileManager`/Finder-like APIs). Documentar como limitação se decidirem não fazer agora.
-- **Esforço:** médio. **Quando:** posteriormente (decisão de produto).
-
-**[M25] MEDIUM · performance · `AppState+Favorites.swift:15-25` — `isFavorite`/`isSameLocation` fazem `resolvingSymlinksInPath()` (I/O) e podem rodar por linha/render**
-- **Problema:** `isSameLocation` resolve symlink dos **dois** lados (2 syscalls). `isFavorite(_:)` provavelmente é chamado por linha visível (estrela de favorito). Custo = O(linhas × favoritos) stats por frame. O comentário argumenta que é "bounded and cheap" mas limita só o nº de favoritos, não a frequência.
-- **Impacto:** jank em scroll de pastas grandes; stat storm.
-- **Solução:** manter um `Set<String>` de paths de favoritos já resolvidos (recomputado só quando `favoriteURLs` muda) e `isFavorite` vira lookup O(1) sem I/O. Confirmar call site em `FavoriteToggleButton`/`FileItem`.
-- **Esforço:** baixo. **Quando:** agora se o call site confirmar render-path.
-
-**[L18] LOW · footgun · `WindowUIState.swift:143` — `init(preferences: = PreferencesStore())` cria um store novo se chamado sem arg (carrega ~40 defaults + disco), desconectado do store compartilhado.**
-
-**[L19] LOW · múltiplos `showError` em loop · `AppState+Favorites.swift:71-74` — um erro não-colisão no meio do batch dispara alerta e o loop continua, podendo enfileirar vários alertas.**
-
-**[L20] LOW · edge case · `AppState+ColumnsAndActions.swift:50-64` — `perFolderViewModes` keyed por path string; pasta renomeada/movida deixa chave órfã e uma nova pasta no mesmo path herda o modo.**
-
-### Lote 6 — `FileItem`, `FolderNode`, `BoundedFolderNodeCache`, `DirectoryMonitor`, `WilesError`, `MoveCollision*`
-
-**[L22] LOW · inconsistência · `WilesError.swift` — dois esquemas de token: `{0}/{1}` (`substitute`) e `{path}/{reason}/{name}` (`localizedMessage`).** Padronizar num só.
-
-**[L23] LOW · verificar caso morto · `WilesError.diskFull` — confirmar que `FileSystemService` mapeia `ENOSPC`/`NSFileWriteOutOfSpaceError` para ele; se ninguém lança, é caso morto.**
-
-**Sem achado:** `DirectoryMonitor.swift` (trampolim FSEvents + lock + `deinit` corretos, comentário de isolação preciso), `BoundedFolderNodeCache.swift` (bounding explícito por bytes+count, bem feito), `MoveCollisionChoice.swift` (struct limpa).
-
-### Lote 7 — `FileSystemService` (+ Actions, DirectoryLoadOptions, MoveCollisionPolicy, UniqueFileNaming)
-
-**[V1] RESOLVIDO — sem achado.** `moveItem(onCollision: .replace)` (`FileSystemService+Actions.swift:36-42`) faz `trashItem(destURL)` **antes** do `moveItem`, recuperável, e se o move falhar a origem fica intacta. Segue DEV_RULES "Never Destroy User Data" corretamente.
-
-**[M30] MEDIUM · performance · `FileSystemService.swift:205-213` — busca recursiva reordena e reenvia a lista inteira a cada 40 matches**
-- **Problema:** `onBatch(sortItems(items, ...))` roda a cada `recursiveSearchBatchSize`; `items` cresce até 2000. São ~50 batches, cada um ordenando um array crescente **e** entregando a lista completa para a UI diffar contra a anterior.
-- **Por que é problema:** O(n log n) × 50 de sort + di ff O(n) × 50 na view; comportamento ~O(n²) numa feature de streaming.
-- **Impacto:** busca global "everywhere" fica pesada quanto mais resultados; UI engasga durante o stream.
-- **Solução:** manter `items` já ordenado por inserção (busca binária + insert), ou só ordenar no batch final; entregar deltas em vez da lista inteira.
-- **Esforço:** médio. **Quando:** posteriormente (junto de [H1]).
-
-**[L26] LOW · DRY · lógica "is hidden" em 2 lugares** — `FileSystemService.isFileHidden` e `FileItem.init:65` (`hasPrefix(".")` + `.isHiddenKey`). Extrair um helper único.
-
-**[L27] LOW · UX · cache de diretório keyed só por URL (`FileSystemService.swift:112-113`)** — navegar de volta mostra a ordenação com que a pasta foi cacheada, não a `sortOption` atual, até o load async terminar (flicker de ordem errada).
-
-**[L28] LOW · duas fontes de "recents"** — `loadRecentsVirtualDirectory` relê de `UserDefaults` enquanto `NavigationStore.recentOpenedURLs` mantém em memória; podem divergir se o store ainda não persistiu.
-
-**[L29] LOW · estilo · `FileSystemService.swift:5-9` — `URL.userHome`/`URL.userTrash` como `static let` na extensão de `URL`, com fallback de path hardcoded `/Users/<user>/.Trash`.**
-
-**UniqueFileNaming.swift — sem achado.** Consolidação DRY exemplar (substituiu 5 impls ad-hoc), bem documentada.
-
 ### Lote 8 — `SearchFilterService`, `DirectoryCacheService`, `FolderWatcher`
 
 **[M31] MEDIUM · performance · `SearchFilterService.swift:101-217` — N+1 de `resourceValues` por token de filtro**
@@ -180,12 +48,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 - **Por que é problema:** mesmo espírito do "never hardcode the set of X" das regras; `UTType(filenameExtension:)?.conforms(to: .image/.sourceCode/.archive)` é auto-mantido e mais correto.
 - **Impacto:** `kind:image` não acha um `.avif`; manutenção multiplicada.
 - **Solução:** trocar por checagem via `UTType` conformance; centralizar qualquer lista que reste.
-- **Esforço:** baixo/médio. **Quando:** posteriormente.
-
-**[M33] MEDIUM · DRY · lógica de debounce reimplementada 4+ vezes**
-- **Problema:** `DispatchWorkItem` + `DispatchQueue.main.asyncAfter` com `?.cancel()` aparece em `FolderWatcher.scheduleCallback`, `PreferencesStore.scheduleExpandedTreePathsSave`, `PreferencesStore.schedulePerFolderViewModesSave`, e uma variante throttle em `FileSystemStore`. `TrashState`/`refreshTask` usam a variante `Task`.
-- **Impacto:** cada cópia pode ter bug sutil próprio (borda de saída, cancelamento).
-- **Solução:** um `Debouncer` (ou `@MainActor final class Debouncer { func call(_:) }`) único, usado por todos; assim [L2] (throttle sem trailing) some de graça.
 - **Esforço:** baixo/médio. **Quando:** posteriormente.
 
 **[M34] MEDIUM · arquitetura · dois mecanismos de watch de pasta: `DirectoryMonitor` (FSEvents) e `FolderWatcher` (DispatchSource)**
@@ -204,58 +66,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **DirectoryCacheService.swift — praticamente sem achado.** `NSCache` com `countLimit`+`totalCostLimit`, TTL via `isStale`, `@unchecked Sendable` legítimo. LOW: caminhos de mutação (paste/delete/move) não chamam `invalidate`, então há ~1 frame de conteúdo stale possível ao renavegar em <30s (o load async reconcilia).
 
-### Lote 9 — `ArchiveService`, `UndoRedoService`, `UndoActionType`, `PasteboardService`
-
-**[M35] MEDIUM · segurança · `ArchiveService.swift:48-59` — senha de ZIP com espaço vai via argv**
-- **Problema:** senha sem espaço vai pela env var `ZIP` (ok); senha **com espaço** vai por `-P <pwd>` em `arguments` — visível via `libproc`/`ps` para processos do mesmo usuário enquanto o `zip` roda.
-- **Por que é problema:** vazamento de segredo local; o próprio comentário admite.
-- **Solução:** passar a senha por **stdin** (`zip -e` lê do tty; alimentar via `Pipe` no `standardInput`: `printf '%s\n%s\n' pw pw`), eliminando tanto o branch de argv quanto o de env var.
-- **Esforço:** médio. **Quando:** posteriormente (é janela curta, mas é segredo).
-
-**[M36] MEDIUM · UX · `UndoRedoService.swift` — colisão em undo/redo vira erro sem saída**
-- **Problema:** `executeReverseAction`/`Forward` usam `moveItem`/`renameItem` com `onCollision` default (`.failIfExists`). Se o local de destino do undo já tem um item com aquele nome, o undo "falha" com erro cru; o record volta pra pilha mas o usuário não tem recurso (nem prompt Replace/Keep Both).
-- **Impacto:** "Desfazer não funciona" sem explicação clara.
-- **Solução:** no caminho de undo/redo, usar `.keepBoth` (ou prompt) em vez de `.failIfExists`.
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-**[M37] MEDIUM · observabilidade · `ArchiveService.swift:99,149` — stderr de `zip`/`tar`/`ditto` é descartado**
-- **Problema:** `runProcess` drena stderr para o vazio (`_ = handle.availableData`). Numa falha, o usuário recebe string genérica e **nada** vai para `ErrorReporter` — nem a mensagem real da ferramenta.
-- **Por que é problema:** "Compression failed" / "Extraction failed" chega no report do usuário sem causa; difícil diagnosticar (relevante: crash/error reports importam neste projeto).
-- **Solução:** capturar stderr num buffer bounded e incluí-lo no `ErrorReporter.report(..., context:)` (não na mensagem ao usuário).
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-**[L34] LOW · segurança (defesa em profundidade) · `ArchiveService.extractArchive` — sem validação explícita de entradas `..`/absolutas antes de extrair**
-- **Problema:** confia que `bsdtar`/`ditto` bloqueiam path traversal (geralmente bloqueiam), e `collidesWithExisting` só olha nomes de topo. Wiles extrai arquivos fornecidos pelo usuário.
-- **Solução:** listar entradas e rejeitar qualquer uma com `..` ou path absoluto antes de invocar a ferramenta.
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-**[L36] LOW · UX · `ArchiveService.compressToZIP` loop multi-arquivo — falha no item N deixa `.zip` parcial no disco; erro não diz qual item.**
-
-**[L37] LOW · consistência · dois limites "tamanho máx de arquivo texto": `PasteboardService.maxCopyableTextBytes = 10_000_000` vs `SearchFilterService.matchesContent` `2_000_000`.**
-
-**UndoActionType.swift / partes de PasteboardService — sem achado.** Enum limpo; `runProcess` trata deadlock de pipe corretamente (DEV_RULES #13); pasteboard-content-as-file segue o padrão Finder e propaga erro de escrita.
-
-### Lote 10 — `AutoOrganizationService`, `AutoOrganizationRuleStore`, `BackgroundOperationsService`, `ThumbnailService`
-
-**[M40] MEDIUM · performance · `ThumbnailService.swift:62-64,118-123` — `cachedThumbnail` faz `stat` por chamada, de dentro de `body`**
-- **Problema:** `cachedThumbnail(for:)` é `nonisolated` e chamado sincronicamente de view bodies para decidir se há thumb; ele monta `cacheKey` que faz `resourceValues([.contentModificationDateKey])` (stat). Grid com 200 células de imagem = 200 stats por passada de render (DEV_RULES #19).
-- **Impacto:** jank de scroll em pastas de imagens.
-- **Solução:** manter um índice `[stdPath: mtime]` atualizado no load de diretório e usar isso para a chave, sem stat no path de render; ou aceitar chave só por path + invalidar no FSEvents.
-- **Esforço:** médio. **Quando:** posteriormente.
-
-**[M41] MEDIUM · init side effects · `AutoOrganizationService.swift:26-30` — `.shared` init faz `ruleStore.load()` → decode síncrono com I/O de symlink por regra no MainActor**
-- **Problema:** primeiro acesso a `AutoOrganizationService.shared` (no launch) roda `JSONDecoder().decode([AutoOrganizationRule])`, e cada `AutoOrganizationRule.init(from:)` faz `resolvingSymlinksInPath()` ×2 (ver [54]/`AutoOrganizationRule` no relatório IGNORAR).
-- **Solução:** carregar regras em `Task`/lazy; ou tirar o symlink-resolve do `init(from:)` (fazer no matching).
-- **Esforço:** baixo. **Quando:** posteriormente.
-
-**[L38] LOW · UX · `AutoOrganizationService.swift:114` — `activeRules.first(where: matches)` — se 2 regras casam o mesmo arquivo com destinos diferentes, a 1ª por ordem de array vence silenciosamente.** Sem feedback de precedência.
-
-**[L40] LOW · perf · `ThumbnailService` — sem dedup de geração in-flight; prefetch e load on-demand podem gerar o mesmo thumbnail 2x. `loadThumbnail` hopa pro MainActor por chamada só pra ler `backingScaleFactor`.**
-
-**[S1] SUGGESTION · produto · `AutoOrganizationRule` — condição única (`extensionEquals`/`nameContains`/`namePrefix`). Usuários vão querer OR de extensões e regras multi-condição. Preparar o modelo (`[Condition]` + `matchMode`) quando houver demanda concreta.**
-
-**BackgroundOperationsService — quase sem achado** (LOW: `updateProgress` re-publica o array inteiro por item; popover geralmente fechado). **ThumbnailService — modelo de serviço bem feito** (NSCache bounded com cost real, `UTType` em vez de listas hardcoded, cancelamento de prefetch, chave com mtime).
-
 ### Lote 11 — `NetworkDiscovery/Server`, `OpenWith`, `PDFMerge`, `POSIXPermissions`, `FilePermissions`, `Symlink*`, `PermissionService`
 
 **[M43] MEDIUM · rules violation · hooks "test-only" em `Sources/`**
@@ -268,51 +78,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 - **Problema:** `hasShownFullDiskAccessPromptKey` é setado antes de checar acesso; quem clica "Not Now" nunca mais é perguntado, mesmo ao bater num erro de permissão real depois.
 - **Solução:** além (ou em vez) do prompt de launch, oferecer o CTA de FDA contextualmente quando uma operação falha por permissão (`AsyncErrorStateView`/alerta de erro), e um botão nas Settings.
 - **Esforço:** médio. **Quando:** posteriormente (decisão de produto).
-
-**[M45] MEDIUM · beachball · `FilePermissionsService.setPermissionsRecursively` roda síncrono; confia que o caller envelopa em `Task`**
-- **Problema:** não é `async`, não detacha internamente, mas checa `Task.isCancelled` (que é sempre `false` fora de uma `Task`). Se `FilePropertiesSheet`/`SymlinkSheet` chamar direto no MainActor, árvore profunda trava a UI por segundos.
-- **Solução:** tornar `async` + `Task.detached` interno, ou garantir/documentar o wrap no caller. Verificar call site.
-- **Esforço:** baixo. **Quando:** agora (verificar caller).
-
-**[L42] LOW · correção · `NetworkDiscoveryService.swift:47-51` — reconstrói `smb://<serviceName>.local` em vez de usar o endpoint Bonjour resolvido; o nome da instância de serviço pode não bater com o hostname mDNS.**
-
-**[L43] LOW · UX · `PDFMergeService.appendPages` — arquivo de entrada que o `NSImage`/`PDFDocument` não abre é pulado em silêncio; só falha se TODOS derem 0 páginas.** Reportar "N arquivos não puderam ser adicionados".
-
-**[L44] LOW · L10n · `OpenWithService.chooseOtherApplication` / `PermissionService` alerts — usam `lang: .system`, não o idioma do app (parcialmente já reconhecido como "M5 follow-up").**
-
-**Sem achado:** `POSIXPermissions.swift` (a antiga L6 "perde setuid/setgid/sticky" **está resolvida** — `specialBits & 0o7000` preservado), `SymlinkService.swift` (guards não-destrutivos corretos, `computeRelativePath` confere), `NetworkServerService.swift` (seam testável limpo), `PDFMergeService.swift` (detached + autoreleasepool + checkCancellation — modelo), `SymlinkMode.swift`.
-
-### Lote 12 — `FileMetadataService`, `FileMetadataTooltipService`, `ExifMetadataService`, `ColumnAutoFitService`, `FinderStyleTruncationService`, `SyntaxHighlighterService`
-
-**[M46] MEDIUM · performance · `FinderStyleTruncationService.swift:20-43` — truncação via TextKit chamada de `body`, síncrona, no cache-miss**
-- **Problema:** `truncatedMiddle` roda de dentro do `body` de cada célula visível. No cache-miss (pasta nova, coluna redimensionada), faz `middleTruncatedCandidate` → busca binária, cada passo um `fits()` = layout completo com `NSLayoutManager`/`NSTextStorage` novos. Primeira renderização de uma grid de 200 células = 200 misses × múltiplos layouts TextKit no MainActor.
-- **Por que é problema:** DEV_RULES #19 (I/O/trabalho pesado em `body`) e #7 (render loop). Jank no primeiro render de cada pasta.
-- **Impacto:** hitch perceptível ao entrar numa pasta com muitos nomes longos.
-- **Solução:** pré-computar as strings truncadas off-actor quando `items` carrega (como o prefetch de thumbnails) e guardar por (url, largura, fonte); `body` só lê. Reusar um único `NSLayoutManager` em `makeLayoutManager` em vez de alocar por chamada.
-- **Esforço:** médio. **Quando:** posteriormente.
-
-**[M47] MEDIUM · performance · `ExifMetadataService.extractExif` / `SyntaxHighlighterService.highlightCode` — síncronos, sem detach interno**
-- **Problema:** `extractExif` faz `CGImageSourceCreateWithURL` + leitura de propriedades sincronamente (contraste: `FileMetadataTooltipService.pixelDimensions` faz a mesma coisa dentro de `Task.detached`). `highlightCode` faz 4 passes de regex sobre até 10k chars + monta `AttributedString`. Se chamados de `body`/MainActor no `FilePropertiesSheet`/preview, travam.
-- **Solução:** ambos assíncronos com `Task.detached` interno, resultado em `@State` via `.task`. Verificar call sites (`FilePropertiesSheet`, preview de arquivo).
-- **Esforço:** baixo. **Quando:** agora (verificar caller).
-
-**[M48] MEDIUM · manutenção · listas de extensão/keyword hardcoded e duplicadas (reforça [M32])**
-- **Problema:** `SyntaxHighlighterService` tem lista de extensões `["swift","json","py",...]` **e** lista de keywords misturando Swift/Python/JS; `SearchFilterService.matchesContent` tem sua `textExtensions`; `SearchFilterService.matchesKindFilter` tem listas por categoria; `FileTemplate`/`ThumbnailService` também. Nenhuma compartilhada.
-- **Impacto:** `.mjs`/`.jsx`/`.kt` não são reconhecidos em lugar nenhum; adicionar um tipo exige editar N listas; highlighter colore `func` num arquivo Python.
-- **Solução:** um `FileKind`/`TextFileTypes` central (via `UTType` conformance sempre que possível) consumido por todos.
-- **Esforço:** médio. **Quando:** posteriormente.
-
-**[L45] LOW · consistência · tipo-namespace de serviço varia sem critério** — `enum` (`ExifMetadataService`, `FileMetadataTooltipService`, `FilePermissionsService`), `struct` (`SyntaxHighlighterService`, `SymlinkService`, `PDFMergeService`, `NetworkServerService`), `final class` (`ColumnAutoFitService`), `actor` (`FileMetadataService`) — todos só com membros estáticos (exceto o actor). Guideline: namespace-só-estático = `enum`.
-
-**[L46] LOW · DRY · duas leituras de owner/perms** — `FileMetadataService.readOwnershipAndPermissions` e `FilePermissionsService.getPermissions` fazem `attributesOfItem` separadamente; `FileItem.ownerAndGroup` faz um terceiro. Três caminhos para os mesmos atributos.
-
-**[L47] LOW · perf · `ColumnAutoFitService.measurementSample` faz `sorted` completo (O(n log n)) sobre até dezenas de milhares de itens para pegar os 400 maiores; um heap parcial seria O(n log 400).**
-
-**[L48] LOW · magic numbers · `SyntaxHighlighterService` — `maxChars = 10000` (local, não `static let`), `Font.system(size: 11)`; `content.count` é O(n) em grapheme cluster (usar `utf16.count`/`prefix`).**
-
-**[L49] LOW · UX · `ExifMetadataService` — `dateTimeOriginal` exibido como string EXIF crua (`2023:11:05 14:30:00`), sem reformatar/localizar.**
-
-**Sem achado grande:** `FileMetadataService.swift` (`actor`, `AsyncStream` com `onTermination`+`isCancelled` — modelo), `FileMetadataTooltipService.swift` (cache + reads pesados detachados).
 
 ### Lote 13 — serviços restantes (`SystemAppearance/Tags`, `FileTagging`, `CopyPath`, `Bundle+`, `HTMLEscaping`, `L10n+Lookup`, `AppLanguage`, `NewFileTemplate`, `TemplateRendering`, `FileShredder`)
 
@@ -341,8 +106,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 **[S2] SUGGESTION · `AppLanguage.allCases` vs `Resources/*.lproj` — adicionar teste (quando testes forem escritos) que afirma que o enum e as pastas `.lproj` no disco batem exatamente, para pegar drift (relacionado ao incidente do `shortcutsAllTab` cru que já foi pro app).**
 
 **[L52] LOW · doc drift · `Bundle+WilesResources.swift` cita `scripts/build_release.sh`; `WILES_RULES.md` lista `build_debug_app.sh`/`push_and_relaunch.sh`, não `build_release.sh`.**
-
-**Sem achado:** `SystemAppearanceObserver.swift` (token guardado, workaround de `preferredColorScheme(nil)` bem justificado), `HTMLEscaping.swift` (5 chars corretos), `L10n+Lookup.swift` (cache com lock, fallback pro raw key, locales derivados de `allCases`), `NewFileTemplateService.swift`, `FileShredderService.swift` (a antiga pendência resolvida; `checkCancellation` + agregação de falhas; racional de "no secure erase" excelente — só falta o confirm em [H2]), `ApplicationApp.swift`.
 
 ### Lote 14 — `Constants/`, `App/WilesApp.swift`, `App/Commands/*`
 
@@ -384,8 +147,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L56] LOW · reforça [M49] · `ToolsMenuCommands` "Copy Path ▸ Terminal" usa `variant: .terminalEscaped` (o escaper incompleto).**
 
-**Sem achado grande:** `LayoutTokens.swift` (bem documentado sobre sharing), os 7 `*MenuCommands` (padrão `LocalizedCommands` limpo, "pure code motion").
-
 ### Lote 15 — `BatchRename`, `ImageConverter`, `ArchiveInspector`
 
 **[M56] MEDIUM · L10n (sistêmico) · mensagens de falha parcial hardcoded em inglês chegam a alertas**
@@ -394,33 +155,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 - **Impacto:** inconsistência de idioma exatamente nos momentos de erro.
 - **Solução:** essas mensagens viram `WilesError.localized(key:arguments:)` com chaves de contagem (`"%1$d de %2$d…"`). Candidato a lint: literal de string passada a `showError(...)`/`operationFailed(reason:)`.
 - **Esforço:** médio. **Quando:** posteriormente.
-
-**[M57] MEDIUM · DRY · `ImageConverterService.uniqueDestinationURL:114-125` — 6ª reimplementação do loop de nome único**
-- **Problema:** `UniqueFileNaming` foi criado pra substituir "5 near-duplicate ad-hoc implementations"; esta é uma 6ª, com separador `_converted_2` (inconsistente com a convenção ` 2` do Finder que `UniqueFileNaming` padroniza).
-- **Solução:** usar `UniqueFileNaming.uniqueURL(for: "<base>_converted.<ext>", in: parent, isDirectory: false)`.
-- **Esforço:** trivial. **Quando:** agora.
-
-**[M59] MEDIUM · qualidade · `ImageConverterService.renderResizedImage:91-112` — força `deviceRGB`/`premultipliedLast`, descarta perfil de cor**
-- **Problema:** todo output é rasterizado em `CGColorSpaceCreateDeviceRGB()` sem ICC. Foto Display-P3/wide-gamut sai com shift de cor; source grayscale/CMYK vira RGBA.
-- **Impacto:** conversão de imagem perde fidelidade de cor.
-- **Solução:** preservar o color space do source quando possível, ou converter para sRGB **com** perfil embutido.
-- **Esforço:** baixo/médio. **Quando:** posteriormente.
-
-**[M60] MEDIUM · bug / cancelamento · `BatchRenameService.performBatchRename:66-78` — loop sem `Task.checkCancellation()`**
-- **Problema:** renomear 5000 itens não checa cancelamento; fechar o sheet no meio não para o batch.
-- **Solução:** `try Task.checkCancellation()` no topo de cada iteração (DEV_RULES #2).
-- **Esforço:** trivial. **Quando:** agora.
-
-**[M61] MEDIUM · UX · batch rename não valida colisões (internas nem externas) antes de executar**
-- **Problema:** find/replace que colapsa dois nomes no mesmo, ou sequência que bate num arquivo existente → item 2 falha com `NSFileWriteFileExistsError` cru; sem aviso no preview.
-- **Solução:** validar o conjunto completo de nomes-alvo (duplicados no batch + já existentes no disco) e mostrar no preview antes do commit.
-- **Esforço:** médio. **Quando:** posteriormente.
-
-**[L59] LOW · UX · `ImageConverterService.writeImage` — `quality` é ignorado para PNG/TIFF (lossless); o slider deveria sumir/desabilitar para esses formatos.** Verificar `ImageConverterSheetView`.
-
-**[L60] LOW · robustez · `BatchRenameService` `.sequenceNumber` — `paddingDigits` não é clampado; `"%00d"`/negativo gera format string malformada.**
-
-**Destaque positivo:** `ArchiveInspectionService.extractSingleEntrySync` — extração não-destrutiva exemplar (temp file → stream stdout→disco → `replaceItemAt` atômico só no sucesso → cleanup em qualquer falha). Segue "Never Destroy User Data" à risca.
 
 ### Lote 16 — `DuplicateDetectionService`, `DiskSpaceVisualizerService`, `DiskUsageItem`, `SmartFolderService`
 
@@ -433,11 +167,7 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L63] LOW · access control · `DiskUsageItem.name` é `let` (internal) enquanto os demais campos são `public let` (mesma inconsistência de [5]).** `ByteCountFormatter` no `init` (tema recorrente).
 
-**[RETIFICA L54] — `DefaultsKey.smartFolders` **É** usado (`SmartFolderService.loadSavedSmartFolders`/`saveSmartFolders`). Desconsiderar [L54]; ainda vale auditar as demais chaves.**
-
 **[M43 +=] `SmartFolderService.saveSmartFolders(_:encode:)` — mais um "Test-only seam" em `Sources/` (com justificativa razoável); somar ao inventário de [M43].**
-
-**Destaque positivo:** `DuplicateDetectionService` — size-bucket → partial hash → SHA256 completo antes de marcar como duplicata (DEV_RULES #6 à risca), `withTaskCancellationHandler` encaminhando cancelamento ao detached, hash em chunks de 1MB. `DiskSpaceVisualizerService` — mesmo padrão de cancelamento correto + guardrails de contagem.
 
 ### Lote 17 — `LocalHttpServerService.swift` (493 linhas)
 
@@ -465,8 +195,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L67] LOW · robustez · path com null byte / `//` no request — `appendingPathComponent` + C API do `FileManager` podem truncar no `\0`. O guard de traversal com `resolvingSymlinksInPath` provavelmente cobre, mas vale rejeitar explicitamente `\0` e componentes vazios.**
 
-**Destaque positivo:** defesa em profundidade sólida — traversal check com `resolvingSymlinksInPath` + boundary de `/` (comentário explica o gap do irmão-de-diretório), CSP `default-src 'none'` na listagem, `HTMLEscaping` nos nomes, `constantTimeEquals`, cap de conexões, idle timeout, streaming em chunks de 64KB (sem bufferizar arquivo inteiro — DEV_RULES #18), cap de 32KB no request head (→ 431). É código de servidor cuidadoso.
-
 ### Lote 18 — `Views/Content/` núcleo (`MainContentView`, `FileCollectionContainerView`, `FileGridView`, `FileListView`, `FileGridCardItemView`)
 
 **[M67] MEDIUM · performance · `MainContentView.swift:83-85` — mudar `sortOption`/`sortAscending` faz re-leitura de disco**
@@ -485,8 +213,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 **[L68] LOW · dois handlers para a tecla Delete · `MainContentView.keyboardShortcutsHandler` tem `.onDeleteCommand { deleteSelected }` e `FileMenuCommands` tem `Button(moveToTrash).keyboardShortcut(.delete)`.** Coordenado via `isAnyModalPresented`/`GlobalKeyMonitor`, mas é frágil — consolidar num só ponto.
 
 **[L69] LOW · perf menor · `FileGridView.renameFieldOverlay`/`revealFieldOverlay` fazem `items.first(where:)` (O(n)) em `body`; `revealFieldOverlay` chama `FinderStyleTruncationService.wrappedLines` em `body` (reforça [M46]).**
-
-**Destaque positivo:** `FileCollectionContainerView` — consolidação DRY exemplar (grid e list dividiam toda a orquestração scroll/seleção/paginação/reset-de-dataset; agora um scaffold genérico com parâmetros). `MainContentView` bem decomposto em `@ViewBuilder` pequenos (SWIFT_LANG_RULES "View Body Decomposition"); `init` deliberadamente sem `refreshCurrentDirectory` (comentário explica o custo por re-render). Acessibilidade presente nas linhas/células (label/hint/traits/value).
 
 ### Lote 19 — `Views/Content/` teclado + wiring de modais
 
@@ -526,8 +252,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L72] LOW · DRY · padrão `.sheet(isPresented: Binding(get:{x != nil}, set:{if !$0 {x = nil}}))` 4× — envolver o payload num struct `Identifiable` e usar `.sheet(item:)`.**
 
-**Destaque positivo:** `GlobalKeyMonitor` — corrige um leak real e grave de monitor `NSEvent` (monitor vazado retornando `nil` engolia toda tecla/scroll do app até relaunch) com teardown em 3 pontos + `deinit` + teste de regressão. `KeyboardSelectionNavigator`/`KeyboardZoomController` extraídos como `@MainActor struct` stateless testável. `WindowUIStateKey.IsTextFieldEditingActiveKey` — mirror escalar com racional preciso sobre Observation vs `Commands`.
-
 ### Lote 20 — `Views/Components/` interação (`FileItemInteractionsModifier`, `SharedFileItemContextMenu`, `InlineRenameField`, `SelectionRectangleOverlay`, `MultiFileDragView`, `SelectionAwareNameText`, `ClickOutsideDetector`)
 
 **[M74] MEDIUM · performance · `SharedFileItemContextMenu.openWithMenuContent:195` — `OpenWithService.availableApplications` roda em `body` (LaunchServices + N `Bundle`/`resourceValues`, síncrono no MainActor)**
@@ -549,8 +273,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L76] LOW · consistência · `SharedFileItemContextMenu` — `ShareLink(item:)` rotulado `tr(.services)` (semântica estranha: ShareLink é o share sheet, não o menu Services); `imageFileExtensions` hardcoded (reforça [M32]/[M48]); "Merge into PDF" aparece para 1 arquivo só.**
 
-**Destaque positivo:** `InlineRenameField` — `isCommitCharacter` trata `\r` e `\u{3}` (Enter do keypad) como função estática testável; deferimento de foco com racional; `.onExitCommand` para cancelar. `MultiFileDragView` — shim AppKit de drag multi-seleção bem feito (claim só de left-mouse-down, slop, constantes nomeadas, pass-through de right-click/hover). `ClickOutsideDetector`/`GlobalKeyMonitor` — teardown de monitor `NSEvent` correto em 3 pontos + `deinit`. `SelectionRectangleOverlay.applySelection` — guarda `if resolved != selectedURLs` evita re-render de toda a lista por tick de drag.
-
 ### Lote 21 — `Views/Components/` batch 3 (async/pagination/scroll/detectors/operations popover)
 
 **[M40 reforçado]** `ImageThumbnailView.init:14` — chama `ThumbnailService.shared.cachedThumbnail(for:size:)` como `@State(initialValue:)`, e `cachedThumbnail`→`cacheKey` faz um `stat` (`resourceValues([.contentModificationDateKey])`). Ou seja: **um `stat` síncrono no init de cada célula de imagem**, refeito a cada create/destroy de célula no scroll do `LazyVGrid`. Confirma [M40].
@@ -566,8 +288,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 **[L81] LOW · `FileItemIconView`/`ThumbnailService.supportsThumbnail` — `UTType(filenameExtension:)` + 5 `conforms(to:)` por ícone por render (reforça [M48]; precomputar no `FileItem`).**
 
 **[L82] LOW · `FileItemIconView.openFolderIcon` — `perform(NSSelectorFromString("iconForFileType:"))` + `takeUnretainedValue()` (API legada por dynamic dispatch p/ evitar warning de deprecação); funciona mas é frágil.**
-
-**Destaque positivo:** `AsyncResultView` — máquina de estado loading/empty/failure/results **cancelamento-safe por construção** (`.task(id:)` + guarda `!Task.isCancelled`), substituiu 3 implementações hand-rolled; reuse exemplar. `EmptyDirectoryView` — distingue "vazio" de "sem permissão" e oferece botão de Full Disk Access contextual (parte de [M44]). `SplitViewDividerSetter`/`ScrollerAutoHideSetter` — workarounds AppKit com gate `hasApplied` e `hitTest` nil, bem contidos.
 
 ### Lote 22 — `Views/Components/` shared (menus, chrome, KeyLabel, ShortcutsHUD, Tags, Modal scaffold, Theme)
 
@@ -592,8 +312,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L79 reforçado]** "`static let` isn't allowed on a generic type" aparece como comentário-justificativa em `ModalHeaderView`, `PaginatedItemsSection` — permitido em Swift moderno (stored static em genérico). Trocar os `static var {N}` por `static let`.
 
-**Sem achado:** `ModalScaffoldView`/`ModalHeaderView`/`ModalFooterView`/`ModalIcon` (skeleton de modal mandatório, bem factored, footer bate com WILES_UI_UX_RULES), `TappableRow` (padrão da regra 33 encapsulado), `SpringLoadedFolderModifier` (cancelamento em drop/target/`onDisappear`), `DoubleClickZoomDetector`, `FileMetadataTooltipModifier` (lazy no 1º hover), `FavoriteToggleButton` (tem `forceRemove` p/ evitar o I/O de `isFavorite` onde o caller já sabe).
-
 ### Lote 23 — `Views/Sidebar/` (SidebarView, SidebarRowView, DirectoryTree*, SmartFolders/Tags sections, PreviewSidebar)
 
 **[M78] MEDIUM · beachball · `SidebarRowView.ejectButton:151-160` — `NSWorkspace.shared.unmountAndEjectDevice(at:)` síncrono no MainActor**
@@ -611,8 +329,6 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L89] LOW · `PreviewSidebarView` — larguras `200/250/350` repetidas inline 2×; `SidebarRowView.refreshMissingFavoriteStatus` não re-checa se um favorito some enquanto a sidebar está aberta.**
 
-**Positivo:** `SmartFoldersSectionView` usa `.confirmationDialog` para deletar smart folder (contraste com "Delete Immediately" de arquivo, [H2], que não confirma). `SidebarView.buildDirectoryTree` — timeout GCD (não `Task.sleep` que "starvaria junto") + Retry, bom racional. `SidebarRowView`/`DirectoryTreeNodeView` — checagens de `/Volumes/` (`fileExists`/`volumeIsEjectable`) sempre `Task.detached` + `Task.isCancelled`. Acessibilidade completa em todas as linhas.
-
 ### Lote 24 — `Views/Header/` + `Views/Footer/` + shared Sidebar chrome
 
 **[M81] MEDIUM · performance · `FooterBarView.iconSizeControl` — `Slider($appState.preferences.iconSize)` persiste no `UserDefaults` a cada frame do drag**
@@ -624,11 +340,7 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 
 **[L91] LOW · `HeaderBarView.searchEverywhereToggle` chama `refreshCurrentDirectory()` explicitamente; se `searchEverywhere` for alternado por outro caminho (Settings), não há refresh — trigger inconsistente.**
 
-**[RETIFICA parte de L86]** `HeaderBarView` **usa** `SearchFilterService.containsToken`/`toggleToken`/`extractHiddenFlag` corretamente. Só `TagsSectionView.extractTagToken` hand-rola. [L86] reduzido a "1 lugar fora do serviço".
-
 **[S3] SUGGESTION · `RepositionerView` (127 linhas de AppKit defensivo: `static` baseline dict bounded, self-healing, 3 observers de resize) para um nudge cosmético de 6pt das traffic lights — questionar se o custo/manutenção vale o ganho visual.**
-
-**Positivo:** `PathBarView.buildSegments` — `maxPathDepth = 50` guard + resultado cacheado em `@State` (rebuild só em currentURL/idioma). `HeaderBarView` — 358 linhas mas bem decomposto em `@ViewBuilder`, acessibilidade completa, filtros de busca via `SearchFilterService`. `FooterBarView.freeSpaceText` via `.task` (não sync em body). `RepositionerView` — comentários precisos, `lastAppliedX` bounded a 90, lógica self-healing de baseline — é o melhor que esse tipo de hack AppKit consegue ser. Componentes de chrome da sidebar (`SidebarSectionContainer` etc.) centralizam a regra de visibilidade "pra não driftar".
 
 ### Lote 25 — `Views/Modals/` batch 1 (FileProperties, FolderPicker(+Node), AutoOrganization, Symlink, Feedback, ConnectToServer)
 
@@ -638,13 +350,9 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 - **Solução:** um `DirectoryTree` compartilhado parametrizado por (comportamento de tap, binding de seleção, fonte do conjunto expandido). **Alternativa mais radical:** o `FolderPickerSheet` existe só para escolher source/dest de regra de auto-org — trocar por `NSOpenPanel(canChooseDirectories: true)` nativo elimina os ~450 linhas (WILES_RULES "Native-First"). Perde a coluna de favoritos custom, mas o `NSOpenPanel` tem a própria sidebar.
 - **Custo/migração:** médio. **Quando:** posteriormente — decidir entre "componente compartilhado" vs "NSOpenPanel".
 
-**[RETIFICA M47/M45 → LOW]** `ExifMetadataService.extractExif`, `FilePermissionsService.getPermissions/setPermissions/setPermissionsRecursively` **são** chamados dentro de `Task.detached` em `FilePropertiesSheet.loadProperties`/`applyPermissions`. Não travam. Continua valendo como LOW: os serviços deveriam ser `async` por segurança (nada impede um call site futuro de chamar síncrono), mas hoje os call sites fazem certo. `FilePropertiesSheet.applyPermissions` recursivo **tem** `.confirmationDialog` antes.
-
 **[L92] LOW · `AutoOrganizationSheet.canAddRule` compara `standardizedFileURL` (sem symlink-resolve) enquanto `AutoOrganizationRule.init` normaliza com `resolvingSymlinksInPath()` — pode deixar criar uma regra que vira `isSelfReferential` após normalização.**
 
 **[L93] LOW · reforça [C1] · `FeedbackSheetView` envia o texto do usuário como issue no GitHub público via o token hardcoded; a exposição do token significa que qualquer um também **lê** todos os feedbacks/bug reports (podem conter paths/nomes de arquivo dos usuários).**
-
-**Positivo:** `AutoOrganizationSheet.lastTriggeredFormatter` é `static let DateFormatter` cacheado — **o jeito certo**; `newRuleSection` avisa "sem undo" e "conflito". `FilePropertiesSheet` — guard de mudanças não-salvas (`attemptClose` → discard confirm), confirmação p/ apply recursivo, tudo detached. `SymlinkSheetView`/`FolderPickerSheet`/`SidebarView` — todos usam o mesmo padrão cuidadoso de `/Volumes/` off-actor + timeout GCD. `FeedbackSheetView`/`SymlinkSheetView` — `ModalScaffoldView`, `TappableRow` (regra 33), acessibilidade, guardas de `isSubmitting`.
 
 ### Lote 26 — Feature SheetViews + Settings + últimos modais
 
@@ -653,25 +361,12 @@ IDs: `C#` critical, `H#` high, `M#` medium, `L#` low, `S#` suggestion,
 - **Solução:** computar previews em `.task(id: currentMode)` com debounce; compilar o regex uma vez (fora do loop de itens).
 - **Esforço:** baixo. **Quando:** posteriormente.
 
-**[RETIFICA L59]** `ImageConverterSheetView.qualitySliderRow` **já** só aparece `if targetFormat == .jpeg || .heic` — o slider de qualidade é escondido para PNG/TIFF corretamente. Desconsiderar [L59].
-
-**[RETIFICA L60]** `BatchRenameSheetView` — `Stepper(value: $paddingDigits, in: 1...6)` e `startNumber in 0...9999` — clampados na UI. [L60] (format string malformada) prevenido. Desconsiderar.
-
 **[L94] LOW · `DuplicateCleanerSheetView.trashSelected` — loop de `moveToTrash` sem `Task.checkCancellation`; fechar o sheet no meio continua mandando pro Trash (reversível, set pequeno — baixo impacto).**
 
 **[L95] LOW · `SaveSmartFolderSheetView` — `scopePath: currentURL.path` sem tratar o caso de currentURL ser a Recents virtual (`/virtual/recents`) ou uma smart folder ativa.**
 
 **[S4] SUGGESTION · `ImageConverterSheetView` — sem preview do resultado (crop/resize aplicados). Um thumbnail de preview ajudaria; hoje se escolhe preset "às cegas".**
 
-**Positivo:** `AboutSheet.githubLinkRow` — `NSCursor.pointingHand.push()/pop()` **com** guard `didPushLinkCursor` + `.onDisappear` cleanup — é o jeito certo, `CursorModifier` ([M72]) deveria copiar. `SettingsView.tabButton` — hand-roll de tab com `.contentShape` exato-sem-outset, bem documentado (regra 33). Todas as Settings tabs — `Form`/`Section`, `.help()` + `.accessibilityHint()` em cada toggle. `DuplicateCleanerSheetView` — auto-seleciona "tudo menos a 1ª cópia" + notice explicando. `AsyncResultView` usado consistentemente por `DiskUsageSidebarView`/`DuplicateCleanerSheetView`/`ArchiveInspectionSheetView` com `errorText(for:)` localizado no `failure:`.
-
----
-
-## Cobertura
-
-Revisados linha a linha: **211 de 211** arquivos de `Sources/Wiles/` fora de `IGNORAR.md` e fora de testes. `Views/Components/QLPreviewInlineView.swift` (wrapper de `QLPreviewView`, 33 linhas) — sem achado. Nenhum arquivo de teste foi analisado.
-
----
 ---
 
 # SÍNTESE
@@ -844,60 +539,3 @@ Nada disso é reescrita. A maior parte é localizada e de baixo/médio esforço.
 | **LR8** | Literal de string com `Cmd+`/`⌘`/`Shift+` fora do registro central de atalhos | [A3] — dica de atalho hardcoded | regex `"[^"]*(Cmd\+|⌘|Shift\+)` em `Views/`, excluindo o arquivo do registro | médio | força o "single source of truth" de atalhos |
 
 Regex simples e realmente úteis para começar já: **LR2**, **LR4**, **LR7** (baixíssimo falso-positivo, alto valor).
-
----
-
-## Files That Could Be Added to IGNORAR.md
-
-Da revisão desta rodada, **nenhum** arquivo novo merece entrar no `IGNORAR.md` — os que restaram fora dele têm lógica real. Ao contrário: a própria revisão do `IGNORAR.md` (relatório separado `IGNORAR_REVIEW_REPORT.md`) recomendou **tirar 14** de lá. Não repetir aqui.
-
-Candidatos triviais que *já* estão em `IGNORAR.md` e seguem válidos: confirmados na revisão dedicada.
-
----
-
-## Recommended Roadmap
-
-### Phase 1 — Quick Wins (baixo esforço, alto valor; fazer agora)
-
-1. **[C1]** Decidir a direção do PAT com o usuário (relay vs. redigir+rotacionar). *Bloqueia*: exposição de dados de terceiros.
-4. **[M67]/[M73]** Mudança só de ordenação re-ordena `fileSystem.items` em memória; um só `refreshCurrentDirectory` por clique de header.
-5. **[H1]** Debounce de ~250ms na busca antes de disparar o refresh.
-7. **[M21]** Levar a divergência `swiftformat` CI/local ao usuário; remover os 8 `disable`.
-10. **[LR2]/[LR4]/[LR7]** Adicionar as 3 lint rules de baixo risco.
-12. **[M76]** `SharedBackgroundContextMenu`/`ToolsMenuCommands` usam `CopyPathMenuContent`.
-
-### Phase 2 — Important Improvements (médio esforço)
-
-4. **[M40]/[M46]** Pré-computar thumbnails-`stat` e strings truncadas off-actor no load de diretório (como o prefetch já faz).
-5. **[M50]** Cachear `SystemTagsService.favoriteTags` na sessão.
-9. **[M33]** Um `Debouncer` único; remove [L2] de graça.
-13. **[M81]/[M82]** Debounce do slider de ícone; previews de batch rename em `.task`.
-
-### Phase 3 — Architectural Improvements (planejar, executar incremental)
-
-1. **[A2]** Quebrar `PreferencesStore` em stores coesos. Um grupo por PR.
-2. **[A3]/[M77]** Registro central de atalhos; menus/monitor/cheat sheet derivam. + LR8.
-3. **[A4]** Componente `DirectoryTree` compartilhado **ou** `NSOpenPanel` para o `FolderPickerSheet`.
-4. **[A1]** Varredura dos `Task.detached` que capturam `self`; parar de fazer `AppState` ser `@unchecked Sendable` onde der.
-5. **[M70]** `enum ActiveModal` + um `.sheet(item:)`; `isAnyModalPresented` vira `!= nil`.
-6. **[M65]** Separar superfície `@Observable` do estado interno do `LocalHttpServerService`.
-7. **[M34]** Os dois watchers de pasta atrás de um protocolo comum.
-8. **[M43]** Mover hooks "test-only" de `Sources/` para os testes.
-
-### Phase 4 — Future / Optional
-
-1. **[S1]** Regras de auto-org multi-condição (quando houver demanda).
-2. **[M66]** `Range`/`206` + `Content-Type` por extensão no HTTP share.
-3. **[M24]** Trash multi-volume.
-4. **[M44]** Prompt de FDA contextual (no erro de permissão) + botão nas Settings.
-5. **[M32]/[M48]** `FileKind` central via `UTType` substituindo as listas de extensão hardcoded.
-6. **[M35]** Senha de ZIP via stdin (elimina argv e env var).
-7. **[S3]/[S4]** Reavaliar `RepositionerView`; preview no Image Converter.
-
----
-
-## REGRA FINAL — leitura honesta
-
-Não é uma revisão complacente: são **~130 achados**, 1 CRITICAL, 5 HIGH, 4 concerns arquiteturais. Mas a conclusão honesta é que a **fundação é boa** — os achados são majoritariamente dívida de performance de render-path e sprawl/DRY que se acumulou feature a feature, não erros de design de base. O código compila limpo, os padrões perigosos (concorrência, lifecycle, destruição de dados) estão em sua maioria **certos**, e a densidade e qualidade dos comentários é de referência.
-
-As três coisas que eu faria **esta semana**: resolver o [C1], adicionar a confirmação do [H2], e o debounce da busca [H1]. As três que eu **não** faria sem discutir: [A3] (atalhos), [A4] (árvores), [A2] (quebrar `PreferencesStore`) — são direções, não patches, e o custo/momento é decisão do dono.

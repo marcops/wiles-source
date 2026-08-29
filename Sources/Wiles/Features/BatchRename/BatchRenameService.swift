@@ -1,6 +1,9 @@
 import Foundation
 
 public enum BatchRenameService {
+    private static let minPaddingDigits = 1
+    private static let maxPaddingDigits = 10
+
     public static func previewNewNames(items: [FileItem], mode: BatchRenameMode) -> [(original: FileItem, newName: String)] {
         items.enumerated().map { index, item in
             (original: item, newName: renamedName(for: item, index: index, mode: mode))
@@ -24,7 +27,9 @@ public enum BatchRenameService {
             newBaseName = "\(prefix)\(baseName)\(suffix)"
         case let .sequenceNumber(prefix, startNumber, paddingDigits):
             let num = startNumber + index
-            let formattedNum = String(format: "%0\(paddingDigits)d", num)
+            // Don't trust the caller's width - a negative or 0 value yields a malformed format string.
+            let safePadding = min(max(paddingDigits, minPaddingDigits), maxPaddingDigits)
+            let formattedNum = String(format: "%0\(safePadding)d", num)
             newBaseName = prefix.isEmpty ? formattedNum : "\(prefix)_\(formattedNum)"
         case let .regex(pattern, template):
             if pattern.isEmpty {
@@ -48,6 +53,58 @@ public enum BatchRenameService {
         return (try? NSRegularExpression(pattern: pattern, options: [])) == nil ? pattern : nil
     }
 
+    /// `true` when `newName` is non-blank and differs from the item's current name (a real rename).
+    private static func isActualRename(_ item: FileItem, to newName: String) -> Bool {
+        !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && newName != item.name
+    }
+
+    /// Pure pre-flight collision check: returns every target name claimed by 2+ items in the batch,
+    /// plus every target already on disk that isn't itself being renamed away by this batch.
+    public static func validateTargets(
+        targetNames: [String],
+        renamedOriginalNames: Set<String>,
+        directoryContents: Set<String>) -> [BatchRenameConflict] {
+        var counts: [String: Int] = [:]
+        for name in targetNames { counts[name, default: 0] += 1 }
+
+        var conflicts: [BatchRenameConflict] = []
+        var handled: Set<String> = []
+        for name in targetNames where handled.insert(name).inserted {
+            if counts[name, default: 0] > 1 {
+                conflicts.append(BatchRenameConflict(targetName: name, kind: .duplicateWithinBatch))
+            } else if isPreexistingCollision(name, renamedOriginalNames: renamedOriginalNames, directoryContents: directoryContents) {
+                conflicts.append(BatchRenameConflict(targetName: name, kind: .existsOnDisk))
+            }
+        }
+        return conflicts
+    }
+
+    private static func isPreexistingCollision(
+        _ name: String,
+        renamedOriginalNames: Set<String>,
+        directoryContents: Set<String>) -> Bool {
+        directoryContents.contains(name) && !renamedOriginalNames.contains(name)
+    }
+
+    /// Throws if any target collides, so the executing loop can't fail an item mid-way with a raw
+    /// `NSFileWriteFileExistsError`. Grouped by source directory since a batch may span folders.
+    private static func assertNoCollisions(in previews: [(original: FileItem, newName: String)]) throws {
+        let renames = previews.filter { isActualRename($0.original, to: $0.newName) }
+        guard !renames.isEmpty else { return }
+        let byDirectory = Dictionary(grouping: renames) { $0.original.url.deletingLastPathComponent() }
+        for (directory, group) in byDirectory {
+            let contents = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+            let conflicts = validateTargets(
+                targetNames: group.map(\.newName),
+                renamedOriginalNames: Set(group.map(\.original.name)),
+                directoryContents: Set(contents))
+            guard conflicts.isEmpty else {
+                let names = conflicts.map(\.targetName).joined(separator: ", ")
+                throw WilesError.operationFailed(reason: "Batch rename would create name collisions: \(names)")
+            }
+        }
+    }
+
     public static func performBatchRename(items: [FileItem], mode: BatchRenameMode) async throws -> BatchRenameResult {
         // previewNewNames silently falls back to the original base name for an invalid regex
         // pattern (that fallback is fine for the live preview text), but actually performing the
@@ -58,13 +115,15 @@ public enum BatchRenameService {
         }
 
         let previews = previewNewNames(items: items, mode: mode)
+        try assertNoCollisions(in: previews)
 
         var renamedURLs: [URL] = []
         renamedURLs.reserveCapacity(previews.count)
         var renamedPairs: [(old: URL, new: URL)] = []
         var failures: [(item: FileItem, error: any Error)] = []
         for (item, newName) in previews {
-            guard !newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, newName != item.name else {
+            try Task.checkCancellation()
+            guard isActualRename(item, to: newName) else {
                 renamedURLs.append(item.url)
                 continue
             }

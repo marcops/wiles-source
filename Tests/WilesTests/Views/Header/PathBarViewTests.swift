@@ -9,7 +9,7 @@ public struct PathBarViewTests {
             currentURL: appState.navigation.currentURL, rootLabel: "Root", trashLabel: "Trash")
         report("View/PathBarView", "POS: PathBarView constructs pathSegments for root directory", result: !segments.isEmpty)
 
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         windowUIState.isEditingPath = true
         let editingView = PathBarView(appState: appState)
         report("View/PathBarView", "POS: PathBarView honors isEditingPath mode", result: editingView.appState === appState && windowUIState.isEditingPath)

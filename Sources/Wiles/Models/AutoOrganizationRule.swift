@@ -14,10 +14,9 @@ public struct AutoOrganizationRule: Codable, Identifiable, Hashable, Sendable {
         id: UUID = UUID(), sourceURL: URL, destinationURL: URL, conditionType: RuleConditionType, conditionValue: String, isEnabled: Bool = true,
         lastTriggeredAt: Date? = nil, totalMovedCount: Int = 0) {
         self.id = id
-        // Normalized so a trailing slash, /tmp vs /private/tmp, or a symlinked mount can't make a
-        // self-referential rule (source == destination) look like two different folders.
-        self.sourceURL = sourceURL.standardizedFileURL.resolvingSymlinksInPath()
-        self.destinationURL = destinationURL.standardizedFileURL.resolvingSymlinksInPath()
+        // Standardized only; symlink resolution is deferred to `isSelfReferential` to keep init I/O-free.
+        self.sourceURL = sourceURL.standardizedFileURL
+        self.destinationURL = destinationURL.standardizedFileURL
         self.conditionType = conditionType
         self.conditionValue = conditionValue
         self.isEnabled = isEnabled
@@ -25,9 +24,9 @@ public struct AutoOrganizationRule: Codable, Identifiable, Hashable, Sendable {
         self.totalMovedCount = totalMovedCount
     }
 
-    /// True when this rule would move matching files into the folder it also reads from.
+    /// True when the rule moves files into the same folder it reads from (symlinks resolved here, not at init).
     public var isSelfReferential: Bool {
-        sourceURL == destinationURL
+        sourceURL.resolvingSymlinksInPath() == destinationURL.resolvingSymlinksInPath()
     }
 
     /// Custom so a rule decoded from persisted JSON also gets its URLs normalized — the
@@ -35,8 +34,8 @@ public struct AutoOrganizationRule: Codable, Identifiable, Hashable, Sendable {
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
-        sourceURL = try container.decode(URL.self, forKey: .sourceURL).standardizedFileURL.resolvingSymlinksInPath()
-        destinationURL = try container.decode(URL.self, forKey: .destinationURL).standardizedFileURL.resolvingSymlinksInPath()
+        sourceURL = try container.decode(URL.self, forKey: .sourceURL).standardizedFileURL
+        destinationURL = try container.decode(URL.self, forKey: .destinationURL).standardizedFileURL
         conditionType = try container.decode(RuleConditionType.self, forKey: .conditionType)
         conditionValue = try container.decode(String.self, forKey: .conditionValue)
         isEnabled = try container.decode(Bool.self, forKey: .isEnabled)

@@ -13,8 +13,8 @@ public struct AppStateOperationsTests {
         testOpenPropertiesForSelected()
         testStartEditingPath()
         testToggleSearching()
-        testCreateNewFileAndRename()
-        testCreateNewFileAndRenameFailure()
+        // createNewFileAndRename()'s tests live in AppStateOperationsCreateFolderTests.swift (async
+        // companion): since M15/M16 it dispatches via runDetachedFileOperation's Task{} and needs polling.
     }
 
     private static func makeItem(named name: String, in dir: URL, isDirectory: Bool = false) -> FileItem {
@@ -91,7 +91,7 @@ public struct AppStateOperationsTests {
 
     private static func testTriggerQuickLookForSelected() {
         let appState = AppState()
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.selection.selectedURLs = []
         appState.triggerQuickLookForSelected(windowUIState: windowUIState)
         report("AppState+Operations", "NEG: triggerQuickLookForSelected() with no selection leaves quickLookURL nil", result: windowUIState.quickLookURL == nil)
@@ -108,7 +108,7 @@ public struct AppStateOperationsTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         let item = makeItem(named: "props.txt", in: dir)
         appState.fileSystem.items = [item]
         appState.selection.selectedURLs = [item.url]
@@ -119,7 +119,7 @@ public struct AppStateOperationsTests {
             result: windowUIState.propertiesItem?.url == item.url)
 
         let appState2 = AppState()
-        let windowUIState2 = WindowUIState()
+        let windowUIState2 = WindowUIState(preferences: appState2.preferences)
         appState2.fileSystem.items = []
         appState2.selection.selectedURLs = [URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("unknown-\(UUID().uuidString).txt")]
         appState2.openPropertiesForSelected(windowUIState: windowUIState2)
@@ -131,7 +131,7 @@ public struct AppStateOperationsTests {
 
     private static func testStartEditingPath() {
         let appState = AppState()
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.startEditingPath(windowUIState: windowUIState)
         report(
             "AppState+Operations",
@@ -152,57 +152,6 @@ public struct AppStateOperationsTests {
             "AppState+Operations",
             "NEG: toggleSearching() off again clears the search query",
             result: !appState.selection.isSearching && appState.selection.searchQuery.isEmpty)
-    }
-
-    // MARK: - createNewFileAndRename / enterRenameForNewlyCreated
-
-    // createNewFolderAndRename's own tests live in AppStateOperationsExtraTests.swift (async
-    // companion) since createNewFolderAndRename dispatches via Task{} and needs polling.
-
-    private static func testCreateNewFileAndRename() {
-        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: dir) }
-
-        let appState = AppState()
-        let windowUIState = WindowUIState()
-        appState.navigation.currentURL = dir
-        appState.fileSystem.items = []
-        appState.createNewFileAndRename(windowUIState: windowUIState)
-        guard let createdURL = appState.fileSystem.renamingURL else {
-            report(
-                "AppState+Operations",
-                "POS: createNewFileAndRename() creates a new file in the current directory and enters rename mode",
-                result: false)
-            return
-        }
-        report(
-            "AppState+Operations",
-            "POS: createNewFileAndRename() creates a new file in the current directory and enters rename mode",
-            result: FileManager.default.fileExists(atPath: createdURL.path)
-                && appState.fileSystem.items.first?.url == createdURL.standardizedFileURL
-                && windowUIState.renameItem?.url == createdURL.standardizedFileURL
-                && appState.selection.selectedURLs == Set([createdURL]))
-    }
-
-    private static func testCreateNewFileAndRenameFailure() {
-        let readOnlyParent = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
-        try? FileManager.default.createDirectory(at: readOnlyParent, withIntermediateDirectories: true)
-        defer {
-            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyParent.path)
-            try? FileManager.default.removeItem(at: readOnlyParent)
-        }
-        try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: readOnlyParent.path)
-
-        let appState = AppState()
-        let windowUIState = WindowUIState()
-        appState.modal.errorMessage = nil
-        appState.navigation.currentURL = readOnlyParent
-        appState.createNewFileAndRename(windowUIState: windowUIState)
-        report(
-            "AppState+Operations",
-            "NEG: createNewFileAndRename() reports an error when the file can't be created (read-only parent directory)",
-            result: appState.modal.errorMessage != nil && windowUIState.renameItem == nil)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

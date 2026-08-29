@@ -37,12 +37,11 @@ public final class OpenWithService: Sendable {
     }
 
     @MainActor
-    public static func chooseOtherApplication(toOpen urls: [URL]) {
+    public static func chooseOtherApplication(toOpen urls: [URL], lang: AppLanguage = .system) {
         guard !urls.isEmpty else { return }
         let panel = NSOpenPanel()
-        // M5 follow-up: not a thrown error, so it can't route through WilesError.localized —
-        // localizing this needs a `lang:` parameter threaded from the @MainActor caller.
-        panel.title = L10n.string(.selectApplicationPanelTitle, lang: .system)
+        // Panel title must be set synchronously here; the caller supplies the in-app language.
+        panel.title = L10n.string(.selectApplicationPanelTitle, lang: lang)
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.allowedContentTypes = [.application]
         panel.allowsMultipleSelection = false

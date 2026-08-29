@@ -17,6 +17,12 @@ public enum FinderStyleTruncationService {
         return cache
     }()
 
+    /// One reusable TextKit graph instead of a fresh `NSLayoutManager`/`NSTextStorage`/`NSTextContainer`
+    /// per `fits()` step of the binary search. `layoutLock` serializes access since `precompute` runs
+    /// off-main while a stray `body` cache-miss can still land on the main thread.
+    private static let layoutLock = NSLock()
+    private nonisolated(unsafe) static let layoutEngine = TruncationLayoutEngine()
+
     public static func truncatedMiddle(_ name: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> String {
         let clampedWidth = maxWidth - measurementSafetyMargin
         guard clampedWidth > 0, maxLines > 0, !name.isEmpty else { return name }
@@ -26,13 +32,16 @@ public enum FinderStyleTruncationService {
             return cached as String
         }
 
-        let content = fits(name, font: font, maxWidth: clampedWidth, maxLines: maxLines)
+        layoutLock.lock()
+        defer { layoutLock.unlock() }
+
+        let content = fitsLocked(name, font: font, maxWidth: clampedWidth, maxLines: maxLines)
             ? name
             : middleTruncatedCandidate(for: name, font: font, maxWidth: clampedWidth, maxLines: maxLines)
 
         let result: String
         if maxLines > 1 {
-            let lines = wrappedLines(content, font: font, maxWidth: clampedWidth, maxLines: maxLines)
+            let lines = wrappedLinesLocked(content, font: font, maxWidth: clampedWidth, maxLines: maxLines)
             result = lines.isEmpty ? content : lines.joined(separator: "\n")
         } else {
             result = content
@@ -42,16 +51,27 @@ public enum FinderStyleTruncationService {
         return result
     }
 
+    /// Run off-main when a directory loads (like the thumbnail prefetch) so every later `truncatedMiddle`
+    /// read from a cell `body` is a pure cache hit. Not yet wired to a caller — callers must invoke this
+    /// with the same `font`/`width`/`maxLines` the cells will use.
+    public static func precompute(_ items: [FileItem], width: CGFloat, font: NSFont, maxLines: Int = 2) {
+        for item in items {
+            _ = truncatedMiddle(item.name, font: font, maxWidth: width, maxLines: maxLines)
+        }
+    }
+
     /// Wraps `text` into as many lines as it needs, no truncation, no line cap — for showing the
     /// full name after it's been revealed.
     public static func wrappedLines(_ text: String, font: NSFont, maxWidth: CGFloat) -> [String] {
         let maxWidth = maxWidth - measurementSafetyMargin
         guard maxWidth > 0, !text.isEmpty else { return [text] }
+        layoutLock.lock()
+        defer { layoutLock.unlock() }
         // `NSTextContainer.maximumNumberOfLines = 0` is AppKit's own "no limit" sentinel.
-        return wrappedLines(text, font: font, maxWidth: maxWidth, maxLines: 0)
+        return wrappedLinesLocked(text, font: font, maxWidth: maxWidth, maxLines: 0)
     }
 
-    /// Binary-searches the largest equal prefix/suffix ("…"-joined) that still fits.
+    /// Binary-searches the largest equal prefix/suffix ("…"-joined) that still fits. Caller holds `layoutLock`.
     private static func middleTruncatedCandidate(for name: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> String {
         let chars = Array(name)
         var low = 1
@@ -60,7 +80,7 @@ public enum FinderStyleTruncationService {
         while low <= high {
             let mid = (low + high) / 2
             let candidate = String(chars.prefix(mid)) + "…" + String(chars.suffix(mid))
-            if fits(candidate, font: font, maxWidth: maxWidth, maxLines: maxLines) {
+            if fitsLocked(candidate, font: font, maxWidth: maxWidth, maxLines: maxLines) {
                 best = candidate
                 low = mid + 1
             } else {
@@ -71,45 +91,50 @@ public enum FinderStyleTruncationService {
     }
 
     /// Real `NSLayoutManager` layout instead of a font-metrics formula, which drifted from actual wrapping.
-    private static func fits(_ text: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> Bool {
-        let (layoutManager, textStorage) = makeLayoutManager(for: text, font: font, maxWidth: maxWidth, maxLines: maxLines)
-        return withExtendedLifetime(textStorage) {
-            let fittedGlyphCount = layoutManager.glyphRange(for: layoutManager.textContainers[0]).length
-            return fittedGlyphCount >= layoutManager.numberOfGlyphs
-        }
+    /// Caller holds `layoutLock`.
+    private static func fitsLocked(_ text: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> Bool {
+        let layoutManager = layoutEngine.layout(text, font: font, maxWidth: maxWidth, maxLines: maxLines)
+        let fittedGlyphCount = layoutManager.glyphRange(for: layoutManager.textContainers[0]).length
+        return fittedGlyphCount >= layoutManager.numberOfGlyphs
     }
 
     /// Reads back each real line fragment TextKit laid out, including its own mid-word breaks.
-    private static func wrappedLines(_ text: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> [String] {
-        let (layoutManager, textStorage) = makeLayoutManager(for: text, font: font, maxWidth: maxWidth, maxLines: maxLines)
-        return withExtendedLifetime(textStorage) {
-            let nsText = text as NSString
-            var lines: [String] = []
-            var glyphIndex = 0
-            let totalGlyphs = layoutManager.numberOfGlyphs
-            while glyphIndex < totalGlyphs, maxLines <= 0 || lines.count < maxLines {
-                var lineGlyphRange = NSRange(location: 0, length: 0)
-                layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: &lineGlyphRange)
-                let lineCharRange = layoutManager.characterRange(forGlyphRange: lineGlyphRange, actualGlyphRange: nil)
-                lines.append(nsText.substring(with: lineCharRange))
-                glyphIndex = NSMaxRange(lineGlyphRange)
-            }
-            return lines
+    /// Caller holds `layoutLock`.
+    private static func wrappedLinesLocked(_ text: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> [String] {
+        let layoutManager = layoutEngine.layout(text, font: font, maxWidth: maxWidth, maxLines: maxLines)
+        let nsText = text as NSString
+        var lines: [String] = []
+        var glyphIndex = 0
+        let totalGlyphs = layoutManager.numberOfGlyphs
+        while glyphIndex < totalGlyphs, maxLines <= 0 || lines.count < maxLines {
+            var lineGlyphRange = NSRange(location: 0, length: 0)
+            layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: &lineGlyphRange)
+            let lineCharRange = layoutManager.characterRange(forGlyphRange: lineGlyphRange, actualGlyphRange: nil)
+            lines.append(nsText.substring(with: lineCharRange))
+            glyphIndex = NSMaxRange(lineGlyphRange)
         }
+        return lines
     }
 
-    /// `NSLayoutManager` doesn't retain its `NSTextStorage` — caller must keep it alive.
-    private static func makeLayoutManager(
-        for text: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> (NSLayoutManager, NSTextStorage) {
-        let textStorage = NSTextStorage(string: text, attributes: [.font: font])
-        let layoutManager = NSLayoutManager()
-        textStorage.addLayoutManager(layoutManager)
-        let container = NSTextContainer(size: CGSize(width: maxWidth, height: .greatestFiniteMagnitude))
-        container.lineFragmentPadding = 0
-        container.maximumNumberOfLines = maxLines
-        container.lineBreakMode = .byWordWrapping
-        layoutManager.addTextContainer(container)
-        layoutManager.ensureLayout(for: container)
-        return (layoutManager, textStorage)
+    /// Reusable TextKit graph; `layout` resets it in place. Not thread-safe on its own — access is
+    /// serialized by `FinderStyleTruncationService.layoutLock`.
+    private final class TruncationLayoutEngine {
+        private let textStorage = NSTextStorage()
+        private let layoutManager = NSLayoutManager()
+        private let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+
+        init() {
+            container.lineFragmentPadding = 0
+            layoutManager.addTextContainer(container)
+            textStorage.addLayoutManager(layoutManager)
+        }
+
+        func layout(_ text: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> NSLayoutManager {
+            textStorage.setAttributedString(NSAttributedString(string: text, attributes: [.font: font]))
+            container.size = CGSize(width: maxWidth, height: CGFloat.greatestFiniteMagnitude)
+            container.maximumNumberOfLines = maxLines
+            layoutManager.ensureLayout(for: container)
+            return layoutManager
+        }
     }
 }

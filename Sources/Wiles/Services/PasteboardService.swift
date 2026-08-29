@@ -43,7 +43,8 @@ public final class PasteboardService: Sendable {
         return bitmap.representation(using: .png, properties: [:])
     }
 
-    /// Text files at or above this size aren't copied as clipboard text (they'd also stall the read).
+    /// Cap for copying a file's full text to the clipboard (a bigger read would also stall).
+    /// Independent of `SearchFilterService`'s content-match cap — different use case, not shared.
     private static let maxCopyableTextBytes = 10_000_000
 
     /// Copies the file's text content to the clipboard. Throws `WilesError.localized` for the two

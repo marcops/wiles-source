@@ -19,7 +19,19 @@ public final class ThumbnailService {
     private nonisolated(unsafe) let cache = NSCache<NSString, NSImage>()
     private var prefetchTask: Task<Void, Never>?
 
+    /// Backing scale captured once at init; not worth a per-thumbnail `MainActor` hop just to re-read it.
+    private nonisolated let deviceScale: CGFloat
+
+    /// Path→mtime snapshot from the most recent directory load; lets `cacheKey` skip a per-call `stat`.
+    private nonisolated(unsafe) var mtimeIndex: [String: Date] = [:]
+    private nonisolated let mtimeIndexLock = NSLock()
+
+    /// In-flight generations keyed by cache key, so a duplicate request awaits the first instead of regenerating.
+    private nonisolated(unsafe) var inFlight: [String: Task<Void, Never>] = [:]
+    private nonisolated let inFlightLock = NSLock()
+
     private init() {
+        deviceScale = NSScreen.main?.backingScaleFactor ?? 2.0
         // Without these, a folder with thousands of images would cache every full-size bitmap
         // forever, easily ballooning to gigabytes of RAM. totalCostLimit only takes effect because
         // setObject below passes a real per-image byte cost — without that, NSCache treats every
@@ -63,10 +75,20 @@ public final class ThumbnailService {
         cache.object(forKey: cacheKey(url: url))
     }
 
+    /// Callers must invoke this on directory load so `cachedThumbnail` from a view body needs no `stat` (wiring: see report).
+    public nonisolated func indexModificationDates(_ items: [FileItem]) {
+        var index: [String: Date] = [:]
+        index.reserveCapacity(items.count)
+        for item in items {
+            index[item.url.standardizedFileURL.path] = item.dateModified
+        }
+        mtimeIndexLock.lock()
+        mtimeIndex = index
+        mtimeIndexLock.unlock()
+    }
+
     public nonisolated func loadThumbnail(for url: URL, size _: CGFloat) async -> NSImage? {
-        // Scale must be read on the main actor; a single view-driven load can afford one hop.
-        let scale = await MainActor.run { NSScreen.main?.backingScaleFactor ?? 2.0 }
-        return await thumbnail(for: url, scale: scale)
+        await thumbnail(for: url, scale: deviceScale)
     }
 
     /// Cache-check + generate, entirely off `@MainActor`. `QLThumbnailGenerator` tolerates a missing
@@ -76,18 +98,34 @@ public final class ThumbnailService {
         if let cached = cache.object(forKey: key) {
             return cached
         }
+        let dedupKey = key as String
+        let (generation, isOwner) = inFlightLock.withLock { () -> (Task<Void, Never>, Bool) in
+            if let running = inFlight[dedupKey] { return (running, false) }
+            let new = Task<Void, Never> { [weak self] in
+                await self?.generateAndCache(for: url, key: dedupKey, scale: scale)
+            }
+            inFlight[dedupKey] = new
+            return (new, true)
+        }
+        await generation.value
+        if isOwner {
+            inFlightLock.withLock { _ = inFlight.removeValue(forKey: dedupKey) }
+        }
+        return cache.object(forKey: key)
+    }
+
+    private nonisolated func generateAndCache(for url: URL, key: String, scale: CGFloat) async {
         let request = QLThumbnailGenerator.Request(
             fileAt: url,
             size: CGSize(width: Self.maxDimension, height: Self.maxDimension),
             scale: scale,
             representationTypes: .thumbnail)
         guard let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
-            return nil
+            return
         }
         let image = representation.nsImage
         let cost = Int(image.size.width * image.size.height * 4) // rough RGBA-bitmap byte estimate
-        cache.setObject(image, forKey: key, cost: cost)
-        return image
+        cache.setObject(image, forKey: key as NSString, cost: cost)
     }
 
     public func prefetchThumbnails(for items: [FileItem], size _: CGFloat) {
@@ -96,8 +134,7 @@ public final class ThumbnailService {
         // Cancel any prefetch still running for a previously-viewed folder — otherwise it keeps
         // burning CPU generating thumbnails for a folder the user already navigated away from.
         prefetchTask?.cancel()
-        // Read the backing scale here (main actor) once, before detaching the loop off-actor.
-        let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+        let scale = deviceScale
         prefetchTask = Task.detached(priority: .userInitiated) { [weak self] in
             for url in eligibleURLs {
                 if Task.isCancelled {
@@ -113,12 +150,18 @@ public final class ThumbnailService {
         cache.removeObject(forKey: cacheKey(url: url))
     }
 
-    /// Keyed by path + `contentModificationDate`, so a file edited/replaced externally gets a fresh
-    /// thumbnail instead of the stale cached bitmap. Costs one cheap local `stat` per lookup.
+    /// Keyed by path + mtime so an externally replaced file re-renders; mtime from `mtimeIndex`, else a `stat`.
     private nonisolated func cacheKey(url: URL) -> NSString {
         let std = url.standardizedFileURL
-        let mtime = (try? std.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        let mtime = indexedModificationDate(forPath: std.path)
+            ?? (try? std.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
         let stamp = mtime.map { String($0.timeIntervalSinceReferenceDate) } ?? "0"
         return "\(std.path)|\(stamp)" as NSString
+    }
+
+    private nonisolated func indexedModificationDate(forPath path: String) -> Date? {
+        mtimeIndexLock.lock()
+        defer { mtimeIndexLock.unlock() }
+        return mtimeIndex[path]
     }
 }

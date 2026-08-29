@@ -291,8 +291,10 @@ public struct ImageConverterCoverageTests {
         }
         report(
             "ImageConverter",
-            "POS: repeated conversion of the same source avoids overwriting by incrementing a counter suffix",
-            result: first.lastPathComponent != second.lastPathComponent && second.lastPathComponent.contains("_converted_2"))
+            "POS: repeated conversion of the same source avoids overwriting with a Finder-style ' 2' suffix (M57: was '_converted_2')",
+            result: first.lastPathComponent != second.lastPathComponent
+                && second.lastPathComponent.contains("_converted 2")
+                && !second.lastPathComponent.contains("_converted_2"))
     }
 
     private static func testAllFormatsProduceReadableOutput() {

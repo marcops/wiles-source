@@ -113,8 +113,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testFilePermissionsTests() {
-        FilePermissionsTests.run()
+    func testFilePermissionsTests() async {
+        await FilePermissionsTests.run()
     }
 
     @MainActor
@@ -128,8 +128,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testExifMetadataTests() {
-        ExifMetadataTests.run()
+    func testExifMetadataTests() async {
+        await ExifMetadataTests.run()
     }
 
     @MainActor
@@ -201,8 +201,8 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testSyntaxHighlighterTests() {
-        SyntaxHighlighterTests.run()
+    func testSyntaxHighlighterTests() async {
+        await SyntaxHighlighterTests.run()
     }
 
     @MainActor

@@ -107,6 +107,8 @@ public final class AutoOrganizationService {
         let ruleID: UUID
     }
 
+    private struct AmbiguousRuleMatch: Error { }
+
     private func activeRules(for folder: URL) -> [AutoOrganizationRule] {
         rules.filter { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
     }
@@ -122,11 +124,24 @@ public final class AutoOrganizationService {
             if resourceValues?.isDirectory ?? false {
                 continue
             }
-            if let rule = activeRules.first(where: { matches(file: file, rule: $0) }) {
-                pending.append(PendingMove(file: file, destinationURL: rule.destinationURL, ruleID: rule.id))
+            let matched = activeRules.filter { matches(file: file, rule: $0) }
+            guard let rule = matched.first else { continue }
+            if matched.count > 1 {
+                reportAmbiguousMatch(file: file, competing: matched)
             }
+            pending.append(PendingMove(file: file, destinationURL: rule.destinationURL, ruleID: rule.id))
         }
         return pending
+    }
+
+    /// Makes the silent first-match win observable when several enabled rules claim the same file.
+    private nonisolated static func reportAmbiguousMatch(file: URL, competing: [AutoOrganizationRule]) {
+        let detail = competing
+            .map { "[\($0.conditionType.rawValue) '\($0.conditionValue)' → \($0.destinationURL.path)]" }
+            .joined(separator: " ")
+        ErrorReporter.report(
+            AmbiguousRuleMatch(),
+            context: "Auto-organization: \(file.lastPathComponent) matched by \(competing.count) enabled rules; first wins. Competing: \(detail)")
     }
 
     /// One detached task processes every match sequentially, rather than fanning out a separate

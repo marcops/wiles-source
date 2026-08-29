@@ -3,7 +3,7 @@ import Foundation
 
 @MainActor
 public struct FilePermissionsTests {
-    public static func run() {
+    public static func run() async {
         let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("perms_test.txt")
         try? "test data".write(to: tempFile, atomically: true, encoding: .utf8)
 
@@ -21,9 +21,9 @@ public struct FilePermissionsTests {
             TestReporter.report("Permissions", "POS: getPermissions returns valid octalString", result: false)
         }
 
-        testRecursiveApplyReportsCount()
+        await testRecursiveApplyReportsCount()
         testDirectoryTraversableAddsExecuteWhereRead()
-        testRecursiveApplyKeepsSubfoldersTraversable()
+        await testRecursiveApplyKeepsSubfoldersTraversable()
 
         // NEG: non-existent file returns nil
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-\(UUID().uuidString).txt")
@@ -69,14 +69,14 @@ public struct FilePermissionsTests {
     }
 
     /// L12: `setPermissionsRecursively` returns `(applied:errors:)` so the sheet can show a count.
-    private static func testRecursiveApplyReportsCount() {
+    private static func testRecursiveApplyReportsCount() async {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("perms_recursive_\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: dir.appendingPathComponent("nested"), withIntermediateDirectories: true)
         try? "a".write(to: dir.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
         try? "b".write(to: dir.appendingPathComponent("nested/b.txt"), atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let result = FilePermissionsService.setPermissionsRecursively(
+        let result = await FilePermissionsService.setPermissionsRecursively(
             for: dir, permissions: POSIXPermissions(posixPermissions: 0o755))
         TestReporter.report(
             "Permissions",
@@ -102,14 +102,14 @@ public struct FilePermissionsTests {
 
     /// The bug this guards against: applying a plain file value (0o644) recursively used to strip
     /// every subfolder's execute bit, making the tree un-traversable. Directories must keep +x.
-    private static func testRecursiveApplyKeepsSubfoldersTraversable() {
+    private static func testRecursiveApplyKeepsSubfoldersTraversable() async {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("perms_traversable_\(UUID().uuidString)")
         let sub = dir.appendingPathComponent("sub")
         try? FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
         try? "a".write(to: dir.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        _ = FilePermissionsService.setPermissionsRecursively(for: dir, permissions: POSIXPermissions(posixPermissions: 0o644))
+        _ = await FilePermissionsService.setPermissionsRecursively(for: dir, permissions: POSIXPermissions(posixPermissions: 0o644))
 
         let subPerms = FilePermissionsService.getPermissions(for: sub)
         let filePerms = FilePermissionsService.getPermissions(for: dir.appendingPathComponent("a.txt"))

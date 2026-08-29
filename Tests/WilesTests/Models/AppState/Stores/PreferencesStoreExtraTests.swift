@@ -4,7 +4,8 @@ import Foundation
 @MainActor
 public struct PreferencesStoreExtraTests {
     public static func run() {
-        testShowPreviewAndDiskUsageSidebarsAreMutuallyExclusive()
+        testTrailingInspectorCannotRepresentBothInspectors()
+        testLoadTrailingInspectorMigratesLegacyBoolKeys()
         testTranslucentLevelSetterUpdatesBothSidebarAndContentLevels()
         testOverlayOpacityIsHalvedInLightAppearance()
         testPerFolderViewModesLoadsSavedDictionaryOrFallsBackToEmpty()
@@ -12,6 +13,7 @@ public struct PreferencesStoreExtraTests {
         testLoadBoolDistinguishesNeverSavedFromExplicitFalse()
         testTranslucentLevelsLoadSavedPositiveValuesOnInit()
         testListColumnStatesSkipsPersistenceWhileSuppressed()
+        testWithColumnStatePersistenceSuppressedIsNestingSafe()
         testSmartFolderCRUDReturnsNilOnSuccessAndAppliesInMemory()
         testKeysToEvictPrefersOldBaselineThenJustAdded()
     }
@@ -67,47 +69,88 @@ public struct PreferencesStoreExtraTests {
             result: store.removeSmartFolder(folder) == nil && store.smartFolders.isEmpty)
     }
 
-    // MARK: - showPreviewSidebar / showDiskUsageSidebar mutual exclusivity
+    // MARK: - trailingInspector (M22 — replaced the two mutually-exclusive bools)
 
-    /// The two inspector-sidebar toggles occupy the same trailing pane, so turning one on must
-    /// force the other off (both `didSet`s, lines ~150-166). This mutates the real
-    /// `UserDefaults.standard` keys for both toggles, so per rule 17 we snapshot and restore both
-    /// in `defer`.
-    private static func testShowPreviewAndDiskUsageSidebarsAreMutuallyExclusive() {
-        let previewKey = DefaultsKey.showPreviewSidebar.rawValue
-        let diskUsageKey = DefaultsKey.showDiskUsageSidebar.rawValue
-        let priorPreview = UserDefaults.standard.object(forKey: previewKey) as? Bool
-        let priorDiskUsage = UserDefaults.standard.object(forKey: diskUsageKey) as? Bool
+    /// One `TrailingInspector` enum replaced `showPreviewSidebar`/`showDiskUsageSidebar`, so
+    /// "both inspectors on" is now structurally impossible: setting `.preview` then `.diskUsage`
+    /// just leaves `.diskUsage`. Snapshots/restores the real `wiles_trailingInspector` key.
+    private static func testTrailingInspectorCannotRepresentBothInspectors() {
+        let key = DefaultsKey.trailingInspector.rawValue
+        let prior = UserDefaults.standard.string(forKey: key)
         defer {
-            if let priorPreview {
-                UserDefaults.standard.set(priorPreview, forKey: previewKey)
+            if let prior {
+                UserDefaults.standard.set(prior, forKey: key)
             } else {
-                UserDefaults.standard.removeObject(forKey: previewKey)
-            }
-            if let priorDiskUsage {
-                UserDefaults.standard.set(priorDiskUsage, forKey: diskUsageKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: diskUsageKey)
+                UserDefaults.standard.removeObject(forKey: key)
             }
         }
 
         let store = PreferencesStore()
-        store.showDiskUsageSidebar = false
-        store.showPreviewSidebar = false
+        store.trailingInspector = .preview
+        report("Store/PreferencesStore", "POS: trailingInspector holds .preview", result: store.trailingInspector == .preview)
 
-        store.showPreviewSidebar = true
+        store.trailingInspector = .diskUsage
         report(
             "Store/PreferencesStore",
-            "POS: turning on showPreviewSidebar leaves showDiskUsageSidebar off",
-            result: store.showPreviewSidebar && !store.showDiskUsageSidebar)
+            "POS: setting .diskUsage after .preview leaves only .diskUsage (both-on is unrepresentable)",
+            result: store.trailingInspector == .diskUsage)
 
-        store.showDiskUsageSidebar = true
+        store.trailingInspector = .none
+        report("Store/PreferencesStore", "NEG: trailingInspector can be cleared back to .none", result: store.trailingInspector == .none)
+
+        store.trailingInspector = .diskUsage
         report(
             "Store/PreferencesStore",
-            "POS: turning on showDiskUsageSidebar turns off showPreviewSidebar",
-            result: store.showDiskUsageSidebar && !store.showPreviewSidebar)
+            "POS: trailingInspector round-trips through UserDefaults into a fresh store",
+            result: PreferencesStore().trailingInspector == .diskUsage)
+    }
 
-        store.showDiskUsageSidebar = false
+    /// `loadTrailingInspector` migrates a pre-enum install: with only the legacy
+    /// `wiles_showPreviewSidebar` / `wiles_showDiskUsageSidebar` bool set (no `wiles_trailingInspector`),
+    /// a fresh `PreferencesStore` restores `.preview` / `.diskUsage`; the new key wins over legacy;
+    /// neither set → `.none`. Isolates all three raw keys in `defer`.
+    private static func testLoadTrailingInspectorMigratesLegacyBoolKeys() {
+        let newKey = DefaultsKey.trailingInspector.rawValue
+        let legacyPreview = "wiles_showPreviewSidebar"
+        let legacyDiskUsage = "wiles_showDiskUsageSidebar"
+        let priorNew = UserDefaults.standard.string(forKey: newKey)
+        let priorPreview = UserDefaults.standard.object(forKey: legacyPreview)
+        let priorDiskUsage = UserDefaults.standard.object(forKey: legacyDiskUsage)
+        defer {
+            UserDefaults.standard.set(priorNew, forKey: newKey)
+            UserDefaults.standard.set(priorPreview, forKey: legacyPreview)
+            UserDefaults.standard.set(priorDiskUsage, forKey: legacyDiskUsage)
+        }
+
+        UserDefaults.standard.removeObject(forKey: newKey)
+        UserDefaults.standard.removeObject(forKey: legacyPreview)
+        UserDefaults.standard.removeObject(forKey: legacyDiskUsage)
+        report(
+            "Store/PreferencesStore",
+            "POS: no trailing-inspector keys at all restores .none",
+            result: PreferencesStore().trailingInspector == .none)
+
+        UserDefaults.standard.set(true, forKey: legacyPreview)
+        report(
+            "Store/PreferencesStore",
+            "POS: legacy wiles_showPreviewSidebar=true (no new key) migrates to .preview",
+            result: PreferencesStore().trailingInspector == .preview)
+
+        // The migration above writes the new key via `trailingInspector`'s didSet — clear it so the
+        // next sub-case genuinely tests the legacy fallback, not the just-migrated value.
+        UserDefaults.standard.removeObject(forKey: newKey)
+        UserDefaults.standard.removeObject(forKey: legacyPreview)
+        UserDefaults.standard.set(true, forKey: legacyDiskUsage)
+        report(
+            "Store/PreferencesStore",
+            "POS: legacy wiles_showDiskUsageSidebar=true (no new key) migrates to .diskUsage",
+            result: PreferencesStore().trailingInspector == .diskUsage)
+
+        UserDefaults.standard.set(TrailingInspector.none.rawValue, forKey: newKey)
+        report(
+            "Store/PreferencesStore",
+            "POS: an explicit new-key value wins over a conflicting legacy bool",
+            result: PreferencesStore().trailingInspector == .none)
     }
 
     // MARK: - translucentLevel computed property
@@ -305,11 +348,11 @@ public struct PreferencesStoreExtraTests {
             result: store.sidebarTranslucentLevel == 33 && store.contentTranslucentLevel == 66)
     }
 
-    // MARK: - listColumnStates persistence suppression flag
+    // MARK: - withColumnStatePersistenceSuppressed (L8)
 
-    /// `listColumnStates`'s `didSet` skips `saveListColumnStates()` entirely while
-    /// `suppressColumnStatePersistence` is true (used during bulk column-state restores that
-    /// shouldn't each individually re-persist).
+    /// `listColumnStates`'s `didSet` skips `saveListColumnStates()` entirely while a
+    /// `withColumnStatePersistenceSuppressed` body is running (used during bulk column-state
+    /// restores and live resize drags that shouldn't each individually re-persist).
     private static func testListColumnStatesSkipsPersistenceWhileSuppressed() {
         let key = DefaultsKey.listColumnStates.rawValue
         let priorData = UserDefaults.standard.data(forKey: key)
@@ -323,18 +366,54 @@ public struct PreferencesStoreExtraTests {
 
         UserDefaults.standard.removeObject(forKey: key)
         let store = PreferencesStore()
-        store.suppressColumnStatePersistence = true
-        store.listColumnStates = []
+        store.withColumnStatePersistenceSuppressed {
+            store.listColumnStates = []
+        }
         report(
             "Store/PreferencesStore",
-            "NEG: listColumnStates didSet does not persist while suppressColumnStatePersistence is true",
+            "NEG: listColumnStates didSet does not persist while withColumnStatePersistenceSuppressed's body runs",
             result: UserDefaults.standard.data(forKey: key) == nil)
 
-        store.suppressColumnStatePersistence = false
         store.listColumnStates = ListColumnState.defaults()
         report(
             "Store/PreferencesStore",
-            "POS: listColumnStates didSet persists once suppressColumnStatePersistence is false again",
+            "POS: listColumnStates didSet persists again once withColumnStatePersistenceSuppressed has returned",
+            result: UserDefaults.standard.data(forKey: key) != nil)
+    }
+
+    /// `withColumnStatePersistenceSuppressed` restores the *previous* flag value via `defer`, not a
+    /// hardcoded `false` — so an inner call returning must not re-enable persistence while an outer
+    /// call is still active. Tested behaviorally since the flag itself is `private`.
+    private static func testWithColumnStatePersistenceSuppressedIsNestingSafe() {
+        let key = DefaultsKey.listColumnStates.rawValue
+        let priorData = UserDefaults.standard.data(forKey: key)
+        defer {
+            if let priorData {
+                UserDefaults.standard.set(priorData, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        UserDefaults.standard.removeObject(forKey: key)
+        let store = PreferencesStore()
+
+        store.withColumnStatePersistenceSuppressed {
+            store.withColumnStatePersistenceSuppressed {
+                store.listColumnStates = []
+            }
+            // Inner call has returned; the outer suppression must still be in force.
+            store.listColumnStates = Array(ListColumnState.defaults().prefix(1))
+            report(
+                "Store/PreferencesStore",
+                "NEG: an inner withColumnStatePersistenceSuppressed returning does not re-enable persistence while the outer call is still active",
+                result: UserDefaults.standard.data(forKey: key) == nil)
+        }
+
+        store.listColumnStates = ListColumnState.defaults()
+        report(
+            "Store/PreferencesStore",
+            "POS: persistence resumes only after the outermost withColumnStatePersistenceSuppressed returns",
             result: UserDefaults.standard.data(forKey: key) != nil)
     }
 

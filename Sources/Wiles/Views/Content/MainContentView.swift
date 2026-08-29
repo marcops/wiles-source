@@ -150,12 +150,15 @@ struct MainContentView: View {
     }
 
     @ViewBuilder private var inspectorPane: some View {
-        if windowUIState.showDiskUsageSidebar {
+        switch windowUIState.trailingInspector {
+        case .diskUsage:
             DiskUsageSidebarView(appState: appState)
                 .frame(maxHeight: .infinity)
-        } else if windowUIState.showPreviewSidebar {
+        case .preview:
             PreviewSidebarView(appState: appState)
                 .frame(maxHeight: .infinity)
+        case .none:
+            EmptyView()
         }
     }
 
@@ -186,12 +189,10 @@ struct MainContentView: View {
     /// combined, and `HSplitView` has nowhere to take the missing width from except by crushing
     /// a pane below its own declared `.frame(minWidth:)`.
     private var effectiveWindowMinWidth: CGFloat {
-        let inspectorMinWidth: CGFloat = if windowUIState.showDiskUsageSidebar {
-            Self.diskUsageSidebarMinWidth
-        } else if windowUIState.showPreviewSidebar {
-            Self.previewSidebarMinWidth
-        } else {
-            0
+        let inspectorMinWidth: CGFloat = switch windowUIState.trailingInspector {
+        case .diskUsage: Self.diskUsageSidebarMinWidth
+        case .preview: Self.previewSidebarMinWidth
+        case .none: 0
         }
         return Self.windowMinWidth + inspectorMinWidth
     }

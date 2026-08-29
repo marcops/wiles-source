@@ -94,7 +94,11 @@ struct SharedFileItemContextMenu: View {
             Button(appState.tr(.mergeIntoPDF)) {
                 Task {
                     do {
-                        _ = try await PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
+                        let result = try await PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
+                        if result.skippedCount > 0 {
+                            appState.showError(WilesError.operationFailed(
+                                reason: "\(result.skippedCount) file(s) could not be added to the PDF."))
+                        }
                     } catch {
                         appState.showError(error, context: "Merging files into PDF")
                     }
@@ -198,7 +202,7 @@ struct SharedFileItemContextMenu: View {
             Divider()
         }
         Button(appState.tr(.selectOtherApp)) {
-            OpenWithService.chooseOtherApplication(toOpen: selectionURLsOrItem)
+            OpenWithService.chooseOtherApplication(toOpen: selectionURLsOrItem, lang: appState.preferences.appLanguage)
         }
         if !availableApps.isEmpty, !item.fileExtension.isEmpty {
             Divider()

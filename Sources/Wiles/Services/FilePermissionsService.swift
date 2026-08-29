@@ -28,8 +28,10 @@ public enum FilePermissionsService: Sendable {
     /// Directories get `permissions.directoryTraversable` instead of the raw value: applying e.g.
     /// `0o644` recursively would otherwise strip every subfolder's execute bit and lock the user
     /// out of their own tree.
+    /// `async` and `nonisolated`, so a `@MainActor` caller can't block the UI on a deep tree even
+    /// without its own `Task` wrapper — the body runs off the main actor.
     public static func setPermissionsRecursively(
-        for url: URL, permissions: POSIXPermissions) -> (applied: Int, errors: [any Error]) {
+        for url: URL, permissions: POSIXPermissions) async -> (applied: Int, errors: [any Error]) {
         var errors: [any Error] = []
         var applied = 0
 
@@ -47,9 +49,9 @@ public enum FilePermissionsService: Sendable {
         guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey]) else {
             return (applied, errors)
         }
-        for case let childURL as URL in enumerator {
-            // Deep trees can take seconds; stop as soon as the caller's task is cancelled
-            // (e.g. the properties sheet was dismissed) instead of running on invisibly.
+        // `while`/`nextObject()` rather than `for…in`: the enumerator's iterator is unavailable in
+        // an async context. Deep trees can take seconds; stop as soon as the caller's task is cancelled.
+        while let childURL = enumerator.nextObject() as? URL {
             if Task.isCancelled {
                 break
             }

@@ -14,7 +14,7 @@ public struct FullUIActionCoverageTests {
         await testDuplicateCleanerSheetFlows(appState: appState)
         testImageConverterSheetFlows(appState: appState)
         await testDiskSpaceVisualizerSheetFlows(appState: appState)
-        testModalSheetsCoverage(windowUIState: WindowUIState())
+        testModalSheetsCoverage(windowUIState: WindowUIState(preferences: appState.preferences))
         testConnectToServerSheetFlows(appState: appState)
         testSymlinkSheetFlows(appState: appState)
         testNewFileSheetFlows(appState: appState)
@@ -66,12 +66,12 @@ public struct FullUIActionCoverageTests {
         report("UI/TerminalDrawer", "POS: Terminal drawer state restored", result: appState.preferences.showTerminalDrawer == initialDrawerState)
     }
 
-    private static func testPropertiesSheetFlows(appState _: AppState) {
+    private static func testPropertiesSheetFlows(appState: AppState) {
         let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("test_prop.txt")
         try? "Properties Test Content".write(to: tempFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempFile) }
 
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         let item = FileItem.load(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
         windowUIState.propertiesItem = item
         report("UI/Properties", "POS: Opening PropertiesSheet sets propertiesItem", result: windowUIState.propertiesItem != nil)

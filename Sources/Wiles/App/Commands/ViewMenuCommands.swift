@@ -29,6 +29,13 @@ struct ViewMenuCommands: LocalizedCommands {
             set: { windowUIState?[keyPath: keyPath] = $0 })
     }
 
+    /// Toggle binding for a trailing inspector: on → that inspector, off → none.
+    private func inspectorBinding(_ kind: TrailingInspector) -> Binding<Bool> {
+        Binding(
+            get: { windowUIState?.trailingInspector == kind },
+            set: { windowUIState?.trailingInspector = $0 ? kind : .none })
+    }
+
     /// Falls back to the shared global `viewMode` when no window is focused.
     private var viewModeBinding: Binding<ViewMode> {
         Binding(
@@ -50,12 +57,12 @@ struct ViewMenuCommands: LocalizedCommands {
             isOn: windowUIStateBinding(\.showTerminalDrawer))
             .keyboardShortcut("j", modifiers: .command)
         Toggle(
-            tr(windowUIState?.showPreviewSidebar ?? false ? .hidePreview : .showPreviewSidebar),
-            isOn: windowUIStateBinding(\.showPreviewSidebar))
+            tr(windowUIState?.trailingInspector == .preview ? .hidePreview : .showPreviewSidebar),
+            isOn: inspectorBinding(.preview))
             .keyboardShortcut("p", modifiers: [.command, .shift])
         Toggle(
-            tr(windowUIState?.showDiskUsageSidebar ?? false ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
-            isOn: windowUIStateBinding(\.showDiskUsageSidebar))
+            tr(windowUIState?.trailingInspector == .diskUsage ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
+            isOn: inspectorBinding(.diskUsage))
             .keyboardShortcut("d", modifiers: [.command, .shift])
         Menu(tr(.sidebarMenuTitle)) {
             Toggle(tr(.showFavorites), isOn: $sharedPreferences.showFavorites)

@@ -15,8 +15,8 @@ public final class BackgroundOperationsService {
 
     private init() { }
 
-    public func addTask(title: String, totalBytes: Int64 = 0) -> UUID {
-        let task = FileOperationTask(title: title, totalBytes: totalBytes)
+    public func addTask(title: String, totalUnits: Int64 = 0) -> UUID {
+        let task = FileOperationTask(title: title, unitsTotal: totalUnits)
         activeTasks.append(task)
         return task.id
     }
@@ -27,9 +27,9 @@ public final class BackgroundOperationsService {
         cancellationHandlers[id] = handler
     }
 
-    public func updateProgress(id: UUID, bytesTransferred: Int64) {
+    public func updateProgress(id: UUID, unitsDone: Int64) {
         guard let index = activeTasks.firstIndex(where: { $0.id == id }) else { return }
-        activeTasks[index].bytesTransferred = bytesTransferred
+        activeTasks[index].unitsDone = unitsDone
     }
 
     public func completeTask(id: UUID) {

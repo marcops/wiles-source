@@ -34,7 +34,7 @@ public struct WindowUIStateTests {
             result: resumeCount == 1 && lastChoice?.action == .replace)
 
         resumeCount = 0
-        let state = WindowUIState()
+        let state = WindowUIState(preferences: PreferencesStore())
         state.moveCollisionPrompt = MoveCollisionPrompt(itemName: "y.txt", showApplyToAll: true) { choice in
             resumeCount += 1
             lastChoice = choice
@@ -47,33 +47,44 @@ public struct WindowUIStateTests {
             result: resumeCount == 1 && lastChoice?.action == .cancel)
     }
 
-    /// `showTerminalDrawer`/`sidebarWidth`/`showPreviewSidebar`/`showDiskUsageSidebar` are seeded
-    /// from the shared `PreferencesStore` at construction and written back on change, so each window
-    /// has its own live value while still picking a sensible default for the *next* new window — see
-    /// `PreferencesStore.sidebarWidth`'s doc comment. `showPreviewSidebar`/`showDiskUsageSidebar` also
-    /// stay mutually exclusive per-window, mirroring `PreferencesStore`'s own exclusivity.
+    /// `showTerminalDrawer`/`sidebarWidth`/`trailingInspector` are seeded from the shared
+    /// `PreferencesStore` at construction and written back on change, so each window has its own
+    /// live value while still picking a sensible default for the *next* new window — see
+    /// `PreferencesStore.sidebarWidth`'s doc comment. `trailingInspector` is one enum (M22), so
+    /// preview/disk-usage can't both be on.
     private static func testPerWindowDefaultsSeedAndWriteBack() {
+        let key = DefaultsKey.trailingInspector.rawValue
+        let priorInspector = UserDefaults.standard.string(forKey: key)
+        defer {
+            if let priorInspector {
+                UserDefaults.standard.set(priorInspector, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
         let preferences = PreferencesStore()
         preferences.showTerminalDrawer = true
         preferences.sidebarWidth = 222
+        preferences.trailingInspector = .preview
 
         let state = WindowUIState(preferences: preferences)
         report("Models/WindowUIState", "POS: showTerminalDrawer is seeded from the preferences default", result: state.showTerminalDrawer)
         report("Models/WindowUIState", "POS: sidebarWidth is seeded from the preferences default", result: state.sidebarWidth == 222)
+        report("Models/WindowUIState", "POS: trailingInspector is seeded from the preferences default", result: state.trailingInspector == .preview)
 
         state.showTerminalDrawer = false
         report("Models/WindowUIState", "POS: toggling showTerminalDrawer writes back to preferences", result: !preferences.showTerminalDrawer)
 
-        state.showPreviewSidebar = true
-        state.showDiskUsageSidebar = true
+        state.trailingInspector = .diskUsage
         report(
             "Models/WindowUIState",
-            "POS: showPreviewSidebar and showDiskUsageSidebar stay mutually exclusive per-window",
-            result: state.showDiskUsageSidebar && !state.showPreviewSidebar && !preferences.showPreviewSidebar)
+            "POS: setting the window's trailingInspector writes back to preferences",
+            result: preferences.trailingInspector == .diskUsage && state.trailingInspector == .diskUsage)
     }
 
     private static func testDefaults() {
-        let state = WindowUIState()
+        let state = WindowUIState(preferences: PreferencesStore())
         report(
             "Models/WindowUIState",
             "POS: fresh instance has all item/URL optionals nil",
@@ -100,7 +111,8 @@ public struct WindowUIStateTests {
     }
 
     private static func testMutation() {
-        let state = WindowUIState()
+        let preferences = PreferencesStore()
+        let state = WindowUIState(preferences: preferences)
 
         let item = FileItem.load(url: URL(fileURLWithPath: "/tmp/wiles-window-ui-state-test-item"))
         state.propertiesItem = item
@@ -121,7 +133,7 @@ public struct WindowUIStateTests {
         report(
             "Models/WindowUIState",
             "POS: two separate instances don't share mutable state",
-            result: WindowUIState().propertiesItem == nil && state.propertiesItem == item)
+            result: WindowUIState(preferences: preferences).propertiesItem == nil && state.propertiesItem == item)
     }
 
     /// `isAnyModalPresented` gates `GlobalKeyMonitor` so a Return/Delete keypress meant for an
@@ -129,7 +141,7 @@ public struct WindowUIStateTests {
     /// the selected item while a delete confirmation is up). Every flag it aggregates must flip
     /// the computed property, and it must go back to false once everything is dismissed.
     private static func testIsAnyModalPresented() {
-        let state = WindowUIState()
+        let state = WindowUIState(preferences: PreferencesStore())
         report("Models/WindowUIState", "NEG: isAnyModalPresented is false on a fresh instance", result: !state.isAnyModalPresented)
 
         state.showDeleteConfirmAlert = true
@@ -176,7 +188,7 @@ public struct WindowUIStateTests {
         defer { try? fm.removeItem(at: root) }
 
         let appState = AppState()
-        let state = WindowUIState()
+        let state = WindowUIState(preferences: appState.preferences)
         let item = FileItem.load(url: folderA.appendingPathComponent("renaming-me.txt"))
 
         appState.navigateTo(folderA, addToHistory: false)
@@ -202,7 +214,7 @@ public struct WindowUIStateTests {
     /// never moves keyboard focus away from `InlineRenameField`'s `TextField`, so the field's own
     /// focus-loss commit path never runs and the rename stayed active on the old item forever.
     private static func testCancelRenameIfSelectionChanged() {
-        let state = WindowUIState()
+        let state = WindowUIState(preferences: PreferencesStore())
         let renaming = FileItem.load(url: URL(fileURLWithPath: "/tmp/wiles-rename-selection-test-a.txt"))
         let other = FileItem.load(url: URL(fileURLWithPath: "/tmp/wiles-rename-selection-test-b.txt"))
 

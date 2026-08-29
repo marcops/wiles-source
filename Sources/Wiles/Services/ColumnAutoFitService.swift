@@ -3,7 +3,7 @@ import Foundation
 
 /// Dedicated service responsible for calculating optimal auto-fit column widths based on item content and headers.
 @MainActor
-public final class ColumnAutoFitService {
+public enum ColumnAutoFitService {
     private static let columnHeaderFontSize: CGFloat = 11
     private static let columnCellFontSize: CGFloat = 12
     private static let columnNameFontSize: CGFloat = 13
@@ -39,7 +39,49 @@ public final class ColumnAutoFitService {
     /// near-uniform width, so any subset represents them).
     private static func measurementSample(from items: [FileItem]) -> [FileItem] {
         guard items.count > maxMeasuredSampleCount else { return items }
-        return Array(items.sorted { $0.name.count > $1.name.count }.prefix(maxMeasuredSampleCount))
+        return longestByNameLength(items, limit: maxMeasuredSampleCount)
+    }
+
+    /// Bounded min-heap keyed by name length: O(n log limit) partial selection instead of a full
+    /// O(n log n) sort of the whole directory just to keep its longest `limit` names.
+    private static func longestByNameLength(_ items: [FileItem], limit: Int) -> [FileItem] {
+        var heap: [(length: Int, item: FileItem)] = []
+        heap.reserveCapacity(limit)
+        for item in items {
+            let length = item.name.count
+            if heap.count < limit {
+                heap.append((length, item))
+                siftUp(&heap, from: heap.count - 1)
+            } else if length > heap[0].length {
+                heap[0] = (length, item)
+                siftDown(&heap, from: 0)
+            }
+        }
+        return heap.map(\.item)
+    }
+
+    private static func siftUp(_ heap: inout [(length: Int, item: FileItem)], from index: Int) {
+        var child = index
+        while child > 0 {
+            let parent = (child - 1) / 2
+            guard heap[child].length < heap[parent].length else { break }
+            heap.swapAt(child, parent)
+            child = parent
+        }
+    }
+
+    private static func siftDown(_ heap: inout [(length: Int, item: FileItem)], from index: Int) {
+        var parent = index
+        while true {
+            let left = parent * 2 + 1
+            let right = parent * 2 + 2
+            var smallest = parent
+            if left < heap.count, heap[left].length < heap[smallest].length { smallest = left }
+            if right < heap.count, heap[right].length < heap[smallest].length { smallest = right }
+            guard smallest != parent else { break }
+            heap.swapAt(parent, smallest)
+            parent = smallest
+        }
     }
 
     private static func calculateHeaderWidth(for column: ListColumn, language: AppLanguage) -> CGFloat {

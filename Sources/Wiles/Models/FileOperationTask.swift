@@ -3,22 +3,24 @@ import Foundation
 public struct FileOperationTask: Identifiable, Sendable {
     public let id: UUID
     public let title: String
-    public var bytesTransferred: Int64
-    public var totalBytes: Int64
+    /// Generic progress units (item count today, real bytes later) — not named "bytes" on purpose.
+    public var unitsDone: Int64
+    public var unitsTotal: Int64
 
-    /// Derived rather than stored so it can never diverge from the byte counts it's meant to reflect.
+    /// Derived, and clamped to `0...1` so `unitsDone > unitsTotal` can't push a bar past 100%.
     public var progress: Double {
-        totalBytes > 0 ? Double(bytesTransferred) / Double(totalBytes) : 0
+        guard unitsTotal > 0 else { return 0 }
+        return min(1, Double(unitsDone) / Double(unitsTotal))
     }
 
     public init(
         id: UUID = UUID(),
         title: String,
-        bytesTransferred: Int64 = 0,
-        totalBytes: Int64 = 0) {
+        unitsDone: Int64 = 0,
+        unitsTotal: Int64 = 0) {
         self.id = id
         self.title = title
-        self.bytesTransferred = bytesTransferred
-        self.totalBytes = totalBytes
+        self.unitsDone = unitsDone
+        self.unitsTotal = unitsTotal
     }
 }

@@ -2,7 +2,13 @@ import Foundation
 import ImageIO
 
 public enum ExifMetadataService: Sendable {
-    public static func extractExif(from url: URL) -> ExifMetadata? {
+    public static func extractExif(from url: URL) async -> ExifMetadata? {
+        await Task.detached(priority: .userInitiated) {
+            extractExifSync(from: url)
+        }.value
+    }
+
+    private static func extractExifSync(from url: URL) -> ExifMetadata? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {
             return nil
@@ -32,13 +38,34 @@ public enum ExifMetadataService: Sendable {
             iso: isoStr,
             aperture: fnStr,
             focalLength: flStr,
-            dateTimeOriginal: dt,
+            dateTimeOriginal: dt.map(displayDate(from:)),
             gpsCoordinates: gpsStr)
     }
 
     private static func isEmptyMetadata(_ fields: [String?]) -> Bool {
         fields.allSatisfy { $0 == nil }
     }
+
+    /// EXIF stores the capture time as a fixed `yyyy:MM:dd HH:mm:ss` string; re-render it in the
+    /// user's locale, falling back to the raw value if it doesn't parse.
+    private static func displayDate(from raw: String) -> String {
+        guard let date = exifDateParser.date(from: raw) else { return raw }
+        return exifDateDisplayFormatter.string(from: date)
+    }
+
+    private static let exifDateParser: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        return formatter
+    }()
+
+    private static let exifDateDisplayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter
+    }()
 
     private static func formattedISO(from exif: [CFString: Any]?) -> String? {
         guard let isoArray = exif?[kCGImagePropertyExifISOSpeedRatings] as? [Int], let first = isoArray.first else {

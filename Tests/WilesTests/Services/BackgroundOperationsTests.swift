@@ -36,7 +36,7 @@ public struct BackgroundOperationsTests {
     private static func testAddTaskAppearsInActiveTasks() {
         let service = BackgroundOperationsService.shared
         let before = service.activeTasks.count
-        let id = service.addTask(title: "Copying files", totalBytes: 1000)
+        let id = service.addTask(title: "Copying files", totalUnits: 1000)
         defer { service.completeTask(id: id) }
 
         report("BackgroundOperations", "POS: addTask() appends a new active task", result: service.activeTasks.count == before + 1)
@@ -48,28 +48,28 @@ public struct BackgroundOperationsTests {
 
     private static func testUpdateProgressMutatesTheCorrectTask() {
         let service = BackgroundOperationsService.shared
-        let idA = service.addTask(title: "Task A", totalBytes: 1000)
-        let idB = service.addTask(title: "Task B", totalBytes: 1000)
+        let idA = service.addTask(title: "Task A", totalUnits: 1000)
+        let idB = service.addTask(title: "Task B", totalUnits: 1000)
         defer {
             service.completeTask(id: idA)
             service.completeTask(id: idB)
         }
 
-        service.updateProgress(id: idA, bytesTransferred: 500)
+        service.updateProgress(id: idA, unitsDone: 500)
 
         let taskA = service.activeTasks.first(where: { $0.id == idA })
         let taskB = service.activeTasks.first(where: { $0.id == idB })
         report(
             "BackgroundOperations",
             "POS: updateProgress() updates only the targeted task's progress",
-            result: taskA?.progress == 0.5 && taskA?.bytesTransferred == 500)
+            result: taskA?.progress == 0.5 && taskA?.unitsDone == 500)
         report("BackgroundOperations", "NEG: updateProgress() does not affect a different task", result: taskB?.progress == 0.0)
     }
 
     private static func testUpdateProgressForUnknownIdIsANoOp() {
         let service = BackgroundOperationsService.shared
         let before = service.activeTasks
-        service.updateProgress(id: UUID(), bytesTransferred: 900)
+        service.updateProgress(id: UUID(), unitsDone: 900)
         report(
             "BackgroundOperations",
             "NEG: updateProgress() with an unknown id does not crash or mutate existing tasks",

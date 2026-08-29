@@ -8,6 +8,8 @@ private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
     let thumbnailIconSize: CGFloat
 
     private func prefetchIfNeeded(_ items: [FileItem]) {
+        // Always index mtimes — `cachedThumbnail` reads the index from every image cell body regardless of folder size.
+        ThumbnailService.shared.indexModificationDates(items)
         if items.count > Self.thumbnailPrefetchItemThreshold {
             ThumbnailService.shared.prefetchThumbnails(for: items, size: thumbnailIconSize)
         }

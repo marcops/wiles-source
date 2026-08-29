@@ -75,11 +75,11 @@ public extension FileSystemService {
     }
 
     @discardableResult
-    static func renameItem(at url: URL, newName: String) async throws -> URL {
+    static func renameItem(at url: URL, newName: String, onCollision: MoveCollisionPolicy = .failIfExists) async throws -> URL {
         try await Task.detached(priority: .userInitiated) {
             let fm = FileManager.default
             let parent = url.deletingLastPathComponent()
-            let destURL = parent.appendingPathComponent(newName)
+            var destURL = parent.appendingPathComponent(newName)
 
             if url.standardizedFileURL == destURL.standardizedFileURL {
                 return url
@@ -87,10 +87,17 @@ public extension FileSystemService {
 
             let caseOnlyChange = url.lastPathComponent.lowercased() == newName.lowercased()
 
-            // A plain collision with a different item: surface the same explicit error the move flow
-            // uses, not a raw NSFileWriteFileExistsError.
+            // A plain collision with a different item: resolve per `onCollision` instead of a raw
+            // NSFileWriteFileExistsError.
             if fm.fileExists(atPath: destURL.path), !caseOnlyChange {
-                throw WilesError.destinationExists(name: newName)
+                switch onCollision {
+                case .failIfExists:
+                    throw WilesError.destinationExists(name: newName)
+                case .keepBoth:
+                    destURL = uniqueDestination(for: newName, in: parent)
+                case .replace:
+                    try fm.trashItem(at: destURL, resultingItemURL: nil)
+                }
             }
 
             if caseOnlyChange {

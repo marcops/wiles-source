@@ -16,15 +16,12 @@ public extension AppState {
     ///   `preferences.saveListColumnStates()` once when the interaction ends.
     func setColumnWidth(_ column: ListColumn, width: CGFloat, persist: Bool = true) {
         guard let idx = preferences.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
-        if !persist {
-            preferences.suppressColumnStatePersistence = true
+        let applyWidth = { self.preferences.listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width) }
+        if persist {
+            applyWidth()
+        } else {
+            preferences.withColumnStatePersistenceSuppressed(applyWidth)
         }
-        defer {
-            if !persist {
-                preferences.suppressColumnStatePersistence = false
-            }
-        }
-        preferences.listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width)
     }
 
     func autoFitColumnWidth(_ column: ListColumn) {
@@ -55,6 +52,14 @@ public extension AppState {
         return preferences.viewMode
     }
 
+    /// Moves the per-folder view-mode key when a folder is relocated in-app (Finder moves still orphan it).
+    func remapPerFolderViewMode(from oldURL: URL, to newURL: URL) {
+        let oldKey = oldURL.standardizedFileURL.path
+        guard let raw = preferences.perFolderViewModes[oldKey] else { return }
+        preferences.perFolderViewModes[oldKey] = nil
+        preferences.perFolderViewModes[newURL.standardizedFileURL.path] = raw
+    }
+
     func setViewModeForFolder(_ mode: ViewMode, for url: URL) {
         guard preferences.perFolderViewModeEnabled else {
             preferences.viewMode = mode
@@ -71,7 +76,7 @@ public extension AppState {
         cropPreset: CropPreset,
         quality: Double) {
         let sourceURL = item.url
-        runDetachedFileOperation(context: "Converting image", operation: {
+        runDetachedURLOperation(context: "Converting image", operation: {
             try ImageConverterService.convertImage(
                 at: sourceURL,
                 targetFormat: targetFormat,
@@ -85,36 +90,27 @@ public extension AppState {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != item.name else { return }
         let oldURL = item.url
-        runDetachedFileOperation(context: "Renaming item", operation: {
+        runDetachedURLOperation(context: "Renaming item", operation: {
             try await FileSystemService.renameItem(at: oldURL, newName: trimmed)
         }, recordUndo: { .rename(oldURL: oldURL, newURL: $0) })
     }
 
     func performBatchRename(items: [FileItem], mode: BatchRenameMode) {
-        Task.detached(priority: .userInitiated) { [weak self] in
+        Task(priority: .userInitiated) { @MainActor [weak self] in
             do {
                 let result = try await BatchRenameService.performBatchRename(items: items, mode: mode)
-                // swiftformat:disable redundantSelf
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    for pair in result.renamedPairs {
-                        self.undoRedoService.recordAction(.rename(oldURL: pair.old, newURL: pair.new))
-                    }
-                    self.refreshCurrentDirectory()
-                    self.selection.selectedURLs = Set(result.renamedURLs)
-                    if let message = result.failureSummaryMessage {
-                        self.showError(message)
-                    }
+                guard let self else { return }
+                for pair in result.renamedPairs {
+                    undoRedoService.recordAction(.rename(oldURL: pair.old, newURL: pair.new))
                 }
-                // swiftformat:enable redundantSelf
+                refreshCurrentDirectory()
+                selection.selectedURLs = Set(result.renamedURLs)
+                if let message = result.failureSummaryMessage {
+                    showError(message)
+                }
             } catch {
                 ErrorReporter.report(error, context: "Batch renaming items")
-                // swiftformat:disable redundantSelf
-                await MainActor.run { [weak self] in
-                    guard let self else { return }
-                    self.showError(error)
-                }
-                // swiftformat:enable redundantSelf
+                self?.showError(error)
             }
         }
     }

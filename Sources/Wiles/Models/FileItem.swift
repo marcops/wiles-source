@@ -101,7 +101,7 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
             dateAccessed: values?.contentAccessDate,
             ownerName: ownerGroup.0,
             groupName: ownerGroup.1,
-            isHidden: values?.isHidden ?? url.lastPathComponent.hasPrefix("."),
+            isHidden: isHidden(url: url, isHiddenResourceValue: values?.isHidden),
             fileExtension: url.pathExtension.lowercased(),
             icon: resolveHighResIcon(icon, values: values, url: url),
             tags: fetchTags ? (tagValues?.tagNames ?? []) : [],
@@ -110,6 +110,12 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
             isUbiquitousNotDownloaded: ubiquitous.notDownloaded,
             isUbiquitousDownloading: ubiquitous.downloading,
             isUbiquitousUploading: ubiquitous.uploading)
+    }
+
+    /// The single "is this file hidden" rule: trust the `.isHiddenKey` resource value if we have one,
+    /// otherwise fall back to a leading-dot name. Shared with `FileSystemService.isFileHidden`.
+    static func isHidden(url: URL, isHiddenResourceValue: Bool?) -> Bool {
+        isHiddenResourceValue ?? url.lastPathComponent.hasPrefix(".")
     }
 
     private static func resolveHighResIcon(_ icon: NSImage?, values: URLResourceValues?, url: URL) -> NSImage {

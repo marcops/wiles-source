@@ -37,6 +37,7 @@ public actor FileMetadataService {
 
     private func readOwnershipAndPermissions(
         for url: URL, owner: inout String?, group: inout String?, perms: inout String?) {
+        // Same owner/perms attributes are read separately by FilePermissionsService and FileItem.ownerAndGroup.
         do {
             let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
             owner = attrs[.ownerAccountName] as? String

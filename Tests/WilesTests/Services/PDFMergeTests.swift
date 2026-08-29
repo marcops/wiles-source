@@ -56,7 +56,7 @@ public struct PDFMergeTests {
     }
 
     private static func runBasicScenarios(tempDir: URL, imgFile: URL) async {
-        if let merged = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "TestMerged.pdf") {
+        if let merged = (try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "TestMerged.pdf"))?.url {
             TestReporter.report("PDFMerge", "POS: mergeFiles creates valid PDF file", result: FileManager.default.fileExists(atPath: merged.path))
         } else {
             TestReporter.report("PDFMerge", "POS: mergeFiles creates valid PDF file", result: false)
@@ -72,7 +72,7 @@ public struct PDFMergeTests {
         TestReporter.report("PDFMerge", "NEG: mergeFiles with an empty URL list throws", result: threw)
 
         // POS: default output name (nil) generates a "Merged_<timestamp>.pdf" file
-        if let defaultNamed = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: nil) {
+        if let defaultNamed = (try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: nil))?.url {
             TestReporter.report(
                 "PDFMerge",
                 "POS: mergeFiles with no outputName generates a default \"Merged_...\" name",
@@ -83,17 +83,17 @@ public struct PDFMergeTests {
 
         // POS: merging the same output name twice avoids overwriting via a numeric suffix
         let dupeName = "DupeMerged.pdf"
-        let first = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName)
-        let second = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName)
+        let first = (try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName))?.url
+        let second = (try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: dupeName))?.url
         TestReporter.report(
             "PDFMerge", "POS: mergeFiles avoids overwriting an existing output file by appending a counter",
             result: first != nil && second != nil && first?.lastPathComponent != second?.lastPathComponent
                 && first?.lastPathComponent == "DupeMerged.pdf" && second?.lastPathComponent == "DupeMerged 2.pdf")
 
         // POS: merging multiple PDFs concatenates their pages into one document
-        if let pdfA = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageA.pdf"),
-           let pdfB = try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageB.pdf"),
-           let combined = try? await PDFMergeService.mergeFiles(urls: [pdfA, pdfB], in: tempDir, outputName: "Combined.pdf"),
+        if let pdfA = (try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageA.pdf"))?.url,
+           let pdfB = (try? await PDFMergeService.mergeFiles(urls: [imgFile], in: tempDir, outputName: "PageB.pdf"))?.url,
+           let combined = (try? await PDFMergeService.mergeFiles(urls: [pdfA, pdfB], in: tempDir, outputName: "Combined.pdf"))?.url,
            let combinedDoc = PDFDocument(url: combined) {
             TestReporter.report("PDFMerge", "POS: merging two single-page PDFs produces a 2-page combined document", result: combinedDoc.pageCount == 2)
         } else {
@@ -118,7 +118,7 @@ public struct PDFMergeTests {
 
         // POS: mixing a valid image with an unsupported file only contributes a page for the valid
         // one — appendPages' pageIndex accumulator must skip the failed entry without leaving a gap.
-        if let mixed = try? await PDFMergeService.mergeFiles(urls: [imgFile, unsupportedFile], in: tempDir, outputName: "Mixed.pdf"),
+        if let mixed = (try? await PDFMergeService.mergeFiles(urls: [imgFile, unsupportedFile], in: tempDir, outputName: "Mixed.pdf"))?.url,
            let mixedDoc = PDFDocument(url: mixed) {
             TestReporter.report(
                 "PDFMerge",

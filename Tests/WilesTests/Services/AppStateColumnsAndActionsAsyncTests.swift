@@ -62,6 +62,44 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         }
     }
 
+    /// L20 end-to-end: a per-folder view mode set for a folder must follow that folder to its new
+    /// location when it's moved in-app through `AppState.moveItem(at:toFolder:)`, and the stale
+    /// old-path key must be gone afterward.
+    func testMoveItemFollowsPerFolderViewModeToNewLocation() async {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let sourceParent = dir.appendingPathComponent("Source")
+        let destParent = dir.appendingPathComponent("Dest")
+        try? FileManager.default.createDirectory(at: sourceParent, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: destParent, withIntermediateDirectories: true)
+        let folder = sourceParent.appendingPathComponent("Projects")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+
+        let appState = AppState()
+        let priorModes = appState.preferences.perFolderViewModes
+        let priorEnabled = appState.preferences.perFolderViewModeEnabled
+        let priorViewMode = appState.preferences.viewMode
+        defer {
+            appState.preferences.perFolderViewModes = priorModes
+            appState.preferences.perFolderViewModeEnabled = priorEnabled
+            appState.preferences.viewMode = priorViewMode
+        }
+        appState.preferences.perFolderViewModeEnabled = true
+        appState.preferences.viewMode = .grid
+        appState.preferences.perFolderViewModes = [folder.standardizedFileURL.path: ViewMode.list.rawValue]
+
+        guard let destURL = try? await appState.moveItem(at: folder, toFolder: destParent) else {
+            XCTFail("moveItem should have moved the folder")
+            return
+        }
+
+        XCTAssertEqual(appState.viewModeForFolder(destURL), .list, "the per-folder view mode should now apply at the folder's new path")
+        XCTAssertNil(
+            appState.preferences.perFolderViewModes[folder.standardizedFileURL.path],
+            "the stale old-path per-folder view mode key should be removed")
+        XCTAssertEqual(appState.viewModeForFolder(folder), .grid, "the old path should fall back to the global view mode")
+    }
+
     func testPerformRenameSuccessPath() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -85,6 +123,10 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: item.url.path), "performRename() should leave nothing behind at the old path")
         XCTAssertEqual(appState.selection.selectedURLs, [renamedURL], "performRename() should select the freshly renamed URL")
         XCTAssertTrue(appState.undoRedoService.canUndo(), "performRename() should record an undoable .rename action")
+
+        // runDetachedURLOperation's onSuccess must record exactly one undo action, not several.
+        _ = try? await appState.undoRedoService.undo()
+        XCTAssertFalse(appState.undoRedoService.canUndo(), "performRename() via runDetachedURLOperation should record exactly one undo action")
 
         await drainUndoRedoService(appState)
     }

@@ -177,7 +177,9 @@ public extension AppState {
         startDirectoryMonitoring(for: snapshot.target)
 
         if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: snapshot.target) {
-            applyLoadedItems(cached.items, target: snapshot.target)
+            // Cache is keyed by URL only, so re-sort to the current option — showing it raw flickers the wrong order.
+            let ordered = FileSystemService.sortItems(cached.items, by: snapshot.sort, ascending: snapshot.asc)
+            applyLoadedItems(ordered, target: snapshot.target)
         }
 
         // Cancel any load already in flight — every keystroke of a search or rapid navigation used to
@@ -224,7 +226,8 @@ public extension AppState {
 
     private func performDirectoryRefresh(target: URL, query: String, options: DirectoryLoadOptions) async {
         do {
-            let loaded = try await FileSystemService.loadDirectoryContents(at: target, options: options)
+            let loaded = try await FileSystemService.loadDirectoryContents(
+                at: target, options: options, recentURLs: navigation.recentOpenedURLs)
             guard !Task.isCancelled, isStillCurrent(target: target, query: query) else { return }
             await MainActor.run {
                 self.applyLoadedItems(loaded, target: target)

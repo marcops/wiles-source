@@ -12,6 +12,8 @@ public struct AppStateColumnsAndSelectionTests {
         testToggleColumnVisibility()
         testViewModeForFolder()
         testSetViewModeForFolder()
+        testRemapPerFolderViewMode()
+        testRemapRelocatedState()
         testHandleSelectionSingleClick()
         testHandleSelectionExtend()
         testHandleSelectionMouseShiftClickUsesStableAnchor()
@@ -183,6 +185,60 @@ public struct AppStateColumnsAndSelectionTests {
             "AppState+Columns",
             "NEG: setViewModeForFolder() does not affect unrelated folders",
             result: appState.preferences.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
+    }
+
+    /// L20: `remapPerFolderViewMode(from:to:)` moves a stored per-folder view mode from the old path
+    /// key to the new one after an in-app relocation, so the key isn't orphaned. Restores the real
+    /// `perFolderViewModes` through the store (per rule 17) so its debounced save re-captures real data.
+    private static func testRemapPerFolderViewMode() {
+        let appState = AppState()
+        let priorModes = appState.preferences.perFolderViewModes
+        defer { appState.preferences.perFolderViewModes = priorModes }
+        appState.preferences.perFolderViewModes = [:]
+        let oldURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("old-\(UUID().uuidString)")
+        let newURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("new-\(UUID().uuidString)")
+        appState.preferences.perFolderViewModes[oldURL.standardizedFileURL.path] = ViewMode.list.rawValue
+
+        appState.remapPerFolderViewMode(from: oldURL, to: newURL)
+        report(
+            "AppState+Columns",
+            "POS: remapPerFolderViewMode() moves the stored mode from the old path key to the new one",
+            result: appState.preferences.perFolderViewModes[oldURL.standardizedFileURL.path] == nil
+                && appState.preferences.perFolderViewModes[newURL.standardizedFileURL.path] == ViewMode.list.rawValue)
+
+        let untracked = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("untracked-\(UUID().uuidString)")
+        let before = appState.preferences.perFolderViewModes
+        appState.remapPerFolderViewMode(from: untracked, to: newURL)
+        report(
+            "AppState+Columns",
+            "NEG: remapPerFolderViewMode() is a no-op when the old path has no stored per-folder mode",
+            result: appState.preferences.perFolderViewModes == before)
+    }
+
+    /// L20: `remapRelocatedState(from:to:)` performs both `remapFavorites` and
+    /// `remapPerFolderViewMode` for one in-app move. Restores both stores through their properties.
+    private static func testRemapRelocatedState() {
+        let appState = AppState()
+        let priorModes = appState.preferences.perFolderViewModes
+        let priorFavorites = appState.preferences.favoriteURLs
+        defer {
+            appState.preferences.perFolderViewModes = priorModes
+            appState.preferences.favoriteURLs = priorFavorites
+        }
+        appState.preferences.perFolderViewModes = [:]
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let oldURL = dir.appendingPathComponent("Reports").standardizedFileURL
+        let newURL = dir.appendingPathComponent("Archive/Reports").standardizedFileURL
+        appState.preferences.favoriteURLs = [oldURL]
+        appState.preferences.perFolderViewModes[oldURL.path] = ViewMode.grid.rawValue
+
+        appState.remapRelocatedState(from: oldURL, to: newURL)
+        report(
+            "AppState+Columns",
+            "POS: remapRelocatedState() remaps both the favorite and the per-folder view mode key to the new path",
+            result: appState.preferences.favoriteURLs == [newURL]
+                && appState.preferences.perFolderViewModes[oldURL.path] == nil
+                && appState.preferences.perFolderViewModes[newURL.path] == ViewMode.grid.rawValue)
     }
 
     private static func testHandleSelectionSingleClick() {

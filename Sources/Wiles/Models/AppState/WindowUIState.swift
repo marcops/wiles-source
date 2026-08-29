@@ -94,27 +94,12 @@ public final class WindowUIState {
         }
     }
 
-    /// This window's own preview-sidebar visibility. See `showTerminalDrawer` for the
-    /// seed/write-back pattern; mutual exclusivity with `showDiskUsageSidebar` is enforced here
-    /// (per-window) rather than only on the shared default.
-    public var showPreviewSidebar: Bool {
+    /// This window's trailing inspector, seeded from `preferences` and written back — see
+    /// `showTerminalDrawer`. One enum, so preview/disk-usage can't both be on.
+    public var trailingInspector: TrailingInspector {
         didSet {
-            guard showPreviewSidebar != oldValue else { return }
-            if showPreviewSidebar {
-                showDiskUsageSidebar = false
-            }
-            preferences.showPreviewSidebar = showPreviewSidebar
-        }
-    }
-
-    /// This window's own disk-usage-sidebar visibility — see `showPreviewSidebar`.
-    public var showDiskUsageSidebar: Bool {
-        didSet {
-            guard showDiskUsageSidebar != oldValue else { return }
-            if showDiskUsageSidebar {
-                showPreviewSidebar = false
-            }
-            preferences.showDiskUsageSidebar = showDiskUsageSidebar
+            guard trailingInspector != oldValue else { return }
+            preferences.trailingInspector = trailingInspector
         }
     }
 
@@ -150,12 +135,13 @@ public final class WindowUIState {
         moveCollisionPrompt?.resolve(MoveCollisionChoice(action: .cancel, applyToAll: false))
     }
 
-    public init(preferences: PreferencesStore = PreferencesStore()) {
+    /// No default for `preferences`: a `WindowUIState()` with a throwaway store would load ~40
+    /// defaults off disk and mirror a `PreferencesStore` disconnected from the shared one.
+    public init(preferences: PreferencesStore) {
         self.preferences = preferences
         showTerminalDrawer = preferences.showTerminalDrawer
         sidebarWidth = preferences.sidebarWidth
-        showPreviewSidebar = preferences.showPreviewSidebar
-        showDiskUsageSidebar = preferences.showDiskUsageSidebar
+        trailingInspector = preferences.trailingInspector
     }
 
     /// Cancels an active in-place rename in response to a folder navigation. The row rendering

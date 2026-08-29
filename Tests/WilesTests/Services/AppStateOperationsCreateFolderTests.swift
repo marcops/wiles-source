@@ -11,6 +11,59 @@ extension AppStateOperationsExtraTests {
         await testCreateNewFolderAndRenameInCurrentDirectory()
         await testCreateNewFolderAndRenameInOtherFolder()
         await testCreateNewFolderAndRenameFailure()
+        await testCreateNewFileAndRenameInCurrentDirectory()
+        await testCreateNewFileAndRenameFailure()
+    }
+
+    /// M15/M16: `createNewFileAndRename()` now routes through `runDetachedFileOperation`
+    /// (`refreshOnSuccess: false`, `onSuccess` -> `enterRenameForNewlyCreated`), so it dispatches
+    /// via `Task{}` and the result must be polled for — same shape as the folder variant above.
+    private static func testCreateNewFileAndRenameInCurrentDirectory() async {
+        let dir = makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        appState.navigation.currentURL = dir
+        appState.fileSystem.items = []
+        appState.createNewFileAndRename(windowUIState: windowUIState)
+
+        let entered = await pollUntilTrue { appState.fileSystem.renamingURL != nil }
+        guard entered, let createdURL = appState.fileSystem.renamingURL else {
+            report(
+                "AppState+Operations",
+                "POS: createNewFileAndRename() creates a new file in the current directory and enters rename mode",
+                result: false)
+            return
+        }
+        report(
+            "AppState+Operations",
+            "POS: createNewFileAndRename() creates a new file in the current directory and enters rename mode",
+            result: FileManager.default.fileExists(atPath: createdURL.path)
+                && appState.fileSystem.items.first?.url == createdURL.standardizedFileURL
+                && windowUIState.renameItem?.url == createdURL.standardizedFileURL
+                && appState.selection.selectedURLs == Set([createdURL]))
+    }
+
+    private static func testCreateNewFileAndRenameFailure() async {
+        let readOnlyParent = makeTempDir()
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyParent.path)
+            try? FileManager.default.removeItem(at: readOnlyParent)
+        }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: readOnlyParent.path)
+
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        appState.modal.errorMessage = nil
+        appState.navigation.currentURL = readOnlyParent
+        appState.createNewFileAndRename(windowUIState: windowUIState)
+
+        let errored = await pollUntilTrue { appState.modal.errorMessage != nil }
+        report(
+            "AppState+Operations",
+            "NEG: createNewFileAndRename() reports an error when the file can't be created (read-only parent directory)",
+            result: errored && windowUIState.renameItem == nil)
     }
 
     /// createNewFolderAndRename() dispatches via Task{}, so a synchronous check right after
@@ -20,7 +73,7 @@ extension AppStateOperationsExtraTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.navigation.currentURL = dir
         appState.fileSystem.items = []
         appState.createNewFolderAndRename(windowUIState: windowUIState)
@@ -53,7 +106,7 @@ extension AppStateOperationsExtraTests {
         }
 
         let appState = AppState()
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.navigation.currentURL = currentDir
         appState.fileSystem.items = []
         appState.createNewFolderAndRename(in: otherFolder, windowUIState: windowUIState)
@@ -81,7 +134,7 @@ extension AppStateOperationsExtraTests {
         try? FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: readOnlyParent.path)
 
         let appState = AppState()
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.modal.errorMessage = nil
         appState.navigation.currentURL = readOnlyParent
         appState.createNewFolderAndRename(windowUIState: windowUIState)

@@ -9,7 +9,7 @@ import SwiftUI
 public struct ShortcutsHUDOverlayTests {
     public static func run() {
         let appState = AppState()
-        let windowUIState = WindowUIState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         windowUIState.showShortcutsHUD = true
         let view = ShortcutsHUDOverlay(
             appState: appState,
