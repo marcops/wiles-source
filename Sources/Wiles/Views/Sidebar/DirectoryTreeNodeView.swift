@@ -68,7 +68,8 @@ struct DirectoryTreeNodeView: View {
         childrenCache[url] = loaded
     }
 
-    /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
+    /// See SWIFT_LANG_RULES.md "Custom Tappable Content MUST Have an Explicit `.contentShape`": a real `Button` on macOS does not reliably honor
+    /// `.contentShape` for
     /// composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
     private var rowContent: some View {
         let isSel = appState.navigation.currentURL.standardizedFileURL == node.url.standardizedFileURL

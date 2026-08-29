@@ -68,8 +68,10 @@ struct InlineRenameField: View {
 
     private func cancel() {
         guard windowUIState.renameItem?.url == item.url else { return }
-        windowUIState.renameItem = nil
+        // Refresh before nulling `renameItem`: that fires `onRenameCleared`, which resets
+        // `renamingURL` and would make `endSuppressedRefreshIfNeeded`'s guard fail.
         endSuppressedRefreshIfNeeded()
+        windowUIState.renameItem = nil
     }
 
     private func endSuppressedRefreshIfNeeded() {

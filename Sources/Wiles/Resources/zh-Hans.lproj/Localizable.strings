@@ -104,6 +104,7 @@
 "dateTaken" = "拍摄日期";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "立即删除";
+"deleteImmediatelyConfirm" = "这将永久删除选定的项目。此操作无法撤销，且不会将其移到废纸篓。";
 "desktop" = "桌面";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "可用空间";
+"freeSpaceFormat" = "%@ 可用空间";
 "fullDiskAccessNotice" = "在系统设置中授予完全磁盘访问权限，即可访问所有文件夹，无需重复提示。";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

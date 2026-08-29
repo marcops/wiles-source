@@ -13,6 +13,38 @@ public struct WindowUIStateTests {
         testCancelRenameIfNavigated()
         testCancelRenameIfSelectionChanged()
         testPerWindowDefaultsSeedAndWriteBack()
+        testMoveCollisionPromptResolvesOnceAndOnTearDown()
+    }
+
+    /// A suspended move loop awaits `promptMoveCollision`. A prompt must never resolve twice (that
+    /// would trap the continuation), and `tearDown()` must answer a still-pending prompt with
+    /// `.cancel` so the loop can't outlive the window.
+    private static func testMoveCollisionPromptResolvesOnceAndOnTearDown() {
+        var resumeCount = 0
+        var lastChoice: MoveCollisionChoice?
+        let prompt = MoveCollisionPrompt(itemName: "x.txt", showApplyToAll: false) { choice in
+            resumeCount += 1
+            lastChoice = choice
+        }
+        prompt.resolve(MoveCollisionChoice(action: .replace, applyToAll: false))
+        prompt.resolve(MoveCollisionChoice(action: .cancel, applyToAll: false))
+        report(
+            "Models/WindowUIState",
+            "POS: MoveCollisionPrompt.resolve only takes effect once (first choice wins)",
+            result: resumeCount == 1 && lastChoice?.action == .replace)
+
+        resumeCount = 0
+        let state = WindowUIState()
+        state.moveCollisionPrompt = MoveCollisionPrompt(itemName: "y.txt", showApplyToAll: true) { choice in
+            resumeCount += 1
+            lastChoice = choice
+        }
+        state.tearDown()
+        state.tearDown()
+        report(
+            "Models/WindowUIState",
+            "POS: tearDown() answers a pending move-collision prompt with .cancel exactly once",
+            result: resumeCount == 1 && lastChoice?.action == .cancel)
     }
 
     /// `showTerminalDrawer`/`sidebarWidth`/`showPreviewSidebar`/`showDiskUsageSidebar` are seeded
@@ -70,7 +102,7 @@ public struct WindowUIStateTests {
     private static func testMutation() {
         let state = WindowUIState()
 
-        let item = FileItem(url: URL(fileURLWithPath: "/tmp/wiles-window-ui-state-test-item"))
+        let item = FileItem.load(url: URL(fileURLWithPath: "/tmp/wiles-window-ui-state-test-item"))
         state.propertiesItem = item
         report("Models/WindowUIState", "POS: propertiesItem holds the value it was set to", result: state.propertiesItem == item)
 
@@ -113,7 +145,7 @@ public struct WindowUIStateTests {
         report("Models/WindowUIState", "POS: isAnyModalPresented is true while httpShareFolderURL payload is set", result: state.isAnyModalPresented)
         state.httpShareFolderURL = nil
 
-        let item = FileItem(url: URL(fileURLWithPath: "/tmp/wiles-window-ui-state-modal-test-item"))
+        let item = FileItem.load(url: URL(fileURLWithPath: "/tmp/wiles-window-ui-state-modal-test-item"))
         state.propertiesItem = item
         report("Models/WindowUIState", "POS: isAnyModalPresented is true while propertiesItem is set", result: state.isAnyModalPresented)
         state.propertiesItem = nil
@@ -145,7 +177,7 @@ public struct WindowUIStateTests {
 
         let appState = AppState()
         let state = WindowUIState()
-        let item = FileItem(url: folderA.appendingPathComponent("renaming-me.txt"))
+        let item = FileItem.load(url: folderA.appendingPathComponent("renaming-me.txt"))
 
         appState.navigateTo(folderA, addToHistory: false)
         let urlBeforeNavigating = appState.navigation.currentURL
@@ -171,8 +203,8 @@ public struct WindowUIStateTests {
     /// focus-loss commit path never runs and the rename stayed active on the old item forever.
     private static func testCancelRenameIfSelectionChanged() {
         let state = WindowUIState()
-        let renaming = FileItem(url: URL(fileURLWithPath: "/tmp/wiles-rename-selection-test-a.txt"))
-        let other = FileItem(url: URL(fileURLWithPath: "/tmp/wiles-rename-selection-test-b.txt"))
+        let renaming = FileItem.load(url: URL(fileURLWithPath: "/tmp/wiles-rename-selection-test-a.txt"))
+        let other = FileItem.load(url: URL(fileURLWithPath: "/tmp/wiles-rename-selection-test-b.txt"))
 
         state.renameItem = renaming
         state.cancelRenameIfSelectionChanged(selectedURLs: [renaming.url])

@@ -95,7 +95,7 @@ struct FeedbackSheetView: View {
 
     /// `Picker(selection:).pickerStyle(.radioGroup)` always stacks vertically on macOS — there is no
     /// public SwiftUI API to force it horizontal — so this hand-rolls the two options side by side.
-    /// Composite content (icon + text), rendered via `TappableRow` (rule 33) rather than a real
+    /// Composite content (icon + text), rendered via `TappableRow` (SWIFT_LANG_RULES.md `.contentShape` rule) rather than a real
     /// `Button`.
     private var kindSelector: some View {
         HStack(spacing: 20) {
@@ -171,7 +171,7 @@ struct FeedbackSheetView: View {
             didSucceed = true
         } catch {
             ErrorReporter.report(error, context: "Submitting user feedback")
-            submitError = error.localizedDescription
+            submitError = appState.errorText(for: error)
         }
         isSubmitting = false
     }

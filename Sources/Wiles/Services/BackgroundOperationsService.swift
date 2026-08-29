@@ -8,12 +8,23 @@ public final class BackgroundOperationsService {
 
     public var activeTasks: [FileOperationTask] = []
 
+    /// Per-task cancellation, kept off `FileOperationTask` (a plain `Sendable` display model).
+    /// Without this, the popover's ✕ button only hid the progress bar while the copy/move/delete
+    /// kept running.
+    private var cancellationHandlers: [UUID: @Sendable () -> Void] = [:]
+
     private init() { }
 
     public func addTask(title: String, totalBytes: Int64 = 0) -> UUID {
         let task = FileOperationTask(title: title, totalBytes: totalBytes)
         activeTasks.append(task)
         return task.id
+    }
+
+    /// Wires the popover's cancel button for `id` to actually stop the underlying work. The
+    /// operation's own loop must check `Task.isCancelled` for this to take effect.
+    public func registerCancellation(id: UUID, _ handler: @escaping @Sendable () -> Void) {
+        cancellationHandlers[id] = handler
     }
 
     public func updateProgress(id: UUID, bytesTransferred: Int64) {
@@ -23,9 +34,11 @@ public final class BackgroundOperationsService {
 
     public func completeTask(id: UUID) {
         activeTasks.removeAll(where: { $0.id == id })
+        cancellationHandlers[id] = nil
     }
 
     public func cancelTask(id: UUID) {
+        cancellationHandlers[id]?()
         completeTask(id: id)
     }
 }

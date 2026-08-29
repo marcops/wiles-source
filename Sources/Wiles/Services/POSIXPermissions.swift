@@ -47,4 +47,22 @@ public struct POSIXPermissions: Sendable, Equatable {
     public var octalInt: Int16 {
         Int16(packedOctalValue)
     }
+
+    /// The same permissions adjusted for a directory: execute is granted for every access class
+    /// that already has read, so applying an `rwx`-for-files value recursively can't strip a
+    /// subfolder's traversability and lock the user out of their own tree. Matches the intent of
+    /// `chmod -R a+X` for directories.
+    public var directoryTraversable: Self {
+        var copy = self
+        if copy.ownerRead {
+            copy.ownerExecute = true
+        }
+        if copy.groupRead {
+            copy.groupExecute = true
+        }
+        if copy.othersRead {
+            copy.othersExecute = true
+        }
+        return copy
+    }
 }

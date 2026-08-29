@@ -31,7 +31,7 @@ public struct FileTaggingServiceTests {
         try? "x".write(to: file, atomically: true, encoding: .utf8)
 
         let failureCount = FileTaggingService.toggleTag("Red", for: [file], itemsSnapshot: [])
-        let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
+        let readBack = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report("POS: toggleTag adds a tag not currently present, with no error", result: failureCount == 0 && readBack.tags.contains("Red"))
     }
 
@@ -43,7 +43,7 @@ public struct FileTaggingServiceTests {
         try? FileSystemService.setTags(for: file, tags: ["Red"])
 
         let failureCount = FileTaggingService.toggleTag("Red", for: [file], itemsSnapshot: [])
-        let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
+        let readBack = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report("NEG: toggleTag removes a tag already present, with no error", result: failureCount == 0 && !readBack.tags.contains("Red"))
     }
 
@@ -58,7 +58,7 @@ public struct FileTaggingServiceTests {
         let file = dir.appendingPathComponent("snapshot.txt").standardizedFileURL
         try? "x".write(to: file, atomically: true, encoding: .utf8)
         try? FileSystemService.setTags(for: file, tags: ["Blue"])
-        let snapshotItem = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
+        let snapshotItem = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
 
         // Disk now disagrees with the snapshot: snapshot says ["Blue"], disk says ["Green"].
         try? FileSystemService.setTags(for: file, tags: ["Green"])
@@ -70,7 +70,7 @@ public struct FileTaggingServiceTests {
         // and added it — leaving both "Green" and "Blue" present. Asserting the tag set ends up empty
         // is therefore what actually distinguishes "used the snapshot" from "read fresh from disk".
         let failureCount = FileTaggingService.toggleTag("Blue", for: [file], itemsSnapshot: [snapshotItem])
-        let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
+        let readBack = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report(
             "POS: toggleTag computes the new tag set from itemsSnapshot's tags, not a fresh disk read",
             result: failureCount == 0 && readBack.tags.isEmpty)
@@ -90,7 +90,7 @@ public struct FileTaggingServiceTests {
         let missingFile = dir.appendingPathComponent("missing.txt")
 
         let failureCount = FileTaggingService.toggleTag("Red", for: [realFile, missingFile], itemsSnapshot: [])
-        let realFileTagged = FileItem(url: realFile, icon: NSWorkspace.shared.icon(forFile: realFile.path), fetchTags: true).tags.contains("Red")
+        let realFileTagged = FileItem.load(url: realFile, icon: NSWorkspace.shared.icon(forFile: realFile.path), fetchTags: true).tags.contains("Red")
         report(
             "POS: toggleTag keeps processing every URL and reports the failure count even after an earlier success",
             result: failureCount == 1 && realFileTagged)
@@ -104,7 +104,7 @@ public struct FileTaggingServiceTests {
         try? FileSystemService.setTags(for: file, tags: ["Red", "Important"])
 
         let failureCount = FileTaggingService.clearAllTags(for: [file])
-        let readBack = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
+        let readBack = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report("POS: clearAllTags removes every tag with no error", result: failureCount == 0 && readBack.tags.isEmpty)
     }
 

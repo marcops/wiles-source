@@ -15,6 +15,53 @@ public struct ArchiveInspectorFeatureTests {
         report("Feature/ArchiveInspector", "NEG: listEntries on an unreadable archive throws instead of returning empty", result: listThrew)
         await runExtractionFailurePreservesExistingDestination()
         await runReplaceItemFailureCleansUpTempFileAndRethrows()
+        testUnzipLiteralPatternEscapesWildcards()
+        await runExtractEntryWithGlobCharsInNameExtractsTheRightFile()
+    }
+
+    private static func testUnzipLiteralPatternEscapesWildcards() {
+        report(
+            "Feature/ArchiveInspector",
+            "POS: unzipLiteralPattern escapes [, ], ? and * (backslash first)",
+            result: ArchiveInspectionService.unzipLiteralPattern("a[1]?b*c\\d") == "a\\[1\\]\\?b\\*c\\\\d")
+        report(
+            "Feature/ArchiveInspector",
+            "NEG: unzipLiteralPattern leaves a plain name untouched",
+            result: ArchiveInspectionService.unzipLiteralPattern("folder/file.txt") == "folder/file.txt")
+    }
+
+    /// An archive containing both `foo[1].txt` and `foo1.txt`: extracting `foo[1].txt` must yield
+    /// that exact file's bytes, not `foo1.txt` (which `unzip`'s glob would match for `foo[1].txt`).
+    private static func runExtractEntryWithGlobCharsInNameExtractsTheRightFile() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("archive_glob_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let bracketFile = tempDir.appendingPathComponent("foo[1].txt")
+        let plainFile = tempDir.appendingPathComponent("foo1.txt")
+        try? "BRACKET CONTENT".write(to: bracketFile, atomically: true, encoding: .utf8)
+        try? "PLAIN CONTENT".write(to: plainFile, atomically: true, encoding: .utf8)
+        try? ArchiveService.compressToZIP(urls: [bracketFile, plainFile], in: tempDir)
+        let zipURL = tempDir.appendingPathComponent("foo[1].zip")
+        // ArchiveService names the zip after the first url's stem; fall back to any .zip present.
+        let actualZip = (try? FileManager.default.contentsOfDirectory(atPath: tempDir.path))?
+            .first { $0.hasSuffix(".zip") }
+            .map { tempDir.appendingPathComponent($0) } ?? zipURL
+
+        let destDir = tempDir.appendingPathComponent("out")
+        try? FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+
+        var extractedContent: String?
+        do {
+            let url = try await ArchiveInspectionService.extractSingleEntry(from: actualZip, entryPath: "foo[1].txt", to: destDir)
+            extractedContent = try? String(contentsOf: url, encoding: .utf8)
+        } catch {
+            extractedContent = nil
+        }
+        report(
+            "Feature/ArchiveInspector",
+            "POS: extractSingleEntry on an entry named foo[1].txt returns that file, not the glob-matched foo1.txt",
+            result: extractedContent == "BRACKET CONTENT")
     }
 
     /// Covers `extractSingleEntrySync`'s `replaceItemAt` `catch` block specifically: the destination

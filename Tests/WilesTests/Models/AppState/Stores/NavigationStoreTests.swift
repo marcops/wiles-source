@@ -135,8 +135,12 @@ public struct NavigationStoreTests {
     private static func testRecordVisitNoOpWhenSameURLAndPopulatesHistory() {
         let start = URL(fileURLWithPath: testTemporaryDirectory())
         let store = NavigationStore(initialURL: start)
-        store.historyBack = []
-        store.historyForward = [URL(fileURLWithPath: "/placeholder-should-be-cleared")]
+        // Seed a non-empty historyForward via the real API so the clear-on-recordVisit is observable.
+        let scratch = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("scratch")
+        store.recordVisit(to: scratch)
+        store.currentURL = scratch
+        _ = store.popBackForGoBack()
+        store.currentURL = start
 
         store.recordVisit(to: start)
         report("Store/NavigationStore", "NEG: recordVisit(to:) is a no-op when newURL equals currentURL", result: store.historyBack.isEmpty)
@@ -150,9 +154,8 @@ public struct NavigationStoreTests {
     }
 
     private static func testPopBackAndPopForwardReturnNilWhenEmpty() {
+        // Fresh store: both stacks already empty.
         let store = NavigationStore(initialURL: URL(fileURLWithPath: testTemporaryDirectory()))
-        store.historyBack = []
-        store.historyForward = []
         report("Store/NavigationStore", "NEG: popBackForGoBack() returns nil when historyBack is empty", result: store.popBackForGoBack() == nil)
         report("Store/NavigationStore", "NEG: popForwardForGoForward() returns nil when historyForward is empty", result: store.popForwardForGoForward() == nil)
     }
@@ -161,8 +164,10 @@ public struct NavigationStoreTests {
         let current = URL(fileURLWithPath: testTemporaryDirectory())
         let store = NavigationStore(initialURL: current)
         let previous = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("prev")
-        store.historyBack = [previous]
-        store.historyForward = []
+        // Seed historyBack = [previous] via the real API.
+        store.currentURL = previous
+        store.recordVisit(to: current)
+        store.currentURL = current
 
         let popped = store.popBackForGoBack()
         report(
@@ -170,7 +175,7 @@ public struct NavigationStoreTests {
             "POS: popBackForGoBack() returns the last back entry and pushes currentURL onto historyForward",
             result: popped == previous && store.historyForward == [current])
 
-        store.historyBack = []
+        // historyBack already drained to empty by the pop above.
         let poppedForward = store.popForwardForGoForward()
         report(
             "Store/NavigationStore",
@@ -179,10 +184,8 @@ public struct NavigationStoreTests {
     }
 
     private static func testHistoryStacksCapAt200() {
-        let store = NavigationStore(initialURL: URL(fileURLWithPath: testTemporaryDirectory()))
-        store.historyBack = []
-        store.historyForward = []
         let base = URL(fileURLWithPath: testTemporaryDirectory())
+        var store = NavigationStore(initialURL: base.appendingPathComponent("visit_0"))
 
         for index in 0 ..< 205 {
             store.currentURL = base.appendingPathComponent("visit_\(index)")
@@ -191,8 +194,15 @@ public struct NavigationStoreTests {
         report("Store/NavigationStore", "POS: recordVisit's historyBack cap prevents unbounded growth past 200 entries", result: store.historyBack.count == 200)
 
         // Drive popForwardForGoForward repeatedly to grow historyBack past 200 via its own cap() call.
-        store.historyBack = []
-        store.historyForward = Array(repeating: URL(fileURLWithPath: "/x"), count: 205)
+        // Seed a large historyForward through the real API: build a capped historyBack, drain it across.
+        store = NavigationStore(initialURL: base.appendingPathComponent("f_0"))
+        for index in 0 ..< 205 {
+            store.currentURL = base.appendingPathComponent("f_\(index)")
+            store.recordVisit(to: base.appendingPathComponent("f_\(index + 1)"))
+        }
+        for _ in 0 ..< 205 {
+            _ = store.popBackForGoBack()
+        }
         for _ in 0 ..< 205 {
             _ = store.popForwardForGoForward()
         }
@@ -201,8 +211,12 @@ public struct NavigationStoreTests {
             "POS: popForwardForGoForward's historyBack cap prevents unbounded growth past 200 entries",
             result: store.historyBack.count == 200)
 
-        store.historyForward = []
-        store.historyBack = Array(repeating: URL(fileURLWithPath: "/y"), count: 205)
+        // Mirror on the other side: build a capped historyBack, drain it into historyForward.
+        store = NavigationStore(initialURL: base.appendingPathComponent("b_0"))
+        for index in 0 ..< 205 {
+            store.currentURL = base.appendingPathComponent("b_\(index)")
+            store.recordVisit(to: base.appendingPathComponent("b_\(index + 1)"))
+        }
         for _ in 0 ..< 205 {
             _ = store.popBackForGoBack()
         }

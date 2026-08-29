@@ -21,7 +21,7 @@ public struct ArrowKeyNavigationTests {
         names.map { name in
             let url = dir.appendingPathComponent(name)
             let icon = NSWorkspace.shared.icon(forFile: url.path)
-            return FileItem(url: url, icon: icon)
+            return FileItem.load(url: url, icon: icon)
         }
     }
 
@@ -108,7 +108,7 @@ public struct ArrowKeyNavigationTests {
         defer { try? FileManager.default.removeItem(at: parentDir) }
 
         let icon = NSWorkspace.shared.icon(forFile: childDir.path)
-        let dirItem = FileItem(url: childDir, icon: icon)
+        let dirItem = FileItem.load(url: childDir, icon: icon)
         appState.fileSystem.items = [dirItem]
         appState.selection.selectedURLs = [dirItem.url]
         // Simulate → on a directory in List View

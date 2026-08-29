@@ -4,7 +4,19 @@ import GitBeacon
 import SwiftUI
 
 public extension AppState {
+    /// Navigate into a folder. If `url` turns out to be a file this quietly does nothing —
+    /// callers that mean "activate whatever the user clicked" should use `openItem(_:)`.
     func navigateTo(_ url: URL, addToHistory: Bool = true) {
+        resolveAndNavigate(to: url, addToHistory: addToHistory, openFileWithSystem: false)
+    }
+
+    /// Activate `url`: navigate into it if it's a folder, hand it to the system to open if it's a
+    /// file (double-click, "Open" menu item, keyboard activate).
+    func openItem(_ url: URL) {
+        resolveAndNavigate(to: url, addToHistory: true, openFileWithSystem: true)
+    }
+
+    private func resolveAndNavigate(to url: URL, addToHistory: Bool, openFileWithSystem: Bool) {
         if url == Self.recentsVirtualURL {
             HapticService.shared.play(.alignment)
             navigateToRecentsVirtual(addToHistory: addToHistory)
@@ -15,8 +27,7 @@ public extension AppState {
         // /Volumes — an SMB/FTP/SFTP share or external drive — the same call can block for many
         // seconds if the mount has stalled or gone unreachable, freezing the whole UI. Only that
         // case hops off @MainActor.
-        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
-        if url.path.hasPrefix("/Volumes/") {
+        if SlowVolumePathValidator.isLikelySlowVolume(url.path) {
             fileSystem.isLoading = true
             navigation.pendingSlowVolumeCheck?.cancel()
             navigation.pendingSlowVolumeCheck = Task { [weak self] in
@@ -26,13 +37,17 @@ public extension AppState {
                     return (exists, exists && isDir.boolValue)
                 }.value
                 guard !Task.isCancelled else { return }
-                self?.completeNavigation(to: url, exists: exists, isDirectory: isDirectory, addToHistory: addToHistory)
+                self?.completeNavigation(
+                    to: url, exists: exists, isDirectory: isDirectory,
+                    addToHistory: addToHistory, openFileWithSystem: openFileWithSystem)
             }
             return
         }
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-        completeNavigation(to: url, exists: exists, isDirectory: exists && isDir.boolValue, addToHistory: addToHistory)
+        completeNavigation(
+            to: url, exists: exists, isDirectory: exists && isDir.boolValue,
+            addToHistory: addToHistory, openFileWithSystem: openFileWithSystem)
     }
 
     private func navigateToRecentsVirtual(addToHistory: Bool) {
@@ -40,20 +55,31 @@ public extension AppState {
             navigation.recordVisit(to: Self.recentsVirtualURL)
         }
         navigation.currentURL = Self.recentsVirtualURL
+        resetViewStateForNavigation()
+    }
+
+    /// The per-navigation view-state reset shared by `navigateToRecentsVirtual` and
+    /// `completeNavigation`: drops the active smart folder, any in-progress rename, the selection,
+    /// and the search — then reloads. Clears the search silently since it reloads right after
+    /// anyway (no debounced search refresh should race this).
+    private func resetViewStateForNavigation(pendingChild: URL? = nil) {
         smartFolder.activeFolderID = nil
+        fileSystem.renamingURL = nil
         selection.selectedURLs.removeAll()
+        selection.pendingSelectionURL = pendingChild
         selection.isSearching = false
-        selection.searchQuery = ""
+        selection.setSearchQuerySilently("")
         refreshCurrentDirectory()
     }
 
-    private func completeNavigation(to url: URL, exists: Bool, isDirectory: Bool, addToHistory: Bool) {
+    private func completeNavigation(
+        to url: URL, exists: Bool, isDirectory: Bool, addToHistory: Bool, openFileWithSystem: Bool) {
         guard isDirectory else {
             fileSystem.isLoading = false
-            if exists {
-                NSWorkspace.shared.open(url)
-            } else {
+            if !exists {
                 showError(WilesError.itemNotFound(path: url.path))
+            } else if openFileWithSystem {
+                NSWorkspace.shared.open(url)
             }
             return
         }
@@ -65,12 +91,7 @@ public extension AppState {
             navigation.recordVisit(to: standardizedURL)
         }
         navigation.currentURL = standardizedURL
-        smartFolder.activeFolderID = nil
-        selection.selectedURLs.removeAll()
-        selection.pendingSelectionURL = leavingChildURL
-        selection.isSearching = false
-        selection.searchQuery = ""
-        refreshCurrentDirectory()
+        resetViewStateForNavigation(pendingChild: leavingChildURL)
     }
 
     /// If `newURL` is an ancestor of `oldURL`, returns the direct child of `newURL` on the path to `oldURL` —
@@ -124,7 +145,19 @@ public extension AppState {
         }
     }
 
+    /// Called from `SelectionStore.searchQuery`'s `didSet`. Waits out a short quiet period so a
+    /// burst of typing / key-repeat collapses into a single refresh instead of one per character.
+    func scheduleSearchRefresh() {
+        searchDebounceTask?.cancel()
+        searchDebounceTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.searchDebounceInterval)
+            guard !Task.isCancelled else { return }
+            self?.refreshCurrentDirectory()
+        }
+    }
+
     func refreshCurrentDirectory(isUserInitiated: Bool = false) {
+        searchDebounceTask?.cancel()
         if isUserInitiated, fileSystem.items.isEmpty {
             fileSystem.isLoading = true
         }

@@ -42,11 +42,11 @@ extension FileSystemTests {
         try? FileManager.default.createDirectory(at: zipDestFolder, withIntermediateDirectories: true)
         var zipRoundTripPassed = false
         do {
-            try FileSystemService.compressToZIP(urls: [zipSourceFile], in: zipDestFolder)
+            try ArchiveService.compressToZIP(urls: [zipSourceFile], in: zipDestFolder)
             let archiveURL = zipDestFolder.appendingPathComponent("zipped.zip")
             let extractFolder = tempDir.appendingPathComponent("ZipExtract")
             try FileManager.default.createDirectory(at: extractFolder, withIntermediateDirectories: true)
-            try FileSystemService.extractZIP(archiveURL: archiveURL, to: extractFolder)
+            try ArchiveService.extractArchive(archiveURL: archiveURL, to: extractFolder)
             let extractedFile = extractFolder.appendingPathComponent("zipped.txt")
             let extractedContent = try? String(contentsOf: extractedFile)
             zipRoundTripPassed = extractedContent == zipContent

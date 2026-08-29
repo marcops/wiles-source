@@ -1,5 +1,4 @@
 import AppKit
-import GitBeacon
 import SwiftUI
 
 public struct ConnectToServerSheetView: View {
@@ -90,8 +89,7 @@ public struct ConnectToServerSheetView: View {
             UserDefaults.standard.set(history, forKey: DefaultsKey.recentConnectServers.rawValue)
             dismiss()
         } catch {
-            ErrorReporter.report(error, context: "Connecting to server \(address)")
-            appState.showError(error.localizedDescription)
+            appState.showError(error, context: "Connecting to server \(address)")
         }
     }
 }

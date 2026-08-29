@@ -70,8 +70,8 @@ public struct UITests {
         try? "2".write(to: url2, atomically: true, encoding: .utf8)
 
         let icon = NSWorkspace.shared.icon(forFile: url1.path)
-        let item1 = FileItem(url: url1, icon: icon)
-        let item2 = FileItem(url: url2, icon: icon)
+        let item1 = FileItem.load(url: url1, icon: icon)
+        let item2 = FileItem.load(url: url2, icon: icon)
 
         appState.fileSystem.items = [item1, item2]
         appState.selection.selectedURLs = []

@@ -21,8 +21,8 @@ public final class OpenWithService: Sendable {
             let displayName = FileManager.default.displayName(atPath: appURL.path).replacingOccurrences(of: ".app", with: "")
             // `.effectiveIconKey` reads the cached icon without a LaunchServices IPC round-trip per app.
             let iconValues = try? appURL.resourceValues(forKeys: [.effectiveIconKey])
-            let icon = (iconValues?.effectiveIcon as? NSImage) ?? NSWorkspace.shared.icon(forFile: appURL.path)
-            icon.size = NSSize(width: 16, height: 16)
+            let rawIcon = (iconValues?.effectiveIcon as? NSImage) ?? NSWorkspace.shared.icon(forFile: appURL.path)
+            let icon = rawIcon.resizedCopy(to: NSSize(width: 16, height: 16))
 
             results.append(ApplicationApp(id: bundleID, name: displayName, icon: icon, url: appURL))
         }

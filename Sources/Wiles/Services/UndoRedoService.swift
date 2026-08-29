@@ -8,6 +8,11 @@ public final class UndoRedoService {
     private var redoStack: [UndoRecord] = []
     private let maxHistoryLimit = 50
 
+    /// Called after an undo/redo step relocates a file on disk (rename / move / trash-restore).
+    /// `AppState` uses it to keep favorites pointing at the new path — undo/redo must not call
+    /// `FileSystemService.moveItem` without this, or a favorited folder's undo breaks the favorite.
+    public var onFileRelocated: ((_ from: URL, _ to: URL) -> Void)?
+
     public init() { }
 
     public func recordAction(_ action: UndoActionType) {
@@ -55,23 +60,33 @@ public final class UndoRedoService {
     private func executeReverseAction(_ action: UndoActionType) async throws -> URL {
         switch action {
         case let .rename(oldURL, newURL):
-            return try await FileSystemService.renameItem(at: newURL, newName: oldURL.lastPathComponent)
+            let result = try await FileSystemService.renameItem(at: newURL, newName: oldURL.lastPathComponent)
+            onFileRelocated?(newURL, result)
+            return result
         case let .move(sourceURL, destinationURL):
-            return try await FileSystemService.moveItem(at: destinationURL, toFolder: sourceURL.deletingLastPathComponent())
+            let result = try await FileSystemService.moveItem(at: destinationURL, toFolder: sourceURL.deletingLastPathComponent())
+            onFileRelocated?(destinationURL, result)
+            return result
         case let .createFolder(url), let .createFile(url):
             _ = try await FileSystemService.moveToTrash(url: url)
             return url.deletingLastPathComponent()
         case let .trash(originalURL, trashedURL):
-            return try await FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
+            let result = try await FileSystemService.moveItem(at: trashedURL, toFolder: originalURL.deletingLastPathComponent())
+            onFileRelocated?(trashedURL, result)
+            return result
         }
     }
 
     private func executeForwardAction(_ action: UndoActionType) async throws -> URL {
         switch action {
         case let .rename(oldURL, newURL):
-            return try await FileSystemService.renameItem(at: oldURL, newName: newURL.lastPathComponent)
+            let result = try await FileSystemService.renameItem(at: oldURL, newName: newURL.lastPathComponent)
+            onFileRelocated?(oldURL, result)
+            return result
         case let .move(sourceURL, destinationURL):
-            return try await FileSystemService.moveItem(at: sourceURL, toFolder: destinationURL.deletingLastPathComponent())
+            let result = try await FileSystemService.moveItem(at: sourceURL, toFolder: destinationURL.deletingLastPathComponent())
+            onFileRelocated?(sourceURL, result)
+            return result
         case let .createFolder(url):
             let folder = url.deletingLastPathComponent()
             let name = url.lastPathComponent

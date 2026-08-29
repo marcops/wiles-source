@@ -12,7 +12,7 @@ public struct FileTaggingService: Sendable {
             // Only build a FileItem when the snapshot lacks this URL — and then only for its tags,
             // skipping the LaunchServices icon IPC and the owner/group stat, which tagging never uses.
             let existingTags = itemsSnapshot.first(where: { $0.url == url })?.tags
-                ?? FileItem(url: url, fetchTags: true, needsOwnerGroup: false).tags
+                ?? FileItem.load(url: url, fetchTags: true, needsOwnerGroup: false).tags
             var newTags = existingTags
             if newTags.contains(tag) {
                 newTags.removeAll { $0 == tag }

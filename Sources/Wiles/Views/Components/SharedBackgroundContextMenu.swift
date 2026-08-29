@@ -49,7 +49,7 @@ struct SharedBackgroundContextMenu: View {
         Button(appState.tr(.folderProperties)) {
             // Properties sheet shows Owner/Group, so keep needsOwnerGroup default; let init resolve
             // the icon from .effectiveIcon instead of a blocking NSWorkspace LaunchServices IPC.
-            let fileItem = FileItem(url: appState.navigation.currentURL)
+            let fileItem = FileItem.load(url: appState.navigation.currentURL)
             windowUIState.propertiesItem = fileItem
         }
     }

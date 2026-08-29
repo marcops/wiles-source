@@ -137,7 +137,7 @@ struct KeyboardSelectionNavigator {
         } else if !isCmd {
             if appState.preferences.navigationMode == .gnome,
                let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first {
-                appState.navigateTo(anchor)
+                appState.openItem(anchor)
                 return true
             } else if let item = macOSReturnKeyItem(appState: appState) {
                 windowUIState.renameItem = item

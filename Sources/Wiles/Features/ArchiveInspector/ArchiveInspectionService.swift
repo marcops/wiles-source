@@ -35,8 +35,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         // until extraction is confirmed successful. Truncating destURL up front (the old
         // behavior) permanently destroyed any existing file there the instant this ran, even
         // if extraction subsequently failed, since there was no way to restore the original
-        // bytes afterward (AGENTS.md rule 35: never destroy user data before the constructive
-        // half of the operation is confirmed to succeed).
+        // bytes afterward (DEV_RULES.md "Never Destroy User Data").
         // Staged in destinationFolder itself, not system temp — replaceItemAt() below is an atomic
         // move, which fails with EXDEV if the temp file and destURL are on different volumes.
         let tempURL = destinationFolder
@@ -50,7 +49,9 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-p", archiveURL.path, entryPath]
+        // `unzip` treats its file-spec argument as a shell-style glob, so an entry literally named
+        // e.g. `foo[1].txt` would match `foo1.txt` instead. Backslash-escape its wildcard chars.
+        process.arguments = ["-p", archiveURL.path, unzipLiteralPattern(entryPath)]
 
         // Direct standardOutput directly into the FileHandle.
         // The OS streams the unzipped bytes straight to disk, never accumulating them in RAM.
@@ -76,5 +77,15 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         }
 
         return destURL
+    }
+
+    /// Escapes `unzip`'s wildcard metacharacters so `entryPath` is matched literally. Backslash
+    /// must be escaped first, before the characters it will be used to escape.
+    static func unzipLiteralPattern(_ entryPath: String) -> String {
+        var result = entryPath.replacingOccurrences(of: "\\", with: "\\\\")
+        for wildcard in ["[", "]", "?", "*"] {
+            result = result.replacingOccurrences(of: wildcard, with: "\\" + wildcard)
+        }
+        return result
     }
 }

@@ -47,6 +47,7 @@ final class WilesAutomatedTests: XCTestCase {
         DirectoryLoadResultTests.run()
         FileSystemStoreTests.run()
         ModalStoreTests.run()
+        SelectionStoreTests.run()
         WindowUIStateTests.run()
         PreferencesStoreTests.run()
         PreferencesStoreExtraTests.run()

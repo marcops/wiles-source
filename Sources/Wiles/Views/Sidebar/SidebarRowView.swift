@@ -1,5 +1,4 @@
 import AppKit
-import GitBeacon
 import SwiftUI
 
 struct SidebarRowView: View {
@@ -36,7 +35,8 @@ struct SidebarRowView: View {
     }
 
     var body: some View {
-        // See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
+        // See SWIFT_LANG_RULES.md "Custom Tappable Content MUST Have an Explicit `.contentShape`": a real `Button` on macOS does not reliably honor
+        // `.contentShape`
         // for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
         rowContent
             .sidebarRowChrome(isSelected: isSel, isDragTargeted: isDragTargeted)
@@ -91,8 +91,7 @@ struct SidebarRowView: View {
     /// (a modern macOS Data volume) and on non-ejectable network mounts. Runs off `@MainActor`
     /// since a stalled network share can make `resourceValues` block for seconds.
     private func refreshEjectable() async {
-        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
-        guard item.url.standardizedFileURL.path.hasPrefix("/Volumes/") else {
+        guard SlowVolumePathValidator.isLikelySlowVolume(item.url.standardizedFileURL.path) else {
             isEjectable = false
             return
         }
@@ -155,8 +154,7 @@ struct SidebarRowView: View {
                 try NSWorkspace.shared.unmountAndEjectDevice(at: target)
                 appState.refreshCurrentDirectory()
             } catch {
-                ErrorReporter.report(error, context: "Ejecting volume")
-                appState.showError(error.localizedDescription)
+                appState.showError(error, context: "Ejecting volume")
             }
         } label: {
             Image(systemName: "eject.fill")

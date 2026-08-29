@@ -15,7 +15,7 @@ public struct FileItemFormattingTests {
     }
 
     private static func makeFileItem(at url: URL) -> FileItem {
-        FileItem(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
+        FileItem.load(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
     }
 
     private static func testFormattedSizeForZeroByteFile() {
@@ -176,7 +176,7 @@ public struct FileItemFormattingTests {
         let file = dir.appendingPathComponent("needs_owner_group.txt")
         try? "hello".write(to: file, atomically: true, encoding: .utf8)
 
-        let skippedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: false)
+        let skippedItem = FileItem.load(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: false)
         report(
             "FileItem.needsOwnerGroup", "POS: needsOwnerGroup: false sets ownerName to the \"--\" placeholder instead of resolving it",
             result: skippedItem.ownerName == "--")
@@ -184,7 +184,7 @@ public struct FileItemFormattingTests {
             "FileItem.needsOwnerGroup", "POS: needsOwnerGroup: false sets groupName to the \"--\" placeholder instead of resolving it",
             result: skippedItem.groupName == "--")
 
-        let resolvedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: true)
+        let resolvedItem = FileItem.load(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)), needsOwnerGroup: true)
         let currentUser = NSUserName()
         report(
             "FileItem.needsOwnerGroup", "NEG: needsOwnerGroup: true still resolves ownerName to a real (non-placeholder) value",
@@ -193,7 +193,7 @@ public struct FileItemFormattingTests {
             "FileItem.needsOwnerGroup", "NEG: needsOwnerGroup: true still resolves groupName to a real (non-placeholder) value",
             result: resolvedItem.groupName != "--" && !resolvedItem.groupName.isEmpty)
 
-        let defaultedItem = FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)))
+        let defaultedItem = FileItem.load(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)))
         report(
             "FileItem.needsOwnerGroup", "POS: omitting needsOwnerGroup defaults to true and still resolves a real ownerName",
             result: defaultedItem.ownerName == currentUser)

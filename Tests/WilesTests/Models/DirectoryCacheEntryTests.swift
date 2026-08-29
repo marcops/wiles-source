@@ -6,7 +6,7 @@ import Foundation
 public struct DirectoryCacheEntryTests {
     public static func run() {
         let tempFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("a.txt")
-        let items = [FileItem(url: tempFile, icon: NSImage())]
+        let items = [FileItem.load(url: tempFile, icon: NSImage())]
         let loadResult = DirectoryLoadResult(items: items)
         let entry = DirectoryCacheEntry(result: loadResult)
 

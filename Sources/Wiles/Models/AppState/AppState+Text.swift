@@ -13,25 +13,26 @@ public extension AppState {
         let selCount = selection.selectedURLs.count
 
         if selCount == 0 {
-            if let formattedSize = formattedSize(of: fileSystem.items) {
+            if let formattedSize = formattedSize(ofBytes: fileSystem.totalFileSizeBytes) {
                 return String(format: tr(.itemsCountWithSize), totalCount, formattedSize)
             }
             return String(format: tr(.itemsCount), totalCount)
         } else {
-            let selItems = fileSystem.items.filter { selection.selectedURLs.contains($0.url) }
-            if let formattedSize = formattedSize(of: selItems) {
+            let selectedBytes = fileSystem.items.reduce(0) { sum, item in
+                item.isDirectory || !selection.selectedURLs.contains(item.url) ? sum : sum + item.size
+            }
+            if let formattedSize = formattedSize(ofBytes: selectedBytes) {
                 return String(format: tr(.selectionCountWithSize), selCount, totalCount, formattedSize)
             }
             return String(format: tr(.selectionCount), selCount, totalCount)
         }
     }
 
-    /// `nil` when `items` contains no files with a nonzero total size (an empty/all-directories
-    /// selection) — lets both `statusText` branches share one "reduce → format" shape.
-    private func formattedSize(of items: [FileItem]) -> String? {
-        let totalSize = items.filter { !$0.isDirectory }.reduce(0) { $0 + $1.size }
+    /// `nil` for a zero total (an empty/all-directories set) — lets both `statusText` branches
+    /// share one "format or fall back" shape.
+    private func formattedSize(ofBytes totalSize: Int64) -> String? {
         guard totalSize > 0 else { return nil }
-        return ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
+        return ByteFormat.fileSize(totalSize)
     }
 
     /// Reads volume free-space asynchronously off the main thread. `resourceValues(forKeys:)` is a
@@ -44,7 +45,7 @@ public extension AppState {
             (try? url.resourceValues(forKeys: [.volumeAvailableCapacityKey]))?.volumeAvailableCapacity
         }.value
         guard let capacity else { return nil }
-        let formatted = ByteCountFormatter.string(fromByteCount: Int64(capacity), countStyle: .file)
-        return "\(formatted) \(tr(.freeSpace))"
+        let formatted = ByteFormat.fileSize(Int64(capacity))
+        return String(format: tr(.freeSpaceFormat), formatted)
     }
 }

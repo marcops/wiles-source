@@ -53,6 +53,18 @@ public extension AppState {
         return fileSystem.items[range].map(\.url)
     }
 
+    /// The single item a one-target action (open, Quick Look, properties, copy-content) should act
+    /// on. `selectedURLs` is a `Set` with no stable order, so `.first` picks an arbitrary member
+    /// under multi-selection — use the keyboard anchor while it's still selected, otherwise the
+    /// first selected item in visible order.
+    var primarySelectedURL: URL? {
+        if let anchor = selection.keyboardSelectionAnchorURL, selection.selectedURLs.contains(anchor) {
+            return anchor
+        }
+        return fileSystem.items.first(where: { selection.selectedURLs.contains($0.url) })?.url
+            ?? selection.selectedURLs.first
+    }
+
     func toggleSearching() {
         selection.isSearching.toggle()
         if !selection.isSearching {

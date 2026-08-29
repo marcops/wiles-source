@@ -33,6 +33,12 @@ public final class AppState: @unchecked Sendable {
     /// (off-`@MainActor`) reference it directly instead of duplicating the path as a literal.
     public nonisolated static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
 
+    /// Debounces the refresh triggered by `searchQuery` edits — without it, every keystroke
+    /// (and every key-repeat tick) restarts a directory load, and with "search everywhere" on,
+    /// a full recursive crawl of `~`. Cancelled by any explicit `refreshCurrentDirectory()`.
+    var searchDebounceTask: Task<Void, Never>?
+    static let searchDebounceInterval: Duration = .milliseconds(250)
+
     public init(preferences: PreferencesStore = PreferencesStore(), modal: ModalStore = ModalStore(), transient: TransientStore = TransientStore()) {
         navigation = NavigationStore()
         self.preferences = preferences
@@ -42,7 +48,8 @@ public final class AppState: @unchecked Sendable {
         smartFolder = SmartFolderStore()
         self.transient = transient
 
-        selection.setSearchQueryHandler { [weak self] in self?.refreshCurrentDirectory() }
+        selection.setSearchQueryHandler { [weak self] in self?.scheduleSearchRefresh() }
         navigation.onVolumeUnreachable = { [weak self] fallback in self?.navigateTo(fallback) }
+        undoRedoService.onFileRelocated = { [weak self] from, to in self?.remapFavorites(from: from, to: to) }
     }
 }

@@ -104,6 +104,7 @@
 "dateTaken" = "Data wykonania";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "Usuń Natychmiast";
+"deleteImmediatelyConfirm" = "Spowoduje to trwałe usunięcie zaznaczonych elementów. Tej operacji nie można cofnąć, a elementy nie trafiają do Kosza.";
 "desktop" = "Biurko";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "Wolne miejsce";
+"freeSpaceFormat" = "%@ Wolne miejsce";
 "fullDiskAccessNotice" = "Przyznaj pełny dostęp do dysku w Ustawieniach systemowych, aby korzystać ze wszystkich folderów bez powtarzających się monitów.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

@@ -12,6 +12,59 @@ public struct PreferencesStoreExtraTests {
         testLoadBoolDistinguishesNeverSavedFromExplicitFalse()
         testTranslucentLevelsLoadSavedPositiveValuesOnInit()
         testListColumnStatesSkipsPersistenceWhileSuppressed()
+        testSmartFolderCRUDReturnsNilOnSuccessAndAppliesInMemory()
+        testKeysToEvictPrefersOldBaselineThenJustAdded()
+    }
+
+    /// `keysToEvict` (shared by `expandedTreePaths`/`perFolderViewModes` caps): evicts the
+    /// pre-existing baseline first, only dipping into the just-added batch if that isn't enough.
+    private static func testKeysToEvictPrefersOldBaselineThenJustAdded() {
+        report(
+            "Models/PreferencesStore",
+            "NEG: keysToEvict returns nothing when under the cap",
+            result: PreferencesStore.keysToEvict(current: Set([1, 2, 3]), previous: Set([1, 2]), cap: 5).isEmpty)
+
+        let old: Set = [1, 2, 3, 4]
+        let current: Set = [1, 2, 3, 4, 5, 6] // 5,6 just added
+        let evicted = Set(PreferencesStore.keysToEvict(current: current, previous: old, cap: 4))
+        report(
+            "Models/PreferencesStore",
+            "POS: keysToEvict trims exactly the overflow, taking from the old baseline first",
+            result: evicted.count == 2 && evicted.isSubset(of: old))
+
+        let evictedIntoNew = Set(PreferencesStore.keysToEvict(current: [1, 2, 3, 4, 5], previous: [1], cap: 2))
+        report(
+            "Models/PreferencesStore",
+            "POS: keysToEvict falls back to the just-added batch when the old baseline can't cover the overflow",
+            result: evictedIntoNew.count == 3 && evictedIntoNew.contains(1))
+    }
+
+    /// The smart-folder CRUD methods now return their persistence error (nil on success) so
+    /// `AppState+SmartFolders` can surface a failed rename/removal instead of it being swallowed.
+    private static func testSmartFolderCRUDReturnsNilOnSuccessAndAppliesInMemory() {
+        let key = DefaultsKey.smartFolders.rawValue
+        let prior = UserDefaults.standard.data(forKey: key)
+        defer {
+            if let prior {
+                UserDefaults.standard.set(prior, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        UserDefaults.standard.removeObject(forKey: key)
+
+        let store = PreferencesStore()
+        store.smartFolders = []
+        let folder = SmartFolder(name: "Docs", searchQuery: "kind:pdf", scopePath: "/tmp")
+
+        report("Models/PreferencesStore", "POS: addSmartFolder returns nil on success", result: store.addSmartFolder(folder) == nil)
+        report("Models/PreferencesStore", "POS: addSmartFolder applies the folder in memory", result: store.smartFolders.map(\.id) == [folder.id])
+        report("Models/PreferencesStore", "POS: renameSmartFolder returns nil on success", result: store.renameSmartFolder(folder, to: "Papers") == nil)
+        report("Models/PreferencesStore", "POS: renameSmartFolder updates the name in memory", result: store.smartFolders.first?.name == "Papers")
+        report(
+            "Models/PreferencesStore",
+            "POS: removeSmartFolder returns nil and empties the list",
+            result: store.removeSmartFolder(folder) == nil && store.smartFolders.isEmpty)
     }
 
     // MARK: - showPreviewSidebar / showDiskUsageSidebar mutual exclusivity

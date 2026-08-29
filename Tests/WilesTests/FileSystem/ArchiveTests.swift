@@ -13,7 +13,7 @@ public struct ArchiveTests {
         // Positive: Compression
         var compressPassed = false
         do {
-            try FileSystemService.compressToZIP(urls: [file1], in: tempDir)
+            try ArchiveService.compressToZIP(urls: [file1], in: tempDir)
             let zipURL = tempDir.appendingPathComponent("doc1.zip")
             compressPassed = FileManager.default.fileExists(atPath: zipURL.path)
         } catch {
@@ -28,7 +28,7 @@ public struct ArchiveTests {
             let extractTarget = tempDir.appendingPathComponent("Extracted")
             try? FileManager.default.createDirectory(at: extractTarget, withIntermediateDirectories: true)
             do {
-                try FileSystemService.extractZIP(archiveURL: zipURL, to: extractTarget)
+                try ArchiveService.extractArchive(archiveURL: zipURL, to: extractTarget)
                 extractPassed = FileManager.default.fileExists(atPath: extractTarget.appendingPathComponent("doc1.txt").path)
             } catch {
                 print("ZIP Extract error: \(error)")
@@ -41,7 +41,7 @@ public struct ArchiveTests {
         let invalidArchive = tempDir.appendingPathComponent("not_a_zip.zip")
         try? "Corrupt Data".write(to: invalidArchive, atomically: true, encoding: .utf8)
         do {
-            try FileSystemService.extractZIP(archiveURL: invalidArchive, to: tempDir)
+            try ArchiveService.extractArchive(archiveURL: invalidArchive, to: tempDir)
         } catch {
             negExtractPassed = true
         }

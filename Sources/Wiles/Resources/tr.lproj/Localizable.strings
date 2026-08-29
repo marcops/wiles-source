@@ -104,6 +104,7 @@
 "dateTaken" = "Çekim Tarihi";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "Hemen Sil";
+"deleteImmediatelyConfirm" = "Bu, seçili öğeleri kalıcı olarak siler. Geri alınamaz ve öğeler Çöp Kutusuna taşınmaz.";
 "desktop" = "Masaüstü";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "Boş Alan";
+"freeSpaceFormat" = "%@ Boş Alan";
 "fullDiskAccessNotice" = "Sürekli izin istemeden tüm klasörlere erişmek için Sistem Ayarları'ndan Tam Disk Erişimi verin.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

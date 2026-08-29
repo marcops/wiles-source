@@ -72,7 +72,7 @@ public struct FullUIActionCoverageTests {
         defer { try? FileManager.default.removeItem(at: tempFile) }
 
         let windowUIState = WindowUIState()
-        let item = FileItem(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
+        let item = FileItem.load(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
         windowUIState.propertiesItem = item
         report("UI/Properties", "POS: Opening PropertiesSheet sets propertiesItem", result: windowUIState.propertiesItem != nil)
 
@@ -181,8 +181,8 @@ public struct FullUIActionCoverageTests {
         try? "1".write(to: file1, atomically: true, encoding: .utf8)
         try? "2".write(to: file2, atomically: true, encoding: .utf8)
 
-        let item1 = FileItem(url: file1, icon: NSWorkspace.shared.icon(forFile: file1.path))
-        let item2 = FileItem(url: file2, icon: NSWorkspace.shared.icon(forFile: file2.path))
+        let item1 = FileItem.load(url: file1, icon: NSWorkspace.shared.icon(forFile: file1.path))
+        let item2 = FileItem.load(url: file2, icon: NSWorkspace.shared.icon(forFile: file2.path))
 
         let mode = BatchRenameMode.replace(find: "item_", replaceWith: "renamed_")
         let previews = BatchRenameService.previewNewNames(items: [item1, item2], mode: mode)

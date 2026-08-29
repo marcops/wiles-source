@@ -99,7 +99,7 @@ public struct StateAndTaskModelsTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let fileURL = dir.appendingPathComponent("item.txt")
         FileManager.default.createFile(atPath: fileURL.path, contents: Data("hello".utf8))
-        let item = FileItem(url: fileURL, icon: NSImage())
+        let item = FileItem.load(url: fileURL, icon: NSImage())
         let populated = DirectoryLoadResult(items: [item])
         report("DirectoryLoadResult", "POS: items are preserved as passed in", result: populated.items.count == 1 && populated.items.first?.url == item.url)
 
@@ -129,7 +129,7 @@ public struct StateAndTaskModelsTests {
         func makeItem(_ name: String) -> FileItem {
             let url = dir.appendingPathComponent(name)
             FileManager.default.createFile(atPath: url.path, contents: Data("x".utf8))
-            return FileItem(url: url, icon: NSImage())
+            return FileItem.load(url: url, icon: NSImage())
         }
 
         let singleItemGroup = DuplicateGroup(hash: "abc", fileSize: 500, items: [makeItem("a.txt")])

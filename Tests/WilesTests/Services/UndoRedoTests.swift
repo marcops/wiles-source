@@ -20,8 +20,66 @@ public struct UndoRedoTests {
         await testHistoryCap(service: service, tempDir: tempDir)
         await testTrashRedoAndGhostFailures(service: service, tempDir: tempDir)
         await testFailedUndoDoesNotCorruptStack(service: service, tempDir: tempDir)
+        await testRelocationHookFiresOnMoveUndoRedo(tempDir: tempDir)
+        await testUndoOfMoveRemapsFavorites(tempDir: tempDir)
 
         try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    /// `onFileRelocated` must fire for every undo/redo step that moves a file on disk, with the
+    /// pre- and post-relocation URLs — this is what lets `AppState` keep favorites in sync.
+    private static func testRelocationHookFiresOnMoveUndoRedo(tempDir: URL) async {
+        let service = UndoRedoService()
+        var relocations: [(from: URL, to: URL)] = []
+        service.onFileRelocated = { from, to in relocations.append((from, to)) }
+
+        let src = tempDir.appendingPathComponent("hook-src", isDirectory: true)
+        let dst = tempDir.appendingPathComponent("hook-dst", isDirectory: true)
+        try? FileManager.default.createDirectory(at: src, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dst, withIntermediateDirectories: true)
+        let file = src.appendingPathComponent("f.txt")
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+
+        guard let moved = try? await FileSystemService.moveItem(at: file, toFolder: dst) else {
+            TestReporter.report("UndoRedo", "POS: onFileRelocated fires on move undo/redo", result: false)
+            return
+        }
+        service.recordAction(.move(sourceURL: file, destinationURL: moved))
+        _ = try? await service.undo()
+        _ = try? await service.redo()
+
+        let undoHop = relocations.first
+        let redoHop = relocations.count >= 2 ? relocations[1] : nil
+        let ok = undoHop?.from == moved && undoHop?.to == file
+            && redoHop?.from == file && redoHop?.to == moved
+        TestReporter.report("UndoRedo", "POS: onFileRelocated reports (from,to) for both the move undo and redo", result: ok)
+    }
+
+    /// End-to-end: undoing the move of a favorited folder must leave the favorite pointing at the
+    /// folder's restored location, not the now-empty post-move path.
+    private static func testUndoOfMoveRemapsFavorites(tempDir: URL) async {
+        let appState = AppState()
+        let src = tempDir.appendingPathComponent("fav-src", isDirectory: true)
+        let dst = tempDir.appendingPathComponent("fav-dst", isDirectory: true)
+        try? FileManager.default.createDirectory(at: src, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dst, withIntermediateDirectories: true)
+        let favFolder = src.appendingPathComponent("Reports", isDirectory: true)
+        try? FileManager.default.createDirectory(at: favFolder, withIntermediateDirectories: true)
+
+        appState.preferences.favoriteURLs = [favFolder.standardizedFileURL]
+        guard let moved = try? await appState.moveItem(at: favFolder, toFolder: dst) else {
+            TestReporter.report("UndoRedo", "POS: undo of a favorited folder's move remaps the favorite", result: false)
+            return
+        }
+        appState.undoRedoService.recordAction(.move(sourceURL: favFolder, destinationURL: moved))
+        _ = try? await appState.undoRedoService.undo()
+
+        let favNowPointsBack = appState.preferences.favoriteURLs.map { $0.resolvingSymlinksInPath().path }
+            == [favFolder.resolvingSymlinksInPath().path]
+        TestReporter.report(
+            "UndoRedo",
+            "POS: undo of a favorited folder's move remaps the favorite to its restored path",
+            result: favNowPointsBack)
     }
 
     /// `service` is a fresh instance owned only by this test run, but undo()/redo() always relocate

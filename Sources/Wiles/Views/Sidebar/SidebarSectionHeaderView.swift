@@ -3,7 +3,8 @@ import SwiftUI
 /// `identifierKey` is a fixed, non-localized key (e.g. "FAVORITES") kept separate from the
 /// localized `title` shown on screen — accessibility identifiers must stay stable across
 /// languages so UI tests and automation don't break when the OS language changes.
-/// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape` for
+/// See SWIFT_LANG_RULES.md "Custom Tappable Content MUST Have an Explicit `.contentShape`": a real `Button` on macOS does not reliably honor `.contentShape`
+/// for
 /// composite (icon + text) label content, so this uses a plain view + `.onTapGesture` instead.
 struct SidebarSectionHeaderView: View {
     let title: String

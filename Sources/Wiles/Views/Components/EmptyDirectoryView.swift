@@ -15,7 +15,7 @@ public struct EmptyDirectoryView: View {
     /// Assumes slow `/Volumes/` mounts are readable to avoid blocking `access()` on the main thread.
     private var isCurrentFolderReadable: Bool {
         let path = appState.navigation.currentURL.path
-        if path.hasPrefix("/Volumes/") {
+        if SlowVolumePathValidator.isLikelySlowVolume(path) {
             return true
         }
         return FileManager.default.isReadableFile(atPath: path)

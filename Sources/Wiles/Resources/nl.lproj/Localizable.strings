@@ -104,6 +104,7 @@
 "dateTaken" = "Opnamedatum";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "Onmiddellijk Verwijderen";
+"deleteImmediatelyConfirm" = "Hiermee worden de geselecteerde items permanent verwijderd. Dit kan niet ongedaan worden gemaakt en ze worden niet naar de Prullenbak verplaatst.";
 "desktop" = "Bureaublad";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "Beschikbaar";
+"freeSpaceFormat" = "%@ Beschikbaar";
 "fullDiskAccessNotice" = "Verleen volledige schijftoegang in Systeeminstellingen om toegang te krijgen tot alle mappen zonder herhaalde meldingen.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

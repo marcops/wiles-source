@@ -21,7 +21,7 @@ public struct FileItemTests {
         try? "FileItem Test Data".write(to: tempFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempFile) }
 
-        let item = FileItem(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
+        let item = FileItem.load(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
         report("Model/FileItem", "POS: FileItem path matches temp file", result: item.url.path == tempFile.path)
         report("Model/FileItem", "POS: FileItem extension is txt", result: item.fileExtension == "txt")
         report("Model/FileItem", "POS: FileItem is not directory", result: !item.isDirectory)
@@ -31,7 +31,7 @@ public struct FileItemTests {
 
         // POS: Hashable conformance — two FileItem values built from the same file must hash identically
         // and be usable as Set/Dictionary keys, exercising hash(into:).
-        let duplicateItem = FileItem(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
+        let duplicateItem = FileItem.load(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
         let itemSet: Set<FileItem> = [item, duplicateItem]
         report(
             "Model/FileItem",
@@ -41,11 +41,41 @@ public struct FileItemTests {
         let otherFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("item_test_other.txt")
         try? "Different Data".write(to: otherFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: otherFile) }
-        let otherItem = FileItem(url: otherFile, icon: NSWorkspace.shared.icon(forFile: otherFile.path))
+        let otherItem = FileItem.load(url: otherFile, icon: NSWorkspace.shared.icon(forFile: otherFile.path))
         report(
             "Model/FileItem",
             "NEG: FileItem.hash(into:) differing items are not forced into the same Set entry",
             result: Set([item, otherItem]).count == 2)
+
+        testResizedCopyDoesNotMutateSharedIcon()
+        testEqualityTracksAllICloudTransferFlags()
+    }
+
+    /// A file that starts or stops downloading/uploading from iCloud must compare unequal to its
+    /// earlier self, or the cloud-status badge never re-renders through SwiftUI's diff.
+    private static func testEqualityTracksAllICloudTransferFlags() {
+        func item(downloading: Bool = false, uploading: Bool = false, notDownloaded: Bool = false) -> FileItem {
+            FileItem(
+                url: URL(fileURLWithPath: "/tmp/cloud.txt"), name: "cloud.txt", isDirectory: false, size: 1,
+                dateModified: Date(timeIntervalSinceReferenceDate: 0), dateCreated: Date(timeIntervalSinceReferenceDate: 0),
+                dateAccessed: nil, ownerName: "--", groupName: "--", isHidden: false, fileExtension: "txt",
+                icon: NSImage(), tags: [], tagColor: nil, isUbiquitous: true,
+                isUbiquitousNotDownloaded: notDownloaded, isUbiquitousDownloading: downloading, isUbiquitousUploading: uploading)
+        }
+        report("Model/FileItem", "NEG: == distinguishes an item that started downloading from iCloud", result: item() != item(downloading: true))
+        report("Model/FileItem", "NEG: == distinguishes an item that started uploading to iCloud", result: item() != item(uploading: true))
+        report("Model/FileItem", "POS: == treats two items with identical iCloud flags as equal", result: item(downloading: true) == item(downloading: true))
+    }
+
+    /// `FileItem` sizes icons up to 512×512; the source may be a shared/cached system icon, so
+    /// `resizedCopy(to:)` must produce a new image and leave the original's size untouched.
+    private static func testResizedCopyDoesNotMutateSharedIcon() {
+        let shared = NSWorkspace.shared.icon(forFile: "/")
+        let originalSize = shared.size
+        let resized = shared.resizedCopy(to: NSSize(width: 512, height: 512))
+        report("Model/FileItem", "POS: resizedCopy returns a different image instance", result: resized !== shared)
+        report("Model/FileItem", "POS: resizedCopy applies the requested size to the copy", result: resized.size == NSSize(width: 512, height: 512))
+        report("Model/FileItem", "NEG: resizedCopy leaves the source (possibly shared) icon's size unchanged", result: shared.size == originalSize)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

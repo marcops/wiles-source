@@ -11,7 +11,7 @@ struct SidebarItemContextMenu: View {
     private var windowUIState
 
     var body: some View {
-        Button(appState.tr(.open)) { appState.navigateTo(url) }
+        Button(appState.tr(.open)) { appState.openItem(url) }
         Button(appState.tr(.showInFinder)) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         Menu(appState.tr(.copyPath)) {
             CopyPathMenuContent(urls: [url], relativeTo: appState.navigation.currentURL, appState: appState)
@@ -20,7 +20,7 @@ struct SidebarItemContextMenu: View {
         Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {
             // Properties sheet shows Owner/Group, so keep needsOwnerGroup default; let init resolve
             // the icon from .effectiveIcon instead of a blocking NSWorkspace LaunchServices IPC.
-            let fileItem = FileItem(url: url)
+            let fileItem = FileItem.load(url: url)
             windowUIState.propertiesItem = fileItem
         }
     }

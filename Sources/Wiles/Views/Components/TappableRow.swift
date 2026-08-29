@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Shared "hand-rolled tappable row" pattern (see `SWIFT_LANG_RULES.md` rule 33): composite
+/// Shared "hand-rolled tappable row" pattern (see SWIFT_LANG_RULES.md "Custom Tappable Content MUST Have an Explicit `.contentShape`"): composite
 /// content (an icon + text, a padded row) needs its whole visible frame tappable, but a real
 /// `Button`/`.onTapGesture` on composite content only responds to its rendered, non-transparent
 /// pixels on macOS — clicking the surrounding padding silently does nothing, and a real `Button`

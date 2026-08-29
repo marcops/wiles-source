@@ -7,7 +7,7 @@ public extension AppState {
         guard !urls.isEmpty else { return }
         let current = navigation.currentURL
         runDetachedFileOperation(context: "Compressing items to ZIP", taskTitle: tr(.compressingItemsEllipsis)) {
-            try FileSystemService.compressToZIP(urls: urls, in: current)
+            try ArchiveService.compressToZIP(urls: urls, in: current)
         }
     }
 
@@ -22,7 +22,7 @@ public extension AppState {
     func extractArchive(url: URL) {
         let current = navigation.currentURL
         runDetachedFileOperation(context: "Extracting archive", taskTitle: tr(.extractingArchiveEllipsis)) {
-            try FileSystemService.extractZIP(archiveURL: url, to: current)
+            try ArchiveService.extractArchive(archiveURL: url, to: current)
         }
     }
 }

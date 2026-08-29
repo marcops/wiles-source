@@ -1,7 +1,6 @@
 import Foundation
 import GitBeacon
 import Observation
-import os
 
 /// Owns persistence (load/save/CRUD) for auto-organization rules, backed by `UserDefaults`.
 /// Notifies `onChange` after every mutation so an owner can react (e.g. restart folder watching)
@@ -12,7 +11,6 @@ import os
 @MainActor
 final class AutoOrganizationRuleStore {
     private let rulesKey = DefaultsKey.autoOrganizationRules.rawValue
-    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Wiles", category: "AutoOrganizationRuleStore")
 
     /// Invoked after every mutation to `rules` (load, direct assignment, add/update/delete).
     var onChange: (() -> Void)?
@@ -21,12 +19,37 @@ final class AutoOrganizationRuleStore {
     /// identical data back to `UserDefaults` and fire an extra `onChange` (→ redundant
     /// `restartMonitoring`). Mirrors `NavigationStore`'s `isInitializing` guard.
     private var isLoading = false
+    /// Set while `bumpStats` mutates only a rule's `lastTriggeredAt`/`totalMovedCount` — that's not a
+    /// structural change, so the `didSet` skips the synchronous save + `onChange` and a debounced
+    /// save covers it instead (a burst of background moves otherwise rewrote `UserDefaults` and
+    /// restarted every watcher once per file).
+    private var isBumpingStats = false
+    private var statsSaveTask: Task<Void, Never>?
+    private static let statsSaveDebounce: Duration = .seconds(2)
 
     var rules: [AutoOrganizationRule] = [] {
         didSet {
-            guard !isLoading else { return }
+            guard !isLoading, !isBumpingStats else { return }
             saveRules()
             onChange?()
+        }
+    }
+
+    /// Records a successful auto-move on `id` without the structural-change side effects: updates
+    /// the in-memory rule (so the sheet's counter reflects it live) and schedules one debounced
+    /// persist for the whole burst.
+    func bumpStats(id: UUID, at date: Date) {
+        guard let index = rules.firstIndex(where: { $0.id == id }) else { return }
+        isBumpingStats = true
+        rules[index].lastTriggeredAt = date
+        rules[index].totalMovedCount += 1
+        isBumpingStats = false
+
+        statsSaveTask?.cancel()
+        statsSaveTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.statsSaveDebounce)
+            guard let self, !Task.isCancelled else { return }
+            saveRules()
         }
     }
 
@@ -39,7 +62,6 @@ final class AutoOrganizationRuleStore {
             defer { isLoading = false }
             rules = try JSONDecoder().decode([AutoOrganizationRule].self, from: data)
         } catch {
-            Self.logger.error("Failed to decode auto-organization rules from UserDefaults: \(error.localizedDescription, privacy: .public)")
             ErrorReporter.report(error, context: "Decoding auto-organization rules")
         }
     }
@@ -49,7 +71,6 @@ final class AutoOrganizationRuleStore {
             let data = try JSONEncoder().encode(rules)
             UserDefaults.standard.set(data, forKey: rulesKey)
         } catch {
-            Self.logger.error("Failed to encode auto-organization rules for UserDefaults: \(error.localizedDescription, privacy: .public)")
             ErrorReporter.report(error, context: "Encoding auto-organization rules")
         }
     }

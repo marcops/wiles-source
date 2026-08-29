@@ -26,7 +26,7 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
     private func makeItem(named name: String, in dir: URL, content: String = "content") -> FileItem {
         let url = dir.appendingPathComponent(name)
         try? content.write(to: url, atomically: true, encoding: .utf8)
-        return FileItem(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
+        return FileItem.load(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
     }
 
     /// Builds a tiny real PNG on disk (mirrors `ImageConverterCoverageTests.makeTestImage`) so
@@ -42,15 +42,15 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
             return context.makeImage()
         }() else {
             XCTFail("Failed to build test fixture image")
-            return FileItem(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
+            return FileItem.load(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
         }
         guard let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             XCTFail("Failed to create CGImageDestination for test fixture")
-            return FileItem(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
+            return FileItem.load(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
         }
         CGImageDestinationAddImage(destination, cgImage, nil)
         CGImageDestinationFinalize(destination)
-        return FileItem(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
+        return FileItem.load(url: url, icon: NSImage(size: NSSize(width: 16, height: 16)))
     }
 
     /// Repeatedly drains `appState.undoRedoService` (undo() is async - see the file-level doc

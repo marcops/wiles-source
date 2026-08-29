@@ -12,11 +12,12 @@ public final class AutoOrganizationService {
 
     private let ruleStore = AutoOrganizationRuleStore()
     private let watcher = FolderWatcher(debounceInterval: AutoOrganizationService.scanDebounceInterval)
-    /// How long a matched file's size must stay unchanged before it's considered done writing and
-    /// safe to move. FileHandle/POSIX lock checks don't work for this: most writers (browsers,
-    /// curl, Finder copies) never take an advisory lock, so a locked-file check would never detect
-    /// an in-progress download — size stability is what actually reflects "still being written to."
-    private let stabilityCheckDelay: UInt64 = 150_000_000
+    /// A matched file is only moved once BOTH its size and modification date stay unchanged across
+    /// this window. FileHandle/POSIX lock checks don't work for this: most writers (browsers, curl,
+    /// Finder copies) never take an advisory lock, so a locked-file check would never detect an
+    /// in-progress download. 2s (not a few hundred ms) so a writer that stalls or writes in spaced
+    /// bursts — or whose size momentarily plateaus — isn't mistaken for "done" and moved mid-write.
+    private let fileStabilityWindow: Duration = .seconds(2)
 
     public var rules: [AutoOrganizationRule] {
         get { ruleStore.rules }
@@ -46,17 +47,22 @@ public final class AutoOrganizationService {
     }
 
     /// Bumps a rule's "last fired" stats after a background move actually succeeds, so the user
-    /// has a way to tell whether a rule has ever done anything.
+    /// has a way to tell whether a rule has ever done anything. Routed through `bumpStats` so a
+    /// burst of moves doesn't rewrite `UserDefaults` (and restart the watchers) once per file.
     private func recordSuccessfulMove(ruleID: UUID) {
-        guard var rule = rules.first(where: { $0.id == ruleID }) else { return }
-        rule.lastTriggeredAt = Date()
-        rule.totalMovedCount += 1
-        ruleStore.updateRule(rule)
+        ruleStore.bumpStats(id: ruleID, at: Date())
     }
+
+    /// The folder set the `watcher` currently has open `DispatchSource` fds for — lets
+    /// `restartMonitoring` skip the teardown/recreate churn when nothing structural changed
+    /// (e.g. a rule's stats bumped, but its source folder didn't).
+    private var watchedFolders: Set<URL> = []
 
     private func restartMonitoring() {
         let activeRules = rules.filter(\.isEnabled)
         let uniqueSourceFolders = Set(activeRules.map(\.sourceURL.standardizedFileURL))
+        guard uniqueSourceFolders != watchedFolders else { return }
+        watchedFolders = uniqueSourceFolders
         watcher.watch(folders: uniqueSourceFolders)
     }
 
@@ -78,18 +84,22 @@ public final class AutoOrganizationService {
         // and move dispatch below then hop back to the main actor, unchanged.
         let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isHiddenKey]
         Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self else { return }
             let fm = FileManager.default
             guard let files = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: resourceKeys, options: [.skipsSubdirectoryDescendants]) else {
                 return
             }
-            await self?.matchAndDispatchMoves(folder: folder, files: files, resourceKeys: resourceKeys)
+            // Snapshot the rules on the main actor (they may have changed while the scan ran), then
+            // do all per-file `resourceValues`/matching off it — the source is typically ~/Downloads
+            // with thousands of files, and one stat per file on @MainActor freezes the UI.
+            let activeRules = await activeRules(for: folder)
+            guard !activeRules.isEmpty else { return }
+            let pending = Self.matchMoves(files: files, resourceKeys: resourceKeys, activeRules: activeRules)
+            guard !pending.isEmpty else { return }
+            await dispatchMoves(pending)
         }
     }
 
-    /// Runs on the main actor: re-filters the current rules against `folder` (rules may have
-    /// changed while the detached scan above was in flight) and matches the freshly-scanned
-    /// `files`, dispatching each match's move exactly as before. Split out of `processFolder` only
-    /// so the initial (potentially slow, /Volumes-backed) directory scan can run detached.
     /// One matched file queued for a background move: `(file, destination, ruleID)`.
     private struct PendingMove: Sendable {
         let file: URL
@@ -97,10 +107,11 @@ public final class AutoOrganizationService {
         let ruleID: UUID
     }
 
-    private func matchAndDispatchMoves(folder: URL, files: [URL], resourceKeys: [URLResourceKey]) {
-        let activeRules = rules.filter { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
-        guard !activeRules.isEmpty else { return }
+    private func activeRules(for folder: URL) -> [AutoOrganizationRule] {
+        rules.filter { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
+    }
 
+    private nonisolated static func matchMoves(files: [URL], resourceKeys: [URLResourceKey], activeRules: [AutoOrganizationRule]) -> [PendingMove] {
         var pending: [PendingMove] = []
         for file in files {
             // Ignore hidden files and directories
@@ -115,21 +126,23 @@ public final class AutoOrganizationService {
                 pending.append(PendingMove(file: file, destinationURL: rule.destinationURL, ruleID: rule.id))
             }
         }
-        guard !pending.isEmpty else { return }
+        return pending
+    }
 
-        // One detached task processes every match sequentially, rather than fanning out a separate
-        // task (each holding the 150ms stability timer) per file. Runs off the main actor: the
-        // stability check sleeps, and FileSystemService.moveItem falls back to a synchronous
-        // copy+delete for cross-volume moves that would otherwise freeze the UI on large files.
-        // Rule moves are not added to any window's undo stack — the sheet says so.
-        let stabilityCheckDelay = stabilityCheckDelay
+    /// One detached task processes every match sequentially, rather than fanning out a separate
+    /// task (each holding the 150ms stability timer) per file. Runs off the main actor: the
+    /// stability check sleeps, and FileSystemService.moveItem falls back to a synchronous
+    /// copy+delete for cross-volume moves that would otherwise freeze the UI on large files.
+    /// Rule moves are not added to any window's undo stack — the sheet says so.
+    private func dispatchMoves(_ pending: [PendingMove]) {
+        let stabilityWindow = fileStabilityWindow
         let service = self
         Task.detached(priority: .utility) {
             for move in pending {
-                guard let sizeBefore = Self.fileSize(move.file) else { continue }
-                try? await Task.sleep(nanoseconds: stabilityCheckDelay)
-                guard let sizeAfter = Self.fileSize(move.file), sizeBefore == sizeAfter else {
-                    continue // still being written — skip this round
+                guard let before = Self.fileSnapshot(move.file) else { continue }
+                try? await Task.sleep(for: stabilityWindow)
+                guard let after = Self.fileSnapshot(move.file), before == after else {
+                    continue // size or mtime changed → still being written — skip this round
                 }
                 do {
                     // Unattended — no user to prompt on a name collision, so keep both (unique-rename)
@@ -150,13 +163,21 @@ public final class AutoOrganizationService {
     /// browsers, curl, Finder copies — never take an advisory lock on the file they're writing, so
     /// a lock-based check would never actually detect an in-progress download.
     ///
-    /// `nonisolated` so it can run from the detached move task below without hopping onto the
-    /// main actor for a plain filesystem stat call.
-    private nonisolated static func fileSize(_ url: URL) -> Int64? {
-        try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64
+    /// Size + modification date, compared across `fileStabilityWindow` to tell "done writing" from
+    /// "paused mid-write". `nonisolated` so the detached move task can stat without hopping to the
+    /// main actor.
+    private nonisolated static func fileSnapshot(_ url: URL) -> FileWriteSnapshot? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let size = attrs[.size] as? Int64 else { return nil }
+        return FileWriteSnapshot(size: size, modified: attrs[.modificationDate] as? Date)
     }
 
-    private func matches(file: URL, rule: AutoOrganizationRule) -> Bool {
+    private struct FileWriteSnapshot: Equatable {
+        let size: Int64
+        let modified: Date?
+    }
+
+    private nonisolated static func matches(file: URL, rule: AutoOrganizationRule) -> Bool {
         let name = file.lastPathComponent
         let ext = file.pathExtension
 

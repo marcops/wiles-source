@@ -6,6 +6,11 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     public static let shared = SmartFolderService()
     private var query: NSMetadataQuery?
     private var queryObserver: (any NSObjectProtocol)?
+    /// Backstop for `NSMetadataQueryDidFinishGathering` never firing — on a volume without Spotlight
+    /// indexing (an SMB share, an external drive with indexing off) the query can gather forever, so
+    /// the caller would spin on `isLoading` and the observer would leak until the next query.
+    private var queryTimeoutTask: Task<Void, Never>?
+    private static let queryTimeout: Duration = .seconds(20)
     /// Identifies the most recently started query. `fetchFileItems` resolves icons on a detached
     /// task, so a slower-finishing older query (e.g. one with more results) could otherwise still
     /// call its `completion` after a faster newer one already did, silently overwriting the newer,
@@ -61,16 +66,14 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     /// only applies its results if that token is still the most recent by the time it fires.
     private func runQuery(predicate: NSPredicate, searchScopes: [Any], completion: @escaping @Sendable ([FileItem]) -> Void) {
         query?.stop()
+        queryTimeoutTask?.cancel()
+        removeQueryObserver()
         let token = UUID()
         currentQueryToken = token
         let metadataQuery = NSMetadataQuery()
         metadataQuery.predicate = predicate
         metadataQuery.searchScopes = searchScopes
 
-        if let existingObserver = queryObserver {
-            NotificationCenter.default.removeObserver(existingObserver)
-            queryObserver = nil
-        }
         queryObserver = NotificationCenter.default
             .addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
                 // `NSNotification`/`NSMetadataQuery` handling stays outside any actor-hop closure —
@@ -88,13 +91,13 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
                     return
                 }
                 let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-                // swiftformat:disable redundantSelf
+                // swiftformat:disable redundantSelf — a nested `Task { @MainActor in }` closure
+                // needs explicit `self.` to capture; the CI toolchain's SwiftFormat would otherwise
+                // strip it and break the build (see M21 — pending config alignment).
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    if let observer = self.queryObserver {
-                        NotificationCenter.default.removeObserver(observer)
-                        self.queryObserver = nil
-                    }
+                    self.queryTimeoutTask?.cancel()
+                    self.removeQueryObserver()
                     Self.fetchFileItems(forPaths: paths) { [weak self] items in
                         Task { @MainActor in
                             guard let self, self.currentQueryToken == token else { return }
@@ -106,6 +109,27 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
             }
         metadataQuery.start()
         query = metadataQuery
+        scheduleQueryTimeout(token: token, completion: completion)
+    }
+
+    private func removeQueryObserver() {
+        guard let observer = queryObserver else { return }
+        NotificationCenter.default.removeObserver(observer)
+        queryObserver = nil
+    }
+
+    /// If the query is still the current one after `queryTimeout` (gathering never finished — an
+    /// unindexed volume), give up with an empty result and clean up rather than spin forever.
+    private func scheduleQueryTimeout(token: UUID, completion: @escaping @Sendable ([FileItem]) -> Void) {
+        // swiftformat:disable redundantSelf — see the note in `runQuery`'s inner Task closure.
+        queryTimeoutTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.queryTimeout)
+            guard !Task.isCancelled, let self, self.currentQueryToken == token else { return }
+            self.query?.stop()
+            self.removeQueryObserver()
+            completion([])
+        }
+        // swiftformat:enable redundantSelf
     }
 
     /// Resolves `FileItem`s for a Spotlight result set's paths off the main thread. Building them
@@ -120,7 +144,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
             for path in paths {
                 // FileItem resolves the icon from `.effectiveIcon` in its resourceValues batch;
                 // a per-path NSWorkspace.icon IPC here cost seconds on a broad Spotlight result set.
-                items.append(FileItem(url: URL(fileURLWithPath: path)))
+                items.append(FileItem.load(url: URL(fileURLWithPath: path)))
             }
             await MainActor.run {
                 completion(items)

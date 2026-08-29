@@ -1,4 +1,3 @@
-import GitBeacon
 import SwiftUI
 
 public struct SymlinkSheetView: View {
@@ -95,8 +94,7 @@ public struct SymlinkSheetView: View {
         let destinationFolder = appState.navigation.currentURL
         // fileExists(atPath:) is fine inline for a local path; under /Volumes/ it hops off @MainActor,
         // mirroring FolderPickerSheet.commitPathText.
-        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
-        if destinationFolder.path.hasPrefix("/Volumes/") {
+        if SlowVolumePathValidator.isLikelySlowVolume(destinationFolder.path) {
             Task {
                 let collides = await Task.detached(priority: .userInitiated) {
                     FileManager.default.fileExists(atPath: destinationFolder.appendingPathComponent(trimmedName).path)
@@ -125,8 +123,7 @@ public struct SymlinkSheetView: View {
             appState.selection.selectedURLs = [createdURL]
             dismiss()
         } catch {
-            ErrorReporter.report(error, context: "Creating symbolic link")
-            appState.showError(error)
+            appState.showError(error, context: "Creating symbolic link")
         }
     }
 }

@@ -103,6 +103,13 @@ public struct DiskSpaceVisualizerFeatureTests {
             "Feature/DiskSpaceVisualizer",
             "POS: othersItem's size is the sum of the 3 smallest files excluded from topItems",
             result: othersSize == 600)
+
+        // The "Others" row's url is a placeholder that doesn't exist — it must be flagged synthetic
+        // so the sidebar never navigates to it, while real top items are not flagged.
+        report(
+            "Feature/DiskSpaceVisualizer",
+            "POS: othersItem is marked isSynthetic; real top items are not",
+            result: (reportResult.othersItem?.isSynthetic ?? false) && reportResult.topItems.allSatisfy { !$0.isSynthetic })
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

@@ -14,8 +14,8 @@ public struct BatchRenameTests {
         try? "Beta".write(to: item2, atomically: true, encoding: .utf8)
 
         let icon = NSWorkspace.shared.icon(forFile: item1.path)
-        let fileItem1 = FileItem(url: item1, icon: icon)
-        let fileItem2 = FileItem(url: item2, icon: icon)
+        let fileItem1 = FileItem.load(url: item1, icon: icon)
+        let fileItem2 = FileItem.load(url: item2, icon: icon)
 
         await testFindReplaceAndPreviewModes(tempDir: tempDir, fileItem1: fileItem1, fileItem2: fileItem2)
         testRegexModesAndDirectoryItems(tempDir: tempDir, fileItem1: fileItem1)
@@ -33,7 +33,7 @@ public struct BatchRenameTests {
 
         // Negative: Empty Find String (No Change)
         let docAlphaURL = tempDir.appendingPathComponent("doc_alpha.txt")
-        let currentItem1 = FileItem(url: docAlphaURL, icon: NSWorkspace.shared.icon(forFile: docAlphaURL.path))
+        let currentItem1 = FileItem.load(url: docAlphaURL, icon: NSWorkspace.shared.icon(forFile: docAlphaURL.path))
         let negBatchResult = try? await BatchRenameService.performBatchRename(
             items: [currentItem1],
             mode: .replace(find: "", replaceWith: "prefix_"))
@@ -90,7 +90,7 @@ public struct BatchRenameTests {
         // POS: directory items are renamed without an extension being appended
         let dirURL = tempDir.appendingPathComponent("a_folder")
         try? FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
-        let dirItem = FileItem(url: dirURL, icon: NSWorkspace.shared.icon(forFile: dirURL.path))
+        let dirItem = FileItem.load(url: dirURL, icon: NSWorkspace.shared.icon(forFile: dirURL.path))
         let dirPreview = BatchRenameService.previewNewNames(items: [dirItem], mode: .addPrefixSuffix(prefix: "new_", suffix: ""))
         TestReporter.report(
             "BatchRename",

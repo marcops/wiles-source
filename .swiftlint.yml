@@ -317,3 +317,23 @@ custom_rules:
     regex: 'didSet\s*\{[^}]*=\s*oldValue'
     message: "A didSet that assigns oldValue back to its property wholesale silently discards the user's action when a cap/validation fails (finding H1). Evict/clamp down to the limit instead, or make the revert a conscious, commented choice."
     severity: warning
+  no_localized_description_in_show_error:
+    name: "No .localizedDescription Passed to showError()"
+    # A `WilesError` conforms to `LocalizedError`, so `error.localizedDescription` returns the
+    # hardcoded English `errorDescription` — bypassing `AppState.errorText(for:)` /
+    # `WilesError.localizedMessage(lang:)`, which re-localize in the in-app language. Pass the
+    # error itself: `appState.showError(error)`.
+    included: ".*/Sources/.*\\.swift"
+    regex: 'showError\([^)]*\.localizedDescription'
+    message: "Pass the error itself to showError(...), not error.localizedDescription — the latter leaks the English errorDescription for a WilesError instead of routing through errorText(for:)/localizedMessage(lang:)."
+    severity: warning
+  no_adhoc_byte_count_formatter:
+    name: "No Ad-Hoc ByteCountFormatter"
+    # ByteCountFormatter.string(fromByteCount:countStyle:) builds a throwaway formatter every call —
+    # it's read per row per render in the file list / disk-usage sidebar / footer. Route through the
+    # one shared `ByteFormat.fileSize(_:)`.
+    included: ".*/Sources/.*\\.swift"
+    excluded: ".*/ByteFormat\\.swift"
+    regex: 'ByteCountFormatter'
+    message: "Use ByteFormat.fileSize(_:) — the shared formatter — instead of ByteCountFormatter directly (it allocates a new formatter per call in the render path)."
+    severity: warning

@@ -91,7 +91,8 @@ public enum DiskSpaceVisualizerService {
                 size: othersTotalSize,
                 percentage: pct,
                 isDirectory: true,
-                colorHue: 0.0)
+                colorHue: 0.0,
+                isSynthetic: true)
         }
 
         return DiskUsageReport(totalSize: grandTotal, topItems: formattedTopItems, othersItem: othersItem, isApproximate: isApproximate)

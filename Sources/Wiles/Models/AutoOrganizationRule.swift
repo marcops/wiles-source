@@ -1,6 +1,6 @@
 import Foundation
 
-public struct AutoOrganizationRule: Codable, Identifiable, Hashable {
+public struct AutoOrganizationRule: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     public var sourceURL: URL
     public var destinationURL: URL

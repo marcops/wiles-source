@@ -12,10 +12,10 @@ public struct AppStateSmartFolderTests {
         testRenameSmartFolder()
         testUpdateSmartFolderQuery()
         testSearchScopeID()
-        testPrepareForSmartFolderRunTriggersSearch()
+        await testPrepareForSmartFolderRunTriggersSearch()
         await testPrepareForSmartFolderRunClearsStalePendingSelection()
         testPrepareForSmartFolderRunSuppressesFocusOnlyWhenSearchWasClosed()
-        testNormalSearchQueryEditKeepsSidebarHighlight()
+        await testNormalSearchQueryEditKeepsSidebarHighlight()
         await testRunSmartFolderAppliesResultsToFileSystemItems()
     }
 
@@ -157,12 +157,10 @@ public struct AppStateSmartFolderTests {
             result: SearchScope.name.id == "name" && SearchScope.content.id == "content" && SearchScope.both.id == "both")
     }
 
-    /// Regression: `prepareForSmartFolderRun` used to assign `searchQuery` through a suppressed
-    /// path that deliberately skipped `refreshCurrentDirectory()`, to avoid racing the smart
-    /// folder's own cross-directory Spotlight query. That also meant clicking a smart folder never
-    /// actually triggered a search — the same call typing in the search field makes. It must assign
-    /// `searchQuery` normally so its `didSet` fires the real search.
-    private static func testPrepareForSmartFolderRunTriggersSearch() {
+    /// `prepareForSmartFolderRun` sets `searchQuery` *silently* (no `didSet` refresh) — it's only
+    /// ever called by `runSmartFolder`, which runs the actual Spotlight query right after; the
+    /// normal debounced directory refresh would just be wasted work racing those results.
+    private static func testPrepareForSmartFolderRunTriggersSearch() async {
         let appState = AppState()
         appState.selection.selectedURLs = [URL(fileURLWithPath: "/tmp/previously-selected.txt")]
         appState.fileSystem.refreshTask?.cancel()
@@ -174,10 +172,12 @@ public struct AppStateSmartFolderTests {
         report("AppState", "POS: prepareForSmartFolderRun sets searchQuery to the folder's query", result: appState.selection.searchQuery == folder.searchQuery)
         report("AppState", "POS: prepareForSmartFolderRun turns on isSearching", result: appState.selection.isSearching)
         report("AppState", "NEG: prepareForSmartFolderRun clears any prior file selection", result: appState.selection.selectedURLs.isEmpty)
+        // Silent: it must NOT spawn a directory refresh on its own.
+        try? await Task.sleep(nanoseconds: 400_000_000)
         report(
             "AppState",
-            "POS: prepareForSmartFolderRun actually triggers a search (spawns a refresh task), same as typing a query",
-            result: appState.fileSystem.refreshTask != nil)
+            "NEG: prepareForSmartFolderRun does not spawn a directory refresh (runSmartFolder runs the Spotlight query instead)",
+            result: appState.fileSystem.refreshTask == nil)
         report(
             "AppState", "POS: prepareForSmartFolderRun sets smartFolder.activeFolderID to the folder's id",
             result: appState.smartFolder.activeFolderID == folder.id)
@@ -242,7 +242,7 @@ public struct AppStateSmartFolderTests {
     /// showing the smart folder as selected while you refine its query text — clearing it here made
     /// the sidebar jump back to whatever was selected before the smart folder ran the instant you
     /// edited the search box, which is a real regression a user caught.
-    private static func testNormalSearchQueryEditKeepsSidebarHighlight() {
+    private static func testNormalSearchQueryEditKeepsSidebarHighlight() async {
         let appState = AppState()
         let folder = SmartFolder(name: "My JPGs", searchQuery: "kind:image", scopePath: "/tmp")
         appState.prepareForSmartFolderRun(folder)
@@ -255,10 +255,22 @@ public struct AppStateSmartFolderTests {
             "AppState",
             "POS: a normal searchQuery edit does NOT clear smartFolder.activeFolderID (sidebar highlight stays on the smart folder)",
             result: appState.smartFolder.activeFolderID == folder.id)
-        report(
+        await report(
             "AppState",
-            "POS: a normal searchQuery edit triggers a real refresh (spawns a task)",
-            result: appState.fileSystem.refreshTask != nil)
+            "POS: a normal searchQuery edit triggers a real refresh (spawns a task after the search debounce)",
+            result: spawnsRefreshTask(appState))
+    }
+
+    /// The search-query `didSet` now debounces before spawning the refresh task, so poll for it
+    /// instead of checking synchronously.
+    private static func spawnsRefreshTask(_ appState: AppState) async -> Bool {
+        for _ in 0 ..< 40 {
+            if appState.fileSystem.refreshTask != nil {
+                return true
+            }
+            try? await Task.sleep(nanoseconds: 25_000_000)
+        }
+        return false
     }
 
     /// `runSmartFolder` is `prepareForSmartFolderRun` plus the actual `SmartFolderService.shared
@@ -269,7 +281,7 @@ public struct AppStateSmartFolderTests {
     /// .items`, not that results are non-empty.
     private static func testRunSmartFolderAppliesResultsToFileSystemItems() async {
         let appState = AppState()
-        appState.fileSystem.items = [FileItem(url: URL(fileURLWithPath: "/tmp/stale-item.txt"))]
+        appState.fileSystem.items = [FileItem.load(url: URL(fileURLWithPath: "/tmp/stale-item.txt"))]
         let home = FileManager.default.homeDirectoryForCurrentUser
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
 

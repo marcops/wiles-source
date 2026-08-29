@@ -104,6 +104,7 @@
 "dateTaken" = "Дата съемки";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "Удалить Немедленно";
+"deleteImmediatelyConfirm" = "Выбранные объекты будут удалены безвозвратно. Это действие нельзя отменить, и объекты не помещаются в Корзину.";
 "desktop" = "Рабочий стол";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "Свободно";
+"freeSpaceFormat" = "%@ Свободно";
 "fullDiskAccessNotice" = "Предоставьте полный доступ к диску в Системных настройках, чтобы иметь доступ ко всем папкам без повторных запросов.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

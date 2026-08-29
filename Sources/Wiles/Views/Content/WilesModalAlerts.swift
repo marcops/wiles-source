@@ -29,6 +29,15 @@ struct WilesModalAlerts: ViewModifier {
             } message: {
                 Text(appState.tr(.moveToTrashConfirm))
             }
+            .alert(appState.tr(.deleteImmediately) + "?", isPresented: $windowUIState.showDeletePermanentlyConfirmAlert) {
+                Button(appState.tr(.deleteImmediately), role: .destructive) {
+                    appState.performDeletePermanentlySelected()
+                }
+                .keyboardShortcut(.defaultAction)
+                Button(appState.tr(.cancel), role: .cancel) { }
+            } message: {
+                Text(appState.tr(.deleteImmediatelyConfirm))
+            }
             .alert(appState.tr(.errorAlertTitle), isPresented: $appState.modal.showErrorAlert) {
                 Button(appState.tr(.errorAlertOKButton), role: .cancel) { }
             } message: {

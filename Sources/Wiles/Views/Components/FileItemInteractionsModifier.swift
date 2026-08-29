@@ -79,7 +79,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
 
     private func handleDoubleTap() {
         renameRequestGeneration += 1
-        appState.navigateTo(item.url)
+        appState.openItem(item.url)
     }
 
     private func handleSingleTap() {

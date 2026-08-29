@@ -20,7 +20,43 @@ public struct AppStateNavigationExtraTests {
         await testGoUpAfterEnteringChildReselectsChildOncePendingSelectionResolves()
         testRefreshCurrentDirectoryAppliesCachedResultSynchronously()
         await testApplyLoadedItemsSkipsWhileRenaming()
+        testNavigatingAwayClearsStuckRenamingURL()
+        testNavigateToOnAFileIsANoOpButOpenItemHandlesIt()
         await testRefreshTrashSizeIfNeededWhenNavigatingIntoTrash()
+    }
+
+    /// `navigateTo` is folder-only now: pointed at a file it must not change `currentURL` and must
+    /// not raise an error (that's `openItem`'s job). It's `openItem` that routes a file to the
+    /// system open. (Can't assert the actual `NSWorkspace.open`, but the file must not become the
+    /// current directory either way.)
+    private static func testNavigateToOnAFileIsANoOpButOpenItemHandlesIt() {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appendingPathComponent("doc.txt")
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        appState.navigation.currentURL = dir
+        appState.modal.errorMessage = nil
+
+        appState.navigateTo(file)
+        report(
+            "Navigation/OpenItem",
+            "NEG: navigateTo on a file leaves currentURL on the folder and raises no error",
+            result: appState.navigation.currentURL == dir && appState.modal.errorMessage == nil)
+
+        appState.openItem(file)
+        report(
+            "Navigation/OpenItem",
+            "NEG: openItem on a file also does not make the file the current directory",
+            result: appState.navigation.currentURL == dir)
+
+        appState.openItem(dir.appendingPathComponent("missing.txt"))
+        report(
+            "Navigation/OpenItem",
+            "POS: openItem on a missing path surfaces an error",
+            result: appState.modal.errorMessage != nil)
     }
 
     // MARK: - Helpers
@@ -214,8 +250,7 @@ public struct AppStateNavigationExtraTests {
         defer { try? FileManager.default.removeItem(at: parent) }
 
         let appState = AppState()
-        appState.navigation.historyBack = []
-        appState.navigation.historyForward = []
+        // Fresh AppState: both history stacks start empty.
 
         // navigateTo() on a local (non-/Volumes/) path resolves fileExists synchronously and calls
         // completeNavigation() inline, so this drives the full push-and-cap logic synchronously —
@@ -242,8 +277,7 @@ public struct AppStateNavigationExtraTests {
         defer { try? FileManager.default.removeItem(at: parent) }
 
         let appState = AppState()
-        appState.navigation.historyBack = []
-        appState.navigation.historyForward = []
+        // Fresh AppState: both history stacks start empty.
 
         let dirs = makeTempDirs(250, in: parent)
         appState.navigation.currentURL = dirs[0]
@@ -337,7 +371,7 @@ public struct AppStateNavigationExtraTests {
 
         let cachedFileURL = dir.appendingPathComponent("cached-only.txt")
         try? "cached".write(to: cachedFileURL, atomically: true, encoding: .utf8)
-        let cachedItem = FileItem(url: cachedFileURL)
+        let cachedItem = FileItem.load(url: cachedFileURL)
         DirectoryCacheService.shared.cacheDirectory(DirectoryLoadResult(items: [cachedItem]), for: dir)
 
         let appState = AppState()
@@ -365,7 +399,7 @@ public struct AppStateNavigationExtraTests {
 
         let appState = AppState()
         let sentinelURL = dir.appendingPathComponent("sentinel-item.txt")
-        let sentinelItems = [FileItem(url: sentinelURL)]
+        let sentinelItems = [FileItem.load(url: sentinelURL)]
         appState.navigation.currentURL = dir
         appState.fileSystem.items = sentinelItems
         appState.fileSystem.renamingURL = sentinelURL
@@ -380,6 +414,33 @@ public struct AppStateNavigationExtraTests {
             result: appState.fileSystem.items == sentinelItems)
     }
 
+    /// `renamingURL` gates every `applyLoadedItems` call. If a rename is abandoned by navigating
+    /// away (rather than commit/cancel in the field), the flag used to stay set and freeze the new
+    /// folder's listing. Navigation must clear it.
+    private static func testNavigatingAwayClearsStuckRenamingURL() {
+        let parent = tempDir()
+        let child = parent.appendingPathComponent("child")
+        try? FileManager.default.createDirectory(at: child, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+
+        let appState = AppState()
+        appState.navigation.currentURL = parent
+        appState.fileSystem.renamingURL = parent.appendingPathComponent("untitled folder")
+
+        appState.navigateTo(child)
+        report(
+            "Navigation/Rename",
+            "POS: navigating into a folder clears a stuck fileSystem.renamingURL",
+            result: appState.fileSystem.renamingURL == nil)
+
+        appState.fileSystem.renamingURL = child.appendingPathComponent("untitled folder")
+        appState.navigateTo(AppState.recentsVirtualURL)
+        report(
+            "Navigation/Rename",
+            "POS: navigating to Recents clears a stuck fileSystem.renamingURL",
+            result: appState.fileSystem.renamingURL == nil)
+    }
+
     // MARK: - refreshTrashSizeIfNeeded
 
     /// `refreshTrashSizeIfNeeded()`'s `isTrash || dueForCoarseCheck` guard: navigating into Trash
@@ -392,9 +453,8 @@ public struct AppStateNavigationExtraTests {
         }
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: trashURL.path, isDirectory: &isDir), isDir.boolValue else {
-            // No environment limitation comment fits better than a false failure here: without a
-            // real ~/.Trash directory, navigateTo() would treat this as a file and call
-            // NSWorkspace.shared.open(url) instead of navigating — not what this test exercises.
+            // Without a real ~/.Trash directory, navigateTo() would treat this as a non-directory
+            // and quietly no-op instead of navigating — not what this test exercises.
             report("Navigation/Refresh", "POS: refreshTrashSizeIfNeeded() skipped — no real Trash directory present in this environment", result: true)
             return
         }

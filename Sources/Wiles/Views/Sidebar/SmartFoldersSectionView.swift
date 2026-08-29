@@ -43,7 +43,8 @@ struct SmartFoldersSectionView: View {
         }
     }
 
-    /// See AGENTS.md rule 33: a real `Button` on macOS does not reliably honor `.contentShape`
+    /// See SWIFT_LANG_RULES.md "Custom Tappable Content MUST Have an Explicit `.contentShape`": a real `Button` on macOS does not reliably honor
+    /// `.contentShape`
     /// for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
     private func smartFolderButtonRow(folder: SmartFolder) -> some View {
         let isSel = appState.smartFolder.activeFolderID == folder.id || rightClickedFolderID == folder.id

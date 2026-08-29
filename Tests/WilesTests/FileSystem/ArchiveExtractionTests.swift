@@ -144,7 +144,7 @@ extension ArchiveTests {
             let out = dir.appendingPathComponent("WrapperOut")
             try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
             // extractZIP is a thin wrapper delegating to extractArchive; verify it behaves identically end to end.
-            try ArchiveService.extractZIP(archiveURL: zipURL, to: out)
+            try ArchiveService.extractArchive(archiveURL: zipURL, to: out)
             let content = try? String(contentsOf: out.appendingPathComponent("wrapped.txt"), encoding: .utf8)
             wrapperPassed = content == "wrapper test content"
         } catch {
@@ -159,7 +159,7 @@ extension ArchiveTests {
         let corruptOut = dir.appendingPathComponent("WrapperCorruptOut")
         try? FileManager.default.createDirectory(at: corruptOut, withIntermediateDirectories: true)
         do {
-            try ArchiveService.extractZIP(archiveURL: corruptZip, to: corruptOut)
+            try ArchiveService.extractArchive(archiveURL: corruptZip, to: corruptOut)
         } catch {
             wrapperErrorPassed = true
         }

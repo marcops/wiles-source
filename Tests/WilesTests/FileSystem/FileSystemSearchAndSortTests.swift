@@ -491,7 +491,7 @@ public struct FileSystemSearchAndSortTests {
         try? "x".write(to: file, atomically: true, encoding: .utf8)
 
         try? FileSystemService.setTags(for: file, tags: ["Red", "Important"])
-        let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
+        let item = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report("POS: setTags() writes Finder tags that FileItem subsequently reads back", result: Set(item.tags) == Set(["Red", "Important"]))
     }
 }

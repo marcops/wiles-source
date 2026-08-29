@@ -26,6 +26,29 @@ public struct FileSystemTests {
             negRenamePassed = true
         }
         TestReporter.report("FileSystem", "NEG: renameItem on non-existent path throws error", result: negRenamePassed)
+
+        // Negative: renaming onto an existing different item throws the explicit destinationExists
+        // error, not a raw NSFileWriteFileExistsError.
+        let occupant = tempDir.appendingPathComponent("occupied.txt")
+        try? "x".write(to: occupant, atomically: true, encoding: .utf8)
+        var collisionIsExplicit = false
+        do {
+            _ = try await FileSystemService.renameItem(at: renamedFile ?? testFile, newName: "occupied.txt")
+        } catch let error as WilesError {
+            if case .destinationExists = error {
+                collisionIsExplicit = true
+            }
+        } catch { }
+        TestReporter.report("FileSystem", "NEG: renameItem onto an existing name throws WilesError.destinationExists", result: collisionIsExplicit)
+
+        // Positive: a case-only rename ("renamed_sample.txt" -> "Renamed_Sample.txt") succeeds even
+        // on a case-insensitive volume.
+        var caseOnlyURL: URL?
+        if let renamed = renamedFile {
+            caseOnlyURL = try? await FileSystemService.renameItem(at: renamed, newName: "Renamed_Sample.txt")
+        }
+        let caseOnlyOK = caseOnlyURL.map { $0.lastPathComponent == "Renamed_Sample.txt" && FileManager.default.fileExists(atPath: $0.path) } ?? false
+        TestReporter.report("FileSystem", "POS: renameItem performs a case-only rename", result: caseOnlyOK)
         // Negative: Move to Non-Existent Target Folder
         var negMovePassed = false
         do {

@@ -1,12 +1,11 @@
 import Foundation
-import GitBeacon
 
 public extension AppState {
-    /// Resets selection state, then assigns `selection.searchQuery` normally so its `didSet` actually fires
-    /// the search (`refreshCurrentDirectory()`) — the same call a manually-typed query triggers.
-    /// Selection is cleared *before* that assignment so the search's async completion never finds
-    /// a stale `pendingSelectionURL`/`selection.selectedURLs` from whatever was selected before the smart
-    /// folder ran and reinstates it.
+    /// Resets selection state, then sets `selection.searchQuery` to the folder's query *silently* —
+    /// `runSmartFolder` runs its own Spotlight query right after, and the normal debounced search
+    /// refresh would otherwise re-read the current directory and race those results. Selection is
+    /// cleared first so the query's async completion never reinstates a stale `pendingSelectionURL`
+    /// / `selectedURLs` from whatever was selected before the smart folder ran.
     func prepareForSmartFolderRun(_ folder: SmartFolder) {
         smartFolder.activeFolderID = folder.id
         selection.selectedURLs.removeAll()
@@ -15,7 +14,7 @@ public extension AppState {
             smartFolder.suppressNextSearchFocus = true
         }
         selection.isSearching = true
-        selection.searchQuery = folder.searchQuery
+        selection.setSearchQuerySilently(folder.searchQuery)
     }
 
     /// Preps the search UI for `folder` via `prepareForSmartFolderRun`, then runs its Spotlight
@@ -39,24 +38,26 @@ public extension AppState {
         }
     }
 
+    /// These forward to `PreferencesStore+SmartFolders` and surface a persistence failure — the
+    /// store has no window to show one in, this layer does.
     func addSmartFolder(_ folder: SmartFolder) {
-        preferences.addSmartFolder(folder)
+        surfaceSmartFolderError(preferences.addSmartFolder(folder))
     }
 
     func removeSmartFolder(_ folder: SmartFolder) {
-        preferences.removeSmartFolder(folder)
+        surfaceSmartFolderError(preferences.removeSmartFolder(folder))
     }
 
-    /// Renames a smart folder in place (same id) — trims and ignores an empty/whitespace-only name.
     func renameSmartFolder(_ folder: SmartFolder, to newName: String) {
-        preferences.renameSmartFolder(folder, to: newName)
+        surfaceSmartFolderError(preferences.renameSmartFolder(folder, to: newName))
     }
 
-    /// Overwrites a smart folder's saved query in place (same id) — e.g. "Update Search" after
-    /// editing the search box while that smart folder's results are showing. Without this, editing
-    /// the query text only ever affected the current session; re-running the smart folder later
-    /// always went back to whatever it was originally saved with.
     func updateSmartFolderQuery(_ folder: SmartFolder, to newQuery: String) {
-        preferences.updateSmartFolderQuery(folder, to: newQuery)
+        surfaceSmartFolderError(preferences.updateSmartFolderQuery(folder, to: newQuery))
+    }
+
+    private func surfaceSmartFolderError(_ error: (any Error)?) {
+        guard let error else { return }
+        showError(error, context: "Persisting smart folders")
     }
 }

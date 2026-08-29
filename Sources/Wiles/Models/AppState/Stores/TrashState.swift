@@ -75,15 +75,16 @@ public final class TrashState {
     }
 
     /// Recomputes `sizeString`/`sizeBytes` from a fresh `~/.Trash` enumeration. Supersedes any
-    /// enumeration already in flight instead of piling another one on top of it — this fires on every
-    /// navigation/search keystroke via `refreshCurrentDirectory()`.
+    /// enumeration already in flight instead of piling another one on top of it. The caller
+    /// (`refreshTrashSizeIfNeeded`) already gates this to a real Trash visit or the 30s
+    /// `shouldRecompute()` clock, so it isn't actually run per navigation/keystroke.
     public func refreshSize() {
         task?.cancel()
         isUpdating = true
         task = Task.detached(priority: .background) { [weak self] in
             switch Self.computeTrashSize() {
             case let .success(totalSize):
-                let sizeStr = ByteCountFormatter.string(fromByteCount: totalSize, countStyle: .file)
+                let sizeStr = ByteFormat.fileSize(totalSize)
                 // A CI toolchain version needs these qualified explicitly inside this nested
                 // weak-self closure even though this one compiles fine unqualified locally —
                 // don't let swiftformat's --self remove strip them back out.

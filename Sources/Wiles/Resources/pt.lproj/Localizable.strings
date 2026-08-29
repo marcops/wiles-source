@@ -104,6 +104,7 @@
 "dateTaken" = "Data da Foto";
 "defaultFolderName" = "Nova Pasta";
 "deleteImmediately" = "Excluir Imediatamente";
+"deleteImmediatelyConfirm" = "Isto exclui permanentemente os itens selecionados. Não pode ser desfeito e não os move para a Lixeira.";
 "desktop" = "Mesa (Desktop)";
 "devices" = "DISPOSITIVOS";
 "dimensions" = "Dimensões";
@@ -148,6 +149,7 @@
 "folderProperties" = "Propriedades da Pasta";
 "forward" = "Avançar";
 "freeSpace" = "livre";
+"freeSpaceFormat" = "%@ livre";
 "fullDiskAccessNotice" = "Conceda Acesso Total ao Disco nos Ajustes do Sistema para acessar todas as pastas sem novos pedidos de permissão.";
 "fullDiskAccessPromptMessage" = "O Wiles precisa de Acesso Total ao Disco para navegar em todas as suas pastas sem pedir permissão repetidamente. Conceda uma vez nos Ajustes do Sistema.";
 "fullDiskAccessPromptTitle" = "Acesso Total ao Disco";

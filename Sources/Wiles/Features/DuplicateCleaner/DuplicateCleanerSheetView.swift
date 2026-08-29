@@ -88,7 +88,7 @@ public struct DuplicateCleanerSheetView: View {
             HStack {
                 Text(appState.tr(.reclaimableSpace) + ": ")
                     .foregroundColor(.secondary)
-                Text(ByteCountFormatter.string(fromByteCount: result.totalReclaimableBytes, countStyle: .file))
+                Text(ByteFormat.fileSize(result.totalReclaimableBytes))
                     .font(.headline)
                     .foregroundColor(.accentColor)
                 Spacer()
@@ -116,7 +116,7 @@ public struct DuplicateCleanerSheetView: View {
     private func duplicateGroupCard(group: DuplicateGroup) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(ByteCountFormatter.string(fromByteCount: group.fileSize, countStyle: .file))
+                Text(ByteFormat.fileSize(group.fileSize))
                     .font(.caption.bold())
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)

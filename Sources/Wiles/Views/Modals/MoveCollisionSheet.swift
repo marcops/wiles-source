@@ -10,7 +10,6 @@ struct MoveCollisionSheet: View {
     let prompt: MoveCollisionPrompt
 
     @State private var applyToAll = false
-    @State private var didResolve = false
 
     var body: some View {
         ModalScaffoldView(
@@ -44,11 +43,8 @@ struct MoveCollisionSheet: View {
         .padding(20)
     }
 
-    /// Resolves the prompt at most once; the `@State` guard makes the `.onDisappear` call a no-op
-    /// whenever a button already answered.
+    /// `prompt.resolve` is idempotent, so the `.onDisappear` call is a no-op once a button answered.
     private func finish(_ action: MoveCollisionChoice.Action) {
-        guard !didResolve else { return }
-        didResolve = true
         prompt.resolve(MoveCollisionChoice(action: action, applyToAll: applyToAll))
     }
 }

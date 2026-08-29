@@ -162,17 +162,17 @@ struct SidebarView: View {
     @ViewBuilder private var sidebarSectionsContent: some View {
         @Bindable var appState = appState
 
-        if appState.preferences.showRecents {
+        if appState.preferences.showsRecentsSection {
             let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
             sidebarRow(for: recentsItem, sectionKey: "RECENTS")
         }
-        if appState.preferences.showFavorites, !favoriteItems.isEmpty {
+        if appState.preferences.showsFavoritesSection {
             collapsibleSection(
                 title: appState.tr(.favorites), identifierKey: "FAVORITES",
                 isExpanded: $appState.preferences.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true,
                 hideAction: { appState.preferences.showFavorites = false })
         }
-        if appState.preferences.showNetworkAndCloud {
+        if appState.preferences.showsNetworkSection {
             collapsibleSection(
                 title: appState.tr(.networkAndCloud), identifierKey: "NETWORK",
                 isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false,
@@ -181,7 +181,7 @@ struct SidebarView: View {
                 .onAppear { NetworkDiscoveryService.shared.start() }
                 .onDisappear { NetworkDiscoveryService.shared.stop() }
         }
-        if appState.preferences.showPlaces {
+        if appState.preferences.showsPlacesSection {
             collapsibleSection(
                 title: appState.tr(.places), identifierKey: "PLACES",
                 isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false,
@@ -190,16 +190,16 @@ struct SidebarView: View {
         // The tree/tags/smart-folder sections have their own nested structure that doesn't reduce
         // to a flat icon list, so they're skipped in the collapsed rail rather than shown.
         if !isCompact {
-            if appState.preferences.showDirectoryTree {
+            if appState.preferences.showsDirectoryTreeSection {
                 DirectoryTreeSectionView(
                     appState: appState, isExpanded: $appState.preferences.isTreeExpanded,
                     rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache,
                     didTimeOut: treeBuildTimedOut, onRetry: retryTreeBuild)
             }
-            if appState.preferences.showTags {
+            if appState.preferences.showsTagsSection {
                 TagsSectionView(appState: appState, isExpanded: $appState.preferences.isTagsExpanded)
             }
-            if !appState.preferences.smartFolders.isEmpty {
+            if appState.preferences.showsSmartFoldersSection {
                 SmartFoldersSectionView(
                     appState: appState, isExpanded: $appState.preferences.isSmartFoldersExpanded,
                     renamingSmartFolderID: $renamingSmartFolderID, smartFolderRenameText: $smartFolderRenameText,

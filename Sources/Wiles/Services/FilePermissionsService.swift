@@ -24,17 +24,27 @@ public enum FilePermissionsService: Sendable {
     /// items" behavior). Continues past individual failures and returns them all rather than
     /// aborting partway, since a partially-applied recursive change is still useful to know about.
     /// `applied` is the count of items whose permissions were set successfully (for user feedback).
+    ///
+    /// Directories get `permissions.directoryTraversable` instead of the raw value: applying e.g.
+    /// `0o644` recursively would otherwise strip every subfolder's execute bit and lock the user
+    /// out of their own tree.
     public static func setPermissionsRecursively(
         for url: URL, permissions: POSIXPermissions) -> (applied: Int, errors: [any Error]) {
         var errors: [any Error] = []
         var applied = 0
-        do {
-            try setPermissions(for: url, permissions: permissions)
-            applied += 1
-        } catch {
-            errors.append(error)
+
+        func apply(to itemURL: URL) {
+            let isDir = (try? itemURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            do {
+                try setPermissions(for: itemURL, permissions: isDir ? permissions.directoryTraversable : permissions)
+                applied += 1
+            } catch {
+                errors.append(error)
+            }
         }
-        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil) else {
+
+        apply(to: url)
+        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey]) else {
             return (applied, errors)
         }
         for case let childURL as URL in enumerator {
@@ -43,12 +53,7 @@ public enum FilePermissionsService: Sendable {
             if Task.isCancelled {
                 break
             }
-            do {
-                try setPermissions(for: childURL, permissions: permissions)
-                applied += 1
-            } catch {
-                errors.append(error)
-            }
+            apply(to: childURL)
         }
         return (applied, errors)
     }

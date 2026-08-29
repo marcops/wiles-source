@@ -104,6 +104,7 @@
 "dateTaken" = "Fotodatum";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "Ta Bort Omedelbart";
+"deleteImmediatelyConfirm" = "Detta raderar de markerade objekten permanent. Åtgärden kan inte ångras och objekten flyttas inte till Papperskorgen.";
 "desktop" = "Skrivbord";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "Ledigt utrymme";
+"freeSpaceFormat" = "%@ Ledigt utrymme";
 "fullDiskAccessNotice" = "Bevilja full skivtillgång i Systeminställningar för att komma åt alla mappar utan upprepade förfrågningar.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

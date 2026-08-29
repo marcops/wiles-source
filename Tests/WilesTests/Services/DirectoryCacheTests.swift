@@ -18,7 +18,7 @@ public struct DirectoryCacheTests {
     private static func sampleResult() -> DirectoryLoadResult {
         let tempDir = testTemporaryDirectory()
         let url = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("cache-test-item.txt"))
-        let item = FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
+        let item = FileItem.load(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
         return DirectoryLoadResult(items: [item])
     }
 
@@ -64,11 +64,11 @@ public struct DirectoryCacheTests {
         try? FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dirURL) }
 
-        let pngItem = FileItem(url: pngURL, icon: NSImage())
-        let pdfItem = FileItem(url: pdfURL, icon: NSImage())
-        let txtItem = FileItem(url: txtURL, icon: NSImage())
-        let mdItem = FileItem(url: mdURL, icon: NSImage())
-        let dirItem = FileItem(url: dirURL, icon: NSImage())
+        let pngItem = FileItem.load(url: pngURL, icon: NSImage())
+        let pdfItem = FileItem.load(url: pdfURL, icon: NSImage())
+        let txtItem = FileItem.load(url: txtURL, icon: NSImage())
+        let mdItem = FileItem.load(url: mdURL, icon: NSImage())
+        let dirItem = FileItem.load(url: dirURL, icon: NSImage())
 
         // Positive check: supportsThumbnail identifies images and PDFs
         report("ThumbnailService", "POS: supportsThumbnail returns true for .png", result: ThumbnailService.supportsThumbnail(item: pngItem))
@@ -119,13 +119,13 @@ public struct DirectoryCacheTests {
         let url = dir.appendingPathComponent("overwrite-\(UUID().uuidString)")
 
         let itemURL = dir.appendingPathComponent("one-item.txt")
-        let firstItem = FileItem(url: itemURL, icon: NSWorkspace.shared.icon(forFile: itemURL.path))
+        let firstItem = FileItem.load(url: itemURL, icon: NSWorkspace.shared.icon(forFile: itemURL.path))
         let firstResult = DirectoryLoadResult(items: [firstItem])
         service.cacheDirectory(firstResult, for: url)
         report("DirectoryCache", "POS: first cacheDirectory() call stores a single-item result", result: service.cachedResult(for: url)?.items.count == 1)
 
         let itemURL2 = dir.appendingPathComponent("two-item.txt")
-        let secondItem = FileItem(url: itemURL2, icon: NSWorkspace.shared.icon(forFile: itemURL2.path))
+        let secondItem = FileItem.load(url: itemURL2, icon: NSWorkspace.shared.icon(forFile: itemURL2.path))
         let secondResult = DirectoryLoadResult(items: [firstItem, secondItem])
         service.cacheDirectory(secondResult, for: url)
         let overwritten = service.cachedResult(for: url)

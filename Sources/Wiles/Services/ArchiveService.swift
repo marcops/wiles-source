@@ -175,8 +175,4 @@ public final class ArchiveService: Sendable {
         let existingNames = (try? FileManager.default.contentsOfDirectory(atPath: destinationFolder.path)) ?? []
         return !topLevelEntryNames.isDisjoint(with: existingNames)
     }
-
-    public static func extractZIP(archiveURL: URL, to destinationFolder: URL) throws {
-        try extractArchive(archiveURL: archiveURL, to: destinationFolder)
-    }
 }

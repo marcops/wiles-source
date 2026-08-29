@@ -91,7 +91,7 @@ public enum DuplicateDetectionService: Sendable {
                 }
             }
             for (fullHashKey, matchedURLs) in fullHashGroups where matchedURLs.count > 1 {
-                let fileItems = matchedURLs.map { FileItem(url: $0) }
+                let fileItems = matchedURLs.map { FileItem.load(url: $0) }
                 let group = DuplicateGroup(hash: fullHashKey, fileSize: size, items: fileItems)
                 groups.append(group)
                 reclaimable += group.reclaimableBytes
@@ -119,7 +119,18 @@ public enum DuplicateDetectionService: Sendable {
 
         var hasher = SHA256()
         let chunkSize = 1024 * 1024 // 1 MB
-        while let chunk = try? handle.read(upToCount: chunkSize), !chunk.isEmpty {
+        while true {
+            let chunk: Data?
+            do {
+                chunk = try handle.read(upToCount: chunkSize)
+            } catch {
+                // A read error mid-file (failing disk, dropped network mount) must NOT be treated
+                // as EOF — a hash over only the readable prefix could collide with another
+                // partially-read file and get them grouped as duplicates, feeding a destructive
+                // delete. Abort the hash for this file instead.
+                return nil
+            }
+            guard let chunk, !chunk.isEmpty else { break } // nil / empty == genuine EOF
             hasher.update(data: chunk)
         }
         let digest = hasher.finalize()

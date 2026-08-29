@@ -39,6 +39,9 @@ public final class WindowUIState {
     public var showBatchRenameSheet: Bool = false
     public var showEmptyTrashAlert: Bool = false
     public var showDeleteConfirmAlert: Bool = false
+    /// Permanent-delete (shred) confirmation. Separate from `showDeleteConfirmAlert` because that
+    /// one moves to Trash (reversible) and this one is irreversible.
+    public var showDeletePermanentlyConfirmAlert: Bool = false
     public var showConnectToServerSheet: Bool = false
     public var showAutoOrganizationSheet: Bool = false
     public var showDuplicateCleanerSheet: Bool = false
@@ -121,7 +124,7 @@ public final class WindowUIState {
     /// selected item while a delete confirmation is up).
     public var isAnyModalPresented: Bool {
         showBatchRenameSheet || showEmptyTrashAlert
-            || showDeleteConfirmAlert || showConnectToServerSheet || showAutoOrganizationSheet
+            || showDeleteConfirmAlert || showDeletePermanentlyConfirmAlert || showConnectToServerSheet || showAutoOrganizationSheet
             || showDuplicateCleanerSheet || showSaveSmartFolderSheet
             || showHelpSheet || showFeedbackSheet || showAboutSheet || showSettingsSheet || showShortcutsHUD
             || propertiesItem != nil || imageConverterItem != nil || symlinkItem != nil
@@ -138,6 +141,13 @@ public final class WindowUIState {
                 continuation.resume(returning: choice)
             }
         }
+    }
+
+    /// Called from the window's `.onDisappear`. Answers any move name-collision prompt still
+    /// awaiting a response with `.cancel` so a suspended move loop can't outlive the window if
+    /// the sheet's own `.onDisappear` doesn't fire during an abrupt teardown.
+    func tearDown() {
+        moveCollisionPrompt?.resolve(MoveCollisionChoice(action: .cancel, applyToAll: false))
     }
 
     public init(preferences: PreferencesStore = PreferencesStore()) {
@@ -160,7 +170,7 @@ public final class WindowUIState {
 
     /// Cancels an active in-place rename when the selection changes to something other than the
     /// item being renamed. Clicking a different item's icon/row selects it via a plain
-    /// `.onTapGesture` (rule 33 — custom tappable content, not a real `Button`/focusable control),
+    /// `.onTapGesture` (SWIFT_LANG_RULES.md `.contentShape` rule — custom tappable content, not a real `Button`/focusable control),
     /// which never shifts SwiftUI's `@FocusState` away from `InlineRenameField`'s `TextField`.
     /// `InlineRenameField` only commits/cancels on focus loss, so without this, clicking another
     /// item left the rename field showing on the old item while a different item became selected.

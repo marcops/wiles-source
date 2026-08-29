@@ -11,7 +11,7 @@ public struct BatchRenameFeatureTests {
 
         let file1 = tempDir.appendingPathComponent("file_a.txt")
         try? "test".write(to: file1, atomically: true, encoding: .utf8)
-        let item1 = FileItem(url: file1, icon: NSWorkspace.shared.icon(forFile: file1.path))
+        let item1 = FileItem.load(url: file1, icon: NSWorkspace.shared.icon(forFile: file1.path))
 
         let prefixMode = BatchRenameMode.addPrefixSuffix(prefix: "PRE_", suffix: "_POST")
         let previews = BatchRenameService.previewNewNames(items: [item1], mode: prefixMode)
@@ -36,7 +36,7 @@ public struct BatchRenameFeatureTests {
 
         let file = tempDir.appendingPathComponent("file_gamma.txt")
         try? "gamma".write(to: file, atomically: true, encoding: .utf8)
-        let item = FileItem(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
+        let item = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
 
         let invalidRegexMode = BatchRenameMode.regex(pattern: "[", template: "X")
 

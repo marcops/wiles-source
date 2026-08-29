@@ -27,6 +27,37 @@ public struct AutoOrganizationRuleStoreTests {
         testUpdateRuleWithUnknownIdIsNoOp()
         testOnChangeFiresOnEveryMutation()
         testLoadDoesNotReSaveOrFireOnChange()
+        testBumpStatsUpdatesInMemoryWithoutStructuralSideEffects()
+    }
+
+    /// A successful background auto-move bumps a rule's stats. That's not a structural change, so it
+    /// must update the in-memory rule (the sheet's counter reads it live) without firing `onChange`
+    /// (→ redundant watcher restart) or writing `UserDefaults` synchronously per move.
+    private static func testBumpStatsUpdatesInMemoryWithoutStructuralSideEffects() {
+        UserDefaults.standard.removeObject(forKey: rulesKey)
+        let rule = makeRule()
+        let store = AutoOrganizationRuleStore()
+        var onChangeCalls = 0
+        store.onChange = { onChangeCalls += 1 }
+        store.addRule(rule)
+        onChangeCalls = 0
+        UserDefaults.standard.removeObject(forKey: rulesKey)
+
+        store.bumpStats(id: rule.id, at: Date(timeIntervalSince1970: 1000))
+        store.bumpStats(id: rule.id, at: Date(timeIntervalSince1970: 2000))
+
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: bumpStats increments totalMovedCount and sets lastTriggeredAt in memory",
+            result: store.rules.first?.totalMovedCount == 2 && store.rules.first?.lastTriggeredAt == Date(timeIntervalSince1970: 2000))
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "NEG: bumpStats does not fire onChange (no watcher restart per move)",
+            result: onChangeCalls == 0)
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "NEG: bumpStats does not write UserDefaults synchronously (persist is debounced)",
+            result: UserDefaults.standard.data(forKey: rulesKey) == nil)
     }
 
     /// P3: `load()` seeds `rules` from disk; its `didSet` must not immediately re-encode the same

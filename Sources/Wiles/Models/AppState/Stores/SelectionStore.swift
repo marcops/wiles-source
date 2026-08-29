@@ -55,12 +55,24 @@ public final class SelectionStore {
 
     public var searchQuery: String = "" {
         didSet {
+            guard !isApplyingSilentSearchQuery else { return }
             // `activeFolderID` deliberately stays put: it only drives the sidebar's active-row
             // highlight, which should keep showing the smart folder as selected while its results
             // are on screen, even as the query text is refined — only a real navigation
             // (navigateTo) should move that highlight elsewhere.
             onSearchQueryChanged?()
         }
+    }
+
+    private var isApplyingSilentSearchQuery = false
+
+    /// Sets `searchQuery` without firing the refresh handler — for callers (navigation,
+    /// smart-folder run) that immediately drive their own reload and don't want a debounced
+    /// search refresh racing it.
+    public func setSearchQuerySilently(_ value: String) {
+        isApplyingSilentSearchQuery = true
+        defer { isApplyingSilentSearchQuery = false }
+        searchQuery = value
     }
 
     public var isSearching: Bool = false

@@ -104,7 +104,7 @@ public struct ThumbnailServiceCoverageTests {
         for index in 0 ..< 12 {
             let url = tempDir.appendingPathComponent("cancel-sample-\(index).png")
             writeSamplePNG(to: url)
-            items.append(FileItem(url: url, icon: makeFakeIcon()))
+            items.append(FileItem.load(url: url, icon: makeFakeIcon()))
         }
 
         // Two back-to-back calls: the second cancels the first's still-running detached task before
@@ -125,7 +125,7 @@ public struct ThumbnailServiceCoverageTests {
         // NEG: directories never support thumbnails, regardless of extension.
         let subDir = tempDir.appendingPathComponent("a-folder")
         try? FileManager.default.createDirectory(at: subDir, withIntermediateDirectories: true)
-        let dirItem = FileItem(url: subDir, icon: makeFakeIcon())
+        let dirItem = FileItem.load(url: subDir, icon: makeFakeIcon())
         TestReporter.report(
             "ThumbnailService",
             "NEG: supportsThumbnail(item:) returns false for a directory",
@@ -134,7 +134,7 @@ public struct ThumbnailServiceCoverageTests {
         // NEG: a real file whose extension conforms to UTType.archive (zip) is excluded.
         let zipURL = tempDir.appendingPathComponent("archive.zip")
         FileManager.default.createFile(atPath: zipURL.path, contents: Data())
-        let zipItem = FileItem(url: zipURL, icon: makeFakeIcon())
+        let zipItem = FileItem.load(url: zipURL, icon: makeFakeIcon())
         TestReporter.report(
             "ThumbnailService",
             "NEG: supportsThumbnail(item:) returns false for a .zip file (archive type)",
@@ -143,7 +143,7 @@ public struct ThumbnailServiceCoverageTests {
         // POS: a real file with a plain image extension is eligible.
         let pngURL = tempDir.appendingPathComponent("photo.png")
         FileManager.default.createFile(atPath: pngURL.path, contents: Data())
-        let pngItem = FileItem(url: pngURL, icon: makeFakeIcon())
+        let pngItem = FileItem.load(url: pngURL, icon: makeFakeIcon())
         TestReporter.report(
             "ThumbnailService",
             "POS: supportsThumbnail(item:) returns true for a .png file",
@@ -152,7 +152,7 @@ public struct ThumbnailServiceCoverageTests {
         // NEG: an unrecognized/nonsense extension returns false so native icons remain stable.
         let weirdURL = tempDir.appendingPathComponent("mystery.qzxnotarealext")
         FileManager.default.createFile(atPath: weirdURL.path, contents: Data())
-        let weirdItem = FileItem(url: weirdURL, icon: makeFakeIcon())
+        let weirdItem = FileItem.load(url: weirdURL, icon: makeFakeIcon())
         TestReporter.report(
             "ThumbnailService",
             "NEG: supportsThumbnail(item:) returns false for an unrecognized extension",
@@ -161,7 +161,7 @@ public struct ThumbnailServiceCoverageTests {
         // NEG: a file with no extension at all returns false so native icons remain stable.
         let noExtURL = tempDir.appendingPathComponent("README")
         FileManager.default.createFile(atPath: noExtURL.path, contents: Data())
-        let noExtItem = FileItem(url: noExtURL, icon: makeFakeIcon())
+        let noExtItem = FileItem.load(url: noExtURL, icon: makeFakeIcon())
         TestReporter.report(
             "ThumbnailService",
             "NEG: supportsThumbnail(item:) returns false for a file with no extension",
@@ -187,15 +187,15 @@ public struct ThumbnailServiceCoverageTests {
         // Build a mix: one eligible png, one ineligible directory, one ineligible zip.
         let pngURL = tempDir.appendingPathComponent("eligible.png")
         FileManager.default.createFile(atPath: pngURL.path, contents: Data())
-        let pngItem = FileItem(url: pngURL, icon: makeFakeIcon())
+        let pngItem = FileItem.load(url: pngURL, icon: makeFakeIcon())
 
         let folderURL = tempDir.appendingPathComponent("ineligible-folder")
         try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
-        let folderItem = FileItem(url: folderURL, icon: makeFakeIcon())
+        let folderItem = FileItem.load(url: folderURL, icon: makeFakeIcon())
 
         let zipURL = tempDir.appendingPathComponent("ineligible.zip")
         FileManager.default.createFile(atPath: zipURL.path, contents: Data())
-        let zipItem = FileItem(url: zipURL, icon: makeFakeIcon())
+        let zipItem = FileItem.load(url: zipURL, icon: makeFakeIcon())
 
         // POS: prefetchThumbnails with a mix of eligible/ineligible items filters via supportsThumbnail
         // and returns immediately (fire-and-forget Task.detached), never crashing or hanging on ineligible entries.

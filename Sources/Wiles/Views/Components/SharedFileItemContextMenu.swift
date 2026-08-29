@@ -1,5 +1,4 @@
 import AppKit
-import GitBeacon
 import SwiftUI
 
 struct SharedFileItemContextMenu: View {
@@ -38,7 +37,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     @ViewBuilder private var openSection: some View {
-        Button(appState.tr(.open)) { appState.navigateTo(item.url) }
+        Button(appState.tr(.open)) { appState.openItem(item.url) }
         Button(appState.trWithShortcutHint(.quickLook, shortcut: "Space")) { windowUIState.quickLookURL = item.url }
         Menu(appState.tr(.openWith)) {
             openWithMenuContent
@@ -97,8 +96,7 @@ struct SharedFileItemContextMenu: View {
                     do {
                         _ = try await PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
                     } catch {
-                        ErrorReporter.report(error, context: "Merging files into PDF")
-                        appState.showError(error.localizedDescription)
+                        appState.showError(error, context: "Merging files into PDF")
                     }
                     appState.refreshCurrentDirectory()
                 }
@@ -157,7 +155,7 @@ struct SharedFileItemContextMenu: View {
         }
         Button(appState.trWithShortcutHint(.deleteImmediately, shortcut: "Opt+Cmd+Del"), role: .destructive) {
             ensureItemIsSelected()
-            appState.deletePermanentlySelected()
+            appState.deletePermanentlySelected(windowUIState: windowUIState)
         }
         Button(appState.tr(.createSymlink)) {
             ensureItemIsSelected()

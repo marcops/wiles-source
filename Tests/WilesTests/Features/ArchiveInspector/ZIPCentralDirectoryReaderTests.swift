@@ -16,6 +16,40 @@ public struct ZIPCentralDirectoryReaderTests {
         testTruncatedBufferDoesNotCrashAndReturnsPartialResults()
         testGarbageBufferWithNoEOCDSignatureReturnsNoEntries()
         testBufferShorterThanEOCDReturnsNoEntries()
+        testZip64ArchiveResolvesCentralDirectoryViaLocator()
+        testZip64MarkerWithMissingLocatorReturnsNoEntries()
+        testNonUTF8EntryNameIsDecodedNotDropped()
+    }
+
+    /// A Windows-made entry whose name bytes aren't valid UTF-8 (general-purpose bit 11 clear) must
+    /// still appear in the listing, decoded via a legacy codepage — not silently skipped.
+    private static func testNonUTF8EntryNameIsDecodedNotDropped() {
+        var record = Data()
+        writeUInt32LE(centralDirectoryFileHeaderSignature, into: &record) // 0
+        writeUInt16LE(0, into: &record) // 4: version made by
+        writeUInt16LE(0, into: &record) // 6: version needed
+        writeUInt16LE(0, into: &record) // 8: general-purpose flags — bit 11 (UTF-8) clear
+        for _ in 0 ..< 5 {
+            writeUInt16LE(0, into: &record)
+        } // 10..18
+        writeUInt32LE(0, into: &record) // 20: compressed size
+        writeUInt32LE(0, into: &record) // 24: uncompressed size
+        let nameBytes = Data([0x72, 0xE9, 0x73, 0x75, 0x6D, 0x65, 0x2E, 0x74, 0x78, 0x74]) // "r<0xE9>sume.txt", 0xE9 = é in Latin-1
+        writeUInt16LE(UInt16(nameBytes.count), into: &record) // 28: name length
+        writeUInt16LE(0, into: &record) // 30: extra length
+        writeUInt16LE(0, into: &record) // 32: comment length
+        writeUInt16LE(0, into: &record) // 34
+        writeUInt16LE(0, into: &record) // 36
+        writeUInt32LE(0, into: &record) // 38
+        writeUInt32LE(0, into: &record) // 42: local header offset
+        record.append(nameBytes)
+
+        let eocd = makeEndOfCentralDirectory(entryCount: 1, centralDirectorySize: UInt32(record.count), centralDirectoryOffset: 0)
+        let result = ZIPCentralDirectoryReader.readEntryNames(from: record + eocd)
+        report(
+            "Feature/ZIPCentralDirectoryReader",
+            "POS: an entry name that isn't valid UTF-8 is decoded via a legacy codepage instead of being dropped",
+            result: result.count == 1 && (result.first?.hasSuffix("sume.txt") ?? false))
     }
 
     // MARK: - Byte layout helpers
@@ -90,7 +124,70 @@ public struct ZIPCentralDirectoryReaderTests {
         return centralDirectory + eocd
     }
 
+    private static func writeUInt64LE(_ value: UInt64, into data: inout Data) {
+        for shift in stride(from: 0, through: 56, by: 8) {
+            data.append(UInt8((value >> UInt64(shift)) & 0xFF))
+        }
+    }
+
+    /// `[central directory][zip64 EOCD record][zip64 locator][regular EOCD]`, where the regular
+    /// EOCD's 32-bit central-directory-offset is the 0xFFFFFFFF marker, so the real offset (0) must
+    /// be read from the ZIP64 EOCD record found via the locator.
+    private static func makeZip64Buffer(entryNames: [String], includeLocator: Bool) -> Data {
+        var centralDirectory = Data()
+        for name in entryNames {
+            centralDirectory.append(makeCentralDirectoryRecord(name: name))
+        }
+
+        var zip64EOCD = Data()
+        writeUInt32LE(0x0606_4B50, into: &zip64EOCD) // 0: zip64 EOCD signature
+        writeUInt64LE(44, into: &zip64EOCD) // 4: size of remaining record
+        writeUInt16LE(45, into: &zip64EOCD) // 12: version made by
+        writeUInt16LE(45, into: &zip64EOCD) // 14: version needed
+        writeUInt32LE(0, into: &zip64EOCD) // 16: this disk number
+        writeUInt32LE(0, into: &zip64EOCD) // 20: disk with central directory
+        writeUInt64LE(UInt64(entryNames.count), into: &zip64EOCD) // 24: entries on this disk
+        writeUInt64LE(UInt64(entryNames.count), into: &zip64EOCD) // 32: total entries
+        writeUInt64LE(UInt64(centralDirectory.count), into: &zip64EOCD) // 40: central directory size
+        writeUInt64LE(0, into: &zip64EOCD) // 48: central directory offset
+
+        let zip64EOCDOffset = centralDirectory.count
+        var locator = Data()
+        writeUInt32LE(0x0706_4B50, into: &locator) // 0: zip64 locator signature
+        writeUInt32LE(0, into: &locator) // 4: disk with zip64 EOCD
+        writeUInt64LE(UInt64(zip64EOCDOffset), into: &locator) // 8: offset of zip64 EOCD
+        writeUInt32LE(1, into: &locator) // 16: total number of disks
+
+        let eocd = makeEndOfCentralDirectory(
+            entryCount: 0xFFFF,
+            centralDirectorySize: 0xFFFF_FFFF,
+            centralDirectoryOffset: 0xFFFF_FFFF)
+
+        var buffer = centralDirectory + zip64EOCD
+        if includeLocator {
+            buffer += locator
+        }
+        return buffer + eocd
+    }
+
     // MARK: - Tests
+
+    private static func testZip64ArchiveResolvesCentralDirectoryViaLocator() {
+        let names = ["big/file-a.bin", "big/file-b.bin"]
+        let result = ZIPCentralDirectoryReader.readEntryNames(from: makeZip64Buffer(entryNames: names, includeLocator: true))
+        TestReporter.report(
+            "Feature/ArchiveInspector",
+            "POS: a ZIP64 archive (0xFFFFFFFF central-directory offset) still lists its entries via the ZIP64 locator",
+            result: result == names)
+    }
+
+    private static func testZip64MarkerWithMissingLocatorReturnsNoEntries() {
+        let result = ZIPCentralDirectoryReader.readEntryNames(from: makeZip64Buffer(entryNames: ["x"], includeLocator: false))
+        TestReporter.report(
+            "Feature/ArchiveInspector",
+            "NEG: a 0xFFFFFFFF offset with no ZIP64 locator present returns no entries rather than crashing",
+            result: result.isEmpty)
+    }
 
     private static func testValidMultiEntryArchive() {
         let names = ["folder/", "folder/file.txt", "readme.md"]

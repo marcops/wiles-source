@@ -257,7 +257,7 @@ struct FilePropertiesSheet: View {
             }.value
             if let firstError = result.errors.first {
                 ErrorReporter.report(firstError, context: "Applying recursive file permissions")
-                appState.showError(firstError.localizedDescription)
+                appState.showError(firstError)
             }
             var message = String(format: appState.tr(.permissionsAppliedCount), result.applied)
             if !result.errors.isEmpty {
@@ -271,8 +271,7 @@ struct FilePropertiesSheet: View {
                 }.value
                 applyPermissionsResult = String(format: appState.tr(.permissionsAppliedCount), 1)
             } catch {
-                ErrorReporter.report(error, context: "Applying file permissions")
-                appState.showError(error.localizedDescription)
+                appState.showError(error, context: "Applying file permissions")
             }
         }
         if let reloaded = await Task.detached(priority: .userInitiated, operation: {

@@ -1,4 +1,3 @@
-import GitBeacon
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -207,34 +206,10 @@ struct PathBarView: View {
             isTargeted: Binding(
                 get: { dragTargetSegmentID == item.id },
                 set: { dragTargetSegmentID = $0 ? item.id : nil })) { providers in
-            handleDrop(providers: providers, targetFolder: item.url)
-        }
-    }
-
-    @discardableResult
-    private func handleDrop(providers: [NSItemProvider], targetFolder: URL) -> Bool {
-        Task { @MainActor in
-            var urls: [URL] = []
-            for provider in providers {
-                if let url = await Self.loadDroppedURL(from: provider) {
-                    urls.append(url)
-                }
-            }
-            let movable = urls.filter {
-                $0.deletingLastPathComponent().standardizedFileURL != targetFolder.standardizedFileURL
-            }
-            guard !movable.isEmpty else { return }
-            _ = await appState.moveItemsResolvingCollisions(movable, toFolder: targetFolder, windowUIState: windowUIState)
-            appState.refreshCurrentDirectory()
-        }
-        return !providers.isEmpty
-    }
-
-    private static func loadDroppedURL(from provider: NSItemProvider) async -> URL? {
-        await withCheckedContinuation { continuation in
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                continuation.resume(returning: url)
-            }
+            // Single shared drop handler (grid row / sidebar row / breadcrumb all route here) so the
+            // symlink-aware "dropped onto itself" check can't drift between copies.
+            appState.handleDrop(providers: providers, targetFolder: item.url, windowUIState: windowUIState)
+            return !providers.isEmpty
         }
     }
 }

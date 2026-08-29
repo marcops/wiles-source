@@ -97,6 +97,7 @@
 "dateTaken" = "Date Taken";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "Delete Immediately";
+"deleteImmediatelyConfirm" = "This permanently deletes the selected item(s). It can't be undone and doesn't move them to the Trash.";
 "desktop" = "Desktop";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -141,6 +142,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "free";
+"freeSpaceFormat" = "%@ free";
 "fullDiskAccessNotice" = "Grant Full Disk Access in System Settings to access all folders without repeated permission prompts.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

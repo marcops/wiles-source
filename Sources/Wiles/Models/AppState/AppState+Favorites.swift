@@ -1,5 +1,4 @@
 import Foundation
-import GitBeacon
 
 public extension AppState {
     func addFavorite(_ url: URL) {
@@ -69,8 +68,7 @@ public extension AppState {
                     moved.append(destURL)
                 }
             } catch {
-                ErrorReporter.report(error, context: "Moving item into folder")
-                showError(error)
+                showError(error, context: "Moving item into folder")
             }
         }
         return moved
@@ -97,7 +95,8 @@ public extension AppState {
     /// already gives us both the old and new URL in the same call, so there's no excuse for a
     /// favorite silently going stale in that case. Called by `moveItem(at:toFolder:)` above for
     /// every single-item in-app move; `AppState+Operations.executePaste` calls it directly too,
-    /// since its bulk-move loop must keep the actual disk move off `@MainActor` (rule 29.16) and
+    /// since its bulk-move loop must keep the actual disk move off `@MainActor` (DEV_RULES.md pre-commit checklist "Sequential Bulk Disk I/O on the Main
+    /// Actor") and
     /// can only hop back to `@MainActor` for this lightweight favorites sync, not the whole
     /// `moveItem(at:toFolder:)` wrapper. Not `public` — not meant as a general entry point outside
     /// AppState's own move paths. Handles both the favorited item itself moving and a favorited

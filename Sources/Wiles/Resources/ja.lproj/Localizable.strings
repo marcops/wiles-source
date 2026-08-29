@@ -104,6 +104,7 @@
 "dateTaken" = "撮影日時";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "今すぐ削除";
+"deleteImmediatelyConfirm" = "選択した項目を完全に削除します。この操作は取り消せず、ゴミ箱にも移動しません。";
 "desktop" = "デスクトップ";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "空き容量";
+"freeSpaceFormat" = "%@ 空き容量";
 "fullDiskAccessNotice" = "システム設定でフルディスクアクセスを許可すると、確認なしですべてのフォルダにアクセスできます。";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

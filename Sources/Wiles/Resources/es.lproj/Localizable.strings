@@ -104,6 +104,7 @@
 "dateTaken" = "Fecha de la Foto";
 "defaultFolderName" = "Nueva Carpeta";
 "deleteImmediately" = "Eliminar Inmediatamente";
+"deleteImmediatelyConfirm" = "Esto elimina permanentemente los elementos seleccionados. No se puede deshacer y no los mueve a la Papelera.";
 "desktop" = "Escritorio";
 "devices" = "DISPOSITIVOS";
 "dimensions" = "Dimensiones";
@@ -148,6 +149,7 @@
 "folderProperties" = "Propiedades de la Carpeta";
 "forward" = "Adelante";
 "freeSpace" = "libre";
+"freeSpaceFormat" = "%@ libre";
 "fullDiskAccessNotice" = "Conceda acceso total al disco en Configuración del Sistema para acceder a todas las carpetas sin avisos repetidos.";
 "fullDiskAccessPromptMessage" = "Wiles necesita Acceso Total al Disco para explorar todas tus carpetas sin solicitudes de permiso repetidas. Concédelo una vez en Ajustes del Sistema.";
 "fullDiskAccessPromptTitle" = "Acceso Total al Disco";

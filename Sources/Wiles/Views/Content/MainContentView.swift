@@ -56,6 +56,7 @@ struct MainContentView: View {
         }
         .onDisappear {
             appState.fileSystem.tearDown()
+            windowUIState.tearDown()
             windowUIState.terminalViewCache.tearDown()
         }
     }

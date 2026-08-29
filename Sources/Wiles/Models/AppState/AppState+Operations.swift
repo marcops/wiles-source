@@ -78,8 +78,7 @@ public extension AppState {
             refreshCurrentDirectory()
             selection.selectedURLs = [createdURL]
         } catch {
-            ErrorReporter.report(error, context: "Creating file from pasteboard content")
-            showError(error)
+            showError(error, context: "Creating file from pasteboard content")
         }
     }
 
@@ -101,8 +100,8 @@ public extension AppState {
         let targetFolder = navigation.currentURL
         let undoRedoService = undoRedoService
         let titleKey = tr(.pastingItemsEllipsis)
-        Task(priority: .userInitiated) { @MainActor [weak self] in
-            let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalBytes: Int64(urls.count))
+        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalBytes: Int64(urls.count))
+        let pasteTask = Task(priority: .userInitiated) { @MainActor [weak self] in
             let context = PasteContext(
                 targetFolder: targetFolder, isCut: isCut, undoRedoService: undoRedoService,
                 taskID: taskID, owner: self, windowUIState: windowUIState)
@@ -118,6 +117,7 @@ public extension AppState {
             }
             refreshCurrentDirectory()
         }
+        BackgroundOperationsService.shared.registerCancellation(id: taskID) { pasteTask.cancel() }
     }
 
     private enum CutPasteOutcome {
@@ -210,8 +210,8 @@ public extension AppState {
         let urls = Array(selection.selectedURLs)
         let undoRedoService = undoRedoService
         let titleKey = tr(.movingToTrashEllipsis)
-        Task.detached(priority: .userInitiated) {
-            let taskID = await MainActor.run { BackgroundOperationsService.shared.addTask(title: titleKey, totalBytes: Int64(urls.count)) }
+        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalBytes: Int64(urls.count))
+        let deleteTask = Task.detached(priority: .userInitiated) {
             var failureCount = 0
             for (index, url) in urls.enumerated() {
                 guard !Task.isCancelled else { break }
@@ -234,9 +234,19 @@ public extension AppState {
                 refreshCurrentDirectory()
             }
         }
+        BackgroundOperationsService.shared.registerCancellation(id: taskID) { deleteTask.cancel() }
     }
 
-    func deletePermanentlySelected() {
+    func deletePermanentlySelected(windowUIState: WindowUIState) {
+        guard !selection.selectedURLs.isEmpty else { return }
+        if preferences.skipDeleteConfirmation {
+            performDeletePermanentlySelected()
+        } else {
+            windowUIState.showDeletePermanentlyConfirmAlert = true
+        }
+    }
+
+    func performDeletePermanentlySelected() {
         guard !selection.selectedURLs.isEmpty else { return }
         HapticService.shared.play(.levelChange)
         let urls = Array(selection.selectedURLs)
@@ -248,13 +258,12 @@ public extension AppState {
     }
 
     func copyContentOfSelected() {
-        guard let firstURL = selection.selectedURLs.first else { return }
+        guard let firstURL = primarySelectedURL else { return }
         Task {
             do {
                 try await PasteboardService.copyFileContentToClipboard(url: firstURL)
             } catch {
-                ErrorReporter.report(error, context: "Copying file content to clipboard")
-                showError(error)
+                showError(error, context: "Copying file content to clipboard")
             }
         }
     }
@@ -267,8 +276,7 @@ public extension AppState {
                     self.selection.selectedURLs = [targetURL]
                 }
             } catch {
-                ErrorReporter.report(error, context: "Undoing last action")
-                self.showError(error)
+                self.showError(error, context: "Undoing last action")
             }
         }
     }
@@ -281,8 +289,7 @@ public extension AppState {
                     self.selection.selectedURLs = [targetURL]
                 }
             } catch {
-                ErrorReporter.report(error, context: "Redoing last action")
-                self.showError(error)
+                self.showError(error, context: "Redoing last action")
             }
         }
     }
@@ -292,19 +299,19 @@ public extension AppState {
     }
 
     func openSelectedItem() {
-        if let first = selection.selectedURLs.first {
-            navigateTo(first)
+        if let first = primarySelectedURL {
+            openItem(first)
         }
     }
 
     func triggerQuickLookForSelected(windowUIState: WindowUIState) {
-        if let first = selection.selectedURLs.first {
+        if let first = primarySelectedURL {
             windowUIState.quickLookURL = first
         }
     }
 
     func openPropertiesForSelected(windowUIState: WindowUIState) {
-        if let first = selection.selectedURLs.first, let item = fileSystem.items.first(where: { $0.url == first }) {
+        if let first = primarySelectedURL, let item = fileSystem.items.first(where: { $0.url == first }) {
             windowUIState.propertiesItem = item
         }
     }
@@ -322,8 +329,7 @@ public extension AppState {
                     at: targetFolder, baseName: tr(.defaultFolderName))
                 enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
             } catch {
-                ErrorReporter.report(error, context: "Creating new folder")
-                showError(error)
+                showError(error, context: "Creating new folder")
             }
         }
     }
@@ -335,8 +341,7 @@ public extension AppState {
                 in: targetFolder, fileName: "", template: .text, language: preferences.appLanguage)
             enterRenameForNewlyCreated(at: createdURL, inFolder: targetFolder, windowUIState: windowUIState)
         } catch {
-            ErrorReporter.report(error, context: "Creating new file")
-            showError(error)
+            showError(error, context: "Creating new file")
         }
     }
 
@@ -345,14 +350,17 @@ public extension AppState {
     private func enterRenameForNewlyCreated(at url: URL, inFolder: URL, windowUIState: WindowUIState) {
         // Built on @MainActor for a freshly-created local file; the rename row doesn't show
         // Owner/Group, so skip that extra stat/getpwuid syscall path (M3).
-        let newItem = FileItem(url: url, needsOwnerGroup: false)
+        let newItem = FileItem.load(url: url, needsOwnerGroup: false)
         fileSystem.renamingURL = url
         selection.selectedURLs = [url]
         windowUIState.renameItem = newItem
         windowUIState.onRenameCleared = { [weak self] in self?.fileSystem.renamingURL = nil }
         guard inFolder.standardizedFileURL == navigation.currentURL.standardizedFileURL else { return }
         DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
-        fileSystem.items.insert(newItem, at: 0)
+        // Place it where the current sort puts it, not at the top — otherwise it visibly jumps
+        // when the follow-up refresh reorders the list.
+        fileSystem.items = FileSystemService.sortItems(
+            fileSystem.items + [newItem], by: preferences.sortOption, ascending: preferences.sortAscending)
     }
 
     /// Shared shape for a whole-selection file operation: run `operation` off the main actor, then
@@ -372,12 +380,8 @@ public extension AppState {
         taskTitle: String? = nil,
         onSuccess: (@MainActor () -> Void)? = nil,
         operation: @escaping @Sendable () async throws -> Void) {
-        Task.detached(priority: priority) { [weak self] in
-            let taskID: UUID? = if let taskTitle {
-                await MainActor.run { BackgroundOperationsService.shared.addTask(title: taskTitle, totalBytes: 1) }
-            } else {
-                nil
-            }
+        let taskID: UUID? = taskTitle.map { BackgroundOperationsService.shared.addTask(title: $0, totalBytes: 1) }
+        let opTask = Task.detached(priority: priority) { [weak self] in
             do {
                 try await operation()
                 guard let self else { return }
@@ -387,6 +391,9 @@ public extension AppState {
                 guard let self else { return }
                 await handleDetachedOperationFailure(error, taskID: taskID)
             }
+        }
+        if let taskID {
+            BackgroundOperationsService.shared.registerCancellation(id: taskID) { opTask.cancel() }
         }
     }
 
@@ -417,12 +424,8 @@ public extension AppState {
         taskTitle: String? = nil,
         operation: @escaping @Sendable () async throws -> URL,
         recordUndo: @escaping @MainActor (URL) -> UndoActionType?) {
-        Task.detached(priority: priority) { [weak self] in
-            let taskID: UUID? = if let taskTitle {
-                await MainActor.run { BackgroundOperationsService.shared.addTask(title: taskTitle, totalBytes: 1) }
-            } else {
-                nil
-            }
+        let taskID: UUID? = taskTitle.map { BackgroundOperationsService.shared.addTask(title: $0, totalBytes: 1) }
+        let opTask = Task.detached(priority: priority) { [weak self] in
             do {
                 let url = try await operation()
                 guard let self else { return }
@@ -432,6 +435,9 @@ public extension AppState {
                 guard let self else { return }
                 await handleDetachedOperationFailure(error, taskID: taskID)
             }
+        }
+        if let taskID {
+            BackgroundOperationsService.shared.registerCancellation(id: taskID) { opTask.cancel() }
         }
     }
 

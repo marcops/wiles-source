@@ -43,7 +43,7 @@ public struct AppStateCoreTests {
         } else {
             try? contents.write(to: url, atomically: true, encoding: .utf8)
         }
-        return FileItem(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
+        return FileItem.load(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
     }
 
     private static func testAddFavorite() {

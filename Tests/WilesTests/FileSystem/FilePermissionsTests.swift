@@ -22,6 +22,8 @@ public struct FilePermissionsTests {
         }
 
         testRecursiveApplyReportsCount()
+        testDirectoryTraversableAddsExecuteWhereRead()
+        testRecursiveApplyKeepsSubfoldersTraversable()
 
         // NEG: non-existent file returns nil
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-\(UUID().uuidString).txt")
@@ -80,5 +82,44 @@ public struct FilePermissionsTests {
             "Permissions",
             "POS: setPermissionsRecursively applies to the folder plus all 3 nested items with no errors",
             result: result.applied == 4 && result.errors.isEmpty)
+    }
+
+    /// `directoryTraversable` grants execute for exactly the classes that already have read,
+    /// leaving read-less classes untouched.
+    private static func testDirectoryTraversableAddsExecuteWhereRead() {
+        let dir = POSIXPermissions(posixPermissions: 0o640).directoryTraversable // rw-r-----
+        TestReporter.report(
+            "Permissions",
+            "POS: directoryTraversable adds execute for owner and group (they have read) but not others",
+            result: dir.ownerExecute && dir.groupExecute && !dir.othersExecute)
+
+        let noReadForGroup = POSIXPermissions(posixPermissions: 0o600).directoryTraversable // rw-------
+        TestReporter.report(
+            "Permissions",
+            "NEG: directoryTraversable does not grant execute to a class with no read bit",
+            result: noReadForGroup.ownerExecute && !noReadForGroup.groupExecute && !noReadForGroup.othersExecute)
+    }
+
+    /// The bug this guards against: applying a plain file value (0o644) recursively used to strip
+    /// every subfolder's execute bit, making the tree un-traversable. Directories must keep +x.
+    private static func testRecursiveApplyKeepsSubfoldersTraversable() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("perms_traversable_\(UUID().uuidString)")
+        let sub = dir.appendingPathComponent("sub")
+        try? FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+        try? "a".write(to: dir.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        _ = FilePermissionsService.setPermissionsRecursively(for: dir, permissions: POSIXPermissions(posixPermissions: 0o644))
+
+        let subPerms = FilePermissionsService.getPermissions(for: sub)
+        let filePerms = FilePermissionsService.getPermissions(for: dir.appendingPathComponent("a.txt"))
+        TestReporter.report(
+            "Permissions",
+            "POS: a subfolder keeps owner-execute after a recursive 0o644 apply (still traversable)",
+            result: subPerms?.ownerExecute ?? false)
+        TestReporter.report(
+            "Permissions",
+            "POS: a plain file gets exactly 0o644 (no execute) from the same recursive apply",
+            result: filePerms.map { !$0.ownerExecute && $0.ownerRead && $0.ownerWrite } ?? false)
     }
 }

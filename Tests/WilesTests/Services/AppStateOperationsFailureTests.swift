@@ -22,10 +22,10 @@ extension AppStateOperationsExtraTests {
     }
 
     private static func testDeletePermanentlySelectedFailureReportsError() async {
-        let errorShown = await expectErrorFromReadOnlyParent(fileName: "locked-permanent.txt") { $0.deletePermanentlySelected() }
+        let errorShown = await expectErrorFromReadOnlyParent(fileName: "locked-permanent.txt") { $0.performDeletePermanentlySelected() }
         report(
             "AppState+Operations",
-            "NEG: deletePermanentlySelected() reports an error when fm.removeItem fails (read-only parent directory)",
+            "NEG: performDeletePermanentlySelected() reports an error when fm.removeItem fails (read-only parent directory)",
             result: errorShown)
     }
 

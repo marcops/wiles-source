@@ -14,7 +14,8 @@ public final class SystemAppearanceObserver {
     public static let shared = SystemAppearanceObserver()
 
     public private(set) var isDark: Bool
-    /// Stored (never discarded — see rule 21 in AGENTS.md) but intentionally never removed: this is
+    /// Stored (never discarded — see DEV_RULES.md pre-commit checklist "Block-Based `NotificationCenter` Observer Token Leak") but intentionally never removed:
+    /// this is
     /// a permanent `.shared` singleton that lives for the entire app lifetime, same as
     /// `ThumbnailService.shared`/`PermissionService`, so there's no teardown point to remove it at
     /// and no risk of duplicate registration since `init()` only ever runs once.

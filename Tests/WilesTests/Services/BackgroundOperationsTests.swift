@@ -9,6 +9,28 @@ public struct BackgroundOperationsTests {
         testUpdateProgressForUnknownIdIsANoOp()
         testCompleteTaskRemovesIt()
         testCancelTaskMarksCancelledAndRemoves()
+        testCancelTaskInvokesRegisteredHandler()
+    }
+
+    /// The popover's ✕ button calls `cancelTask` — which must actually stop the underlying work,
+    /// not just hide the progress bar. `completeTask` must also drop the handler so it can't fire
+    /// after the operation already finished on its own.
+    private static func testCancelTaskInvokesRegisteredHandler() {
+        let service = BackgroundOperationsService.shared
+
+        // Single-threaded test: the handler is invoked synchronously on the main actor by cancelTask.
+        nonisolated(unsafe) var cancelled = false
+        let id = service.addTask(title: "Cancellable copy")
+        service.registerCancellation(id: id) { cancelled = true }
+        service.cancelTask(id: id)
+        report("BackgroundOperations", "POS: cancelTask() invokes the registered cancellation handler", result: cancelled)
+
+        nonisolated(unsafe) var lateFire = false
+        let id2 = service.addTask(title: "Completes normally")
+        service.registerCancellation(id: id2) { lateFire = true }
+        service.completeTask(id: id2)
+        service.cancelTask(id: id2) // no-op: handler was dropped on completion
+        report("BackgroundOperations", "NEG: a completed task's cancellation handler is not invoked by a later cancelTask", result: !lateFire)
     }
 
     private static func testAddTaskAppearsInActiveTasks() {

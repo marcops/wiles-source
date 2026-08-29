@@ -34,7 +34,7 @@ public struct FileSystemService: Sendable {
 
                 // Let FileItem resolve the icon from `.effectiveIcon` in its own resourceValues
                 // batch instead of a separate blocking NSWorkspace LaunchServices IPC per entry.
-                items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+                items.append(FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             if !options.searchQuery.isEmpty {
                 let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
@@ -106,7 +106,7 @@ public struct FileSystemService: Sendable {
                 continue
             }
 
-            items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+            items.append(FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
         }
         let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
         if options.searchQuery.isEmpty {
@@ -201,7 +201,7 @@ public struct FileSystemService: Sendable {
                 continue
             }
 
-            items.append(FileItem(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+            items.append(FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             if items.count - lastReportedCount >= Self.recursiveSearchBatchSize {
                 onBatch(sortItems(items, by: options.sortOption, ascending: options.sortAscending))
                 lastReportedCount = items.count
@@ -223,26 +223,25 @@ public struct FileSystemService: Sendable {
         return (try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden) ?? false
     }
 
-    private static func sortItems(_ items: [FileItem], by option: SortOption, ascending: Bool) -> [FileItem] {
-        items.sorted { lhs, rhs in
+    /// `internal` (not `private`): also used by `AppState` to re-sort `items` in memory after an
+    /// in-place create/rename, without re-reading the directory from disk.
+    static func sortItems(_ items: [FileItem], by option: SortOption, ascending: Bool) -> [FileItem] {
+        // Pick the comparison once, not per pair inside `.sorted`.
+        let isBefore: (FileItem, FileItem) -> Bool = switch option {
+        case .name: { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        case .dateModified: { $0.dateModified < $1.dateModified }
+        case .dateCreated: { $0.dateCreated < $1.dateCreated }
+        case .dateAccessed: { ($0.dateAccessed ?? .distantPast) < ($1.dateAccessed ?? .distantPast) }
+        case .size: { $0.size < $1.size }
+        case .kind: { $0.fileExtension.localizedStandardCompare($1.fileExtension) == .orderedAscending }
+        case .owner: { $0.ownerName.localizedStandardCompare($1.ownerName) == .orderedAscending }
+        case .group: { $0.groupName.localizedStandardCompare($1.groupName) == .orderedAscending }
+        }
+        return items.sorted { lhs, rhs in
             if lhs.isDirectory != rhs.isDirectory {
                 return lhs.isDirectory && !rhs.isDirectory
             }
-            let res: Bool
-            switch option {
-            case .name: res = lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
-            case .dateModified: res = lhs.dateModified < rhs.dateModified
-            case .dateCreated: res = lhs.dateCreated < rhs.dateCreated
-            case .dateAccessed:
-                let d1 = lhs.dateAccessed ?? Date.distantPast
-                let d2 = rhs.dateAccessed ?? Date.distantPast
-                res = d1 < d2
-            case .size: res = lhs.size < rhs.size
-            case .kind: res = lhs.fileExtension.localizedStandardCompare(rhs.fileExtension) == .orderedAscending
-            case .owner: res = lhs.ownerName.localizedStandardCompare(rhs.ownerName) == .orderedAscending
-            case .group: res = lhs.groupName.localizedStandardCompare(rhs.groupName) == .orderedAscending
-            }
-            return ascending ? res : !res
+            return ascending ? isBefore(lhs, rhs) : !isBefore(lhs, rhs)
         }
     }
 

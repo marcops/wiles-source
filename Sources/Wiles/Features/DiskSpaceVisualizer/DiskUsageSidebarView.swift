@@ -113,13 +113,13 @@ struct DiskUsageSidebarView: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
-            if item.isDirectory {
+            if item.isDirectory, !item.isSynthetic {
                 appState.navigateTo(item.url)
             }
         }
-        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(item.isSynthetic ? [] : .isButton)
         .accessibilityLabel(item.name)
-        .accessibilityHint(appState.tr(.diskUsageItemNavigateHint))
+        .accessibilityHint(item.isSynthetic ? "" : appState.tr(.diskUsageItemNavigateHint))
     }
 
     private func colorFor(_ item: DiskUsageItem) -> Color {

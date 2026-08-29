@@ -36,6 +36,7 @@ public struct AutoOrganizationTests {
         await testNameContainsCondition(service: service, inputDir: inputDir, targetDir: targetDir)
         await testNamePrefixCondition(service: service, inputDir: inputDir, targetDir: targetDir)
         await testGrowingFileIsNotMoved(service: service, inputDir: inputDir, targetDir: targetDir)
+        await testFileWithChangingMtimeButStableSizeIsNotMoved(service: service, inputDir: inputDir, targetDir: targetDir)
         await testDirectoryEntriesAreNeverMoved(service: service, inputDir: inputDir, targetDir: targetDir)
         await testHiddenFilesAreNeverProcessed(service: service, inputDir: inputDir, targetDir: targetDir)
         await testScheduleProcessFolderDebounces(service: service, inputDir: inputDir, targetDir: targetDir)
@@ -52,7 +53,7 @@ public struct AutoOrganizationTests {
     /// The service's own pipeline (folder scan → 150ms size-stability check → move) can take longer
     /// than any single fixed sleep under load, which made tests waiting on a flat `Task.sleep` flaky
     /// — poll for the expected outcome instead, up to a generous ceiling.
-    private static func waitUntil(timeoutSeconds: Double = 2.0, _ condition: () -> Bool) async {
+    private static func waitUntil(timeoutSeconds: Double = 5.0, _ condition: () -> Bool) async {
         let deadline = Date().addingTimeInterval(timeoutSeconds)
         while !condition(), Date() < deadline {
             try? await Task.sleep(nanoseconds: 50_000_000)
@@ -215,7 +216,7 @@ public struct AutoOrganizationTests {
 
         try? await Task.sleep(nanoseconds: 100_000_000) // let the writer get going first
         service.processFolder(inputDir)
-        try? await Task.sleep(nanoseconds: 500_000_000) // generous span across the 150ms stability check while still writing
+        try? await Task.sleep(nanoseconds: 700_000_000) // span while the writer is still appending, well inside the stability window
 
         let stillInSourceWhileWriting = FileManager.default.fileExists(atPath: growingFile.path)
         let notYetInTarget = !FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("downloading.zip").path)
@@ -226,10 +227,50 @@ public struct AutoOrganizationTests {
         await writer.value // let the writer finish so the file's size settles
         try? await Task.sleep(nanoseconds: 100_000_000) // let the filesystem settle after the last write
         service.processFolder(inputDir)
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        await waitUntil { FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("downloading.zip").path) }
         TestReporter.report(
             "AutoOrganization", "POS: processFolder() moves the same file once its size has stopped changing",
             result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("downloading.zip").path))
+    }
+
+    /// The stability check compares size AND modification date. A writer that rewrites the same
+    /// number of bytes (size unchanged, mtime advancing) must still count as "still writing" and
+    /// not be moved mid-write — size alone would have moved it.
+    private static func testFileWithChangingMtimeButStableSizeIsNotMoved(
+        service: AutoOrganizationService, inputDir: URL, targetDir: URL) async {
+        let file = inputDir.appendingPathComponent("rewriting.pdf")
+        let payload = Data(repeating: 0x41, count: 4096)
+        try? payload.write(to: file)
+        let pdfRule = AutoOrganizationRule(
+            sourceURL: inputDir, destinationURL: targetDir, conditionType: .extensionEquals, conditionValue: "pdf", isEnabled: true)
+        service.rules = [pdfRule]
+
+        // Keep rewriting the same 4096 bytes (size never changes, mtime keeps advancing) for longer
+        // than the stability window.
+        let rewriter = Task.detached(priority: .utility) {
+            for _ in 0 ..< 12 {
+                try? payload.write(to: file)
+                try? await Task.sleep(nanoseconds: 300_000_000)
+            }
+        }
+
+        service.processFolder(inputDir)
+        try? await Task.sleep(nanoseconds: 2_500_000_000) // spans the 2s window while mtime keeps moving
+        let notMovedWhileRewriting = FileManager.default.fileExists(atPath: file.path)
+            && !FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("rewriting.pdf").path)
+        TestReporter.report(
+            "AutoOrganization",
+            "NEG: a file whose size is stable but modification date keeps changing is not moved (still being written)",
+            result: notMovedWhileRewriting)
+
+        await rewriter.value
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        service.processFolder(inputDir)
+        await waitUntil { FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("rewriting.pdf").path) }
+        TestReporter.report(
+            "AutoOrganization",
+            "POS: the same file moves once its modification date also settles",
+            result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("rewriting.pdf").path))
     }
 
     /// Regression coverage for the CPU-spin fix's other half: scheduleProcessFolder() (what the
@@ -253,9 +294,8 @@ public struct AutoOrganizationTests {
             "AutoOrganization", "NEG: scheduleProcessFolder() does not scan immediately (still debouncing)",
             result: FileManager.default.fileExists(atPath: debouncedFile.path))
 
-        // Past debounce (500ms) + the move's own stability check (150ms) + a generous margin for
-        // system load (e.g. a concurrent build competing for CPU).
-        try? await Task.sleep(nanoseconds: 900_000_000)
+        // Past debounce (500ms) + the move's own stability window + a margin for system load.
+        await waitUntil { FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("debounced.pdf").path) }
         TestReporter.report(
             "AutoOrganization", "POS: scheduleProcessFolder() eventually scans and moves the matching file once debouncing settles",
             result: FileManager.default.fileExists(atPath: targetDir.appendingPathComponent("debounced.pdf").path))
@@ -325,8 +365,8 @@ public struct AutoOrganizationTests {
         service.rules = [selfDestRule]
 
         service.processFolder(inputDir)
-        // Stability delay (150ms) + move attempt + generous margin for system load.
-        try? await Task.sleep(nanoseconds: 700_000_000)
+        // Stability window (2s) + the failing move attempt + a margin for system load.
+        try? await Task.sleep(nanoseconds: 2_800_000_000)
 
         TestReporter.report(
             "AutoOrganization",
@@ -349,10 +389,10 @@ public struct AutoOrganizationTests {
         service.rules = [pdfRule]
 
         service.processFolder(inputDir)
-        // Delete well inside the 150ms stability window so the second size read (post-sleep) fails.
-        try? await Task.sleep(nanoseconds: 40_000_000)
+        // Delete well inside the stability window so the post-window snapshot read returns nil.
+        try? await Task.sleep(nanoseconds: 200_000_000)
         try? FileManager.default.removeItem(at: vanishingFile)
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        try? await Task.sleep(nanoseconds: 2_600_000_000)
 
         TestReporter.report(
             "AutoOrganization",

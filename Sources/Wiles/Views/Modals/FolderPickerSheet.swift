@@ -222,8 +222,7 @@ struct FolderPickerSheet: View {
         // fileExists(atPath:) resolves in microseconds for a local path, so it stays inline. Under
         // /Volumes/ the same call can block for seconds against a stalled network share, so it hops
         // off @MainActor there (mirrors AppState+Navigation.navigateTo(_:addToHistory:)).
-        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
-        if url.path.hasPrefix("/Volumes/") {
+        if SlowVolumePathValidator.isLikelySlowVolume(url.path) {
             Task {
                 let isValidDirectory = await Task.detached(priority: .userInitiated) {
                     Self.directoryExists(at: url)
@@ -267,8 +266,7 @@ struct FolderPickerSheet: View {
             return
         }
         let alreadyCached = childrenCache.cachedURLs
-        // swiftlint:disable:next no_naive_path_prefix_check — "/Volumes/" literal already has a trailing "/", can't collide with a sibling mount name.
-        if url.path.hasPrefix("/Volumes/") {
+        if SlowVolumePathValidator.isLikelySlowVolume(url.path) {
             Task {
                 let expansion = await Task.detached(priority: .userInitiated) {
                     Self.computeAncestorExpansion(of: url, home: home, alreadyCached: alreadyCached)

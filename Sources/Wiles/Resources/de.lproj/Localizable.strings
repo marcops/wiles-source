@@ -104,6 +104,7 @@
 "dateTaken" = "Aufnahmedatum";
 "defaultFolderName" = "Neuer Ordner";
 "deleteImmediately" = "Sofort löschen";
+"deleteImmediatelyConfirm" = "Dies löscht die ausgewählten Objekte endgültig. Der Vorgang kann nicht rückgängig gemacht werden und die Objekte werden nicht in den Papierkorb verschoben.";
 "desktop" = "Schreibtisch";
 "devices" = "GERÄTE";
 "dimensions" = "Abmessungen";
@@ -148,6 +149,7 @@
 "folderProperties" = "Ordnereigenschaften";
 "forward" = "Vorwärts";
 "freeSpace" = "frei";
+"freeSpaceFormat" = "%@ frei";
 "fullDiskAccessNotice" = "Gewähren Sie Vollzugriff auf die Festplatte in den Systemeinstellungen, um ohne wiederholte Abfragen auf alle Ordner zuzugreifen.";
 "fullDiskAccessPromptMessage" = "Wiles benötigt vollen Festplattenzugriff, um alle Ordner ohne wiederholte Berechtigungsanfragen zu durchsuchen. Erteile ihn einmal in den Systemeinstellungen.";
 "fullDiskAccessPromptTitle" = "Voller Festplattenzugriff";

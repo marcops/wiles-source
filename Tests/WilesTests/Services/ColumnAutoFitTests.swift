@@ -25,7 +25,7 @@ public struct ColumnAutoFitTests {
     private static func makeFileItem(dir: URL, name: String) -> FileItem {
         let file = dir.appendingPathComponent(name)
         try? "x".write(to: file, atomically: true, encoding: .utf8)
-        return FileItem(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)))
+        return FileItem.load(url: file, icon: NSImage(size: NSSize(width: 16, height: 16)))
     }
 
     private static func testShortContentClampsToMinimum() {
@@ -157,14 +157,14 @@ public struct ColumnAutoFitTests {
         // padding branch pushes the tagged item's required width higher.
         let untaggedFile = dir.appendingPathComponent("same.txt")
         try? "x".write(to: untaggedFile, atomically: true, encoding: .utf8)
-        let untaggedItem = FileItem(url: untaggedFile, icon: NSImage(size: NSSize(width: 16, height: 16)))
+        let untaggedItem = FileItem.load(url: untaggedFile, icon: NSImage(size: NSSize(width: 16, height: 16)))
 
         let taggedDir = dir.appendingPathComponent("tagged", isDirectory: true)
         try? FileManager.default.createDirectory(at: taggedDir, withIntermediateDirectories: true)
         let taggedFile = taggedDir.appendingPathComponent("same.txt")
         try? "x".write(to: taggedFile, atomically: true, encoding: .utf8)
         try? (taggedFile as NSURL).setResourceValue(["Red"], forKey: .tagNamesKey)
-        let taggedItem = FileItem(url: taggedFile, icon: NSImage(size: NSSize(width: 16, height: 16)), fetchTags: true)
+        let taggedItem = FileItem.load(url: taggedFile, icon: NSImage(size: NSSize(width: 16, height: 16)), fetchTags: true)
 
         let untaggedAppState = makeAppState(with: [untaggedItem])
         let taggedAppState = makeAppState(with: [taggedItem])

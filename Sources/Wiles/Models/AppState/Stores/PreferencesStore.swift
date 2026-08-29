@@ -1,95 +1,92 @@
 import Foundation
 import GitBeacon
 import Observation
-import os
-
-private let columnPersistenceLogger = Logger(subsystem: "com.wiles.app", category: "ColumnPersistence")
 
 /// Adding/removing a `DefaultsKey` needs no migration; *changing* one's stored type/format does — give it a new key name instead.
 @Observable
 @MainActor
 public final class PreferencesStore {
     public var viewMode: ViewMode = .grid {
-        didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: DefaultsKey.viewMode.rawValue) }
+        didSet { persist(viewMode, .viewMode) }
     }
 
     public var appAppearance: AppAppearance = .system {
-        didSet { UserDefaults.standard.set(appAppearance.rawValue, forKey: DefaultsKey.appAppearance.rawValue) }
+        didSet { persist(appAppearance, .appAppearance) }
     }
 
     public var showDirectoryTree: Bool = false {
-        didSet { UserDefaults.standard.set(showDirectoryTree, forKey: DefaultsKey.showDirectoryTree.rawValue) }
+        didSet { persist(showDirectoryTree, .showDirectoryTree) }
     }
 
     /// Persisted default for a *new* window's sidebar width — each open window's actual current
     /// width lives on that window's own `WindowUIState.sidebarWidth`, seeded from this at window
     /// construction and written back here on change so the next new window picks up the latest value.
     public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
-        didSet { UserDefaults.standard.set(sidebarWidth, forKey: DefaultsKey.sidebarWidth.rawValue) }
+        didSet { persist(sidebarWidth, .sidebarWidth) }
     }
 
     public var isSidebarCollapsed: Bool = false {
-        didSet { UserDefaults.standard.set(isSidebarCollapsed, forKey: DefaultsKey.isSidebarCollapsed.rawValue) }
+        didSet { persist(isSidebarCollapsed, .isSidebarCollapsed) }
     }
 
     public var sortOption: SortOption = .name {
-        didSet { UserDefaults.standard.set(sortOption.rawValue, forKey: DefaultsKey.sortOption.rawValue) }
+        didSet { persist(sortOption, .sortOption) }
     }
 
     public var sortAscending: Bool = true {
-        didSet { UserDefaults.standard.set(sortAscending, forKey: DefaultsKey.sortAscending.rawValue) }
+        didSet { persist(sortAscending, .sortAscending) }
     }
 
     public var showHiddenFiles: Bool = false {
-        didSet { UserDefaults.standard.set(showHiddenFiles, forKey: DefaultsKey.showHiddenFiles.rawValue) }
+        didSet { persist(showHiddenFiles, .showHiddenFiles) }
     }
 
     public var showFavorites: Bool = true {
-        didSet { UserDefaults.standard.set(showFavorites, forKey: DefaultsKey.showFavorites.rawValue) }
+        didSet { persist(showFavorites, .showFavorites) }
     }
 
     public var showRecents: Bool = true {
-        didSet { UserDefaults.standard.set(showRecents, forKey: DefaultsKey.showRecents.rawValue) }
+        didSet { persist(showRecents, .showRecents) }
     }
 
     public var showPlaces: Bool = true {
-        didSet { UserDefaults.standard.set(showPlaces, forKey: DefaultsKey.showPlaces.rawValue) }
+        didSet { persist(showPlaces, .showPlaces) }
     }
 
     public var showNetworkAndCloud: Bool = false {
-        didSet { UserDefaults.standard.set(showNetworkAndCloud, forKey: DefaultsKey.showNetworkAndCloud.rawValue) }
+        didSet { persist(showNetworkAndCloud, .showNetworkAndCloud) }
     }
 
     public var showSidebarSectionTitles: Bool = true {
-        didSet { UserDefaults.standard.set(showSidebarSectionTitles, forKey: DefaultsKey.showSidebarSectionTitles.rawValue) }
+        didSet { persist(showSidebarSectionTitles, .showSidebarSectionTitles) }
     }
 
     public var appLanguage: AppLanguage = .system {
-        didSet { UserDefaults.standard.set(appLanguage.rawValue, forKey: DefaultsKey.appLanguage.rawValue) }
+        didSet { persist(appLanguage, .appLanguage) }
     }
 
     public var isFavoritesExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isFavoritesExpanded, forKey: DefaultsKey.isFavoritesExpanded.rawValue) }
+        didSet { persist(isFavoritesExpanded, .isFavoritesExpanded) }
     }
 
     public var isMacExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isMacExpanded, forKey: DefaultsKey.isMacExpanded.rawValue) }
+        didSet { persist(isMacExpanded, .isMacExpanded) }
     }
 
     public var isNetworkExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isNetworkExpanded, forKey: DefaultsKey.isNetworkExpanded.rawValue) }
+        didSet { persist(isNetworkExpanded, .isNetworkExpanded) }
     }
 
     public var isRecentsExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isRecentsExpanded, forKey: DefaultsKey.isRecentsExpanded.rawValue) }
+        didSet { persist(isRecentsExpanded, .isRecentsExpanded) }
     }
 
     public var isDevicesExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isDevicesExpanded, forKey: DefaultsKey.isDevicesExpanded.rawValue) }
+        didSet { persist(isDevicesExpanded, .isDevicesExpanded) }
     }
 
     public var isTreeExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isTreeExpanded, forKey: DefaultsKey.isTreeExpanded.rawValue) }
+        didSet { persist(isTreeExpanded, .isTreeExpanded) }
     }
 
     public var expandedTreePaths: Set<String> = [] {
@@ -98,58 +95,51 @@ public final class PreferencesStore {
                 scheduleExpandedTreePathsSave()
                 return
             }
-            // Evict paths that already existed rather than silently reverting the whole
-            // assignment — that left disclosure triangles doing nothing once the cap was hit.
-            // Prior paths are evicted first; only if that alone isn't enough (e.g. a single
-            // assignment that's already over the cap with no prior baseline) does eviction fall
-            // back to trimming the newly-added batch itself.
-            let overflow = expandedTreePaths.count - Self.maxExpandedTreePaths
-            let justAdded = expandedTreePaths.subtracting(oldValue)
-            let evictionOrder = Array(oldValue.subtracting(justAdded)) + Array(justAdded)
-            expandedTreePaths.subtract(evictionOrder.prefix(overflow))
+            expandedTreePaths.subtract(Self.keysToEvict(
+                current: expandedTreePaths, previous: oldValue, cap: Self.maxExpandedTreePaths))
         }
     }
 
     public var isTagsExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isTagsExpanded, forKey: DefaultsKey.isTagsExpanded.rawValue) }
+        didSet { persist(isTagsExpanded, .isTagsExpanded) }
     }
 
     public var isSmartFoldersExpanded: Bool = true {
-        didSet { UserDefaults.standard.set(isSmartFoldersExpanded, forKey: DefaultsKey.isSmartFoldersExpanded.rawValue) }
+        didSet { persist(isSmartFoldersExpanded, .isSmartFoldersExpanded) }
     }
 
     public var searchScope: SearchScope = .name {
-        didSet { UserDefaults.standard.set(searchScope.rawValue, forKey: DefaultsKey.searchScope.rawValue) }
+        didSet { persist(searchScope, .searchScope) }
     }
 
     public var searchCaseSensitive: Bool = false {
-        didSet { UserDefaults.standard.set(searchCaseSensitive, forKey: DefaultsKey.searchCaseSensitive.rawValue) }
+        didSet { persist(searchCaseSensitive, .searchCaseSensitive) }
     }
 
     /// When on, a search query recurses through the whole user home directory (`URL.userHome`)
     /// instead of just the current folder's direct children.
     public var searchEverywhere: Bool = false {
-        didSet { UserDefaults.standard.set(searchEverywhere, forKey: DefaultsKey.searchEverywhere.rawValue) }
+        didSet { persist(searchEverywhere, .searchEverywhere) }
     }
 
     public var showTags: Bool = false {
-        didSet { UserDefaults.standard.set(showTags, forKey: DefaultsKey.showTags.rawValue) }
+        didSet { persist(showTags, .showTags) }
     }
 
     /// Finder-style middle-ellipsis truncation for long file names (Grid, List) instead of
     /// the default end-only truncation. Defaults on, matching Finder's own behavior.
     public var middleTruncateNames: Bool = true {
-        didSet { UserDefaults.standard.set(middleTruncateNames, forKey: DefaultsKey.middleTruncateNames.rawValue) }
+        didSet { persist(middleTruncateNames, .middleTruncateNames) }
     }
 
     /// When off (default), the path bar collapses to just the current folder and expands to the
     /// full breadcrumb trail on hover. When on, the full path is always shown.
     public var alwaysShowFullPathBar: Bool = false {
-        didSet { UserDefaults.standard.set(alwaysShowFullPathBar, forKey: DefaultsKey.alwaysShowFullPathBar.rawValue) }
+        didSet { persist(alwaysShowFullPathBar, .alwaysShowFullPathBar) }
     }
 
     public var showFooter: Bool = true {
-        didSet { UserDefaults.standard.set(showFooter, forKey: DefaultsKey.showFooter.rawValue) }
+        didSet { persist(showFooter, .showFooter) }
     }
 
     /// Persisted default for a *new* window's terminal drawer — see `sidebarWidth` above for the
@@ -157,7 +147,7 @@ public final class PreferencesStore {
     /// alongside `terminalViewCache`, never here, so toggling this in one window can't spawn a PTY
     /// in every other open window.
     public var showTerminalDrawer: Bool = false {
-        didSet { UserDefaults.standard.set(showTerminalDrawer, forKey: DefaultsKey.showTerminalDrawer.rawValue) }
+        didSet { persist(showTerminalDrawer, .showTerminalDrawer) }
     }
 
     /// Persisted default for a *new* window — see `sidebarWidth` above. `showPreviewSidebar` and
@@ -171,7 +161,7 @@ public final class PreferencesStore {
     /// NSSplitView's sizing from the view layer.
     public var showPreviewSidebar: Bool = false {
         didSet {
-            UserDefaults.standard.set(showPreviewSidebar, forKey: DefaultsKey.showPreviewSidebar.rawValue)
+            persist(showPreviewSidebar, .showPreviewSidebar)
             if showPreviewSidebar, showDiskUsageSidebar {
                 showDiskUsageSidebar = false
             }
@@ -181,7 +171,7 @@ public final class PreferencesStore {
     /// Persisted default for a *new* window — see `showPreviewSidebar` above.
     public var showDiskUsageSidebar: Bool = false {
         didSet {
-            UserDefaults.standard.set(showDiskUsageSidebar, forKey: DefaultsKey.showDiskUsageSidebar.rawValue)
+            persist(showDiskUsageSidebar, .showDiskUsageSidebar)
             if showDiskUsageSidebar, showPreviewSidebar {
                 showPreviewSidebar = false
             }
@@ -189,19 +179,19 @@ public final class PreferencesStore {
     }
 
     public var skipDeleteConfirmation: Bool = false {
-        didSet { UserDefaults.standard.set(skipDeleteConfirmation, forKey: DefaultsKey.skipDeleteConfirmation.rawValue) }
+        didSet { persist(skipDeleteConfirmation, .skipDeleteConfirmation) }
     }
 
     public var sidebarTranslucentLevel: Int = 80 {
-        didSet { UserDefaults.standard.set(sidebarTranslucentLevel, forKey: DefaultsKey.sidebarTranslucentLevel.rawValue) }
+        didSet { persist(sidebarTranslucentLevel, .sidebarTranslucentLevel) }
     }
 
     public var contentTranslucentLevel: Int = 40 {
-        didSet { UserDefaults.standard.set(contentTranslucentLevel, forKey: DefaultsKey.contentTranslucentLevel.rawValue) }
+        didSet { persist(contentTranslucentLevel, .contentTranslucentLevel) }
     }
 
     public var iconSize: Double = 54.0 {
-        didSet { UserDefaults.standard.set(iconSize, forKey: DefaultsKey.iconSize.rawValue) }
+        didSet { persist(iconSize, .iconSize) }
     }
 
     /// Caps `expandedTreePaths` so an unbounded set of ever-expanded folders isn't retained forever.
@@ -219,20 +209,21 @@ public final class PreferencesStore {
 
     public var favoriteURLs: [URL] = [] {
         didSet {
-            let paths = favoriteURLs.map(\.path)
-            UserDefaults.standard.set(paths, forKey: DefaultsKey.favoriteURLs.rawValue)
+            persist(favoriteURLs.map(\.path), .favoriteURLs)
         }
     }
 
     /// `private(set)`: mutations must go through the methods below so persistence can't be bypassed.
-    public internal(set) var smartFolders: [SmartFolder] = SmartFolderService.loadSavedSmartFolders()
+    /// Populated from disk in `loadSavedPreferences()`, not as a stored-property default (that would
+    /// read JSON off disk before `init`'s body even runs).
+    public internal(set) var smartFolders: [SmartFolder] = []
 
     public var navigationMode: NavigationMode = .gnome {
-        didSet { UserDefaults.standard.set(navigationMode.rawValue, forKey: DefaultsKey.navigationMode.rawValue) }
+        didSet { persist(navigationMode, .navigationMode) }
     }
 
     public var isCompactMode: Bool = false {
-        didSet { UserDefaults.standard.set(isCompactMode, forKey: DefaultsKey.isCompactMode.rawValue) }
+        didSet { persist(isCompactMode, .isCompactMode) }
     }
 
     public var listColumnStates: [ListColumnState] = ListColumnState.defaults() {
@@ -250,28 +241,21 @@ public final class PreferencesStore {
 
     /// When off, `viewModeForFolder`/`setViewModeForFolder` just use the single global `viewMode`.
     public var perFolderViewModeEnabled: Bool = false {
-        didSet { UserDefaults.standard.set(perFolderViewModeEnabled, forKey: DefaultsKey.perFolderViewModeEnabled.rawValue) }
+        didSet { persist(perFolderViewModeEnabled, .perFolderViewModeEnabled) }
     }
 
-    public var perFolderViewModes: [String: String] = (
-        UserDefaults.standard.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String]) ??
-        [:] {
+    /// Populated from disk in `loadSavedPreferences()`, not as a stored-property default.
+    public var perFolderViewModes: [String: String] = [:] {
         didSet {
             guard perFolderViewModes.count > Self.maxPerFolderViewModes else {
                 schedulePerFolderViewModesSave()
                 return
             }
-            // Evict existing keys rather than reverting the whole assignment — reverting left
-            // every subsequent per-folder view-mode change a silent no-op once the cap was hit.
-            // Mirrors `expandedTreePaths`: prior keys go first, falling back to the just-added batch.
             // Trim in a single reassignment so this `didSet` re-enters at most once.
-            let overflow = perFolderViewModes.count - Self.maxPerFolderViewModes
-            let justAdded = Set(perFolderViewModes.keys).subtracting(oldValue.keys)
-            let evictionOrder = oldValue.keys.filter { !justAdded.contains($0) } + Array(justAdded)
+            let evict = Self.keysToEvict(
+                current: Set(perFolderViewModes.keys), previous: Set(oldValue.keys), cap: Self.maxPerFolderViewModes)
             var trimmed = perFolderViewModes
-            for key in evictionOrder.prefix(overflow) {
-                trimmed.removeValue(forKey: key)
-            }
+            evict.forEach { trimmed.removeValue(forKey: $0) }
             perFolderViewModes = trimmed
         }
     }
@@ -284,8 +268,7 @@ public final class PreferencesStore {
             UserDefaults.standard.set(data, forKey: DefaultsKey.listColumnStates.rawValue)
         } catch {
             // Encoding failure here silently drops the user's column widths/visibility on next
-            // launch (falls back to defaults) with no other signal, so log it for debugging.
-            columnPersistenceLogger.error("Failed to encode listColumnStates: \(error.localizedDescription)")
+            // launch (falls back to defaults) with no other signal.
             ErrorReporter.report(error, context: "Encoding list column states for persistence")
         }
     }
@@ -300,25 +283,18 @@ public final class PreferencesStore {
         }
     }
 
-    /// Mirrors `SidebarView.sidebarSectionsContent`'s gating — false hides the whole sidebar pane.
-    public var hasVisibleSidebarContent: Bool {
-        showRecents ||
-            (showFavorites && !favoriteURLs.isEmpty) ||
-            showNetworkAndCloud ||
-            showPlaces ||
-            showDirectoryTree ||
-            showTags ||
-            !smartFolders.isEmpty
-    }
+    /// Light mode's window is already brighter, so the translucency overlay is dialed back to
+    /// avoid washing content out.
+    private static let lightModeOverlayDamping = 0.5
 
     public var sidebarOverlayOpacity: Double {
         let base = 1.0 - Double(sidebarTranslucentLevel) / 100.0
-        return appAppearance == .light ? base * 0.5 : base
+        return appAppearance == .light ? base * Self.lightModeOverlayDamping : base
     }
 
     public var contentOverlayOpacity: Double {
         let base = 1.0 - Double(contentTranslucentLevel) / 100.0
-        return appAppearance == .light ? base * 0.5 : base
+        return appAppearance == .light ? base * Self.lightModeOverlayDamping : base
     }
 
     public init() {
@@ -368,6 +344,10 @@ public final class PreferencesStore {
 
     private func loadSavedPreferences() {
         let defaults = UserDefaults.standard
+        smartFolders = SmartFolderService.loadSavedSmartFolders()
+        if let modes = defaults.dictionary(forKey: DefaultsKey.perFolderViewModes.rawValue) as? [String: String] {
+            perFolderViewModes = modes
+        }
         loadViewPreferences(defaults)
         loadSidebarVisibilityPreferences(defaults)
         loadSidebarExpansionPreferences(defaults)

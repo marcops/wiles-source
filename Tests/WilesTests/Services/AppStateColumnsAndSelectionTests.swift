@@ -16,6 +16,7 @@ public struct AppStateColumnsAndSelectionTests {
         testHandleSelectionExtend()
         testHandleSelectionMouseShiftClickUsesStableAnchor()
         testHandleSelectionMouseCmdClick()
+        testPrimarySelectedURL()
         testAutoFitColumnWidth()
         testPerformRenameNoOpCases()
         // testPerformRenameFailurePath lives in AppStateColumnsAndActionsAsyncTests.swift (async
@@ -29,7 +30,7 @@ public struct AppStateColumnsAndSelectionTests {
     private static func makeItem(named name: String, in dir: URL) -> FileItem {
         let url = dir.appendingPathComponent(name)
         try? "content".write(to: url, atomically: true, encoding: .utf8)
-        return FileItem(url: url, icon: makeIcon())
+        return FileItem.load(url: url, icon: makeIcon())
     }
 
     private static func testColumnWidth() {
@@ -298,6 +299,36 @@ public struct AppStateColumnsAndSelectionTests {
             "AppState+Selection",
             "POS: a plain click (no modifiers) still replaces the whole selection with just the clicked item",
             result: appState.selection.selectedURLs == [itemA.url])
+    }
+
+    /// `primarySelectedURL` must not use `selectedURLs.first` (a `Set`, arbitrary order) for the
+    /// single-target action item — it uses the keyboard anchor while still selected, otherwise the
+    /// first selected item in visible order.
+    private static func testPrimarySelectedURL() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let itemA = makeItem(named: "a.txt", in: dir)
+        let itemB = makeItem(named: "b.txt", in: dir)
+        let itemC = makeItem(named: "c.txt", in: dir)
+        appState.fileSystem.items = [itemA, itemB, itemC]
+
+        report("AppState+Selection", "NEG: primarySelectedURL is nil with an empty selection", result: appState.primarySelectedURL == nil)
+
+        appState.selection.selectedURLs = [itemB.url, itemC.url]
+        appState.selection.keyboardSelectionAnchorURL = itemC.url
+        report(
+            "AppState+Selection",
+            "POS: primarySelectedURL returns the keyboard anchor when it is still part of the selection",
+            result: appState.primarySelectedURL == itemC.url)
+
+        appState.selection.keyboardSelectionAnchorURL = itemA.url // no longer selected
+        report(
+            "AppState+Selection",
+            "POS: primarySelectedURL falls back to the first selected item in visible order when the anchor is not selected",
+            result: appState.primarySelectedURL == itemB.url)
     }
 
     private static func testAutoFitColumnWidth() {

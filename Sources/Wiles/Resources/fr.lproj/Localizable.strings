@@ -104,6 +104,7 @@
 "dateTaken" = "Date de prise de vue";
 "defaultFolderName" = "Nouveau dossier";
 "deleteImmediately" = "Supprimer immédiatement";
+"deleteImmediatelyConfirm" = "Cela supprime définitivement les éléments sélectionnés. L'opération est irréversible et ne les place pas dans la Corbeille.";
 "desktop" = "Bureau";
 "devices" = "DISPOSITIVOS";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Propriétés du dossier";
 "forward" = "Avancer";
 "freeSpace" = "libre";
+"freeSpaceFormat" = "%@ libre";
 "fullDiskAccessNotice" = "Accordez un accès complet au disque dans Réglages Système pour accéder à tous les dossiers sans demandes répétées.";
 "fullDiskAccessPromptMessage" = "Wiles a besoin d'un accès complet au disque pour parcourir tous vos dossiers sans demandes d'autorisation répétées. Accordez-le une fois dans Réglages Système.";
 "fullDiskAccessPromptTitle" = "Accès complet au disque";

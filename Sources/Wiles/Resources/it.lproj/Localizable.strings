@@ -104,6 +104,7 @@
 "dateTaken" = "Data foto";
 "defaultFolderName" = "New Folder";
 "deleteImmediately" = "Elimina Immediatamente";
+"deleteImmediatelyConfirm" = "Questa operazione elimina definitivamente gli elementi selezionati. Non può essere annullata e non li sposta nel Cestino.";
 "desktop" = "Scrivania";
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
@@ -148,6 +149,7 @@
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
 "freeSpace" = "Spazio disponibile";
+"freeSpaceFormat" = "%@ Spazio disponibile";
 "fullDiskAccessNotice" = "Concedi l'accesso completo al disco in Impostazioni di Sistema per accedere a tutte le cartelle senza ulteriori richieste.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";

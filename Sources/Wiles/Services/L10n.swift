@@ -108,6 +108,7 @@ public enum L10n {
         case airDropEllipsis
         case iCloudDrive
         case freeSpace
+        case freeSpaceFormat
         case itemsCount
         case itemsCountWithSize
         case selectionCount
@@ -280,6 +281,7 @@ public enum L10n {
         case openSystemSettings
         case notNow
         case deleteImmediately
+        case deleteImmediatelyConfirm
         case createSymlink
         case compressToTarGz
         case hideTerminal
