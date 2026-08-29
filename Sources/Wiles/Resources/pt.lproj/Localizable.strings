@@ -532,3 +532,15 @@
 "moveCollisionReplace" = "Substituir";
 "moveCollisionKeepBoth" = "Manter ambos";
 "moveCollisionApplyToAll" = "Aplicar a todos";
+"languageSystemDefault" = "Padrão do Sistema";
+"batchRenamePartialFailure" = "{0} de {1} itens renomeados. Falhou — {2}";
+"fileShredderPartialFailure" = "{0} de {1} itens concluídos. Falhou — {2}";
+"pastePartialFailure" = "{0} de {1} itens não puderam ser colados.";
+"symlinkCannotReplaceOwnTarget" = "Não é possível criar um link simbólico que substituiria seu próprio alvo.";
+"share" = "Compartilhar…";
+"pdfMergePartialFailure" = "{0} arquivo(s) não puderam ser adicionados ao PDF.";
+"batchRenameWouldCollide" = "A renomeação em lote criaria conflitos de nome: {0}";
+"batchRenameInvalidPattern" = "Padrão de renomeação inválido: {0}";
+"movePartialFailure" = "{0} de {1} itens não puderam ser movidos.";
+"searchContentQueryTooShort" = "Digite ao menos 3 caracteres para buscar dentro dos arquivos.";
+"searchInvalidRegex" = "Essa expressão regular não é válida.";

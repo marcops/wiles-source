@@ -15,7 +15,7 @@ public struct SymlinkService: Sendable {
         // If the destination resolves to the exact same path as the target, bail before touching
         // anything (see DEV_RULES.md "Never Destroy User Data" / FileSystemService.moveItem).
         guard destinationURL.standardizedFileURL != targetURL.standardizedFileURL else {
-            throw WilesError.operationFailed(reason: "Cannot create a symlink that would replace its own target.")
+            throw WilesError.localized(key: .symlinkCannotReplaceOwnTarget, arguments: [])
         }
 
         // Never delete what's already at the destination "to make room" — a failed

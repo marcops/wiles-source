@@ -26,7 +26,7 @@ struct SidebarView: View {
     @State private var collapseWorkItem: DispatchWorkItem?
 
     private var isCompact: Bool {
-        appState.preferences.isSidebarCollapsed && !windowUIState.isSidebarPeeking
+        appState.preferences.view.isSidebarCollapsed && !windowUIState.isSidebarPeeking
     }
 
     var devices: [SidebarItem] {
@@ -71,7 +71,7 @@ struct SidebarView: View {
         .onHover(perform: handleSidebarHover)
         .onDisappear { collapseWorkItem?.cancel() }
         .task(id: treeBuildGeneration, buildDirectoryTree)
-        .translucentBackground(material: .sidebar, opacity: appState.preferences.sidebarOverlayOpacity, ignoresSafeArea: true)
+        .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.sidebarOverlayOpacity, ignoresSafeArea: true)
         // At the SidebarView level (not the ScrollView's), so it reaches the true window top —
         // the ScrollView insets its own overlay past the traffic lights, landing the strip below them.
         .overlay(alignment: .top) {
@@ -109,7 +109,7 @@ struct SidebarView: View {
     }
 
     private func handleSidebarHover(_ hovering: Bool) {
-        guard appState.preferences.isSidebarCollapsed else { return }
+        guard appState.preferences.view.isSidebarCollapsed else { return }
         collapseWorkItem?.cancel()
         if hovering {
             windowUIState.isSidebarPeeking = true
@@ -147,7 +147,7 @@ struct SidebarView: View {
     }
 
     private var favoriteItems: [SidebarItem] {
-        appState.preferences.favoriteURLs.map { sidebarItem(for: $0) }
+        appState.preferences.favorites.favoriteURLs.map { sidebarItem(for: $0) }
     }
 
     private var networkAndCloudItems: [SidebarItem] {
@@ -162,46 +162,46 @@ struct SidebarView: View {
     @ViewBuilder private var sidebarSectionsContent: some View {
         @Bindable var appState = appState
 
-        if appState.preferences.showsRecentsSection {
+        if appState.showsRecentsSection {
             let recentsItem = SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: AppState.recentsVirtualURL)
             sidebarRow(for: recentsItem, sectionKey: "RECENTS")
         }
-        if appState.preferences.showsFavoritesSection {
+        if appState.showsFavoritesSection {
             collapsibleSection(
                 title: appState.tr(.favorites), identifierKey: "FAVORITES",
-                isExpanded: $appState.preferences.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true,
-                hideAction: { appState.preferences.showFavorites = false })
+                isExpanded: $appState.preferences.sidebar.isFavoritesExpanded, items: favoriteItems, isFavoritesSection: true,
+                hideAction: { appState.preferences.sidebar.showFavorites = false })
         }
-        if appState.preferences.showsNetworkSection {
+        if appState.showsNetworkSection {
             collapsibleSection(
                 title: appState.tr(.networkAndCloud), identifierKey: "NETWORK",
-                isExpanded: $appState.preferences.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false,
-                hideAction: { appState.preferences.showNetworkAndCloud = false })
+                isExpanded: $appState.preferences.sidebar.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false,
+                hideAction: { appState.preferences.sidebar.showNetworkAndCloud = false })
                 // SMB discovery runs only while this section is on screen, not for the whole app run.
                 .onAppear { NetworkDiscoveryService.shared.start() }
                 .onDisappear { NetworkDiscoveryService.shared.stop() }
         }
-        if appState.preferences.showsPlacesSection {
+        if appState.showsPlacesSection {
             collapsibleSection(
                 title: appState.tr(.places), identifierKey: "PLACES",
-                isExpanded: $appState.preferences.isDevicesExpanded, items: devices, isFavoritesSection: false,
-                hideAction: { appState.preferences.showPlaces = false })
+                isExpanded: $appState.preferences.sidebar.isDevicesExpanded, items: devices, isFavoritesSection: false,
+                hideAction: { appState.preferences.sidebar.showPlaces = false })
         }
         // The tree/tags/smart-folder sections have their own nested structure that doesn't reduce
         // to a flat icon list, so they're skipped in the collapsed rail rather than shown.
         if !isCompact {
-            if appState.preferences.showsDirectoryTreeSection {
+            if appState.showsDirectoryTreeSection {
                 DirectoryTreeSectionView(
-                    appState: appState, isExpanded: $appState.preferences.isTreeExpanded,
+                    appState: appState, isExpanded: $appState.preferences.sidebar.isTreeExpanded,
                     rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache,
                     didTimeOut: treeBuildTimedOut, onRetry: retryTreeBuild)
             }
-            if appState.preferences.showsTagsSection {
-                TagsSectionView(appState: appState, isExpanded: $appState.preferences.isTagsExpanded)
+            if appState.showsTagsSection {
+                TagsSectionView(appState: appState, isExpanded: $appState.preferences.sidebar.isTagsExpanded)
             }
-            if appState.preferences.showsSmartFoldersSection {
+            if appState.showsSmartFoldersSection {
                 SmartFoldersSectionView(
-                    appState: appState, isExpanded: $appState.preferences.isSmartFoldersExpanded,
+                    appState: appState, isExpanded: $appState.preferences.sidebar.isSmartFoldersExpanded,
                     renamingSmartFolderID: $renamingSmartFolderID, smartFolderRenameText: $smartFolderRenameText,
                     isRenameFocused: $isSmartFolderRenameFocused)
             }

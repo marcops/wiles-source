@@ -7,6 +7,9 @@ public struct HoverItemHighlightModifier: ViewModifier {
     let selectedBackground: Color
     let cornerRadius: CGFloat
 
+    /// Subtle 1% grow on hover — enough to register as feedback without visibly reflowing the row.
+    private static let hoverScale: CGFloat = 1.01
+
     @State private var isHovered: Bool = false
 
     public init(
@@ -27,7 +30,7 @@ public struct HoverItemHighlightModifier: ViewModifier {
             .background(
                 isSelected ? selectedBackground : (isHovered ? hoverBackground : normalBackground))
             .cornerRadius(cornerRadius)
-            .scaleEffect(isHovered ? 1.01 : 1.0)
+            .scaleEffect(isHovered ? Self.hoverScale : 1.0)
             .animation(MotionTokens.quickEase, value: isHovered)
             .onHover { isHovered = $0 }
     }

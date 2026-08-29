@@ -62,7 +62,7 @@ struct ShortcutsHUDOverlay: View {
     init(appState: AppState, isPresented: Binding<Bool>) {
         self.appState = appState
         _isPresented = isPresented
-        _selectedFilter = State(initialValue: appState.preferences.navigationMode == .macOS ? .macOS : .windows)
+        _selectedFilter = State(initialValue: appState.preferences.view.navigationMode == .macOS ? .macOS : .windows)
     }
 
     var body: some View {
@@ -149,7 +149,7 @@ struct ShortcutsHUDOverlay: View {
 
     private func modeTabButton(_ filter: ShortcutsFilter) -> some View {
         let isSelected = selectedFilter == filter
-        let isActual = filter.navigationMode == appState.preferences.navigationMode
+        let isActual = filter.navigationMode == appState.preferences.view.navigationMode
         return Button {
             withAnimation(MotionTokens.snappySpring) { selectedFilter = filter }
         } label: {
@@ -201,7 +201,7 @@ struct ShortcutsHUDOverlay: View {
                     shortcutGroup(title: appState.tr(.shortcutsSystem), items: merged(systemShortcuts(for: .macOS), systemShortcuts(for: .gnome)))
                     shortcutGroup(title: appState.tr(.shortcutsGeneral), items: generalShortcuts)
                 } else {
-                    let mode = selectedFilter.navigationMode ?? appState.preferences.navigationMode
+                    let mode = selectedFilter.navigationMode ?? appState.preferences.view.navigationMode
                     shortcutGroup(title: appState.tr(.shortcutsNav), items: navigationShortcuts(for: mode))
                     shortcutGroup(title: appState.tr(.shortcutsFileActions), items: fileActionsShortcuts(for: mode))
                     shortcutGroup(title: appState.tr(.shortcutsSystem), items: systemShortcuts(for: mode))

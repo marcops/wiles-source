@@ -24,7 +24,6 @@ public struct ExifMetadataTests {
         await testDateTimeOnlyExtractsSuccessfully()
 
         await testDecodableImageWithNoRecognizedFieldsReturnsNil()
-
     }
 
     // NEG: image decodes successfully (props extraction succeeds) but carries none of the

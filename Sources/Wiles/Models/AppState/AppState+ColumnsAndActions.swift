@@ -3,24 +3,24 @@ import GitBeacon
 
 public extension AppState {
     func columnWidth(for column: ListColumn) -> CGFloat {
-        preferences.columnStatesByColumn[column]?.width ?? column.defaultWidth
+        preferences.view.columnStatesByColumn[column]?.width ?? column.defaultWidth
     }
 
     func isColumnVisible(_ column: ListColumn) -> Bool {
-        preferences.columnStatesByColumn[column]?.isVisible ?? true
+        preferences.view.columnStatesByColumn[column]?.isVisible ?? true
     }
 
     /// - Parameter persist: When `false` (e.g. while a resize drag is still in progress), the width
     ///   update is applied without triggering `PreferencesStore.saveListColumnStates()`'s synchronous
     ///   encode + write. Callers driving high-frequency updates (drag deltas) must call
-    ///   `preferences.saveListColumnStates()` once when the interaction ends.
+    ///   `preferences.view.saveListColumnStates()` once when the interaction ends.
     func setColumnWidth(_ column: ListColumn, width: CGFloat, persist: Bool = true) {
-        guard let idx = preferences.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
-        let applyWidth = { self.preferences.listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width) }
+        guard let idx = preferences.view.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
+        let applyWidth = { self.preferences.view.listColumnStates[idx].width = max(LayoutTokens.columnMinWidth, width) }
         if persist {
             applyWidth()
         } else {
-            preferences.withColumnStatePersistenceSuppressed(applyWidth)
+            preferences.view.withColumnStatePersistenceSuppressed(applyWidth)
         }
     }
 
@@ -28,15 +28,15 @@ public extension AppState {
         let newWidth = ColumnAutoFitService.calculateAutoFitWidth(
             for: column,
             items: fileSystem.items,
-            iconSize: preferences.iconSize,
-            language: preferences.appLanguage)
+            iconSize: preferences.view.iconSize,
+            language: preferences.appearance.appLanguage)
         setColumnWidth(column, width: newWidth)
     }
 
     func toggleColumnVisibility(_ column: ListColumn) {
         guard !column.isAlwaysVisible,
-              let idx = preferences.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
-        preferences.listColumnStates[idx].isVisible.toggle()
+              let idx = preferences.view.listColumnStates.firstIndex(where: { $0.column == column }) else { return }
+        preferences.view.listColumnStates[idx].isVisible.toggle()
     }
 
     /// The view mode for the currently browsed folder — respects `perFolderViewModeEnabled`.
@@ -45,28 +45,28 @@ public extension AppState {
     }
 
     func viewModeForFolder(_ url: URL) -> ViewMode {
-        guard preferences.perFolderViewModeEnabled else { return preferences.viewMode }
-        if let raw = preferences.perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
+        guard preferences.view.perFolderViewModeEnabled else { return preferences.view.viewMode }
+        if let raw = preferences.view.perFolderViewModes[url.standardizedFileURL.path], let mode = ViewMode(rawValue: raw) {
             return mode
         }
-        return preferences.viewMode
+        return preferences.view.viewMode
     }
 
     /// Moves the per-folder view-mode key when a folder is relocated in-app (Finder moves still orphan it).
     func remapPerFolderViewMode(from oldURL: URL, to newURL: URL) {
         let oldKey = oldURL.standardizedFileURL.path
-        guard let raw = preferences.perFolderViewModes[oldKey] else { return }
-        preferences.perFolderViewModes[oldKey] = nil
-        preferences.perFolderViewModes[newURL.standardizedFileURL.path] = raw
+        guard let raw = preferences.view.perFolderViewModes[oldKey] else { return }
+        preferences.view.perFolderViewModes[oldKey] = nil
+        preferences.view.perFolderViewModes[newURL.standardizedFileURL.path] = raw
     }
 
     func setViewModeForFolder(_ mode: ViewMode, for url: URL) {
-        guard preferences.perFolderViewModeEnabled else {
-            preferences.viewMode = mode
+        guard preferences.view.perFolderViewModeEnabled else {
+            preferences.view.viewMode = mode
             return
         }
-        preferences.perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
-        preferences.viewMode = mode
+        preferences.view.perFolderViewModes[url.standardizedFileURL.path] = mode.rawValue
+        preferences.view.viewMode = mode
     }
 
     func performImageConversion(
@@ -105,8 +105,8 @@ public extension AppState {
                 }
                 refreshCurrentDirectory()
                 selection.selectedURLs = Set(result.renamedURLs)
-                if let message = result.failureSummaryMessage {
-                    showError(message)
+                if let failureError = result.failureError {
+                    showError(failureError)
                 }
             } catch {
                 ErrorReporter.report(error, context: "Batch renaming items")

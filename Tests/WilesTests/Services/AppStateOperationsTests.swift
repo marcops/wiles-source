@@ -116,7 +116,7 @@ public struct AppStateOperationsTests {
         report(
             "AppState+Operations",
             "POS: openPropertiesForSelected() sets propertiesItem when the selected URL matches a listed item",
-            result: windowUIState.propertiesItem?.url == item.url)
+            result: windowUIState.activeModal == .properties(item))
 
         let appState2 = AppState()
         let windowUIState2 = WindowUIState(preferences: appState2.preferences)
@@ -126,7 +126,7 @@ public struct AppStateOperationsTests {
         report(
             "AppState+Operations",
             "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item",
-            result: windowUIState2.propertiesItem == nil)
+            result: windowUIState2.activeModal == nil)
     }
 
     private static func testStartEditingPath() {

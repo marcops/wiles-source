@@ -5,12 +5,10 @@ import SwiftUI
 /// view they render (`itemContent`) and the height reserved for the trailing loading spinner.
 ///
 /// Above `LayoutTokens.paginationThreshold` items, only `visibleLimit` items are actually rendered;
-/// scrolling the trailing `ProgressView` into view grows the limit by
-/// `LayoutTokens.lazyLoadingBatchSize` until the full dataset is visible. Below the threshold, the
-/// whole dataset renders at once with the entrance animation `FileGridView`/`FileListView` already
-/// relied on.
+/// scrolling the trailing `ProgressView` into view grows the limit by `lazyLoadingBatchSize` until
+/// the full dataset is visible. Below the threshold, the whole dataset renders at once with the
+/// entrance animation `FileGridView`/`FileListView` already relied on.
 struct PaginatedItemsSection<ItemContent: View>: View {
-    /// `static let` isn't allowed on a generic type, so this is computed instead.
     private static var lazyLoadingBatchSize: Int {
         100
     }

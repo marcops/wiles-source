@@ -24,7 +24,7 @@ struct DirectoryTreeNodeView: View {
     }
 
     private var isExpanded: Bool {
-        appState.preferences.expandedTreePaths.contains(node.url.path)
+        appState.preferences.sidebar.expandedTreePaths.contains(node.url.path)
     }
 
     /// `FolderNode.buildRootTree()`'s root carries a hardcoded "Root (/)" name; localize it here
@@ -52,9 +52,9 @@ struct DirectoryTreeNodeView: View {
 
     private func toggleExpanded() {
         if isExpanded {
-            appState.preferences.expandedTreePaths.remove(node.url.path)
+            appState.preferences.sidebar.expandedTreePaths.remove(node.url.path)
         } else {
-            appState.preferences.expandedTreePaths.insert(node.url.path)
+            appState.preferences.sidebar.expandedTreePaths.insert(node.url.path)
         }
     }
 

@@ -21,7 +21,7 @@ struct SidebarItemContextMenu: View {
             // Properties sheet shows Owner/Group, so keep needsOwnerGroup default; let init resolve
             // the icon from .effectiveIcon instead of a blocking NSWorkspace LaunchServices IPC.
             let fileItem = FileItem.load(url: url)
-            windowUIState.propertiesItem = fileItem
+            windowUIState.activeModal = .properties(fileItem)
         }
     }
 }

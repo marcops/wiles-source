@@ -120,7 +120,7 @@ struct KeyboardSelectionNavigator {
             if !appState.selection.selectedURLs.isEmpty {
                 appState.deleteSelected(windowUIState: windowUIState)
                 return true
-            } else if appState.preferences.navigationMode == .gnome, !isCmd {
+            } else if appState.preferences.view.navigationMode == .gnome, !isCmd {
                 appState.goUp()
                 return true
             }
@@ -135,7 +135,7 @@ struct KeyboardSelectionNavigator {
             appState.deleteSelected(windowUIState: windowUIState)
             return true
         } else if !isCmd {
-            if appState.preferences.navigationMode == .gnome,
+            if appState.preferences.view.navigationMode == .gnome,
                let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first {
                 appState.openItem(anchor)
                 return true
@@ -151,14 +151,14 @@ struct KeyboardSelectionNavigator {
     /// renames rather than navigates) — only applicable when exactly one item's URL is selected
     /// and that URL still resolves to a loaded `FileItem`.
     private func macOSReturnKeyItem(appState: AppState) -> FileItem? {
-        guard appState.preferences.navigationMode == .macOS else { return nil }
+        guard appState.preferences.view.navigationMode == .macOS else { return nil }
         guard let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first else { return nil }
         return appState.fileSystem.items.first(where: { $0.url == anchor })
     }
 
     private func triggerRenameForSelected(appState: AppState, windowUIState: WindowUIState) {
         if appState.selection.selectedURLs.count > 1 {
-            windowUIState.showBatchRenameSheet = true
+            windowUIState.activeModal = .batchRename
         } else if let first = appState.selection.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
             windowUIState.renameItem = item
         }

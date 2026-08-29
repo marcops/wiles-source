@@ -52,15 +52,15 @@ struct FileListView: View {
     }
 
     private var listIconSize: CGFloat {
-        max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.preferences.iconSize) * LayoutTokens.listIconScaleMultiplier))
+        max(LayoutTokens.listIconMinSize, min(LayoutTokens.listIconMaxSize, CGFloat(appState.preferences.view.iconSize) * LayoutTokens.listIconScaleMultiplier))
     }
 
     private func dynamicColumnText(_ col: ListColumn, for item: FileItem) -> String? {
         switch col {
         case .size: item.formattedSize
-        case .dateModified: item.formattedDate(language: appState.preferences.appLanguage)
-        case .dateCreated: item.formattedDateCreated(language: appState.preferences.appLanguage)
-        case .dateAccessed: item.formattedDateAccessed(language: appState.preferences.appLanguage)
+        case .dateModified: item.formattedDate(language: appState.preferences.appearance.appLanguage)
+        case .dateCreated: item.formattedDateCreated(language: appState.preferences.appearance.appLanguage)
+        case .dateAccessed: item.formattedDateAccessed(language: appState.preferences.appearance.appLanguage)
         case .kind: if item.isDirectory {
                 appState.tr(.folder)
             } else {
@@ -105,15 +105,15 @@ struct FileListView: View {
                 nsFont: .systemFont(ofSize: 13, weight: isSel ? .semibold : .regular),
                 color: isSel ? .white : .primary,
                 collapsedLineLimit: 1,
-                middleTruncate: appState.preferences.middleTruncateNames)
+                middleTruncate: appState.preferences.view.middleTruncateNames)
         }
     }
 
     @ViewBuilder
     private func tagsIndicator(for item: FileItem) -> some View {
-        if appState.preferences.showTags, !item.tags.isEmpty {
+        if appState.preferences.sidebar.showTags, !item.tags.isEmpty {
             TagsIndicatorView(tags: item.tags)
-                .offset(y: appState.preferences.isCompactMode ? 1 : 0)
+                .offset(y: appState.preferences.view.isCompactMode ? 1 : 0)
         }
     }
 
@@ -133,7 +133,7 @@ struct FileListView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, appState.preferences.isCompactMode ? 2 : max(4, listIconSize * 0.25))
+        .padding(.vertical, appState.preferences.view.isCompactMode ? 2 : max(4, listIconSize * 0.25))
         .hoverHighlight(isSelected: isSel, cornerRadius: 6)
         .opacity(isCut ? 0.5 : 1.0)
         .background(
@@ -149,6 +149,6 @@ struct FileListView: View {
             item: item,
             appState: appState,
             onTargetedChanged: { targeted in dropTargetedURL = targeted ? item.url : nil })
-        .fileMetadataTooltip(item, language: appState.preferences.appLanguage)
+        .fileMetadataTooltip(item, language: appState.preferences.appearance.appLanguage)
     }
 }

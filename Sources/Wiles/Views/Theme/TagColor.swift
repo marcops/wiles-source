@@ -24,6 +24,7 @@ public enum TagColor: String, CaseIterable, Sendable {
     }
 }
 
+@MainActor
 public func colorForTag(_ tag: String) -> Color {
     if let systemColor = SystemTagsService.color(forTagNamed: tag) {
         return systemColor.displayColor

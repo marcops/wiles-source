@@ -5,12 +5,22 @@ public enum BatchRenameService {
     private static let maxPaddingDigits = 10
 
     public static func previewNewNames(items: [FileItem], mode: BatchRenameMode) -> [(original: FileItem, newName: String)] {
-        items.enumerated().map { index, item in
-            (original: item, newName: renamedName(for: item, index: index, mode: mode))
+        // Compile the regex once for the whole batch, not once per item — a 500-item preview in
+        // `.regex` mode used to build 500 `NSRegularExpression`s on every keystroke.
+        let compiledRegex = compiledRegex(for: mode)
+        return items.enumerated().map { index, item in
+            (original: item, newName: renamedName(for: item, index: index, mode: mode, regex: compiledRegex))
         }
     }
 
-    private static func renamedName(for item: FileItem, index: Int, mode: BatchRenameMode) -> String {
+    /// The `NSRegularExpression` for a `.regex` mode with a non-empty, valid pattern; `nil` otherwise
+    /// (including for non-regex modes).
+    private static func compiledRegex(for mode: BatchRenameMode) -> NSRegularExpression? {
+        guard case let .regex(pattern, _) = mode, !pattern.isEmpty else { return nil }
+        return try? NSRegularExpression(pattern: pattern, options: [])
+    }
+
+    private static func renamedName(for item: FileItem, index: Int, mode: BatchRenameMode, regex: NSRegularExpression?) -> String {
         let ext = item.fileExtension
         let extWithDot = ext.isEmpty ? "" : ".\(ext)"
         let baseName = item.isDirectory ? item.name : item.url.deletingPathExtension().lastPathComponent
@@ -31,13 +41,12 @@ public enum BatchRenameService {
             let safePadding = min(max(paddingDigits, minPaddingDigits), maxPaddingDigits)
             let formattedNum = String(format: "%0\(safePadding)d", num)
             newBaseName = prefix.isEmpty ? formattedNum : "\(prefix)_\(formattedNum)"
-        case let .regex(pattern, template):
-            if pattern.isEmpty {
-                newBaseName = baseName
-            } else if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
+        case let .regex(_, template):
+            if let regex {
                 let range = NSRange(location: 0, length: baseName.utf16.count)
                 newBaseName = regex.stringByReplacingMatches(in: baseName, options: [], range: range, withTemplate: template)
             } else {
+                // Empty or invalid pattern: leave the name untouched (matches the prior fallback).
                 newBaseName = baseName
             }
         }
@@ -65,7 +74,9 @@ public enum BatchRenameService {
         renamedOriginalNames: Set<String>,
         directoryContents: Set<String>) -> [BatchRenameConflict] {
         var counts: [String: Int] = [:]
-        for name in targetNames { counts[name, default: 0] += 1 }
+        for name in targetNames {
+            counts[name, default: 0] += 1
+        }
 
         var conflicts: [BatchRenameConflict] = []
         var handled: Set<String> = []
@@ -100,7 +111,7 @@ public enum BatchRenameService {
                 directoryContents: Set(contents))
             guard conflicts.isEmpty else {
                 let names = conflicts.map(\.targetName).joined(separator: ", ")
-                throw WilesError.operationFailed(reason: "Batch rename would create name collisions: \(names)")
+                throw WilesError.localized(key: .batchRenameWouldCollide, arguments: [names])
             }
         }
     }
@@ -111,7 +122,7 @@ public enum BatchRenameService {
         // rename must not pretend the user didn't ask for anything - validate the pattern up front
         // and abort with a real error instead of silently no-op-renaming every item.
         if let invalidPattern = invalidRegexPattern(in: mode) {
-            throw WilesError.operationFailed(reason: "Invalid rename pattern: \(invalidPattern)")
+            throw WilesError.localized(key: .batchRenameInvalidPattern, arguments: [invalidPattern])
         }
 
         let previews = previewNewNames(items: items, mode: mode)

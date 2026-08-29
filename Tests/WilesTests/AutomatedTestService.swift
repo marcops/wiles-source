@@ -57,6 +57,7 @@ public final class AutomatedTestService {
         NetworkDiscoveryTests.run()
         PermissionTests.run()
         await SyntaxHighlighterTests.run()
+        SystemTagsServiceTests.run()
         await DuplicateDetectionTests.run()
         await FileMetadataTests.run()
         await FileMetadataTooltipServiceTests.run()

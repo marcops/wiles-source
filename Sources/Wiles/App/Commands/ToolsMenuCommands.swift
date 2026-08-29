@@ -11,26 +11,15 @@ struct ToolsMenuCommands: LocalizedCommands {
 
     var body: some Commands {
         CommandMenu(tr(.toolsMenuTitle)) {
-            Button(tr(.autoOrganizationEllipsis)) { windowUIState?.showAutoOrganizationSheet = true }
-            Button(tr(.findDuplicates)) { windowUIState?.showDuplicateCleanerSheet = true }
+            Button(tr(.autoOrganizationEllipsis)) { windowUIState?.activeModal = .autoOrganization }
+            Button(tr(.findDuplicates)) { windowUIState?.activeModal = .duplicateCleaner }
             Divider()
             if let appState {
                 Menu(tr(.copyPath)) {
-                    Button(tr(.copyPathAbsolute)) {
-                        CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
-                    }
-                    Button(tr(.copyPathRelative)) {
-                        CopyPathService.copy(
-                            urls: [appState.navigation.currentURL],
-                            variant: .relative,
-                            relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
-                    }
-                    Button(tr(.copyPathURL)) {
-                        CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)
-                    }
-                    Button(tr(.copyPathTerminal)) {
-                        CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .terminalEscaped)
-                    }
+                    CopyPathMenuContent(
+                        urls: [appState.navigation.currentURL],
+                        relativeTo: appState.navigation.currentURL.deletingLastPathComponent(),
+                        appState: appState)
                 }
             }
         }

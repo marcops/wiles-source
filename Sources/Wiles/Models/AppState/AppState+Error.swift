@@ -24,12 +24,12 @@ public extension AppState {
     /// exposed so a view (e.g. `AsyncResultView`'s failure slot) can render it inline.
     func errorText(for error: any Error) -> String {
         if let wilesError = error as? WilesError {
-            return wilesError.localizedMessage(lang: preferences.appLanguage)
+            return wilesError.localizedMessage(lang: preferences.appearance.appLanguage)
         }
         return error.localizedDescription
     }
 
     func tr(_ key: L10n.Key) -> String {
-        L10n.string(key, lang: preferences.appLanguage)
+        L10n.string(key, lang: preferences.appearance.appLanguage)
     }
 }

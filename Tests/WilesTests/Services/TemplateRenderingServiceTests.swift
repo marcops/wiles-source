@@ -32,6 +32,16 @@ final class TemplateRenderingServiceTests: XCTestCase {
         XCTAssertTrue(rendered.contains("{{ITEMS}}"))
     }
 
+    /// A replacement value that itself contains a `{{...}}` token must not be re-scanned — a single
+    /// pass means an injected placeholder in a dynamic value (e.g. a filename shared over the LAN)
+    /// stays literal instead of pulling in another key's substitution.
+    func testReplacementValueContainingAnotherPlaceholderIsNotReExpanded() {
+        let rendered = TemplateRenderingService.substitute(
+            in: "name: {{NAME}} / secret: {{SECRET}}",
+            replacements: ["NAME": "evil {{SECRET}}", "SECRET": "s3cr3t"])
+        XCTAssertEqual(rendered, "name: evil {{SECRET}} / secret: s3cr3t")
+    }
+
     /// Covers the `catch` branch: the resource exists (so the `url(forResource:)` guard passes) but
     /// isn't valid UTF-8 text, so `String(contentsOf:encoding:)` throws. AppIcon.png is a real bundled
     /// resource that's guaranteed not to decode as UTF-8.

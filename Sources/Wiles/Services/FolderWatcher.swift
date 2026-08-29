@@ -1,4 +1,5 @@
 import Foundation
+import GitBeacon
 
 /// Watches a set of folders for filesystem write activity via `DispatchSource`, debouncing
 /// rapid-fire events on the same folder into a single `onChange` callback once activity settles.
@@ -47,7 +48,12 @@ final class FolderWatcher {
 
     private func startWatching(folder: URL) {
         let fd = open(folder.path, O_EVTONLY)
-        guard fd != -1 else { return }
+        guard fd != -1 else {
+            ErrorReporter.report(
+                NSError(domain: NSPOSIXErrorDomain, code: Int(errno)),
+                context: "FolderWatcher: open(O_EVTONLY) failed for \(folder.path); this folder will not be watched")
+            return
+        }
 
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: .write, queue: .main)
 

@@ -23,7 +23,9 @@ public final class PDFMergeService: Sendable {
                 try Task.checkCancellation()
                 let before = pageIndex
                 pageIndex = try appendPages(from: url, into: outputPDF, startingAt: pageIndex)
-                if pageIndex == before { skippedCount += 1 }
+                if pageIndex == before {
+                    skippedCount += 1
+                }
             }
 
             // PDFDocument.write(to:) does not fail for a zero-page document — on this

@@ -81,21 +81,21 @@ struct MainContentView: View {
         .onChange(of: appState.selection.selectedURLs) { _, newSelection in
             windowUIState.cancelRenameIfSelectionChanged(selectedURLs: newSelection)
         }
-        .onChange(of: appState.preferences.sortOption) { _, _ in appState.refreshCurrentDirectory() }
-        .onChange(of: appState.preferences.sortAscending) { _, _ in appState.refreshCurrentDirectory() }
-        .onChange(of: appState.preferences.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
+        .onChange(of: appState.preferences.view.sortOption) { _, _ in appState.resortCurrentItems() }
+        .onChange(of: appState.preferences.view.sortAscending) { _, _ in appState.resortCurrentItems() }
+        .onChange(of: appState.preferences.view.showHiddenFiles) { _, _ in appState.refreshCurrentDirectory() }
+        .onChange(of: appState.preferences.search.searchEverywhere) { _, _ in appState.refreshCurrentDirectory() }
         .modifier(WilesModalSheets(appState: appState, windowUIState: windowUIState))
         .background(mainBackgroundLayer)
     }
 
     private var mainBackgroundLayer: some View {
         ZStack {
-            TranslucentVisualEffectView(material: .underWindowBackground)
-            Color(NSColor.windowBackgroundColor)
-                .opacity(appState.preferences.sidebarOverlayOpacity)
             keyboardShortcutsHandler
             GlobalKeyMonitor(appState: appState, windowUIState: windowUIState)
         }
+        .translucentBackground(
+            material: .underWindowBackground, opacity: appState.preferences.appearance.sidebarOverlayOpacity)
     }
 
     @ViewBuilder private var shortcutsHUDOverlay: some View {
@@ -109,11 +109,11 @@ struct MainContentView: View {
     /// Single `SidebarView` identity, only the frame width changes — swapping instances instead
     /// tore down the hover-tracking view mid-hover, firing a false exit and closing the rail early.
     private var isSidebarRail: Bool {
-        appState.preferences.isSidebarCollapsed && !windowUIState.isSidebarPeeking
+        appState.preferences.view.isSidebarCollapsed && !windowUIState.isSidebarPeeking
     }
 
     @ViewBuilder private var sidebarPane: some View {
-        if appState.preferences.hasVisibleSidebarContent {
+        if appState.hasVisibleSidebarContent {
             SidebarView(appState: appState)
                 .frame(
                     minWidth: isSidebarRail ? Self.sidebarCollapsedWidth : LayoutTokens.sidebarMinWidth,
@@ -135,7 +135,7 @@ struct MainContentView: View {
         }
         .frame(minWidth: Self.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.all, edges: .top)
-        .background(contentTranslucentBackground)
+        .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.contentOverlayOpacity, ignoresSafeArea: true)
         .layoutPriority(1)
     }
 
@@ -143,7 +143,7 @@ struct MainContentView: View {
         HSplitView {
             contentArea
                 .frame(minWidth: Self.contentMinWidth, maxWidth: .infinity, maxHeight: .infinity)
-                .background(contentTranslucentBackground)
+                .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.contentOverlayOpacity, ignoresSafeArea: true)
             inspectorPane
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -178,7 +178,7 @@ struct MainContentView: View {
     }
 
     @ViewBuilder private var footer: some View {
-        if appState.preferences.showFooter {
+        if appState.preferences.view.showFooter {
             FooterBarView(appState: appState, windowUIState: windowUIState)
         }
     }
@@ -195,15 +195,6 @@ struct MainContentView: View {
         case .none: 0
         }
         return Self.windowMinWidth + inspectorMinWidth
-    }
-
-    private var contentTranslucentBackground: some View {
-        ZStack {
-            TranslucentVisualEffectView(material: .sidebar)
-            Color(NSColor.windowBackgroundColor)
-                .opacity(appState.preferences.contentOverlayOpacity)
-        }
-        .ignoresSafeArea()
     }
 
     private var sidebarWidthTracker: some View {
@@ -245,7 +236,7 @@ struct MainContentView: View {
             Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
-            Button("") { windowUIState.showHelpSheet = true }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
+            Button("") { windowUIState.activeModal = .help }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
             Button("") {
                 withAnimation(MotionTokens.snappySpring) {
                     windowUIState.showShortcutsHUD.toggle()
@@ -260,11 +251,11 @@ struct MainContentView: View {
     private func toggleHiddenFiles() {
         // The `.onChange(of: showHiddenFiles)` above is the single source of the refresh — don't
         // also call it here or the shortcut fires two back-to-back directory reloads.
-        appState.preferences.showHiddenFiles.toggle()
+        appState.preferences.view.showHiddenFiles.toggle()
     }
 
     private func handleDownArrowKey() {
-        if appState.preferences.navigationMode == .macOS {
+        if appState.preferences.view.navigationMode == .macOS {
             appState.openSelectedItem()
         }
     }

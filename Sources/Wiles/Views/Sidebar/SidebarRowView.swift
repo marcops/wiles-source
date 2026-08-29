@@ -150,11 +150,22 @@ struct SidebarRowView: View {
     private var ejectButton: some View {
         Button {
             let target = item.url
-            do {
-                try NSWorkspace.shared.unmountAndEjectDevice(at: target)
-                appState.refreshCurrentDirectory()
-            } catch {
-                appState.showError(error, context: "Ejecting volume")
+            Task {
+                // `unmountAndEjectDevice` can block for seconds on a slow/network volume — keep it
+                // off `@MainActor` and hop back only for the refresh/error.
+                let result = await Task.detached(priority: .userInitiated) { () -> (any Error)? in
+                    do {
+                        try NSWorkspace.shared.unmountAndEjectDevice(at: target)
+                        return nil
+                    } catch {
+                        return error
+                    }
+                }.value
+                if let result {
+                    appState.showError(result, context: "Ejecting volume")
+                } else {
+                    appState.refreshCurrentDirectory()
+                }
             }
         } label: {
             Image(systemName: "eject.fill")

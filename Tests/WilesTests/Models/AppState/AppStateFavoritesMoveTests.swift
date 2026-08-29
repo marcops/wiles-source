@@ -21,7 +21,9 @@ public struct AppStateFavoritesMoveTests {
         _ operation: @escaping @Sendable () async throws -> T) async -> T? {
         let task = Task { try await operation() }
         for _ in 0 ..< 50 {
-            if windowUIState.moveCollisionPrompt != nil { break }
+            if windowUIState.moveCollisionPrompt != nil {
+                break
+            }
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
         windowUIState.moveCollisionPrompt?.resolve(answer)
@@ -49,25 +51,28 @@ public struct AppStateFavoritesMoveTests {
         let cleanSrc = makeFile("clean.txt", in: cleanSrcParent)
         let appState = AppState()
         let windowUIState = WindowUIState(preferences: appState.preferences)
-        let priorFavs = appState.preferences.favoriteURLs
-        let priorModes = appState.preferences.perFolderViewModes
+        let priorFavs = appState.preferences.favorites.favoriteURLs
+        let priorModes = appState.preferences.view.perFolderViewModes
         defer {
-            appState.preferences.favoriteURLs = priorFavs
-            appState.preferences.perFolderViewModes = priorModes
+            appState.preferences.favorites.favoriteURLs = priorFavs
+            appState.preferences.view.perFolderViewModes = priorModes
         }
-        appState.preferences.favoriteURLs = [cleanSrc.standardizedFileURL]
-        appState.preferences.perFolderViewModes[cleanSrc.standardizedFileURL.path] = ViewMode.list.rawValue
+        appState.preferences.favorites.favoriteURLs = [cleanSrc.standardizedFileURL]
+        appState.preferences.view.perFolderViewModes[cleanSrc.standardizedFileURL.path] = ViewMode.list.rawValue
 
         let cleanResult = try? await appState.moveOneResolvingCollision(
             cleanSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
         var cleanOK = false
         if case let .moved(to: movedURL, displacedExisting: false)? = cleanResult?.0 {
             cleanOK = movedURL.lastPathComponent == "clean.txt"
-                && appState.preferences.favoriteURLs.first?.lastPathComponent == "clean.txt"
-                && appState.preferences.favoriteURLs.first?.path.contains("/Dest/") == true
-                && appState.preferences.perFolderViewModes[movedURL.standardizedFileURL.path] == ViewMode.list.rawValue
+                && appState.preferences.favorites.favoriteURLs.first?.lastPathComponent == "clean.txt"
+                && appState.preferences.favorites.favoriteURLs.first?.path.contains("/Dest/") == true
+                && appState.preferences.view.perFolderViewModes[movedURL.standardizedFileURL.path] == ViewMode.list.rawValue
         }
-        report("AppState", "POS: moveOneResolvingCollision clean move returns .moved(displacedExisting:false) and syncs favorites + per-folder mode", result: cleanOK)
+        report(
+            "AppState",
+            "POS: moveOneResolvingCollision clean move returns .moved(displacedExisting:false) and syncs favorites + per-folder mode",
+            result: cleanOK)
 
         // KeepBoth: dest occupied -> .moved(displacedExisting:false) at a fresh ' 2' name, both files kept.
         _ = makeFile("dup.txt", in: dest, "existing")
@@ -81,7 +86,10 @@ public struct AppStateFavoritesMoveTests {
                 && FileManager.default.fileExists(atPath: kbURL.path)
                 && FileManager.default.fileExists(atPath: dest.appendingPathComponent("dup.txt").path)
         }
-        report("AppState", "POS: moveOneResolvingCollision KeepBoth returns .moved(displacedExisting:false) at a fresh name, keeping both files", result: keepBothOK)
+        report(
+            "AppState",
+            "POS: moveOneResolvingCollision KeepBoth returns .moved(displacedExisting:false) at a fresh name, keeping both files",
+            result: keepBothOK)
 
         // Replace: dest occupied -> .moved(displacedExisting:true), incoming lands at the intended name.
         let replaceSrc = makeFile("dup.txt", in: cleanSrcParent, "replacement")
@@ -185,35 +193,39 @@ public struct AppStateFavoritesMoveTests {
         let unrelated = dir.appendingPathComponent("Unrelated").standardizedFileURL
 
         let appState = AppState()
-        appState.preferences.favoriteURLs = [favoritedFolder, unrelated]
+        appState.preferences.favorites.favoriteURLs = [favoritedFolder, unrelated]
 
         appState.remapFavorites(from: favoritedFolder, to: movedFavoritedFolder)
         report(
             "AppState",
             "POS: remapFavorites() rewrites the exact favorited URL to its new location when the favorited item itself moves",
-            result: appState.preferences.favoriteURLs.contains(movedFavoritedFolder) && !appState.preferences.favoriteURLs.contains(favoritedFolder))
-        report("AppState", "NEG: remapFavorites() leaves unrelated favorites untouched", result: appState.preferences.favoriteURLs.contains(unrelated))
+            result: appState.preferences.favorites.favoriteURLs.contains(movedFavoritedFolder) && !appState.preferences.favorites.favoriteURLs
+                .contains(favoritedFolder))
+        report(
+            "AppState",
+            "NEG: remapFavorites() leaves unrelated favorites untouched",
+            result: appState.preferences.favorites.favoriteURLs.contains(unrelated))
 
         // A favorite nested inside a moved ancestor folder must also be rewritten, preserving the
         // relative path beneath it (favoriting a subfolder, then moving its parent).
         let nestedFavorite = oldParent.appendingPathComponent("Docs/Reports").standardizedFileURL
         let expectedNestedAfterMove = newParent.appendingPathComponent("Docs/Reports").standardizedFileURL
-        appState.preferences.favoriteURLs = [nestedFavorite]
+        appState.preferences.favorites.favoriteURLs = [nestedFavorite]
         appState.remapFavorites(from: oldParent, to: newParent)
         report(
             "AppState",
             "POS: remapFavorites() rewrites a favorite nested inside a moved ancestor folder, preserving its relative path",
-            result: appState.preferences.favoriteURLs == [expectedNestedAfterMove])
+            result: appState.preferences.favorites.favoriteURLs == [expectedNestedAfterMove])
 
         // A folder that merely shares a name prefix (not a real path-component ancestor) must not
         // be treated as containing the favorite - e.g. moving "Old" must not also match "OldStuff".
         let similarlyNamedSibling = dir.appendingPathComponent("OldStuff/Keep").standardizedFileURL
-        appState.preferences.favoriteURLs = [similarlyNamedSibling]
+        appState.preferences.favorites.favoriteURLs = [similarlyNamedSibling]
         appState.remapFavorites(from: oldParent, to: newParent)
         report(
             "AppState",
             "NEG: remapFavorites() does not touch a favorite under a differently-named folder that merely shares a string prefix",
-            result: appState.preferences.favoriteURLs == [similarlyNamedSibling])
+            result: appState.preferences.favorites.favoriteURLs == [similarlyNamedSibling])
     }
 
     /// End-to-end version of the fix, through the real public entry point every drag-and-drop call
@@ -232,7 +244,7 @@ public struct AppStateFavoritesMoveTests {
         try? FileManager.default.createDirectory(at: favoritedFolder, withIntermediateDirectories: true)
 
         let appState = AppState()
-        appState.preferences.favoriteURLs = [favoritedFolder.standardizedFileURL]
+        appState.preferences.favorites.favoriteURLs = [favoritedFolder.standardizedFileURL]
 
         let destURL = try? await appState.moveItem(at: favoritedFolder, toFolder: destParent)
 
@@ -252,7 +264,7 @@ public struct AppStateFavoritesMoveTests {
         report(
             "AppState",
             "POS: moveItem() updates the favorite to the real new on-disk location, not just the old stale path",
-            result: appState.preferences.favoriteURLs == [destURL.standardizedFileURL])
+            result: appState.preferences.favorites.favoriteURLs == [destURL.standardizedFileURL])
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

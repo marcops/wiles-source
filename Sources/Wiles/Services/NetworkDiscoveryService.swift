@@ -95,7 +95,7 @@ public final class NetworkDiscoveryService {
         discoveredShares = shares.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
-    // The service-instance name can differ from the mDNS hostname, so resolve the real host/port first.
+    /// The service-instance name can differ from the mDNS hostname, so resolve the real host/port first.
     private func beginResolving(name: String, endpoint: NWEndpoint) {
         let connection = NWConnection(to: endpoint, using: .tcp)
         resolvers[name] = connection

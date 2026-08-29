@@ -20,10 +20,14 @@ struct IntegratedTerminalView: NSViewRepresentable {
         terminalView.processDelegate = context.coordinator
         windowUIState.terminalViewCache.view = terminalView
 
-        terminalView.startProcess(executable: "/bin/zsh", args: ["-l"], environment: nil, execName: nil)
+        terminalView.startProcess(executable: Self.loginShellPath, args: ["-l"], environment: nil, execName: nil)
         Self.sendInitialCommands(to: terminalView, path: currentPath, clearFirst: true)
         return terminalView
     }
+
+    /// The user's real login shell (`$SHELL`), falling back to `/bin/zsh` (the macOS default) when
+    /// the environment doesn't carry it.
+    static let loginShellPath = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
 
     /// Deliberately a no-op: the terminal syncs to the current folder only when the drawer opens
     /// (`makeNSView`), never on every navigation — an injected `cd` mid-command would corrupt the
@@ -32,10 +36,10 @@ struct IntegratedTerminalView: NSViewRepresentable {
 
     func makeCoordinator() -> Coordinator {
         if let cached = windowUIState.terminalViewCache.coordinator {
-            cached.parent = self
+            cached.rebind(appState: appState, windowUIState: windowUIState)
             return cached
         }
-        let coordinator = Coordinator(self)
+        let coordinator = Coordinator(appState: appState, windowUIState: windowUIState)
         windowUIState.terminalViewCache.coordinator = coordinator
         return coordinator
     }
@@ -51,10 +55,20 @@ struct IntegratedTerminalView: NSViewRepresentable {
     }
 
     class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
-        var parent: IntegratedTerminalView
+        // Weak: the coordinator is cached on `windowUIState.terminalViewCache`, so holding the
+        // parent struct (which itself retains `appState`/`windowUIState`) strong made a cycle that
+        // only `TerminalViewCache.tearDown()` broke — a missed teardown leaked the whole window.
+        private weak var appState: AppState?
+        private weak var windowUIState: WindowUIState?
 
-        init(_ parent: IntegratedTerminalView) {
-            self.parent = parent
+        init(appState: AppState, windowUIState: WindowUIState) {
+            self.appState = appState
+            self.windowUIState = windowUIState
+        }
+
+        func rebind(appState: AppState, windowUIState: WindowUIState) {
+            self.appState = appState
+            self.windowUIState = windowUIState
         }
 
         func sizeChanged(source _: LocalProcessTerminalView, newCols _: Int, newRows _: Int) { }
@@ -65,12 +79,13 @@ struct IntegratedTerminalView: NSViewRepresentable {
         /// showing a frozen dead terminal with no way back short of toggling the whole drawer.
         /// Restart a fresh shell in the same view, back at the current folder.
         func processTerminated(source _: TerminalView, exitCode _: Int32?) {
-            let parent = parent
+            let appState = appState
+            let windowUIState = windowUIState
             DispatchQueue.main.async {
-                guard let view = parent.windowUIState.terminalViewCache.view else { return }
-                view.startProcess(executable: "/bin/zsh", args: ["-l"], environment: nil, execName: nil)
+                guard let appState, let view = windowUIState?.terminalViewCache.view else { return }
+                view.startProcess(executable: IntegratedTerminalView.loginShellPath, args: ["-l"], environment: nil, execName: nil)
                 IntegratedTerminalView.sendInitialCommands(
-                    to: view, path: parent.appState.navigation.currentURL.path, clearFirst: true)
+                    to: view, path: appState.navigation.currentURL.path, clearFirst: true)
             }
         }
     }

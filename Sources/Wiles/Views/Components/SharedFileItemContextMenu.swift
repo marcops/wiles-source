@@ -55,7 +55,7 @@ struct SharedFileItemContextMenu: View {
         Divider()
         if item.isDirectory {
             Button(appState.tr(.shareFolderWifi)) {
-                windowUIState.httpShareFolderURL = item.url
+                windowUIState.activeModal = .httpShare(item.url)
             }
             FavoriteToggleButton(url: item.url, appState: appState)
             Divider()
@@ -86,7 +86,7 @@ struct SharedFileItemContextMenu: View {
             if isImageFile {
                 Button(appState.tr(.quickConvertImage)) {
                     ensureItemIsSelected()
-                    windowUIState.imageConverterItem = item
+                    windowUIState.activeModal = .imageConverter(item)
                 }
             }
         }
@@ -96,8 +96,8 @@ struct SharedFileItemContextMenu: View {
                     do {
                         let result = try await PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
                         if result.skippedCount > 0 {
-                            appState.showError(WilesError.operationFailed(
-                                reason: "\(result.skippedCount) file(s) could not be added to the PDF."))
+                            appState.showError(WilesError.localized(
+                                key: .pdfMergePartialFailure, arguments: ["\(result.skippedCount)"]))
                         }
                     } catch {
                         appState.showError(error, context: "Merging files into PDF")
@@ -121,14 +121,14 @@ struct SharedFileItemContextMenu: View {
             let ext = url.pathExtension.lowercased()
             return ext == "pdf" || Self.imageFileExtensions.contains(ext)
         }
-        return isEligible && pdfMergeTargets.count >= 1
+        return isEligible && pdfMergeTargets.count >= 2
     }
 
     @ViewBuilder private var archiveAndCompressSection: some View {
         Divider()
         if ArchiveService.isArchive(url: item.url) {
             Button(appState.tr(.inspectArchive)) {
-                windowUIState.inspectArchiveURL = item.url
+                windowUIState.activeModal = .inspectArchive(item.url)
             }
             Button(appState.tr(.extractArchive)) {
                 appState.extractArchive(url: item.url)
@@ -139,7 +139,7 @@ struct SharedFileItemContextMenu: View {
             appState.compressSelectedToZIP()
         }
         Button(appState.tr(.compressWithPassword)) {
-            windowUIState.passwordCompressURLs = itemOrSelectionURLs
+            windowUIState.activeModal = .passwordCompress(itemOrSelectionURLs)
         }
     }
 
@@ -148,7 +148,7 @@ struct SharedFileItemContextMenu: View {
         Button(appState.trWithShortcutHint(.rename, shortcut: renameKeyboardHint)) {
             ensureItemIsSelected()
             if appState.selection.selectedURLs.count > 1 {
-                windowUIState.showBatchRenameSheet = true
+                windowUIState.activeModal = .batchRename
             } else {
                 windowUIState.renameItem = item
             }
@@ -163,7 +163,7 @@ struct SharedFileItemContextMenu: View {
         }
         Button(appState.tr(.createSymlink)) {
             ensureItemIsSelected()
-            windowUIState.symlinkItem = item
+            windowUIState.activeModal = .symlink(item)
         }
         Button(appState.tr(.airDropEllipsis)) {
             if let airDrop = NSSharingService(named: .sendViaAirDrop) {
@@ -173,23 +173,23 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var renameKeyboardHint: String {
-        appState.preferences.navigationMode == .gnome ? "F2" : "Return"
+        appState.preferences.view.navigationMode == .gnome ? "F2" : "Return"
     }
 
     @ViewBuilder private var shareTagsPropertiesSection: some View {
         Divider()
         ShareLink(item: item.url) {
-            Text(appState.tr(.services))
+            Text(appState.tr(.share))
         }
         .labelStyle(.titleOnly)
-        if appState.preferences.showTags {
+        if appState.preferences.sidebar.showTags {
             Menu(appState.tr(.tags)) {
                 tagsMenuContent
             }
         }
         Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {
             ensureItemIsSelected()
-            windowUIState.propertiesItem = item
+            windowUIState.activeModal = .properties(item)
         }
     }
 
@@ -202,7 +202,7 @@ struct SharedFileItemContextMenu: View {
             Divider()
         }
         Button(appState.tr(.selectOtherApp)) {
-            OpenWithService.chooseOtherApplication(toOpen: selectionURLsOrItem, lang: appState.preferences.appLanguage)
+            OpenWithService.chooseOtherApplication(toOpen: selectionURLsOrItem, lang: appState.preferences.appearance.appLanguage)
         }
         if !availableApps.isEmpty, !item.fileExtension.isEmpty {
             Divider()

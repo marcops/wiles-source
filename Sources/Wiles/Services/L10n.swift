@@ -118,6 +118,7 @@ public enum L10n {
         case selectedItemsCount
         case selectedItemsCountWithSize
         case language
+        case languageSystemDefault
         case cancel
         case create
         case createNewFolder
@@ -177,6 +178,11 @@ public enum L10n {
         case tags
         case clearAllTags
         case services
+        case share
+        case pdfMergePartialFailure
+        case batchRenameWouldCollide
+        case batchRenameInvalidPattern
+        case movePartialFailure
 
         case showPreviewSidebar
         case showDiskUsageSidebar
@@ -495,6 +501,10 @@ public enum L10n {
         case wilesErrorInvalidZipPassword
         case wilesErrorFileCreationNotRedoable
         case wilesErrorDestinationExists
+        case batchRenamePartialFailure
+        case fileShredderPartialFailure
+        case pastePartialFailure
+        case symlinkCannotReplaceOwnTarget
         case tooltipFolder
         case tooltipModified
         case tooltipCreated
@@ -552,5 +562,8 @@ public enum L10n {
         case symlinkNameSuffix
         case symlinkNameCollisionWarning
         case symlinkSubtitle
+
+        case searchContentQueryTooShort
+        case searchInvalidRegex
     }
 }

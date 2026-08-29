@@ -25,7 +25,7 @@ struct GoMenuCommands: LocalizedCommands {
                 }
             }
             .keyboardShortcut("l", modifiers: .command)
-            Button(tr(.connectToServerEllipsis)) { windowUIState?.showConnectToServerSheet = true }
+            Button(tr(.connectToServerEllipsis)) { windowUIState?.activeModal = .connectToServer }
                 .keyboardShortcut("k", modifiers: .command)
         }
     }

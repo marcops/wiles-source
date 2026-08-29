@@ -95,7 +95,7 @@ public struct AppStateOperationsExtraTests {
             result: appState.selection.selectedURLs.isEmpty && !windowUIState.showDeletePermanentlyConfirmAlert)
 
         let guardedFile = makeFile(named: "guarded.txt", in: dir)
-        appState.preferences.skipDeleteConfirmation = false
+        appState.preferences.view.skipDeleteConfirmation = false
         appState.selection.selectedURLs = [guardedFile]
         appState.deletePermanentlySelected(windowUIState: windowUIState)
         report(
@@ -104,7 +104,7 @@ public struct AppStateOperationsExtraTests {
             result: windowUIState.showDeletePermanentlyConfirmAlert && FileManager.default.fileExists(atPath: guardedFile.path))
 
         let fileURL = makeFile(named: "to-shred.txt", in: dir)
-        appState.preferences.skipDeleteConfirmation = true
+        appState.preferences.view.skipDeleteConfirmation = true
         appState.selection.selectedURLs = [fileURL]
         appState.deletePermanentlySelected(windowUIState: windowUIState)
         var stillExists = true
@@ -216,7 +216,7 @@ public struct AppStateOperationsExtraTests {
         // the real home directory, and list-view's "auto-select first item when selection is
         // empty" behavior then picks up some unrelated real file, breaking the assertion below.
         appState.navigation.currentURL = dir
-        appState.preferences.viewMode = .grid
+        appState.preferences.view.viewMode = .grid
 
         let fileURL = makeFile(named: "to-trash.txt", in: dir)
         appState.selection.selectedURLs = [fileURL]
@@ -250,7 +250,7 @@ public struct AppStateOperationsExtraTests {
         let bypassAppState = AppState()
         let bypassWindowUIState = WindowUIState(preferences: bypassAppState.preferences)
         bypassAppState.navigation.currentURL = dir
-        bypassAppState.preferences.skipDeleteConfirmation = true
+        bypassAppState.preferences.view.skipDeleteConfirmation = true
         bypassAppState.selection.selectedURLs = [bypassFile]
         bypassAppState.deleteSelected(windowUIState: bypassWindowUIState)
         var bypassFileStillExists = true
@@ -271,7 +271,7 @@ public struct AppStateOperationsExtraTests {
         let keepAppState = AppState()
         let keepWindowUIState = WindowUIState(preferences: keepAppState.preferences)
         keepAppState.navigation.currentURL = dir
-        keepAppState.preferences.skipDeleteConfirmation = false
+        keepAppState.preferences.view.skipDeleteConfirmation = false
         keepAppState.selection.selectedURLs = [keepFile]
         keepAppState.deleteSelected(windowUIState: keepWindowUIState)
         report(

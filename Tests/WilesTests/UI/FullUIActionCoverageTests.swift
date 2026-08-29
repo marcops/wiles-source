@@ -58,12 +58,12 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testTerminalDrawerFlows(appState: AppState) {
-        let initialDrawerState = appState.preferences.showTerminalDrawer
-        appState.preferences.showTerminalDrawer.toggle()
-        report("UI/TerminalDrawer", "POS: Toggling terminal drawer flips state", result: appState.preferences.showTerminalDrawer != initialDrawerState)
+        let initialDrawerState = appState.preferences.view.showTerminalDrawer
+        appState.preferences.view.showTerminalDrawer.toggle()
+        report("UI/TerminalDrawer", "POS: Toggling terminal drawer flips state", result: appState.preferences.view.showTerminalDrawer != initialDrawerState)
 
-        appState.preferences.showTerminalDrawer = initialDrawerState
-        report("UI/TerminalDrawer", "POS: Terminal drawer state restored", result: appState.preferences.showTerminalDrawer == initialDrawerState)
+        appState.preferences.view.showTerminalDrawer = initialDrawerState
+        report("UI/TerminalDrawer", "POS: Terminal drawer state restored", result: appState.preferences.view.showTerminalDrawer == initialDrawerState)
     }
 
     private static func testPropertiesSheetFlows(appState: AppState) {
@@ -73,11 +73,11 @@ public struct FullUIActionCoverageTests {
 
         let windowUIState = WindowUIState(preferences: appState.preferences)
         let item = FileItem.load(url: tempFile, icon: NSWorkspace.shared.icon(forFile: tempFile.path))
-        windowUIState.propertiesItem = item
-        report("UI/Properties", "POS: Opening PropertiesSheet sets propertiesItem", result: windowUIState.propertiesItem != nil)
+        windowUIState.activeModal = .properties(item)
+        report("UI/Properties", "POS: Opening PropertiesSheet sets activeModal to .properties", result: windowUIState.activeModal == .properties(item))
 
-        windowUIState.propertiesItem = nil
-        report("UI/Properties", "NEG: Setting propertiesItem to nil closes sheet", result: windowUIState.propertiesItem == nil)
+        windowUIState.activeModal = nil
+        report("UI/Properties", "NEG: Clearing activeModal closes sheet", result: windowUIState.activeModal == nil)
     }
 
     private static func testNewFolderSheetFlows(appState _: AppState) {
@@ -112,25 +112,28 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testModalSheetsCoverage(windowUIState: WindowUIState) {
-        windowUIState.showSaveSmartFolderSheet = true
-        report("UI/Modals", "POS: showSaveSmartFolderSheet sets flag", result: windowUIState.showSaveSmartFolderSheet)
-        windowUIState.showSaveSmartFolderSheet = false
+        windowUIState.activeModal = .saveSmartFolder
+        report("UI/Modals", "POS: activeModal = .saveSmartFolder", result: windowUIState.activeModal == .saveSmartFolder)
 
-        windowUIState.passwordCompressURLs = [URL(fileURLWithPath: "/tmp")]
-        report("UI/Modals", "POS: passwordCompressURLs sets payload", result: windowUIState.passwordCompressURLs != nil)
-        windowUIState.passwordCompressURLs = nil
+        windowUIState.activeModal = .passwordCompress([URL(fileURLWithPath: "/tmp")])
+        report(
+            "UI/Modals",
+            "POS: activeModal carries passwordCompress payload",
+            result: windowUIState.activeModal == .passwordCompress([URL(fileURLWithPath: "/tmp")]))
 
-        windowUIState.inspectArchiveURL = URL(fileURLWithPath: "/tmp")
-        report("UI/Modals", "POS: inspectArchiveURL sets payload", result: windowUIState.inspectArchiveURL != nil)
-        windowUIState.inspectArchiveURL = nil
+        windowUIState.activeModal = .inspectArchive(URL(fileURLWithPath: "/tmp"))
+        report(
+            "UI/Modals",
+            "POS: activeModal carries inspectArchive payload",
+            result: windowUIState.activeModal == .inspectArchive(URL(fileURLWithPath: "/tmp")))
 
-        windowUIState.showHelpSheet = true
-        report("UI/Modals", "POS: showHelpSheet sets flag", result: windowUIState.showHelpSheet)
-        windowUIState.showHelpSheet = false
+        windowUIState.activeModal = .help
+        report("UI/Modals", "POS: activeModal = .help", result: windowUIState.activeModal == .help)
 
-        windowUIState.showAboutSheet = true
-        report("UI/Modals", "POS: showAboutSheet sets flag", result: windowUIState.showAboutSheet)
-        windowUIState.showAboutSheet = false
+        windowUIState.activeModal = .about
+        report("UI/Modals", "POS: activeModal = .about", result: windowUIState.activeModal == .about)
+
+        windowUIState.activeModal = nil
     }
 
     private static func testConnectToServerSheetFlows(appState _: AppState) {

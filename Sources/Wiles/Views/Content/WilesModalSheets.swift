@@ -1,54 +1,70 @@
 import SwiftUI
 
-/// The window's full set of modal sheet/alert presentations — Properties, Help, Feedback, About,
-/// Settings, Auto-Organization, Duplicate Cleaner, HTTP Share, Image Converter, Batch Rename,
-/// Connect to Server, Symlink, Save Smart Folder, Password Compress, Archive Inspection, the Empty
-/// Trash confirm, the Move to Trash confirm, and the generic error alert. Extracted out of
-/// `MainContentView.mainSplitView` into its own `ViewModifier` purely to keep that computed
-/// property under this project's ~30-line body-decomposition guideline (see
-/// `.agents/SWIFT_LANG_RULES.md`). This is pure code motion: every sheet/alert's triggering
-/// condition, binding, and content are unchanged from before the extraction.
+/// The window's modal presentations. One `.sheet(item:)` bound to `WindowUIState.activeModal`
+/// switches on `ActiveModal` to build the right feature sheet; confirmation alerts and the move
+/// name-collision prompt live in `WilesModalAlerts`. Extracted out of `MainContentView` to keep
+/// that view's body under this project's body-decomposition guideline.
 struct WilesModalSheets: ViewModifier {
     let appState: AppState
     let windowUIState: WindowUIState
 
     func body(content: Content) -> some View {
-        @Bindable var appState = appState
         @Bindable var windowUIState = windowUIState
         content
-            .sheet(item: $windowUIState.propertiesItem) { item in
-                FilePropertiesSheet(item: item, appState: appState)
+            .sheet(item: $windowUIState.activeModal) { modal in
+                sheet(for: modal)
             }
-            .sheet(isPresented: $windowUIState.showHelpSheet) {
-                HelpSheet(appState: appState)
-            }
-            .sheet(isPresented: $windowUIState.showFeedbackSheet) {
-                FeedbackSheetView(appState: appState)
-            }
-            .sheet(isPresented: $windowUIState.showAboutSheet) {
-                AboutSheet(appState: appState)
-            }
-            .sheet(isPresented: $windowUIState.showSettingsSheet) {
-                SettingsView(appState: appState)
-            }
-            .sheet(isPresented: $windowUIState.showAutoOrganizationSheet) {
-                AutoOrganizationSheet(appState: appState)
-            }
-            .sheet(isPresented: $windowUIState.showDuplicateCleanerSheet) {
-                DuplicateCleanerSheetView(appState: appState)
-            }
-            .sheet(isPresented: Binding(
-                get: { windowUIState.httpShareFolderURL != nil },
-                set: {
-                    if !$0 {
-                        windowUIState.httpShareFolderURL = nil
-                    }
-                })) {
-                    if let url = windowUIState.httpShareFolderURL {
-                        HttpShareSheet(appState: appState, folderURL: url)
-                    }
-            }
-            .modifier(WilesModalSheetsSecondary(appState: appState, windowUIState: windowUIState))
             .modifier(WilesModalAlerts(appState: appState, windowUIState: windowUIState))
+    }
+
+    @ViewBuilder
+    private func sheet(for modal: ActiveModal) -> some View {
+        switch modal {
+        case let .properties(item):
+            FilePropertiesSheet(item: item, appState: appState)
+        case let .imageConverter(item):
+            ImageConverterSheetView(item: item, appState: appState)
+        case let .symlink(item):
+            SymlinkSheetView(item: item, appState: appState)
+        case let .httpShare(url):
+            HttpShareSheet(appState: appState, folderURL: url)
+        case let .inspectArchive(url):
+            ArchiveInspectionSheetView(archiveURL: url, appState: appState)
+        case let .passwordCompress(urls):
+            PasswordCompressSheetView(appState: appState, urls: urls)
+        case .batchRename, .connectToServer, .autoOrganization, .duplicateCleaner,
+             .saveSmartFolder, .help, .feedback, .about, .settings:
+            payloadFreeSheet(for: modal)
+        }
+    }
+
+    @ViewBuilder
+    private func payloadFreeSheet(for modal: ActiveModal) -> some View {
+        switch modal {
+        case .batchRename:
+            BatchRenameSheetView(items: selectedItems, appState: appState)
+        case .connectToServer:
+            ConnectToServerSheetView(appState: appState)
+        case .autoOrganization:
+            AutoOrganizationSheet(appState: appState)
+        case .duplicateCleaner:
+            DuplicateCleanerSheetView(appState: appState)
+        case .saveSmartFolder:
+            SaveSmartFolderSheetView(appState: appState)
+        case .help:
+            HelpSheet(appState: appState)
+        case .feedback:
+            FeedbackSheetView(appState: appState)
+        case .about:
+            AboutSheet(appState: appState)
+        case .settings:
+            SettingsView(appState: appState)
+        default:
+            EmptyView()
+        }
+    }
+
+    private var selectedItems: [FileItem] {
+        appState.fileSystem.items.filter { appState.selection.selectedURLs.contains($0.url) }
     }
 }

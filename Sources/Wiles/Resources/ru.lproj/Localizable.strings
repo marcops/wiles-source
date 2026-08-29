@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "Заменить";
 "moveCollisionKeepBoth" = "Оставить оба";
 "moveCollisionApplyToAll" = "Применить ко всем";
+"languageSystemDefault" = "Системный язык";
+"batchRenamePartialFailure" = "Переименовано {0} из {1} объектов. Ошибка — {2}";
+"fileShredderPartialFailure" = "Завершено {0} из {1} объектов. Ошибка — {2}";
+"pastePartialFailure" = "Не удалось вставить {0} из {1} объектов.";
+"symlinkCannotReplaceOwnTarget" = "Невозможно создать символическую ссылку, которая заменила бы собственную цель.";
+"share" = "Поделиться…";
+"pdfMergePartialFailure" = "Не удалось добавить {0} файл(ов) в PDF.";
+"batchRenameWouldCollide" = "Пакетное переименование привело бы к конфликтам имён: {0}";
+"batchRenameInvalidPattern" = "Недопустимый шаблон переименования: {0}";
+"movePartialFailure" = "Не удалось переместить {0} из {1} объектов.";
+"searchContentQueryTooShort" = "Введите не менее 3 символов для поиска внутри файлов.";
+"searchInvalidRegex" = "Это регулярное выражение недопустимо.";

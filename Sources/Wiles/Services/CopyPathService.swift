@@ -22,7 +22,7 @@ public final class CopyPathService: Sendable {
         case .fileURL:
             url.standardizedFileURL.absoluteString
         case .terminalEscaped:
-            escapeForTerminal(url.standardizedFileURL.path)
+            posixSingleQuoted(url.standardizedFileURL.path)
         }
     }
 
@@ -40,19 +40,10 @@ public final class CopyPathService: Sendable {
         return targetPath
     }
 
-    /// Backslash-escapes shell metacharacters for use as an **unquoted** token (the "copy path,
-    /// terminal-escaped" menu item). Do not also wrap the result in quotes — use
-    /// `posixSingleQuoted` for that case instead.
-    public static func escapeForTerminal(_ path: String) -> String {
-        let specialChars = ["\\", " ", "\t", "(", ")", "[", "]", "{", "}", "'", "\"", "&", "$", "|", ";", "*", "?", "<", ">", "#", "!", "`"]
-        return specialChars.reduce(path) { result, char in
-            result.replacingOccurrences(of: char, with: "\\" + char)
-        }
-    }
-
-    /// Wraps a raw string in POSIX single quotes, so every character inside is literal. The only
-    /// escaping needed is for an embedded `'`, closed and reopened as `'\''`. Use this when the
-    /// value goes into a quoted position (e.g. `cd '<path>'`), never `escapeForTerminal`.
+    /// Wraps a raw string in POSIX single quotes, so every character inside is literal — including
+    /// `~`, spaces, and embedded newlines that a backslash-escaped unquoted token can't represent.
+    /// The only escaping needed is an embedded `'`, closed and reopened as `'\''`. Backs both the
+    /// integrated terminal's `cd '<path>'` and the "copy path, terminal-escaped" menu item.
     public static func posixSingleQuoted(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }

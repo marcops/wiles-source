@@ -103,7 +103,7 @@ struct FilePropertiesSheet: View {
                 }
                 propertyRow(label: appState.tr(.size), value: item.formattedSize)
                 propertyRow(label: appState.tr(.location), value: item.url.deletingLastPathComponent().path, wraps: true)
-                propertyRow(label: appState.tr(.dateModified), value: item.formattedDate(language: appState.preferences.appLanguage))
+                propertyRow(label: appState.tr(.dateModified), value: item.formattedDate(language: appState.preferences.appearance.appLanguage))
             }
             .padding(.top, 8)
         } label: {

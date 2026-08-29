@@ -12,7 +12,7 @@ struct AppearanceSettingsView: View {
         @Bindable var appState = appState
         return Form {
             Section(appState.tr(.settingsThemeSection)) {
-                Picker(appState.tr(.theme), selection: $appState.preferences.appAppearance) {
+                Picker(appState.tr(.theme), selection: $appState.preferences.appearance.appAppearance) {
                     ForEach(AppAppearance.allCases) { appearance in
                         Text(appState.tr(appearance.l10nKey)).tag(appearance)
                     }
@@ -21,8 +21,8 @@ struct AppearanceSettingsView: View {
             }
 
             Section(appState.tr(.settingsTranslucencySection)) {
-                translucencyPicker(appState.tr(.sidebarTranslucentLevel), level: $appState.preferences.sidebarTranslucentLevel)
-                translucencyPicker(appState.tr(.contentTranslucentLevel), level: $appState.preferences.contentTranslucentLevel)
+                translucencyPicker(appState.tr(.sidebarTranslucentLevel), level: $appState.preferences.appearance.sidebarTranslucentLevel)
+                translucencyPicker(appState.tr(.contentTranslucentLevel), level: $appState.preferences.appearance.contentTranslucentLevel)
             }
         }
         .formStyle(.grouped)

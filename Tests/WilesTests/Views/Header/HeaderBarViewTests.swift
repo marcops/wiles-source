@@ -9,7 +9,7 @@ public struct HeaderBarViewTests {
         report(
             "View/HeaderBarView",
             "POS: HeaderBarView initializes with appState",
-            result: view.appState.preferences.viewMode == appState.preferences.viewMode)
+            result: view.appState.preferences.view.viewMode == appState.preferences.view.viewMode)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

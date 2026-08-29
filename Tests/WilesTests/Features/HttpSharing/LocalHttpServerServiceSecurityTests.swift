@@ -13,6 +13,18 @@ extension HttpSharingFeatureTests {
         await testFragmentedRequestHeadIsAccumulatedBeforeParsing()
         await testOversizedRequestHeadReturns431()
         await testNestedSubfolderIsListedNotStreamed()
+        testRequestPathRejectsNulByteAndEmptyComponents()
+    }
+
+    /// `isSafeRequestPath` rejects a decoded path with a NUL byte or an interior empty component,
+    /// before it reaches `appendingPathComponent` / the C-API file open.
+    private static func testRequestPathRejectsNulByteAndEmptyComponents() {
+        let safe = ["/", "/file.txt", "/sub/file.txt", "/sub/", "/a b/c.txt"]
+        let unsafe = ["/file\u{0}.txt", "//file.txt", "/a//b.txt", "/\u{0}"]
+        let allSafePass = safe.allSatisfy { LocalHttpServerService.isSafeRequestPath($0) }
+        let allUnsafeRejected = unsafe.allSatisfy { !LocalHttpServerService.isSafeRequestPath($0) }
+        report("Feature/HttpSharing", "POS: isSafeRequestPath accepts well-formed request paths", result: allSafePass)
+        report("Feature/HttpSharing", "NEG: isSafeRequestPath rejects NUL bytes and empty path components", result: allUnsafeRejected)
     }
 
     // MARK: - Nested subfolder listing (M12 regression)

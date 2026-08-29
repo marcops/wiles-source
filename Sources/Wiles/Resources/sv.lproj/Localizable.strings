@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "Ersätt";
 "moveCollisionKeepBoth" = "Behåll båda";
 "moveCollisionApplyToAll" = "Använd på alla";
+"languageSystemDefault" = "Systemstandard";
+"batchRenamePartialFailure" = "{0} av {1} objekt omdöpta. Misslyckades — {2}";
+"fileShredderPartialFailure" = "{0} av {1} objekt slutförda. Misslyckades — {2}";
+"pastePartialFailure" = "{0} av {1} objekt kunde inte klistras in.";
+"symlinkCannotReplaceOwnTarget" = "Det går inte att skapa en symbolisk länk som skulle ersätta sitt eget mål.";
+"share" = "Dela…";
+"pdfMergePartialFailure" = "{0} fil(er) kunde inte läggas till i PDF:en.";
+"batchRenameWouldCollide" = "Massomdöpning skulle skapa namnkonflikter: {0}";
+"batchRenameInvalidPattern" = "Ogiltigt mönster för omdöpning: {0}";
+"movePartialFailure" = "{0} av {1} objekt kunde inte flyttas.";
+"searchContentQueryTooShort" = "Skriv minst 3 tecken för att söka i filer.";
+"searchInvalidRegex" = "Det reguljära uttrycket är ogiltigt.";

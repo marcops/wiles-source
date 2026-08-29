@@ -247,7 +247,9 @@ public final class ArchiveService: Sendable {
 
     private static func entryEscapesDestination(_ entry: String) -> Bool {
         let normalized = entry.replacingOccurrences(of: "\\", with: "/")
-        if normalized.hasPrefix("/") { return true }
+        if normalized.hasPrefix("/") {
+            return true
+        }
         return normalized.split(separator: "/", omittingEmptySubsequences: false).contains("..")
     }
 

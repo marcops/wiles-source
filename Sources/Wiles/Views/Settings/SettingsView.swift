@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Presented as a sheet (`windowUIState.showSettingsSheet`, wired in `MainContentView`, triggered
+/// Presented as a sheet (`windowUIState.activeModal = .settings`, wired in `MainContentView`, triggered
 /// from the App menu's `⌘,` item in `WilesApp.swift`) rather than a `Settings { }` scene — a real
 /// scene always comes with its own native title bar/traffic-light window chrome, which fought this
 /// header/footer chrome no matter how it was stripped. A sheet has none of that chrome to begin

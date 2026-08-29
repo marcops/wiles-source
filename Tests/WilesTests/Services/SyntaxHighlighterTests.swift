@@ -24,7 +24,6 @@ public struct SyntaxHighlighterTests {
         await testPythonExtensionIsHighlighted()
 
         await testYmlExtensionWithNoMatchingTokensStaysSingleRun()
-
     }
 
     private static func testEmptyContentReturnsEmpty() async {

@@ -10,6 +10,6 @@ protocol LocalizedCommands: Commands {
 
 extension LocalizedCommands {
     func tr(_ key: L10n.Key) -> String {
-        L10n.string(key, lang: sharedPreferences.appLanguage)
+        L10n.string(key, lang: sharedPreferences.appearance.appLanguage)
     }
 }

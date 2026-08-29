@@ -2,6 +2,10 @@ import AppKit
 import SwiftUI
 
 struct PreviewSidebarView: View {
+    private static let minWidth: CGFloat = 200
+    private static let idealWidth: CGFloat = 250
+    private static let maxWidth: CGFloat = 350
+
     var appState: AppState
     @Environment(WindowUIState.self)
     private var windowUIState
@@ -19,11 +23,11 @@ struct PreviewSidebarView: View {
                     Text("\(appState.selection.selectedURLs.count) \(appState.tr(.itemsSelectedSuffix))").foregroundColor(.secondary)
                 }
             }
-            .frame(minWidth: 200, idealWidth: 250, maxWidth: 350)
+            .frame(minWidth: Self.minWidth, idealWidth: Self.idealWidth, maxWidth: Self.maxWidth)
         }
-        .frame(minWidth: 200, idealWidth: 250, maxWidth: 350, maxHeight: .infinity)
+        .frame(minWidth: Self.minWidth, idealWidth: Self.idealWidth, maxWidth: Self.maxWidth, maxHeight: .infinity)
         .padding()
-        .translucentBackground(material: .sidebar, opacity: appState.preferences.sidebarOverlayOpacity)
+        .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.sidebarOverlayOpacity)
         .task(id: appState.selection.selectedURLs) {
             detailedProps = nil
             resolvedItem = nil
@@ -52,7 +56,7 @@ struct PreviewSidebarView: View {
                 Spacer()
 
                 Button(appState.tr(.moreInfo)) {
-                    windowUIState.propertiesItem = item
+                    windowUIState.activeModal = .properties(item)
                 }
                 .buttonStyle(.link)
                 .accessibilityLabel(appState.tr(.moreInfo))
@@ -73,7 +77,7 @@ struct PreviewSidebarView: View {
             if let dur = detailedProps?.duration {
                 propertyRow(label: appState.tr(.duration), value: dur)
             }
-            propertyRow(label: appState.tr(.dateModified), value: item.formattedDate(language: appState.preferences.appLanguage))
+            propertyRow(label: appState.tr(.dateModified), value: item.formattedDate(language: appState.preferences.appearance.appLanguage))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

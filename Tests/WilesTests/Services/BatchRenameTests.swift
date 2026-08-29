@@ -73,6 +73,17 @@ public struct BatchRenameTests {
             "POS: previewNewNames(.regex) applies a valid pattern substitution",
             result: regexPreview.first?.newName == "file_ALPHA.txt")
 
+        // POS: the regex is compiled once for the whole batch and applied to every item (M82).
+        let img1 = FileItem.load(url: tempDir.appendingPathComponent("IMG_001.txt"))
+        let img2 = FileItem.load(url: tempDir.appendingPathComponent("IMG_002.txt"))
+        let note = FileItem.load(url: tempDir.appendingPathComponent("note.txt"))
+        let batch = BatchRenameService.previewNewNames(
+            items: [img1, img2, note], mode: .regex(pattern: "IMG_", template: "photo-"))
+        TestReporter.report(
+            "BatchRename",
+            "POS: previewNewNames(.regex) applies one compiled pattern across every item",
+            result: batch.map(\.newName) == ["photo-001.txt", "photo-002.txt", "note.txt"])
+
         // NEG: regex mode with an empty pattern leaves the name unchanged
         let regexEmptyPreview = BatchRenameService.previewNewNames(items: [fileItem1], mode: .regex(pattern: "", template: "X"))
         TestReporter.report(

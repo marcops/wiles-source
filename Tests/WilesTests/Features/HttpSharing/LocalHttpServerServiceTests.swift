@@ -38,8 +38,47 @@ public struct HttpSharingFeatureTests {
         // C2 (stored XSS) + M11 (fragmented/oversized request head) regressions — see
         // LocalHttpServerServiceSecurityTests.swift (split out to keep this file under the length cap).
         await runSecurityAndRobustnessChecks()
+        testFirstAvailablePortSkipsAnOccupiedPort()
 
         server.stop()
+    }
+
+    /// `firstAvailablePort` walks the range and returns the first port a socket can bind; a port
+    /// held by another listener is skipped rather than handed back.
+    private static func testFirstAvailablePortSkipsAnOccupiedPort() {
+        // Grab a free port dynamically, then occupy it and confirm the scan steps over it.
+        guard let free = LocalHttpServerService.firstAvailablePort(in: 8080 ... 8089) else {
+            report("Feature/HttpSharing", "SKIP: no free port in 8080–8089 to run the port-scan test", result: true)
+            return
+        }
+        let occupiedValue = free.rawValue
+        let sock = socket(AF_INET, SOCK_STREAM, 0)
+        guard sock >= 0 else {
+            report("Feature/HttpSharing", "SKIP: could not open a socket to occupy a port", result: true)
+            return
+        }
+        defer { close(sock) }
+        var reuse: Int32 = 1
+        _ = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = occupiedValue.bigEndian
+        addr.sin_addr.s_addr = INADDR_ANY
+        let bound = withUnsafePointer(to: &addr) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPointer in
+                bind(sock, sockaddrPointer, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
+        }
+        guard bound == 0 else {
+            report("Feature/HttpSharing", "SKIP: could not bind the chosen port to occupy it", result: true)
+            return
+        }
+
+        let next = LocalHttpServerService.firstAvailablePort(in: occupiedValue ... 8089)
+        report(
+            "Feature/HttpSharing",
+            "POS: firstAvailablePort skips a port that is already bound and returns a later free one",
+            result: next != nil && next!.rawValue != occupiedValue)
     }
 
     // MARK: - Authorization header present but not "Basic " (isAuthorized guard branch)

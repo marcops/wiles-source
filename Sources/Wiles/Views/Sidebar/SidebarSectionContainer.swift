@@ -16,7 +16,7 @@ struct SidebarSectionContainer<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if !hideHeader, appState.preferences.showSidebarSectionTitles {
+            if !hideHeader, appState.preferences.sidebar.showSidebarSectionTitles {
                 SidebarSectionHeaderView(title: title, identifierKey: identifierKey, appState: appState, isExpanded: $isExpanded, hideAction: hideAction)
             }
             if shouldShowContent {
@@ -26,6 +26,6 @@ struct SidebarSectionContainer<Content: View>: View {
     }
 
     private var shouldShowContent: Bool {
-        forceShowContent || !appState.preferences.showSidebarSectionTitles || isExpanded
+        forceShowContent || !appState.preferences.sidebar.showSidebarSectionTitles || isExpanded
     }
 }

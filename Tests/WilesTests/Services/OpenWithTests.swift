@@ -37,6 +37,37 @@ public struct OpenWithTests {
         testSetDefaultApplicationWithValidExtensionAndBogusAppURL()
         testApplicationsAreDeduplicatedByBundleID()
         testOpenWithNonEmptyURLsCallsThroughToTheInjectedOpener()
+        testAvailableApplicationsAreMemoizedByExtension()
+    }
+
+    /// The per-extension memo returns the same list for two files of the same type and is dropped
+    /// by `invalidateApplicationsCache()`.
+    private static func testAvailableApplicationsAreMemoizedByExtension() {
+        OpenWithService.invalidateApplicationsCache()
+        let dir = URL(fileURLWithPath: testTemporaryDirectory())
+        let memoA = dir.appendingPathComponent("memo-a.txt")
+        let memoB = dir.appendingPathComponent("memo-b.txt")
+        try? "x".write(to: memoA, atomically: true, encoding: .utf8)
+        try? "y".write(to: memoB, atomically: true, encoding: .utf8)
+        defer {
+            try? FileManager.default.removeItem(at: memoA)
+            try? FileManager.default.removeItem(at: memoB)
+            OpenWithService.invalidateApplicationsCache()
+        }
+
+        let first = OpenWithService.availableApplications(for: memoA).map(\.id)
+        let second = OpenWithService.availableApplications(for: memoB).map(\.id)
+        TestReporter.report(
+            "OpenWith",
+            "POS: availableApplications returns the same memoized list for two files of the same extension",
+            result: first == second)
+
+        OpenWithService.invalidateApplicationsCache()
+        let afterInvalidate = OpenWithService.availableApplications(for: memoA).map(\.id)
+        TestReporter.report(
+            "OpenWith",
+            "POS: the extension memo still yields the same result after invalidateApplicationsCache()",
+            result: afterInvalidate == first)
     }
 
     // POS: open(urls:with:) with a non-empty urls array passes the guard and reaches the real

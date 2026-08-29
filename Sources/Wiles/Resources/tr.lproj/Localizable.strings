@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "Değiştir";
 "moveCollisionKeepBoth" = "İkisini de tut";
 "moveCollisionApplyToAll" = "Tümüne uygula";
+"languageSystemDefault" = "Sistem Varsayılanı";
+"batchRenamePartialFailure" = "{1} öğeden {0} tanesi yeniden adlandırıldı. Başarısız — {2}";
+"fileShredderPartialFailure" = "{1} öğeden {0} tanesi tamamlandı. Başarısız — {2}";
+"pastePartialFailure" = "{1} öğeden {0} tanesi yapıştırılamadı.";
+"symlinkCannotReplaceOwnTarget" = "Kendi hedefini değiştirecek bir sembolik bağlantı oluşturulamaz.";
+"share" = "Paylaş…";
+"pdfMergePartialFailure" = "{0} dosya PDF'ye eklenemedi.";
+"batchRenameWouldCollide" = "Toplu yeniden adlandırma ad çakışmalarına neden olur: {0}";
+"batchRenameInvalidPattern" = "Geçersiz yeniden adlandırma deseni: {0}";
+"movePartialFailure" = "{1} öğeden {0} tanesi taşınamadı.";
+"searchContentQueryTooShort" = "Dosya içeriğinde aramak için en az 3 karakter girin.";
+"searchInvalidRegex" = "Bu düzenli ifade geçerli değil.";

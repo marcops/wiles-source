@@ -66,12 +66,16 @@ public final class TrashState {
             guard let enumerator = FileManager.default.enumerator(
                 at: directory, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]) else { continue }
             while let fileURL = enumerator.nextObject() as? URL {
-                if Task.isCancelled { return .cancelled }
+                if Task.isCancelled {
+                    return .cancelled
+                }
                 if let res = try? fileURL.resourceValues(forKeys: Set(keys)), !(res.isDirectory ?? true), let size = res.fileSize {
                     totalSize += Int64(size)
                 }
             }
-            if Task.isCancelled { return .cancelled }
+            if Task.isCancelled {
+                return .cancelled
+            }
         }
         return .success(totalSize)
     }

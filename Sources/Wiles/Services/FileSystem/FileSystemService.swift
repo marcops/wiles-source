@@ -211,7 +211,9 @@ public struct FileSystemService: Sendable {
     private static func isFileHidden(fileURL: URL, showHidden: Bool) -> Bool {
         guard !showHidden else { return false }
         // Fast path: skip the stat for dotfiles during recursive enumeration.
-        if fileURL.lastPathComponent.hasPrefix(".") { return true }
+        if fileURL.lastPathComponent.hasPrefix(".") {
+            return true
+        }
         return FileItem.isHidden(
             url: fileURL,
             isHiddenResourceValue: try? fileURL.resourceValues(forKeys: [.isHiddenKey]).isHidden)
@@ -252,7 +254,11 @@ public struct FileSystemService: Sendable {
         var high = sorted.count
         while low < high {
             let mid = (low + high) / 2
-            if isOrderedBefore(sorted[mid], item) { low = mid + 1 } else { high = mid }
+            if isOrderedBefore(sorted[mid], item) {
+                low = mid + 1
+            } else {
+                high = mid
+            }
         }
         return low
     }

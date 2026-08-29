@@ -49,6 +49,7 @@ final class WilesAutomatedTests: XCTestCase {
         ModalStoreTests.run()
         SelectionStoreTests.run()
         WindowUIStateTests.run()
+        ActiveModalTests.run()
         PreferencesStoreTests.run()
         PreferencesStoreExtraTests.run()
     }
@@ -316,5 +317,10 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testTagColorTests() {
         TagColorTests.run()
+    }
+
+    @MainActor
+    func testSystemTagsServiceTests() {
+        SystemTagsServiceTests.run()
     }
 }

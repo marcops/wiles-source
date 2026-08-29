@@ -24,17 +24,17 @@ public struct PreferencesStoreExtraTests {
         report(
             "Models/PreferencesStore",
             "NEG: keysToEvict returns nothing when under the cap",
-            result: PreferencesStore.keysToEvict(current: Set([1, 2, 3]), previous: Set([1, 2]), cap: 5).isEmpty)
+            result: ViewPreferences.keysToEvict(current: Set([1, 2, 3]), previous: Set([1, 2]), cap: 5).isEmpty)
 
         let old: Set = [1, 2, 3, 4]
         let current: Set = [1, 2, 3, 4, 5, 6] // 5,6 just added
-        let evicted = Set(PreferencesStore.keysToEvict(current: current, previous: old, cap: 4))
+        let evicted = Set(ViewPreferences.keysToEvict(current: current, previous: old, cap: 4))
         report(
             "Models/PreferencesStore",
             "POS: keysToEvict trims exactly the overflow, taking from the old baseline first",
             result: evicted.count == 2 && evicted.isSubset(of: old))
 
-        let evictedIntoNew = Set(PreferencesStore.keysToEvict(current: [1, 2, 3, 4, 5], previous: [1], cap: 2))
+        let evictedIntoNew = Set(ViewPreferences.keysToEvict(current: [1, 2, 3, 4, 5], previous: [1], cap: 2))
         report(
             "Models/PreferencesStore",
             "POS: keysToEvict falls back to the just-added batch when the old baseline can't cover the overflow",
@@ -86,23 +86,23 @@ public struct PreferencesStoreExtraTests {
         }
 
         let store = PreferencesStore()
-        store.trailingInspector = .preview
-        report("Store/PreferencesStore", "POS: trailingInspector holds .preview", result: store.trailingInspector == .preview)
+        store.view.trailingInspector = .preview
+        report("Store/PreferencesStore", "POS: trailingInspector holds .preview", result: store.view.trailingInspector == .preview)
 
-        store.trailingInspector = .diskUsage
+        store.view.trailingInspector = .diskUsage
         report(
             "Store/PreferencesStore",
             "POS: setting .diskUsage after .preview leaves only .diskUsage (both-on is unrepresentable)",
-            result: store.trailingInspector == .diskUsage)
+            result: store.view.trailingInspector == .diskUsage)
 
-        store.trailingInspector = .none
-        report("Store/PreferencesStore", "NEG: trailingInspector can be cleared back to .none", result: store.trailingInspector == .none)
+        store.view.trailingInspector = .none
+        report("Store/PreferencesStore", "NEG: trailingInspector can be cleared back to .none", result: store.view.trailingInspector == .none)
 
-        store.trailingInspector = .diskUsage
+        store.view.trailingInspector = .diskUsage
         report(
             "Store/PreferencesStore",
             "POS: trailingInspector round-trips through UserDefaults into a fresh store",
-            result: PreferencesStore().trailingInspector == .diskUsage)
+            result: PreferencesStore().view.trailingInspector == .diskUsage)
     }
 
     /// `loadTrailingInspector` migrates a pre-enum install: with only the legacy
@@ -128,13 +128,13 @@ public struct PreferencesStoreExtraTests {
         report(
             "Store/PreferencesStore",
             "POS: no trailing-inspector keys at all restores .none",
-            result: PreferencesStore().trailingInspector == .none)
+            result: PreferencesStore().view.trailingInspector == .none)
 
         UserDefaults.standard.set(true, forKey: legacyPreview)
         report(
             "Store/PreferencesStore",
             "POS: legacy wiles_showPreviewSidebar=true (no new key) migrates to .preview",
-            result: PreferencesStore().trailingInspector == .preview)
+            result: PreferencesStore().view.trailingInspector == .preview)
 
         // The migration above writes the new key via `trailingInspector`'s didSet — clear it so the
         // next sub-case genuinely tests the legacy fallback, not the just-migrated value.
@@ -144,13 +144,13 @@ public struct PreferencesStoreExtraTests {
         report(
             "Store/PreferencesStore",
             "POS: legacy wiles_showDiskUsageSidebar=true (no new key) migrates to .diskUsage",
-            result: PreferencesStore().trailingInspector == .diskUsage)
+            result: PreferencesStore().view.trailingInspector == .diskUsage)
 
         UserDefaults.standard.set(TrailingInspector.none.rawValue, forKey: newKey)
         report(
             "Store/PreferencesStore",
             "POS: an explicit new-key value wins over a conflicting legacy bool",
-            result: PreferencesStore().trailingInspector == .none)
+            result: PreferencesStore().view.trailingInspector == .none)
     }
 
     // MARK: - translucentLevel computed property
@@ -176,11 +176,11 @@ public struct PreferencesStoreExtraTests {
         }
 
         let store = PreferencesStore()
-        store.translucentLevel = 55
+        store.appearance.translucentLevel = 55
         report(
             "Store/PreferencesStore",
             "POS: setting translucentLevel updates both sidebarTranslucentLevel and contentTranslucentLevel",
-            result: store.sidebarTranslucentLevel == 55 && store.contentTranslucentLevel == 55 && store.translucentLevel == 55)
+            result: store.appearance.sidebarTranslucentLevel == 55 && store.appearance.contentTranslucentLevel == 55 && store.appearance.translucentLevel == 55)
     }
 
     // MARK: - overlay opacity light-mode halving
@@ -213,16 +213,16 @@ public struct PreferencesStoreExtraTests {
         }
 
         let store = PreferencesStore()
-        store.sidebarTranslucentLevel = 0
-        store.contentTranslucentLevel = 0
+        store.appearance.sidebarTranslucentLevel = 0
+        store.appearance.contentTranslucentLevel = 0
 
-        store.appAppearance = .dark
-        let darkSidebarOpacity = store.sidebarOverlayOpacity
-        let darkContentOpacity = store.contentOverlayOpacity
+        store.appearance.appAppearance = .dark
+        let darkSidebarOpacity = store.appearance.sidebarOverlayOpacity
+        let darkContentOpacity = store.appearance.contentOverlayOpacity
 
-        store.appAppearance = .light
-        let lightSidebarOpacity = store.sidebarOverlayOpacity
-        let lightContentOpacity = store.contentOverlayOpacity
+        store.appearance.appAppearance = .light
+        let lightSidebarOpacity = store.appearance.sidebarOverlayOpacity
+        let lightContentOpacity = store.appearance.contentOverlayOpacity
 
         report(
             "Store/PreferencesStore",
@@ -255,14 +255,14 @@ public struct PreferencesStoreExtraTests {
         report(
             "Store/PreferencesStore",
             "POS: perFolderViewModes falls back to an empty dictionary when nothing is saved",
-            result: emptyStore.perFolderViewModes.isEmpty)
+            result: emptyStore.view.perFolderViewModes.isEmpty)
 
         UserDefaults.standard.set(["/tmp/foo": "list"], forKey: key)
         let seededStore = PreferencesStore()
         report(
             "Store/PreferencesStore",
             "POS: perFolderViewModes loads a previously saved dictionary",
-            result: seededStore.perFolderViewModes["/tmp/foo"] == "list")
+            result: seededStore.view.perFolderViewModes["/tmp/foo"] == "list")
     }
 
     // MARK: - loadEnum with an unrecognized saved raw value
@@ -285,7 +285,7 @@ public struct PreferencesStoreExtraTests {
         report(
             "Store/PreferencesStore",
             "NEG: an unrecognized saved sortOption raw value is ignored, leaving the default (.name)",
-            result: store.sortOption == .name)
+            result: store.view.sortOption == .name)
     }
 
     // MARK: - loadBool: never-saved vs explicit false
@@ -309,14 +309,14 @@ public struct PreferencesStoreExtraTests {
         report(
             "Store/PreferencesStore",
             "POS: showFavorites keeps its compiled-in default (true) when nothing was ever saved",
-            result: neverSavedStore.showFavorites)
+            result: neverSavedStore.sidebar.showFavorites)
 
         UserDefaults.standard.set(false, forKey: key)
         let explicitFalseStore = PreferencesStore()
         report(
             "Store/PreferencesStore",
             "NEG: an explicitly saved false for showFavorites is applied, not skipped as if absent",
-            result: !explicitFalseStore.showFavorites)
+            result: !explicitFalseStore.sidebar.showFavorites)
     }
 
     // MARK: - sidebarTranslucentLevel / contentTranslucentLevel load-from-UserDefaults
@@ -345,7 +345,7 @@ public struct PreferencesStoreExtraTests {
         report(
             "Store/PreferencesStore",
             "POS: a saved positive sidebarTranslucentLevel/contentTranslucentLevel is restored on init",
-            result: store.sidebarTranslucentLevel == 33 && store.contentTranslucentLevel == 66)
+            result: store.appearance.sidebarTranslucentLevel == 33 && store.appearance.contentTranslucentLevel == 66)
     }
 
     // MARK: - withColumnStatePersistenceSuppressed (L8)
@@ -366,15 +366,15 @@ public struct PreferencesStoreExtraTests {
 
         UserDefaults.standard.removeObject(forKey: key)
         let store = PreferencesStore()
-        store.withColumnStatePersistenceSuppressed {
-            store.listColumnStates = []
+        store.view.withColumnStatePersistenceSuppressed {
+            store.view.listColumnStates = []
         }
         report(
             "Store/PreferencesStore",
             "NEG: listColumnStates didSet does not persist while withColumnStatePersistenceSuppressed's body runs",
             result: UserDefaults.standard.data(forKey: key) == nil)
 
-        store.listColumnStates = ListColumnState.defaults()
+        store.view.listColumnStates = ListColumnState.defaults()
         report(
             "Store/PreferencesStore",
             "POS: listColumnStates didSet persists again once withColumnStatePersistenceSuppressed has returned",
@@ -398,19 +398,19 @@ public struct PreferencesStoreExtraTests {
         UserDefaults.standard.removeObject(forKey: key)
         let store = PreferencesStore()
 
-        store.withColumnStatePersistenceSuppressed {
-            store.withColumnStatePersistenceSuppressed {
-                store.listColumnStates = []
+        store.view.withColumnStatePersistenceSuppressed {
+            store.view.withColumnStatePersistenceSuppressed {
+                store.view.listColumnStates = []
             }
             // Inner call has returned; the outer suppression must still be in force.
-            store.listColumnStates = Array(ListColumnState.defaults().prefix(1))
+            store.view.listColumnStates = Array(ListColumnState.defaults().prefix(1))
             report(
                 "Store/PreferencesStore",
                 "NEG: an inner withColumnStatePersistenceSuppressed returning does not re-enable persistence while the outer call is still active",
                 result: UserDefaults.standard.data(forKey: key) == nil)
         }
 
-        store.listColumnStates = ListColumnState.defaults()
+        store.view.listColumnStates = ListColumnState.defaults()
         report(
             "Store/PreferencesStore",
             "POS: persistence resumes only after the outermost withColumnStatePersistenceSuppressed returns",

@@ -26,31 +26,20 @@ struct SharedBackgroundContextMenu: View {
         }
         Divider()
         Menu(appState.tr(.copyPath)) {
-            Button(appState.tr(.copyPathAbsolute)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .absolute)
-            }
-            Button(appState.tr(.copyPathRelative)) {
-                CopyPathService.copy(
-                    urls: [appState.navigation.currentURL],
-                    variant: .relative,
-                    relativeTo: appState.navigation.currentURL.deletingLastPathComponent())
-            }
-            Button(appState.tr(.copyPathURL)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .fileURL)
-            }
-            Button(appState.tr(.copyPathTerminal)) {
-                CopyPathService.copy(urls: [appState.navigation.currentURL], variant: .terminalEscaped)
-            }
+            CopyPathMenuContent(
+                urls: [appState.navigation.currentURL],
+                relativeTo: appState.navigation.currentURL.deletingLastPathComponent(),
+                appState: appState)
         }
         Button(appState.tr(.shareFolderWifi)) {
-            windowUIState.httpShareFolderURL = appState.navigation.currentURL
+            windowUIState.activeModal = .httpShare(appState.navigation.currentURL)
         }
         Divider()
         Button(appState.tr(.folderProperties)) {
             // Properties sheet shows Owner/Group, so keep needsOwnerGroup default; let init resolve
             // the icon from .effectiveIcon instead of a blocking NSWorkspace LaunchServices IPC.
             let fileItem = FileItem.load(url: appState.navigation.currentURL)
-            windowUIState.propertiesItem = fileItem
+            windowUIState.activeModal = .properties(fileItem)
         }
     }
 }

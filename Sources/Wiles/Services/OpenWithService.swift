@@ -6,8 +6,37 @@ public final class OpenWithService: Sendable {
     /// Injectable seam for tests — see `WorkspaceOpening`. Defaults to the real `NSWorkspace`.
     @MainActor public static var opener: any WorkspaceOpening = RealWorkspaceOpener()
 
+    /// `availableApplications` is rebuilt every time an "Open With" menu is shown, and the scan
+    /// (LaunchServices query + per-app `Bundle`/`resourceValues`/icon resize) is the same for every
+    /// file of a given type. Memoize it by extension so only the first menu per type pays that cost.
+    @MainActor private static var applicationsByExtension: [String: [ApplicationApp]] = [:]
+    /// Crude bound so a very long browsing session can't grow the cache without limit.
+    private static let maxCachedExtensions = 200
+
+    /// Drops the memoized results so a newly installed/removed app is picked up on the next menu.
+    @MainActor
+    public static func invalidateApplicationsCache() {
+        applicationsByExtension.removeAll()
+    }
+
     @MainActor
     public static func availableApplications(for url: URL) -> [ApplicationApp] {
+        let ext = url.pathExtension.lowercased()
+        if !ext.isEmpty, let cached = applicationsByExtension[ext] {
+            return cached
+        }
+        let results = computeAvailableApplications(for: url)
+        if !ext.isEmpty {
+            if applicationsByExtension.count >= maxCachedExtensions {
+                applicationsByExtension.removeAll()
+            }
+            applicationsByExtension[ext] = results
+        }
+        return results
+    }
+
+    @MainActor
+    private static func computeAvailableApplications(for url: URL) -> [ApplicationApp] {
         let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: url)
         var results: [ApplicationApp] = []
         var seenBundleIDs = Set<String>()

@@ -27,7 +27,7 @@ struct PathBarView: View {
         .animation(MotionTokens.quickEase, value: windowUIState.isEditingPath)
         .onAppear { recomputePathSegments() }
         .onChange(of: appState.navigation.currentURL) { _, _ in recomputePathSegments() }
-        .onChange(of: appState.preferences.appLanguage) { _, _ in recomputePathSegments() }
+        .onChange(of: appState.preferences.appearance.appLanguage) { _, _ in recomputePathSegments() }
     }
 
     /// Breadcrumb trail is a pure function of currentURL + localized Root/Trash labels; cache it in
@@ -124,7 +124,7 @@ struct PathBarView: View {
     }
 
     private var showsFullBreadcrumb: Bool {
-        isHovering || isDragHovering || appState.preferences.alwaysShowFullPathBar
+        isHovering || isDragHovering || appState.preferences.view.alwaysShowFullPathBar
     }
 
     private func breadcrumbScrollView(segments: [PathSegment]) -> some View {
@@ -137,7 +137,7 @@ struct PathBarView: View {
             .onAppear { scrollToEnd(proxy: proxy, segments: segments) }
             .onChange(of: isHovering) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
             .onChange(of: isDragHovering) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
-            .onChange(of: appState.preferences.alwaysShowFullPathBar) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
+            .onChange(of: appState.preferences.view.alwaysShowFullPathBar) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
             .onChange(of: appState.navigation.currentURL) { _, _ in scrollToEnd(proxy: proxy, segments: segments) }
         }
     }

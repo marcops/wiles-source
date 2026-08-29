@@ -156,6 +156,19 @@ public extension AppState {
         }
     }
 
+    /// Applies a sort-option / sort-direction change without touching the disk: the file set is
+    /// unchanged, so the already-loaded items just get reordered in memory. A live "search
+    /// everywhere" is the one exception — its recursive walk captured the old sort at start, so it
+    /// has to be restarted to pick up the new one.
+    func resortCurrentItems() {
+        if preferences.search.searchEverywhere, !selection.searchQuery.isEmpty {
+            refreshCurrentDirectory()
+            return
+        }
+        fileSystem.items = FileSystemService.sortItems(
+            fileSystem.items, by: preferences.view.sortOption, ascending: preferences.view.sortAscending)
+    }
+
     func refreshCurrentDirectory(isUserInitiated: Bool = false) {
         searchDebounceTask?.cancel()
         if isUserInitiated, fileSystem.items.isEmpty {
@@ -164,15 +177,15 @@ public extension AppState {
         let query = selection.searchQuery
         let snapshot = RefreshSnapshot(
             target: navigation.currentURL,
-            hidden: preferences.showHiddenFiles,
-            tags: preferences.showTags,
+            hidden: preferences.view.showHiddenFiles,
+            tags: preferences.sidebar.showTags,
             ownerGroup: isColumnVisible(.owner) || isColumnVisible(.group),
             query: query,
-            sort: preferences.sortOption,
-            asc: preferences.sortAscending,
-            searchEverywhere: preferences.searchEverywhere && !query.isEmpty,
-            scope: preferences.searchScope,
-            caseSensitive: preferences.searchCaseSensitive)
+            sort: preferences.view.sortOption,
+            asc: preferences.view.sortAscending,
+            searchEverywhere: preferences.search.searchEverywhere && !query.isEmpty,
+            scope: preferences.search.searchScope,
+            caseSensitive: preferences.search.searchCaseSensitive)
 
         startDirectoryMonitoring(for: snapshot.target)
 

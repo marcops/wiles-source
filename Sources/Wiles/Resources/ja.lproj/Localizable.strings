@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "置き換える";
 "moveCollisionKeepBoth" = "両方残す";
 "moveCollisionApplyToAll" = "すべてに適用";
+"languageSystemDefault" = "システムのデフォルト";
+"batchRenamePartialFailure" = "{1} 件中 {0} 件の名前を変更しました。失敗 — {2}";
+"fileShredderPartialFailure" = "{1} 件中 {0} 件が完了しました。失敗 — {2}";
+"pastePartialFailure" = "{1} 件中 {0} 件の項目を貼り付けできませんでした。";
+"symlinkCannotReplaceOwnTarget" = "自身のターゲットを置き換えるシンボリックリンクは作成できません。";
+"share" = "共有…";
+"pdfMergePartialFailure" = "{0} 個のファイルを PDF に追加できませんでした。";
+"batchRenameWouldCollide" = "一括リネームで名前の重複が発生します: {0}";
+"batchRenameInvalidPattern" = "無効なリネームパターン: {0}";
+"movePartialFailure" = "{1} 件中 {0} 件の項目を移動できませんでした。";
+"searchContentQueryTooShort" = "ファイル内を検索するには3文字以上入力してください。";
+"searchInvalidRegex" = "その正規表現は無効です。";

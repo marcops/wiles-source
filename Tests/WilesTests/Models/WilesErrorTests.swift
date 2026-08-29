@@ -10,6 +10,42 @@ public struct WilesErrorTests {
         testLocalizedMessageSubstitutesPath()
         testLocalizedMessageSubstitutesReason()
         testLocalizedMessageForParameterlessCasesHasNoSubstitution()
+        testLocalizedPartialFailureMessagesAreLocalizedAndSubstituted()
+    }
+
+    /// The partial-failure summaries (batch rename / shred / paste) and the symlink self-target
+    /// guard now go through `.localized(key:arguments:)`, so they render in the app language with
+    /// positional tokens filled in — not a hardcoded English string.
+    private static func testLocalizedPartialFailureMessagesAreLocalizedAndSubstituted() {
+        let rename = WilesError.localized(key: .batchRenamePartialFailure, arguments: ["2", "5", "a.txt: nope"])
+        let english = rename.localizedMessage(lang: .english)
+        let portuguese = rename.localizedMessage(lang: .portuguese)
+        report(
+            "Model/WilesError",
+            "POS: batchRenamePartialFailure fills {0}/{1}/{2} and differs by language",
+            result: english.contains("2") && english.contains("5") && english.contains("a.txt: nope") && english != portuguese)
+
+        let paste = WilesError.localized(key: .pastePartialFailure, arguments: ["3", "7"]).localizedMessage(lang: .english)
+        report("Model/WilesError", "POS: pastePartialFailure substitutes both counts", result: paste.contains("3") && paste.contains("7"))
+
+        let move = WilesError.localized(key: .movePartialFailure, arguments: ["1", "4"]).localizedMessage(lang: .english)
+        report("Model/WilesError", "POS: movePartialFailure substitutes both counts", result: move.contains("1") && move.contains("4"))
+
+        let pdf = WilesError.localized(key: .pdfMergePartialFailure, arguments: ["2"]).localizedMessage(lang: .english)
+        report("Model/WilesError", "POS: pdfMergePartialFailure substitutes the skipped count", result: pdf.contains("2"))
+
+        let collide = WilesError.localized(key: .batchRenameWouldCollide, arguments: ["a.txt, b.txt"]).localizedMessage(lang: .english)
+        report("Model/WilesError", "POS: batchRenameWouldCollide substitutes the colliding names", result: collide.contains("a.txt, b.txt"))
+
+        let badPattern = WilesError.localized(key: .batchRenameInvalidPattern, arguments: ["[unclosed"]).localizedMessage(lang: .english)
+        report("Model/WilesError", "POS: batchRenameInvalidPattern substitutes the offending pattern", result: badPattern.contains("[unclosed"))
+
+        let symlink = WilesError.localized(key: .symlinkCannotReplaceOwnTarget, arguments: [])
+        report(
+            "Model/WilesError",
+            "POS: symlinkCannotReplaceOwnTarget is a non-empty localized message that changes with language",
+            result: !symlink.localizedMessage(lang: .english).isEmpty
+                && symlink.localizedMessage(lang: .english) != symlink.localizedMessage(lang: .japanese))
     }
 
     /// Covers `localizedMessage(lang:)`'s multi-case-pattern branch (permissionDenied/diskFull/

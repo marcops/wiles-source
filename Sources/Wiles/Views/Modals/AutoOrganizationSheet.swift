@@ -253,7 +253,10 @@ struct AutoOrganizationSheet: View {
 
     private var canAddRule: Bool {
         guard let sourceURL, let destinationURL else { return false }
-        guard sourceURL.standardizedFileURL != destinationURL.standardizedFileURL else { return false }
+        // Match `AutoOrganizationRule.init`'s own normalization (`resolvingSymlinksInPath()`), so a
+        // source/dest pair that only differs by a symlink can't slip past this and then be created
+        // as a self-referential rule.
+        guard sourceURL.resolvingSymlinksInPath() != destinationURL.resolvingSymlinksInPath() else { return false }
         return !conditionValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 

@@ -8,6 +8,7 @@ public struct DuplicateCleanerSheetView: View {
 
     @State private var selectedURLsToTrash: Set<URL> = []
     @State private var isTrashing = false
+    @State private var trashTask: Task<Void, Never>?
 
     public init(appState: AppState) {
         self.appState = appState
@@ -28,6 +29,7 @@ public struct DuplicateCleanerSheetView: View {
                 },
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             content: { mainContent })
+            .onDisappear { trashTask?.cancel() }
     }
 
     private var mainContent: some View {
@@ -162,9 +164,12 @@ public struct DuplicateCleanerSheetView: View {
 
     private func trashSelected() {
         let urls = Array(selectedURLsToTrash)
-        Task.detached(priority: .userInitiated) {
+        trashTask = Task.detached(priority: .userInitiated) {
             var failureCount = 0
             for fileURL in urls {
+                if Task.isCancelled {
+                    return
+                }
                 do {
                     _ = try await FileSystemService.moveToTrash(url: fileURL)
                 } catch {

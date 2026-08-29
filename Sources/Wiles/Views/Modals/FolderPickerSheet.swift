@@ -120,7 +120,7 @@ struct FolderPickerSheet: View {
     }
 
     private var favoriteURLs: [URL] {
-        appState.preferences.favoriteURLs
+        appState.preferences.favorites.favoriteURLs
     }
 
     private var favoritesColumn: some View {

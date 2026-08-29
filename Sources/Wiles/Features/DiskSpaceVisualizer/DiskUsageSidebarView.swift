@@ -16,7 +16,7 @@ struct DiskUsageSidebarView: View {
             ZStack {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
-                    .opacity(1.0 - Double(appState.preferences.translucentLevel) / 100.0)
+                    .opacity(1.0 - Double(appState.preferences.appearance.translucentLevel) / 100.0)
             })
     }
 

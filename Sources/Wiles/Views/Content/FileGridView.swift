@@ -10,7 +10,7 @@ struct FileGridView: View {
     var appState: AppState
 
     private var iconSize: CGFloat {
-        CGFloat(appState.preferences.iconSize) * Self.gridIconScaleMultiplier
+        CGFloat(appState.preferences.view.iconSize) * Self.gridIconScaleMultiplier
     }
 
     private var cardWidth: CGFloat {

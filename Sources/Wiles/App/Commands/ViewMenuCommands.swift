@@ -39,12 +39,12 @@ struct ViewMenuCommands: LocalizedCommands {
     /// Falls back to the shared global `viewMode` when no window is focused.
     private var viewModeBinding: Binding<ViewMode> {
         Binding(
-            get: { appState?.currentViewMode ?? sharedPreferences.viewMode },
+            get: { appState?.currentViewMode ?? sharedPreferences.view.viewMode },
             set: { newValue in
                 if let appState {
                     appState.setViewModeForFolder(newValue, for: appState.navigation.currentURL)
                 } else {
-                    sharedPreferences.viewMode = newValue
+                    sharedPreferences.view.viewMode = newValue
                 }
             })
     }
@@ -65,15 +65,15 @@ struct ViewMenuCommands: LocalizedCommands {
             isOn: inspectorBinding(.diskUsage))
             .keyboardShortcut("d", modifiers: [.command, .shift])
         Menu(tr(.sidebarMenuTitle)) {
-            Toggle(tr(.showFavorites), isOn: $sharedPreferences.showFavorites)
-            Toggle(tr(.showPlaces), isOn: $sharedPreferences.showPlaces)
-            Toggle(tr(.showRecents), isOn: $sharedPreferences.showRecents)
-            Toggle(tr(.showNetworkAndCloud), isOn: $sharedPreferences.showNetworkAndCloud)
-            Toggle(tr(.showDirectoryTree), isOn: $sharedPreferences.showDirectoryTree)
-            Toggle(tr(.showSidebarSectionTitles), isOn: $sharedPreferences.showSidebarSectionTitles)
-            Toggle(tr(.showTags), isOn: $sharedPreferences.showTags)
+            Toggle(tr(.showFavorites), isOn: $sharedPreferences.sidebar.showFavorites)
+            Toggle(tr(.showPlaces), isOn: $sharedPreferences.sidebar.showPlaces)
+            Toggle(tr(.showRecents), isOn: $sharedPreferences.sidebar.showRecents)
+            Toggle(tr(.showNetworkAndCloud), isOn: $sharedPreferences.sidebar.showNetworkAndCloud)
+            Toggle(tr(.showDirectoryTree), isOn: $sharedPreferences.sidebar.showDirectoryTree)
+            Toggle(tr(.showSidebarSectionTitles), isOn: $sharedPreferences.sidebar.showSidebarSectionTitles)
+            Toggle(tr(.showTags), isOn: $sharedPreferences.sidebar.showTags)
             Divider()
-            Toggle(tr(.autoHideSidebar), isOn: $sharedPreferences.isSidebarCollapsed)
+            Toggle(tr(.autoHideSidebar), isOn: $sharedPreferences.view.isSidebarCollapsed)
         }
         Divider()
         Picker(selection: viewModeBinding) {
@@ -83,11 +83,11 @@ struct ViewMenuCommands: LocalizedCommands {
             Label(tr(.viewMode), systemImage: "square.grid.2x2")
         }
         Menu {
-            Picker(tr(.sortBy), selection: $sharedPreferences.sortOption) {
+            Picker(tr(.sortBy), selection: $sharedPreferences.view.sortOption) {
                 ForEach(SortOption.allCases) { opt in Text(tr(opt.l10nKey)).tag(opt) }
             }
             Divider()
-            Toggle(tr(.ascending), isOn: $sharedPreferences.sortAscending)
+            Toggle(tr(.ascending), isOn: $sharedPreferences.view.sortAscending)
         } label: {
             Label(tr(.sortBy), systemImage: "arrow.up.arrow.down")
         }

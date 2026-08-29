@@ -102,12 +102,16 @@ public struct FileSystemSearchAndSortTests {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        try? "x".write(to: dir.appendingPathComponent("photo.png"), atomically: true, encoding: .utf8)
-        try? "x".write(to: dir.appendingPathComponent("script.swift"), atomically: true, encoding: .utf8)
+        for name in ["photo.png", "script.swift", "modern.heic", "bundle.zip", "bundle.tar"] {
+            try? "x".write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        }
 
         let images = await load(at: dir, query: "kind:image")
-        report("POS: \"kind:image\" matches known image extensions", result: images.count == 1 && images.first?.name == "photo.png")
-
+        report(
+            "POS: \"kind:image\" matches by UTType conformance, not a stale hardcoded list",
+            result: Set(images.map(\.name)) == ["photo.png", "modern.heic"])
+        let archives = await load(at: dir, query: "kind:archive")
+        report("POS: \"kind:archive\" matches archive types by UTType conformance", result: Set(archives.map(\.name)) == ["bundle.zip", "bundle.tar"])
         let code = await load(at: dir, query: "ext:swift")
         report("POS: \"ext:\" filters by exact extension", result: code.count == 1 && code.first?.name == "script.swift")
     }
@@ -259,15 +263,16 @@ public struct FileSystemSearchAndSortTests {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let invalidUTF8File = dir.appendingPathComponent("invalid_utf8.txt")
-        try? Data([0xFF, 0xFE, 0xFD, 0x80, 0x81]).write(to: invalidUTF8File)
-        let contentResultInvalid = SearchFilterService.matchesSearch(
-            fileURL: invalidUTF8File,
-            query: "unicorn",
-            tokenRegexes: [:],
-            scope: .content,
-            caseSensitive: false)
-        report("NEG: matchesSearch content-search fallback on a file with invalid UTF-8 content returns false (decode guard)", result: !contentResultInvalid)
+
+        // A non-UTF-8 (Latin-1) text file whose content matches must still be found — content
+        // search falls back past UTF-8 instead of silently skipping the file.
+        let latin1File = dir.appendingPathComponent("latin1.txt")
+        try? "café doré résumé".data(using: .isoLatin1)?.write(to: latin1File)
+        func contentMatch(_ query: String) -> Bool {
+            SearchFilterService.matchesSearch(fileURL: latin1File, query: query, tokenRegexes: [:], scope: .content, caseSensitive: false)
+        }
+        report("POS: content search decodes a non-UTF-8 (Latin-1) text file instead of skipping it", result: contentMatch("caf"))
+        report("NEG: a decoded non-UTF-8 file that doesn't contain the query still returns false", result: !contentMatch("unicorn"))
     }
 
     /// `extractHiddenFlag` pulls the global "hidden:true" token out of the query before per-file
@@ -489,7 +494,6 @@ public struct FileSystemSearchAndSortTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let file = dir.appendingPathComponent("tagged.txt")
         try? "x".write(to: file, atomically: true, encoding: .utf8)
-
         try? FileSystemService.setTags(for: file, tags: ["Red", "Important"])
         let item = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report("POS: setTags() writes Finder tags that FileItem subsequently reads back", result: Set(item.tags) == Set(["Red", "Important"]))

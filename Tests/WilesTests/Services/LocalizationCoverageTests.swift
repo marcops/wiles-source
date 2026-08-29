@@ -69,11 +69,19 @@ public struct LocalizationCoverageTests {
 
     private static func testDisplayNamesAreUnique() {
         // POS: no two AppLanguage cases should collide on displayName (would be a picker UX bug).
-        let allDisplayNames = AppLanguage.allCases.map(\.displayName)
+        let allDisplayNames = AppLanguage.allCases.map { $0.displayName(in: .english) }
         let uniqueCount = Set(allDisplayNames).count
         TestReporter.report(
             "Localization", "POS: AppLanguage.displayName is unique across all 16 cases",
             result: uniqueCount == allDisplayNames.count)
+
+        // POS: only `.system` is real UI text — it localizes with `uiLanguage`; a language endonym does not.
+        let systemLocalizes = AppLanguage.system.displayName(in: .english) != AppLanguage.system.displayName(in: .portuguese)
+        let endonymIsStable = AppLanguage.french.displayName(in: .english) == AppLanguage.french.displayName(in: .japanese)
+        TestReporter.report(
+            "Localization",
+            "POS: AppLanguage.system label is localized into uiLanguage while a language endonym stays constant",
+            result: systemLocalizes && endonymIsStable)
     }
 
     private static func testAppLanguageCodableRoundTrip() {
@@ -138,7 +146,7 @@ public struct LocalizationCoverageTests {
 
     private static func testAllCasesDisplayNames() {
         let allCases = AppLanguage.allCases
-        let allHaveDisplayNames = allCases.allSatisfy { !$0.displayName.isEmpty }
+        let allHaveDisplayNames = allCases.allSatisfy { !$0.displayName(in: .english).isEmpty }
         TestReporter.report(
             "Localization", "POS: AppLanguage has exactly 16 cases and every case has a non-empty displayName",
             result: allCases.count == 16 && allHaveDisplayNames)

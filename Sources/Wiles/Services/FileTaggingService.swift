@@ -9,11 +9,7 @@ public struct FileTaggingService: Sendable {
     public static func toggleTag(_ tag: String, for targetURLs: [URL], itemsSnapshot: [FileItem]) -> Int {
         var failureCount = 0
         for url in targetURLs {
-            // Only build a FileItem when the snapshot lacks this URL — and then only for its tags,
-            // skipping the LaunchServices icon IPC and the owner/group stat, which tagging never uses.
-            let existingTags = itemsSnapshot.first(where: { $0.url == url })?.tags
-                ?? FileItem.load(url: url, fetchTags: true, needsOwnerGroup: false).tags
-            var newTags = existingTags
+            var newTags = currentTags(for: url, in: itemsSnapshot)
             if newTags.contains(tag) {
                 newTags.removeAll { $0 == tag }
             } else {
@@ -27,6 +23,16 @@ public struct FileTaggingService: Sendable {
             }
         }
         return failureCount
+    }
+
+    /// The file's current tags: from the in-memory snapshot when it holds this URL, otherwise a
+    /// direct `.tagNamesKey` read — not a full `FileItem.load`, which also does an icon IPC and
+    /// resource-value batch that tagging never uses.
+    static func currentTags(for url: URL, in itemsSnapshot: [FileItem]) -> [String] {
+        if let snapshotTags = itemsSnapshot.first(where: { $0.url == url })?.tags {
+            return snapshotTags
+        }
+        return (try? url.resourceValues(forKeys: [.tagNamesKey]))?.tagNames ?? []
     }
 
     /// Same off-main-thread requirement as `toggleTag` above.

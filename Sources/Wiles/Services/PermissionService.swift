@@ -51,13 +51,4 @@ public struct PermissionService: Sendable {
             openFullDiskAccessSettings()
         }
     }
-
-    public static func resetInitialPermissionsFlag() {
-        UserDefaults.standard.removeObject(forKey: hasShownFullDiskAccessPromptKey)
-    }
-
-    /// Test-only helper so automated tests can exercise the no-op path without triggering the real alert.
-    public static func markFullDiskAccessPromptAsShown() {
-        UserDefaults.standard.set(true, forKey: hasShownFullDiskAccessPromptKey)
-    }
 }

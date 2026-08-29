@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "استبدال";
 "moveCollisionKeepBoth" = "الاحتفاظ بكليهما";
 "moveCollisionApplyToAll" = "تطبيق على الكل";
+"languageSystemDefault" = "إعداد النظام الافتراضي";
+"batchRenamePartialFailure" = "تمت إعادة تسمية {0} من {1} عنصرًا. فشل — {2}";
+"fileShredderPartialFailure" = "اكتمل {0} من {1} عنصرًا. فشل — {2}";
+"pastePartialFailure" = "تعذّر لصق {0} من {1} عنصرًا.";
+"symlinkCannotReplaceOwnTarget" = "لا يمكن إنشاء رابط رمزي يستبدل هدفه الخاص.";
+"share" = "مشاركة…";
+"pdfMergePartialFailure" = "تعذّرت إضافة {0} ملف إلى ملف PDF.";
+"batchRenameWouldCollide" = "ستؤدي إعادة التسمية الدُفعية إلى تعارض في الأسماء: {0}";
+"batchRenameInvalidPattern" = "نمط إعادة تسمية غير صالح: {0}";
+"movePartialFailure" = "تعذّر نقل {0} من {1} عنصرًا.";
+"searchContentQueryTooShort" = "اكتب 3 أحرف على الأقل للبحث داخل الملفات.";
+"searchInvalidRegex" = "هذا التعبير النمطي غير صالح.";

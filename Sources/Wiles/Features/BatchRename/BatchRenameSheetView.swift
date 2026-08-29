@@ -34,9 +34,9 @@ struct BatchRenameSheetView: View {
         }
     }
 
-    private var previews: [(original: FileItem, newName: String)] {
-        BatchRenameService.previewNewNames(items: items, mode: currentMode)
-    }
+    /// Recomputed off `body` by the `.task(id: currentMode)` below (debounced), not synchronously on
+    /// every keystroke — a large selection in `.regex` mode makes `previewNewNames` expensive.
+    @State private var previews: [(original: FileItem, newName: String)] = []
 
     var body: some View {
         ModalScaffoldView(
@@ -61,6 +61,11 @@ struct BatchRenameSheetView: View {
             previewList
         }
         .padding(20)
+        .task(id: currentMode) {
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            previews = BatchRenameService.previewNewNames(items: items, mode: currentMode)
+        }
     }
 
     private var modePicker: some View {

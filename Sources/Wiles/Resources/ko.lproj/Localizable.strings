@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "바꾸기";
 "moveCollisionKeepBoth" = "둘 다 유지";
 "moveCollisionApplyToAll" = "모두에 적용";
+"languageSystemDefault" = "시스템 기본값";
+"batchRenamePartialFailure" = "{1}개 중 {0}개 항목의 이름을 변경했습니다. 실패 — {2}";
+"fileShredderPartialFailure" = "{1}개 중 {0}개 항목이 완료되었습니다. 실패 — {2}";
+"pastePartialFailure" = "{1}개 중 {0}개 항목을 붙여넣을 수 없습니다.";
+"symlinkCannotReplaceOwnTarget" = "자체 대상을 대체하는 심볼릭 링크는 만들 수 없습니다.";
+"share" = "공유…";
+"pdfMergePartialFailure" = "{0}개 파일을 PDF에 추가할 수 없습니다.";
+"batchRenameWouldCollide" = "일괄 이름 변경 시 이름 충돌이 발생합니다: {0}";
+"batchRenameInvalidPattern" = "잘못된 이름 변경 패턴: {0}";
+"movePartialFailure" = "{1}개 중 {0}개 항목을 이동할 수 없습니다.";
+"searchContentQueryTooShort" = "파일 내용을 검색하려면 3자 이상 입력하세요.";
+"searchInvalidRegex" = "정규 표현식이 올바르지 않습니다.";

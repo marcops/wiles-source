@@ -43,6 +43,20 @@ public struct EmptyDirectoryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    /// Explains a legitimately-empty search result the user might otherwise read as "no matches":
+    /// a too-short content query or an uncompilable regex. `nil` for an ordinary no-matches query.
+    private var queryWarningText: String? {
+        switch SearchFilterService.queryWarning(
+            for: appState.selection.searchQuery, scope: appState.preferences.search.searchScope) {
+        case .contentQueryTooShort:
+            appState.tr(.searchContentQueryTooShort)
+        case .invalidRegex:
+            appState.tr(.searchInvalidRegex)
+        case nil:
+            nil
+        }
+    }
+
     @ViewBuilder private var searchEmptyView: some View {
         Image(systemName: "doc.text.magnifyingglass")
             .font(.system(size: Self.iconFontSize))
@@ -51,6 +65,14 @@ public struct EmptyDirectoryView: View {
         Text(appState.tr(.noResultsFound))
             .font(.system(size: Self.titleFontSize, weight: .semibold))
             .foregroundColor(.secondary)
+
+        if let queryWarningText {
+            Text(queryWarningText)
+                .font(.system(size: Self.bodyFontSize))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: Self.noticeMaxWidth)
+        }
 
         Button {
             appState.selection.searchQuery = ""

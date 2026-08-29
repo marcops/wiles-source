@@ -23,6 +23,23 @@ public struct AppStateNavigationExtraTests {
         testNavigatingAwayClearsStuckRenamingURL()
         testNavigateToOnAFileIsANoOpButOpenItemHandlesIt()
         await testRefreshTrashSizeIfNeededWhenNavigatingIntoTrash()
+        testResortCurrentItemsReordersInMemoryWithoutADiskRead()
+    }
+
+    /// A sort change reorders the already-loaded `fileSystem.items` in place — no directory re-read.
+    /// Items match no real folder, so a disk refresh would replace them; an in-memory re-sort reorders them.
+    private static func testResortCurrentItemsReordersInMemoryWithoutADiskRead() {
+        let appState = AppState()
+        appState.navigation.currentURL = URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)")
+        appState.fileSystem.items = ["banana", "cherry", "apple"].map { FileItem.load(url: URL(fileURLWithPath: "/virtual/\($0).txt")) }
+        appState.preferences.view.sortOption = .name
+        appState.preferences.view.sortAscending = true
+        appState.resortCurrentItems()
+        let asc = appState.fileSystem.items.map(\.name) == ["apple.txt", "banana.txt", "cherry.txt"]
+        appState.preferences.view.sortAscending = false
+        appState.resortCurrentItems()
+        let desc = appState.fileSystem.items.map(\.name) == ["cherry.txt", "banana.txt", "apple.txt"]
+        report("Navigation/Resort", "POS: resortCurrentItems reorders loaded items in place (asc + desc), no folder re-read", result: asc && desc)
     }
 
     /// `navigateTo` is folder-only now: pointed at a file it must not change `currentURL` and must

@@ -9,9 +9,9 @@ struct HelpMenuCommands: LocalizedCommands {
 
     var body: some Commands {
         CommandGroup(replacing: .help) {
-            Button(tr(.wilesHelpAndShortcuts)) { windowUIState?.showHelpSheet = true }
+            Button(tr(.wilesHelpAndShortcuts)) { windowUIState?.activeModal = .help }
                 .keyboardShortcut("?", modifiers: .command)
-            Button(tr(.feedbackMenuItem)) { windowUIState?.showFeedbackSheet = true }
+            Button(tr(.feedbackMenuItem)) { windowUIState?.activeModal = .feedback }
             Button(tr(.shortcutsCheatsheetTitle)) {
                 withAnimation(MotionTokens.snappySpring) {
                     windowUIState?.showShortcutsHUD.toggle()

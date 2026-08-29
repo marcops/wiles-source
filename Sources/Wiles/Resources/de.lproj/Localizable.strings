@@ -532,3 +532,15 @@
 "moveCollisionReplace" = "Ersetzen";
 "moveCollisionKeepBoth" = "Beide behalten";
 "moveCollisionApplyToAll" = "Auf alle anwenden";
+"languageSystemDefault" = "Systemstandard";
+"batchRenamePartialFailure" = "{0} von {1} Objekten umbenannt. Fehlgeschlagen — {2}";
+"fileShredderPartialFailure" = "{0} von {1} Objekten abgeschlossen. Fehlgeschlagen — {2}";
+"pastePartialFailure" = "{0} von {1} Objekten konnten nicht eingefügt werden.";
+"symlinkCannotReplaceOwnTarget" = "Ein symbolischer Link, der sein eigenes Ziel ersetzen würde, kann nicht erstellt werden.";
+"share" = "Teilen …";
+"pdfMergePartialFailure" = "{0} Datei(en) konnten dem PDF nicht hinzugefügt werden.";
+"batchRenameWouldCollide" = "Die Stapelumbenennung würde zu Namenskonflikten führen: {0}";
+"batchRenameInvalidPattern" = "Ungültiges Umbenennungsmuster: {0}";
+"movePartialFailure" = "{0} von {1} Objekten konnten nicht verschoben werden.";
+"searchContentQueryTooShort" = "Gib mindestens 3 Zeichen ein, um in Dateien zu suchen.";
+"searchInvalidRegex" = "Dieser reguläre Ausdruck ist ungültig.";

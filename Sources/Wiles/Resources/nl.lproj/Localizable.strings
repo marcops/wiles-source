@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "Vervangen";
 "moveCollisionKeepBoth" = "Beide bewaren";
 "moveCollisionApplyToAll" = "Op alles toepassen";
+"languageSystemDefault" = "Systeemstandaard";
+"batchRenamePartialFailure" = "{0} van {1} items hernoemd. Mislukt — {2}";
+"fileShredderPartialFailure" = "{0} van {1} items voltooid. Mislukt — {2}";
+"pastePartialFailure" = "{0} van {1} items konden niet worden geplakt.";
+"symlinkCannotReplaceOwnTarget" = "Kan geen symbolische koppeling maken die het eigen doel zou vervangen.";
+"share" = "Deel…";
+"pdfMergePartialFailure" = "{0} bestand(en) konden niet aan de PDF worden toegevoegd.";
+"batchRenameWouldCollide" = "Batchhernoemen zou naamconflicten veroorzaken: {0}";
+"batchRenameInvalidPattern" = "Ongeldig hernoempatroon: {0}";
+"movePartialFailure" = "{0} van {1} items konden niet worden verplaatst.";
+"searchContentQueryTooShort" = "Typ minstens 3 tekens om in bestanden te zoeken.";
+"searchInvalidRegex" = "Die reguliere expressie is ongeldig.";

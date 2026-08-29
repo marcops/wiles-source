@@ -533,3 +533,15 @@
 "moveCollisionReplace" = "替换";
 "moveCollisionKeepBoth" = "两者都保留";
 "moveCollisionApplyToAll" = "全部应用";
+"languageSystemDefault" = "系统默认";
+"batchRenamePartialFailure" = "已重命名 {1} 项中的 {0} 项。失败 — {2}";
+"fileShredderPartialFailure" = "已完成 {1} 项中的 {0} 项。失败 — {2}";
+"pastePartialFailure" = "{1} 项中的 {0} 项无法粘贴。";
+"symlinkCannotReplaceOwnTarget" = "无法创建会替换其自身目标的符号链接。";
+"share" = "共享…";
+"pdfMergePartialFailure" = "{0} 个文件无法添加到 PDF。";
+"batchRenameWouldCollide" = "批量重命名会造成名称冲突：{0}";
+"batchRenameInvalidPattern" = "无效的重命名模式：{0}";
+"movePartialFailure" = "{1} 项中的 {0} 项无法移动。";
+"searchContentQueryTooShort" = "输入至少 3 个字符以搜索文件内容。";
+"searchInvalidRegex" = "该正则表达式无效。";

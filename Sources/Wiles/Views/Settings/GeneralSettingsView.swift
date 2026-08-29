@@ -9,20 +9,20 @@ struct GeneralSettingsView: View {
         @Bindable var appState = appState
         return Form {
             Section(appState.tr(.settingsLanguageSection)) {
-                Picker(appState.tr(.language), selection: $appState.preferences.appLanguage) {
+                Picker(appState.tr(.language), selection: $appState.preferences.appearance.appLanguage) {
                     ForEach(AppLanguage.allCases) { lang in
-                        Text(lang.displayName).tag(lang)
+                        Text(lang.displayName(in: appState.preferences.appearance.appLanguage)).tag(lang)
                     }
                 }
             }
 
             Section(appState.tr(.settingsBehaviorSection)) {
-                Picker(appState.tr(.shortcutMode), selection: $appState.preferences.navigationMode) {
+                Picker(appState.tr(.shortcutMode), selection: $appState.preferences.view.navigationMode) {
                     ForEach(NavigationMode.allCases) { mode in
                         Text(appState.tr(mode.l10nKey)).tag(mode)
                     }
                 }
-                Toggle(appState.tr(.skipDeleteConfirmation), isOn: $appState.preferences.skipDeleteConfirmation)
+                Toggle(appState.tr(.skipDeleteConfirmation), isOn: $appState.preferences.view.skipDeleteConfirmation)
                     .help(appState.tr(.skipDeleteConfirmationHint))
                     .accessibilityHint(Text(appState.tr(.skipDeleteConfirmationHint)))
             }

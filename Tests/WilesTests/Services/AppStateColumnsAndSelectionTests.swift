@@ -40,14 +40,14 @@ public struct AppStateColumnsAndSelectionTests {
         // AppState() reads persisted column state from UserDefaults.standard (production code
         // writes every width/visibility change there), so a prior test run or real app usage on
         // this machine can leave stale state — reset explicitly rather than assume a pristine default.
-        appState.preferences.listColumnStates = ListColumnState.defaults()
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
         report(
             "AppState+Columns",
             "POS: columnWidth(for:) returns the column's stored width by default",
             result: appState.columnWidth(for: .name) == ListColumn.name.defaultWidth)
 
         // Remove a column's state entirely; should fall back to defaultWidth.
-        appState.preferences.listColumnStates.removeAll { $0.column == .owner }
+        appState.preferences.view.listColumnStates.removeAll { $0.column == .owner }
         report(
             "AppState+Columns",
             "NEG: columnWidth(for:) falls back to defaultWidth when no state entry exists",
@@ -61,7 +61,7 @@ public struct AppStateColumnsAndSelectionTests {
         report("AppState+Columns", "NEG: isColumnVisible() is false for a column marked hidden in defaults", result: !appState.isColumnVisible(.owner))
 
         // Missing state entry falls back to true.
-        appState.preferences.listColumnStates.removeAll { $0.column == .group }
+        appState.preferences.view.listColumnStates.removeAll { $0.column == .group }
         report("AppState+Columns", "NEG: isColumnVisible() defaults to true when no state entry exists", result: appState.isColumnVisible(.group))
     }
 
@@ -77,18 +77,18 @@ public struct AppStateColumnsAndSelectionTests {
             result: appState.columnWidth(for: .size) == LayoutTokens.columnMinWidth)
 
         // No state entry for the column: setColumnWidth should be a no-op (guard returns early).
-        appState.preferences.listColumnStates.removeAll { $0.column == .kind }
+        appState.preferences.view.listColumnStates.removeAll { $0.column == .kind }
         appState.setColumnWidth(.kind, width: 500)
         report(
             "AppState+Columns",
             "NEG: setColumnWidth() is a no-op when the column has no existing state entry",
-            result: !appState.preferences.listColumnStates.contains { $0.column == .kind })
+            result: !appState.preferences.view.listColumnStates.contains { $0.column == .kind })
     }
 
     /// `setColumnWidth(_:width:persist:)` with `persist: false` (used by `ColumnResizeHandle`'s
     /// `DragGesture.onChanged` on every mouse-move delta) must update `listColumnStates` in memory
     /// without triggering `AppState.listColumnStates`'s `didSet` -> `saveListColumnStates()` write to
-    /// `UserDefaults.standard`. `preferences.saveListColumnStates()` (called once from `.onEnded`) must then persist
+    /// `UserDefaults.standard`. `preferences.view.saveListColumnStates()` (called once from `.onEnded`) must then persist
     /// the final width. `AppState`/`PreferencesStore` have no injectable `UserDefaults` suite, so per
     /// rule 17 this snapshots and restores the real `wiles_listColumnStates` key in `defer`.
     private static func testSetColumnWidthPersistFlagDefersUserDefaultsWrite() {
@@ -109,7 +109,7 @@ public struct AppStateColumnsAndSelectionTests {
         }
 
         let appState = AppState()
-        appState.preferences.listColumnStates = ListColumnState.defaults()
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
         // Establish a known persisted baseline distinct from the width we're about to drag to.
         appState.setColumnWidth(.size, width: 150, persist: true)
         report("AppState+Columns", "POS: setColumnWidth(persist: true) (the default) persists immediately", result: persistedWidth(for: .size) == 150)
@@ -124,7 +124,7 @@ public struct AppStateColumnsAndSelectionTests {
             "NEG: setColumnWidth(persist: false) does not write the new width to UserDefaults yet",
             result: persistedWidth(for: .size) == 150 && persistedWidth(for: .size) != 321)
 
-        appState.preferences.saveListColumnStates()
+        appState.preferences.view.saveListColumnStates()
         report("AppState+Columns", "POS: saveListColumnStates() persists the width set earlier with persist: false", result: persistedWidth(for: .size) == 321)
     }
 
@@ -152,15 +152,15 @@ public struct AppStateColumnsAndSelectionTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        appState.preferences.viewMode = .list
+        appState.preferences.view.viewMode = .list
         report(
             "AppState+Columns",
             "NEG: viewModeForFolder() falls back to the global viewMode when no per-folder override exists",
             result: appState.viewModeForFolder(dir) == .list)
 
         // Per-folder overrides only apply once opted into via Advanced Settings.
-        appState.preferences.perFolderViewModeEnabled = true
-        appState.preferences.perFolderViewModes[dir.standardizedFileURL.path] = ViewMode.grid.rawValue
+        appState.preferences.view.perFolderViewModeEnabled = true
+        appState.preferences.view.perFolderViewModes[dir.standardizedFileURL.path] = ViewMode.grid.rawValue
         report("AppState+Columns", "POS: viewModeForFolder() returns the stored per-folder override", result: appState.viewModeForFolder(dir) == .grid)
     }
 
@@ -170,21 +170,22 @@ public struct AppStateColumnsAndSelectionTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        appState.preferences.viewMode = .list
+        appState.preferences.view.viewMode = .list
         // Per-folder overrides only apply once opted into via Advanced Settings.
-        appState.preferences.perFolderViewModeEnabled = true
+        appState.preferences.view.perFolderViewModeEnabled = true
         appState.setViewModeForFolder(.grid, for: dir)
         report(
             "AppState+Columns",
             "POS: setViewModeForFolder() stores the per-folder mode and updates the global viewMode",
-            result: appState.preferences.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.grid.rawValue && appState.preferences.viewMode == .grid)
+            result: appState.preferences.view.perFolderViewModes[dir.standardizedFileURL.path] == ViewMode.grid.rawValue && appState.preferences.view
+                .viewMode == .grid)
 
         // A different, untouched folder should not have an override.
         let otherDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         report(
             "AppState+Columns",
             "NEG: setViewModeForFolder() does not affect unrelated folders",
-            result: appState.preferences.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
+            result: appState.preferences.view.perFolderViewModes[otherDir.standardizedFileURL.path] == nil)
     }
 
     /// L20: `remapPerFolderViewMode(from:to:)` moves a stored per-folder view mode from the old path
@@ -192,53 +193,53 @@ public struct AppStateColumnsAndSelectionTests {
     /// `perFolderViewModes` through the store (per rule 17) so its debounced save re-captures real data.
     private static func testRemapPerFolderViewMode() {
         let appState = AppState()
-        let priorModes = appState.preferences.perFolderViewModes
-        defer { appState.preferences.perFolderViewModes = priorModes }
-        appState.preferences.perFolderViewModes = [:]
+        let priorModes = appState.preferences.view.perFolderViewModes
+        defer { appState.preferences.view.perFolderViewModes = priorModes }
+        appState.preferences.view.perFolderViewModes = [:]
         let oldURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("old-\(UUID().uuidString)")
         let newURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("new-\(UUID().uuidString)")
-        appState.preferences.perFolderViewModes[oldURL.standardizedFileURL.path] = ViewMode.list.rawValue
+        appState.preferences.view.perFolderViewModes[oldURL.standardizedFileURL.path] = ViewMode.list.rawValue
 
         appState.remapPerFolderViewMode(from: oldURL, to: newURL)
         report(
             "AppState+Columns",
             "POS: remapPerFolderViewMode() moves the stored mode from the old path key to the new one",
-            result: appState.preferences.perFolderViewModes[oldURL.standardizedFileURL.path] == nil
-                && appState.preferences.perFolderViewModes[newURL.standardizedFileURL.path] == ViewMode.list.rawValue)
+            result: appState.preferences.view.perFolderViewModes[oldURL.standardizedFileURL.path] == nil
+                && appState.preferences.view.perFolderViewModes[newURL.standardizedFileURL.path] == ViewMode.list.rawValue)
 
         let untracked = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("untracked-\(UUID().uuidString)")
-        let before = appState.preferences.perFolderViewModes
+        let before = appState.preferences.view.perFolderViewModes
         appState.remapPerFolderViewMode(from: untracked, to: newURL)
         report(
             "AppState+Columns",
             "NEG: remapPerFolderViewMode() is a no-op when the old path has no stored per-folder mode",
-            result: appState.preferences.perFolderViewModes == before)
+            result: appState.preferences.view.perFolderViewModes == before)
     }
 
     /// L20: `remapRelocatedState(from:to:)` performs both `remapFavorites` and
     /// `remapPerFolderViewMode` for one in-app move. Restores both stores through their properties.
     private static func testRemapRelocatedState() {
         let appState = AppState()
-        let priorModes = appState.preferences.perFolderViewModes
-        let priorFavorites = appState.preferences.favoriteURLs
+        let priorModes = appState.preferences.view.perFolderViewModes
+        let priorFavorites = appState.preferences.favorites.favoriteURLs
         defer {
-            appState.preferences.perFolderViewModes = priorModes
-            appState.preferences.favoriteURLs = priorFavorites
+            appState.preferences.view.perFolderViewModes = priorModes
+            appState.preferences.favorites.favoriteURLs = priorFavorites
         }
-        appState.preferences.perFolderViewModes = [:]
+        appState.preferences.view.perFolderViewModes = [:]
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let oldURL = dir.appendingPathComponent("Reports").standardizedFileURL
         let newURL = dir.appendingPathComponent("Archive/Reports").standardizedFileURL
-        appState.preferences.favoriteURLs = [oldURL]
-        appState.preferences.perFolderViewModes[oldURL.path] = ViewMode.grid.rawValue
+        appState.preferences.favorites.favoriteURLs = [oldURL]
+        appState.preferences.view.perFolderViewModes[oldURL.path] = ViewMode.grid.rawValue
 
         appState.remapRelocatedState(from: oldURL, to: newURL)
         report(
             "AppState+Columns",
             "POS: remapRelocatedState() remaps both the favorite and the per-folder view mode key to the new path",
-            result: appState.preferences.favoriteURLs == [newURL]
-                && appState.preferences.perFolderViewModes[oldURL.path] == nil
-                && appState.preferences.perFolderViewModes[newURL.path] == ViewMode.grid.rawValue)
+            result: appState.preferences.favorites.favoriteURLs == [newURL]
+                && appState.preferences.view.perFolderViewModes[oldURL.path] == nil
+                && appState.preferences.view.perFolderViewModes[newURL.path] == ViewMode.grid.rawValue)
     }
 
     private static func testHandleSelectionSingleClick() {
@@ -389,7 +390,7 @@ public struct AppStateColumnsAndSelectionTests {
 
     private static func testAutoFitColumnWidth() {
         let appState = AppState()
-        appState.preferences.listColumnStates = ListColumnState.defaults()
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
         // Start from a known width that's guaranteed to differ from the auto-fit result below.
         appState.setColumnWidth(.name, width: LayoutTokens.columnMinWidth)
 
@@ -397,20 +398,20 @@ public struct AppStateColumnsAndSelectionTests {
         let expected = max(LayoutTokens.columnMinWidth, ColumnAutoFitService.calculateAutoFitWidth(
             for: .name,
             items: appState.fileSystem.items,
-            iconSize: appState.preferences.iconSize,
-            language: appState.preferences.appLanguage))
+            iconSize: appState.preferences.view.iconSize,
+            language: appState.preferences.appearance.appLanguage))
         report(
             "AppState+Columns",
             "POS: autoFitColumnWidth() applies the width computed by ColumnAutoFitService, clamped via setColumnWidth()",
             result: appState.columnWidth(for: .name) == expected)
 
         // No state entry for the column: setColumnWidth's internal guard makes this a no-op.
-        appState.preferences.listColumnStates.removeAll { $0.column == .size }
+        appState.preferences.view.listColumnStates.removeAll { $0.column == .size }
         appState.autoFitColumnWidth(.size)
         report(
             "AppState+Columns",
             "NEG: autoFitColumnWidth() is a no-op when the column has no existing state entry",
-            result: !appState.preferences.listColumnStates.contains { $0.column == .size })
+            result: !appState.preferences.view.listColumnStates.contains { $0.column == .size })
     }
 
     private static func testPerformRenameNoOpCases() {

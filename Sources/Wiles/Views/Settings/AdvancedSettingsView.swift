@@ -11,22 +11,22 @@ struct AdvancedSettingsView: View {
         @Bindable var appState = appState
         return Form {
             Section(appState.tr(.settingsViewSection)) {
-                Toggle(appState.tr(showHiddenFilesKey), isOn: $appState.preferences.showHiddenFiles)
+                Toggle(appState.tr(showHiddenFilesKey), isOn: $appState.preferences.view.showHiddenFiles)
                     .help(appState.tr(.showHiddenFilesHint))
                     .accessibilityHint(Text(appState.tr(.showHiddenFilesHint)))
-                Toggle(appState.tr(.compactDensity), isOn: $appState.preferences.isCompactMode)
+                Toggle(appState.tr(.compactDensity), isOn: $appState.preferences.view.isCompactMode)
                     .help(appState.tr(.compactDensityHint))
                     .accessibilityHint(Text(appState.tr(.compactDensityHint)))
-                Toggle(appState.tr(.middleTruncateNames), isOn: $appState.preferences.middleTruncateNames)
+                Toggle(appState.tr(.middleTruncateNames), isOn: $appState.preferences.view.middleTruncateNames)
                     .help(appState.tr(.middleTruncateNamesHint))
                     .accessibilityHint(Text(appState.tr(.middleTruncateNamesHint)))
-                Toggle(appState.tr(.alwaysShowFullPathBar), isOn: $appState.preferences.alwaysShowFullPathBar)
+                Toggle(appState.tr(.alwaysShowFullPathBar), isOn: $appState.preferences.view.alwaysShowFullPathBar)
                     .help(appState.tr(.alwaysShowFullPathBarHint))
                     .accessibilityHint(Text(appState.tr(.alwaysShowFullPathBarHint)))
-                Toggle(appState.tr(.autoHideSidebar), isOn: $appState.preferences.isSidebarCollapsed)
+                Toggle(appState.tr(.autoHideSidebar), isOn: $appState.preferences.view.isSidebarCollapsed)
                     .help(appState.tr(.autoHideSidebarHint))
                     .accessibilityHint(Text(appState.tr(.autoHideSidebarHint)))
-                Toggle(appState.tr(.perFolderViewMode), isOn: $appState.preferences.perFolderViewModeEnabled)
+                Toggle(appState.tr(.perFolderViewMode), isOn: $appState.preferences.view.perFolderViewModeEnabled)
                     .help(appState.tr(.perFolderViewModeHint))
                     .accessibilityHint(Text(appState.tr(.perFolderViewModeHint)))
             }
@@ -64,6 +64,6 @@ struct AdvancedSettingsView: View {
     /// GNOME mode toggles hidden files with Ctrl+H, macOS mode with Cmd+Shift+. — the label
     /// communicates the currently-active shortcut for the currently-active navigation mode.
     private var showHiddenFilesKey: L10n.Key {
-        appState.preferences.navigationMode == .gnome ? .showHiddenFilesGnome : .showHiddenFilesMac
+        appState.preferences.view.navigationMode == .gnome ? .showHiddenFilesGnome : .showHiddenFilesMac
     }
 }

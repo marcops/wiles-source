@@ -139,20 +139,20 @@ public enum ImageConverterService {
     private static func bitmapAlphaInfo(for image: CGImage, colorSpace: CGColorSpace) -> CGImageAlphaInfo? {
         switch colorSpace.model {
         case .rgb:
-            return .premultipliedLast
+            .premultipliedLast
         case .monochrome, .cmyk:
-            return imageHasAlpha(image) ? nil : CGImageAlphaInfo.none
+            imageHasAlpha(image) ? nil : CGImageAlphaInfo.none
         default:
-            return nil
+            nil
         }
     }
 
     private static func imageHasAlpha(_ image: CGImage) -> Bool {
         switch image.alphaInfo {
         case .none, .noneSkipFirst, .noneSkipLast:
-            return false
+            false
         default:
-            return true
+            true
         }
     }
 

@@ -100,7 +100,9 @@ public final class ThumbnailService {
         }
         let dedupKey = key as String
         let (generation, isOwner) = inFlightLock.withLock { () -> (Task<Void, Never>, Bool) in
-            if let running = inFlight[dedupKey] { return (running, false) }
+            if let running = inFlight[dedupKey] {
+                return (running, false)
+            }
             let new = Task<Void, Never> { [weak self] in
                 await self?.generateAndCache(for: url, key: dedupKey, scale: scale)
             }

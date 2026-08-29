@@ -7,7 +7,7 @@ struct TagsSectionView: View {
     var body: some View {
         SidebarSectionContainer(
             appState: appState, title: appState.tr(.tags), identifierKey: "TAGS", isExpanded: $isExpanded,
-            hideAction: { appState.preferences.showTags = false },
+            hideAction: { appState.preferences.sidebar.showTags = false },
             content: {
                 ForEach(SystemTagsService.favoriteTags, id: \.self) { systemTag in
                     tagRow(systemTag: systemTag)

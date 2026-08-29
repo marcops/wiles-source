@@ -9,9 +9,9 @@ struct AppMenuCommands: LocalizedCommands {
 
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button(tr(.aboutWiles)) { windowUIState?.showAboutSheet = true }
+            Button(tr(.aboutWiles)) { windowUIState?.activeModal = .about }
         }
-        // `SettingsView` is presented as a sheet (`windowUIState.showSettingsSheet`, wired in
+        // `SettingsView` is presented as a sheet (`windowUIState.activeModal = .settings`, wired in
         // `MainContentView`) rather than a `Settings { }` scene — a real scene always gets its own
         // native title bar/traffic-light window chrome that fights the app's own header/footer sheet
         // styling, and every attempt to strip that chrome via `NSWindow` still left rendering glitches.
@@ -21,7 +21,7 @@ struct AppMenuCommands: LocalizedCommands {
         // collided with `CommandGroup(replacing: .appSettings)` adding a second, translated one. With
         // no `Settings` scene at all, there's nothing left for SwiftUI to auto-generate.
         CommandGroup(replacing: .appSettings) {
-            Button(tr(.settingsMenuItem)) { windowUIState?.showSettingsSheet = true }
+            Button(tr(.settingsMenuItem)) { windowUIState?.activeModal = .settings }
                 .keyboardShortcut(",", modifiers: .command)
         }
     }

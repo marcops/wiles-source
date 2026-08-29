@@ -76,17 +76,17 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
         let appState = AppState()
-        let priorModes = appState.preferences.perFolderViewModes
-        let priorEnabled = appState.preferences.perFolderViewModeEnabled
-        let priorViewMode = appState.preferences.viewMode
+        let priorModes = appState.preferences.view.perFolderViewModes
+        let priorEnabled = appState.preferences.view.perFolderViewModeEnabled
+        let priorViewMode = appState.preferences.view.viewMode
         defer {
-            appState.preferences.perFolderViewModes = priorModes
-            appState.preferences.perFolderViewModeEnabled = priorEnabled
-            appState.preferences.viewMode = priorViewMode
+            appState.preferences.view.perFolderViewModes = priorModes
+            appState.preferences.view.perFolderViewModeEnabled = priorEnabled
+            appState.preferences.view.viewMode = priorViewMode
         }
-        appState.preferences.perFolderViewModeEnabled = true
-        appState.preferences.viewMode = .grid
-        appState.preferences.perFolderViewModes = [folder.standardizedFileURL.path: ViewMode.list.rawValue]
+        appState.preferences.view.perFolderViewModeEnabled = true
+        appState.preferences.view.viewMode = .grid
+        appState.preferences.view.perFolderViewModes = [folder.standardizedFileURL.path: ViewMode.list.rawValue]
 
         guard let destURL = try? await appState.moveItem(at: folder, toFolder: destParent) else {
             XCTFail("moveItem should have moved the folder")
@@ -95,7 +95,7 @@ final class AppStateColumnsAndActionsAsyncTests: XCTestCase {
 
         XCTAssertEqual(appState.viewModeForFolder(destURL), .list, "the per-folder view mode should now apply at the folder's new path")
         XCTAssertNil(
-            appState.preferences.perFolderViewModes[folder.standardizedFileURL.path],
+            appState.preferences.view.perFolderViewModes[folder.standardizedFileURL.path],
             "the stale old-path per-folder view mode key should be removed")
         XCTAssertEqual(appState.viewModeForFolder(folder), .grid, "the old path should fall back to the global view mode")
     }

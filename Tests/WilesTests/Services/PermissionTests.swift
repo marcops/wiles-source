@@ -35,7 +35,6 @@ public final class PermissionTests {
         testHasFullDiskAccessMatchesDirectCheck()
         testRequestInitialPermissionsIsNoOpWhenAlreadyShown()
         testSettingsDeepLinkURLComponents()
-        testResetIsIdempotent()
         testRequestInitialPermissionsProbesFoldersAndSetsFlagWhenNotYetShown()
     }
 
@@ -94,14 +93,11 @@ public final class PermissionTests {
             "NEG: flag key absent after removeObject reads as false via bool(forKey:)",
             result: !defaults.bool(forKey: key))
 
-        PermissionService.markFullDiskAccessPromptAsShown()
-        TestReporter.report("Permission", "POS: markFullDiskAccessPromptAsShown sets the UserDefaults flag to true", result: defaults.bool(forKey: key))
-
-        PermissionService.resetInitialPermissionsFlag()
+        defaults.set(true, forKey: key)
         TestReporter.report(
             "Permission",
-            "POS: resetInitialPermissionsFlag removes the flag key entirely (object(forKey:) is nil)",
-            result: defaults.object(forKey: key) == nil)
+            "POS: an explicitly saved true flag reads back as true (the requestInitialPermissions guard's basis)",
+            result: defaults.bool(forKey: key))
     }
 
     private static func testHasFullDiskAccessMatchesDirectCheck() {
@@ -140,25 +136,5 @@ public final class PermissionTests {
         let expected = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
         TestReporter.report("Permission", "POS: settings deep link URL string is exact", result: url?.absoluteString == expected)
         TestReporter.report("Permission", "NEG: settings deep link scheme is not https", result: !(url?.absoluteString.hasPrefix("https") ?? false))
-    }
-
-    private static func testResetIsIdempotent() {
-        let key = DefaultsKey.hasShownFullDiskAccessPrompt.rawValue
-        let defaults = UserDefaults.standard
-        let priorValue = defaults.object(forKey: key)
-        defer {
-            if let priorValue {
-                defaults.set(priorValue, forKey: key)
-            } else {
-                defaults.removeObject(forKey: key)
-            }
-        }
-
-        PermissionService.resetInitialPermissionsFlag()
-        PermissionService.resetInitialPermissionsFlag()
-        TestReporter.report(
-            "Permission",
-            "NEG: calling resetInitialPermissionsFlag twice on an already-absent key stays absent without crashing",
-            result: defaults.object(forKey: key) == nil)
     }
 }

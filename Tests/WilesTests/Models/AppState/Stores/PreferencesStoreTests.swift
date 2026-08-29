@@ -8,13 +8,13 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: iconSize is within valid bounds",
-            result: store.iconSize >= IconSizeToken.minSize && store.iconSize <= IconSizeToken.maxSize)
+            result: store.view.iconSize >= IconSizeToken.minSize && store.view.iconSize <= IconSizeToken.maxSize)
 
-        let initialHidden = store.showHiddenFiles
-        defer { store.showHiddenFiles = initialHidden }
+        let initialHidden = store.view.showHiddenFiles
+        defer { store.view.showHiddenFiles = initialHidden }
 
-        store.showHiddenFiles.toggle()
-        report("Store/PreferencesStore", "POS: showHiddenFiles toggles correctly", result: store.showHiddenFiles != initialHidden)
+        store.view.showHiddenFiles.toggle()
+        report("Store/PreferencesStore", "POS: showHiddenFiles toggles correctly", result: store.view.showHiddenFiles != initialHidden)
 
         testExpandedTreePathsCapsInsertionsAt500()
         testPerFolderViewModesEvictsInsteadOfRevertingAtCap()
@@ -59,34 +59,37 @@ public struct PreferencesStoreTests {
 
         let store = PreferencesStore()
 
-        store.favoriteURLs = []
-        report("Store/PreferencesStore", "POS: resolvedFavoritePaths is empty when favoriteURLs is empty", result: store.resolvedFavoritePaths.isEmpty)
+        store.favorites.favoriteURLs = []
+        report(
+            "Store/PreferencesStore",
+            "POS: resolvedFavoritePaths is empty when favoriteURLs is empty",
+            result: store.favorites.resolvedFavoritePaths.isEmpty)
 
-        store.favoriteURLs = [real, other]
+        store.favorites.favoriteURLs = [real, other]
         report(
             "Store/PreferencesStore",
             "POS: resolvedFavoritePaths equals the symlink-resolved set of favoriteURLs after assignment",
-            result: store.resolvedFavoritePaths == resolved([real, other]))
+            result: store.favorites.resolvedFavoritePaths == resolved([real, other]))
 
-        store.favoriteURLs.append(link)
+        store.favorites.favoriteURLs.append(link)
         report(
             "Store/PreferencesStore",
             "POS: appending a symlink to favoriteURLs recomputes resolvedFavoritePaths with the symlink's real target path",
-            result: store.resolvedFavoritePaths == resolved([real, other, link])
-                && store.resolvedFavoritePaths.contains(real.resolvingSymlinksInPath().standardizedFileURL.path))
+            result: store.favorites.resolvedFavoritePaths == resolved([real, other, link])
+                && store.favorites.resolvedFavoritePaths.contains(real.resolvingSymlinksInPath().standardizedFileURL.path))
 
-        store.favoriteURLs.swapAt(0, 2)
+        store.favorites.favoriteURLs.swapAt(0, 2)
         report(
             "Store/PreferencesStore",
             "POS: reordering favoriteURLs keeps resolvedFavoritePaths correct (order-independent set)",
-            result: store.resolvedFavoritePaths == resolved([real, other, link]))
+            result: store.favorites.resolvedFavoritePaths == resolved([real, other, link]))
 
-        store.favoriteURLs.removeAll { $0 == other }
+        store.favorites.favoriteURLs.removeAll { $0 == other }
         report(
             "Store/PreferencesStore",
             "POS: removing from favoriteURLs recomputes resolvedFavoritePaths",
-            result: store.resolvedFavoritePaths == resolved([real, link])
-                && !store.resolvedFavoritePaths.contains(other.resolvingSymlinksInPath().standardizedFileURL.path))
+            result: store.favorites.resolvedFavoritePaths == resolved([real, link])
+                && !store.favorites.resolvedFavoritePaths.contains(other.resolvingSymlinksInPath().standardizedFileURL.path))
     }
 
     // MARK: - favoriteURLs load-from-saved-array branch
@@ -122,7 +125,7 @@ public struct PreferencesStoreTests {
 
         UserDefaults.standard.set([realExistingPath, missingVolumesPath, missingRegularPath], forKey: key)
         let store = PreferencesStore()
-        let paths = store.favoriteURLs.map(\.path)
+        let paths = store.favorites.favoriteURLs.map(\.path)
 
         report(
             "Store/PreferencesStore",
@@ -163,7 +166,7 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: a saved iconSize within IconSizeToken bounds is restored on init",
-            result: store.iconSize == validSize)
+            result: store.view.iconSize == validSize)
     }
 
     // MARK: - favoriteURLs default fallback when nothing saved
@@ -193,7 +196,7 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: favoriteURLs falls back to the existing Desktop/Documents/Downloads defaults when no saved array exists",
-            result: store.favoriteURLs == expectedCandidates)
+            result: store.favorites.favoriteURLs == expectedCandidates)
     }
 
     // MARK: - showDirectoryTree persistence
@@ -216,22 +219,22 @@ public struct PreferencesStoreTests {
         }
 
         let store = PreferencesStore()
-        let defaultValue = store.showDirectoryTree
-        store.showDirectoryTree = !defaultValue
+        let defaultValue = store.sidebar.showDirectoryTree
+        store.sidebar.showDirectoryTree = !defaultValue
 
         let reloaded = PreferencesStore()
         report(
             "Store/PreferencesStore",
             "POS: showDirectoryTree persists to UserDefaults and is restored by a freshly-constructed PreferencesStore",
-            result: reloaded.showDirectoryTree == !defaultValue)
+            result: reloaded.sidebar.showDirectoryTree == !defaultValue)
 
         // Flip back and restore the real prior value so a real user's setting isn't clobbered.
-        store.showDirectoryTree = defaultValue
+        store.sidebar.showDirectoryTree = defaultValue
     }
 
     // MARK: - expandedTreePaths cap (500 entries)
 
-    /// `PreferencesStore.expandedTreePaths`'s `didSet` evicts down to `maxExpandedTreePaths` (500)
+    /// `PreferencesStore.sidebar.expandedTreePaths`'s `didSet` evicts down to `maxExpandedTreePaths` (500)
     /// instead of reverting the whole assignment, so a disclosure triangle at the cap still opens.
     /// This mutates the real `UserDefaults.standard` key (`PreferencesStore` has no injectable suite), so per rule 17
     /// we snapshot and restore the real value in `defer`. Every successful assignment also reschedules
@@ -250,32 +253,32 @@ public struct PreferencesStoreTests {
         }
 
         let store = PreferencesStore()
-        store.expandedTreePaths = []
+        store.sidebar.expandedTreePaths = []
 
         let overCapInOneShot = Set((0 ..< 600).map { "/tmp/wiles-test-onshot-\($0)-\(UUID().uuidString)" })
-        store.expandedTreePaths = overCapInOneShot
+        store.sidebar.expandedTreePaths = overCapInOneShot
         report(
             "Store/PreferencesStore",
             "POS: assigning a 600-entry set to expandedTreePaths in one shot evicts down to the 500 cap instead of reverting",
-            result: store.expandedTreePaths.count == 500)
+            result: store.sidebar.expandedTreePaths.count == 500)
 
         for i in 0 ..< 510 {
-            var updated = store.expandedTreePaths
+            var updated = store.sidebar.expandedTreePaths
             updated.insert("/tmp/wiles-test-incremental-\(i)")
-            store.expandedTreePaths = updated
+            store.sidebar.expandedTreePaths = updated
         }
         report(
             "Store/PreferencesStore",
             "POS: inserting one path at a time past the cap stops growing expandedTreePaths once it reaches 500",
-            result: store.expandedTreePaths.count == 500)
+            result: store.sidebar.expandedTreePaths.count == 500)
 
         // Restore in-memory + reschedule the pending debounced save with the real prior data (see doc comment above).
-        store.expandedTreePaths = Set(priorArray ?? [])
+        store.sidebar.expandedTreePaths = Set(priorArray ?? [])
     }
 
     // MARK: - perFolderViewModes cap (500 entries) — H1 regression
 
-    /// `PreferencesStore.perFolderViewModes`'s `didSet` must evict down to `maxPerFolderViewModes`
+    /// `PreferencesStore.view.perFolderViewModes`'s `didSet` must evict down to `maxPerFolderViewModes`
     /// (500) instead of reverting the whole assignment. The old code did `perFolderViewModes =
     /// oldValue; return`, so once a user had 500 per-folder view modes stored, every subsequent
     /// `setViewModeForFolder` silently no-op'd. Mutates the real `UserDefaults.standard` key, so
@@ -292,30 +295,30 @@ public struct PreferencesStoreTests {
         }
 
         let store = PreferencesStore()
-        store.perFolderViewModes = [:]
+        store.view.perFolderViewModes = [:]
 
         var overCap: [String: String] = [:]
         for i in 0 ..< 600 {
             overCap["/tmp/wiles-pfvm-oneshot-\(i)-\(UUID().uuidString)"] = "list"
         }
-        store.perFolderViewModes = overCap
+        store.view.perFolderViewModes = overCap
         report(
             "Store/PreferencesStore",
             "POS: assigning a 600-entry dictionary to perFolderViewModes evicts down to the 500 cap instead of reverting",
-            result: store.perFolderViewModes.count == 500)
+            result: store.view.perFolderViewModes.count == 500)
 
         // At the cap, a fresh per-folder change must take effect (old code reverted it away).
-        let atCapCount = store.perFolderViewModes.count
-        var withNewKey = store.perFolderViewModes
+        let atCapCount = store.view.perFolderViewModes.count
+        var withNewKey = store.view.perFolderViewModes
         let newKey = "/tmp/wiles-pfvm-latest-\(UUID().uuidString)"
         withNewKey[newKey] = "grid"
-        store.perFolderViewModes = withNewKey
+        store.view.perFolderViewModes = withNewKey
         report(
             "Store/PreferencesStore",
             "POS: setting a new folder's view mode at the cap keeps the new key and stays at 500",
-            result: store.perFolderViewModes[newKey] == "grid" && store.perFolderViewModes.count == min(atCapCount, 500))
+            result: store.view.perFolderViewModes[newKey] == "grid" && store.view.perFolderViewModes.count == min(atCapCount, 500))
 
-        store.perFolderViewModes = priorDict ?? [:]
+        store.view.perFolderViewModes = priorDict ?? [:]
     }
 
     // MARK: - expandedTreePaths truncate-on-load
@@ -340,16 +343,16 @@ public struct PreferencesStoreTests {
         report(
             "Store/PreferencesStore",
             "POS: loading a saved expandedTreePaths array of 600 entries truncates to the 500 cap on init",
-            result: store.expandedTreePaths.count == 500)
+            result: store.sidebar.expandedTreePaths.count == 500)
         report(
             "Store/PreferencesStore",
             "NEG: loading an oversized saved set does not silently drop to empty",
-            result: !store.expandedTreePaths.isEmpty)
+            result: !store.sidebar.expandedTreePaths.isEmpty)
 
         // The freshly-constructed store's didSet just scheduled a debounced save of the truncated
         // 500-entry set; overwrite with the real prior value so that pending write, whenever it fires,
         // can't clobber real user data (see doc comment on the sibling test above).
-        store.expandedTreePaths = Set(priorArray ?? [])
+        store.sidebar.expandedTreePaths = Set(priorArray ?? [])
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

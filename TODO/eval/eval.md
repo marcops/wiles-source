@@ -463,3 +463,6 @@ e algum outro que ache que faz sentido
 REGRA IMPORTANTE:
 NAO GERE O ARQUIVO NO FINAL; VAI FAZENDO APPEND CONFORME FOR AVALIANDO
 NOME DO ARQUIVO O QUE ACHOU.. 
+e nao considere que porque tenho regra ou esta feito de 1 maneira que esta certo, se tiver algum padrao que nao e bom revise
+
+Conforme for fazendo vai dando a % de progresso no chat

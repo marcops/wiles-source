@@ -3,17 +3,17 @@ import GitBeacon
 
 public extension AppState {
     func addFavorite(_ url: URL) {
-        if !preferences.favoriteURLs.contains(where: { isSameLocation($0, url) }) {
-            preferences.favoriteURLs.append(url.standardizedFileURL)
+        if !preferences.favorites.favoriteURLs.contains(where: { isSameLocation($0, url) }) {
+            preferences.favorites.favoriteURLs.append(url.standardizedFileURL)
         }
     }
 
     func removeFavorite(_ url: URL) {
-        preferences.favoriteURLs.removeAll { isSameLocation($0, url) }
+        preferences.favorites.favoriteURLs.removeAll { isSameLocation($0, url) }
     }
 
     func isFavorite(_ url: URL) -> Bool {
-        preferences.resolvedFavoritePaths.contains(url.resolvingSymlinksInPath().standardizedFileURL.path)
+        preferences.favorites.resolvedFavoritePaths.contains(url.resolvingSymlinksInPath().standardizedFileURL.path)
     }
 
     /// Follows all path-keyed per-item state to an in-app relocation: `remapFavorites` (kept public
@@ -80,7 +80,7 @@ public extension AppState {
 
     private func finishBatchMove(_ moved: [URL], failureCount: Int, total: Int) -> [URL] {
         if failureCount > 0 {
-            showError(WilesError.operationFailed(reason: "\(failureCount) of \(total) items could not be moved."))
+            showError(WilesError.localized(key: .movePartialFailure, arguments: ["\(failureCount)", "\(total)"]))
         }
         return moved
     }
@@ -145,7 +145,7 @@ public extension AppState {
     func remapFavorites(from oldURL: URL, to newURL: URL) {
         let oldStd = oldURL.resolvingSymlinksInPath().standardizedFileURL
         let newStd = newURL.standardizedFileURL
-        var updated = preferences.favoriteURLs
+        var updated = preferences.favorites.favoriteURLs
         var didChange = false
         for (index, favorite) in updated.enumerated() {
             let favStd = favorite.resolvingSymlinksInPath().standardizedFileURL
@@ -160,15 +160,15 @@ public extension AppState {
             }
         }
         guard didChange else { return }
-        preferences.favoriteURLs = updated
+        preferences.favorites.favoriteURLs = updated
     }
 
     func moveSelectedFavorite(offset: Int, windowUIState: WindowUIState) {
         guard let selected = windowUIState.selectedFavoriteURL,
               isSameLocation(selected, navigation.currentURL),
-              let index = preferences.favoriteURLs.firstIndex(where: { isSameLocation($0, selected) }) else { return }
+              let index = preferences.favorites.favoriteURLs.firstIndex(where: { isSameLocation($0, selected) }) else { return }
         let newIndex = index + offset
-        guard preferences.favoriteURLs.indices.contains(newIndex) else { return }
-        preferences.favoriteURLs.swapAt(index, newIndex)
+        guard preferences.favorites.favoriteURLs.indices.contains(newIndex) else { return }
+        preferences.favorites.favoriteURLs.swapAt(index, newIndex)
     }
 }

@@ -118,8 +118,8 @@ public extension AppState {
                 selection.selectedURLs = Set(movedDestinations)
             }
             if failureCount > 0 {
-                showError(WilesError.operationFailed(
-                    reason: "\(failureCount) of \(urls.count) items could not be pasted."))
+                showError(WilesError.localized(
+                    key: .pastePartialFailure, arguments: ["\(failureCount)", "\(urls.count)"]))
             }
             refreshCurrentDirectory()
         }
@@ -167,7 +167,7 @@ public extension AppState {
 
     func deleteSelected(windowUIState: WindowUIState) {
         guard !selection.selectedURLs.isEmpty else { return }
-        if preferences.skipDeleteConfirmation {
+        if preferences.view.skipDeleteConfirmation {
             performDeleteSelected()
         } else {
             windowUIState.showDeleteConfirmAlert = true
@@ -212,7 +212,7 @@ public extension AppState {
 
     func deletePermanentlySelected(windowUIState: WindowUIState) {
         guard !selection.selectedURLs.isEmpty else { return }
-        if preferences.skipDeleteConfirmation {
+        if preferences.view.skipDeleteConfirmation {
             performDeletePermanentlySelected()
         } else {
             windowUIState.showDeletePermanentlyConfirmAlert = true
@@ -240,14 +240,18 @@ public extension AppState {
     func undoLastAction() {
         let service = undoRedoService
         runDetachedFileOperation(context: "Undoing last action", onSuccess: { [weak self] (target: URL?) in
-            if let target { self?.selection.selectedURLs = [target] }
+            if let target {
+                self?.selection.selectedURLs = [target]
+            }
         }, operation: { try await service.undo() })
     }
 
     func redoLastAction() {
         let service = undoRedoService
         runDetachedFileOperation(context: "Redoing last action", onSuccess: { [weak self] (target: URL?) in
-            if let target { self?.selection.selectedURLs = [target] }
+            if let target {
+                self?.selection.selectedURLs = [target]
+            }
         }, operation: { try await service.redo() })
     }
 
@@ -269,7 +273,7 @@ public extension AppState {
 
     func openPropertiesForSelected(windowUIState: WindowUIState) {
         if let first = primarySelectedURL, let item = fileSystem.items.first(where: { $0.url == first }) {
-            windowUIState.propertiesItem = item
+            windowUIState.activeModal = .properties(item)
         }
     }
 
@@ -290,7 +294,7 @@ public extension AppState {
 
     func createNewFileAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
         let targetFolder = folder ?? navigation.currentURL
-        let language = preferences.appLanguage
+        let language = preferences.appearance.appLanguage
         runDetachedFileOperation(context: "Creating new file", refreshOnSuccess: false, onSuccess: { [weak self] (url: URL) in
             self?.enterRenameForNewlyCreated(at: url, inFolder: targetFolder, windowUIState: windowUIState)
         }, operation: {
@@ -313,7 +317,7 @@ public extension AppState {
         // Place it where the current sort puts it, not at the top — otherwise it visibly jumps
         // when the follow-up refresh reorders the list.
         fileSystem.items = FileSystemService.sortItems(
-            fileSystem.items + [newItem], by: preferences.sortOption, ascending: preferences.sortAscending)
+            fileSystem.items + [newItem], by: preferences.view.sortOption, ascending: preferences.view.sortAscending)
     }
 
     /// Shared shape for a whole-selection file operation: `await` `operation` (a `nonisolated`
@@ -339,12 +343,18 @@ public extension AppState {
             do {
                 let result = try await operation()
                 guard let self else { return }
-                if let taskID { BackgroundOperationsService.shared.completeTask(id: taskID) }
+                if let taskID {
+                    BackgroundOperationsService.shared.completeTask(id: taskID)
+                }
                 onSuccess(result)
-                if refreshOnSuccess { refreshCurrentDirectory() }
+                if refreshOnSuccess {
+                    refreshCurrentDirectory()
+                }
             } catch {
                 // Skipped when `operation` already reports richer diagnostics itself (e.g. ArchiveService's stderr capture).
-                if reportError { ErrorReporter.report(error, context: context) }
+                if reportError {
+                    ErrorReporter.report(error, context: context)
+                }
                 self?.handleDetachedOperationFailure(error, taskID: taskID)
             }
         }

@@ -12,12 +12,12 @@ public struct ListColumnTests {
     }
 
     private static func testDefaultColumnState(appState: AppState) {
-        appState.preferences.listColumnStates = ListColumnState.defaults()
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
         report("UI/ListColumns", "POS: Name column remains visible by default", result: appState.isColumnVisible(.name))
     }
 
     private static func testColumnVisibilityToggling(appState: AppState) {
-        appState.preferences.listColumnStates = ListColumnState.defaults()
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
         appState.toggleColumnVisibility(.name)
         report("UI/ListColumns", "POS: Name column cannot be toggled off", result: appState.isColumnVisible(.name))
 
@@ -28,7 +28,7 @@ public struct ListColumnTests {
     }
 
     private static func testColumnWidthResizing(appState: AppState) {
-        appState.preferences.listColumnStates = ListColumnState.defaults()
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
         appState.setColumnWidth(.dateModified, width: 220)
         report("UI/ListColumns", "POS: Column width for Date Modified updated to 220", result: appState.columnWidth(for: .dateModified) == 220)
 
@@ -37,7 +37,7 @@ public struct ListColumnTests {
     }
 
     private static func testColumnAutoFitting(appState: AppState) {
-        appState.preferences.listColumnStates = ListColumnState.defaults()
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
         appState.setColumnWidth(.name, width: 60)
         appState.autoFitColumnWidth(.name)
         let autoWidth = appState.columnWidth(for: .name)

@@ -21,7 +21,9 @@ import Observation
 @Observable
 @MainActor
 public final class WindowUIState {
-    public var propertiesItem: FileItem?
+    /// The one modal sheet this window is showing, if any — see `ActiveModal`. A single
+    /// `.sheet(item:)` in `WilesModalSheets` switches on it.
+    public var activeModal: ActiveModal?
     public var renameItem: FileItem? {
         didSet {
             guard renameItem == nil, oldValue != nil else { return }
@@ -34,33 +36,15 @@ public final class WindowUIState {
     /// back to nil, regardless of which of this rename session's several cancel/commit paths did it —
     /// keeping the two flags in sync without every call site having to remember both.
     public var onRenameCleared: (() -> Void)?
-    public var imageConverterItem: FileItem?
-    public var symlinkItem: FileItem?
-    public var showBatchRenameSheet: Bool = false
     public var showEmptyTrashAlert: Bool = false
     public var showDeleteConfirmAlert: Bool = false
     /// Permanent-delete (shred) confirmation. Separate from `showDeleteConfirmAlert` because that
     /// one moves to Trash (reversible) and this one is irreversible.
     public var showDeletePermanentlyConfirmAlert: Bool = false
-    public var showConnectToServerSheet: Bool = false
-    public var showAutoOrganizationSheet: Bool = false
-    public var showDuplicateCleanerSheet: Bool = false
-    /// Sheet visibility *is* `httpShareFolderURL != nil` — a single optional payload instead of a
-    /// paired flag+URL, so "sheet shown, no folder to share" can no longer happen.
-    public var httpShareFolderURL: URL?
     public var showShortcutsHUD: Bool = false
-    public var showSaveSmartFolderSheet: Bool = false
-    /// See `httpShareFolderURL` — visibility is `passwordCompressURLs != nil`.
-    public var passwordCompressURLs: [URL]?
-    /// See `httpShareFolderURL` — visibility is `inspectArchiveURL != nil`.
-    public var inspectArchiveURL: URL?
     /// A pending move name-collision decision (Replace / Keep Both / Cancel). Set by
     /// `promptMoveCollision` while a move loop is suspended waiting for the user; the sheet clears it.
     var moveCollisionPrompt: MoveCollisionPrompt?
-    public var showHelpSheet: Bool = false
-    public var showFeedbackSheet: Bool = false
-    public var showAboutSheet: Bool = false
-    public var showSettingsSheet: Bool = false
     public var quickLookURL: URL?
     public var selectedFavoriteURL: URL?
     public var isEditingPath: Bool = false
@@ -75,14 +59,14 @@ public final class WindowUIState {
     /// Backing store for `preferences`-mirrored defaults below — see that property's doc comment.
     private let preferences: PreferencesStore
 
-    /// This window's own terminal drawer state, seeded from `preferences.showTerminalDrawer` (the
+    /// This window's own terminal drawer state, seeded from `preferences.view.showTerminalDrawer` (the
     /// persisted default for a *new* window) and written back on change so the next new window
     /// picks up the last-toggled state. Kept per-window — unlike a shared flag — so toggling the
     /// drawer in one window never spawns a PTY in every other open window.
     public var showTerminalDrawer: Bool {
         didSet {
             guard showTerminalDrawer != oldValue else { return }
-            preferences.showTerminalDrawer = showTerminalDrawer
+            preferences.view.showTerminalDrawer = showTerminalDrawer
         }
     }
 
@@ -90,7 +74,7 @@ public final class WindowUIState {
     public var sidebarWidth: Double {
         didSet {
             guard sidebarWidth != oldValue else { return }
-            preferences.sidebarWidth = sidebarWidth
+            preferences.view.sidebarWidth = sidebarWidth
         }
     }
 
@@ -99,21 +83,21 @@ public final class WindowUIState {
     public var trailingInspector: TrailingInspector {
         didSet {
             guard trailingInspector != oldValue else { return }
-            preferences.trailingInspector = trailingInspector
+            preferences.view.trailingInspector = trailingInspector
         }
     }
 
     /// True while any sheet or alert owned by this window is on screen. `GlobalKeyMonitor` checks
     /// this before acting on a keypress so a Return/Delete meant for the presented alert's own
     /// button doesn't also fall through to the file list underneath (e.g. opening/renaming the
-    /// selected item while a delete confirmation is up).
+    /// selected item while a delete confirmation is up). Split into one bucket per presentation
+    /// kind so a newly-added sheet/alert has an obvious place to be registered.
     public var isAnyModalPresented: Bool {
-        showBatchRenameSheet || showEmptyTrashAlert
-            || showDeleteConfirmAlert || showDeletePermanentlyConfirmAlert || showConnectToServerSheet || showAutoOrganizationSheet
-            || showDuplicateCleanerSheet || showSaveSmartFolderSheet
-            || showHelpSheet || showFeedbackSheet || showAboutSheet || showSettingsSheet || showShortcutsHUD
-            || propertiesItem != nil || imageConverterItem != nil || symlinkItem != nil
-            || httpShareFolderURL != nil || passwordCompressURLs != nil || inspectArchiveURL != nil
+        activeModal != nil || showShortcutsHUD || anyAlertPresented
+    }
+
+    private var anyAlertPresented: Bool {
+        showEmptyTrashAlert || showDeleteConfirmAlert || showDeletePermanentlyConfirmAlert
             || moveCollisionPrompt != nil
     }
 
@@ -139,9 +123,9 @@ public final class WindowUIState {
     /// defaults off disk and mirror a `PreferencesStore` disconnected from the shared one.
     public init(preferences: PreferencesStore) {
         self.preferences = preferences
-        showTerminalDrawer = preferences.showTerminalDrawer
-        sidebarWidth = preferences.sidebarWidth
-        trailingInspector = preferences.trailingInspector
+        showTerminalDrawer = preferences.view.showTerminalDrawer
+        sidebarWidth = preferences.view.sidebarWidth
+        trailingInspector = preferences.view.trailingInspector
     }
 
     /// Cancels an active in-place rename in response to a folder navigation. The row rendering

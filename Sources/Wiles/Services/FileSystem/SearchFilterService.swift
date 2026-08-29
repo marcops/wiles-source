@@ -1,8 +1,24 @@
 import Foundation
+import UniformTypeIdentifiers
 
 /// Parses and evaluates the search-bar query language (plain text, `r:` regex, and
 /// `date:`/`size:`/`kind:`/`ext:`/`tag:` filter tokens) against candidate file URLs.
 public struct SearchFilterService: Sendable {
+    /// Shortest plain-text query that content search will act on — anything shorter is a silent
+    /// no-op, so `queryWarning` surfaces it as `.contentQueryTooShort` instead.
+    public static let minContentQueryLength = 3
+
+    /// File attributes any present filter token might need, fetched once per candidate file so a
+    /// multi-token query (`date:>7d size:>1m kind:folder tag:x`) does a single `resourceValues`
+    /// call instead of one per token.
+    struct PrefetchedAttributes {
+        let url: URL
+        var modificationDate: Date?
+        var fileSize: Int?
+        var isDirectory = false
+        var tagNames: [String]?
+    }
+
     /// `hidden:true` is a global search setting, not a per-file predicate like `date:`/`kind:`/
     /// `tag:`, so it can't be evaluated inside `matchesToken` — it has to be pulled out of the
     /// query before the remaining tokens are matched against each candidate file (otherwise it'd
@@ -57,6 +73,39 @@ public struct SearchFilterService: Sendable {
         return result
     }
 
+    /// Why the current query is producing no matches when it visually looks valid: a `r:`/wildcard
+    /// token that doesn't compile, or (for a Content/Both search) a plain-text query too short for
+    /// content search to act on. Returns `nil` when nothing is wrong with the query itself.
+    /// Pure — used by the empty-results view to explain the silence.
+    public static func queryWarning(for query: String, scope: SearchScope) -> SearchQueryWarning? {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+
+        var plainTextTokens: [String] = []
+        for token in tokens {
+            let lower = token.lowercased()
+            if isFilterToken(lower) || lower == "hidden:true" {
+                continue
+            }
+            if token.hasPrefix("r:") || containsRegexMetacharacter(token) {
+                let pattern = token.hasPrefix("r:") ? String(token.dropFirst(2)) : token
+                if (try? NSRegularExpression(pattern: pattern)) == nil {
+                    return .invalidRegex
+                }
+            } else {
+                plainTextTokens.append(token)
+            }
+        }
+
+        guard scope != .name else { return nil }
+        let plainText = plainTextTokens.joined(separator: " ")
+        if !plainText.isEmpty, plainText.count < minContentQueryLength {
+            return .contentQueryTooShort(minimum: minContentQueryLength)
+        }
+        return nil
+    }
+
     private static func containsRegexMetacharacter(_ token: String) -> Bool {
         token.contains("*") || token.contains("^") || token.contains("$")
     }
@@ -76,32 +125,68 @@ public struct SearchFilterService: Sendable {
         guard !trimmed.isEmpty else { return true }
 
         let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let attributes = prefetchAttributes(for: fileURL, tokens: tokens, scope: scope)
         for token in tokens
-            where !matchesToken(fileURL: fileURL, token: token, regex: tokenRegexes[token], scope: scope, caseSensitive: caseSensitive) {
+            where !matchesToken(
+                token: token, regex: tokenRegexes[token], scope: scope,
+                caseSensitive: caseSensitive, attributes: attributes) {
             return false
         }
         return true
     }
 
-    private static func matchesToken(fileURL: URL, token: String, regex: NSRegularExpression?, scope: SearchScope, caseSensitive: Bool) -> Bool {
-        let lowerToken = token.lowercased()
-        if lowerToken.hasPrefix("date:") {
-            return matchesDateFilter(fileURL: fileURL, token: String(token.dropFirst(5)))
-        } else if lowerToken.hasPrefix("size:") {
-            return matchesSizeFilter(fileURL: fileURL, token: String(token.dropFirst(5)))
-        } else if lowerToken.hasPrefix("kind:") || lowerToken.hasPrefix("ext:") {
-            let prefix = lowerToken.hasPrefix("kind:") ? 5 : 4
-            return matchesKindFilter(fileURL: fileURL, token: String(token.dropFirst(prefix)))
-        } else if lowerToken.hasPrefix("tag:") {
-            return matchesTagFilter(fileURL: fileURL, tag: String(token.dropFirst(4)))
+    /// One `resourceValues` fetch covering every attribute the present tokens (and the content
+    /// scope) can ask for — see `PrefetchedAttributes`. Returns empty values (all matchers then
+    /// fail closed) when the file is gone or no token needs disk attributes.
+    private static func prefetchAttributes(for fileURL: URL, tokens: [String], scope: SearchScope) -> PrefetchedAttributes {
+        var keys: Set<URLResourceKey> = []
+        for token in tokens {
+            let lower = token.lowercased()
+            if lower.hasPrefix("date:") {
+                keys.insert(.contentModificationDateKey)
+            } else if lower.hasPrefix("size:") {
+                keys.insert(.fileSizeKey)
+            } else if lower.hasPrefix("kind:") {
+                keys.insert(.isDirectoryKey)
+            } else if lower.hasPrefix("tag:") {
+                keys.insert(.tagNamesKey)
+            }
         }
-        return matchesTextOrRegex(fileURL: fileURL, token: token, regex: regex, scope: scope, caseSensitive: caseSensitive)
+        if scope != .name {
+            keys.insert(.fileSizeKey)
+        }
+        guard !keys.isEmpty, let values = try? fileURL.resourceValues(forKeys: keys) else {
+            return PrefetchedAttributes(url: fileURL)
+        }
+        return PrefetchedAttributes(
+            url: fileURL,
+            modificationDate: values.contentModificationDate,
+            fileSize: values.fileSize,
+            isDirectory: values.isDirectory ?? false,
+            tagNames: values.tagNames)
     }
 
-    private static func matchesDateFilter(fileURL: URL, token: String) -> Bool {
-        guard let modified = (try? fileURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) else {
-            return false
+    private static func matchesToken(
+        token: String, regex: NSRegularExpression?, scope: SearchScope,
+        caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
+        let lowerToken = token.lowercased()
+        if lowerToken.hasPrefix("date:") {
+            return matchesDateFilter(token: String(token.dropFirst(5)), attributes: attributes)
+        } else if lowerToken.hasPrefix("size:") {
+            return matchesSizeFilter(token: String(token.dropFirst(5)), attributes: attributes)
+        } else if lowerToken.hasPrefix("kind:") || lowerToken.hasPrefix("ext:") {
+            let prefix = lowerToken.hasPrefix("kind:") ? 5 : 4
+            return matchesKindFilter(token: String(token.dropFirst(prefix)), attributes: attributes)
+        } else if lowerToken.hasPrefix("tag:") {
+            return matchesTagFilter(tag: String(token.dropFirst(4)), attributes: attributes)
         }
+        return matchesTextOrRegex(
+            token: token, regex: regex, scope: scope,
+            caseSensitive: caseSensitive, attributes: attributes)
+    }
+
+    private static func matchesDateFilter(token: String, attributes: PrefetchedAttributes) -> Bool {
+        guard let modified = attributes.modificationDate else { return false }
         let lower = token.lowercased()
         if lower == "today" {
             return Calendar.current.isDateInToday(modified)
@@ -155,8 +240,8 @@ public struct SearchFilterService: Sendable {
         valueStr.hasPrefix(">") || valueStr.hasPrefix("<") || valueStr.hasPrefix("=")
     }
 
-    private static func matchesSizeFilter(fileURL: URL, token: String) -> Bool {
-        guard let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) else { return false }
+    private static func matchesSizeFilter(token: String, attributes: PrefetchedAttributes) -> Bool {
+        guard let size = attributes.fileSize else { return false }
         let (op, valueStr) = splitOperator(from: token.lowercased())
 
         let digits = valueStr.filter(\.isNumber)
@@ -187,49 +272,57 @@ public struct SearchFilterService: Sendable {
         }
     }
 
-    private static func matchesKindFilter(fileURL: URL, token: String) -> Bool {
+    private static func matchesKindFilter(token: String, attributes: PrefetchedAttributes) -> Bool {
         let lower = token.lowercased()
-        let ext = fileURL.pathExtension.lowercased()
+        let ext = attributes.url.pathExtension.lowercased()
 
         switch lower {
         case "image", "img", "images":
-            return ["png", "jpg", "jpeg", "gif", "svg", "webp", "heic", "tiff", "icns", "bmp"].contains(ext)
+            return extensionConforms(ext, to: .image)
         case "doc", "document", "documents":
+            // "Document" is a fuzzy user category with no single clean UTType — curated on purpose.
             return ["doc", "docx", "pdf", "pages", "txt", "md", "rtf", "odt", "xls", "xlsx"].contains(ext)
         case "code", "source":
+            // "Code" spans source, scripts, and markup (JSON/HTML don't conform to .sourceCode) — curated.
             return ["swift", "py", "js", "ts", "json", "html", "css", "cpp", "c", "h", "sh", "yml", "yaml"].contains(ext)
         case "pdf":
             return ext == "pdf"
         case "folder", "dir", "directory":
-            return (try? fileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            return attributes.isDirectory
         case "archive", "zip":
-            return ["zip", "tar", "gz", "7z", "rar", "bz2"].contains(ext)
+            return extensionConforms(ext, to: .archive)
         default:
-            return ext == lower || fileURL.lastPathComponent.lowercased().contains(lower)
+            return ext == lower || attributes.url.lastPathComponent.lowercased().contains(lower)
         }
     }
 
-    private static func matchesTagFilter(fileURL: URL, tag: String) -> Bool {
+    private static func extensionConforms(_ ext: String, to type: UTType) -> Bool {
+        guard !ext.isEmpty, let fileType = UTType(filenameExtension: ext) else { return false }
+        return fileType.conforms(to: type)
+    }
+
+    private static func matchesTagFilter(tag: String, attributes: PrefetchedAttributes) -> Bool {
         let targetTag = tag.lowercased()
-        guard let tags = try? (fileURL as NSURL).resourceValues(forKeys: [.tagNamesKey]),
-              let tagArray = tags[.tagNamesKey] as? [String] else { return false }
+        guard let tagArray = attributes.tagNames else { return false }
         return tagArray.contains { $0.lowercased() == targetTag }
     }
 
-    private static func matchesTextOrRegex(fileURL: URL, token: String, regex: NSRegularExpression?, scope: SearchScope, caseSensitive: Bool) -> Bool {
+    private static func matchesTextOrRegex(
+        token: String, regex: NSRegularExpression?, scope: SearchScope,
+        caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
         switch scope {
         case .name:
-            matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
+            matchesFileName(token: token, regex: regex, caseSensitive: caseSensitive, attributes: attributes)
         case .content:
-            matchesContent(fileURL: fileURL, query: token, caseSensitive: caseSensitive)
+            matchesContent(query: token, caseSensitive: caseSensitive, attributes: attributes)
         case .both:
-            matchesFileName(fileURL: fileURL, token: token, regex: regex, caseSensitive: caseSensitive)
-                || matchesContent(fileURL: fileURL, query: token, caseSensitive: caseSensitive)
+            matchesFileName(token: token, regex: regex, caseSensitive: caseSensitive, attributes: attributes)
+                || matchesContent(query: token, caseSensitive: caseSensitive, attributes: attributes)
         }
     }
 
-    private static func matchesFileName(fileURL: URL, token: String, regex: NSRegularExpression?, caseSensitive: Bool) -> Bool {
-        let fileName = fileURL.lastPathComponent
+    private static func matchesFileName(token: String, regex: NSRegularExpression?, caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
+        let fileName = attributes.url.lastPathComponent
         let nameMatches = caseSensitive ? fileName.contains(token) : fileName.localizedCaseInsensitiveContains(token)
         if nameMatches {
             return true
@@ -239,12 +332,26 @@ public struct SearchFilterService: Sendable {
         return regex.firstMatch(in: fileName, options: [], range: range) != nil
     }
 
-    private static func matchesContent(fileURL: URL, query: String, caseSensitive: Bool) -> Bool {
-        guard query.count >= 3 else { return false }
+    private static func matchesContent(query: String, caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
+        guard query.count >= minContentQueryLength else { return false }
         let textExtensions: Set = ["txt", "md", "swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "xml", "csv"]
-        guard textExtensions.contains(fileURL.pathExtension.lowercased()) else { return false }
-        guard let size = (try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize), size < 2_000_000 else { return false }
-        guard let content = try? String(contentsOf: fileURL, encoding: .utf8) else { return false }
+        guard textExtensions.contains(attributes.url.pathExtension.lowercased()) else { return false }
+        guard let size = attributes.fileSize, size < 2_000_000 else { return false }
+        guard let content = readTextContent(of: attributes.url) else { return false }
         return caseSensitive ? content.contains(query) : content.localizedCaseInsensitiveContains(query)
+    }
+
+    /// Reads a text file as UTF-8, falling back to the file's own declared encoding and then
+    /// ISO Latin-1 (which never fails to decode) so a non-UTF-8 text file isn't silently skipped
+    /// by content search.
+    private static func readTextContent(of fileURL: URL) -> String? {
+        if let utf8 = try? String(contentsOf: fileURL, encoding: .utf8) {
+            return utf8
+        }
+        var usedEncoding = String.Encoding.utf8
+        if let detected = try? String(contentsOf: fileURL, usedEncoding: &usedEncoding) {
+            return detected
+        }
+        return try? String(contentsOf: fileURL, encoding: .isoLatin1)
     }
 }

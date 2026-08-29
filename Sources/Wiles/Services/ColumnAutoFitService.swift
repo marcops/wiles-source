@@ -76,8 +76,12 @@ public enum ColumnAutoFitService {
             let left = parent * 2 + 1
             let right = parent * 2 + 2
             var smallest = parent
-            if left < heap.count, heap[left].length < heap[smallest].length { smallest = left }
-            if right < heap.count, heap[right].length < heap[smallest].length { smallest = right }
+            if left < heap.count, heap[left].length < heap[smallest].length {
+                smallest = left
+            }
+            if right < heap.count, heap[right].length < heap[smallest].length {
+                smallest = right
+            }
             guard smallest != parent else { break }
             heap.swapAt(parent, smallest)
             parent = smallest

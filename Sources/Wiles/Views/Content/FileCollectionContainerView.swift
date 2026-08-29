@@ -47,7 +47,6 @@ struct FileCollectionContainerView<ItemsGroup: View, Overlay: View>: View {
             onGeometryWidthChange?(geometry.size.width)
         }
         .background(BackgroundContextMenuLayer(appState: appState))
-        .background(ScrollerAutoHideSetter())
     }
 
     private func scrollViewReaderContent(geometry: GeometryProxy, proxy: ScrollViewProxy) -> some View {
@@ -57,7 +56,6 @@ struct FileCollectionContainerView<ItemsGroup: View, Overlay: View>: View {
         .resetPaginationAndPrefetchThumbnails(appState: appState, visibleLimit: $visibleLimit, thumbnailIconSize: thumbnailIconSize)
         .scrollToTopOnRenameOrSearchClear(appState: appState, proxy: proxy)
         .scrollToLastMovedSelection(appState: appState, proxy: proxy)
-        .background(ScrollerAutoHideSetter())
     }
 
     private func scrollViewBody(geometry: GeometryProxy) -> some View {

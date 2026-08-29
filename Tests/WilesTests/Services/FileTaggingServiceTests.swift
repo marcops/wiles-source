@@ -12,6 +12,25 @@ public struct FileTaggingServiceTests {
         testToggleTagAcrossMultipleURLsReturnsLastError()
         testClearAllTagsRemovesExistingTags()
         testClearAllTagsReturnsErrorForMissingFile()
+        testCurrentTagsFallsBackToDirectDiskReadWhenNotInSnapshot()
+    }
+
+    /// When the URL isn't in `itemsSnapshot`, `currentTags` reads `.tagNamesKey` straight off the
+    /// file rather than building a whole `FileItem`.
+    private static func testCurrentTagsFallsBackToDirectDiskReadWhenNotInSnapshot() {
+        let dir = tempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("direct-read.txt").standardizedFileURL
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+        try? FileSystemService.setTags(for: file, tags: ["Green", "Important"])
+
+        let fromDisk = FileTaggingService.currentTags(for: file, in: [])
+        report("POS: currentTags reads tags from disk when the URL is absent from the snapshot", result: Set(fromDisk) == ["Green", "Important"])
+
+        let missing = dir.appendingPathComponent("gone.txt")
+        report(
+            "NEG: currentTags returns [] for a URL with no backing file and no snapshot entry",
+            result: FileTaggingService.currentTags(for: missing, in: []).isEmpty)
     }
 
     private static func tempDir() -> URL {

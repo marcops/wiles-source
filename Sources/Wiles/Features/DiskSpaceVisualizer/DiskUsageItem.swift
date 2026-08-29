@@ -6,7 +6,7 @@ public struct DiskUsageItem: Identifiable, Sendable {
     }
 
     public let url: URL
-    let name: String
+    public let name: String
     public let size: Int64
     public let formattedSize: String
     public let percentage: Double

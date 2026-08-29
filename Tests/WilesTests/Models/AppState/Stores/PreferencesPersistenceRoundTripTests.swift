@@ -45,9 +45,15 @@ public struct PreferencesPersistenceRoundTripTests {
             return nil
         }
         let defaultsKeySource = repoRoot.appendingPathComponent("Sources/Wiles/Constants/DefaultsKey.swift")
+        let prefsDir = repoRoot.appendingPathComponent("Sources/Wiles/Models/AppState/Stores")
         let storeSources = [
-            repoRoot.appendingPathComponent("Sources/Wiles/Models/AppState/Stores/PreferencesStore.swift"),
-            repoRoot.appendingPathComponent("Sources/Wiles/Models/AppState/Stores/PreferencesStore+SmartFolders.swift")
+            prefsDir.appendingPathComponent("PreferencesStore.swift"),
+            prefsDir.appendingPathComponent("PreferencesStore+SmartFolders.swift"),
+            prefsDir.appendingPathComponent("Preferences/ViewPreferences.swift"),
+            prefsDir.appendingPathComponent("Preferences/SidebarPreferences.swift"),
+            prefsDir.appendingPathComponent("Preferences/SearchPreferences.swift"),
+            prefsDir.appendingPathComponent("Preferences/AppearancePreferences.swift"),
+            prefsDir.appendingPathComponent("Preferences/FavoritesStore.swift")
         ]
         guard let defaultsKeyText = try? String(contentsOf: defaultsKeySource, encoding: .utf8) else {
             TestReporter.report(category, "NEG: could not read DefaultsKey.swift", result: false)
@@ -55,7 +61,7 @@ public struct PreferencesPersistenceRoundTripTests {
         }
         let storeTexts = storeSources.compactMap { try? String(contentsOf: $0, encoding: .utf8) }
         guard storeTexts.count == storeSources.count else {
-            TestReporter.report(category, "NEG: could not read both PreferencesStore source files", result: false)
+            TestReporter.report(category, "NEG: could not read every PreferencesStore source file", result: false)
             return nil
         }
         return Sources(defaultsKey: defaultsKeyText, combinedStore: storeTexts.joined(separator: "\n"))

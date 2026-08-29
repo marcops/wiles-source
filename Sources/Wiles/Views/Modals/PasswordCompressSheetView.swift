@@ -3,16 +3,11 @@ import SwiftUI
 
 struct PasswordCompressSheetView: View {
     var appState: AppState
-    @Environment(WindowUIState.self)
-    private var windowUIState
+    let urls: [URL]
     @Environment(\.dismiss)
     private var dismiss
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
-
-    private var urls: [URL] {
-        windowUIState.passwordCompressURLs ?? []
-    }
 
     private var passwordsMatch: Bool {
         password == confirmPassword

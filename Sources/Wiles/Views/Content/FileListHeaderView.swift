@@ -6,6 +6,11 @@ import SwiftUI
 struct FileListHeaderView: View {
     var appState: AppState
 
+    /// Horizontal inset on each side of the header row (`.padding(.horizontal:)`). The width math
+    /// below must account for both sides, so it uses `rowHorizontalInset * 2`.
+    static let rowHorizontalInset: CGFloat = 22
+    private static let totalHorizontalInset = rowHorizontalInset * 2
+
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Self.visibleColumns(appState)) { col in
@@ -20,7 +25,7 @@ struct FileListHeaderView: View {
         }
         .font(.system(size: 11, weight: .semibold))
         .foregroundColor(.secondary)
-        .padding(.horizontal, 22)
+        .padding(.horizontal, Self.rowHorizontalInset)
         .frame(height: 30)
         .background(Color(NSColor.controlBackgroundColor).opacity(0.08))
         .clipped()
@@ -33,14 +38,17 @@ struct FileListHeaderView: View {
     }
 
     static func totalColumnsWidth(_ appState: AppState) -> CGFloat {
-        visibleColumns(appState).map { appState.columnWidth(for: $0) }.reduce(0, +) + 44
+        visibleColumns(appState).map { appState.columnWidth(for: $0) }.reduce(0, +) + totalHorizontalInset
     }
 
     static func adjustNameColumnWidth(for containerWidth: CGFloat, appState: AppState) {
-        let otherWidths = visibleColumns(appState).filter { $0 != .name }.map { appState.columnWidth(for: $0) }.reduce(0, +) + 44
+        let otherWidths = visibleColumns(appState).filter { $0 != .name }.map { appState.columnWidth(for: $0) }.reduce(0, +) + totalHorizontalInset
         let targetNameWidth = max(LayoutTokens.columnMinWidth, containerWidth - otherWidths)
         if abs(appState.columnWidth(for: .name) - targetNameWidth) > 1 {
-            appState.setColumnWidth(.name, width: targetNameWidth)
+            // Called every frame while the window is resized — apply in memory now, persist once
+            // the resize settles rather than encoding + writing `UserDefaults` per frame.
+            appState.setColumnWidth(.name, width: targetNameWidth, persist: false)
+            appState.preferences.view.scheduleListColumnStatesSave()
         }
     }
 
@@ -63,18 +71,20 @@ struct FileListHeaderView: View {
 
     private func headerCell(_ title: String, option: SortOption, isLeading: Bool) -> some View {
         Button {
-            if appState.preferences.sortOption == option {
-                appState.preferences.sortAscending.toggle()
+            // The sort-field / direction change is picked up by `MainContentView`'s
+            // `.onChange(of: sortOption/sortAscending)`, which re-sorts the loaded items in place —
+            // no explicit refresh here (that used to fire a redundant second directory re-read).
+            if appState.preferences.view.sortOption == option {
+                appState.preferences.view.sortAscending.toggle()
             } else {
-                appState.preferences.sortOption = option
-                appState.preferences.sortAscending = true
+                appState.preferences.view.sortOption = option
+                appState.preferences.view.sortAscending = true
             }
-            appState.refreshCurrentDirectory()
         } label: {
             HStack(spacing: 4) {
                 Text(title)
-                if appState.preferences.sortOption == option {
-                    Image(systemName: appState.preferences.sortAscending ? "chevron.up" : "chevron.down")
+                if appState.preferences.view.sortOption == option {
+                    Image(systemName: appState.preferences.view.sortAscending ? "chevron.up" : "chevron.down")
                         .font(.system(size: 9, weight: .bold))
                 }
             }

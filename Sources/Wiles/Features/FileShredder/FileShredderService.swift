@@ -30,6 +30,7 @@ public struct FileShredderService: Sendable {
         }
         let succeededCount = totalCount - failures.count
         let detail = failures.map { "\($0.url.lastPathComponent): \($0.error.localizedDescription)" }.joined(separator: "; ")
-        return WilesError.operationFailed(reason: "\(succeededCount) of \(totalCount) items completed. Failed — \(detail)")
+        return WilesError.localized(
+            key: .fileShredderPartialFailure, arguments: ["\(succeededCount)", "\(totalCount)", detail])
     }
 }

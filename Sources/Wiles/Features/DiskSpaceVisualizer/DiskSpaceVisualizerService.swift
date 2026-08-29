@@ -5,6 +5,16 @@ public enum DiskSpaceVisualizerService {
     /// Guardrail: stop enumerating a folder's contents after this many files to keep scans fast.
     private static let maxScannedFileCount = 5000
 
+    /// At most this many largest items get their own chart slice; the rest fold into "Others".
+    private static let maxTopItems = 10
+
+    /// Distinct, well-spaced hues (0...1) assigned round-robin to the top items so adjacent slices
+    /// stay visually separable. Count matches `maxTopItems`.
+    private static let sliceHues = [0.60, 0.38, 0.08, 0.85, 0.50, 0.15, 0.75, 0.95, 0.28, 0.45]
+
+    /// Hue for the synthetic "Others" slice.
+    private static let othersSliceHue = 0.0
+
     private struct RawItem {
         let url: URL
         let name: String
@@ -65,16 +75,14 @@ public enum DiskSpaceVisualizerService {
 
     private static func buildReport(from rawItems: [RawItem], grandTotal: Int64, folderURL: URL, isApproximate: Bool) -> DiskUsageReport {
         let sorted = rawItems.sorted { $0.size > $1.size }
-        let maxTop = 10
-        let topSlice = sorted.prefix(maxTop)
-        let othersSlice = sorted.dropFirst(maxTop)
+        let topSlice = sorted.prefix(maxTopItems)
+        let othersSlice = sorted.dropFirst(maxTopItems)
 
         var formattedTopItems: [DiskUsageItem] = []
-        let hues = [0.60, 0.38, 0.08, 0.85, 0.50, 0.15, 0.75, 0.95, 0.28, 0.45]
 
         for (index, item) in topSlice.enumerated() {
             let pct = (Double(item.size) / Double(grandTotal)) * 100.0
-            let hue = hues[index % hues.count]
+            let hue = sliceHues[index % sliceHues.count]
             formattedTopItems.append(DiskUsageItem(url: item.url, name: item.name, size: item.size, percentage: pct, isDirectory: item.isDir, colorHue: hue))
         }
 
@@ -91,7 +99,7 @@ public enum DiskSpaceVisualizerService {
                 size: othersTotalSize,
                 percentage: pct,
                 isDirectory: true,
-                colorHue: 0.0,
+                colorHue: othersSliceHue,
                 isSynthetic: true)
         }
 

@@ -532,3 +532,15 @@
 "moveCollisionReplace" = "Replace";
 "moveCollisionKeepBoth" = "Keep Both";
 "moveCollisionApplyToAll" = "Apply to all";
+"languageSystemDefault" = "System Default";
+"batchRenamePartialFailure" = "{0} of {1} items renamed. Failed — {2}";
+"fileShredderPartialFailure" = "{0} of {1} items completed. Failed — {2}";
+"pastePartialFailure" = "{0} of {1} items could not be pasted.";
+"symlinkCannotReplaceOwnTarget" = "Cannot create a symlink that would replace its own target.";
+"share" = "Share…";
+"pdfMergePartialFailure" = "{0} file(s) could not be added to the PDF.";
+"batchRenameWouldCollide" = "Batch rename would create name collisions: {0}";
+"batchRenameInvalidPattern" = "Invalid rename pattern: {0}";
+"movePartialFailure" = "{0} of {1} items could not be moved.";
+"searchContentQueryTooShort" = "Type at least 3 characters to search inside files.";
+"searchInvalidRegex" = "That regular expression isn't valid.";

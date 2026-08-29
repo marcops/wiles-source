@@ -4,7 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 public enum SyntaxHighlighterService: Sendable {
-    private static let maxHighlightChars = 10_000
+    private static let maxHighlightChars = 10000
     private static let highlightFontSize: CGFloat = 11
 
     public static func highlightCode(content: String, fileExtension: String, language: AppLanguage) async -> AttributedString {
@@ -94,18 +94,100 @@ public enum SyntaxHighlighterService: Sendable {
         var keywords: [String] {
             switch self {
             case .swift:
-                ["func", "var", "let", "class", "struct", "enum", "protocol", "extension", "import",
-                 "return", "if", "else", "for", "in", "while", "guard", "public", "private", "self",
-                 "true", "false", "nil"]
+                [
+                    "func",
+                    "var",
+                    "let",
+                    "class",
+                    "struct",
+                    "enum",
+                    "protocol",
+                    "extension",
+                    "import",
+                    "return",
+                    "if",
+                    "else",
+                    "for",
+                    "in",
+                    "while",
+                    "guard",
+                    "public",
+                    "private",
+                    "self",
+                    "true",
+                    "false",
+                    "nil"
+                ]
             case .python:
-                ["def", "class", "import", "from", "as", "return", "if", "elif", "else", "for", "in",
-                 "while", "with", "pass", "lambda", "yield", "self", "True", "False", "None"]
+                [
+                    "def",
+                    "class",
+                    "import",
+                    "from",
+                    "as",
+                    "return",
+                    "if",
+                    "elif",
+                    "else",
+                    "for",
+                    "in",
+                    "while",
+                    "with",
+                    "pass",
+                    "lambda",
+                    "yield",
+                    "self",
+                    "True",
+                    "False",
+                    "None"
+                ]
             case .javascript:
-                ["function", "const", "let", "var", "class", "return", "if", "else", "for", "in", "of",
-                 "while", "import", "export", "from", "async", "await", "true", "false", "null", "undefined"]
+                [
+                    "function",
+                    "const",
+                    "let",
+                    "var",
+                    "class",
+                    "return",
+                    "if",
+                    "else",
+                    "for",
+                    "in",
+                    "of",
+                    "while",
+                    "import",
+                    "export",
+                    "from",
+                    "async",
+                    "await",
+                    "true",
+                    "false",
+                    "null",
+                    "undefined"
+                ]
             case .kotlin:
-                ["fun", "val", "var", "class", "object", "interface", "import", "return", "if", "else",
-                 "for", "in", "while", "when", "public", "private", "internal", "true", "false", "null"]
+                [
+                    "fun",
+                    "val",
+                    "var",
+                    "class",
+                    "object",
+                    "interface",
+                    "import",
+                    "return",
+                    "if",
+                    "else",
+                    "for",
+                    "in",
+                    "while",
+                    "when",
+                    "public",
+                    "private",
+                    "internal",
+                    "true",
+                    "false",
+                    "null"
+                ]
             case .json, .shell, .css, .markup, .yaml, .markdown, .genericSource:
                 []
             }

@@ -10,6 +10,9 @@ struct HeaderBarView: View {
     /// switcher closer to the trailing edge.
     private static let rightControlsTrailingInset: CGFloat = 10.0
 
+    /// The "Large files" quick filter's search token — files bigger than this size.
+    private static let largeFileFilterToken = "size:>100m"
+
     var appState: AppState
     @Environment(WindowUIState.self)
     private var windowUIState
@@ -53,8 +56,8 @@ struct HeaderBarView: View {
     /// False whenever the sidebar isn't reserving enough leading width to clear the repositioned
     /// traffic-light buttons — fully hidden, or collapsed to its icon-only rail and not peeking.
     private var sidebarProvidesSafeLeadingInset: Bool {
-        guard appState.preferences.hasVisibleSidebarContent else { return false }
-        return !appState.preferences.isSidebarCollapsed || windowUIState.isSidebarPeeking
+        guard appState.hasVisibleSidebarContent else { return false }
+        return !appState.preferences.view.isSidebarCollapsed || windowUIState.isSidebarPeeking
     }
 
     private var historyButtons: some View {
@@ -111,7 +114,7 @@ struct HeaderBarView: View {
 
     /// The search-thresholds hint only makes sense when content is actually being searched.
     private var isContentSearchScope: Bool {
-        appState.preferences.searchScope == .content || appState.preferences.searchScope == .both
+        appState.preferences.search.searchScope == .content || appState.preferences.search.searchScope == .both
     }
 
     private var searchTextField: some View {
@@ -140,7 +143,7 @@ struct HeaderBarView: View {
     }
 
     @ViewBuilder private var searchQueryActionButtons: some View {
-        Button { windowUIState.showSaveSmartFolderSheet = true } label: {
+        Button { windowUIState.activeModal = .saveSmartFolder } label: {
             Image(systemName: "folder.badge.plus")
                 .foregroundColor(.accentColor)
                 .frame(width: 20, height: 20)
@@ -177,19 +180,19 @@ struct HeaderBarView: View {
 
     @ViewBuilder private var searchFilterMenuContent: some View {
         @Bindable var appState = appState
-        Picker(appState.tr(.searchScope), selection: $appState.preferences.searchScope) {
+        Picker(appState.tr(.searchScope), selection: $appState.preferences.search.searchScope) {
             Text(appState.tr(.searchByName)).tag(SearchScope.name)
             Text(appState.tr(.searchByContent)).tag(SearchScope.content)
             Text(appState.tr(.searchByBoth)).tag(SearchScope.both)
         }
-        Toggle(appState.tr(.searchCaseSensitive), isOn: $appState.preferences.searchCaseSensitive)
+        Toggle(appState.tr(.searchCaseSensitive), isOn: $appState.preferences.search.searchCaseSensitive)
         Toggle(appState.tr(.searchIncludeHiddenFolders), isOn: includeHiddenFoldersBinding)
         Divider()
         dateFilterButtons
         Divider()
         kindFilterButtons
         Divider()
-        quickFilterButton(.filterLargeFiles, token: "size:>100m")
+        quickFilterButton(.filterLargeFiles, token: Self.largeFileFilterToken)
     }
 
     /// Toggles a quick-filter token (e.g. `date:today`, `kind:image`) in/out of the current search
@@ -256,14 +259,15 @@ struct HeaderBarView: View {
     private var searchEverywhereToggle: some View {
         @Bindable var appState = appState
         return Button {
-            appState.preferences.searchEverywhere.toggle()
-            appState.refreshCurrentDirectory()
+            // The refresh is driven by `MainContentView`'s `.onChange(of: searchEverywhere)`, so it
+            // also fires when the toggle is flipped from Settings, not just from here.
+            appState.preferences.search.searchEverywhere.toggle()
         } label: {
             Text(appState.tr(.searchEverywhere)).font(.system(size: 11, weight: .medium))
                 .padding(.horizontal, 6)
                 .frame(height: 22)
-                .foregroundColor(appState.preferences.searchEverywhere ? .white : .primary)
-                .background(appState.preferences.searchEverywhere ? Color.accentColor : Color(NSColor.controlColor))
+                .foregroundColor(appState.preferences.search.searchEverywhere ? .white : .primary)
+                .background(appState.preferences.search.searchEverywhere ? Color.accentColor : Color(NSColor.controlColor))
                 .cornerRadius(5)
                 .contentShape(Rectangle())
         }
@@ -271,7 +275,7 @@ struct HeaderBarView: View {
         .help(appState.tr(.searchEverywhereHelp))
         .accessibilityLabel(appState.tr(.searchEverywhere))
         .accessibilityHint(appState.tr(.searchEverywhereHelp))
-        .accessibilityAddTraits(appState.preferences.searchEverywhere ? [.isButton, .isSelected] : [.isButton])
+        .accessibilityAddTraits(appState.preferences.search.searchEverywhere ? [.isButton, .isSelected] : [.isButton])
     }
 
     private func iconName(for mode: ViewMode) -> String {

@@ -52,7 +52,7 @@ public struct AppStateCoreTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let appState = AppState()
-        appState.preferences.favoriteURLs = []
+        appState.preferences.favorites.favoriteURLs = []
         let target = dir.appendingPathComponent("fav.txt")
         try? "x".write(to: target, atomically: true, encoding: .utf8)
 
@@ -60,10 +60,14 @@ public struct AppStateCoreTests {
         report(
             "AppState",
             "POS: addFavorite() appends a new URL to favoriteURLs",
-            result: appState.preferences.favoriteURLs.contains { $0.path == target.standardizedFileURL.path } && appState.preferences.favoriteURLs.count == 1)
+            result: appState.preferences.favorites.favoriteURLs.contains { $0.path == target.standardizedFileURL.path } && appState.preferences.favorites
+                .favoriteURLs.count == 1)
 
         appState.addFavorite(target)
-        report("AppState", "NEG: addFavorite() does not add a duplicate for an already-favorited URL", result: appState.preferences.favoriteURLs.count == 1)
+        report(
+            "AppState",
+            "NEG: addFavorite() does not add a duplicate for an already-favorited URL",
+            result: appState.preferences.favorites.favoriteURLs.count == 1)
     }
 
     private static func testRemoveFavorite() {
@@ -74,19 +78,19 @@ public struct AppStateCoreTests {
         let appState = AppState()
         let target = dir.appendingPathComponent("removeme.txt")
         try? "x".write(to: target, atomically: true, encoding: .utf8)
-        appState.preferences.favoriteURLs = [target.standardizedFileURL]
+        appState.preferences.favorites.favoriteURLs = [target.standardizedFileURL]
 
         appState.removeFavorite(target)
-        report("AppState", "POS: removeFavorite() removes a previously favorited URL", result: appState.preferences.favoriteURLs.isEmpty)
+        report("AppState", "POS: removeFavorite() removes a previously favorited URL", result: appState.preferences.favorites.favoriteURLs.isEmpty)
 
-        appState.preferences.favoriteURLs = [target.standardizedFileURL]
+        appState.preferences.favorites.favoriteURLs = [target.standardizedFileURL]
         let other = dir.appendingPathComponent("other.txt")
         try? "x".write(to: other, atomically: true, encoding: .utf8)
         appState.removeFavorite(other)
         report(
             "AppState",
             "NEG: removeFavorite() leaves other favorites untouched when the URL isn't favorited",
-            result: appState.preferences.favoriteURLs.count == 1)
+            result: appState.preferences.favorites.favoriteURLs.count == 1)
     }
 
     private static func testIsFavorite() {
@@ -97,7 +101,7 @@ public struct AppStateCoreTests {
         let appState = AppState()
         let target = dir.appendingPathComponent("isfav.txt")
         try? "x".write(to: target, atomically: true, encoding: .utf8)
-        appState.preferences.favoriteURLs = [target.standardizedFileURL]
+        appState.preferences.favorites.favoriteURLs = [target.standardizedFileURL]
 
         report("AppState", "POS: isFavorite() returns true for a URL present in favoriteURLs", result: appState.isFavorite(target))
 
@@ -105,7 +109,7 @@ public struct AppStateCoreTests {
         try? "x".write(to: notFav, atomically: true, encoding: .utf8)
         report("AppState", "NEG: isFavorite() returns false for a URL not present in favoriteURLs", result: !appState.isFavorite(notFav))
 
-        // M25: isFavorite now matches on symlink-resolved paths (via preferences.resolvedFavoritePaths),
+        // M25: isFavorite now matches on symlink-resolved paths (via preferences.favorites.resolvedFavoritePaths),
         // so a file reached through a symlinked ancestor directory still resolves to the same favorite —
         // same behavior as the old isSameLocation-based implementation.
         let realSub = dir.appendingPathComponent("RealSub")
@@ -114,7 +118,7 @@ public struct AppStateCoreTests {
         try? "x".write(to: fileInReal, atomically: true, encoding: .utf8)
         let linkedSub = dir.appendingPathComponent("LinkedSub")
         try? FileManager.default.createSymbolicLink(at: linkedSub, withDestinationURL: realSub)
-        appState.preferences.favoriteURLs = [fileInReal.standardizedFileURL]
+        appState.preferences.favorites.favoriteURLs = [fileInReal.standardizedFileURL]
         report(
             "AppState",
             "POS: isFavorite() returns true for the favorited file reached through a symlinked ancestor directory",
@@ -138,7 +142,7 @@ public struct AppStateCoreTests {
         }
 
         let appState = AppState()
-        appState.preferences.favoriteURLs = [favA, favB, favC]
+        appState.preferences.favorites.favoriteURLs = [favA, favB, favC]
         appState.navigation.currentURL = favB
         let windowUIState = WindowUIState(preferences: appState.preferences)
         windowUIState.selectedFavoriteURL = favB
@@ -146,12 +150,12 @@ public struct AppStateCoreTests {
         appState.moveSelectedFavorite(offset: -1, windowUIState: windowUIState)
         report(
             "AppState", "POS: moveSelectedFavorite(-1) swaps the selected favorite with the one before it",
-            result: appState.preferences.favoriteURLs == [favB, favA, favC])
+            result: appState.preferences.favorites.favoriteURLs == [favB, favA, favC])
 
         appState.moveSelectedFavorite(offset: 1, windowUIState: windowUIState)
         report(
             "AppState", "POS: moveSelectedFavorite(1) swaps back, restoring original order",
-            result: appState.preferences.favoriteURLs == [favA, favB, favC])
+            result: appState.preferences.favorites.favoriteURLs == [favA, favB, favC])
 
         testMoveSelectedFavoriteOutOfBoundsAndStaleSelection(appState: appState, windowUIState: windowUIState, favA: favA, favB: favB, favC: favC)
     }
@@ -168,7 +172,7 @@ public struct AppStateCoreTests {
         appState.moveSelectedFavorite(offset: -1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite(-1) on the first favorite does not change order (out of bounds)",
-            result: appState.preferences.favoriteURLs == [favA, favB, favC])
+            result: appState.preferences.favorites.favoriteURLs == [favA, favB, favC])
 
         // NEG: moving the last favorite down (out of bounds) is a no-op.
         windowUIState.selectedFavoriteURL = favC
@@ -176,7 +180,7 @@ public struct AppStateCoreTests {
         appState.moveSelectedFavorite(offset: 1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite(1) on the last favorite does not change order (out of bounds)",
-            result: appState.preferences.favoriteURLs == [favA, favB, favC])
+            result: appState.preferences.favorites.favoriteURLs == [favA, favB, favC])
 
         // NEG: selectedFavoriteURL no longer matching currentURL (navigated away) blocks the move —
         // this is what stops a stale selection from reordering favorites after the user moved on.
@@ -185,71 +189,72 @@ public struct AppStateCoreTests {
         appState.moveSelectedFavorite(offset: -1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite() is a no-op when selectedFavoriteURL doesn't match currentURL",
-            result: appState.preferences.favoriteURLs == [favA, favB, favC])
+            result: appState.preferences.favorites.favoriteURLs == [favA, favB, favC])
 
         // NEG: no favorite selected at all.
         windowUIState.selectedFavoriteURL = nil
         appState.moveSelectedFavorite(offset: 1, windowUIState: windowUIState)
         report(
             "AppState", "NEG: moveSelectedFavorite() is a no-op when selectedFavoriteURL is nil",
-            result: appState.preferences.favoriteURLs == [favA, favB, favC])
+            result: appState.preferences.favorites.favoriteURLs == [favA, favB, favC])
     }
 
     private static func testTranslucentLevelGetterSetter() {
         let appState = AppState()
-        appState.preferences.sidebarTranslucentLevel = 10
-        appState.preferences.contentTranslucentLevel = 90
-        report("AppState", "POS: translucentLevel getter reflects sidebarTranslucentLevel", result: appState.preferences.translucentLevel == 10)
+        appState.preferences.appearance.sidebarTranslucentLevel = 10
+        appState.preferences.appearance.contentTranslucentLevel = 90
+        report("AppState", "POS: translucentLevel getter reflects sidebarTranslucentLevel", result: appState.preferences.appearance.translucentLevel == 10)
 
-        appState.preferences.translucentLevel = 55
+        appState.preferences.appearance.translucentLevel = 55
         report(
             "AppState",
             "POS: translucentLevel setter updates both sidebarTranslucentLevel and contentTranslucentLevel",
-            result: appState.preferences.sidebarTranslucentLevel == 55 && appState.preferences.contentTranslucentLevel == 55)
+            result: appState.preferences.appearance.sidebarTranslucentLevel == 55 && appState.preferences.appearance.contentTranslucentLevel == 55)
 
         report(
             "AppState", "NEG: translucentLevel setter does not leave contentTranslucentLevel at its old distinct value",
-            result: appState.preferences.contentTranslucentLevel != 90)
+            result: appState.preferences.appearance.contentTranslucentLevel != 90)
     }
 
     private static func testSidebarOverlayOpacity() {
         let appState = AppState()
-        appState.preferences.appAppearance = .dark
-        appState.preferences.sidebarTranslucentLevel = 0
+        appState.preferences.appearance.appAppearance = .dark
+        appState.preferences.appearance.sidebarTranslucentLevel = 0
         report(
             "AppState",
             "POS: sidebarOverlayOpacity is 1.0 at translucency 0 in dark appearance",
-            result: abs(appState.preferences.sidebarOverlayOpacity - 1.0) < 0.0001)
+            result: abs(appState.preferences.appearance.sidebarOverlayOpacity - 1.0) < 0.0001)
 
-        appState.preferences.appAppearance = .light
-        appState.preferences.sidebarTranslucentLevel = 0
+        appState.preferences.appearance.appAppearance = .light
+        appState.preferences.appearance.sidebarTranslucentLevel = 0
         report(
             "AppState", "POS: sidebarOverlayOpacity is halved (0.5) at translucency 0 in light appearance",
-            result: abs(appState.preferences.sidebarOverlayOpacity - 0.5) < 0.0001)
+            result: abs(appState.preferences.appearance.sidebarOverlayOpacity - 0.5) < 0.0001)
 
-        appState.preferences.appAppearance = .dark
-        appState.preferences.sidebarTranslucentLevel = 100
+        appState.preferences.appearance.appAppearance = .dark
+        appState.preferences.appearance.sidebarTranslucentLevel = 100
         report(
             "AppState",
             "NEG: sidebarOverlayOpacity is 0 at translucency 100, not still 1.0",
-            result: abs(appState.preferences.sidebarOverlayOpacity - 0.0) < 0.0001)
+            result: abs(appState.preferences.appearance.sidebarOverlayOpacity - 0.0) < 0.0001)
     }
 
     private static func testContentOverlayOpacity() {
         let appState = AppState()
-        appState.preferences.appAppearance = .dark
-        appState.preferences.contentTranslucentLevel = 40
+        appState.preferences.appearance.appAppearance = .dark
+        appState.preferences.appearance.contentTranslucentLevel = 40
         report(
             "AppState",
             "POS: contentOverlayOpacity computes 1 - level/100 in dark appearance",
-            result: abs(appState.preferences.contentOverlayOpacity - 0.6) < 0.0001)
+            result: abs(appState.preferences.appearance.contentOverlayOpacity - 0.6) < 0.0001)
 
-        appState.preferences.appAppearance = .light
-        appState.preferences.contentTranslucentLevel = 40
+        appState.preferences.appearance.appAppearance = .light
+        appState.preferences.appearance.contentTranslucentLevel = 40
         report(
             "AppState",
             "NEG: contentOverlayOpacity in light mode is not equal to the unhalved dark-mode value",
-            result: abs(appState.preferences.contentOverlayOpacity - 0.6) > 0.0001 && abs(appState.preferences.contentOverlayOpacity - 0.3) < 0.0001)
+            result: abs(appState.preferences.appearance.contentOverlayOpacity - 0.6) > 0.0001 &&
+                abs(appState.preferences.appearance.contentOverlayOpacity - 0.3) < 0.0001)
     }
 
     private static func testGridColumnCount() {

@@ -22,9 +22,16 @@ public enum AppLanguage: String, CaseIterable, Identifiable, Codable, Sendable {
         rawValue
     }
 
-    public var displayName: String {
+    /// Picker label. `.system` is the only real UI string — localized into `uiLanguage` (defaults
+    /// to the OS language). Every other case is a language endonym, identical in every locale.
+    public func displayName(in uiLanguage: Self = .system) -> String {
+        self == .system ? L10n.string(.languageSystemDefault, lang: uiLanguage) : endonym
+    }
+
+    /// The language's name in its own language — shown identically in every locale.
+    private var endonym: String {
         switch self {
-        case .system: "System Default"
+        case .system: ""
         case .english: "English"
         case .portuguese: "Português"
         case .spanish: "Español"

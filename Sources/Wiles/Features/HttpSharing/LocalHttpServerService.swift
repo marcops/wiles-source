@@ -8,7 +8,10 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
     @MainActor public var isRunning: Bool = false
     public var sharedFolder: URL?
-    public var port: NWEndpoint.Port = 8080
+    /// The port the server is (or last tried) listening on. Seeded to `defaultPort` and bumped to
+    /// the next free port in `portScanRange` when that one is already taken (another app, or a
+    /// second Wiles window already sharing).
+    public var port: NWEndpoint.Port = LocalHttpServerService.defaultPort
     @MainActor public var serverURL: String?
     /// Set when `start(sharing:password:)` fails to stand up the listener, so `HttpShareSheet`
     /// (stuck otherwise on "Starting server…") has something to show and retry from.
@@ -47,6 +50,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             sharedFolder = folder
             requiredPassword = !(password?.isEmpty ?? true) ? password : nil
         }
+        port = Self.firstAvailablePort(in: Self.portScanRange) ?? Self.defaultPort
         do {
             let parameters = NWParameters.tcp
             let newListener = try NWListener(using: parameters, on: port)
@@ -102,50 +106,6 @@ public final class LocalHttpServerService: @unchecked Sendable {
             isRunning = false
             serverURL = nil
         }
-    }
-
-    /// AF_INET-capable interfaces that can carry a real address but aren't a LAN link a client on
-    /// the same Wi-Fi network could actually reach — VPN tunnels, AWDL (AirDrop), bridges, etc.
-    private static let virtualInterfaceNamePrefixes = ["utun", "awdl", "llw", "bridge", "stf", "gif", "ipsec", "lo"]
-
-    /// Local IPv4 for LAN sharing: filters to up/running, non-loopback, non-link-local, non-virtual interfaces, preferring `en*` (Wi-Fi/Ethernet).
-    private func candidateLANIPv4Address() -> String? {
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return nil }
-        defer { freeifaddrs(ifaddr) }
-
-        var candidates: [(name: String, address: String)] = []
-        var ptr: UnsafeMutablePointer<ifaddrs>? = firstAddr
-        while let current = ptr {
-            defer { ptr = current.pointee.ifa_next }
-            let interface = current.pointee
-            guard interface.ifa_addr.pointee.sa_family == UInt8(AF_INET) else { continue }
-
-            let flags = Int32(interface.ifa_flags)
-            guard flags & IFF_UP != 0, flags & IFF_RUNNING != 0, flags & IFF_LOOPBACK == 0 else { continue }
-
-            let name = String(cString: interface.ifa_name)
-            guard !Self.virtualInterfaceNamePrefixes.contains(where: { name.hasPrefix($0) }) else { continue }
-
-            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            guard getnameinfo(
-                interface.ifa_addr,
-                socklen_t(interface.ifa_addr.pointee.sa_len),
-                &hostname,
-                socklen_t(hostname.count),
-                nil,
-                socklen_t(0),
-                NI_NUMERICHOST) == 0 else { continue }
-            let address = hostname.withUnsafeBufferPointer { buffer -> String in
-                guard let baseAddress = buffer.baseAddress else { return "" }
-                return String(cString: baseAddress)
-            }
-            guard !address.isEmpty, !address.hasPrefix("169.254.") else { continue }
-
-            candidates.append((name, address))
-        }
-
-        return candidates.first(where: { $0.name.hasPrefix("en") })?.address ?? candidates.first?.address
     }
 
     /// Only ever called from the @MainActor `Task` in `start()`'s stateUpdateHandler, so this stays
@@ -380,7 +340,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
     }
 
     private func serveFile(path: String, folder: URL, connection: NWConnection) {
-        guard let decodedPath = path.removingPercentEncoding else {
+        guard let decodedPath = path.removingPercentEncoding, Self.isSafeRequestPath(decodedPath) else {
             sendResponse(connection: connection, statusCode: HTTPStatus.badRequest, body: Data("Bad Request".utf8))
             return
         }
@@ -451,7 +411,19 @@ public final class LocalHttpServerService: @unchecked Sendable {
     }
 
     private func sendNextChunk(fileHandle: FileHandle, connection: NWConnection) {
-        let chunk = try? fileHandle.read(upToCount: Self.fileStreamChunkSize)
+        let chunk: Data?
+        do {
+            chunk = try fileHandle.read(upToCount: Self.fileStreamChunkSize)
+        } catch {
+            // A mid-stream read failure isn't EOF: the client has already been promised
+            // `Content-Length` bytes and will now get fewer. Nothing to do but log it and drop
+            // the connection so the client sees a reset rather than a clean, "complete" close.
+            ErrorReporter.report(error, context: "Reading file mid-stream over local HTTP share (client download will be truncated)")
+            try? fileHandle.close()
+            connection.cancel()
+            removeConnection(connection)
+            return
+        }
 
         guard let chunk, !chunk.isEmpty else {
             try? fileHandle.close()

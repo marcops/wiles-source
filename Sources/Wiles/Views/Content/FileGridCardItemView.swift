@@ -62,7 +62,7 @@ struct FileGridCardItemView: View {
             // layout size, floating above whatever is below it instead of pushing it away.
             .zIndex(isRenaming ? 2 : (isSel ? 1 : 0))
             .contentShape(Rectangle())
-            .fileMetadataTooltip(item, language: appState.preferences.appLanguage)
+            .fileMetadataTooltip(item, language: appState.preferences.appearance.appLanguage)
             .accessibilityLabel(item.name)
             .accessibilityHint(item.isDirectory ? appState.tr(.folder) : appState.tr(.open))
             .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
@@ -109,8 +109,8 @@ struct FileGridCardItemView: View {
                 collapsedLineLimit: 2,
                 availableWidth: textAvailableWidth,
                 alignment: .center,
-                middleTruncate: appState.preferences.middleTruncateNames,
-                tags: appState.preferences.showTags ? item.tags : [],
+                middleTruncate: appState.preferences.view.middleTruncateNames,
+                tags: appState.preferences.sidebar.showTags ? item.tags : [],
                 revealsOnSelect: false)
                 .frame(width: textAvailableWidth)
                 .padding(.horizontal, 6)

@@ -13,7 +13,7 @@ struct KeyboardZoomController {
         let stepMagnitude = IconSizeToken.scrollWheelStep
         while abs(accumulatedScrollDelta) >= stepMagnitude {
             let step = accumulatedScrollDelta > 0 ? stepMagnitude : -stepMagnitude
-            appState.preferences.iconSize = min(IconSizeToken.maxSize, max(IconSizeToken.minSize, appState.preferences.iconSize + step))
+            appState.preferences.view.iconSize = min(IconSizeToken.maxSize, max(IconSizeToken.minSize, appState.preferences.view.iconSize + step))
             accumulatedScrollDelta -= step
         }
     }
@@ -22,13 +22,13 @@ struct KeyboardZoomController {
     func handleZoomKeyDown(code: UInt16, appState: AppState) -> Bool {
         switch code {
         case KeyCode.equals, KeyCode.keypadPlus, KeyCode.bracketRight:
-            appState.preferences.iconSize = min(IconSizeToken.maxSize, appState.preferences.iconSize + IconSizeToken.step)
+            appState.preferences.view.iconSize = min(IconSizeToken.maxSize, appState.preferences.view.iconSize + IconSizeToken.step)
             return true
         case KeyCode.minus, KeyCode.keypadMinus:
-            appState.preferences.iconSize = max(IconSizeToken.minSize, appState.preferences.iconSize - IconSizeToken.step)
+            appState.preferences.view.iconSize = max(IconSizeToken.minSize, appState.preferences.view.iconSize - IconSizeToken.step)
             return true
         case KeyCode.zero:
-            appState.preferences.iconSize = IconSizeToken.defaultSize
+            appState.preferences.view.iconSize = IconSizeToken.defaultSize
             return true
         default:
             return false

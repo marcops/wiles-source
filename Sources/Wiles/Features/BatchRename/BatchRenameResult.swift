@@ -8,14 +8,15 @@ public struct BatchRenameResult {
     public let renamedPairs: [(old: URL, new: URL)]
     public let failures: [(item: FileItem, error: any Error)]
 
-    /// `nil` when every item succeeded; a single-item batch reports its one error directly.
-    public var failureSummaryMessage: String? {
+    /// `nil` when every item succeeded; a single-item batch reports its one error directly. The
+    /// caller passes this straight to `AppState.showError`, which localizes it in the app language.
+    public var failureError: WilesError? {
         guard !failures.isEmpty else { return nil }
         let totalCount = renamedURLs.count + failures.count
-        if totalCount == 1 {
-            return failures.first?.error.localizedDescription
+        if totalCount == 1, let only = failures.first?.error {
+            return (only as? WilesError) ?? .operationFailed(reason: only.localizedDescription)
         }
         let detail = failures.map { "\($0.item.name): \($0.error.localizedDescription)" }.joined(separator: "; ")
-        return "\(renamedURLs.count) of \(totalCount) items renamed. Failed — \(detail)"
+        return .localized(key: .batchRenamePartialFailure, arguments: ["\(renamedURLs.count)", "\(totalCount)", detail])
     }
 }

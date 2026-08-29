@@ -18,9 +18,25 @@ public enum TemplateRenderingService {
             ErrorReporter.report(error, context: "Loading template resource \(resource).\(fileExtension)")
             return nil
         }
-        for (key, value) in replacements {
-            template = template.replacingOccurrences(of: "{{\(key)}}", with: value)
+        return substitute(in: template, replacements: replacements)
+    }
+
+    /// Single left-to-right pass over the template: each `{{KEY}}` token is replaced with its
+    /// value (unknown tokens are left literal). A value that itself contains `{{...}}` is never
+    /// re-scanned, so a caller-supplied dynamic string (e.g. a filename served over the LAN) can't
+    /// inject another placeholder's substitution.
+    static func substitute(in template: String, replacements: [String: String]) -> String {
+        guard let regex = try? NSRegularExpression(pattern: "\\{\\{(\\w+)\\}\\}") else { return template }
+        let ns = template as NSString
+        var result = ""
+        var cursor = 0
+        for match in regex.matches(in: template, range: NSRange(location: 0, length: ns.length)) {
+            result += ns.substring(with: NSRange(location: cursor, length: match.range.location - cursor))
+            let key = ns.substring(with: match.range(at: 1))
+            result += replacements[key] ?? ns.substring(with: match.range)
+            cursor = match.range.location + match.range.length
         }
-        return template
+        result += ns.substring(from: cursor)
+        return result
     }
 }

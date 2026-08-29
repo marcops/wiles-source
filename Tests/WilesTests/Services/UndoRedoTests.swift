@@ -66,7 +66,7 @@ public struct UndoRedoTests {
         let favFolder = src.appendingPathComponent("Reports", isDirectory: true)
         try? FileManager.default.createDirectory(at: favFolder, withIntermediateDirectories: true)
 
-        appState.preferences.favoriteURLs = [favFolder.standardizedFileURL]
+        appState.preferences.favorites.favoriteURLs = [favFolder.standardizedFileURL]
         guard let moved = try? await appState.moveItem(at: favFolder, toFolder: dst) else {
             TestReporter.report("UndoRedo", "POS: undo of a favorited folder's move remaps the favorite", result: false)
             return
@@ -74,7 +74,7 @@ public struct UndoRedoTests {
         appState.undoRedoService.recordAction(.move(sourceURL: favFolder, destinationURL: moved))
         _ = try? await appState.undoRedoService.undo()
 
-        let favNowPointsBack = appState.preferences.favoriteURLs.map { $0.resolvingSymlinksInPath().path }
+        let favNowPointsBack = appState.preferences.favorites.favoriteURLs.map { $0.resolvingSymlinksInPath().path }
             == [favFolder.resolvingSymlinksInPath().path]
         TestReporter.report(
             "UndoRedo",
