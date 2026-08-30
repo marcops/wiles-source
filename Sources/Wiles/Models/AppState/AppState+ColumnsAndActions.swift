@@ -76,7 +76,7 @@ public extension AppState {
         cropPreset: CropPreset,
         quality: Double) {
         let sourceURL = item.url
-        runDetachedURLOperation(context: "Converting image", operation: {
+        runDetachedURLOperation(context: "Converting image", taskTitle: tr(.convertingImageEllipsis), operation: {
             try ImageConverterService.convertImage(
                 at: sourceURL,
                 targetFormat: targetFormat,
@@ -95,22 +95,19 @@ public extension AppState {
     }
 
     func performBatchRename(items: [FileItem], mode: BatchRenameMode) {
-        Task(priority: .userInitiated) { @MainActor [weak self] in
-            do {
-                let result = try await BatchRenameService.performBatchRename(items: items, mode: mode)
+        runDetachedFileOperation(
+            context: "Batch renaming items",
+            taskTitle: tr(.batchRenamingEllipsis),
+            onSuccess: { [weak self] (result: BatchRenameResult) in
                 guard let self else { return }
                 for pair in result.renamedPairs {
                     undoRedoService.recordAction(.rename(oldURL: pair.old, newURL: pair.new))
                 }
-                refreshCurrentDirectory()
                 selection.selectedURLs = Set(result.renamedURLs)
                 if let failureError = result.failureError {
                     showError(failureError)
                 }
-            } catch {
-                ErrorReporter.report(error, context: "Batch renaming items")
-                self?.showError(error)
-            }
-        }
+            },
+            operation: { try await BatchRenameService.performBatchRename(items: items, mode: mode) })
     }
 }

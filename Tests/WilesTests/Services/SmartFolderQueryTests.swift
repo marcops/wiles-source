@@ -19,7 +19,7 @@ final class SmartFolderQueryTests: XCTestCase {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
 
-        SmartFolderService.shared.executeQuery(for: folder) { items in
+        SmartFolderService().executeQuery(for: folder) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
@@ -33,7 +33,7 @@ final class SmartFolderQueryTests: XCTestCase {
         let exp = expectation(description: "executeQuery with an empty scopePath completes")
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: "")
 
-        SmartFolderService.shared.executeQuery(for: folder) { items in
+        SmartFolderService().executeQuery(for: folder) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
@@ -47,7 +47,7 @@ final class SmartFolderQueryTests: XCTestCase {
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: missing)
 
-        SmartFolderService.shared.executeQuery(for: folder) { items in
+        SmartFolderService().executeQuery(for: folder) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
@@ -64,15 +64,42 @@ final class SmartFolderQueryTests: XCTestCase {
         let folderA = SmartFolder(name: "A", searchQuery: "Desktop", scopePath: home.path)
         let folderB = SmartFolder(name: "B", searchQuery: "Documents", scopePath: home.path)
 
-        SmartFolderService.shared.executeQuery(for: folderA) { _ in
+        // Two calls on the SAME instance: the second supersedes the first (staleness token).
+        let service = SmartFolderService()
+        service.executeQuery(for: folderA) { _ in
             XCTFail("The first query's completion should not fire once superseded by a second call")
         }
-        SmartFolderService.shared.executeQuery(for: folderB) { items in
+        service.executeQuery(for: folderB) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
         wait(for: [exp], timeout: 1.4)
+    }
+
+    /// BA-108: `SmartFolderService` is now per-`AppState`, not `.shared`. Two independent instances
+    /// (as two open windows would have) must NOT share the staleness token — window A's smart-folder
+    /// run must still deliver its own results when window B starts its own run in parallel. Under
+    /// the old `.shared` instance, instance B's fresh token discarded instance A's completion.
+    func testTwoInstancesDoNotShareStalenessState() {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let folderA = SmartFolder(name: "A", searchQuery: "Desktop", scopePath: home.path)
+        let folderB = SmartFolder(name: "B", searchQuery: "Documents", scopePath: home.path)
+        let windowA = SmartFolderService()
+        let windowB = SmartFolderService()
+        let expA = expectation(description: "window A's run still delivers its own results")
+        let expB = expectation(description: "window B's run delivers its results")
+
+        windowA.executeQuery(for: folderA) { items in
+            XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
+            expA.fulfill()
+        }
+        windowB.executeQuery(for: folderB) { items in
+            XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
+            expB.fulfill()
+        }
+
+        wait(for: [expA, expB], timeout: 1.6)
     }
 
     func testExecuteContentQueryCompletes() {
@@ -81,7 +108,7 @@ final class SmartFolderQueryTests: XCTestCase {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        SmartFolderService.shared.executeContentQuery(queryText: "test", in: dir) { items in
+        SmartFolderService().executeContentQuery(queryText: "test", in: dir) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }

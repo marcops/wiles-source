@@ -49,7 +49,38 @@ public struct ArchiveTests {
 
         try? FileManager.default.removeItem(at: tempDir)
 
+        runSameNameSourcesKeepBothInZip()
         runCoverageExtras()
+    }
+
+    /// Two sources with the same file name from different folders must both survive inside the zip
+    /// (the second used to overwrite the first's entry).
+    private static func runSameNameSourcesKeepBothInZip() {
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dirA = root.appendingPathComponent("a")
+        let dirB = root.appendingPathComponent("b")
+        let out = root.appendingPathComponent("out")
+        for dir in [dirA, dirB, out] { try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) }
+        try? "from A".write(to: dirA.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
+        try? "from B".write(to: dirB.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
+
+        var bothKept = false
+        do {
+            try ArchiveService.compressToZIP(urls: [dirA.appendingPathComponent("report.txt"), dirB.appendingPathComponent("report.txt")], in: out)
+            let zip = out.appendingPathComponent("Archive.zip")
+            let extractTarget = out.appendingPathComponent("Extracted")
+            try FileManager.default.createDirectory(at: extractTarget, withIntermediateDirectories: true)
+            try ArchiveService.extractArchive(archiveURL: zip, to: extractTarget)
+            let names = Set(((try? FileManager.default.contentsOfDirectory(atPath: extractTarget.path)) ?? []))
+            bothKept = names.contains("report.txt") && names.contains("report 2.txt")
+        } catch {
+            print("same-name zip error: \(error)")
+        }
+        TestReporter.report(
+            "ZipArchive",
+            "POS: compressing two same-named files from different folders keeps both entries in the zip",
+            result: bothKept)
+        try? FileManager.default.removeItem(at: root)
     }
 
     private static func runCoverageExtras() {
@@ -66,6 +97,7 @@ public struct ArchiveTests {
         runIsArchiveEdgeCaseTests()
         runExtractZIPWrapperTests()
         runCorruptArchiveErrorPathTests()
+        runUnlistableArchiveGoesToSubfolderTests()
         runSourcesOutsideDestinationTests()
         runFolderStructurePreservationTests()
         runEmptyURLsAndProcessFailureTests()
@@ -105,6 +137,21 @@ public struct ArchiveTests {
             "ZipArchive",
             "NEG: compressToZIP throws when the underlying ditto process fails (read-only destination)",
             result: processFailurePassed)
+
+        // NEG: a password with a line break is rejected up front (would be silently truncated by
+        // Info-ZIP's env-var tokenizer, producing an archive with a different password than typed).
+        let pwdSource = dir.appendingPathComponent("pwd_source.txt")
+        try? "content".write(to: pwdSource, atomically: true, encoding: .utf8)
+        var rejectedNewlinePassword = false
+        do {
+            try ArchiveService.compressToZIP(urls: [pwdSource], in: dir, password: "secret\npart2")
+        } catch {
+            rejectedNewlinePassword = true
+        }
+        TestReporter.report(
+            "ZipArchive",
+            "NEG: compressToZIP rejects a password containing a newline instead of silently mangling it",
+            result: rejectedNewlinePassword && !ArchiveService.passwordHasForbiddenCharacters("a normal p@ss w0rd!"))
     }
 
     /// Regression coverage for the -j/no -r fix: compressing a folder that contains a nested

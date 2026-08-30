@@ -7,6 +7,13 @@ public struct SearchFilterService: Sendable {
     /// Shortest plain-text query that content search will act on — anything shorter is a silent
     /// no-op, so `queryWarning` surfaces it as `.contentQueryTooShort` instead.
     public static let minContentQueryLength = 3
+    /// Largest file whose bytes are read for a content-search match — a bigger read would stall.
+    static let maxContentSearchFileBytes = 2_000_000
+
+    /// The one whitespace-split used everywhere the query string is broken into tokens.
+    static func tokens(of query: String) -> [String] {
+        query.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+    }
 
     /// File attributes any present filter token might need, fetched once per candidate file so a
     /// multi-token query (`date:>7d size:>1m kind:folder tag:x`) does a single `resourceValues`
@@ -25,7 +32,7 @@ public struct SearchFilterService: Sendable {
     /// fall through to a literal filename-contains-"hidden:true" text match). Returns the query
     /// with that token stripped, plus whether it was present.
     public static func extractHiddenFlag(from query: String) -> (query: String, includeHidden: Bool) {
-        let tokens = query.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let tokens = tokens(of: query)
         guard tokens.contains(where: { $0.lowercased() == "hidden:true" }) else { return (query, false) }
         let remaining = tokens.filter { $0.lowercased() != "hidden:true" }.joined(separator: " ")
         return (remaining, true)
@@ -34,14 +41,14 @@ public struct SearchFilterService: Sendable {
     /// Whole-token, case-insensitive membership test for a `prefix:value` filter token in `query`.
     public static func containsToken(_ token: String, in query: String) -> Bool {
         let lowerToken = token.lowercased()
-        return query.components(separatedBy: .whitespaces).contains { $0.lowercased() == lowerToken }
+        return tokens(of: query).contains { $0.lowercased() == lowerToken }
     }
 
     /// Toggles a single `prefix:value` filter token in `query`: strips it if already present
     /// (case-insensitive, whole-token), otherwise appends it — all other free text and filter
     /// tokens are preserved. Generalizes the append/strip behavior of `extractHiddenFlag`.
     public static func toggleToken(_ token: String, in query: String) -> String {
-        let parts = query.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let parts = tokens(of: query)
         let lowerToken = token.lowercased()
         if parts.contains(where: { $0.lowercased() == lowerToken }) {
             return parts.filter { $0.lowercased() != lowerToken }.joined(separator: " ")
@@ -49,12 +56,25 @@ public struct SearchFilterService: Sendable {
         return (parts + [token]).joined(separator: " ")
     }
 
+    /// Like `toggleToken`, but for a single-choice group (`kind:`, `date:`): activating one token
+    /// drops every other token sharing `groupPrefix` so `kind:image` + `kind:doc` (AND → nothing)
+    /// can't happen. Re-activating the same token still turns it off.
+    public static func toggleExclusiveToken(_ token: String, groupPrefix: String, in query: String) -> String {
+        let parts = tokens(of: query)
+        let lowerToken = token.lowercased()
+        if parts.contains(where: { $0.lowercased() == lowerToken }) {
+            return parts.filter { $0.lowercased() != lowerToken }.joined(separator: " ")
+        }
+        let lowerPrefix = groupPrefix.lowercased()
+        return (parts.filter { !$0.lowercased().hasPrefix(lowerPrefix) } + [token]).joined(separator: " ")
+    }
+
     /// Splits `query` into everything except the first `prefix…` token (case-insensitive,
     /// whole-token) and that token's value (the text after `prefix`). Mirrors `extractHiddenFlag`
     /// for a prefix whose value isn't known ahead of time (`tag:`), so a caller can toggle just
     /// that token without discarding the rest of the query. Returns `(query, nil)` when absent.
     public static func extractPrefixedToken(prefix: String, from query: String) -> (remaining: String, value: String?) {
-        let tokens = query.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let tokens = tokens(of: query)
         guard let match = tokens.first(where: { $0.lowercased().hasPrefix(prefix.lowercased()) }) else {
             return (query, nil)
         }
@@ -69,7 +89,7 @@ public struct SearchFilterService: Sendable {
     public static func parseTokenRegexes(query: String, caseSensitive: Bool) -> [String: NSRegularExpression] {
         let options: NSRegularExpression.Options = caseSensitive ? [] : [.caseInsensitive]
         var result: [String: NSRegularExpression] = [:]
-        let tokens = query.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let tokens = tokens(of: query)
         for token in tokens {
             let lowerToken = token.lowercased()
             guard !isFilterToken(lowerToken) else { continue }
@@ -93,7 +113,7 @@ public struct SearchFilterService: Sendable {
     public static func queryWarning(for query: String, scope: SearchScope) -> SearchQueryWarning? {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let tokens = tokens(of: trimmed)
 
         var plainTextTokens: [String] = []
         for token in tokens {
@@ -128,30 +148,19 @@ public struct SearchFilterService: Sendable {
             || lowerToken.hasPrefix("ext:") || lowerToken.hasPrefix("tag:")
     }
 
-    /// `scope` is the explicit Name/Content/Both menu choice — no implicit fallback. `tokenRegexes`
-    /// comes from `parseTokenRegexes` — each token is matched against its own regex, if it has one,
-    /// never the whole query string (mixing `kind:pdf` with an unrelated `r:`/wildcard token used to
-    /// build one giant regex out of the entire query and silently match nothing).
-    public static func matchesSearch(
-        fileURL: URL, query: String, tokenRegexes: [String: NSRegularExpression], scope: SearchScope, caseSensitive: Bool) -> Bool {
+    /// Tokenizes and analyses `query` **once** per load — split tokens, compiled regexes, and the
+    /// resource-key union — so `matchesSearch` does none of that per candidate file.
+    public static func parsedQuery(query: String, scope: SearchScope, caseSensitive: Bool) -> ParsedSearchQuery {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
-
-        let tokens = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        let attributes = prefetchAttributes(for: fileURL, tokens: tokens, scope: scope)
-        for token in tokens
-            where !matchesToken(
-                token: token, regex: tokenRegexes[token], scope: scope,
-                caseSensitive: caseSensitive, attributes: attributes) {
-            return false
-        }
-        return true
+        let tokens = tokens(of: trimmed)
+        return ParsedSearchQuery(
+            tokens: tokens,
+            tokenRegexes: parseTokenRegexes(query: query, caseSensitive: caseSensitive),
+            resourceKeys: resourceKeys(for: tokens, scope: scope),
+            isEmpty: trimmed.isEmpty)
     }
 
-    /// One `resourceValues` fetch covering every attribute the present tokens (and the content
-    /// scope) can ask for — see `PrefetchedAttributes`. Returns empty values (all matchers then
-    /// fail closed) when the file is gone or no token needs disk attributes.
-    private static func prefetchAttributes(for fileURL: URL, tokens: [String], scope: SearchScope) -> PrefetchedAttributes {
+    private static func resourceKeys(for tokens: [String], scope: SearchScope) -> Set<URLResourceKey> {
         var keys: Set<URLResourceKey> = []
         for token in tokens {
             let lower = token.lowercased()
@@ -167,7 +176,30 @@ public struct SearchFilterService: Sendable {
         }
         if scope != .name {
             keys.insert(.fileSizeKey)
+            keys.insert(.contentModificationDateKey) // content-match cache key (path|mtime|size)
         }
+        return keys
+    }
+
+    /// `scope` is the explicit Name/Content/Both menu choice — no implicit fallback. Each token is
+    /// matched against its own regex, if it has one, never the whole query string.
+    public static func matchesSearch(
+        fileURL: URL, parsed: ParsedSearchQuery, scope: SearchScope, caseSensitive: Bool) -> Bool {
+        guard !parsed.isEmpty else { return true }
+
+        let attributes = prefetchAttributes(for: fileURL, resourceKeys: parsed.resourceKeys)
+        for token in parsed.tokens
+            where !matchesToken(
+                token: token, regex: parsed.tokenRegexes[token], scope: scope,
+                caseSensitive: caseSensitive, attributes: attributes) {
+            return false
+        }
+        return true
+    }
+
+    /// One `resourceValues` fetch covering `resourceKeys` (precomputed by `parsedQuery`). Returns
+    /// empty values (all matchers then fail closed) when the file is gone or nothing needs disk.
+    private static func prefetchAttributes(for fileURL: URL, resourceKeys keys: Set<URLResourceKey>) -> PrefetchedAttributes {
         guard !keys.isEmpty, let values = try? fileURL.resourceValues(forKeys: keys) else {
             return PrefetchedAttributes(url: fileURL)
         }
@@ -293,11 +325,9 @@ public struct SearchFilterService: Sendable {
         case "image", "img", "images":
             return extensionConforms(ext, to: .image)
         case "doc", "document", "documents":
-            // "Document" is a fuzzy user category with no single clean UTType — curated on purpose.
-            return ["doc", "docx", "pdf", "pages", "txt", "md", "rtf", "odt", "xls", "xlsx"].contains(ext)
+            return FileKindCatalog.isDocument(ext)
         case "code", "source":
-            // "Code" spans source, scripts, and markup (JSON/HTML don't conform to .sourceCode) — curated.
-            return ["swift", "py", "js", "ts", "json", "html", "css", "cpp", "c", "h", "sh", "yml", "yaml"].contains(ext)
+            return FileKindCatalog.isCode(ext)
         case "pdf":
             return ext == "pdf"
         case "folder", "dir", "directory":
@@ -345,13 +375,31 @@ public struct SearchFilterService: Sendable {
         return regex.firstMatch(in: fileName, options: [], range: range) != nil
     }
 
+    /// Bounded `(path|mtime|size)` → file-text cache so a content search doesn't re-read every
+    /// candidate file from disk on every keystroke of the debounced refresh.
+    private nonisolated(unsafe) static let contentCache: NSCache<NSString, NSString> = {
+        let cache = NSCache<NSString, NSString>()
+        cache.countLimit = 4000
+        cache.totalCostLimit = 64 * 1024 * 1024
+        return cache
+    }()
+
     private static func matchesContent(query: String, caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
         guard query.count >= minContentQueryLength else { return false }
-        let textExtensions: Set = ["txt", "md", "swift", "json", "py", "js", "ts", "css", "html", "sh", "yml", "xml", "csv"]
-        guard textExtensions.contains(attributes.url.pathExtension.lowercased()) else { return false }
-        guard let size = attributes.fileSize, size < 2_000_000 else { return false }
-        guard let content = readTextContent(of: attributes.url) else { return false }
+        guard FileKindCatalog.isText(attributes.url.pathExtension) else { return false }
+        guard let size = attributes.fileSize, size < maxContentSearchFileBytes else { return false }
+        guard let content = cachedTextContent(of: attributes.url, mtime: attributes.modificationDate, size: size) else { return false }
         return caseSensitive ? content.contains(query) : content.localizedCaseInsensitiveContains(query)
+    }
+
+    private static func cachedTextContent(of fileURL: URL, mtime: Date?, size: Int) -> String? {
+        let key = "\(fileURL.path)|\(mtime?.timeIntervalSinceReferenceDate ?? 0)|\(size)" as NSString
+        if let hit = contentCache.object(forKey: key) {
+            return hit as String
+        }
+        guard let text = readTextContent(of: fileURL) else { return nil }
+        contentCache.setObject(text as NSString, forKey: key, cost: text.utf8.count)
+        return text
     }
 
     /// Reads a text file as UTF-8, falling back to the file's own declared encoding and then

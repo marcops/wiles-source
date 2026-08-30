@@ -40,6 +40,14 @@ When asked to act as architect / improve / design something (not just "fix X"), 
 - Every fix for a **data-loss bug** must ship with a red→green regression test once tests are written — one that proves the old code actually caused the loss and the new code doesn't, not just "doesn't throw."
 - **Production source code never bends to accommodate a test or UI-automation need.** No test-only branches, hooks, flags, or accommodations may be added to `Sources/` for the sake of making something easier to test or drive from a UI-automation script. If a unit test or UI test needs the source to behave differently than its real, correct behavior, the test is wrong and must be fixed (or rewritten, or deleted if it's testing the wrong thing) — the source never changes to suit it.
 
+## Reflection / Private-API Access Into a Dependency Needs a CI Canary
+
+Any use of reflection or KVC to read non-public state or structure of an external dependency MUST have a CI-level incompatibility detector — preferably a canary test that exercises the exact access path against a real instance of the dependency and fails when it stops resolving (returns `nil`/empty). The point is that a dependency upgrade breaks the build, not production: a silently-failing reflection path degrades to whatever weak fallback exists (a best-effort cleanup that then never runs), leaking the process or resource it was meant to release with no visible signal.
+
+- If a public API on the dependency can do the job, use it instead of reflecting.
+- If reflection is genuinely the only way, capture the value once at a known-good moment (right after constructing the dependency's object) and store it, rather than reflecting again later at teardown time.
+- The canary test is mandatory as part of any dependency version bump checklist.
+
 ## Never Destroy User Data — Fail Loud and Untouched
 
 - A destructive operation (move, delete, overwrite) must never leave the user with less than they started with. If any precondition isn't clearly safe, abort before touching anything — never "clean up" the destination, delete-then-recreate, or perform a partial/irreversible step before the operation is confirmed possible.
@@ -50,6 +58,18 @@ When asked to act as architect / improve / design something (not just "fix X"), 
 - Any filesystem operation that writes to a path which may already exist must either (a) auto-pick a free name (e.g. `UniqueFileNaming`), or (b) surface a replace / keep-both / cancel decision to the user. It must never silently overwrite (`replaceItem`), and never delete the destination (`removeItem`) before the constructive step is proven possible.
 - Unattended callers (background rules, auto-organization) must take path (a) — there is no user present to prompt.
 - Each collision fix ships with the red→green regression test the "Never Destroy User Data" rule mandates: the old code destroys the destination, the new code doesn't.
+
+### A Destructive Action Is Either Undoable Through the Standard Path, or Warns Explicitly (R4)
+
+- Any action that removes or relocates the user's data MUST either (a) record an undo step through the app's normal undo path (so ⌘Z reverses it), or (b) show explicit copy that it can't be undone that way ("files go to the Trash and can be restored from there; ⌘Z does not undo this", or "this cannot be undone").
+- The user's mental model is set by the *normal* path: a plain "Move to Trash" IS ⌘Z-undoable, so any other flow that also says "Move to Trash" (bulk duplicate cleanup, an inline sheet action) must either match that — record `.trash` undo entries per item — or say up front that it doesn't.
+- Reference points: `AutoOrganizationSheet` shows an explicit "no undo" notice; `FileShredderService` always confirms because it bypasses the Trash entirely. `DuplicateCleanerSheetView.trashSelected` now records a `.trash` undo per item; single-file `chmod` in `FilePropertiesSheet` records a `.chmod` undo. Recursive `chmod` still relies on its confirmation dialog. Code-review checklist item; not mechanically detectable.
+
+### Preflight/Executor Consistency
+
+A batch operation validated by a preflight check MUST be executable to that validated final state regardless of the order its steps run in. Cycles, swaps, and destination collisions among the batch's own members must go through staging / temporary names (or an equivalent mechanism) so no single step fails on a name another step is about to vacate. `BatchRenameService` stages rename cycles through unique hidden temp names.
+
+Code review: BLOCKING.
 
 ## Full Rule Self-Audit Before Every Commit
 

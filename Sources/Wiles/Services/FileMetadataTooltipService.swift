@@ -26,9 +26,10 @@ public enum FileMetadataTooltipService {
         if item.isDirectory {
             lines.append(L10n.string(.tooltipFolder, lang: language))
         } else {
-            lines.append(kindDescription(for: item, language: language))
+            let utType = UTType(filenameExtension: item.fileExtension)
+            lines.append(kindDescription(for: item, type: utType, language: language))
             lines.append(item.formattedSize)
-            if let extra = await extraInfo(for: item, language: language) {
+            if let extra = await extraInfo(for: item, type: utType, language: language) {
                 lines.append(contentsOf: extra)
             }
         }
@@ -53,15 +54,23 @@ public enum FileMetadataTooltipService {
         }
     }
 
-    private static func kindDescription(for item: FileItem, language: AppLanguage) -> String {
-        guard let type = UTType(filenameExtension: item.fileExtension) else {
+    private static func kindDescription(for item: FileItem, type: UTType?, language: AppLanguage) -> String {
+        guard let type else {
             return item.fileExtension.isEmpty ? L10n.string(.tooltipDocumentFallback, lang: language) : item.fileExtension.uppercased()
         }
-        return type.localizedDescription?.capitalized ?? item.fileExtension.uppercased()
+        // Only the first character — `.capitalized` re-cases every word and mangles localized names.
+        guard let desc = type.localizedDescription, !desc.isEmpty else { return item.fileExtension.uppercased() }
+        return firstCharacterUppercased(desc)
     }
 
-    private static func extraInfo(for item: FileItem, language: AppLanguage) async -> [String]? {
-        guard let type = UTType(filenameExtension: item.fileExtension) else { return nil }
+    /// Upper-cases only the first character, leaving the rest of a localized string untouched.
+    static func firstCharacterUppercased(_ value: String) -> String {
+        guard let first = value.first else { return value }
+        return first.uppercased() + value.dropFirst()
+    }
+
+    private static func extraInfo(for item: FileItem, type: UTType?, language: AppLanguage) async -> [String]? {
+        guard let type else { return nil }
 
         if type.conforms(to: .pdf) {
             return await pdfPageCountLine(for: item.url, language: language)

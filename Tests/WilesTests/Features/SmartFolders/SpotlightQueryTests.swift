@@ -15,8 +15,19 @@ final class SpotlightQueryTests: XCTestCase {
         let predicate = NSPredicate(format: "kMDItemFSName ==[cd] %@", "*Desktop*")
         let query = SpotlightQuery(predicate: predicate, searchScopes: [home])
 
-        let paths = await query.run()
-        XCTAssertTrue(paths.allSatisfy { $0.hasPrefix("/") })
+        let result = await query.run()
+        XCTAssertTrue(result.paths.allSatisfy { $0.hasPrefix("/") })
+        XCTAssertFalse(result.timedOut)
+    }
+
+    func testRunReportsTimeoutWhenGatherNeverFinishes() async {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let predicate = NSPredicate(format: "kMDItemFSName ==[cd] %@", "*\(UUID().uuidString)*")
+        let query = SpotlightQuery(predicate: predicate, searchScopes: [home], timeout: .milliseconds(1))
+
+        let result = await query.run()
+        XCTAssertTrue(result.timedOut)
+        XCTAssertTrue(result.paths.isEmpty)
     }
 
     func testCancelResolvesInFlightRunToEmpty() async {
@@ -27,7 +38,8 @@ final class SpotlightQueryTests: XCTestCase {
         let runTask = Task { await query.run() }
         try? await Task.sleep(for: .milliseconds(50))
         query.cancel()
-        let paths = await runTask.value
-        XCTAssertEqual(paths, [])
+        let result = await runTask.value
+        XCTAssertEqual(result.paths, [])
+        XCTAssertFalse(result.timedOut)
     }
 }

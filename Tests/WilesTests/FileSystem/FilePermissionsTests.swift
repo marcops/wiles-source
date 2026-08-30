@@ -24,6 +24,7 @@ public struct FilePermissionsTests {
         await testRecursiveApplyReportsCount()
         testDirectoryTraversableAddsExecuteWhereRead()
         await testRecursiveApplyKeepsSubfoldersTraversable()
+        await testRecursiveApplyContinuesPastUnreadableSubdir()
 
         // NEG: non-existent file returns nil
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-\(UUID().uuidString).txt")
@@ -35,6 +36,7 @@ public struct FilePermissionsTests {
         // POS: octalString reflects a known bit pattern (rwxr-xr--  = 0754)
         let perms754 = POSIXPermissions(posixPermissions: 0o754)
         TestReporter.report("Permissions", "POS: octalString renders 0o754 as \"0754\"", result: perms754.octalString == "0754")
+        testSymbolicStringAndOwnership(tempFile: tempFile, missing: missing)
         TestReporter.report(
             "Permissions",
             "POS: init(posixPermissions:) decodes owner rwx correctly for 0o754",
@@ -121,5 +123,58 @@ public struct FilePermissionsTests {
             "Permissions",
             "POS: a plain file gets exactly 0o644 (no execute) from the same recursive apply",
             result: filePerms.map { !$0.ownerExecute && $0.ownerRead && $0.ownerWrite } ?? false)
+    }
+
+    /// R1 / BB-462: `setPermissionsRecursively`'s enumerator now passes `errorHandler: { _, _ in true }`,
+    /// so an unreadable nested directory is skipped instead of aborting the walk half-way — which
+    /// left the rest of the tree unchanged while `applied` merely looked partial.
+    private static func testRecursiveApplyContinuesPastUnreadableSubdir() async {
+        guard getuid() != 0 else {
+            TestReporter.report("Permissions", "SKIP (root): recursive apply past unreadable subdir", result: true)
+            return
+        }
+        let fm = FileManager.default
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("perms_r1_\(UUID().uuidString)")
+        let blocked = dir.appendingPathComponent("blocked")
+        try? fm.createDirectory(at: blocked, withIntermediateDirectories: true)
+        for index in 0 ..< 4 {
+            try? "x".write(to: dir.appendingPathComponent("t\(index).txt"), atomically: true, encoding: .utf8)
+        }
+        try? fm.setAttributes([.posixPermissions: 0], ofItemAtPath: blocked.path)
+        defer {
+            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: blocked.path)
+            try? fm.removeItem(at: dir)
+        }
+
+        let result = await FilePermissionsService.setPermissionsRecursively(
+            for: dir, permissions: POSIXPermissions(posixPermissions: 0o600))
+        let allFilesGot600 = (0 ..< 4).allSatisfy { index in
+            let perms = FilePermissionsService.getPermissions(for: dir.appendingPathComponent("t\(index).txt"))
+            return perms.map { $0.ownerRead && $0.ownerWrite && !$0.groupRead && !$0.othersRead } ?? false
+        }
+        TestReporter.report(
+            "Permissions",
+            "POS (R1): recursive apply reaches all 4 sibling files past an unreadable nested directory",
+            result: result.applied >= 5 && allFilesGot600)
+    }
+
+    /// `POSIXPermissions.symbolicString` (the `rwx…` form, one source of truth) and the consolidated
+    /// `FilePermissionsService.ownership(of:)` read (owner + group + permissions in one call).
+    private static func testSymbolicStringAndOwnership(tempFile: URL, missing: URL) {
+        TestReporter.report("Permissions", "POS: symbolicString renders 0o754 as \"rwxr-xr--\"",
+                            result: POSIXPermissions(posixPermissions: 0o754).symbolicString == "rwxr-xr--")
+        TestReporter.report("Permissions", "POS: symbolicString renders 0o000 as \"---------\"",
+                            result: POSIXPermissions(posixPermissions: 0).symbolicString == "---------")
+
+        let ownership = FilePermissionsService.ownership(of: tempFile)
+        TestReporter.report(
+            "Permissions",
+            "POS: ownership(of:) returns a non-nil owner and a permissions value equal to getPermissions",
+            result: ownership.owner != nil && ownership.permissions == FilePermissionsService.getPermissions(for: tempFile))
+        let missingOwnership = FilePermissionsService.ownership(of: missing)
+        TestReporter.report(
+            "Permissions",
+            "NEG: ownership(of:) for a non-existent file returns all nil",
+            result: missingOwnership.owner == nil && missingOwnership.group == nil && missingOwnership.permissions == nil)
     }
 }

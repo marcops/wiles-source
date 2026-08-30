@@ -10,7 +10,6 @@ public struct AppStateCoreTests {
         testIsFavorite()
         await AppStateFavoritesMoveTests.run()
         testMoveSelectedFavorite()
-        testTranslucentLevelGetterSetter()
         testSidebarOverlayOpacity()
         testContentOverlayOpacity()
         testGridColumnCount()
@@ -197,23 +196,6 @@ public struct AppStateCoreTests {
         report(
             "AppState", "NEG: moveSelectedFavorite() is a no-op when selectedFavoriteURL is nil",
             result: appState.preferences.favorites.favoriteURLs == [favA, favB, favC])
-    }
-
-    private static func testTranslucentLevelGetterSetter() {
-        let appState = AppState()
-        appState.preferences.appearance.sidebarTranslucentLevel = 10
-        appState.preferences.appearance.contentTranslucentLevel = 90
-        report("AppState", "POS: translucentLevel getter reflects sidebarTranslucentLevel", result: appState.preferences.appearance.translucentLevel == 10)
-
-        appState.preferences.appearance.translucentLevel = 55
-        report(
-            "AppState",
-            "POS: translucentLevel setter updates both sidebarTranslucentLevel and contentTranslucentLevel",
-            result: appState.preferences.appearance.sidebarTranslucentLevel == 55 && appState.preferences.appearance.contentTranslucentLevel == 55)
-
-        report(
-            "AppState", "NEG: translucentLevel setter does not leave contentTranslucentLevel at its old distinct value",
-            result: appState.preferences.appearance.contentTranslucentLevel != 90)
     }
 
     private static func testSidebarOverlayOpacity() {

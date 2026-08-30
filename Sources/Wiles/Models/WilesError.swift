@@ -30,29 +30,12 @@ public enum WilesError: LocalizedError, Equatable, Sendable {
     /// chosen language, not the system one. See lint rule LR2.
     case localized(key: L10n.Key, arguments: [String])
 
+    /// `LocalizedError` conformance — the system-language rendering of the same message
+    /// `localizedMessage(lang:)` builds from `l10nKey` + token substitution. Kept as a thin
+    /// delegate so there's exactly one source of truth per error (no hand-written English copy to
+    /// drift from `en.lproj`).
     public var errorDescription: String? {
-        switch self {
-        case let .permissionDenied(path):
-            "Permission Denied: Wiles cannot access '\(path)'."
-        case let .diskFull(path):
-            "Disk Full: Not enough space to complete operation at '\(path)'."
-        case let .fileInUse(path):
-            "File in Use: '\(path)' is currently open by another application."
-        case let .itemNotFound(path):
-            "Item Not Found: '\(path)' does not exist."
-        case let .operationFailed(reason):
-            "Operation Failed: \(reason)"
-        case .invalidZipPassword:
-            "Invalid Password: Unable to decrypt ZIP archive."
-        case .itemAlreadyInDestination:
-            "This item is already in that location."
-        case let .destinationExists(name):
-            "An item named '\(name)' already exists in the destination."
-        case .fileCreationNotRedoable:
-            "Can't Redo: Wiles doesn't store the original file's content, so this creation can't be redone."
-        case let .localized(key, arguments):
-            Self.substitute(L10n.string(key, lang: .system), Self.positionalTokens(arguments))
-        }
+        localizedMessage(lang: .system)
     }
 
     /// The one token-substitution mechanism for every case. A translation missing a token just

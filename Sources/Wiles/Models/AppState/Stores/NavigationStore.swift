@@ -21,15 +21,10 @@ public final class NavigationStore {
     public var pendingSlowVolumeCheck: Task<Void, Never>?
     public var recentOpenedURLs: [URL] = [] {
         didSet {
-            guard !isInitializing else { return }
             let paths = recentOpenedURLs.map(\.path)
             UserDefaults.standard.set(paths, forKey: DefaultsKey.recentOpenedURLs.rawValue)
         }
     }
-
-    /// Suppresses `recentOpenedURLs`'s persistence `didSet` while `init` populates it from
-    /// already-persisted data, so construction doesn't redundantly write back what it just read.
-    private var isInitializing = true
 
     /// Caps `historyBack`/`historyForward` so a long session of folder-hopping doesn't grow these
     /// arrays (and the recent-folders UI they drive) without bound.
@@ -53,11 +48,11 @@ public final class NavigationStore {
         pathText = resolvedURL.path
 
         if let savedRecents = UserDefaults.standard.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) {
+            // Direct assignment in init — `didSet` does not fire, so no redundant write-back here.
             recentOpenedURLs = savedRecents.compactMap { path in
                 SlowVolumePathValidator.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
             }
         }
-        isInitializing = false
 
         Task { [weak self] in
             await self?.validateSlowVolumePaths()

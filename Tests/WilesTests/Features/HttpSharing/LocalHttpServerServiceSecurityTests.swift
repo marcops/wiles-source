@@ -13,6 +13,7 @@ extension HttpSharingFeatureTests {
         await testFragmentedRequestHeadIsAccumulatedBeforeParsing()
         await testOversizedRequestHeadReturns431()
         await testNestedSubfolderIsListedNotStreamed()
+        await testHiddenEntriesAreNeitherListedNorServed()
         testRequestPathRejectsNulByteAndEmptyComponents()
         testParseByteRange()
         await testPasswordProtectedRequestWithDifferentLengthPasswordReturns401()
@@ -57,7 +58,7 @@ extension HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir, password: "secret123")
         await waitUntil { server.isRunning }
 
@@ -100,7 +101,7 @@ extension HttpSharingFeatureTests {
         let nestedName = "<b>nested & child.txt"
         try? "y".write(to: subDir.appendingPathComponent(nestedName), atomically: true, encoding: .utf8)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -123,6 +124,36 @@ extension HttpSharingFeatureTests {
         try? FileManager.default.removeItem(at: tempDir)
     }
 
+    /// Sharing a project folder must not leak `.git`/`.env`/`.ssh` etc. over the LAN — hidden
+    /// entries are absent from the listing and a direct request for one is refused.
+    private static func testHiddenEntriesAreNeitherListedNorServed() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        try? "SECRET=1".write(to: tempDir.appendingPathComponent(".env"), atomically: true, encoding: .utf8)
+        try? "visible".write(to: tempDir.appendingPathComponent("readme.txt"), atomically: true, encoding: .utf8)
+
+        let server = LocalHttpServerService()
+        server.start(sharing: tempDir)
+        await waitUntil { server.isRunning }
+
+        var listingHidesDotfile = false
+        if let (data, _) = try? await requestSession.data(from: URL(string: "http://localhost:8080/")!) {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            listingHidesDotfile = body.contains("readme.txt") && !body.contains(".env")
+        }
+        var dotfileRequestRefused = false
+        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:8080/.env")!),
+           let httpResp = resp as? HTTPURLResponse {
+            dotfileRequestRefused = httpResp.statusCode == 403
+        }
+        report("Feature/HttpSharing", "POS: the LAN listing omits hidden entries", result: listingHidesDotfile)
+        report("Feature/HttpSharing", "NEG: a direct GET for a hidden file is refused with 403", result: dotfileRequestRefused)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        try? FileManager.default.removeItem(at: tempDir)
+    }
+
     // MARK: - Stored XSS in the directory listing (C2 regression)
 
     /// A file whose name is HTML markup must appear escaped in the served listing, never as live
@@ -134,7 +165,7 @@ extension HttpSharingFeatureTests {
         let maliciousName = "<img src=x onerror=alert(1)>.txt"
         try? "x".write(to: tempDir.appendingPathComponent(maliciousName), atomically: true, encoding: .utf8)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -167,7 +198,7 @@ extension HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -196,7 +227,7 @@ extension HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 

@@ -3,16 +3,33 @@ import Foundation
 import GitBeacon
 
 public enum FilePermissionsService: Sendable {
-    public static func getPermissions(for url: URL) -> POSIXPermissions? {
+    /// Owner name, group name, and POSIX permissions for one item — any of them `nil` when the OS
+    /// doesn't report it (or on a read failure).
+    public struct FileOwnership: Sendable {
+        public let owner: String?
+        public let group: String?
+        public let permissions: POSIXPermissions?
+    }
+
+    /// The single `attributesOfItem` read for owner, group, and POSIX permissions together — the
+    /// one place these three are pulled (previously each of `FileItem`, `FileMetadataService`, and
+    /// `getPermissions` did its own call). A genuine I/O failure is reported and everything is `nil`.
+    public static func ownership(of url: URL) -> FileOwnership {
         do {
             let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
-            guard let posix = attrs[.posixPermissions] as? NSNumber else { return nil }
-            return POSIXPermissions(posixPermissions: posix.int16Value)
+            return FileOwnership(
+                owner: attrs[.ownerAccountName] as? String,
+                group: attrs[.groupOwnerAccountName] as? String,
+                permissions: (attrs[.posixPermissions] as? NSNumber).map { POSIXPermissions(posixPermissions: $0.int16Value) })
         } catch {
             // Every file has POSIX permissions, so a thrown error here is always a genuine I/O failure.
-            ErrorReporter.report(error, context: "Reading POSIX permissions for \(url.path)")
-            return nil
+            ErrorReporter.report(error, context: "Reading ownership/permissions for \(url.path)")
+            return FileOwnership(owner: nil, group: nil, permissions: nil)
         }
+    }
+
+    public static func getPermissions(for url: URL) -> POSIXPermissions? {
+        ownership(of: url).permissions
     }
 
     public static func setPermissions(for url: URL, permissions: POSIXPermissions) throws {
@@ -46,7 +63,13 @@ public enum FilePermissionsService: Sendable {
         }
 
         apply(to: url)
-        guard let enumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey]) else {
+        guard let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            // Skip an unreadable subdirectory and keep applying to the rest — without this the walk
+            // aborts at the first protected folder and silently leaves half the tree unchanged while
+            // `applied` just looks partial. R1 / BB-462.
+            errorHandler: { _, _ in true }) else {
             return (applied, errors)
         }
         // `while`/`nextObject()` rather than `for…in`: the enumerator's iterator is unavailable in

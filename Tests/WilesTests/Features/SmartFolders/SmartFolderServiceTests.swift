@@ -28,6 +28,24 @@ public struct SmartFoldersFeatureTests {
 
         testPredicateInjectionIsNeutralized()
         testEncodingFailureThrowsInsteadOfSilentlyNoOpingSave()
+        testSpotlightContainsPatternStripsWildcardAndQuote()
+    }
+
+    /// B12-3: the user's text is wrapped in `*…*` for a Spotlight "contains" match, but a typed `*`
+    /// (extra wildcard) or `"` (phrase delimiter) is stripped first so it can't reshape the query.
+    private static func testSpotlightContainsPatternStripsWildcardAndQuote() {
+        report(
+            "Feature/SmartFolders",
+            "POS: spotlightContainsPattern wraps a plain term in *…*",
+            result: SmartFolderService.spotlightContainsPattern(for: "report") == "*report*")
+        report(
+            "Feature/SmartFolders",
+            "POS: spotlightContainsPattern strips a typed * and \" from the term",
+            result: SmartFolderService.spotlightContainsPattern(for: "a*b\"c") == "*abc*")
+        report(
+            "Feature/SmartFolders",
+            "POS: spotlightContainsPattern on an empty term is just the two wrapper wildcards",
+            result: SmartFolderService.spotlightContainsPattern(for: "") == "**")
     }
 
     /// Bug: saveSmartFolders used to encode with `try? JSONEncoder().encode(folders)` and, on

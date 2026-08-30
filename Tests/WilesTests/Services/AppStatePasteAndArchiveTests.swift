@@ -14,7 +14,7 @@ public struct AppStatePasteAndArchiveTests {
         await testDownloadFromiCloudFailure()
         await testCompressSelectedToZIPWithPassword()
         await testPasteToCurrentDirectoryEdgeCases()
-        testPasteClipboardContentAsFile()
+        await testPasteClipboardContentAsFile()
     }
 
     private static func makeFile(named name: String, in dir: URL, content: String = "content") -> URL {
@@ -277,9 +277,9 @@ public struct AppStatePasteAndArchiveTests {
     }
 
     /// `pasteClipboardContentAsFile()` — reached only once both the internal clipboard and the
-    /// system pasteboard have no file URLs on them at all; entirely synchronous (no detached
-    /// Task), so no polling is needed here unlike the other paste tests above.
-    private static func testPasteClipboardContentAsFile() {
+    /// system pasteboard have no file URLs on them at all. Now routed through
+    /// `runDetachedFileOperation` (write moved off the main actor), so the assertions poll.
+    private static func testPasteClipboardContentAsFile() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
         let pb = NSPasteboard.general
@@ -296,11 +296,14 @@ public struct AppStatePasteAndArchiveTests {
         appState.selection.selectedURLs = []
         appState.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState.preferences))
         let createdFile = dir.appendingPathComponent("Pasted Text.txt")
+        let materialized = await pollUntilTrue {
+            FileManager.default.fileExists(atPath: createdFile.path)
+                && appState.selection.selectedURLs == Set([createdFile])
+        }
         report(
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with no clipboard/pasteboard URLs materializes pasteboard text content as a new file",
-            result: FileManager.default.fileExists(atPath: createdFile.path)
-                && appState.selection.selectedURLs == Set([createdFile]))
+            result: materialized)
 
         // NEG: nothing pasteable at all (empty pasteboard, no text/image) -> safe no-op.
         pb.clearContents()
@@ -309,13 +312,14 @@ public struct AppStatePasteAndArchiveTests {
         appState2.transient.clipboard = nil
         appState2.selection.selectedURLs = []
         appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences))
+        try? await Task.sleep(nanoseconds: 300_000_000)
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() with nothing on the clipboard or pasteboard is a safe no-op",
             result: appState2.selection.selectedURLs.isEmpty)
 
-        // NEG: pasteClipboardContentAsFile()'s catch branch — the text write fails because the
-        // current directory is read-only.
+        // NEG: the operation's failure branch — the text write fails because the current
+        // directory is read-only.
         let readOnlyDir = makeTempDir()
         defer {
             try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: readOnlyDir.path)
@@ -329,9 +333,10 @@ public struct AppStatePasteAndArchiveTests {
         appState3.navigation.currentURL = readOnlyDir
         appState3.transient.clipboard = nil
         appState3.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState3.preferences))
+        let errorShown = await pollUntilTrue { appState3.modal.errorMessage != nil }
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() reports an error when materializing pasteboard content fails (read-only current directory)",
-            result: appState3.modal.errorMessage != nil)
+            result: errorShown)
     }
 }

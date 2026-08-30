@@ -4,7 +4,15 @@ import GitBeacon
 
 public struct FileSystemService: Sendable {
     static let recursiveSearchResultLimit: Int = 2000
-    static let recursiveSearchBatchSize: Int = 40
+    /// Hard cap on a single (non-recursive) directory listing. A folder with hundreds of thousands
+    /// of real entries (Maildir, `.git/objects`, some `node_modules`) would otherwise grow
+    /// `fileSystem.items` — each with an `NSImage` icon — without bound. `AppState` surfaces the cut
+    /// via `resultsTruncated`, same channel the recursive search uses.
+    static let directoryListingLimit: Int = 20_000
+    /// Minimum wall-clock gap between `onBatch` calls during a recursive crawl (the first match is
+    /// always reported immediately). Time-based, not count-based: every call rebuilds `AppState`'s
+    /// URL indices over the whole cumulative array.
+    static let recursiveSearchBatchInterval: TimeInterval = 0.12
 
     /// `recentURLs` is the caller's in-memory recents list (`NavigationStore.recentOpenedURLs`) —
     /// passed in rather than re-read from `UserDefaults` here, so the two can't diverge before a save.
@@ -30,10 +38,10 @@ public struct FileSystemService: Sendable {
                 items.append(FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             if !options.searchQuery.isEmpty {
-                let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+                let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
                 items = items.filter {
                     SearchFilterService.matchesSearch(
-                        fileURL: $0.url, query: options.searchQuery, tokenRegexes: tokenRegexes,
+                        fileURL: $0.url, parsed: parsedQuery,
                         scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
                 }
             }
@@ -84,7 +92,7 @@ public struct FileSystemService: Sendable {
         }
         let fileURLs = try directoryEntries(at: url, keys: keys)
 
-        let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+        let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
         var items: [FileItem] = []
         for fileURL in fileURLs {
             if Task.isCancelled {
@@ -94,12 +102,15 @@ public struct FileSystemService: Sendable {
                 continue
             }
             if !SearchFilterService.matchesSearch(
-                fileURL: fileURL, query: options.searchQuery, tokenRegexes: tokenRegexes,
+                fileURL: fileURL, parsed: parsedQuery,
                 scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
                 continue
             }
 
             items.append(FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
+            if items.count >= directoryListingLimit {
+                break
+            }
         }
         let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
         if options.searchQuery.isEmpty {
@@ -119,9 +130,9 @@ public struct FileSystemService: Sendable {
     /// setting, since walking into every dotfile/cache folder under the home directory is both
     /// slow and rarely what a "search everywhere" query is looking for.
     ///
-    /// `onBatch` is invoked periodically (every `Self.recursiveSearchBatchSize` matches,
-    /// and once more with the final result) with the sorted matches found so far, so the UI can
-    /// stream results in as they're found instead of blocking on the full walk.
+    /// `onBatch` is invoked with the sorted matches found so far — the first match immediately,
+    /// then at most once per `Self.recursiveSearchBatchInterval`, and once more with the final
+    /// result — so the UI streams results in as they're found instead of blocking on the full walk.
     public static func loadRecursiveSearchResults(
         at root: URL,
         options: DirectoryLoadOptions,
@@ -168,8 +179,8 @@ public struct FileSystemService: Sendable {
         includeHidden: Bool,
         onBatch: @escaping @Sendable ([FileItem]) -> Void) throws {
         guard let enumerator = makeRecursiveSearchEnumerator(at: root, options: options, includeHidden: includeHidden) else {
-            // `FileManager.enumerator(at:)` returns nil (rather than an empty enumerator) when the
-            // root itself can't be read at all — most commonly permission denied. Previously this
+            // `FileManager`'s `enumerator(at:)` API returns nil (rather than an empty enumerator)
+            // when the root itself can't be read at all — most commonly permission denied. Previously this
             // silently reported zero results, indistinguishable from a genuinely empty tree; now it's
             // reported and thrown so the caller can surface a real error instead of a misleading
             // "nothing found."
@@ -178,10 +189,13 @@ public struct FileSystemService: Sendable {
             throw error
         }
 
-        let tokenRegexes = SearchFilterService.parseTokenRegexes(query: options.searchQuery, caseSensitive: options.searchCaseSensitive)
+        let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
         let isOrderedBefore = sortComparator(for: options.sortOption, ascending: options.sortAscending)
         var items: [FileItem] = []
-        var lastReportedCount = 0
+        // Throttle `onBatch` by wall-clock, not match count: each call hands the whole cumulative
+        // array to `AppState`, which rebuilds its URL indices — so ~8 calls/second over a long
+        // crawl, not one every 40 matches (which degraded toward O(n²) on a big `~` search).
+        var lastReportAt: Date?
         while let fileURL = enumerator.nextObject() as? URL {
             if Task.isCancelled {
                 break
@@ -190,16 +204,17 @@ public struct FileSystemService: Sendable {
                 continue
             }
             if !SearchFilterService.matchesSearch(
-                fileURL: fileURL, query: options.searchQuery, tokenRegexes: tokenRegexes,
+                fileURL: fileURL, parsed: parsedQuery,
                 scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
                 continue
             }
 
             let newItem = FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup)
             items.insert(newItem, at: insertionIndex(for: newItem, in: items, isOrderedBefore: isOrderedBefore))
-            if items.count - lastReportedCount >= Self.recursiveSearchBatchSize {
+            let now = Date()
+            if lastReportAt.map({ now.timeIntervalSince($0) >= Self.recursiveSearchBatchInterval }) ?? true {
                 onBatch(items)
-                lastReportedCount = items.count
+                lastReportAt = now
             }
             if items.count >= Self.recursiveSearchResultLimit {
                 break
@@ -234,7 +249,12 @@ public struct FileSystemService: Sendable {
         case .dateCreated: { $0.dateCreated < $1.dateCreated }
         case .dateAccessed: { ($0.dateAccessed ?? .distantPast) < ($1.dateAccessed ?? .distantPast) }
         case .size: { $0.size < $1.size }
-        case .kind: { $0.fileExtension.localizedStandardCompare($1.fileExtension) == .orderedAscending }
+        case .kind: {
+            let extOrder = $0.fileExtension.localizedStandardCompare($1.fileExtension)
+            return extOrder == .orderedSame
+                ? $0.name.localizedStandardCompare($1.name) == .orderedAscending
+                : extOrder == .orderedAscending
+        }
         case .owner: { $0.ownerName.localizedStandardCompare($1.ownerName) == .orderedAscending }
         case .group: { $0.groupName.localizedStandardCompare($1.groupName) == .orderedAscending }
         }
@@ -263,6 +283,10 @@ public struct FileSystemService: Sendable {
         return low
     }
 
+    /// Synchronous xattr write. Unlike `moveItem`/`copyItem` this does **not** self-detach — the
+    /// caller is responsible for running it off `@MainActor` (`FileTaggingService.toggleTag` /
+    /// `clearAllTags` are always invoked inside a `Task.detached`), since a `/Volumes` target could
+    /// stall the write for seconds.
     public static func setTags(for url: URL, tags: [String]) throws {
         try (url as NSURL).setResourceValue(tags, forKey: .tagNamesKey)
     }

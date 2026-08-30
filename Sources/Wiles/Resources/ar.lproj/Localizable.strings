@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "إنشاء ملف ZIP محمي بكلمة مرور للعناصر المحددة";
 "passwordMismatchHint" = "كلمتا المرور غير متطابقتين.";
 "pastingItemsEllipsis" = "جارٍ لصق العناصر…";
+"batchRenamingEllipsis" = "جارٍ إعادة تسمية الملفات…";
 "removeRecentServer" = "إزالة من العناصر الأخيرة";
 "removeSmartFolderConfirm" = "هل أنت متأكد أنك تريد حذف هذا المجلد الذكي؟ لا يمكن التراجع عن هذا.";
 "ruleConditionExtensionEquals" = "الامتداد يساوي";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "الأدوات";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "سلة المهملات";
 "undo" = "تراجع";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "تعذر نقل %d من %d عناصر إلى سلة المهملات.";
-"tagOperationPartialFailure" = "تعذر وضع علامة على %d من %d عناصر.";
+"moveToTrashPartialFailure" = "تعذر نقل {0} من {1} عناصر إلى سلة المهملات.";
+"tagOperationPartialFailure" = "تعذر وضع علامة على {0} من {1} عناصر.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "نسخ الرابط";
 "copyLinkAccessibilityHint" = "ينسخ عنوان المشاركة إلى الحافظة";
 "loadingEntries" = "جارٍ تحميل العناصر...";
+"loadingApplications" = "جارٍ تحميل التطبيقات...";
 "noArchiveEntriesFound" = "لم يتم العثور على عناصر أو تعذّرت قراءة الأرشيف.";
 "extractEntryHint" = "يستخرج هذا الملف إلى المجلد الحالي";
 "archiveFileEntry" = "ملف";
 "sharedFolderPageTitle" = "مجلد مشترك";
 "sharedFolderHeading" = "تمت المشاركة";
+"sharedFolderListingTruncated" = "… و{0} عنصر آخر (تم اقتطاع القائمة)";
 "requirePassword" = "طلب كلمة المرور";
 "startSharing" = "بدء المشاركة";
 "wifiSharePasswordProtectedNotice" = "يتطلب الوصول إلى هذا المجلد كلمة مرور. وهو غير مشفّر — يمكن لأي شخص آخر على نفس الشبكة اعتراضه.";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "يلغي هذه المهمة في الخلفية";
 "feedbackKindSelectionHint" = "يحدد فئة الملاحظات هذه";
 "feedbackDescriptionFieldHint" = "أدخل وصفًا مفصلاً لملاحظاتك";
+"feedbackPublicNotice" = "يُرسَل تقريرك إلى متتبع المشكلات العام لدينا. من فضلك لا تُضمِّن تفاصيل شخصية أو حساسة.";
 "applyPermissionsHint" = "يطبق الأذونات المحددة على هذا العنصر";
 "permissionToggleHint" = "يبدّل هذا الإذن";
 "archivePasswordFieldHint" = "يحدد كلمة المرور المطلوبة لفتح هذا الأرشيف";
+"archivePasswordInvalidCharacters" = "لا يمكن أن تحتوي كلمة المرور على فواصل أسطر أو أحرف تحكم.";
 "moreInfoAccessibilityHint" = "يعرض الخصائص التفصيلية لهذا العنصر";
 "iCloudStatusDownloading" = "جارٍ التنزيل من iCloud";
 "iCloudStatusNotDownloaded" = "لم يتم التنزيل من iCloud";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "تعذر عرض الصورة المعاد تحجيمها";
 "imageConverterDestinationFailed" = "تعذر إنشاء وجهة الصورة";
 "imageConverterFinalizeFailed" = "تعذر إنهاء وجهة الصورة";
+"imageConverterOutputTooLarge" = "الصورة كبيرة جدًا بحيث لا يمكن تحويلها (أكثر من {0} ميجابكسل)";
 "syntaxTruncatedNotice" = "\n... (تم الاختصار)";
 "fileTemplateMarkdownContent" = "# العنوان\n\nيوضع المحتوى هنا.\n";
 "fileTemplateJSONContent" = "{\n  \"مفتاح\": \"قيمة\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "تعذّر نقل {0} من {1} عنصرًا.";
 "searchContentQueryTooShort" = "اكتب 3 أحرف على الأقل للبحث داخل الملفات.";
 "searchInvalidRegex" = "هذا التعبير النمطي غير صالح.";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "عرض أول %d من عناصر كثيرة";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

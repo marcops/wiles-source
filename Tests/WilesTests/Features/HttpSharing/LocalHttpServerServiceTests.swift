@@ -5,7 +5,7 @@ import Foundation
 @MainActor
 public struct HttpSharingFeatureTests {
     public static func run() async {
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         let initialState = server.isRunning
         defer {
             if initialState != server.isRunning {
@@ -39,8 +39,75 @@ public struct HttpSharingFeatureTests {
         // LocalHttpServerServiceSecurityTests.swift (split out to keep this file under the length cap).
         await runSecurityAndRobustnessChecks()
         testFirstAvailablePortSkipsAnOccupiedPort()
+        await testServerURLReflectsTheScannedPort(server)
+        await testRestartWithoutStopReusesTheSamePort()
 
         server.stop()
+    }
+
+    /// BB-358: `start()` now tears down any prior listener before standing up a new one — a second
+    /// `start(sharing:)` without an intervening `stop()` used to orphan the first `NWListener` (still
+    /// bound to its port, with no reference left to cancel it), forcing the new one onto the next port.
+    private static func testRestartWithoutStopReusesTheSamePort() async {
+        let dirA = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("httpA_\(UUID().uuidString)")
+        let dirB = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("httpB_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dirA, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dirB, withIntermediateDirectories: true)
+        try? "marker".write(to: dirB.appendingPathComponent("only-in-b.txt"), atomically: true, encoding: .utf8)
+        defer {
+            try? FileManager.default.removeItem(at: dirA)
+            try? FileManager.default.removeItem(at: dirB)
+        }
+
+        let server = LocalHttpServerService()
+        server.stop()
+        await waitUntil { !server.isRunning }
+
+        server.start(sharing: dirA)
+        await waitUntil { server.isRunning }
+        let firstPort = server.port.rawValue
+
+        // Restart for a different folder WITHOUT stopping first.
+        server.start(sharing: dirB)
+        await waitUntil(timeoutSeconds: 2.0) { server.isRunning }
+        let secondPort = server.port.rawValue
+
+        report(
+            "Feature/HttpSharing",
+            "POS (BB-358): a second start() without stop() reuses the same port (the prior listener was cancelled, not orphaned)",
+            result: secondPort == firstPort)
+
+        var servesDirB = false
+        if let url = URL(string: "http://localhost:\(secondPort)/"),
+           let (data, resp) = try? await requestSession.data(from: url),
+           let httpResp = resp as? HTTPURLResponse, httpResp.statusCode == 200 {
+            servesDirB = (String(data: data, encoding: .utf8) ?? "").contains("only-in-b.txt")
+        }
+        report(
+            "Feature/HttpSharing",
+            "POS (BB-358): after the restart the server on that port serves the new folder's listing",
+            result: servesDirB)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+    }
+
+    /// B11-4: `port` is `@MainActor`-only now (written in `start()`, read in `updateServerURL()`).
+    /// After a successful start the published `serverURL` must carry that same port value.
+    private static func testServerURLReflectsTheScannedPort(_ server: LocalHttpServerService) async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        server.start(sharing: tempDir)
+        await waitUntil { server.isRunning }
+        let urlHasPort = server.serverURL?.contains(":\(server.port.rawValue)") ?? false
+        report(
+            "Feature/HttpSharing",
+            "POS: after start(), serverURL carries the same port value the MainActor-only `port` holds",
+            result: urlHasPort)
+        server.stop()
+        await waitUntil { !server.isRunning }
     }
 
     /// `firstAvailablePort` walks the range and returns the first port a socket can bind; a port
@@ -90,7 +157,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir, password: "secret123")
         await waitUntil { server.isRunning }
 
@@ -119,7 +186,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
         server.sharedFolder = nil
@@ -145,7 +212,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -175,7 +242,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -203,7 +270,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -228,7 +295,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -248,7 +315,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir, password: "secret123")
         await waitUntil { server.isRunning }
 
@@ -274,7 +341,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir, password: "secret123")
         await waitUntil { server.isRunning }
 
@@ -298,7 +365,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir, password: "secret123")
         await waitUntil { server.isRunning }
 
@@ -324,7 +391,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir, password: "")
         await waitUntil { server.isRunning }
 
@@ -352,7 +419,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
@@ -382,7 +449,7 @@ public struct HttpSharingFeatureTests {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 

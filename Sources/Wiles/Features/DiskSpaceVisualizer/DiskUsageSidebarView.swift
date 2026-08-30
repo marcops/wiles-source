@@ -16,7 +16,7 @@ struct DiskUsageSidebarView: View {
             ZStack {
                 TranslucentVisualEffectView(material: .sidebar)
                 Color(NSColor.windowBackgroundColor)
-                    .opacity(1.0 - Double(appState.preferences.appearance.translucentLevel) / 100.0)
+                    .opacity(appState.preferences.appearance.sidebarOverlayOpacity)
             })
     }
 
@@ -44,7 +44,11 @@ struct DiskUsageSidebarView: View {
             VStack(alignment: .leading, spacing: 14) {
                 AsyncResultView(
                     id: appState.navigation.currentURL,
-                    operation: { try await DiskSpaceVisualizerService.calculateDiskUsage(for: appState.navigation.currentURL) },
+                    operation: {
+                        try await DiskSpaceVisualizerService.calculateDiskUsage(
+                            for: appState.navigation.currentURL,
+                            language: appState.preferences.appearance.appLanguage)
+                    },
                     isEmpty: { $0.topItems.isEmpty },
                     loading: { loadingIndicator },
                     empty: { emptyStateView },

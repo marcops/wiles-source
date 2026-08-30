@@ -22,14 +22,14 @@ public struct FullUIActionCoverageTests {
     }
 
     private static func testHttpSharingSheetFlows(appState _: AppState) {
-        let isRunningInitial = LocalHttpServerService.shared.isRunning
+        let isRunningInitial = LocalHttpServerService().isRunning
         if isRunningInitial {
-            LocalHttpServerService.shared.stop()
+            LocalHttpServerService().stop()
         }
-        report("UI/HttpShare", "POS: LocalHttpServerService stops cleanly", result: !LocalHttpServerService.shared.isRunning)
+        report("UI/HttpShare", "POS: LocalHttpServerService stops cleanly", result: !LocalHttpServerService().isRunning)
 
-        LocalHttpServerService.shared.stop()
-        report("UI/HttpShare", "NEG: Stopping stopped server is a safe no-op", result: !LocalHttpServerService.shared.isRunning)
+        LocalHttpServerService().stop()
+        report("UI/HttpShare", "NEG: Stopping stopped server is a safe no-op", result: !LocalHttpServerService().isRunning)
     }
 
     private static func testAutoOrganizationSheetFlows(appState _: AppState) {

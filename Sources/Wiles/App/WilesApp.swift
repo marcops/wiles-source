@@ -93,6 +93,10 @@ struct WilesApp: App {
             Bundle.main.bundleURL.appendingPathComponent("Wiles_Wiles.bundle/AppIcon.png")
         if let iconImage = NSImage(contentsOf: iconURL) {
             NSApplication.shared.applicationIconImage = iconImage
+        } else {
+            ErrorReporter.report(
+                NSError(domain: "WilesApp", code: 1),
+                context: "setApplicationIcon: no candidate URL produced an image; the app will show the default icon")
         }
     }
 
@@ -100,7 +104,6 @@ struct WilesApp: App {
     /// autosave name). Each window gets its own autosave name so multiple windows don't all compete
     /// for one saved frame and stack on top of each other.
     private func configureNewWindows() {
-        NSApplication.shared.activate(ignoringOtherApps: true)
         for window in NSApplication.shared.windows where window.frameAutosaveName.isEmpty {
             window.tabbingMode = .disallowed
             window.isMovableByWindowBackground = false
@@ -109,6 +112,9 @@ struct WilesApp: App {
             window.isRestorable = false
             window.setFrameAutosaveName("WilesMainWindow-\(Self.nextWindowFrameIndex)")
             Self.nextWindowFrameIndex += 1
+            // Only steal focus when a genuinely new window is being set up, not on every
+            // `onAppear` (Space switch, de-minimize) which could yank focus from another app.
+            NSApplication.shared.activate(ignoringOtherApps: true)
         }
     }
 

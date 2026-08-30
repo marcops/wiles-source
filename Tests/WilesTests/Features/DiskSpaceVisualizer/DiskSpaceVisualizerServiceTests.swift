@@ -22,6 +22,39 @@ public struct DiskSpaceVisualizerFeatureTests {
         await testEmptyFolderReturnsEmptyReport()
         await testSubfolderSizeIsIncludedViaComputeFolderSizeFast()
         await testOthersBucketAggregatesItemsPastTop10()
+        await testUnreadableSubdirDoesNotAbortSizeWalk()
+    }
+
+    /// R1 / BA-509: `computeFolderSizeFast`'s enumerator now passes `errorHandler: { _, _ in true }`,
+    /// so an unreadable *nested* directory is skipped instead of aborting the whole walk — which used
+    /// to undercount the folder's size while still presenting it as exact.
+    private static func testUnreadableSubdirDoesNotAbortSizeWalk() async {
+        guard getuid() != 0 else {
+            report("Feature/DiskSpaceVisualizer", "SKIP (root): unreadable-subdir size-walk continuation", result: true)
+            return
+        }
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("diskviz_r1_\(UUID().uuidString)")
+        let readableDir = root.appendingPathComponent("readable")
+        let blockedDir = readableDir.appendingPathComponent("blocked")
+        try? fm.createDirectory(at: blockedDir, withIntermediateDirectories: true)
+        for index in 0 ..< 5 {
+            try? Data(repeating: 0x41, count: 1000).write(to: readableDir.appendingPathComponent("f\(index).bin"))
+        }
+        try? Data(repeating: 0x42, count: 4096).write(to: blockedDir.appendingPathComponent("secret.bin"))
+        try? fm.setAttributes([.posixPermissions: 0], ofItemAtPath: blockedDir.path)
+        defer {
+            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: blockedDir.path)
+            try? fm.removeItem(at: root)
+        }
+
+        let reportResult = await ((try? DiskSpaceVisualizerService.calculateDiskUsage(for: root)) ?? DiskUsageReport(
+            totalSize: 0, topItems: [], othersItem: nil))
+        let readableItem = reportResult.topItems.first { $0.name == "readable" }
+        report(
+            "Feature/DiskSpaceVisualizer",
+            "POS (R1): an unreadable nested directory doesn't abort the size walk — all 5 sibling files (5000 B) are still counted",
+            result: readableItem?.size == 5000)
     }
 
     /// Covers the `contentsOfDirectory` failure branch: a folder URL that doesn't exist on disk (or

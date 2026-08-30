@@ -18,6 +18,7 @@ public struct FileSystemSearchAndSortTests {
         await testDirectoriesAlwaysSortFirst()
         await testSetTagsRoundTrip()
         await testDateFilterEdgeCases()
+        await testDirectoryListingIsCappedWithTruncationSignal()
         await testSizeFilterEdgeCases()
         testDirectSearchFilterServiceGuardFailures()
         testExtractHiddenFlag()
@@ -240,18 +241,19 @@ public struct FileSystemSearchAndSortTests {
     /// deliberately nonexistent URL reach these guards.
     private static func testDirectSearchFilterServiceGuardFailures() {
         let missingFile = tempDir().appendingPathComponent("missing.txt")
-        let dateResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "date:>=1d", tokenRegexes: [:], scope: .name, caseSensitive: false)
+        func matches(_ query: String, scope: SearchScope) -> Bool {
+            SearchFilterService.matchesSearch(
+                fileURL: missingFile,
+                parsed: SearchFilterService.parsedQuery(query: query, scope: scope, caseSensitive: false),
+                scope: scope, caseSensitive: false)
+        }
+        let dateResult = matches("date:>=1d", scope: .name)
         report("NEG: matchesSearch with a \"date:\" query on a nonexistent file returns false (resourceValues guard)", result: !dateResult)
 
-        let sizeResult = SearchFilterService.matchesSearch(fileURL: missingFile, query: "size:>1b", tokenRegexes: [:], scope: .name, caseSensitive: false)
+        let sizeResult = matches("size:>1b", scope: .name)
         report("NEG: matchesSearch with a \"size:\" query on a nonexistent file returns false (resourceValues guard)", result: !sizeResult)
 
-        let contentResultMissing = SearchFilterService.matchesSearch(
-            fileURL: missingFile,
-            query: "unicorn",
-            tokenRegexes: [:],
-            scope: .content,
-            caseSensitive: false)
+        let contentResultMissing = matches("unicorn", scope: .content)
         report("NEG: matchesSearch content-search fallback on a nonexistent file returns false (resourceValues guard)", result: !contentResultMissing)
 
         let dir = tempDir()
@@ -263,7 +265,10 @@ public struct FileSystemSearchAndSortTests {
         let latin1File = dir.appendingPathComponent("latin1.txt")
         try? "café doré résumé".data(using: .isoLatin1)?.write(to: latin1File)
         func contentMatch(_ query: String) -> Bool {
-            SearchFilterService.matchesSearch(fileURL: latin1File, query: query, tokenRegexes: [:], scope: .content, caseSensitive: false)
+            SearchFilterService.matchesSearch(
+                fileURL: latin1File,
+                parsed: SearchFilterService.parsedQuery(query: query, scope: .content, caseSensitive: false),
+                scope: .content, caseSensitive: false)
         }
         report("POS: content search decodes a non-UTF-8 (Latin-1) text file instead of skipping it", result: contentMatch("caf"))
         report("NEG: a decoded non-UTF-8 file that doesn't contain the query still returns false", result: !contentMatch("unicorn"))
@@ -356,5 +361,31 @@ public struct FileSystemSearchAndSortTests {
         try? FileSystemService.setTags(for: file, tags: ["Red", "Important"])
         let item = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
         report("POS: setTags() writes Finder tags that FileItem subsequently reads back", result: Set(item.tags) == Set(["Red", "Important"]))
+    }
+
+    /// A folder with more than `directoryListingLimit` entries is capped, and the caller learns the
+    /// list was cut (so `AppState` can show "showing the first N") instead of reading it as complete.
+    private static func testDirectoryListingIsCappedWithTruncationSignal() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let overCap = FileSystemService.directoryListingLimit + 25
+        for index in 0 ..< overCap {
+            FileManager.default.createFile(atPath: dir.appendingPathComponent("f\(index).txt").path, contents: nil)
+        }
+
+        let loaded = await load(at: dir)
+        report(
+            "POS: a directory listing is capped at directoryListingLimit entries",
+            result: loaded.count == FileSystemService.directoryListingLimit)
+
+        let appState = AppState()
+        appState.applyLoadedItems(
+            loaded, target: appState.navigation.currentURL,
+            truncatedAtCap: loaded.count >= FileSystemService.directoryListingLimit)
+        report(
+            "POS: applying a capped listing sets resultsTruncated so the footer can flag it",
+            result: appState.fileSystem.resultsTruncated)
     }
 }

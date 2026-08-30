@@ -18,5 +18,9 @@ public final class SmartFolderStore {
     /// the field's focus instead of reaching the grid item underneath, so it silently did nothing.
     public var suppressNextSearchFocus = false
 
+    /// `true` when the last run's Spotlight gather timed out (the scope is on an unindexed volume),
+    /// so the empty-results view can say results may be incomplete rather than "no matches".
+    public var lastRunTimedOut = false
+
     public init() { }
 }

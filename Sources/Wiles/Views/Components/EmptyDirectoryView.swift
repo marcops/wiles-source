@@ -74,6 +74,14 @@ public struct EmptyDirectoryView: View {
                 .frame(maxWidth: Self.noticeMaxWidth)
         }
 
+        if appState.smartFolder.activeFolderID != nil, appState.smartFolder.lastRunTimedOut {
+            Text(appState.tr(.smartFolderLocationNotIndexed))
+                .font(.system(size: Self.bodyFontSize))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: Self.noticeMaxWidth)
+        }
+
         Button {
             appState.selection.searchQuery = ""
         } label: {

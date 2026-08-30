@@ -300,10 +300,7 @@ struct FolderPickerSheet: View {
     /// e.g. home `/Users/foo` vs `/Users/foo2` — are never mistaken for an ancestor relationship.
     /// Mirrors `AppState+Navigation.childToRestore(whenLeaving:movingTo:)`.
     private nonisolated static func isWithinOrEqual(_ url: URL, _ home: URL) -> Bool {
-        let urlComponents = url.standardizedFileURL.pathComponents
-        let homeComponents = home.standardizedFileURL.pathComponents
-        return urlComponents.count >= homeComponents.count
-            && Array(urlComponents.prefix(homeComponents.count)) == homeComponents
+        url.isDescendantOrSelf(of: home)
     }
 
     private func applyAncestorExpansion(_ expansion: AncestorExpansion) {

@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Создаёт защищённый паролем ZIP-архив из выбранных элементов";
 "passwordMismatchHint" = "Пароли не совпадают.";
 "pastingItemsEllipsis" = "Вставка Элементов…";
+"batchRenamingEllipsis" = "Переименование файлов…";
 "removeRecentServer" = "Удалить из недавних";
 "removeSmartFolderConfirm" = "Вы уверены, что хотите удалить эту умную папку? Отменить это будет невозможно.";
 "ruleConditionExtensionEquals" = "Расширение Равно";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "Инструменты";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "Корзина";
 "undo" = "Отменить";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d из %d объектов не удалось переместить в Корзину.";
-"tagOperationPartialFailure" = "Не удалось пометить %d из %d элементов.";
+"moveToTrashPartialFailure" = "{0} из {1} объектов не удалось переместить в Корзину.";
+"tagOperationPartialFailure" = "Не удалось пометить {0} из {1} элементов.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "Копировать ссылку";
 "copyLinkAccessibilityHint" = "Копирует адрес общего доступа в буфер обмена";
 "loadingEntries" = "Загрузка элементов...";
+"loadingApplications" = "Загрузка приложений...";
 "noArchiveEntriesFound" = "Элементы не найдены или архив не удалось прочитать.";
 "extractEntryHint" = "Извлекает этот файл в текущую папку";
 "archiveFileEntry" = "Файл";
 "sharedFolderPageTitle" = "Общая Папка";
 "sharedFolderHeading" = "Общий доступ";
+"sharedFolderListingTruncated" = "… и ещё {0} элементов (список сокращён)";
 "requirePassword" = "Требовать Пароль";
 "startSharing" = "Начать Общий Доступ";
 "wifiSharePasswordProtectedNotice" = "Для доступа к этой папке требуется пароль. Она не зашифрована — любой другой пользователь той же сети потенциально может перехватить трафик.";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "Отменяет эту фоновую задачу";
 "feedbackKindSelectionHint" = "Выбирает эту категорию отзыва";
 "feedbackDescriptionFieldHint" = "Введите подробное описание вашего отзыва";
+"feedbackPublicNotice" = "Ваше сообщение отправляется в наш открытый трекер задач. Не указывайте личные или конфиденциальные данные.";
 "applyPermissionsHint" = "Применяет выбранные разрешения к этому элементу";
 "permissionToggleHint" = "Переключает это разрешение";
 "archivePasswordFieldHint" = "Задаёт пароль, необходимый для открытия этого архива";
+"archivePasswordInvalidCharacters" = "Пароль не может содержать переносы строк или управляющие символы.";
 "moreInfoAccessibilityHint" = "Показывает подробные свойства этого элемента";
 "iCloudStatusDownloading" = "Загрузка из iCloud";
 "iCloudStatusNotDownloaded" = "Не загружено из iCloud";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "Не удалось отрисовать изменённое изображение";
 "imageConverterDestinationFailed" = "Не удалось создать назначение изображения";
 "imageConverterFinalizeFailed" = "Не удалось завершить назначение изображения";
+"imageConverterOutputTooLarge" = "Изображение слишком большое для преобразования (более {0} мегапикселей)";
 "syntaxTruncatedNotice" = "\n... (обрезано)";
 "fileTemplateMarkdownContent" = "# Заголовок\n\nСодержимое здесь.\n";
 "fileTemplateJSONContent" = "{\n  \"ключ\": \"значение\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "Не удалось переместить {0} из {1} объектов.";
 "searchContentQueryTooShort" = "Введите не менее 3 символов для поиска внутри файлов.";
 "searchInvalidRegex" = "Это регулярное выражение недопустимо.";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "Показаны первые %d из многих";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

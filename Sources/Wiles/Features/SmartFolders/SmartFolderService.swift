@@ -2,8 +2,15 @@ import AppKit
 import Foundation
 
 @MainActor
-public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @unchecked Sendable {
-    public static let shared = SmartFolderService()
+public final class SmartFolderService: SmartFolderServiceProtocol {
+    // Instantiated per `AppState` (`appState.smartFolderService`), NOT a `.shared` singleton: the
+    // per-run `activeQuery`/`currentQueryToken` staleness state used to be shared across every open
+    // window, so a smart-folder run in one window silently discarded its own results the moment
+    // another window started its own run (`token != currentQueryToken`) — BA-108 / WILES_RULES.md
+    // "Singleton Services With Session State Need an Explicit Owner". The two `static` persistence
+    // helpers below hold no session state and stay static.
+    public init() { }
+
     private var activeQuery: SpotlightQuery?
     /// Identifies the most recently started query. `fetchFileItems` resolves icons on a detached
     /// task, so a slower-finishing older query (e.g. one with more results) could otherwise still
@@ -12,6 +19,10 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     /// sometimes leave the previous one's results on screen. Each completion checks this token
     /// before applying, so only the most recently started query's results ever actually land.
     private var currentQueryToken = UUID()
+
+    /// `true` when the last query's Spotlight gather timed out instead of finishing — the scope
+    /// lives on an unindexed volume, so an empty result set means "can't tell", not "no matches".
+    public private(set) var lastRunTimedOut = false
 
     public static func loadSavedSmartFolders() -> [SmartFolder] {
         guard let data = UserDefaults.standard.data(forKey: DefaultsKey.smartFolders.rawValue),
@@ -36,8 +47,16 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         UserDefaults.standard.set(data, forKey: DefaultsKey.smartFolders.rawValue)
     }
 
+    /// Wraps the user's text in `*…*` for a Spotlight "contains" match, first stripping `*` and `"`:
+    /// Spotlight treats a bare `*` as a wildcard and `"` as a phrase delimiter, so a typed `*` or an
+    /// unbalanced quote would silently change what the smart folder matches.
+    static func spotlightContainsPattern(for raw: String) -> String {
+        let stripped = raw.replacingOccurrences(of: "*", with: "").replacingOccurrences(of: "\"", with: "")
+        return "*\(stripped)*"
+    }
+
     public func executeQuery(for smartFolder: SmartFolder, completion: @escaping @Sendable ([FileItem]) -> Void) {
-        let wildcardQuery = "*\(smartFolder.searchQuery)*"
+        let wildcardQuery = Self.spotlightContainsPattern(for: smartFolder.searchQuery)
         let predicate = NSPredicate(format: "kMDItemDisplayName ==[cd] %@", wildcardQuery)
         let searchScopes: [Any] = if !smartFolder.scopePath.isEmpty, FileManager.default.fileExists(atPath: smartFolder.scopePath) {
             [URL(fileURLWithPath: smartFolder.scopePath)]
@@ -48,7 +67,7 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     }
 
     public func executeContentQuery(queryText: String, in folderURL: URL, completion: @escaping @Sendable ([FileItem]) -> Void) {
-        let wildcardQuery = "*\(queryText)*"
+        let wildcardQuery = Self.spotlightContainsPattern(for: queryText)
         let predicate = NSPredicate(format: "(kMDItemTextContent ==[cd] %@) || (kMDItemFSName ==[cd] %@)", wildcardQuery, wildcardQuery)
         runQuery(predicate: predicate, searchScopes: [folderURL], completion: completion)
     }
@@ -64,9 +83,10 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         let spotlight = SpotlightQuery(predicate: predicate, searchScopes: searchScopes)
         activeQuery = spotlight
         Task { @MainActor [weak self] in
-            let paths = await spotlight.run()
+            let (paths, timedOut) = await spotlight.run()
             guard let self, currentQueryToken == token else { return }
             activeQuery = nil
+            lastRunTimedOut = timedOut
             Self.fetchFileItems(forPaths: paths) { items in
                 Task { @MainActor [weak self] in
                     guard let self, currentQueryToken == token else { return }
@@ -81,11 +101,17 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
     /// hitch on large result sets; batching into a detached task and hopping back to the main actor
     /// once done keeps that work off the hot path, mirroring the off-main pattern used for
     /// `/Volumes/` navigation in `AppState+Navigation.swift`.
+    /// Hard cap on Spotlight paths turned into `FileItem`s — a broad query (`*a*` over the home
+    /// folder) can otherwise match tens of thousands of files, and each `FileItem.load` is a
+    /// resourceValues batch + icon resolve. Aligned with `FileSystemService.recursiveSearchResultLimit`.
+    nonisolated static let maxResultCount = 2000
+
     private nonisolated static func fetchFileItems(forPaths paths: [String], completion: @escaping @Sendable ([FileItem]) -> Void) {
         Task.detached(priority: .userInitiated) {
+            let cappedPaths = paths.prefix(maxResultCount)
             var items: [FileItem] = []
-            items.reserveCapacity(paths.count)
-            for path in paths {
+            items.reserveCapacity(cappedPaths.count)
+            for path in cappedPaths {
                 // FileItem resolves the icon from `.effectiveIcon` in its resourceValues batch;
                 // a per-path NSWorkspace.icon IPC here cost seconds on a broad Spotlight result set.
                 items.append(FileItem.load(url: URL(fileURLWithPath: path)))

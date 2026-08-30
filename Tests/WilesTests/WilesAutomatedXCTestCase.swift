@@ -69,6 +69,7 @@ final class WilesAutomatedTests: XCTestCase {
         MainContentViewTests.run()
         OperationsPopoverViewTests.run()
         ShortcutsHUDOverlayTests.run()
+        TappableRowTests.run()
     }
 
     @MainActor
@@ -103,10 +104,10 @@ final class WilesAutomatedTests: XCTestCase {
     }
 
     @MainActor
-    func testOpenWithTests() throws {
+    func testOpenWithTests() async throws {
         // Real LaunchServices calls crash the test process in CI (see DefaultFolderHandlerServiceTests).
         try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-CRASH: LaunchServices calls crash the test process in CI")
-        OpenWithTests.run()
+        await OpenWithTests.run()
     }
 
     @MainActor

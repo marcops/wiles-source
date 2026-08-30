@@ -7,21 +7,24 @@ final class SpotlightQuery {
     private let query = NSMetadataQuery()
     private var observer: (any NSObjectProtocol)?
     private var timeoutTask: Task<Void, Never>?
-    private var continuation: CheckedContinuation<[String], Never>?
+    private var continuation: CheckedContinuation<(paths: [String], timedOut: Bool), Never>?
 
     /// Backstop for `NSMetadataQueryDidFinishGathering` never firing — on a volume without
     /// Spotlight indexing (an SMB share, an external drive with indexing off) the query gathers
     /// forever, so without this the caller would await it indefinitely.
-    private static let timeout: Duration = .seconds(20)
+    private static let defaultTimeout: Duration = .seconds(20)
+    private let timeout: Duration
 
-    init(predicate: NSPredicate, searchScopes: [Any]) {
+    init(predicate: NSPredicate, searchScopes: [Any], timeout: Duration = SpotlightQuery.defaultTimeout) {
         query.predicate = predicate
         query.searchScopes = searchScopes
+        self.timeout = timeout
     }
 
     /// Gathers once, then resolves with the matching file paths — empty on timeout or if abandoned
-    /// via `cancel()`. Stops the query and removes the observer before returning either way.
-    func run() async -> [String] {
+    /// via `cancel()`. `timedOut` is `true` only when the gather never finished (an unindexed
+    /// volume), so a caller can tell that apart from a genuine zero-match result.
+    func run() async -> (paths: [String], timedOut: Bool) {
         await withCheckedContinuation { continuation in
             self.continuation = continuation
             observer = NotificationCenter.default.addObserver(
@@ -32,10 +35,10 @@ final class SpotlightQuery {
                     Task { @MainActor [weak self] in self?.complete(with: paths) }
                 }
             query.start()
-            timeoutTask = Task { [weak self] in
-                try? await Task.sleep(for: Self.timeout)
+            timeoutTask = Task { [weak self, timeout] in
+                try? await Task.sleep(for: timeout)
                 guard !Task.isCancelled else { return }
-                self?.complete(with: [])
+                self?.complete(with: [], timedOut: true)
             }
         }
     }
@@ -46,7 +49,7 @@ final class SpotlightQuery {
     }
 
     /// Resume-once plus teardown. Safe to call from the gather notification, the timeout, or `cancel()`.
-    private func complete(with paths: [String]) {
+    private func complete(with paths: [String], timedOut: Bool = false) {
         guard let continuation else { return }
         self.continuation = nil
         timeoutTask?.cancel()
@@ -56,7 +59,7 @@ final class SpotlightQuery {
             self.observer = nil
         }
         query.stop()
-        continuation.resume(returning: paths)
+        continuation.resume(returning: (paths, timedOut))
     }
 
     private nonisolated static func paths(from notification: Notification) -> [String] {

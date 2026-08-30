@@ -17,7 +17,7 @@ final class AutoOrganizationRuleStore {
 
     /// Set while `load()` seeds `rules` from disk, so its `didSet` doesn't immediately re-encode the
     /// identical data back to `UserDefaults` and fire an extra `onChange` (→ redundant
-    /// `restartMonitoring`). Mirrors `NavigationStore`'s `isInitializing` guard.
+    /// `restartMonitoring`).
     private var isLoading = false
     /// Set while `bumpStats` mutates only a rule's `lastTriggeredAt`/`totalMovedCount` — that's not a
     /// structural change, so the `didSet` skips the synchronous save + `onChange` and a debounced

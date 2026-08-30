@@ -9,6 +9,12 @@ public extension AppState {
     }
 
     var statusText: String {
+        let base = itemCountStatusText
+        guard fileSystem.resultsTruncated else { return base }
+        return base + " · " + String(format: tr(.resultsTruncatedNotice), fileSystem.items.count)
+    }
+
+    private var itemCountStatusText: String {
         let totalCount = fileSystem.items.count
         let selCount = selection.selectedURLs.count
 
@@ -18,14 +24,26 @@ public extension AppState {
             }
             return String(format: tr(.itemsCount), totalCount)
         } else {
-            let selectedBytes = fileSystem.items.reduce(0) { sum, item in
-                item.isDirectory || !selection.selectedURLs.contains(item.url) ? sum : sum + item.size
-            }
-            if let formattedSize = formattedSize(ofBytes: selectedBytes) {
+            if let formattedSize = formattedSize(ofBytes: selectedFileSizeBytes) {
                 return String(format: tr(.selectionCountWithSize), selCount, totalCount, formattedSize)
             }
             return String(format: tr(.selectionCount), selCount, totalCount)
         }
+    }
+
+    /// Sum of the selected non-directory items' sizes. Cached on `SelectionStore` and recomputed
+    /// only when the selection or the item list changes, not on every footer render — a "Select All"
+    /// in a 10k folder was previously an O(n) reduce + per-item `Set` lookup every render.
+    var selectedFileSizeBytes: Int64 {
+        if let cached = selection.cachedSelectedFileSizeBytes {
+            return cached
+        }
+        let total = selection.selectedURLs.reduce(Int64(0)) { partial, url in
+            guard let item = fileSystem.itemsByURL[url], !item.isDirectory else { return partial }
+            return partial + item.size
+        }
+        selection.cachedSelectedFileSizeBytes = total
+        return total
     }
 
     /// `nil` for a zero total (an empty/all-directories set) — lets both `statusText` branches

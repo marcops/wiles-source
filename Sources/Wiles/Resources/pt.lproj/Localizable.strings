@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Criar um ZIP protegido por senha dos itens selecionados";
 "passwordMismatchHint" = "As senhas não coincidem.";
 "pastingItemsEllipsis" = "Colando Itens…";
+"batchRenamingEllipsis" = "Renomeando arquivos…";
 "removeRecentServer" = "Remover dos Recentes";
 "removeSmartFolderConfirm" = "Tem certeza de que deseja excluir esta pasta inteligente? Isso não pode ser desfeito.";
 "ruleConditionExtensionEquals" = "Extensão Igual a";
@@ -369,7 +370,6 @@
 "targetFormat" = "Formato de Destino";
 "toolsMenuTitle" = "Ferramentas";
 "topLargestItems" = "Principais Itens por Tamanho";
-"translucentLevel" = "Transparência";
 "trash" = "Lixeira";
 "undo" = "Desfazer";
 "version" = "Versão";
@@ -393,8 +393,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d de %d itens não puderam ser movidos para a Lixeira.";
-"tagOperationPartialFailure" = "%d de %d itens não puderam ser marcados.";
+"moveToTrashPartialFailure" = "{0} de {1} itens não puderam ser movidos para a Lixeira.";
+"tagOperationPartialFailure" = "{0} de {1} itens não puderam ser marcados.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -440,11 +440,13 @@
 "copyLinkAccessibilityLabel" = "Copiar link";
 "copyLinkAccessibilityHint" = "Copia o endereço de compartilhamento para a área de transferência";
 "loadingEntries" = "Carregando itens...";
+"loadingApplications" = "Carregando aplicativos...";
 "noArchiveEntriesFound" = "Nenhum item encontrado ou o arquivo não pôde ser lido.";
 "extractEntryHint" = "Extrai este arquivo para a pasta atual";
 "archiveFileEntry" = "Arquivo";
 "sharedFolderPageTitle" = "Pasta Compartilhada";
 "sharedFolderHeading" = "Compartilhado";
+"sharedFolderListingTruncated" = "… e mais {0} itens (listagem truncada)";
 "requirePassword" = "Exigir Senha";
 "startSharing" = "Iniciar Compartilhamento";
 "wifiSharePasswordProtectedNotice" = "Esta pasta exige uma senha para ser acessada. Não é criptografada — qualquer pessoa na mesma rede pode potencialmente interceptá-la.";
@@ -452,9 +454,11 @@
 "cancelTaskAccessibilityHint" = "Cancela esta tarefa em segundo plano";
 "feedbackKindSelectionHint" = "Seleciona esta categoria de feedback";
 "feedbackDescriptionFieldHint" = "Insira uma descrição detalhada do seu feedback";
+"feedbackPublicNotice" = "O seu relato é enviado para o nosso rastreador de problemas público. Não inclua dados pessoais ou sensíveis.";
 "applyPermissionsHint" = "Aplica as permissões selecionadas a este item";
 "permissionToggleHint" = "Ativa ou desativa esta permissão";
 "archivePasswordFieldHint" = "Define a senha necessária para abrir este arquivo compactado";
+"archivePasswordInvalidCharacters" = "A senha não pode conter quebras de linha ou caracteres de controle.";
 "moreInfoAccessibilityHint" = "Mostra as propriedades detalhadas deste item";
 "iCloudStatusDownloading" = "Baixando do iCloud";
 "iCloudStatusNotDownloaded" = "Não baixado do iCloud";
@@ -505,6 +509,7 @@
 "imageConverterRenderFailed" = "Falha ao renderizar a imagem redimensionada";
 "imageConverterDestinationFailed" = "Falha ao criar o destino da imagem";
 "imageConverterFinalizeFailed" = "Falha ao finalizar o destino da imagem";
+"imageConverterOutputTooLarge" = "A imagem é grande demais para converter (acima de {0} megapixels)";
 "syntaxTruncatedNotice" = "\n... (truncado)";
 "fileTemplateMarkdownContent" = "# Título\n\nO conteúdo vai aqui.\n";
 "fileTemplateJSONContent" = "{\n  \"chave\": \"valor\"\n}\n";
@@ -544,3 +549,9 @@
 "movePartialFailure" = "{0} de {1} itens não puderam ser movidos.";
 "searchContentQueryTooShort" = "Digite ao menos 3 caracteres para buscar dentro dos arquivos.";
 "searchInvalidRegex" = "Essa expressão regular não é válida.";
+"smartFolderLocationNotIndexed" = "Este local não está indexado pelo Spotlight, então os resultados podem estar incompletos.";
+"resultsTruncatedNotice" = "Mostrando os primeiros %d de muitos";
+"convertingImageEllipsis" = "Convertendo Imagem…";
+"deletingPermanentlyEllipsis" = "Excluindo Permanentemente…";
+"undoingEllipsis" = "Desfazendo…";
+"redoingEllipsis" = "Refazendo…";

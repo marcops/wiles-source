@@ -30,10 +30,24 @@ public enum LayoutTokens {
         CGFloat(max(gridCardLabelMinFontSize, min(gridCardLabelMaxFontSize, Double(iconSize) * gridCardLabelFontScaleMultiplier)))
     }
 
+    /// Memoized per `iconSize` — this is read from grid `body`/`cardHeight` for every visible card
+    /// and on every zoom tick, and `iconSize` only moves in discrete steps, so the `NSFont` build
+    /// + metrics arithmetic runs once per distinct size instead of once per call.
+    private nonisolated(unsafe) static var twoLineLabelHeightCache: [CGFloat: CGFloat] = [:]
+    private static let twoLineLabelHeightCacheLock = NSLock()
+
     /// Vertical room `FileGridView.cardHeight` must reserve for a wrapped 2-line label.
     public static func gridCardTwoLineLabelHeight(forIconSize iconSize: CGFloat) -> CGFloat {
+        twoLineLabelHeightCacheLock.lock()
+        defer { twoLineLabelHeightCacheLock.unlock() }
+        if let cached = twoLineLabelHeightCache[iconSize] {
+            return cached
+        }
         let font = NSFont.systemFont(ofSize: gridCardLabelFontSize(forIconSize: iconSize), weight: .semibold)
-        return (font.ascender - font.descender + font.leading) * 2 + gridCardLabelVerticalPadding
+        let height = (font.ascender - font.descender + font.leading) * 2 + gridCardLabelVerticalPadding
+        if twoLineLabelHeightCache.count > 32 { twoLineLabelHeightCache.removeAll(keepingCapacity: true) }
+        twoLineLabelHeightCache[iconSize] = height
+        return height
     }
 
     // List Icons (shared between FileListView and ColumnAutoFitService)

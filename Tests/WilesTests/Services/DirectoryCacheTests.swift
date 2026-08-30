@@ -13,6 +13,31 @@ public struct DirectoryCacheTests {
         testCachingOverwritesExistingEntry()
         testStandardizedURLEquivalence()
         testInvalidateNonExistentURLIsNoOp()
+        testOversizedListingIsNotCached()
+    }
+
+    private static func testOversizedListingIsNotCached() {
+        let tempDir = testTemporaryDirectory()
+        let url = URL(fileURLWithPath: (tempDir as NSString).appendingPathComponent("huge-dir-\(UUID().uuidString)"))
+        let service = DirectoryCacheService.shared
+
+        service.cacheDirectory(sampleResult(), for: url)
+        report("DirectoryCache", "POS: a small listing is cached", result: service.cachedResult(for: url) != nil)
+
+        let icon = NSImage()
+        let huge = (0 ..< 5001).map { index -> FileItem in
+            FileItem(
+                url: URL(fileURLWithPath: "/tmp/huge/\(index).txt"), name: "\(index).txt", isDirectory: false, size: 1,
+                dateModified: Date(timeIntervalSinceReferenceDate: 0), dateCreated: Date(timeIntervalSinceReferenceDate: 0),
+                dateAccessed: nil, ownerName: "--", groupName: "--", isHidden: false, fileExtension: "txt",
+                icon: icon, tags: [], tagColor: nil, isUbiquitous: false,
+                isUbiquitousNotDownloaded: false, isUbiquitousDownloading: false, isUbiquitousUploading: false)
+        }
+        service.cacheDirectory(DirectoryLoadResult(items: huge), for: url)
+        report(
+            "DirectoryCache",
+            "POS: a listing past the cacheable-count cap is dropped, not stored (and evicts a prior small entry)",
+            result: service.cachedResult(for: url) == nil)
     }
 
     private static func sampleResult() -> DirectoryLoadResult {

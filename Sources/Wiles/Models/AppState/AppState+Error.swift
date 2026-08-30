@@ -32,4 +32,11 @@ public extension AppState {
     func tr(_ key: L10n.Key) -> String {
         L10n.string(key, lang: preferences.appearance.appLanguage)
     }
+
+    /// One way to surface an "N of M failed" outcome from a bulk operation, so paste / trash /
+    /// shred / tag / duplicate-clean don't each hand-roll `String(format:)` vs `WilesError.localized`.
+    /// `key` is the operation's own `{0} of {1}` template.
+    func showPartialFailure(_ key: L10n.Key, failed: Int, total: Int) {
+        showError(WilesError.localized(key: key, arguments: ["\(failed)", "\(total)"]))
+    }
 }

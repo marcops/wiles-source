@@ -38,6 +38,10 @@ User-facing copy (About/Help sheets, public README, `RELEASE_NOTES.md` — inclu
 
 When fixing a specific bug in an existing view, don't also redesign the layout beyond what was asked — no widening, no splitting into columns, no restructuring "while in there," even if it seems like better use of space. Scope UI edits tightly to the literal ask; propose a genuine layout improvement separately if one seems warranted.
 
+## Single-Use Layout Literals in a `View` Body May Stay Inline
+
+`DEV_RULES.md`'s "No Magic Numbers" is about numbers that are **shared** (used by 2+ types → `LayoutTokens`) or **semantically non-obvious** (a multiplier, a computed offset, a threshold). It is NOT a mandate to hoist every one-off `.padding(.horizontal, 20)` / `.cornerRadius(6)` / `.opacity(0.85)` / `.font(.system(size: 11))` in a static view layout into a `private static let`. When a layout literal is purely visual and appears exactly once in the file, `.padding(.horizontal, 20)` reads better than `.padding(.horizontal, Self.cardHorizontalPadding)` — the name adds a lookup, not clarity. Extract a local constant only when: (a) the value is used 2+ times in the file, (b) it's a multiplier/offset/threshold whose purpose isn't obvious from the call site, or (c) it's a genuine `LayoutTokens` candidate shared across types. `ShortcutsHUDOverlay`'s ~50 single-use layout constants are the anti-pattern this calibrates against.
+
 ## Capture UI/UX Rules as They're Found
 
 When making a UI/UX fix (spacing, alignment, control choice, dividers, etc.), check whether the reasoning generalizes beyond this one screen. If it does, add it to this file in the same turn, not just fix the one instance. Rules must be written **generically** — no reference to the specific file/function/bug that prompted them. Prefer extending an existing related rule over creating a new one for every small addition, unless the topic is genuinely distinct.

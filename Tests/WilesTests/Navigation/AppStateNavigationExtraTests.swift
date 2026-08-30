@@ -20,6 +20,33 @@ public struct AppStateNavigationExtraTests {
         await testGoUpAfterEnteringChildReselectsChildOncePendingSelectionResolves()
         testNavigateToOnAFileIsANoOpButOpenItemHandlesIt()
         testResortCurrentItemsReordersInMemoryWithoutADiskRead()
+        testApplyLoadedItemsTracksTruncationFlag()
+    }
+
+    /// B5-2 / B9-2: `applyLoadedItems` records whether the applied batch was capped, and a later
+    /// non-capped load (a plain directory listing) clears it again.
+    private static func testApplyLoadedItemsTracksTruncationFlag() {
+        let appState = AppState()
+        let dir = tempDir()
+        appState.navigation.currentURL = dir
+        let item = FileItem(
+            url: dir.appendingPathComponent("a.txt"), name: "a.txt", isDirectory: false, size: 1,
+            dateModified: Date(timeIntervalSinceReferenceDate: 0), dateCreated: Date(timeIntervalSinceReferenceDate: 0),
+            dateAccessed: nil, ownerName: "--", groupName: "--", isHidden: false, fileExtension: "txt",
+            icon: NSImage(), tags: [], tagColor: nil, isUbiquitous: false,
+            isUbiquitousNotDownloaded: false, isUbiquitousDownloading: false, isUbiquitousUploading: false)
+
+        appState.applyLoadedItems([item], target: dir, truncatedAtCap: true)
+        report(
+            "Navigation/Refresh",
+            "POS: applyLoadedItems(truncatedAtCap: true) sets fileSystem.resultsTruncated",
+            result: appState.fileSystem.resultsTruncated)
+
+        appState.applyLoadedItems([item, item], target: dir)
+        report(
+            "Navigation/Refresh",
+            "POS: a subsequent uncapped applyLoadedItems clears fileSystem.resultsTruncated",
+            result: !appState.fileSystem.resultsTruncated)
     }
 
     /// A sort change reorders the already-loaded `fileSystem.items` in place — no directory re-read.

@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "選択した項目のパスワード保護ZIPを作成します";
 "passwordMismatchHint" = "パスワードが一致しません。";
 "pastingItemsEllipsis" = "項目を貼り付け中…";
+"batchRenamingEllipsis" = "ファイルの名前を変更中…";
 "removeRecentServer" = "最近使った項目から削除";
 "removeSmartFolderConfirm" = "このスマートフォルダを削除してもよろしいですか？この操作は元に戻せません。";
 "ruleConditionExtensionEquals" = "拡張子が一致";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "ツール";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "ゴミ箱";
 "undo" = "元に戻す";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d/%d 個の項目をゴミ箱に移動できませんでした。";
-"tagOperationPartialFailure" = "%d 件中 %d 件のタグ付けに失敗しました。";
+"moveToTrashPartialFailure" = "{0}/{1} 個の項目をゴミ箱に移動できませんでした。";
+"tagOperationPartialFailure" = "{0} 件中 {1} 件のタグ付けに失敗しました。";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "リンクをコピー";
 "copyLinkAccessibilityHint" = "共有アドレスをクリップボードにコピーします";
 "loadingEntries" = "項目を読み込み中...";
+"loadingApplications" = "アプリケーションを読み込み中...";
 "noArchiveEntriesFound" = "項目が見つからないか、アーカイブを読み取れませんでした。";
 "extractEntryHint" = "このファイルを現在のフォルダに展開します";
 "archiveFileEntry" = "ファイル";
 "sharedFolderPageTitle" = "共有フォルダ";
 "sharedFolderHeading" = "共有";
+"sharedFolderListingTruncated" = "… 他 {0} 件（一覧は省略されています）";
 "requirePassword" = "パスワードを要求";
 "startSharing" = "共有を開始";
 "wifiSharePasswordProtectedNotice" = "このフォルダにアクセスするにはパスワードが必要です。暗号化されていないため、同じネットワーク上の他の人に傍受される可能性があります。";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "このバックグラウンドタスクをキャンセルします";
 "feedbackKindSelectionHint" = "このフィードバックの種類を選択します";
 "feedbackDescriptionFieldHint" = "フィードバックの詳細な説明を入力してください";
+"feedbackPublicNotice" = "あなたのレポートは公開の課題トラッカーに送信されます。個人情報や機密情報は含めないでください。";
 "applyPermissionsHint" = "選択した権限をこの項目に適用します";
 "permissionToggleHint" = "この権限を切り替えます";
 "archivePasswordFieldHint" = "このアーカイブを開くために必要なパスワードを設定します";
+"archivePasswordInvalidCharacters" = "パスワードに改行や制御文字を含めることはできません。";
 "moreInfoAccessibilityHint" = "この項目の詳細なプロパティを表示します";
 "iCloudStatusDownloading" = "iCloudからダウンロード中";
 "iCloudStatusNotDownloaded" = "iCloudからダウンロードされていません";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "リサイズした画像をレンダリングできませんでした";
 "imageConverterDestinationFailed" = "画像の出力先を作成できませんでした";
 "imageConverterFinalizeFailed" = "画像の出力先を確定できませんでした";
+"imageConverterOutputTooLarge" = "画像が大きすぎて変換できません（{0}メガピクセル超）";
 "syntaxTruncatedNotice" = "\n... (省略されました)";
 "fileTemplateMarkdownContent" = "# タイトル\n\nここに内容を入力します。\n";
 "fileTemplateJSONContent" = "{\n  \"キー\": \"値\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "{1} 件中 {0} 件の項目を移動できませんでした。";
 "searchContentQueryTooShort" = "ファイル内を検索するには3文字以上入力してください。";
 "searchInvalidRegex" = "その正規表現は無効です。";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "多数のうち最初の %d 件を表示しています";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

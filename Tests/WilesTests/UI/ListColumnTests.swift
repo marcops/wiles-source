@@ -9,6 +9,26 @@ public struct ListColumnTests {
         testColumnVisibilityToggling(appState: appState)
         testColumnWidthResizing(appState: appState)
         testColumnAutoFitting(appState: appState)
+        testVisibleColumnsReflectsVisibilityState(appState: appState)
+    }
+
+    /// B15-4: `FileListView` now resolves `FileListHeaderView.visibleColumns` once per container
+    /// render (was once per visible row). Pin that it still equals the visible subset of columns.
+    private static func testVisibleColumnsReflectsVisibilityState(appState: AppState) {
+        appState.preferences.view.listColumnStates = ListColumnState.defaults()
+        let allVisible = FileListHeaderView.visibleColumns(appState)
+        report(
+            "UI/ListColumns",
+            "POS: visibleColumns lists exactly the currently-visible columns in ListColumn order",
+            result: allVisible == ListColumn.allCases.filter { appState.isColumnVisible($0) })
+
+        appState.toggleColumnVisibility(.size)
+        report(
+            "UI/ListColumns",
+            "POS: hiding a column drops it from visibleColumns but keeps Name",
+            result: !FileListHeaderView.visibleColumns(appState).contains(.size)
+                && FileListHeaderView.visibleColumns(appState).contains(.name))
+        appState.toggleColumnVisibility(.size)
     }
 
     private static func testDefaultColumnState(appState: AppState) {

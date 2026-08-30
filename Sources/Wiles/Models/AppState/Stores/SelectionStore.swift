@@ -77,7 +77,15 @@ public final class SelectionStore {
 
     public var isSearching: Bool = false
 
-    public var selectedURLs: Set<URL> = []
+    public var selectedURLs: Set<URL> = [] {
+        didSet { cachedSelectedFileSizeBytes = nil }
+    }
+
+    /// Cached sum of the selected non-directory items' sizes. Invalidated here on any selection
+    /// change and by `AppState.applyLoadedItems` on an item-list replacement; recomputed lazily by
+    /// `AppState.selectedFileSizeBytes` (which has the sizes) so the footer's `statusText` doesn't
+    /// re-`reduce` the whole listing on every render — matches `cachedGridColumnCount` above.
+    var cachedSelectedFileSizeBytes: Int64?
 
     /// Set by `AppState.init` to `{ [weak self] in self?.refreshCurrentDirectory() }` — lets
     /// `searchQuery`'s `didSet` trigger an `AppState`-level refresh without this store holding a

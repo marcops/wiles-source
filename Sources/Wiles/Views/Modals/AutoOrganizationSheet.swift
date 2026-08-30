@@ -144,17 +144,16 @@ struct AutoOrganizationSheet: View {
         }
     }
 
-    private static let lastTriggeredFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
-    }()
-
     /// nil when the rule has never fired, so a freshly-added rule doesn't imply activity it hasn't had yet.
     private func ruleStatusText(_ rule: AutoOrganizationRule) -> String? {
         guard let lastTriggeredAt = rule.lastTriggeredAt else { return nil }
-        let date = Self.lastTriggeredFormatter.string(from: lastTriggeredAt)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        // Respect the in-app language, not just `Locale.current` (a handful of rules in a settings
+        // sheet — not a render hot path, so a per-call formatter is fine).
+        formatter.locale = Locale(identifier: L10n.activeCode(appState.preferences.appearance.appLanguage))
+        let date = formatter.string(from: lastTriggeredAt)
         return String(format: appState.tr(.autoOrgRuleStatus), rule.totalMovedCount, date)
     }
 
@@ -187,23 +186,31 @@ struct AutoOrganizationSheet: View {
         .cornerRadius(8)
     }
 
+    /// Hand-rolled tappable field (see `TappableRow` / SWIFT_LANG_RULES.md "Custom Tappable Content"):
+    /// a real `Button` with a `Text + Spacer` label leaves the spacer area unclickable on macOS.
+    private func folderPickerField(accessibilityLabel: String, current: URL?, action: @escaping () -> Void) -> some View {
+        TappableRow(accessibilityLabel: accessibilityLabel, action: action) {
+            HStack {
+                Text(current?.lastPathComponent ?? appState.tr(.selectFolder))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .frame(width: Self.ruleFolderButtonWidth, height: 22)
+            .background(RoundedRectangle(cornerRadius: 5).fill(Color(NSColor.controlColor)))
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color(NSColor.separatorColor), lineWidth: 1))
+        }
+    }
+
     private var newRuleConditionRow: some View {
         HStack {
             Text(appState.tr(.ifFileIn))
                 .frame(width: Self.ruleLabelWidth, alignment: .trailing)
 
-            Button {
+            folderPickerField(accessibilityLabel: appState.tr(.ifFileIn), current: sourceURL) {
                 folderPickerTarget = .source
-            } label: {
-                HStack {
-                    Text(sourceURL?.lastPathComponent ?? appState.tr(.selectFolder))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer(minLength: 0)
-                }
             }
-            .frame(width: Self.ruleFolderButtonWidth)
-            .accessibilityLabel(appState.tr(.ifFileIn))
 
             Picker("", selection: $conditionType) {
                 ForEach(RuleConditionType.allCases) { type in
@@ -224,18 +231,9 @@ struct AutoOrganizationSheet: View {
         HStack {
             Text(appState.tr(.moveTo))
                 .frame(width: Self.ruleLabelWidth, alignment: .trailing)
-            Button {
+            folderPickerField(accessibilityLabel: appState.tr(.moveTo), current: destinationURL) {
                 folderPickerTarget = .destination
-            } label: {
-                HStack {
-                    Text(destinationURL?.lastPathComponent ?? appState.tr(.selectFolder))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer(minLength: 0)
-                }
             }
-            .frame(width: Self.ruleFolderButtonWidth)
-            .accessibilityLabel(appState.tr(.moveTo))
 
             Spacer()
 
@@ -253,15 +251,17 @@ struct AutoOrganizationSheet: View {
 
     private var canAddRule: Bool {
         guard let sourceURL, let destinationURL else { return false }
-        // Match `AutoOrganizationRule.init`'s own normalization (`resolvingSymlinksInPath()`), so a
-        // source/dest pair that only differs by a symlink can't slip past this and then be created
-        // as a self-referential rule.
-        guard sourceURL.resolvingSymlinksInPath() != destinationURL.resolvingSymlinksInPath() else { return false }
+        // Lexical only — this runs on every keystroke via `.disabled`. The symlink-aware check
+        // (which touches the filesystem) is deferred to `addRule`, run once on the button tap.
+        guard sourceURL.standardizedFileURL != destinationURL.standardizedFileURL else { return false }
         return !conditionValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func addRule() {
         guard canAddRule, let src = sourceURL, let dest = destinationURL else { return }
+        // Match `AutoOrganizationRule.init`'s normalization so a pair that only differs by a symlink
+        // can't be created as a self-referential rule.
+        guard src.resolvingSymlinksInPath() != dest.resolvingSymlinksInPath() else { return }
         var trimmedValue = conditionValue.trimmingCharacters(in: .whitespacesAndNewlines)
         if conditionType == .extensionEquals, trimmedValue.hasPrefix(".") {
             trimmedValue.removeFirst()

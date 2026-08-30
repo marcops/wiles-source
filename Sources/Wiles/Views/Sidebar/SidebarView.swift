@@ -65,7 +65,7 @@ struct SidebarView: View {
         .onDisappear { collapseWorkItem?.cancel() }
         .onChange(of: appState.preferences.favorites.favoriteURLs, initial: true) { _, _ in rebuildPlaces() }
         .onChange(of: appState.preferences.appearance.appLanguage) { _, _ in rebuildPlaces() }
-        .onChange(of: NetworkDiscoveryService.shared.discoveredShares) { _, _ in rebuildPlaces() }
+        .onChange(of: appState.networkDiscoveryService.discoveredShares) { _, _ in rebuildPlaces() }
         .task(id: treeBuildGeneration, buildDirectoryTree)
         .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.sidebarOverlayOpacity, ignoresSafeArea: true)
         // At the SidebarView level (not the ScrollView's), so it reaches the true window top —
@@ -147,7 +147,7 @@ struct SidebarView: View {
         favoriteItems = SidebarPlacesBuilder.favorites(urls: appState.preferences.favorites.favoriteURLs, lang: lang)
         placeItems = SidebarPlacesBuilder.devices(lang: lang)
         networkAndCloudItems = SidebarPlacesBuilder.networkAndCloud(
-            lang: lang, discoveredShares: NetworkDiscoveryService.shared.discoveredShares)
+            lang: lang, discoveredShares: appState.networkDiscoveryService.discoveredShares)
     }
 
     @ViewBuilder private var sidebarSectionsContent: some View {
@@ -169,8 +169,8 @@ struct SidebarView: View {
                 isExpanded: $appState.preferences.sidebar.isNetworkExpanded, items: networkAndCloudItems, isFavoritesSection: false,
                 hideAction: { appState.preferences.sidebar.showNetworkAndCloud = false })
                 // SMB discovery runs only while this section is on screen, not for the whole app run.
-                .onAppear { NetworkDiscoveryService.shared.start() }
-                .onDisappear { NetworkDiscoveryService.shared.stop() }
+                .onAppear { appState.networkDiscoveryService.start() }
+                .onDisappear { appState.networkDiscoveryService.stop() }
         }
         if appState.showsPlacesSection {
             collapsibleSection(

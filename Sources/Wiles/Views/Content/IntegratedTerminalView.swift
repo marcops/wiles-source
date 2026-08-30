@@ -76,14 +76,25 @@ struct IntegratedTerminalView: NSViewRepresentable {
         func setTerminalTitle(source _: LocalProcessTerminalView, title _: String) { }
         func hostCurrentDirectoryUpdate(source _: TerminalView, directory _: String?) { }
 
+        /// A shell that exits the instant it starts (a broken `.zshrc`, `exit` in a profile) would
+        /// otherwise be respawned forever. After this many restarts inside `restartWindow`, stop.
+        private var restartTimes: [Date] = []
+        private static let restartWindow: TimeInterval = 10
+        private static let maxRestartsInWindow = 3
+
         /// The shell exited (`exit`, `⌃D`, or it crashed). Without this the drawer would keep
         /// showing a frozen dead terminal with no way back short of toggling the whole drawer.
         /// Restart a fresh shell in the same view, back at the current folder.
         func processTerminated(source _: TerminalView, exitCode _: Int32?) {
+            let now = Date()
+            restartTimes.append(now)
+            restartTimes.removeAll { now.timeIntervalSince($0) > Self.restartWindow }
             let appState = appState
             let windowUIState = windowUIState
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [restartCount = restartTimes.count] in
                 guard let appState, let view = windowUIState?.terminalViewCache.view else { return }
+                // Shell is exiting on launch — stop respawning; toggling the drawer starts fresh.
+                guard restartCount <= Self.maxRestartsInWindow else { return }
                 view.startProcess(executable: IntegratedTerminalView.loginShellPath, args: ["-l"], environment: nil, execName: nil)
                 IntegratedTerminalView.sendInitialCommands(
                     to: view, path: appState.navigation.currentURL.path, clearFirst: true)

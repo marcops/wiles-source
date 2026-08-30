@@ -35,7 +35,7 @@ public final class AutomatedTestService {
         await FileSystemTests.run()
         await FileItemBulkPrefetchTests.run()
         CopyPathTests.run()
-        OpenWithTests.run()
+        await OpenWithTests.run()
         ICloudTests.run()
         await FilePermissionsTests.run()
         SmartFolderTests.run()

@@ -37,4 +37,49 @@ final class FilenameSanitizerTests: XCTestCase {
     func testAllSlashesCollapseToColonsNotEmpty() {
         XCTAssertEqual(FilenameSanitizer.sanitize("/"), ":")
     }
+
+    // MARK: - B8-7: over-long names are capped at 255, keeping the extension
+
+    func testNameAtOrUnderLimitIsUnchanged() {
+        let name = String(repeating: "a", count: 255)
+        XCTAssertEqual(FilenameSanitizer.sanitize(name), name)
+    }
+
+    func testOverLongNameWithExtensionIsTruncatedKeepingExtension() throws {
+        let result = try XCTUnwrap(FilenameSanitizer.sanitize(String(repeating: "a", count: 300) + ".txt"))
+        XCTAssertEqual(result.count, 255)
+        XCTAssertEqual((result as NSString).pathExtension, "txt")
+        XCTAssertTrue(result.hasPrefix("aaa"))
+    }
+
+    func testOverLongNameWithoutExtensionIsHardTruncated() {
+        let result = FilenameSanitizer.sanitize(String(repeating: "b", count: 500))
+        XCTAssertEqual(result, String(repeating: "b", count: 255))
+    }
+
+    func testTruncationHappensAfterControlStrippingAndTrimming() {
+        // 260 real chars once the NULs are stripped → truncated to 255.
+        let raw = "  " + String(repeating: "c\u{0}", count: 260) + "  "
+        XCTAssertEqual(FilenameSanitizer.sanitize(raw)?.count, 255)
+    }
+
+    // MARK: - The 255 cap is UTF-8 bytes, not Characters
+
+    func testMultiByteNameUnderCharCountButOverByteLimitIsTruncated() throws {
+        // 200 emoji: 200 Characters (well under 255) but 800 UTF-8 bytes — a char-count cap let it through.
+        let result = try XCTUnwrap(FilenameSanitizer.sanitize(String(repeating: "😀", count: 200)))
+        XCTAssertLessThanOrEqual(result.utf8.count, 255)
+        XCTAssertTrue(result.allSatisfy { $0 == "😀" }, "grapheme clusters must not be split")
+    }
+
+    func testMultiByteNameKeepsExtensionWithinByteLimit() throws {
+        let result = try XCTUnwrap(FilenameSanitizer.sanitize(String(repeating: "café", count: 80) + ".txt"))
+        XCTAssertLessThanOrEqual(result.utf8.count, 255)
+        XCTAssertEqual((result as NSString).pathExtension, "txt")
+    }
+
+    func testMultiByteNameUnderByteLimitIsUnchanged() {
+        let raw = String(repeating: "é", count: 120) // 240 UTF-8 bytes
+        XCTAssertEqual(FilenameSanitizer.sanitize(raw), raw)
+    }
 }

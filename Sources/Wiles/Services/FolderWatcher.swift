@@ -8,7 +8,6 @@ import GitBeacon
 @MainActor
 final class FolderWatcher {
     private var fileMonitors: [String: any DispatchSourceFileSystemObject] = [:]
-    private var fileDescriptors: [String: CInt] = [:]
     /// Debounces rapid-fire `.write` events on a watched folder (e.g. a browser writing a large
     /// download incrementally can fire this thousands of times) into a single `onChange` call
     /// after activity settles, instead of firing once per write.
@@ -39,7 +38,6 @@ final class FolderWatcher {
             source.cancel()
         }
         fileMonitors.removeAll()
-        fileDescriptors.removeAll()
         for (_, workItem) in pendingScans {
             workItem.cancel()
         }
@@ -65,7 +63,6 @@ final class FolderWatcher {
             close(fd)
         }
 
-        fileDescriptors[folder.path] = fd
         fileMonitors[folder.path] = source
         source.resume()
     }

@@ -7,13 +7,18 @@ public struct FileTaggingService: Sendable {
     /// Returns the number of URLs that failed, so the caller can report "N of M items" instead of
     /// just the last error's text.
     public static func toggleTag(_ tag: String, for targetURLs: [URL], itemsSnapshot: [FileItem]) -> Int {
+        // One target state for the whole selection: add to all unless every item already has it,
+        // then the whole selection ends up consistent (a mixed selection no longer flips per-file).
+        let tagsByURL = Dictionary(uniqueKeysWithValues: targetURLs.map { ($0, currentTags(for: $0, in: itemsSnapshot)) })
+        let shouldAdd = !targetURLs.allSatisfy { tagsByURL[$0]?.contains(tag) ?? false }
         var failureCount = 0
         for url in targetURLs {
-            var newTags = currentTags(for: url, in: itemsSnapshot)
-            if newTags.contains(tag) {
-                newTags.removeAll { $0 == tag }
-            } else {
+            var newTags = tagsByURL[url] ?? []
+            if shouldAdd {
+                guard !newTags.contains(tag) else { continue }
                 newTags.append(tag)
+            } else {
+                newTags.removeAll { $0 == tag }
             }
             do {
                 try FileSystemService.setTags(for: url, tags: newTags)

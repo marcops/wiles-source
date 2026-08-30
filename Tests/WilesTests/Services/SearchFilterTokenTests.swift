@@ -48,4 +48,68 @@ final class SearchFilterTokenTests: XCTestCase {
         XCTAssertEqual(result.value, "a")
         XCTAssertEqual(result.remaining, "tag:b")
     }
+
+    // MARK: - parsedQuery (analysed once per load, not per candidate file)
+
+    func testParsedQuerySplitsTokensAndFlagsEmpty() {
+        let parsed = SearchFilterService.parsedQuery(query: "  report kind:pdf  ", scope: .name, caseSensitive: false)
+        XCTAssertEqual(parsed.tokens, ["report", "kind:pdf"])
+        XCTAssertFalse(parsed.isEmpty)
+
+        let blank = SearchFilterService.parsedQuery(query: "   ", scope: .name, caseSensitive: false)
+        XCTAssertTrue(blank.isEmpty)
+        XCTAssertTrue(blank.tokens.isEmpty)
+    }
+
+    func testParsedQueryCollectsResourceKeysPerTokenAndScope() {
+        let parsed = SearchFilterService.parsedQuery(query: "date:>1d size:>1m tag:Work", scope: .name, caseSensitive: false)
+        XCTAssertEqual(parsed.resourceKeys, [.contentModificationDateKey, .fileSizeKey, .tagNamesKey])
+
+        // Content scope always needs size + mtime (the content-match cache key) even with no token.
+        let contentScoped = SearchFilterService.parsedQuery(query: "hello", scope: .content, caseSensitive: false)
+        XCTAssertEqual(contentScoped.resourceKeys, [.fileSizeKey, .contentModificationDateKey])
+    }
+
+    func testParsedQueryCompilesRegexForWildcardTokenOnly() {
+        let parsed = SearchFilterService.parsedQuery(query: "plain no*pe kind:pdf", scope: .name, caseSensitive: false)
+        XCTAssertNotNil(parsed.tokenRegexes["no*pe"])
+        XCTAssertNil(parsed.tokenRegexes["plain"])
+        XCTAssertNil(parsed.tokenRegexes["kind:pdf"])
+    }
+
+    func testTokensDropsEmptyAndLeadingTrailingWhitespace() {
+        XCTAssertEqual(SearchFilterService.tokens(of: "  report   kind:pdf  "), ["report", "kind:pdf"])
+    }
+
+    func testTokensSplitsOnNewlinesToo() {
+        XCTAssertEqual(SearchFilterService.tokens(of: "report\nkind:pdf\tdate:today"), ["report", "kind:pdf", "date:today"])
+    }
+
+    func testTokensOnEmptyOrWhitespaceOnlyQueryIsEmpty() {
+        XCTAssertEqual(SearchFilterService.tokens(of: ""), [])
+        XCTAssertEqual(SearchFilterService.tokens(of: "   \n\t "), [])
+    }
+
+    func testMaxContentSearchFileBytesIsTwoMegabytes() {
+        XCTAssertEqual(SearchFilterService.maxContentSearchFileBytes, 2_000_000)
+    }
+
+    func testExclusiveTokenReplacesOthersInSameGroup() {
+        let afterImage = SearchFilterService.toggleExclusiveToken("kind:image", groupPrefix: "kind:", in: "report")
+        XCTAssertEqual(afterImage, "report kind:image")
+        let afterDoc = SearchFilterService.toggleExclusiveToken("kind:doc", groupPrefix: "kind:", in: afterImage)
+        XCTAssertEqual(afterDoc, "report kind:doc")
+    }
+
+    func testExclusiveTokenTogglesOffWhenReactivated() {
+        XCTAssertEqual(
+            SearchFilterService.toggleExclusiveToken("date:7d", groupPrefix: "date:", in: "report date:7d"),
+            "report")
+    }
+
+    func testExclusiveTokenLeavesOtherGroupsAndFreeTextUntouched() {
+        XCTAssertEqual(
+            SearchFilterService.toggleExclusiveToken("kind:pdf", groupPrefix: "kind:", in: "report kind:image date:today"),
+            "report date:today kind:pdf")
+    }
 }

@@ -67,6 +67,11 @@ struct FeedbackSheetView: View {
 
             descriptionField
 
+            Text(appState.tr(.feedbackPublicNotice))
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             if isSubmitting {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)

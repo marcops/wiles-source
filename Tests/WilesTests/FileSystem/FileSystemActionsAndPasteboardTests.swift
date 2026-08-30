@@ -102,8 +102,48 @@ extension FileSystemTests {
         TestReporter.report("FileSystem", "POS: copyItem onto an existing name auto-renames to name 2.ext (Finder convention)", result: collisionRenamePassed)
         TestReporter.report("FileSystem", "POS: copyItem onto name 2.ext auto-renames to name 3.ext on the next collision", result: secondCollisionRenamePassed)
 
+        await runCopyItemCollisionPolicyExtras(tempDir: tempDir)
         await runCreateUniqueDirectoryCoverageExtra(tempDir: tempDir)
         await runTrashCoverageExtra(tempDir: tempDir)
+    }
+
+    /// `copyItem(onCollision:)` — the parameter added for symmetry with `moveItem`. `.replace` must
+    /// send the existing file to Trash (recoverable), never obliterate it.
+    static func runCopyItemCollisionPolicyExtras(tempDir: URL) async {
+        let folder = tempDir.appendingPathComponent("CollisionPolicy-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let source = tempDir.appendingPathComponent("policy_src.txt")
+        try? "SOURCE".write(to: source, atomically: true, encoding: .utf8)
+        let occupied = folder.appendingPathComponent("policy_src.txt")
+
+        // .failIfExists throws on a real collision and touches nothing.
+        try? "EXISTING".write(to: occupied, atomically: true, encoding: .utf8)
+        var failIfExistsThrew = false
+        do {
+            _ = try await FileSystemService.copyItem(at: source, toFolder: folder, onCollision: .failIfExists)
+        } catch {
+            failIfExistsThrew = true
+        }
+        let existingUntouched = (try? String(contentsOf: occupied, encoding: .utf8)) == "EXISTING"
+        TestReporter.report(
+            "FileSystem", "POS: copyItem(onCollision: .failIfExists) throws on a name clash and leaves the existing file untouched",
+            result: failIfExistsThrew && existingUntouched)
+
+        // .replace overwrites at the SAME name (no " 2" suffix) but only after the old file is
+        // safely in the Trash — never a raw obliteration.
+        var replacePassed = false
+        do {
+            let dest = try await FileSystemService.copyItem(at: source, toFolder: folder, onCollision: .replace)
+            replacePassed = dest == occupied && (try? String(contentsOf: dest, encoding: .utf8)) == "SOURCE"
+        } catch {
+            print("copyItem .replace error: \(error)")
+        }
+        TestReporter.report(
+            "FileSystem", "POS: copyItem(onCollision: .replace) writes over the same name after trashing the old file",
+            result: replacePassed)
+
+        try? FileManager.default.removeItem(at: folder)
+        try? FileManager.default.removeItem(at: source)
     }
 
     static func runCreateUniqueDirectoryCoverageExtra(tempDir: URL) async {

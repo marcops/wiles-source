@@ -39,12 +39,14 @@ struct FileListView: View {
     }
 
     private func listLazyVStack(visibleLimit: Binding<Int>) -> some View {
-        LazyVStack(spacing: 2) {
+        // Resolved once per container render, not once per visible row inside `listRow`.
+        let visibleColumns = FileListHeaderView.visibleColumns(appState)
+        return LazyVStack(spacing: 2) {
             PaginatedItemsSection(
                 items: appState.fileSystem.items,
                 visibleLimit: visibleLimit,
                 progressViewHeight: 30) { item in
-                    listRow(for: item)
+                    listRow(for: item, visibleColumns: visibleColumns)
                 }
         }
         .padding(.horizontal, 10)
@@ -117,14 +119,14 @@ struct FileListView: View {
         }
     }
 
-    private func listRow(for item: FileItem) -> some View {
+    private func listRow(for item: FileItem, visibleColumns: [ListColumn]) -> some View {
         let isSel = appState.selection.selectedURLs.contains(item.url)
         let isCut = appState.transient.clipboard?.isCut(url: item.url) ?? false
 
         return HStack(spacing: 0) {
             nameCell(for: item, isSel: isSel)
 
-            ForEach(FileListHeaderView.visibleColumns(appState), id: \.self) { col in
+            ForEach(visibleColumns, id: \.self) { col in
                 if col != .name {
                     dynamicColumn(col, for: item, isSel: isSel)
                 }

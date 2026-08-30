@@ -35,11 +35,14 @@ public struct DuplicateCleanerSheetView: View {
     private var mainContent: some View {
         AsyncResultView(
             operation: {
-                let res = try await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
-                selectedURLsToTrash = Set(res.groups.flatMap { $0.items.dropFirst().map(\.url) })
-                return res
+                try await DuplicateDetectionService.findDuplicates(in: appState.navigation.currentURL)
             },
             isEmpty: { $0.groups.isEmpty },
+            onResult: { res in
+                // Pre-select every duplicate except the first of each group. Seeded here, not inside
+                // `operation`, so a rescan doesn't silently wipe the user's checkbox edits.
+                selectedURLsToTrash = Set(res.groups.flatMap { $0.items.dropFirst().map(\.url) })
+            },
             loading: { scanningView },
             empty: { emptyView },
             failure: { error in AsyncErrorStateView(message: appState.errorText(for: error)) },
@@ -171,7 +174,8 @@ public struct DuplicateCleanerSheetView: View {
                     return
                 }
                 do {
-                    _ = try await FileSystemService.moveToTrash(url: fileURL)
+                    let trashed = try await FileSystemService.moveToTrash(url: fileURL)
+                    await appState.undoRedoService.recordAction(.trash(originalURL: fileURL, trashedURL: trashed))
                 } catch {
                     ErrorReporter.report(error, context: "Moving duplicate file to Trash")
                     failureCount += 1
@@ -181,8 +185,7 @@ public struct DuplicateCleanerSheetView: View {
                 DirectoryCacheService.shared.invalidate(url: appState.navigation.currentURL)
                 appState.refreshCurrentDirectory()
                 if failureCount > 0 {
-                    let reason = String(format: appState.tr(.moveToTrashPartialFailure), failureCount, urls.count)
-                    appState.showError(WilesError.operationFailed(reason: reason))
+                    appState.showPartialFailure(.moveToTrashPartialFailure, failed: failureCount, total: urls.count)
                 }
                 dismiss()
             }

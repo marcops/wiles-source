@@ -6,30 +6,22 @@ import Observation
 @Observable
 @MainActor
 public final class AppearancePreferences: PersistablePreferenceStore {
+    @ObservationIgnored var isRestoringDefaults = false
+
     public var appAppearance: AppAppearance = .system {
-        didSet { persist(appAppearance, .appAppearance) }
+        didSet { guard !isRestoringDefaults else { return }; persist(appAppearance, .appAppearance) }
     }
 
     public var appLanguage: AppLanguage = .system {
-        didSet { persist(appLanguage, .appLanguage) }
+        didSet { guard !isRestoringDefaults else { return }; persist(appLanguage, .appLanguage) }
     }
 
     public var sidebarTranslucentLevel: Int = 80 {
-        didSet { persist(sidebarTranslucentLevel, .sidebarTranslucentLevel) }
+        didSet { guard !isRestoringDefaults else { return }; persist(sidebarTranslucentLevel, .sidebarTranslucentLevel) }
     }
 
     public var contentTranslucentLevel: Int = 40 {
-        didSet { persist(contentTranslucentLevel, .contentTranslucentLevel) }
-    }
-
-    /// Unified slider: getter reports `sidebarTranslucentLevel`; setter deliberately writes BOTH it
-    /// and `contentTranslucentLevel`. Adjust the two underlying properties directly if they must differ.
-    public var translucentLevel: Int {
-        get { sidebarTranslucentLevel }
-        set {
-            sidebarTranslucentLevel = newValue
-            contentTranslucentLevel = newValue
-        }
+        didSet { guard !isRestoringDefaults else { return }; persist(contentTranslucentLevel, .contentTranslucentLevel) }
     }
 
     /// Light mode's window is already brighter, so the translucency overlay is dialed back to

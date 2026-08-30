@@ -62,25 +62,27 @@ struct HeaderBarView: View {
 
     private var historyButtons: some View {
         HStack(spacing: 4) {
-            Button { appState.goBack() } label: {
-                Image(systemName: "chevron.left").font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain).disabled(appState.navigation.historyBack.isEmpty)
-            .opacity(appState.navigation.historyBack.isEmpty ? 0.4 : 1.0)
-            .help(appState.tr(.back))
-            .accessibilityLabel(appState.tr(.back))
+            TappableRow(
+                accessibilityLabel: appState.tr(.back),
+                isDisabled: appState.navigation.historyBack.isEmpty,
+                action: { appState.goBack() },
+                content: {
+                    Image(systemName: "chevron.left").font(.system(size: 12, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                })
+                .opacity(appState.navigation.historyBack.isEmpty ? 0.4 : 1.0)
+                .help(appState.tr(.back))
 
-            Button { appState.goForward() } label: {
-                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain).disabled(appState.navigation.historyForward.isEmpty)
-            .opacity(appState.navigation.historyForward.isEmpty ? 0.4 : 1.0)
-            .help(appState.tr(.forward))
-            .accessibilityLabel(appState.tr(.forward))
+            TappableRow(
+                accessibilityLabel: appState.tr(.forward),
+                isDisabled: appState.navigation.historyForward.isEmpty,
+                action: { appState.goForward() },
+                content: {
+                    Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                })
+                .opacity(appState.navigation.historyForward.isEmpty ? 0.4 : 1.0)
+                .help(appState.tr(.forward))
         }
     }
 
@@ -143,25 +145,25 @@ struct HeaderBarView: View {
     }
 
     @ViewBuilder private var searchQueryActionButtons: some View {
-        Button { windowUIState.activeModal = .saveSmartFolder } label: {
-            Image(systemName: "folder.badge.plus")
-                .foregroundColor(.accentColor)
-                .frame(width: 20, height: 20)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(appState.tr(.saveAsSmartFolder))
-        .accessibilityLabel(appState.tr(.saveAsSmartFolder))
-        .accessibilityHint(appState.tr(.saveAsSmartFolderHint))
+        TappableRow(
+            accessibilityLabel: appState.tr(.saveAsSmartFolder),
+            accessibilityHint: appState.tr(.saveAsSmartFolderHint),
+            action: { windowUIState.activeModal = .saveSmartFolder },
+            content: {
+                Image(systemName: "folder.badge.plus")
+                    .foregroundColor(.accentColor)
+                    .frame(width: 20, height: 20)
+            })
+            .help(appState.tr(.saveAsSmartFolder))
 
-        Button { appState.selection.searchQuery = "" } label: {
-            Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
-                .frame(width: 20, height: 20)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(appState.tr(.clearSearch))
-        .accessibilityHint(appState.tr(.clearSearchHint))
+        TappableRow(
+            accessibilityLabel: appState.tr(.clearSearch),
+            accessibilityHint: appState.tr(.clearSearchHint),
+            action: { appState.selection.searchQuery = "" },
+            content: {
+                Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
+                    .frame(width: 20, height: 20)
+            })
     }
 
     private var searchFilterMenu: some View {
@@ -197,12 +199,18 @@ struct HeaderBarView: View {
 
     /// Toggles a quick-filter token (e.g. `date:today`, `kind:image`) in/out of the current search
     /// query — appended if absent, stripped if present — preserving any free text the user typed,
-    /// and shows a checkmark while the token is active. Shared by the date, kind, and size buttons.
+    /// and shows a checkmark while the token is active. Pass `exclusiveGroupPrefix` (`kind:`, `date:`)
+    /// so activating one token in that group replaces the others instead of ANDing with them.
     @ViewBuilder
-    private func quickFilterButton(_ titleKey: L10n.Key, token: String) -> some View {
+    private func quickFilterButton(_ titleKey: L10n.Key, token: String, exclusiveGroupPrefix: String? = nil) -> some View {
         let isActive = SearchFilterService.containsToken(token, in: appState.selection.searchQuery)
         Button {
-            appState.selection.searchQuery = SearchFilterService.toggleToken(token, in: appState.selection.searchQuery)
+            let query = appState.selection.searchQuery
+            appState.selection.searchQuery = if let exclusiveGroupPrefix {
+                SearchFilterService.toggleExclusiveToken(token, groupPrefix: exclusiveGroupPrefix, in: query)
+            } else {
+                SearchFilterService.toggleToken(token, in: query)
+            }
         } label: {
             if isActive {
                 Label(appState.tr(titleKey), systemImage: "checkmark")
@@ -213,17 +221,17 @@ struct HeaderBarView: View {
     }
 
     @ViewBuilder private var dateFilterButtons: some View {
-        quickFilterButton(.filterModifiedToday, token: "date:today")
-        quickFilterButton(.filterModified7Days, token: "date:7d")
-        quickFilterButton(.filterModified30Days, token: "date:30d")
+        quickFilterButton(.filterModifiedToday, token: "date:today", exclusiveGroupPrefix: "date:")
+        quickFilterButton(.filterModified7Days, token: "date:7d", exclusiveGroupPrefix: "date:")
+        quickFilterButton(.filterModified30Days, token: "date:30d", exclusiveGroupPrefix: "date:")
     }
 
     @ViewBuilder private var kindFilterButtons: some View {
-        quickFilterButton(.filterImages, token: "kind:image")
-        quickFilterButton(.filterDocuments, token: "kind:doc")
-        quickFilterButton(.filterCodeFiles, token: "kind:code")
-        quickFilterButton(.filterPDFs, token: "kind:pdf")
-        quickFilterButton(.filterFolders, token: "kind:folder")
+        quickFilterButton(.filterImages, token: "kind:image", exclusiveGroupPrefix: "kind:")
+        quickFilterButton(.filterDocuments, token: "kind:doc", exclusiveGroupPrefix: "kind:")
+        quickFilterButton(.filterCodeFiles, token: "kind:code", exclusiveGroupPrefix: "kind:")
+        quickFilterButton(.filterPDFs, token: "kind:pdf", exclusiveGroupPrefix: "kind:")
+        quickFilterButton(.filterFolders, token: "kind:folder", exclusiveGroupPrefix: "kind:")
     }
 
     /// Mirrors the `hidden:true` token in `appState.selection.searchQuery` — same query-language convention
@@ -243,39 +251,36 @@ struct HeaderBarView: View {
     }
 
     private var searchButton: some View {
-        Button {
-            withAnimation(MotionTokens.quickEase) { appState.toggleSearching() }
-        } label: {
-            Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium))
-                .frame(width: 30, height: 28)
-                .foregroundColor(appState.selection.isSearching ? .accentColor : .primary)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain).help(appState.trWithShortcutHint(.actSearch, shortcut: ShortcutRegistry.label(.find)))
-        .accessibilityLabel(appState.tr(.actSearch))
-        .accessibilityHint(appState.tr(.find))
+        TappableRow(
+            accessibilityLabel: appState.tr(.actSearch),
+            accessibilityHint: appState.tr(.find),
+            action: { withAnimation(MotionTokens.quickEase) { appState.toggleSearching() } },
+            content: {
+                Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium))
+                    .frame(width: 30, height: 28)
+                    .foregroundColor(appState.selection.isSearching ? .accentColor : .primary)
+            })
+            .help(appState.trWithShortcutHint(.actSearch, shortcut: ShortcutRegistry.label(.find)))
     }
 
     private var searchEverywhereToggle: some View {
         @Bindable var appState = appState
-        return Button {
+        return TappableRow(
+            accessibilityLabel: appState.tr(.searchEverywhere),
+            accessibilityHint: appState.tr(.searchEverywhereHelp),
+            isSelected: appState.preferences.search.searchEverywhere,
             // The refresh is driven by `MainContentView`'s `.onChange(of: searchEverywhere)`, so it
             // also fires when the toggle is flipped from Settings, not just from here.
-            appState.preferences.search.searchEverywhere.toggle()
-        } label: {
-            Text(appState.tr(.searchEverywhere)).font(.system(size: 11, weight: .medium))
-                .padding(.horizontal, 6)
-                .frame(height: 22)
-                .foregroundColor(appState.preferences.search.searchEverywhere ? .white : .primary)
-                .background(appState.preferences.search.searchEverywhere ? Color.accentColor : Color(NSColor.controlColor))
-                .cornerRadius(5)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(appState.tr(.searchEverywhereHelp))
-        .accessibilityLabel(appState.tr(.searchEverywhere))
-        .accessibilityHint(appState.tr(.searchEverywhereHelp))
-        .accessibilityAddTraits(appState.preferences.search.searchEverywhere ? [.isButton, .isSelected] : [.isButton])
+            action: { appState.preferences.search.searchEverywhere.toggle() },
+            content: {
+                Text(appState.tr(.searchEverywhere)).font(.system(size: 11, weight: .medium))
+                    .padding(.horizontal, 6)
+                    .frame(height: 22)
+                    .foregroundColor(appState.preferences.search.searchEverywhere ? .white : .primary)
+                    .background(appState.preferences.search.searchEverywhere ? Color.accentColor : Color(NSColor.controlColor))
+                    .cornerRadius(5)
+            })
+            .help(appState.tr(.searchEverywhereHelp))
     }
 
     private func iconName(for mode: ViewMode) -> String {
@@ -318,45 +323,41 @@ struct HeaderBarView: View {
 
     private var expandedViewModeButtons: some View {
         ForEach(ViewMode.allCases) { mode in
-            Button {
-                withAnimation(MotionTokens.snappySpring) {
-                    appState.setViewModeForFolder(mode, for: appState.navigation.currentURL)
-                    viewSwitcherExpanded = false
-                }
-            } label: {
-                Image(systemName: iconName(for: mode)).font(.system(size: 12))
-                    .frame(width: 26, height: 24)
-                    .background(appState.currentViewMode == mode ? Color.accentColor : Color.clear)
-                    .foregroundColor(appState.currentViewMode == mode ? .white : .primary)
-                    .cornerRadius(4)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier(accessibilityID(for: mode))
-            .accessibilityLabel(accessibilityLabel(for: mode))
-            .accessibilityHint(appState.tr(.viewMode))
-            .accessibilityAddTraits(appState.currentViewMode == mode ? [.isButton, .isSelected] : [.isButton])
-            .transition(.scale(scale: 0.7).combined(with: .opacity))
+            TappableRow(
+                accessibilityLabel: accessibilityLabel(for: mode),
+                accessibilityHint: appState.tr(.viewMode),
+                isSelected: appState.currentViewMode == mode,
+                action: {
+                    withAnimation(MotionTokens.snappySpring) {
+                        appState.setViewModeForFolder(mode, for: appState.navigation.currentURL)
+                        viewSwitcherExpanded = false
+                    }
+                },
+                content: {
+                    Image(systemName: iconName(for: mode)).font(.system(size: 12))
+                        .frame(width: 26, height: 24)
+                        .background(appState.currentViewMode == mode ? Color.accentColor : Color.clear)
+                        .foregroundColor(appState.currentViewMode == mode ? .white : .primary)
+                        .cornerRadius(4)
+                })
+                .accessibilityIdentifier(accessibilityID(for: mode))
+                .transition(.scale(scale: 0.7).combined(with: .opacity))
         }
     }
 
     private var collapsedViewModeButton: some View {
-        Button {
-            withAnimation(MotionTokens.snappySpring) {
-                viewSwitcherExpanded = true
-            }
-        } label: {
-            Image(systemName: iconName(for: appState.currentViewMode)).font(.system(size: 12))
-                .frame(width: 26, height: 24)
-                .background(Color.clear)
-                .foregroundColor(.primary)
-                .cornerRadius(4)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("View Mode")
-        .accessibilityLabel(accessibilityLabel(for: appState.currentViewMode))
-        .accessibilityHint(appState.tr(.viewMode))
-        .transition(.scale(scale: 0.7).combined(with: .opacity))
+        TappableRow(
+            accessibilityLabel: accessibilityLabel(for: appState.currentViewMode),
+            accessibilityHint: appState.tr(.viewMode),
+            action: { withAnimation(MotionTokens.snappySpring) { viewSwitcherExpanded = true } },
+            content: {
+                Image(systemName: iconName(for: appState.currentViewMode)).font(.system(size: 12))
+                    .frame(width: 26, height: 24)
+                    .background(Color.clear)
+                    .foregroundColor(.primary)
+                    .cornerRadius(4)
+            })
+            .accessibilityIdentifier("View Mode")
+            .transition(.scale(scale: 0.7).combined(with: .opacity))
     }
 }

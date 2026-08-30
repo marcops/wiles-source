@@ -23,7 +23,7 @@ public enum DiskSpaceVisualizerService {
         let wasTruncated: Bool
     }
 
-    public static func calculateDiskUsage(for folderURL: URL) async throws -> DiskUsageReport {
+    public static func calculateDiskUsage(for folderURL: URL, language: AppLanguage = .system) async throws -> DiskUsageReport {
         // `.task(id:)` cancellation on the calling side does NOT automatically cancel a
         // `Task.detached` — detached tasks are unlinked from their creator, so the scan
         // would otherwise become a zombie that keeps recursively walking a folder the user
@@ -45,7 +45,9 @@ public enum DiskSpaceVisualizerService {
             }
 
             let isApproximate = rawItems.contains { $0.wasTruncated }
-            return buildReport(from: rawItems, grandTotal: grandTotal, folderURL: folderURL, isApproximate: isApproximate)
+            return buildReport(
+                from: rawItems, grandTotal: grandTotal, folderURL: folderURL,
+                isApproximate: isApproximate, language: language)
         }
 
         return try await withTaskCancellationHandler {
@@ -73,7 +75,9 @@ public enum DiskSpaceVisualizerService {
         return rawItems
     }
 
-    private static func buildReport(from rawItems: [RawItem], grandTotal: Int64, folderURL: URL, isApproximate: Bool) -> DiskUsageReport {
+    private static func buildReport(
+        from rawItems: [RawItem], grandTotal: Int64, folderURL: URL,
+        isApproximate: Bool, language: AppLanguage) -> DiskUsageReport {
         let sorted = rawItems.sorted { $0.size > $1.size }
         let topSlice = sorted.prefix(maxTopItems)
         let othersSlice = sorted.dropFirst(maxTopItems)
@@ -93,9 +97,7 @@ public enum DiskSpaceVisualizerService {
             let dummyURL = folderURL.appendingPathComponent("Others (\(othersSlice.count))")
             othersItem = DiskUsageItem(
                 url: dummyURL,
-                // M5 follow-up: a chart label, not a thrown error — localizing needs a `lang:`
-                // parameter threaded from the @MainActor caller.
-                name: String(format: L10n.string(.diskUsageOthersItemsFormat, lang: .system), othersSlice.count),
+                name: String(format: L10n.string(.diskUsageOthersItemsFormat, lang: language), othersSlice.count),
                 size: othersTotalSize,
                 percentage: pct,
                 isDirectory: true,
@@ -108,7 +110,13 @@ public enum DiskSpaceVisualizerService {
 
     private static func computeFolderSizeFast(folderURL: URL) throws -> (total: Int64, wasTruncated: Bool) {
         let fm = FileManager.default
-        guard let enumerator = fm.enumerator(at: folderURL, includingPropertiesForKeys: [.fileSizeKey], options: [.skipsHiddenFiles, .skipsPackageDescendants])
+        guard let enumerator = fm.enumerator(
+            at: folderURL,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants],
+            // Skip an unreadable subdirectory instead of aborting the whole walk (→ undercounted
+            // folder size shown as exact). R1 / BA-509.
+            errorHandler: { _, _ in true })
         else {
             return (0, false)
         }

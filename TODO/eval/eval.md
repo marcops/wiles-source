@@ -1,14 +1,15 @@
 Quero uma revisão arquitetural e de código COMPLETA do projeto.
 
 IMPORTANTE:
-- Abra exatamente 1 agentes apenas
 - Analise APENAS arquivos de código-fonte.
 - NÃO analise testes, arquivos de teste, mocks de teste ou código exclusivamente relacionado a testes.
 - Pule todos os arquivos listados em `IGNORAR.md`.
 - Não faça uma revisão superficial ou apenas por amostragem.
 - Revise linha a linha os arquivos de código relevantes.
 - Não altere o código durante esta etapa. Apenas analise e gere o relatório.
-- Ao final, gere um `REPORT.md` dentro da pasta `TODO`.
+- Ao final, gere um `TODO/ARCHITECTURE_CODE_REVIEW.md`` dentro da pasta `TODO`.
+
+Nunca considere a revisão concluída enquanto 100% dos arquivos de código relevantes não tiverem sido analisados.
 
 ## Objetivo
 
@@ -118,6 +119,51 @@ MAS NÃO introduza design patterns apenas porque eles existem.
 
 Um pattern só deve ser sugerido quando resolver um problema real.
 
+# Análise de Sequências e Máquina de Estados
+
+Não analise apenas funções isoladamente.
+
+Quando uma operação depende de múltiplas funções ou componentes, trace a
+sequência completa.
+
+Exemplos:
+
+View → Store → Service → filesystem
+View → Process manager → Process → termination callback
+Preflight → Executor → Rollback
+User input → parser → URL → filesystem
+Watcher → debounce → reload → UI
+Shared service → View lifecycle → resource
+
+Para cada sequência, procure inconsistências entre os estados assumidos por
+cada camada.
+
+Verifique especialmente:
+
+- quem pode chamar a operação;
+- em qual estado ela pode ser chamada;
+- o que acontece se for chamada duas vezes;
+- o que acontece se for chamada durante outra operação;
+- o que acontece se falhar;
+- o que acontece se for cancelada;
+- o que acontece se o owner desaparecer;
+- se callbacks podem chegar depois do encerramento;
+- se o estado final realmente corresponde ao resultado da operação.
+
+Um finding pode estar na interação entre componentes mesmo que cada
+componente isoladamente pareça correto.
+
+
+Depois da análise local de cada arquivo, faça também análise transversal
+entre os componentes relacionados.
+
+Não considere uma função correta apenas porque sua implementação local parece
+correta.
+
+Trace seus callers, callees, estado compartilhado, lifecycle e efeitos
+colaterais quando isso for necessário para determinar seu comportamento real.
+
+
 ## EVITE OVERENGINEERING
 
 Esta é uma regra PRINCIPAL da revisão.
@@ -187,6 +233,30 @@ Procure ativamente por coisas como:
 - inconsistências entre features
 - convenções que não estão sendo seguidas
 - oportunidades de padronização
+código aparentemente morto;
+APIs sem consumidores;
+abstrações sem múltiplas implementações;
+propriedades sem necessidade;
+branches inalcançáveis.
+
+
+No swift
+
+public desnecessário;
+internal vs private;
+protocols expostos sem necessidade;
+tipos que vazam abstrações de implementação.
+@State
+@StateObject
+@ObservedObject
+@Environment
+@EnvironmentObject
+@Bindable
+identity das views
+body recomputation
+reference types dentro de value views
+derived state
+view lifecycle.
 
 ## Produto / negócio
 
@@ -208,12 +278,71 @@ Porém:
 
 NÃO implemente ou recomende antecipadamente infraestrutura para funcionalidades hipotéticas sem justificativa concreta.
 
+Não registre diferenças puramente estilísticas como findings, salvo quando afetarem consistência, legibilidade, manutenção ou risco.
+
 Diferencie claramente:
 
 - problema atual
 - melhoria preventiva
 - preparação razoável para o futuro
 - overengineering
+
+
+# Controle de Findings Duplicados
+
+Se o mesmo problema aparecer em vários arquivos:
+- determine se existe uma causa arquitetural comum;
+
+Um finding deve existir porque existe impacto em pelo menos um destes:
+
+- corretude;
+- risco;
+- manutenção;
+- complexidade;
+- performance;
+- lifecycle;
+- arquitetura;
+- UX/produto;
+- evolução do sistema.
+
+Se o benefício for puramente subjetivo, não registre.
+
+## Evidência e Confiança
+
+Não registre como BUG um comportamento apenas hipotético.
+
+Para cada finding, determine o nível de evidência:
+
+- CONFIRMED — o código demonstra diretamente o problema;
+- HIGH CONFIDENCE — o comportamento é consequência clara do fluxo analisado;
+- MEDIUM CONFIDENCE — depende de uma condição específica não totalmente
+  demonstrável no código;
+- LOW CONFIDENCE — hipótese que merece investigação adicional.
+
+Findings LOW CONFIDENCE não devem receber severidade alta nem ROI elevado.
+
+Quando possível, descreva o caminho de execução que demonstra o problema.
+
+## Tracing de Dependências
+
+Quando necessário para confirmar um finding, trace:
+
+- callers;
+- callees;
+- referências ao símbolo;
+- mutations do estado;
+- lifecycle;
+- owners;
+- callbacks;
+- delegates;
+- publishers/subscribers;
+- notificações;
+- tasks relacionadas.
+
+Não faça tracing indiscriminado de todo o projeto para cada símbolo.
+
+Expanda a análise apenas quando necessário para entender o comportamento ou
+confirmar o impacto de um finding.
 
 ## UI / UX
 
@@ -238,6 +367,135 @@ Analise também:
 - estados impossíveis de UI
 
 Procure problemas que possam não ser óbvios apenas olhando para a arquitetura.
+Quero descobertas, não apenas validação
+
+## Invariantes
+
+Para componentes que possuem estado significativo, identifique seus
+invariantes.
+
+Exemplos:
+
+- se A existe, B também deve existir;
+- se uma operação está `running`, existe exatamente um owner;
+- se o preflight aprovou uma operação, o executor deve conseguir executá-la;
+- se um recurso está `active`, seu lifecycle owner ainda deve existir;
+- se uma View observa determinado estado, esse estado deve representar a
+  fonte de verdade correspondente.
+
+Procure caminhos capazes de quebrar esses invariantes.
+
+Quando um finding depender de um invariante, descreva explicitamente:
+
+`Invariante → caminho que o quebra → estado resultante → impacto`.
+
+## Idempotência e Operações Repetidas
+
+Para operações de lifecycle, persistência, filesystem, network e state
+management, verifique:
+
+- o que acontece se a operação for chamada duas vezes;
+- se `start()` pode ser chamado duas vezes;
+- se `stop()` pode ser chamado antes de `start()`;
+- se `cancel()` pode ser chamado duas vezes;
+- se uma operação concluída pode ser repetida;
+- se callbacks podem chegar duplicados;
+- se retries podem executar efeitos colaterais novamente.
+
+Identifique operações que deveriam ser idempotentes mas não são.
+
+## Cancellation
+
+Para todo código assíncrono relevante, analise:
+
+- propagação de `Task` cancellation;
+- `Task.isCancelled` / `checkCancellation()`;
+- tasks órfãs;
+- detached tasks;
+- operações que continuam após a View desaparecer;
+- callbacks depois do cancelamento;
+- cleanup após cancelamento;
+- tasks duplicadas;
+- possibilidade de operações concorrentes sobre o mesmo recurso.
+
+Não considere uma operação cancelável apenas porque retorna `Task` ou usa
+`async/await`.
+
+Verifique se o cancelamento realmente interrompe ou invalida o trabalho.
+
+## Eventos de Alta Frequência
+
+Para watchers, notifications, keyboard events, scroll, drag, typing e outras
+fontes de eventos frequentes, analise:
+
+- debounce;
+- throttle;
+- coalescing;
+- deduplicação;
+- filas;
+- backpressure;
+- trabalho redundante;
+- eventos obsoletos;
+- processamento no MainActor.
+
+Verifique se eventos antigos continuam sendo processados quando seu resultado
+já não é relevante.
+
+Procure especialmente por pipelines onde:
+
+`evento → state mutation → render → trabalho`
+
+é executado repetidamente quando poderia ser coalescido.
+
+## Simplificação e Redução de Código
+
+Procure ativamente oportunidades para remover complexidade.
+
+Considere:
+
+- eliminar abstrações;
+- remover protocolos desnecessários;
+- eliminar wrappers;
+- combinar tipos que não possuem responsabilidade independente;
+- remover estados redundantes;
+- substituir state machines desnecessárias por tipos/enum simples;
+- eliminar branches redundantes;
+- substituir pipelines excessivamente indiretos por chamadas diretas;
+- remover configuração duplicada;
+- reduzir número de layers;
+- remover código morto;
+- centralizar somente quando isso realmente reduzir duplicação;
+- substituir mecanismos customizados por APIs nativas quando isso reduzir
+  complexidade.
+
+Para cada proposta de simplificação, estime também:
+
+- linhas/camadas potencialmente removíveis;
+- número de componentes afetados;
+- risco da mudança;
+- se a simplificação reduz ou apenas desloca complexidade.
+
+Não proponha simplificação se ela apenas mover a complexidade para outro
+lugar.
+
+## Complexity Budget
+
+Ao avaliar uma abstração, considere a complexidade total introduzida:
+
+- quantidade de tipos;
+- quantidade de protocolos;
+- quantidade de layers;
+- quantidade de indirection;
+- quantidade de state;
+- quantidade de lifecycle;
+- quantidade de branches;
+- quantidade de pontos de configuração.
+
+Uma solução que reduz duplicação mas aumenta significativamente a complexidade
+estrutural deve ser avaliada criticamente.
+
+Prefira a solução com menor complexidade total que preserve corretude,
+manutenção e evolução.
 
 ## Minha arquitetura atual
 
@@ -290,6 +548,8 @@ Se houver uma regra simples que possa ser implementada por Regex e que seja real
 
 NÃO crie regras de lint apenas por criar.
 
+Se tiver algum que pode gerar falso positivo NAO Queremos
+
 ## IGNORAR.md
 
 Existem arquivos em `IGNORAR.md` que são deliberadamente simples e não precisam ser avaliados.
@@ -304,35 +564,74 @@ Não adicione automaticamente sem justificar no relatório.
 
 Para cada problema encontrado, classifique:
 
-CRITICAL
+CRITICAL (C)
 - pode causar bugs graves, corrupção de estado, crashes, perda de dados ou problemas arquiteturais importantes.
 
-HIGH
+HIGH (H)
 - problema importante que deveria ser corrigido.
 
-MEDIUM
+MEDIUM (M)
 - melhoria relevante de arquitetura, manutenção, performance ou qualidade.
 
-LOW
+LOW (L)
 - melhoria pequena ou de qualidade.
 
-SUGGESTION
+SUGGESTION (S)
 - ideia futura, melhoria opcional ou possível evolução.
 
-ARCHITECTURAL CONCERN
+ARCHITECTURAL CONCERN (A)
 - decisão estrutural que merece reconsideração.
 
-OVERENGINEERING
+OVERENGINEERING (O)
 - abstração, complexidade ou arquitetura que poderia ser simplificada.
 
-BUG
+BUG (B)
 - comportamento potencialmente incorreto.
 
-PERFORMANCE
+PERFORMANCE (P)
 - oportunidade concreta de melhorar performance.
 
-PRODUCT/UX
+PRODUCT/UX (U)
 - problema ou oportunidade relacionada à experiência ou ao produto.
+
+
+## Custo × Benefício / ROI
+
+Para cada melhoria sugerida, estime:
+
+- Impacto: 0–100
+- Redução de risco: 0–100
+- Benefício de manutenção: 0–100
+- Benefício de performance: 0–100
+- Benefício de simplicidade: 0–100
+- Esforço: 0–100
+- Risco da mudança: 0–100
+
+Calcule:
+
+VALUE =
+(Impacto × 0.30) +
+(Redução de risco × 0.25) +
+(Benefício de manutenção × 0.20) +
+(Benefício de performance × 0.10) +
+(Benefício de simplicidade × 0.15)
+
+COST =
+(Esforço × 0.70) +
+(Risco da mudança × 0.30)
+
+ROI = VALUE / COST
+
+
+Quando não houver evidência suficiente para estimar algum fator, marque como
+"UNKNOWN" em vez de inventar precisão.
+
+A estimativa deve ser baseada no impacto concreto observado no código, e não
+na quantidade de princípios ou regras violadas.
+
+Não recomende uma melhoria apenas porque ela é tecnicamente correta.
+A melhoria deve apresentar benefício proporcional ao custo e risco da alteração.
+
 
 ## Para cada descoberta
 
@@ -347,7 +646,7 @@ Inclua:
 - impacto
 - solução sugerida
 - complexidade da correção
-- se deve ser corrigido agora ou posteriormente
+- ROI
 
 Quando possível, inclua uma pequena explicação do código envolvido.
 
@@ -360,19 +659,6 @@ Quero saber EXATAMENTE:
 → "o que fazer"
 → "qual benefício isso traz"
 
-## Priorização
-
-Ao final, produza uma lista ordenada das melhorias por:
-
-1. impacto
-2. redução de risco
-3. benefício arquitetural
-4. benefício de manutenção
-5. performance
-6. simplicidade
-7. esforço necessário
-
-Quero saber quais mudanças realmente valem a pena fazer primeiro.
 
 ## Resultado final
 
@@ -384,31 +670,206 @@ O relatório deve conter pelo menos:
 
 # Architecture & Code Review
 
-## Executive Summary
+## Findings by ID
 
-## Critical Findings
+ID deve ser composto por severidade, impacto  e ROI
+ou seja BA-127 (roi *100=) (bug alto 1,27)
+ou SM-089 (sugestion medium 0,89)
+ou por exemplo
+OU CL-290 (critical low 2,9)
 
-## High Priority Findings
+**## Finding ID**
 
-## Medium Priority Findings
+Cada finding deve receber um ID no formato:
 
-## Low Priority Findings
+`[SEVERITY][IMPACT]-[ROI × 100]`
 
-## Bugs Discovered
+Onde:
 
-## Overengineering / Simplification Opportunities
+Severity:
+- C = Critical
+- H = High
+- M = Medium
+- L = Low
+- S = Suggestion
 
-## Architecture Concerns
+Impact:
+- C = Critical
+- H = High
+- M = Medium
+- L = Low
 
-## DRY / KISS / SOLID Findings
+Exemplos:
 
-## Performance Findings
+- `CH-290` = Critical severity / High impact / ROI 2.90
+- `HM-142` = High severity / Medium impact / ROI 1.42
+- `SL-085` = Suggestion severity / Low impact / ROI 0.85
 
-## Swift / SwiftUI Findings
+O ROI deve ser arredondado para duas casas decimais e multiplicado por 100
+para formar o sufixo numérico do ID.
 
-## UI / UX Findings
+O ID deve permanecer estável durante a revisão, mesmo que a ordem dos findings mude.
 
-## Product / Future Evolution
+FIcando os findings POR EXEMPLO
+
+### [SL-242] Duplicação de `ThumbnailService.maxDimension` e `FileItem.highResIconSize`
+- ROI: 2.42 (Forte candidato)
+- LOW / DRY / magic number
+- Arquivos: `Services/ThumbnailService.swift`, `Models/FileItem.swift`
+- Problema: o mesmo valor e propósito estão definidos em dois lugares.
+- Solução: centralizar em um único token compartilhado.
+- Complexidade: baixa.
+
+# NOT WORTH
+[SL-085] LOW / DRY — duplicação de X em A.swift e B.swift — ROI 0.85.
+[SM-062] MEDIUM / SIMPLIFICATION — X poderia ser simplificado — ROI 0.62.
+
+O FILTRO do NOT WORTH e:
+
+LOW + ROI < 1.00 → NOT WORTH
+MEDIUM + ROI < 0.70 → NOT WORTH
+Todas as demais descobertas permanecem na lista principal.
+
+Os itens em NOT WORTH devem ser resumidos em UMA ÚNICA LINHA cada.
+
+Não incluir os detalhes completos desses itens.
+Não criar seções adicionais, consolidações ou agrupamentos além de NOT WORTH.
+
+# NOT WORTH — REGRA ESTRITA DE DESCARTE
+
+`NOT WORTH` NÃO significa "ROI baixo, portanto ignorar".
+
+Antes de colocar QUALQUER finding em `NOT WORTH`, faça obrigatoriamente esta
+verificação:
+
+### 1. Safety Gate
+
+Se o finding envolver QUALQUER um dos itens abaixo, ele NÃO PODE ser colocado
+em `NOT WORTH`, independentemente do ROI:
+
+- corrupção de dados;
+- perda de dados;
+- perda de estado persistido;
+- crash;
+- resource leak;
+- process leak;
+- infinite loop;
+- deadlock;
+- race condition;
+- security issue;
+- comportamento incorreto observável pelo usuário;
+- operação que pode falhar depois de ter sido declarada válida;
+- estado inconsistente;
+- filesystem corruption;
+- arquivo temporário órfão após crash/falha;
+- operação de Undo/Redo que pode não reverter corretamente;
+- lifecycle incorreto;
+- callback após owner/resource ter sido encerrado;
+- operação que pode deixar recursos ou estado em condição inválida.
+
+A presença de qualquer desses problemas OVERRIDE o filtro de ROI.
+
+### 2. Somente depois aplicar o filtro de ROI
+
+Depois da Safety Gate:
+
+- LOW + ROI < 1.00 → `NOT WORTH`
+- MEDIUM + ROI < 0.70 → `NOT WORTH`
+
+Todos os demais permanecem em `Findings by ID`.
+
+### 3. Não classificar incorretamente o tipo do problema
+
+Não classifique como `PERFORMANCE`, `COSMETIC`, `DRY` ou `EDGE CASE`
+um finding cujo efeito final seja:
+
+- operação incorreta;
+- estado inconsistente;
+- perda de dados;
+- falha de Undo;
+- filesystem inconsistente;
+- lifecycle incorreto.
+
+Classifique pelo IMPACTO REAL do comportamento.
+
+Exemplo:
+
+`crash durante operação → arquivo temporário fica órfão`
+
+NÃO é apenas:
+
+`LOW / EDGE`
+
+É:
+
+`LOW / BUG / filesystem recovery`
+
+Outro exemplo:
+
+`trashItem não retorna URL → Undo recebe URL incorreta → Undo falha`
+
+NÃO é apenas:
+
+`LOW / EDGE`
+
+É:
+
+`LOW / BUG / UX`
+
+Outro exemplo:
+
+`sanitizer aceita nome <= 255 Characters → filesystem rejeita > 255 bytes`
+
+NÃO é apenas:
+
+`LOW / PERFORMANCE`
+
+É:
+
+`LOW / BUG / filesystem`
+
+### 4. Discrepância entre ROI e severidade
+
+Quando um finding protegido pela Safety Gate tiver ROI baixo,
+mantenha-o na lista principal e explique:
+
+> ROI baixo devido à baixa frequência/probabilidade, mas não descartado
+> porque o comportamento pode produzir [efeito concreto].
+
+Nunca aumente artificialmente o ROI para justificar sua permanência.
+
+### 5. Regra fundamental
+
+`NOT WORTH` é reservado exclusivamente para melhorias que sejam:
+
+- não críticas;
+- não incorretas;
+- não destrutivas;
+- não causadoras de inconsistência;
+- não relacionadas a lifecycle incorreto;
+- não causadoras de leak;
+- não causadoras de crash;
+- não causadoras de perda de dados/estado;
+- e cujo benefício não justifique o custo da correção.
+
+Se houver dúvida entre `NOT WORTH` e `Findings by ID`,
+mantenha em `not worth`.
+
+# Disciplina de ROI
+
+Não aumente artificialmente o ROI porque um problema é tecnicamente
+interessante.
+
+Um finding de performance só deve receber alto benefício de performance se
+houver um caminho de execução plausivelmente frequente ou custoso.
+
+Um finding de edge case só deve receber alto impacto se o código demonstrar
+que o estado pode realmente ocorrer.
+
+Se o impacto, frequência ou custo forem incertos, use UNKNOWN.
+
+Não use princípios arquiteturais isoladamente como justificativa para elevar
+Impacto ou Redução de risco.
 
 ## Suggested New Engineering Rules
 
@@ -416,16 +877,17 @@ O relatório deve conter pelo menos:
 
 ## Files That Could Be Added to IGNORAR.md
 
-## Recommended Roadmap
+## NOTA DO PROJETO
 
-Ordene a roadmap em:
+E quero uma nota para o projeto:
+Global
+arquitetura
+codigo
+produto
+e algum outro que ache que faz sentido
 
-### Phase 1 — Quick Wins
-### Phase 2 — Important Improvements
-### Phase 3 — Architectural Improvements
-### Phase 4 — Future / Optional
 
-## REGRA FINAL
+# REGRA FINAL
 
 Não quero uma revisão complacente.
 
@@ -451,18 +913,6 @@ O objetivo é encontrar problemas que um desenvolvedor normalmente não perceber
 
 Sem overengineering.
 
-
-
-E quero uma nota para o projeto:
-Global
-arquitetura
-codigo
-produto
-e algum outro que ache que faz sentido
-
 REGRA IMPORTANTE:
 NAO GERE O ARQUIVO NO FINAL; VAI FAZENDO APPEND CONFORME FOR AVALIANDO
-NOME DO ARQUIVO O QUE ACHOU.. 
-e nao considere que porque tenho regra ou esta feito de 1 maneira que esta certo, se tiver algum padrao que nao e bom revise
-
 Conforme for fazendo vai dando a % de progresso no chat

@@ -26,6 +26,40 @@ public struct DuplicateCleanerFeatureTests {
         let scanResult = await ((try? DuplicateDetectionService.findDuplicates(in: tempDir)) ?? DuplicateScanResult(groups: [], totalReclaimableBytes: 0))
         report("Feature/DuplicateCleaner", "POS: Duplicate scanner finds 1 duplicate group", result: scanResult.groups.count == 1)
         report("Feature/DuplicateCleaner", "POS: Reclaimable bytes > 0", result: scanResult.totalReclaimableBytes > 0)
+
+        await testUnreadableSubdirDoesNotHideDuplicates()
+    }
+
+    /// R1 / BA-509: `scanForDuplicateGroups`'s enumerator now passes `errorHandler: { _, _ in true }`,
+    /// so an unreadable nested directory is skipped instead of aborting the scan — which used to drop
+    /// every duplicate whose files happened to be enumerated after the protected folder.
+    private static func testUnreadableSubdirDoesNotHideDuplicates() async {
+        guard getuid() != 0 else {
+            report("Feature/DuplicateCleaner", "SKIP (root): unreadable-subdir scan continuation", result: true)
+            return
+        }
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("dedup_r1_\(UUID().uuidString)")
+        let blocked = root.appendingPathComponent("blocked")
+        try? fm.createDirectory(at: blocked, withIntermediateDirectories: true)
+        let content = "R1 duplicate payload — long enough to hash meaningfully 0123456789ABCDEF"
+        for name in ["a", "b"] {
+            let sub = root.appendingPathComponent("sub_\(name)")
+            try? fm.createDirectory(at: sub, withIntermediateDirectories: true)
+            try? content.write(to: sub.appendingPathComponent("dup.txt"), atomically: true, encoding: .utf8)
+        }
+        try? "unrelated".write(to: blocked.appendingPathComponent("x.txt"), atomically: true, encoding: .utf8)
+        try? fm.setAttributes([.posixPermissions: 0], ofItemAtPath: blocked.path)
+        defer {
+            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: blocked.path)
+            try? fm.removeItem(at: root)
+        }
+
+        let scanResult = await ((try? DuplicateDetectionService.findDuplicates(in: root)) ?? DuplicateScanResult(groups: [], totalReclaimableBytes: 0))
+        report(
+            "Feature/DuplicateCleaner",
+            "POS (R1): a duplicate pair is still found when an unreadable nested directory sits between the two copies",
+            result: scanResult.groups.count == 1 && scanResult.groups.first?.items.count == 2)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

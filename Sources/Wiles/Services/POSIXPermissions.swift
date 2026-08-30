@@ -28,6 +28,17 @@ public struct POSIXPermissions: Sendable, Equatable {
         String(format: "%04o", packedOctalValue)
     }
 
+    /// The `rwxr-xr-x` form (owner/group/others). The one place `rwx` strings are built — the
+    /// Properties sheet reads it from here rather than re-deriving its own.
+    public var symbolicString: String {
+        func triad(_ read: Bool, _ write: Bool, _ execute: Bool) -> String {
+            (read ? "r" : "-") + (write ? "w" : "-") + (execute ? "x" : "-")
+        }
+        return triad(ownerRead, ownerWrite, ownerExecute)
+            + triad(groupRead, groupWrite, groupExecute)
+            + triad(othersRead, othersWrite, othersExecute)
+    }
+
     public init(posixPermissions: Int16) {
         let octal = Int(posixPermissions)
         specialBits = octal & 0o7000

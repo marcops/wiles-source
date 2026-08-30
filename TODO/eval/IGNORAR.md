@@ -1,6 +1,6 @@
 # IGNORAR — arquivos triviais, pular nas próximas rodadas
 
-Revalidados linha a linha (ver `IGNORAR_REVIEW_REPORT.md`). Estes 40 são triviais de verdade.
+Revalidados linha a linha (ver `IGNORAR_REVIEW_REPORT.md`). Estes 48 são triviais de verdade.
 
 - `App/Commands/LocalizedCommands.swift`
 - `Constants/AppConstants.swift`
@@ -43,6 +43,26 @@ Revalidados linha a linha (ver `IGNORAR_REVIEW_REPORT.md`). Estes 40 são trivia
 - `Views/Modals/HelpTab.swift`
 - `Views/Theme/MotionTokens.swift`
 
+- `Constants/DefaultsKey.swift`
+- `Features/ImageConverter/ImageFormat.swift`
+- `Features/ImageConverter/ResizePreset.swift`
+- `Features/ImageConverter/CropPreset.swift`
+- `Views/Content/KeyboardZoomController.swift`
+- `Views/Sidebar/SidebarRowChromeModifier.swift`
+- `Views/Sidebar/HideSectionContextMenuModifier.swift`
+- `Views/Sidebar/SidebarSectionContainer.swift`
+
+- `Models/TrailingInspector.swift`
+- `Models/AppState/BatchMoveOutcome.swift` 
+- `Models/AppState/SearchQueryWarning.swift`
+- `Models/AppState/Stores/SmartFolderStore.swift` 
+- `Models/ImageFileType.swift`
+- `Services/HapticService.swift`
+- `Services/ApplicationApp.swift`
+- `Services/UndoActionType.swift` 
+- `Services/FileSystem/MoveCollisionPolicy.swift`
+- `Services/FileSystem/ParsedSearchQuery.swift`
+- `Services/FileSystem/DirectoryLoadOptions.swift`
 ## NÃO pular mais (voltaram ao escopo — têm lógica ou achado)
 
 - `Features/ArchiveInspector/ArchiveEntryItem.swift`
@@ -59,3 +79,7 @@ Revalidados linha a linha (ver `IGNORAR_REVIEW_REPORT.md`). Estes 40 são trivia
 - `Services/HapticService.swift`
 - `Services/NetworkShare.swift`
 - `Views/Content/TerminalViewCache.swift`
+- `Services/CopyPathService.swift` 
+- `Services/HTMLEscaping.swift`
+- `Views/Components/PaginatedItemsSection.swift`
+- `Models/NSImage+ResizedCopy.swift` 

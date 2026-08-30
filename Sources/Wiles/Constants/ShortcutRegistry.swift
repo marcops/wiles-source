@@ -28,23 +28,23 @@ enum ShortcutRegistry {
         var physicalKeyCodes: [UInt16] = []
         /// `KeyboardShortcut(localization: .custom)` — only `⌘/`, which must not be auto-remapped per locale.
         var customLocalization = false
+        /// A second combo the command also answers to, wired as its own hidden button (only
+        /// `.toggleHiddenFiles`'s `⌃H` alternate). `nil` for everything else.
+        var alternate: KeyboardShortcut?
         /// Human label for the cheat sheet and context-menu hints. Not localized — a physical key's
         /// symbol doesn't change per language.
         var label: String
     }
 
+    /// Every `Command` must have an entry here. Completeness is enforced by the
+    /// `everyCommandLabelled` assertion in `KeyboardShortcutDispatchTests` (a missing entry leaves
+    /// an empty `label`) rather than a 40-branch `switch` that trips `cyclomatic_complexity`.
     static func shortcut(_ command: Command) -> Shortcut {
         table[command] ?? Shortcut(key: nil, label: "")
     }
 
     static func label(_ command: Command) -> String {
         shortcut(command).label
-    }
-
-    /// Physical keycodes for a monitor command, resolved once so the dispatch code has a single
-    /// definition instead of its own `KeyCode` literals.
-    static func physicalKeyCodes(_ command: Command) -> [UInt16] {
-        shortcut(command).physicalKeyCodes
     }
 
     private static let table: [Command: Shortcut] = [
@@ -78,7 +78,9 @@ enum ShortcutRegistry {
         .togglePreview: Shortcut(key: "p", modifiers: [.command, .shift], label: "⌘ ⇧ P"),
         .toggleDiskUsage: Shortcut(key: "d", modifiers: [.command, .shift], label: "⌘ ⇧ D"),
         // No menu item — the `⌘⇧.` combo plus an alternate `⌃H` are wired as hidden buttons.
-        .toggleHiddenFiles: Shortcut(key: ".", modifiers: [.command, .shift], label: "⌘ ⇧ ."),
+        .toggleHiddenFiles: Shortcut(
+            key: ".", modifiers: [.command, .shift],
+            alternate: KeyboardShortcut("h", modifiers: .control), label: "⌘ ⇧ ."),
         .clearSelection: Shortcut(key: .escape, modifiers: [], label: "Esc"),
         .openSelected: Shortcut(key: .downArrow, modifiers: .command, label: "⌘ ↓"),
         // Cmd+] is `goForward` (standard macOS); zoom-in stays on `⌘=` / keypad `+` only.
@@ -97,6 +99,12 @@ enum ShortcutRegistry {
         .favoriteReorder: Shortcut(
             key: nil, modifiers: .command, physicalKeyCodes: [KeyCode.arrowUp, KeyCode.arrowDown], label: "⌘ ↑  /  ⌘ ↓")
     ]
+
+    /// Physical keycodes for a monitor command, resolved once so the dispatch code has a single
+    /// definition instead of its own `KeyCode` literals.
+    static func physicalKeyCodes(_ command: Command) -> [UInt16] {
+        shortcut(command).physicalKeyCodes
+    }
 }
 
 extension View {

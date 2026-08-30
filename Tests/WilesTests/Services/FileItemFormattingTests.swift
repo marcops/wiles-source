@@ -9,6 +9,7 @@ public struct FileItemFormattingTests {
         testFormattedSizeGrowsWithFileSize()
         testFormattedSizeForDirectory()
         testFormattedDatesForFreshFile()
+        testFormattedDateFormatterCacheIsPerLanguageAndStable()
         testFormattedDateAccessedHandlesNil()
         testOwnerAndGroupNameResolution()
         testNeedsOwnerGroupFlagSkipsSyscall()
@@ -105,6 +106,31 @@ public struct FileItemFormattingTests {
             "FileItem.formattedDate",
             "NEG: formattedDate is not the raw placeholder \"--\" for a real file with a modification date",
             result: item.formattedDate(language: .system) != "--")
+    }
+
+    /// B4-6: the per-language `DateFormatter` cache (now `@MainActor`, lock-free) still returns a
+    /// stable result per language and formats different languages differently.
+    private static func testFormattedDateFormatterCacheIsPerLanguageAndStable() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let file = dir.appendingPathComponent("cache.txt")
+        try? "hi".write(to: file, atomically: true, encoding: .utf8)
+        let item = makeFileItem(at: file)
+
+        let english1 = item.formattedDate(language: .english)
+        let english2 = item.formattedDate(language: .english)
+        report(
+            "FileItem.formattedDate",
+            "POS: repeated same-language formatting is stable",
+            result: english1 == english2 && !english1.isEmpty)
+
+        let japanese = item.formattedDate(language: .japanese)
+        report(
+            "FileItem.formattedDate",
+            "POS: a different language produces its own formatted string",
+            result: !japanese.isEmpty && item.formattedDate(language: .english) == english1)
     }
 
     private static func testFormattedDateAccessedHandlesNil() {

@@ -11,6 +11,15 @@ public struct AppStateFavoritesMoveTests {
         await testMoveItemUpdatesFavorites()
         await testMoveItemsResolvingCollisionsAggregatesFailures()
         await testMoveOneResolvingCollisionOutcomes()
+        testActionPolicyMapping()
+    }
+
+    /// B4b-2: `MoveCollisionChoice.Action` owns the single mapping to the service `MoveCollisionPolicy`
+    /// — `.replace`/`.keepBoth` map straight across, `.cancel` is UI-only and maps to `nil`.
+    private static func testActionPolicyMapping() {
+        report("MoveCollisionChoice", "POS: .replace maps to MoveCollisionPolicy.replace", result: MoveCollisionChoice.Action.replace.policy == .replace)
+        report("MoveCollisionChoice", "POS: .keepBoth maps to MoveCollisionPolicy.keepBoth", result: MoveCollisionChoice.Action.keepBoth.policy == .keepBoth)
+        report("MoveCollisionChoice", "POS: .cancel has no service policy (nil)", result: MoveCollisionChoice.Action.cancel.policy == nil)
     }
 
     /// Resolves the move-collision prompt `windowUIState` is about to raise while `operation` is
@@ -71,7 +80,7 @@ public struct AppStateFavoritesMoveTests {
         let result = try? await appState.moveOneResolvingCollision(
             cleanSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
         var ok = false
-        if case let .moved(to: movedURL, displacedExisting: false)? = result?.0 {
+        if case let .moved(to: movedURL, displacedExisting: false, displacedTrashedURL: _)? = result?.0 {
             ok = movedURL.lastPathComponent == "clean.txt"
                 && appState.preferences.favorites.favoriteURLs.first?.lastPathComponent == "clean.txt"
                 && (appState.preferences.favorites.favoriteURLs.first?.path.contains("/Dest/") ?? false)
@@ -91,7 +100,7 @@ public struct AppStateFavoritesMoveTests {
             try await appState.moveOneResolvingCollision(keepBothSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
         }
         var ok = false
-        if case let .moved(to: kbURL, displacedExisting: false)? = result?.0 {
+        if case let .moved(to: kbURL, displacedExisting: false, displacedTrashedURL: _)? = result?.0 {
             ok = kbURL.lastPathComponent != "dup.txt"
                 && FileManager.default.fileExists(atPath: kbURL.path)
                 && FileManager.default.fileExists(atPath: dest.appendingPathComponent("dup.txt").path)
@@ -109,7 +118,7 @@ public struct AppStateFavoritesMoveTests {
             try await appState.moveOneResolvingCollision(replaceSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
         }
         var ok = false
-        if case let .moved(to: rURL, displacedExisting: true)? = result?.0 {
+        if case let .moved(to: rURL, displacedExisting: true, displacedTrashedURL: _)? = result?.0 {
             ok = rURL.lastPathComponent == "dup.txt" && !FileManager.default.fileExists(atPath: replaceSrc.path)
         }
         report("AppState", "POS: moveOneResolvingCollision Replace returns .moved(displacedExisting:true)", result: ok)

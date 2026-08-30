@@ -31,7 +31,7 @@ public struct HttpServerTests {
         let spacedFile = tempDir.appendingPathComponent("file with space.txt")
         try? "Spaced".write(to: spacedFile, atomically: true, encoding: .utf8)
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.start(sharing: tempDir)
         try? await Task.sleep(nanoseconds: 500_000_000)
 
@@ -368,7 +368,7 @@ public struct HttpServerTests {
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: emptyDir) }
 
-        let server = LocalHttpServerService.shared
+        let server = LocalHttpServerService()
         server.stop()
         try? await Task.sleep(nanoseconds: 300_000_000)
 

@@ -13,7 +13,7 @@ extension QLThumbnailRepresentation: @retroactive @unchecked Sendable { }
 @MainActor
 public final class ThumbnailService {
     public static let shared = ThumbnailService()
-    private nonisolated static let maxDimension: CGFloat = 512
+    private nonisolated static let maxDimension = IconSizeToken.renderResolution
     /// `nonisolated(unsafe)`: `NSCache` is documented thread-safe, so the off-actor generate/prefetch
     /// paths can read/write it directly without hopping to `@MainActor`.
     private nonisolated(unsafe) let cache = NSCache<NSString, NSImage>()
@@ -40,6 +40,9 @@ public final class ThumbnailService {
         cache.totalCostLimit = 100 * 1024 * 1024 // 100 MB RAM limit
     }
 
+    /// The deliberate *superset* of `FileKindCatalog.imageExtensions`: any `UTType` conforming to
+    /// `.image` (SVG, RAW, …), i.e. "anything Quick Look could preview as an image", not the
+    /// curated raster list used for image editing actions.
     public static func isImage(fileExtension: String) -> Bool {
         guard let type = UTType(filenameExtension: fileExtension) else { return false }
         return type.conforms(to: .image)
@@ -142,7 +145,8 @@ public final class ThumbnailService {
             return
         }
         let image = representation.nsImage
-        let cost = Int(image.size.width * image.size.height * 4) // rough RGBA-bitmap byte estimate
+        // `image.size` is points; the backing bitmap is scale× per axis, so real RGBA bytes are ·scale².
+        let cost = Int(image.size.width * image.size.height * 4 * scale * scale)
         cache.setObject(image, forKey: key as NSString, cost: cost)
     }
 

@@ -231,7 +231,7 @@ struct FilePropertiesSheet: View {
     }
 
     private func loadProperties() async {
-        detailedProps = await FileMetadataService.shared.fetchProperties(for: item.url)
+        detailedProps = await FileMetadataService.fetchProperties(for: item.url)
         exifData = await ExifMetadataService.extractExif(from: item.url)
         let url = item.url
         if let loadedPermissions = await Task.detached(priority: .userInitiated, operation: {
@@ -261,10 +261,12 @@ struct FilePropertiesSheet: View {
             }
             applyPermissionsResult = message
         } else {
+            let previous = lastAppliedPermissions ?? permissionsToApply
             do {
                 try await Task.detached(priority: .userInitiated) {
                     try FilePermissionsService.setPermissions(for: url, permissions: permissionsToApply)
                 }.value
+                appState.undoRedoService.recordAction(.chmod(url: url, previous: previous))
                 applyPermissionsResult = String(format: appState.tr(.permissionsAppliedCount), 1)
             } catch {
                 appState.showError(error, context: "Applying file permissions")

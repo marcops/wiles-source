@@ -7,12 +7,21 @@ import Observation
 @Observable
 @MainActor
 public final class FavoritesStore: PersistablePreferenceStore {
+    @ObservationIgnored var isRestoringDefaults = false
+
     public var favoriteURLs: [URL] = [] {
         didSet {
-            persist(favoriteURLs.map(\.path), .favoriteURLs)
+            standardizedFavoritePaths = Set(favoriteURLs.map(\.standardizedFileURL.path))
             resolvedFavoritePaths = Set(favoriteURLs.map { $0.resolvingSymlinksInPath().standardizedFileURL.path })
+            guard !isRestoringDefaults else { return }
+            persist(favoriteURLs.map(\.path), .favoriteURLs)
         }
     }
+
+    /// Plain standardized paths (no symlink resolution) — lets `AppState.isFavorite(_:)` answer the
+    /// ~99% common case with zero `stat`, resolving symlinks only when a candidate path isn't a
+    /// direct member. Recomputed only when the list changes.
+    public private(set) var standardizedFavoritePaths: Set<String> = []
 
     /// Symlink-resolved paths of `favoriteURLs`, recomputed only when the list changes — so
     /// `AppState.isFavorite(_:)` (called per visible row) is an O(1) `Set` lookup instead of an
@@ -25,8 +34,10 @@ public final class FavoritesStore: PersistablePreferenceStore {
 
     private func loadFavoriteURLs(_ defaults: UserDefaults) {
         if let savedFavs = defaults.stringArray(forKey: DefaultsKey.favoriteURLs.rawValue) {
-            favoriteURLs = savedFavs.compactMap { path in
-                SlowVolumePathValidator.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
+            withRestoringDefaults {
+                favoriteURLs = savedFavs.compactMap { path in
+                    SlowVolumePathValidator.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
+                }
             }
             Task { [weak self] in
                 await self?.validateSlowVolumeFavorites()

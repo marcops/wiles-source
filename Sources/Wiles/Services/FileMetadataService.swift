@@ -3,10 +3,16 @@ import CoreServices
 import Foundation
 import GitBeacon
 
-public actor FileMetadataService {
-    public static let shared = FileMetadataService()
+/// Detailed "Get Info" metadata reads. Stateless — each call does its own `Task.detached` hop off
+/// the main actor; there's nothing to serialize, so it's a namespace, not an actor.
+public enum FileMetadataService {
+    public static func fetchProperties(for url: URL) async -> DetailedFileProperties {
+        await Task.detached(priority: .userInitiated) {
+            fetchPropertiesSync(for: url)
+        }.value
+    }
 
-    public func fetchProperties(for url: URL) -> DetailedFileProperties {
+    private static func fetchPropertiesSync(for url: URL) -> DetailedFileProperties {
         let kind = readTypeDescription(for: url)
         var owner: String?
         var group: String?
@@ -24,7 +30,7 @@ public actor FileMetadataService {
             kind: kind)
     }
 
-    private func readTypeDescription(for url: URL) -> String? {
+    private static func readTypeDescription(for url: URL) -> String? {
         let keys: Set<URLResourceKey> = [.localizedTypeDescriptionKey]
         do {
             let values = try url.resourceValues(forKeys: keys)
@@ -35,20 +41,15 @@ public actor FileMetadataService {
         }
     }
 
-    private func readOwnershipAndPermissions(
+    private static func readOwnershipAndPermissions(
         for url: URL, owner: inout String?, group: inout String?, perms: inout String?) {
-        // Same owner/perms attributes are read separately by FilePermissionsService and FileItem.ownerAndGroup.
-        do {
-            let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
-            owner = attrs[.ownerAccountName] as? String
-            group = attrs[.groupOwnerAccountName] as? String
-            perms = (attrs[.posixPermissions] as? NSNumber).map { formatPermissions($0.intValue) }
-        } catch {
-            ErrorReporter.report(error, context: "Reading file attributes for \(url.path)")
-        }
+        let ownership = FilePermissionsService.ownership(of: url)
+        owner = ownership.owner
+        group = ownership.group
+        perms = ownership.permissions?.symbolicString
     }
 
-    private func readSpotlightDimensionsAndDuration(for url: URL) -> (dims: String?, duration: String?) {
+    private static func readSpotlightDimensionsAndDuration(for url: URL) -> (dims: String?, duration: String?) {
         guard let mdItem = MDItemCreateWithURL(kCFAllocatorDefault, url as CFURL) else {
             return (nil, nil)
         }
@@ -67,7 +68,7 @@ public actor FileMetadataService {
         return (dims, duration)
     }
 
-    public func streamBatchProperties(for urls: [URL]) -> AsyncStream<DetailedFileProperties> {
+    public static func streamBatchProperties(for urls: [URL]) -> AsyncStream<DetailedFileProperties> {
         AsyncStream { continuation in
             let task = Task {
                 for url in urls {
@@ -79,7 +80,7 @@ public actor FileMetadataService {
                     if Task.isCancelled {
                         break
                     }
-                    let props = fetchProperties(for: url)
+                    let props = await fetchProperties(for: url)
                     continuation.yield(props)
                 }
                 continuation.finish()
@@ -88,20 +89,5 @@ public actor FileMetadataService {
                 task.cancel()
             }
         }
-    }
-
-    private func formatPermissions(_ posix: Int) -> String {
-        let roles = [
-            (posix >> 6) & 0x7,
-            (posix >> 3) & 0x7,
-            posix & 0x7
-        ]
-        var result = ""
-        for role in roles {
-            result += (role & 4) != 0 ? "r" : "-"
-            result += (role & 2) != 0 ? "w" : "-"
-            result += (role & 1) != 0 ? "x" : "-"
-        }
-        return result
     }
 }

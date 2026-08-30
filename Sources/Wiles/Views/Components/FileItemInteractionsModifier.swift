@@ -54,11 +54,13 @@ public struct FileItemInteractionsModifier: ViewModifier {
             .overlay(multiSelectionDragOverlay)
             .overlay(
                 RightClickDetector {
-                    if let onRightClick {
-                        onRightClick()
-                    } else if !appState.selection.selectedURLs.contains(item.url) {
+                    // Always land `item` in the selection before the context menu opens, so every
+                    // menu action can just read `appState.selection.selectedURLs` (see
+                    // `SharedFileItemContextMenu`) — no per-action "ensure selected" dance.
+                    if !appState.selection.selectedURLs.contains(item.url) {
                         appState.selection.selectedURLs = [item.url]
                     }
+                    onRightClick?()
                 })
             .fileItemContextMenu(for: item, appState: appState)
     }

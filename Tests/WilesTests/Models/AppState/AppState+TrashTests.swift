@@ -23,6 +23,30 @@ public struct AppStateTrashTests {
         await testUpdateTrashSizeSetsUpdatingFlagAndResolves()
         await testUpdateTrashSizeSupersedesInFlightTask()
         await testTrashStateIsIndependentPerAppState()
+        testTrashDirectoriesIncludesUserTrash()
+        testCancelInFlightClearsTheUpdatingSpinner()
+    }
+
+    private static func testCancelInFlightClearsTheUpdatingSpinner() {
+        let trash = TrashState()
+        trash.refreshSize()
+        report("AppState+Trash", "POS: refreshSize() raises the updating spinner", result: trash.isUpdating)
+
+        trash.cancelInFlight()
+        report(
+            "AppState+Trash",
+            "POS: cancelInFlight() drops the updating spinner so a torn-down window doesn't leave it stuck",
+            result: !trash.isUpdating)
+    }
+
+    /// B2-5: the home Trash entry now comes from the shared `URL.userTrash` well-known location
+    /// rather than a re-derived `FileManager.urls(for: .trashDirectory, …)` call.
+    private static func testTrashDirectoriesIncludesUserTrash() {
+        let directories = TrashState.trashDirectories()
+        report(
+            "AppState+Trash",
+            "POS: trashDirectories() sources the home Trash from URL.userTrash",
+            result: directories.contains { $0.standardizedFileURL == URL.userTrash.standardizedFileURL })
     }
 
     private static func testUpdateTrashSizeSetsUpdatingFlagAndResolves() async {

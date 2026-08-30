@@ -6,8 +6,6 @@ import Observation
 
 @Observable
 public final class LocalHttpServerService: @unchecked Sendable {
-    public static let shared = LocalHttpServerService()
-
     // Observed surface — all `@MainActor`. Everything below is `queue`-owned state, kept
     // `@ObservationIgnored` so a background mutation never touches the ObservationRegistrar.
     @MainActor public var isRunning: Bool = false
@@ -20,7 +18,11 @@ public final class LocalHttpServerService: @unchecked Sendable {
     /// The port the server is (or last tried) listening on. Seeded to `defaultPort` and bumped to
     /// the next free port in `portScanRange` when that one is already taken (another app, or a
     /// second Wiles window already sharing).
-    @ObservationIgnored var port: NWEndpoint.Port = LocalHttpServerService.defaultPort
+    ///
+    /// Unlike the other shared state (`sharedFolder`/`requiredPassword`/`listener`, guarded by
+    /// `queue.sync`), `port` is `@MainActor`-only: written solely in `start()` and read in
+    /// `start()`/`updateServerURL()`, all `@MainActor`. No `queue.sync` needed.
+    @MainActor @ObservationIgnored var port: NWEndpoint.Port = LocalHttpServerService.defaultPort
 
     @ObservationIgnored private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.wiles.HttpServer")
@@ -43,9 +45,19 @@ public final class LocalHttpServerService: @unchecked Sendable {
     /// Per-`connection.receive` read size while accumulating the request head.
     private static let requestReadChunkSize = 8192
 
-    private init() { }
+    /// One instance per `AppState` (per window), not a `.shared` singleton. Instances still
+    /// coordinate over the TCP port by scanning `portScanRange`.
+    public init() { }
 
+    @MainActor
     public func start(sharing folder: URL, password: String? = nil) {
+        // Tear down any listener/connections from a previous `start()` before standing up a new one.
+        // Without this the earlier `NWListener` is orphaned — still bound to its port and with no
+        // reference left to cancel it — so `firstAvailablePort` then skips that (still-occupied) port
+        // and the new server lands on the next one (BB-358). `stop()` also clears `sharedFolder`/
+        // `requiredPassword`, which is why they're (re)assigned only *after* it, just below.
+        stop()
+
         // `sharedFolder`/`requiredPassword` are read from `processRequest`, which always runs on
         // `queue` (it's invoked from an `NWConnection` receive completion handler, and every
         // connection is started with `connection.start(queue: queue)`). Routing the write through
@@ -93,6 +105,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }
     }
 
+    @MainActor
     public func stop() {
         queue.sync {
             listener?.cancel()
@@ -304,22 +317,21 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }
     }
 
+    /// Cap on entries rendered into one directory listing — the whole HTML page is buffered in RAM
+    /// before it's sent, so a folder with hundreds of thousands of files can't turn into a
+    /// hundreds-of-MB response. Aligned with `FileSystemService.recursiveSearchResultLimit`.
+    private static let maxListingEntries = 2000
+
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {
         do {
-            let urls = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey])
-            let linkPrefix = listingLinkPrefix(for: folder)
-            let items = urls.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).map { url -> String in
-                let name = url.lastPathComponent
-                let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-                let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-                let href = "\(linkPrefix)/\(encoded)" + (isDirectory ? "/" : "")
-                let label = HTMLEscaping.escape(name) + (isDirectory ? "/" : "")
-                let marker = isDirectory ? "\u{1F4C1} " : ""
-                return "<li style='margin-bottom: 8px;'><a href=\"\(href)\" style='text-decoration: none; color: #0066cc;'>\(marker)\(label)</a></li>"
-            }.joined()
-
+            // Hidden entries are never listed over the LAN — sharing a project folder must not
+            // expose `.git/`, `.env`, `.ssh`, `.DS_Store`, etc. `serveFile` refuses them too.
+            let allURLs = try FileManager.default.contentsOfDirectory(
+                at: folder, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
+            let sorted = allURLs.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
             let rawLanguage = UserDefaults.standard.string(forKey: DefaultsKey.appLanguage.rawValue) ?? AppLanguage.system.rawValue
             let language = AppLanguage(rawValue: rawLanguage) ?? .system
+            let items = listingItemsHTML(sorted: sorted, linkPrefix: listingLinkPrefix(for: folder), language: language)
 
             guard let html = TemplateRenderingService.render(
                 resource: "SharedFolder",
@@ -344,9 +356,36 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }
     }
 
+    /// The `<li>` list for a directory listing, capped at `maxListingEntries` with a localized
+    /// "listing truncated" note when the folder has more.
+    private func listingItemsHTML(sorted: [URL], linkPrefix: String, language: AppLanguage) -> String {
+        var items = sorted.prefix(Self.maxListingEntries).map { url -> String in
+            let name = url.lastPathComponent
+            let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+            let href = "\(linkPrefix)/\(encoded)" + (isDirectory ? "/" : "")
+            let label = HTMLEscaping.escape(name) + (isDirectory ? "/" : "")
+            let marker = isDirectory ? "\u{1F4C1} " : ""
+            return "<li style='margin-bottom: 8px;'><a href=\"\(href)\" style='text-decoration: none; color: #0066cc;'>\(marker)\(label)</a></li>"
+        }.joined()
+        if sorted.count > Self.maxListingEntries {
+            let note = L10n.string(.sharedFolderListingTruncated, lang: language)
+                .replacingOccurrences(of: "{0}", with: "\(sorted.count - Self.maxListingEntries)")
+            items += "<li style='margin-top: 12px; color: #999;'>\(HTMLEscaping.escape(note))</li>"
+        }
+        return items
+    }
+
     private func serveFile(path: String, folder: URL, connection: NWConnection, rangeHeader: String?) {
         guard let decodedPath = path.removingPercentEncoding, Self.isSafeRequestPath(decodedPath) else {
             sendResponse(connection: connection, statusCode: HTTPStatus.badRequest, body: Data("Bad Request".utf8))
+            return
+        }
+
+        // Hidden entries aren't listed (see `serveDirectoryListing`) and a direct request for one
+        // (`/.env`, `/.git/config`) is refused too — same secret-leak reasoning.
+        guard !decodedPath.split(separator: "/").contains(where: { $0.hasPrefix(".") }) else {
+            sendResponse(connection: connection, statusCode: HTTPStatus.forbidden, body: Data("Forbidden".utf8))
             return
         }
 
@@ -384,16 +423,17 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
     func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain", extraHeaders: [String: String] = [:]) {
         let statusText = HTTPURLResponse.localizedString(forStatusCode: statusCode)
-        let extraHeaderLines = extraHeaders.map { "\($0.key): \($0.value)\r\n" }.joined()
-        let headerStr = """
-        HTTP/1.1 \(statusCode) \(statusText)\r
-        Content-Length: \(body.count)\r
-        Content-Type: \(contentType)\r
-        Connection: close\r
-        \(extraHeaderLines)\r
-
-        """
-        var responseData = Data(headerStr.utf8)
+        let headers: [(String, String)] = [
+            ("Content-Length", "\(body.count)"),
+            ("Content-Type", contentType),
+            ("Connection", "close")
+        ] + extraHeaders.map { ($0.key, $0.value) }
+        // Build the head from a header list so the CRLF-per-line + blank-line terminator can't be
+        // broken by editing a template string (and an empty `extraHeaders` needs no special case).
+        let headerBlock = "HTTP/1.1 \(statusCode) \(statusText)\r\n"
+            + headers.map { "\($0.0): \($0.1)\r\n" }.joined()
+            + "\r\n"
+        var responseData = Data(headerBlock.utf8)
         responseData.append(body)
 
         connection.send(content: responseData, completion: .contentProcessed { [weak self] _ in

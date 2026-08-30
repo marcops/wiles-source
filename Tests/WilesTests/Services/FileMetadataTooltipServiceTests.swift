@@ -22,6 +22,24 @@ public struct FileMetadataTooltipServiceTests {
         await testTooltipFallsBackToDocumentForExtensionlessFile()
         await testTooltipUppercasesUnknownExtension()
         await testInvalidateClearsCachedTooltip()
+        testFirstCharacterUppercasedOnlyTouchesFirstCharacter()
+        testFirstCharacterUppercasedIsSafeOnEmptyAndSingleChar()
+    }
+
+    private static func testFirstCharacterUppercasedOnlyTouchesFirstCharacter() {
+        report(
+            "FileMetadataTooltipService",
+            "POS: firstCharacterUppercased upper-cases only the first char, leaving the rest of a multi-word string intact",
+            result: FileMetadataTooltipService.firstCharacterUppercased("documento de texto simples") == "Documento de texto simples")
+    }
+
+    private static func testFirstCharacterUppercasedIsSafeOnEmptyAndSingleChar() {
+        let empty = FileMetadataTooltipService.firstCharacterUppercased("") == ""
+        let single = FileMetadataTooltipService.firstCharacterUppercased("a") == "A"
+        report(
+            "FileMetadataTooltipService",
+            "POS: firstCharacterUppercased handles empty and single-character input",
+            result: empty && single)
     }
 
     /// Renders directly into an `NSBitmapImageRep` of exact pixel dimensions instead of going

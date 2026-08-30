@@ -36,6 +36,7 @@
 "autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "Moved %d file(s) · Last: %@";
 "pastingItemsEllipsis" = "Pasting Items…";
+"batchRenamingEllipsis" = "Renaming Files…";
 "compressingItemsEllipsis" = "Compressing…";
 "extractingArchiveEllipsis" = "Extracting…";
 "showInFinder" = "Show in Finder";
@@ -359,7 +360,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "Tools";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "Trash";
 "undo" = "Undo";
 "version" = "Version";
@@ -383,8 +383,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d of %d items could not be moved to Trash.";
-"tagOperationPartialFailure" = "%d of %d items could not be tagged.";
+"moveToTrashPartialFailure" = "{0} of {1} items could not be moved to Trash.";
+"tagOperationPartialFailure" = "{0} of {1} items could not be tagged.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -430,11 +430,13 @@
 "copyLinkAccessibilityLabel" = "Copy link";
 "copyLinkAccessibilityHint" = "Copies the sharing address to the clipboard";
 "loadingEntries" = "Loading entries...";
+"loadingApplications" = "Loading applications...";
 "noArchiveEntriesFound" = "No entries found or the archive could not be read.";
 "extractEntryHint" = "Extracts this file to the current folder";
 "archiveFileEntry" = "File";
 "sharedFolderPageTitle" = "Shared Folder";
 "sharedFolderHeading" = "Shared";
+"sharedFolderListingTruncated" = "… and {0} more items (listing truncated)";
 "requirePassword" = "Require Password";
 "startSharing" = "Start Sharing";
 "wifiSharePasswordProtectedNotice" = "This folder requires a password to access. It is not encrypted — anyone else on the same network could potentially intercept it.";
@@ -442,9 +444,11 @@
 "cancelTaskAccessibilityHint" = "Cancels this background task";
 "feedbackKindSelectionHint" = "Selects this feedback category";
 "feedbackDescriptionFieldHint" = "Enter a detailed description of your feedback";
+"feedbackPublicNotice" = "Your report is sent to our public issue tracker. Please don't include personal or sensitive details.";
 "applyPermissionsHint" = "Applies the selected permissions to this item";
 "permissionToggleHint" = "Toggles this permission";
 "archivePasswordFieldHint" = "Sets the password required to open this archive";
+"archivePasswordInvalidCharacters" = "The password can't contain line breaks or control characters.";
 "moreInfoAccessibilityHint" = "Shows detailed properties for this item";
 "iCloudStatusDownloading" = "Downloading from iCloud";
 "iCloudStatusNotDownloaded" = "Not downloaded from iCloud";
@@ -495,6 +499,7 @@
 "imageConverterRenderFailed" = "Failed to render resized image";
 "imageConverterDestinationFailed" = "Failed to create image destination";
 "imageConverterFinalizeFailed" = "Failed to finalize image destination";
+"imageConverterOutputTooLarge" = "Image is too large to convert (over {0} megapixels)";
 "syntaxTruncatedNotice" = "\n... (truncated)";
 "fileTemplateMarkdownContent" = "# Title\n\nContent goes here.\n";
 "fileTemplateJSONContent" = "{\n  \"key\": \"value\"\n}\n";
@@ -544,3 +549,9 @@
 "movePartialFailure" = "{0} of {1} items could not be moved.";
 "searchContentQueryTooShort" = "Type at least 3 characters to search inside files.";
 "searchInvalidRegex" = "That regular expression isn't valid.";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "Showing the first %d of many";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

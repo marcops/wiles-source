@@ -8,6 +8,16 @@ public enum FinderStyleTruncationService {
     /// `.lineLimit` when it measures a hair wider than TextKit did.
     private static let measurementSafetyMargin: CGFloat = 2.0
 
+    /// Available width is quantised to this many points before measuring, so dragging the icon-size
+    /// slider (which changes the width by 1px/frame) does one TextKit relayout per bucket instead of
+    /// per pixel × every visible cell. Truncation here is already deliberately approximate.
+    private static let widthQuantum: CGFloat = 8
+
+    private static func quantisedWidth(_ width: CGFloat) -> CGFloat {
+        guard width > 0 else { return width }
+        return max(widthQuantum, (width / widthQuantum).rounded(.down) * widthQuantum)
+    }
+
     /// `truncatedMiddle` is read from SwiftUI `body` for every visible cell on every render, and its
     /// inputs (name, font, rounded width, line cap) repeat heavily across renders of one folder.
     /// `NSCache` is internally synchronized, so this is safe to touch from any actor without a lock.
@@ -26,13 +36,13 @@ public enum FinderStyleTruncationService {
     }()
 
     /// One reusable TextKit graph instead of a fresh `NSLayoutManager`/`NSTextStorage`/`NSTextContainer`
-    /// per `fits()` step of the binary search. `layoutLock` serializes access since `precompute` runs
-    /// off-main while a stray `body` cache-miss can still land on the main thread.
+    /// per `fits()` step of the binary search. `layoutLock` serializes access since `truncatedMiddle`
+    /// / `wrappedLines` are called both from cell `body` (main thread) and the reveal overlay.
     private static let layoutLock = NSLock()
     private nonisolated(unsafe) static let layoutEngine = TruncationLayoutEngine()
 
     public static func truncatedMiddle(_ name: String, font: NSFont, maxWidth: CGFloat, maxLines: Int) -> String {
-        let clampedWidth = maxWidth - measurementSafetyMargin
+        let clampedWidth = quantisedWidth(maxWidth) - measurementSafetyMargin
         guard clampedWidth > 0, maxLines > 0, !name.isEmpty else { return name }
 
         let cacheKey = "\(font.fontName)|\(font.pointSize)|\(Int(clampedWidth.rounded()))|\(maxLines)|\(name)" as NSString
@@ -59,19 +69,10 @@ public enum FinderStyleTruncationService {
         return result
     }
 
-    /// Run off-main when a directory loads (like the thumbnail prefetch) so every later `truncatedMiddle`
-    /// read from a cell `body` is a pure cache hit. Not yet wired to a caller — callers must invoke this
-    /// with the same `font`/`width`/`maxLines` the cells will use.
-    public static func precompute(_ items: [FileItem], width: CGFloat, font: NSFont, maxLines: Int = 2) {
-        for item in items {
-            _ = truncatedMiddle(item.name, font: font, maxWidth: width, maxLines: maxLines)
-        }
-    }
-
     /// Wraps `text` into as many lines as it needs, no truncation, no line cap — for showing the
     /// full name after it's been revealed.
     public static func wrappedLines(_ text: String, font: NSFont, maxWidth: CGFloat) -> [String] {
-        let maxWidth = maxWidth - measurementSafetyMargin
+        let maxWidth = quantisedWidth(maxWidth) - measurementSafetyMargin
         guard maxWidth > 0, !text.isEmpty else { return [text] }
         let cacheKey = "\(font.fontName)|\(font.pointSize)|\(Int(maxWidth.rounded()))|\(text)" as NSString
         if let cached = wrappedLinesCache.object(forKey: cacheKey) as? [String] {

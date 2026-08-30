@@ -42,6 +42,17 @@ final class TemplateRenderingServiceTests: XCTestCase {
         XCTAssertEqual(rendered, "name: evil {{SECRET}} / secret: s3cr3t")
     }
 
+    /// B8-9: the `{{KEY}}` regex is now compiled once (`static let`), not per call. Repeated
+    /// `substitute` calls must still produce identical output.
+    func testSubstituteIsStableAcrossRepeatedCallsWithCachedRegex() {
+        let template = "a={{A}} b={{B}} a2={{A}}"
+        let first = TemplateRenderingService.substitute(in: template, replacements: ["A": "1", "B": "2"])
+        for _ in 0 ..< 5 {
+            XCTAssertEqual(TemplateRenderingService.substitute(in: template, replacements: ["A": "1", "B": "2"]), first)
+        }
+        XCTAssertEqual(first, "a=1 b=2 a2=1")
+    }
+
     /// Covers the `catch` branch: the resource exists (so the `url(forResource:)` guard passes) but
     /// isn't valid UTF-8 text, so `String(contentsOf:encoding:)` throws. AppIcon.png is a real bundled
     /// resource that's guaranteed not to decode as UTF-8.

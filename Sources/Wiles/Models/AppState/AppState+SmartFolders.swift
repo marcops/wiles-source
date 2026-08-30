@@ -8,6 +8,7 @@ public extension AppState {
     /// / `selectedURLs` from whatever was selected before the smart folder ran.
     func prepareForSmartFolderRun(_ folder: SmartFolder) {
         smartFolder.activeFolderID = folder.id
+        smartFolder.lastRunTimedOut = false
         selection.selectedURLs.removeAll()
         selection.pendingSelectionURL = nil
         if !selection.isSearching {
@@ -30,10 +31,13 @@ public extension AppState {
         // folder's own results land.
         fileSystem.refreshTask?.cancel()
         let target = navigation.currentURL
-        SmartFolderService.shared.executeQuery(for: folder) { [weak self] items in
+        smartFolderService.executeQuery(for: folder) { [weak self] items in
             Task { @MainActor in
                 guard let self else { return }
-                self.applyLoadedItems(items, target: target)
+                self.smartFolder.lastRunTimedOut = self.smartFolderService.lastRunTimedOut
+                self.applyLoadedItems(
+                    items, target: target,
+                    truncatedAtCap: items.count >= SmartFolderService.maxResultCount)
             }
         }
     }

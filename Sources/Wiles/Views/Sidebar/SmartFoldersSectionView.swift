@@ -115,7 +115,12 @@ struct SmartFoldersSectionView: View {
 
     private func commitSmartFolderRename(_ folder: SmartFolder) {
         guard renamingSmartFolderID == folder.id else { return }
-        appState.renameSmartFolder(folder, to: smartFolderRenameText)
+        // An empty/whitespace name just cancels the rename (the store would no-op it silently
+        // otherwise, leaving the field to revert with no explanation).
+        let trimmed = smartFolderRenameText.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty {
+            appState.renameSmartFolder(folder, to: trimmed)
+        }
         renamingSmartFolderID = nil
     }
 }

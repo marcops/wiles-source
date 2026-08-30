@@ -43,7 +43,8 @@ struct ArchiveInspectionSheetView: View {
 
     private var emptyStateView: some View {
         VStack {
-            Image(systemName: "exclamationmark.triangle")
+            // An empty archive is a valid state, not an error — a neutral glyph, not a warning triangle.
+            Image(systemName: "archivebox")
                 .font(.title2)
                 .foregroundColor(.secondary)
             Text(appState.tr(.noArchiveEntriesFound))
@@ -55,8 +56,15 @@ struct ArchiveInspectionSheetView: View {
     }
 
     private func entriesList(_ entries: [ArchiveEntryItem]) -> some View {
-        List(entries) { entry in
-            entryRow(entry)
+        List {
+            if entries.count >= ZIPCentralDirectoryReader.maxEntryCount {
+                Text(String(format: appState.tr(.resultsTruncatedNotice), entries.count))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            ForEach(entries) { entry in
+                entryRow(entry)
+            }
         }
     }
 

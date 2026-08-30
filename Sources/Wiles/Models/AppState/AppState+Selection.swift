@@ -47,8 +47,8 @@ public extension AppState {
     /// URLs spanned by the current shift-click anchor through `item`, in `fileSystem.items` order.
     private func rangeURLs(fromAnchorTo item: FileItem) -> [URL]? {
         guard let anchorURL = selection.keyboardSelectionAnchorURL,
-              let anchorIdx = fileSystem.items.firstIndex(where: { $0.url == anchorURL }),
-              let curIdx = fileSystem.items.firstIndex(where: { $0.url == item.url }) else { return nil }
+              let anchorIdx = fileSystem.indexByURL[anchorURL],
+              let curIdx = fileSystem.indexByURL[item.url] else { return nil }
         let range = min(anchorIdx, curIdx) ... max(anchorIdx, curIdx)
         return fileSystem.items[range].map(\.url)
     }

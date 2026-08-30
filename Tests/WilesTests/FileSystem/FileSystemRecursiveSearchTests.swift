@@ -9,7 +9,7 @@ public struct FileSystemRecursiveSearchTests {
         await testRecursiveSearchExcludesHiddenByDefault()
         await testRecursiveSearchIncludesHiddenWhenRequested()
         await testRecursiveSearchExcludesNonMatchingFiles()
-        await testRecursiveSearchInvokesOnBatchWhenBatchSizeIsReached()
+        await testRecursiveSearchInvokesOnBatchMidWalk()
         await testRecursiveSearchCapsAtResultLimit()
     }
 
@@ -114,20 +114,20 @@ public struct FileSystemRecursiveSearchTests {
         report("NEG: loadRecursiveSearchResults omits files whose name doesn't match the query", result: names == ["keep_me.txt"])
     }
 
-    /// Creates more matching files than `FileSystemService.recursiveSearchBatchSize` (40) so `onBatch` is
-    /// invoked once mid-walk in addition to the guaranteed final call.
-    private static func testRecursiveSearchInvokesOnBatchWhenBatchSizeIsReached() async {
+    /// With several matches, `onBatch` fires at least twice — once immediately on the first match
+    /// (so results stream in fast) and once more with the final full set.
+    private static func testRecursiveSearchInvokesOnBatchMidWalk() async {
         let dir = tempDir()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let fileCount = FileSystemService.recursiveSearchBatchSize + 5
+        let fileCount = 45
         for index in 0 ..< fileCount {
             try? "x".write(to: dir.appendingPathComponent("batch_target_\(index).txt"), atomically: true, encoding: .utf8)
         }
 
         let batches = await recursiveSearchResults(at: dir, query: "batch_target")
         report(
-            "POS: loadRecursiveSearchResults calls onBatch mid-walk once recursiveSearchBatchSize matches accumulate",
+            "POS: loadRecursiveSearchResults streams results — onBatch fires more than once, final call has every match",
             result: batches.count > 1 && batches.last?.count == fileCount)
     }
 

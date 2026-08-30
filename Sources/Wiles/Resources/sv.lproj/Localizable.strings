@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Skapar en lösenordsskyddad ZIP av de valda objekten";
 "passwordMismatchHint" = "Lösenorden matchar inte.";
 "pastingItemsEllipsis" = "Klistrar in Objekt…";
+"batchRenamingEllipsis" = "Byter namn på filer…";
 "removeRecentServer" = "Ta Bort Från Senaste";
 "removeSmartFolderConfirm" = "Är du säker på att du vill ta bort den här smarta mappen? Detta kan inte ångras.";
 "ruleConditionExtensionEquals" = "Filändelse Är";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "Verktyg";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "Papperskorg";
 "undo" = "Ångra";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d av %d objekt kunde inte flyttas till Papperskorgen.";
-"tagOperationPartialFailure" = "%d av %d objekt kunde inte taggas.";
+"moveToTrashPartialFailure" = "{0} av {1} objekt kunde inte flyttas till Papperskorgen.";
+"tagOperationPartialFailure" = "{0} av {1} objekt kunde inte taggas.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "Kopiera länk";
 "copyLinkAccessibilityHint" = "Kopierar delningsadressen till urklipp";
 "loadingEntries" = "Läser in objekt...";
+"loadingApplications" = "Läser in appar...";
 "noArchiveEntriesFound" = "Inga objekt hittades eller så gick arkivet inte att läsa.";
 "extractEntryHint" = "Packar upp den här filen till aktuell mapp";
 "archiveFileEntry" = "Fil";
 "sharedFolderPageTitle" = "Delad Mapp";
 "sharedFolderHeading" = "Delad";
+"sharedFolderListingTruncated" = "… och {0} till (listan är avkortad)";
 "requirePassword" = "Kräv Lösenord";
 "startSharing" = "Starta Delning";
 "wifiSharePasswordProtectedNotice" = "Den här mappen kräver ett lösenord för åtkomst. Den är inte krypterad — vem som helst på samma nätverk skulle kunna avlyssna den.";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "Avbryter denna bakgrundsuppgift";
 "feedbackKindSelectionHint" = "Väljer denna feedbackkategori";
 "feedbackDescriptionFieldHint" = "Ange en detaljerad beskrivning av din feedback";
+"feedbackPublicNotice" = "Din rapport skickas till vår offentliga ärendehanterare. Ta inte med personliga eller känsliga uppgifter.";
 "applyPermissionsHint" = "Tillämpar de valda behörigheterna på det här objektet";
 "permissionToggleHint" = "Växlar denna behörighet";
 "archivePasswordFieldHint" = "Anger lösenordet som krävs för att öppna det här arkivet";
+"archivePasswordInvalidCharacters" = "Lösenordet får inte innehålla radbrytningar eller kontrolltecken.";
 "moreInfoAccessibilityHint" = "Visar detaljerade egenskaper för det här objektet";
 "iCloudStatusDownloading" = "Hämtar från iCloud";
 "iCloudStatusNotDownloaded" = "Inte hämtad från iCloud";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "Det gick inte att rendera den ändrade bilden";
 "imageConverterDestinationFailed" = "Det gick inte att skapa bildmålet";
 "imageConverterFinalizeFailed" = "Det gick inte att slutföra bildmålet";
+"imageConverterOutputTooLarge" = "Bilden är för stor för att konvertera (över {0} megapixel)";
 "syntaxTruncatedNotice" = "\n... (avkortad)";
 "fileTemplateMarkdownContent" = "# Titel\n\nInnehåll kommer här.\n";
 "fileTemplateJSONContent" = "{\n  \"nyckel\": \"värde\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "{0} av {1} objekt kunde inte flyttas.";
 "searchContentQueryTooShort" = "Skriv minst 3 tecken för att söka i filer.";
 "searchInvalidRegex" = "Det reguljära uttrycket är ogiltigt.";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "Visar de första %d av många";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

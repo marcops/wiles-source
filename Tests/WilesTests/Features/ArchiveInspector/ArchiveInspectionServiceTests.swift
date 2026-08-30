@@ -14,24 +14,82 @@ public struct ArchiveInspectorFeatureTests {
         }
         report("Feature/ArchiveInspector", "NEG: listEntries on an unreadable archive throws instead of returning empty", result: listThrew)
         await runExtractionFailurePreservesExistingDestination()
-        await runReplaceItemFailureCleansUpTempFileAndRethrows()
-        testUnzipLiteralPatternEscapesWildcards()
+        await runExtractingOntoExistingNameKeepsBoth()
         await runExtractEntryWithGlobCharsInNameExtractsTheRightFile()
+        await runExtractEntryWithNonASCIIName()
+        await runExtractPlainAsciiEntryStreamsJustThatEntry()
     }
 
-    private static func testUnzipLiteralPatternEscapesWildcards() {
+    /// A plain ASCII entry name takes the `unzip -p` stream path (no whole-archive staging) and
+    /// still comes out with exactly that entry's bytes.
+    private static func runExtractPlainAsciiEntryStreamsJustThatEntry() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("archive_fastpath_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let wanted = dir.appendingPathComponent("wanted.txt")
+        let other = dir.appendingPathComponent("other.txt")
+        try? "THE ONE I WANT".write(to: wanted, atomically: true, encoding: .utf8)
+        try? String(repeating: "x", count: 4096).write(to: other, atomically: true, encoding: .utf8)
+        try? ArchiveService.compressToZIP(urls: [wanted, other], in: dir)
+        let zipURL = dir.appendingPathComponent("Archive.zip")
+
+        let destDir = dir.appendingPathComponent("dest")
+        try? FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+
+        var content: String?
+        var onlyOneFileLanded = false
+        do {
+            let url = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: "wanted.txt", to: destDir)
+            content = try? String(contentsOf: url, encoding: .utf8)
+            onlyOneFileLanded = ((try? FileManager.default.contentsOfDirectory(atPath: destDir.path)) ?? []).count == 1
+        } catch {
+            content = nil
+        }
         report(
             "Feature/ArchiveInspector",
-            "POS: unzipLiteralPattern escapes [, ], ? and * (backslash first)",
-            result: ArchiveInspectionService.unzipLiteralPattern("a[1]?b*c\\d") == "a\\[1\\]\\?b\\*c\\\\d")
+            "POS: extractSingleEntry on a plain ASCII name returns just that entry's bytes without extracting the rest",
+            result: content == "THE ONE I WANT" && onlyOneFileLanded)
+    }
+
+    /// B9-3: extraction goes through `ditto -x`, not `/usr/bin/unzip`, so an entry whose name has
+    /// non-ASCII characters comes out with the right bytes instead of failing to match.
+    private static func runExtractEntryWithNonASCIIName() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("archive_nonascii_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let entryName = "Отчёт—2024 café 日本語.txt"
+        let sourceFile = tempDir.appendingPathComponent(entryName)
+        try? "UNICODE ENTRY CONTENT".write(to: sourceFile, atomically: true, encoding: .utf8)
+        try? ArchiveService.compressToZIP(urls: [sourceFile], in: tempDir)
+        let zipURL = (try? FileManager.default.contentsOfDirectory(atPath: tempDir.path))?
+            .first { $0.hasSuffix(".zip") }
+            .map { tempDir.appendingPathComponent($0) }
+
+        let destDir = tempDir.appendingPathComponent("out")
+        try? FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
+
+        var extractedContent: String?
+        var extractedName: String?
+        if let zipURL {
+            do {
+                let url = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: entryName, to: destDir)
+                extractedContent = try? String(contentsOf: url, encoding: .utf8)
+                extractedName = url.lastPathComponent
+            } catch {
+                extractedContent = nil
+            }
+        }
         report(
             "Feature/ArchiveInspector",
-            "NEG: unzipLiteralPattern leaves a plain name untouched",
-            result: ArchiveInspectionService.unzipLiteralPattern("folder/file.txt") == "folder/file.txt")
+            "POS: extractSingleEntry on a non-ASCII entry name returns that file with its bytes intact",
+            result: extractedContent == "UNICODE ENTRY CONTENT" && extractedName == entryName)
     }
 
     /// An archive containing both `foo[1].txt` and `foo1.txt`: extracting `foo[1].txt` must yield
-    /// that exact file's bytes, not `foo1.txt` (which `unzip`'s glob would match for `foo[1].txt`).
+    /// that exact file's bytes, not `foo1.txt` — `ditto -x` extracts the literal tree, so a name
+    /// with glob metacharacters is no longer a hazard the way `unzip`'s file-spec glob was.
     private static func runExtractEntryWithGlobCharsInNameExtractsTheRightFile() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("archive_glob_\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
@@ -64,43 +122,41 @@ public struct ArchiveInspectorFeatureTests {
             result: extractedContent == "BRACKET CONTENT")
     }
 
-    /// Covers `extractSingleEntrySync`'s `replaceItemAt` `catch` block specifically: the destination
-    /// directory stays writable (so the temp file is created and extraction succeeds), but the
-    /// pre-existing file at `destURL` is marked immutable (`chflags uchg`), so only the final atomic
-    /// swap fails. (An empty directory occupying `destURL` was tried first, but `FileManager.
-    /// replaceItemAt` is a "safe save" API that can itself swap a plain file into an empty directory's
-    /// spot — that did not reliably force a throw.) Proves the temp file is cleaned up and the
-    /// original error propagates, rather than a silently-orphaned temp file or a swallowed failure.
-    private static func runReplaceItemFailureCleansUpTempFileAndRethrows() async {
-        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("archive_replace_fail_\(UUID().uuidString)")
+    /// Regression for B9-1: extracting an entry into a folder that already contains a file of the
+    /// same name must **keep both** — the pre-existing file is untouched and the extracted entry
+    /// lands under a free "name 2.ext" name — never overwrite (the old code used `replaceItemAt`,
+    /// which sends the existing file to a backup and deletes it, with no prompt / no keep-both).
+    private static func runExtractingOntoExistingNameKeepsBoth() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("archive_keepboth_\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let sourceFile = tempDir.appendingPathComponent("payload.txt")
-        try? "payload content".write(to: sourceFile, atomically: true, encoding: .utf8)
+        try? "ARCHIVED CONTENT".write(to: sourceFile, atomically: true, encoding: .utf8)
         try? ArchiveService.compressToZIP(urls: [sourceFile], in: tempDir)
         let zipURL = tempDir.appendingPathComponent("payload.zip")
 
         let destDir = tempDir.appendingPathComponent("dest")
         try? FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
-        let destURL = destDir.appendingPathComponent("payload.txt")
-        try? "pre-existing".write(to: destURL, atomically: true, encoding: .utf8)
-        try? FileManager.default.setAttributes([.immutable: true], ofItemAtPath: destURL.path)
-        defer { try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: destURL.path) }
+        let existing = destDir.appendingPathComponent("payload.txt")
+        try? "PRE-EXISTING USER FILE".write(to: existing, atomically: true, encoding: .utf8)
 
-        var didThrow = false
+        var extractedURL: URL?
         do {
-            _ = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: "payload.txt", to: destDir)
+            extractedURL = try await ArchiveInspectionService.extractSingleEntry(from: zipURL, entryPath: "payload.txt", to: destDir)
         } catch {
-            didThrow = true
+            extractedURL = nil
         }
 
+        let existingIntact = (try? String(contentsOf: existing, encoding: .utf8)) == "PRE-EXISTING USER FILE"
+        let extractedIsFreshName = extractedURL?.lastPathComponent == "payload 2.txt"
+        let extractedContent = extractedURL.flatMap { try? String(contentsOf: $0, encoding: .utf8) }
         let leftoverTempFiles = (try? FileManager.default.contentsOfDirectory(atPath: destDir.path))?
             .filter { $0.hasSuffix("_payload.txt") && $0.hasPrefix(".") } ?? []
         report(
             "Feature/ArchiveInspector",
-            "NEG: extractSingleEntry rethrows when replaceItemAt fails (destination file is immutable) and removes its own temp file",
-            result: didThrow && leftoverTempFiles.isEmpty)
+            "REG: extractSingleEntry onto an existing name keeps both (existing untouched, entry lands as 'payload 2.txt'), no leftover temp",
+            result: existingIntact && extractedIsFreshName && extractedContent == "ARCHIVED CONTENT" && leftoverTempFiles.isEmpty)
     }
 
     /// Regression test (see AGENTS.md rule 35): `extractSingleEntry` used to
@@ -131,10 +187,12 @@ public struct ArchiveInspectorFeatureTests {
         }
 
         let contentIntact = (try? String(contentsOf: destURL, encoding: .utf8)) == originalContent
+        let leftoverTempFiles = (try? FileManager.default.contentsOfDirectory(atPath: tempDir.path))?
+            .filter { $0.hasSuffix("_\(entryName)") && $0.hasPrefix(".") } ?? []
         report(
             "Feature/ArchiveInspector",
-            "NEG: extractSingleEntry failure never destroys a pre-existing destination file (regression: used to truncate it via createFile before extraction succeeded)",
-            result: didThrow && contentIntact)
+            "NEG: extractSingleEntry failure never destroys a pre-existing destination file and leaves no temp file behind",
+            result: didThrow && contentIntact && leftoverTempFiles.isEmpty)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

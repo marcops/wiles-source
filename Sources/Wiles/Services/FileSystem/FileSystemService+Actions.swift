@@ -44,12 +44,56 @@ public extension FileSystemService {
         }.value
     }
 
+    /// A `.replace` move that also reports where the displaced file landed in the Trash, so the
+    /// caller can register a `.trash` undo step for it. `displacedTrashedURL` is `nil` when nothing
+    /// was actually at the destination.
     @discardableResult
-    static func copyItem(at url: URL, toFolder targetFolder: URL) async throws -> URL {
+    static func moveItemReplacing(
+        at url: URL, toFolder targetFolder: URL) async throws -> (destination: URL, displacedTrashedURL: URL?) {
         try await Task.detached(priority: .userInitiated) {
-            let destURL = uniqueDestination(for: url.lastPathComponent, in: targetFolder)
-            try FileManager.default.copyItem(at: url, to: destURL)
-            return destURL
+            let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
+            guard url.standardizedFileURL != destURL.standardizedFileURL else {
+                throw WilesError.itemAlreadyInDestination
+            }
+            var displaced: URL?
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                var trashedURL: NSURL?
+                try FileManager.default.trashItem(at: destURL, resultingItemURL: &trashedURL)
+                displaced = trashedURL as URL?
+            }
+            try FileManager.default.moveItem(at: url, to: destURL)
+            return (destURL, displaced)
+        }.value
+    }
+
+    /// Symmetric with `moveItem`'s `onCollision`. Defaults to `.keepBoth` (the historical behavior:
+    /// paste-a-copy never fails on a name clash, it finds a free name), but an interactive caller
+    /// can pass `.replace` (existing → Trash first, never obliterated) or `.failIfExists`.
+    @discardableResult
+    static func copyItem(
+        at url: URL,
+        toFolder targetFolder: URL,
+        onCollision: MoveCollisionPolicy = .keepBoth) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) {
+            let namedDestURL = targetFolder.appendingPathComponent(url.lastPathComponent)
+            switch onCollision {
+            case .keepBoth:
+                let destURL = uniqueDestination(for: url.lastPathComponent, in: targetFolder)
+                try FileManager.default.copyItem(at: url, to: destURL)
+                return destURL
+            case .failIfExists:
+                if FileManager.default.fileExists(atPath: namedDestURL.path) {
+                    throw WilesError.destinationExists(name: url.lastPathComponent)
+                }
+                try FileManager.default.copyItem(at: url, to: namedDestURL)
+                return namedDestURL
+            case .replace:
+                if FileManager.default.fileExists(atPath: namedDestURL.path) {
+                    try FileManager.default.trashItem(at: namedDestURL, resultingItemURL: nil)
+                }
+                try FileManager.default.copyItem(at: url, to: namedDestURL)
+                return namedDestURL
+            }
         }.value
     }
 
@@ -70,8 +114,27 @@ public extension FileSystemService {
         try await Task.detached(priority: .userInitiated) {
             var trashedURL: NSURL?
             try FileManager.default.trashItem(at: url, resultingItemURL: &trashedURL)
-            return (trashedURL as URL?) ?? url
+            if let trashedURL = trashedURL as URL? {
+                return trashedURL
+            }
+            // `trashItem` succeeded but didn't report where the item landed — reconstruct it from
+            // the volume's Trash so callers never get the now-nonexistent source path back (a
+            // `.trash` undo on `originalURL == trashedURL` would fail with `itemAlreadyInDestination`).
+            let trashDirectory = try FileManager.default.url(
+                for: .trashDirectory, in: .userDomainMask, appropriateFor: url, create: false)
+            return try resolveTrashedItemURL(named: url.lastPathComponent, in: trashDirectory)
         }.value
+    }
+
+    /// The trashed item's real location: `trashDirectory/<name>` when it exists there, otherwise a
+    /// thrown error — the item is safely in the Trash, we just can't point at it, which beats
+    /// handing back a stale path a later undo/reveal would choke on.
+    nonisolated static func resolveTrashedItemURL(named name: String, in trashDirectory: URL) throws -> URL {
+        let expected = trashDirectory.appendingPathComponent(name)
+        guard FileManager.default.fileExists(atPath: expected.path) else {
+            throw WilesError.operationFailed(reason: name)
+        }
+        return expected
     }
 
     @discardableResult
@@ -108,12 +171,20 @@ public extension FileSystemService {
         if caseOnlyChange {
             // On a case-insensitive volume the destination path resolves to the source itself,
             // so a direct move can be rejected — rename via a temporary name.
-            let tempURL = parent.appendingPathComponent(".wiles-rename-\(UUID().uuidString)")
+            sweepStaleRenameTemps(in: parent)
+            let tempURL = parent.appendingPathComponent("\(renameTempPrefix)\(UUID().uuidString)")
             try fm.moveItem(at: url, to: tempURL)
             do {
                 try fm.moveItem(at: tempURL, to: destURL)
             } catch {
-                try? fm.moveItem(at: tempURL, to: url)
+                do {
+                    try fm.moveItem(at: tempURL, to: url)
+                } catch let rollbackError {
+                    // Rename failed AND we couldn't restore the original name — the file is stranded
+                    // under the temp name. Report the exact path and name it in the thrown error.
+                    ErrorReporter.report(rollbackError, context: "Rename rollback failed; \(url.lastPathComponent) is stranded at \(tempURL.path)")
+                    throw WilesError.operationFailed(reason: "\(url.lastPathComponent) → \(tempURL.lastPathComponent)")
+                }
                 throw error
             }
             return destURL
@@ -121,6 +192,30 @@ public extension FileSystemService {
 
         try fm.moveItem(at: url, to: destURL)
         return destURL
+    }
+
+    /// Prefix for the throwaway name a case-only rename hops through (see `performRenameOnDisk`).
+    static let renameTempPrefix = ".wiles-rename-"
+    /// A live case-only rename holds its temp for milliseconds; anything older is a leftover from a
+    /// run that crashed between the two moves.
+    static let staleRenameTempMaxAge: TimeInterval = 60
+
+    /// Removes rename temps left stranded in `directory` by a prior crashed case-only rename, so the
+    /// dot-prefixed file can't linger forever with no cleanup path. Best-effort.
+    nonisolated static func sweepStaleRenameTemps(
+        in directory: URL, olderThan maxAge: TimeInterval = staleRenameTempMaxAge, fileManager fm: FileManager = .default) {
+        guard let entries = try? fm.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: [.contentModificationDateKey], options: []) else { return }
+        let now = Date()
+        for entry in entries where entry.lastPathComponent.hasPrefix(renameTempPrefix) {
+            let mtime = (try? entry.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            guard let mtime, now.timeIntervalSince(mtime) > maxAge else { continue }
+            do {
+                try fm.removeItem(at: entry)
+            } catch {
+                ErrorReporter.report(error, context: "Sweeping stale rename temp \(entry.lastPathComponent)")
+            }
+        }
     }
 
     @discardableResult

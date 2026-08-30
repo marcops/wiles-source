@@ -68,12 +68,26 @@ struct SidebarRowView: View {
             .task(id: favoriteStatusKey) { await refreshMissingFavoriteStatus() }
     }
 
-    /// Re-runs the missing-favorite check not just once per row, but whenever the user navigates
-    /// or the visible folder's contents change (the directory monitor's live signal) — so a
-    /// favorite deleted while the sidebar stays open stops rendering as live. No timer/poll.
+    /// Re-runs the missing-favorite check when the user navigates (picks up a volume that
+    /// unmounted while the sidebar stayed open) and, additionally, on the visible folder's
+    /// contents changing — but that FSEvents-driven contents signal is folded in ONLY for the one
+    /// favorite whose parent is the folder currently on screen. Otherwise every directory refresh
+    /// re-ran `fileExists` for every favorite row. No timer/poll.
     private var favoriteStatusKey: String {
-        guard isFavoritesSection else { return item.url.path }
-        return "\(item.url.path)|\(appState.navigation.currentURL.path)|\(appState.fileSystem.items.count)"
+        Self.favoriteStatusKey(
+            favoriteURL: item.url,
+            currentURL: appState.navigation.currentURL,
+            visibleItemCount: appState.fileSystem.items.count,
+            isFavoritesSection: isFavoritesSection)
+    }
+
+    /// Pure key builder (unit-testable without `AppState`): the `visibleItemCount` term — the
+    /// high-frequency FSEvents signal — is included only when `favoriteURL`'s parent is `currentURL`.
+    static func favoriteStatusKey(favoriteURL: URL, currentURL: URL, visibleItemCount: Int, isFavoritesSection: Bool) -> String {
+        guard isFavoritesSection else { return favoriteURL.path }
+        let base = "\(favoriteURL.path)|\(currentURL.path)"
+        guard favoriteURL.deletingLastPathComponent().path == currentURL.path else { return base }
+        return "\(base)|\(visibleItemCount)"
     }
 
     /// A favorite is dimmed only when it's in the Favorites section and its backing path is gone
@@ -160,36 +174,38 @@ struct SidebarRowView: View {
     }
 
     private var ejectButton: some View {
-        Button {
-            let target = item.url
-            Task {
-                // `unmountAndEjectDevice` can block for seconds on a slow/network volume — keep it
-                // off `@MainActor` and hop back only for the refresh/error.
-                let result = await Task.detached(priority: .userInitiated) { () -> (any Error)? in
-                    do {
-                        try NSWorkspace.shared.unmountAndEjectDevice(at: target)
-                        return nil
-                    } catch {
-                        return error
-                    }
-                }.value
-                if let result {
-                    appState.showError(result, context: "Ejecting volume")
-                } else {
-                    appState.refreshCurrentDirectory()
+        TappableRow(
+            accessibilityLabel: appState.tr(.ejectVolume),
+            accessibilityHint: appState.tr(.ejectVolume),
+            action: { ejectVolume() },
+            content: {
+                Image(systemName: "eject.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .frame(width: 22, height: 22)
+            })
+            .help(appState.tr(.ejectVolume))
+    }
+
+    private func ejectVolume() {
+        let target = item.url
+        Task {
+            // `unmountAndEjectDevice` can block for seconds on a slow/network volume — keep it
+            // off `@MainActor` and hop back only for the refresh/error.
+            let result = await Task.detached(priority: .userInitiated) { () -> (any Error)? in
+                do {
+                    try NSWorkspace.shared.unmountAndEjectDevice(at: target)
+                    return nil
+                } catch {
+                    return error
                 }
+            }.value
+            if let result {
+                appState.showError(result, context: "Ejecting volume")
+            } else {
+                appState.refreshCurrentDirectory()
             }
-        } label: {
-            Image(systemName: "eject.fill")
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-                .frame(width: 22, height: 22)
-                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .help(appState.tr(.ejectVolume))
-        .accessibilityLabel(appState.tr(.ejectVolume))
-        .accessibilityHint(appState.tr(.ejectVolume))
     }
 
     @ViewBuilder private var rowContextMenu: some View {

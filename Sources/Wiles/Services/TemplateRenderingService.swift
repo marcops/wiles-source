@@ -25,8 +25,13 @@ public enum TemplateRenderingService {
     /// value (unknown tokens are left literal). A value that itself contains `{{...}}` is never
     /// re-scanned, so a caller-supplied dynamic string (e.g. a filename served over the LAN) can't
     /// inject another placeholder's substitution.
+    /// `{{KEY}}` placeholder pattern, compiled once. The pattern is a constant literal, so a `nil`
+    /// here would only mean an impossible ICU-init failure — `substitute` then returns the template
+    /// untouched.
+    private static let placeholderRegex = try? NSRegularExpression(pattern: "\\{\\{(\\w+)\\}\\}")
+
     static func substitute(in template: String, replacements: [String: String]) -> String {
-        guard let regex = try? NSRegularExpression(pattern: "\\{\\{(\\w+)\\}\\}") else { return template }
+        guard let regex = placeholderRegex else { return template }
         let ns = template as NSString
         var result = ""
         var cursor = 0

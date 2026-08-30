@@ -28,9 +28,10 @@ struct SaveSmartFolderSheetView: View {
     }
 
     private func saveSmartFolder() {
-        guard !folderName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        let trimmedName = folderName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else { return }
         let folder = SmartFolder(
-            name: folderName,
+            name: trimmedName,
             icon: "folder.badge.gearshape",
             searchQuery: appState.selection.searchQuery,
             scopePath: Self.resolvedScopePath(

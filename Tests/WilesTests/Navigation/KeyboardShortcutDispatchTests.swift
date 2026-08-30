@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SwiftUI
 @testable import Wiles
 
 /// Characterization coverage for the keyboard-dispatch layer, locked in before the [A3]
@@ -215,6 +216,13 @@ public struct KeyboardShortcutDispatchTests {
         report(
             "Keyboard/Dispatch", "POS: every ShortcutRegistry.Command has a non-empty label (no missing table entry)",
             result: everyCommandLabelled)
+
+        // `⌃H` alternate for the hidden-files toggle now lives on the registry, not hardcoded in a view.
+        let hiddenFilesAlternate = ShortcutRegistry.shortcut(.toggleHiddenFiles).alternate
+        report(
+            "Keyboard/Dispatch", "POS: toggleHiddenFiles carries its ⌃H alternate, and no other command does",
+            result: hiddenFilesAlternate == KeyboardShortcut("h", modifiers: .control)
+                && ShortcutRegistry.Command.allCases.filter { ShortcutRegistry.shortcut($0).alternate != nil } == [.toggleHiddenFiles])
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

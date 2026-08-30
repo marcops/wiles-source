@@ -32,8 +32,8 @@ struct PreviewSidebarView: View {
             detailedProps = nil
             resolvedItem = nil
             guard let first = appState.selection.selectedURLs.first, appState.selection.selectedURLs.count == 1 else { return }
-            resolvedItem = appState.fileSystem.items.first { $0.url.standardizedFileURL == first.standardizedFileURL }
-            detailedProps = await FileMetadataService.shared.fetchProperties(for: first)
+            resolvedItem = appState.fileSystem.itemsByURL[first.standardizedFileURL]
+            detailedProps = await FileMetadataService.fetchProperties(for: first)
         }
     }
 

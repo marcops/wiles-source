@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "为所选项目创建受密码保护的 ZIP";
 "passwordMismatchHint" = "密码不匹配。";
 "pastingItemsEllipsis" = "正在粘贴项目…";
+"batchRenamingEllipsis" = "正在重命名文件…";
 "removeRecentServer" = "从最近使用中移除";
 "removeSmartFolderConfirm" = "确定要删除此智能文件夹吗？此操作无法撤销。";
 "ruleConditionExtensionEquals" = "扩展名等于";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "工具";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "废纸篓";
 "undo" = "撤销";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d/%d 个项目无法移到废纸篓。";
-"tagOperationPartialFailure" = "%d 个项目中有 %d 个未能打标签。";
+"moveToTrashPartialFailure" = "{0}/{1} 个项目无法移到废纸篓。";
+"tagOperationPartialFailure" = "{0} 个项目中有 {1} 个未能打标签。";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "复制链接";
 "copyLinkAccessibilityHint" = "将共享地址复制到剪贴板";
 "loadingEntries" = "正在加载条目...";
+"loadingApplications" = "正在加载应用程序...";
 "noArchiveEntriesFound" = "未找到任何条目，或无法读取该压缩包。";
 "extractEntryHint" = "将此文件解压到当前文件夹";
 "archiveFileEntry" = "文件";
 "sharedFolderPageTitle" = "共享文件夹";
 "sharedFolderHeading" = "已共享";
+"sharedFolderListingTruncated" = "… 还有 {0} 项（列表已截断）";
 "requirePassword" = "需要密码";
 "startSharing" = "开始共享";
 "wifiSharePasswordProtectedNotice" = "访问此文件夹需要密码。该连接未加密——同一网络上的其他人可能会截获它。";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "取消此后台任务";
 "feedbackKindSelectionHint" = "选择此反馈类别";
 "feedbackDescriptionFieldHint" = "请输入反馈的详细说明";
+"feedbackPublicNotice" = "你的反馈会发送到我们公开的问题追踪器。请不要填写个人信息或敏感内容。";
 "applyPermissionsHint" = "将所选权限应用于此项目";
 "permissionToggleHint" = "切换此权限";
 "archivePasswordFieldHint" = "设置打开此压缩文件所需的密码";
+"archivePasswordInvalidCharacters" = "密码不能包含换行符或控制字符。";
 "moreInfoAccessibilityHint" = "显示此项目的详细属性";
 "iCloudStatusDownloading" = "正在从 iCloud 下载";
 "iCloudStatusNotDownloaded" = "尚未从 iCloud 下载";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "无法渲染调整大小后的图像";
 "imageConverterDestinationFailed" = "无法创建图像目标";
 "imageConverterFinalizeFailed" = "无法完成图像目标";
+"imageConverterOutputTooLarge" = "图像太大，无法转换（超过 {0} 兆像素）";
 "syntaxTruncatedNotice" = "\n...（已截断）";
 "fileTemplateMarkdownContent" = "# 标题\n\n内容在此处。\n";
 "fileTemplateJSONContent" = "{\n  \"键\": \"值\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "{1} 项中的 {0} 项无法移动。";
 "searchContentQueryTooShort" = "输入至少 3 个字符以搜索文件内容。";
 "searchInvalidRegex" = "该正则表达式无效。";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "正在显示众多结果中的前 %d 个";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

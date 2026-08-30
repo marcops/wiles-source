@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Crea uno ZIP protetto da password degli elementi selezionati";
 "passwordMismatchHint" = "Le password non coincidono.";
 "pastingItemsEllipsis" = "Incollando Elementi…";
+"batchRenamingEllipsis" = "Ridenominazione dei file…";
 "removeRecentServer" = "Rimuovi dai Recenti";
 "removeSmartFolderConfirm" = "Sei sicuro di voler eliminare questa cartella intelligente? Non può essere annullato.";
 "ruleConditionExtensionEquals" = "Estensione Uguale a";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "Strumenti";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "Cestino";
 "undo" = "Annulla";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "Impossibile spostare %d elementi su %d nel Cestino.";
-"tagOperationPartialFailure" = "%d di %d elementi non sono stati taggati.";
+"moveToTrashPartialFailure" = "Impossibile spostare {0} elementi su {1} nel Cestino.";
+"tagOperationPartialFailure" = "{0} di {1} elementi non sono stati taggati.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "Copia link";
 "copyLinkAccessibilityHint" = "Copia l'indirizzo di condivisione negli appunti";
 "loadingEntries" = "Caricamento elementi...";
+"loadingApplications" = "Caricamento delle applicazioni...";
 "noArchiveEntriesFound" = "Nessun elemento trovato o l'archivio non può essere letto.";
 "extractEntryHint" = "Estrae questo file nella cartella corrente";
 "archiveFileEntry" = "File";
 "sharedFolderPageTitle" = "Cartella Condivisa";
 "sharedFolderHeading" = "Condiviso";
+"sharedFolderListingTruncated" = "… e altri {0} elementi (elenco troncato)";
 "requirePassword" = "Richiedi Password";
 "startSharing" = "Avvia Condivisione";
 "wifiSharePasswordProtectedNotice" = "Questa cartella richiede una password per l'accesso. Non è crittografata: chiunque altro sulla stessa rete potrebbe potenzialmente intercettarla.";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "Annulla questa attività in background";
 "feedbackKindSelectionHint" = "Seleziona questa categoria di feedback";
 "feedbackDescriptionFieldHint" = "Inserisci una descrizione dettagliata del tuo feedback";
+"feedbackPublicNotice" = "La tua segnalazione viene inviata al nostro tracker pubblico dei problemi. Non includere dati personali o sensibili.";
 "applyPermissionsHint" = "Applica le autorizzazioni selezionate a questo elemento";
 "permissionToggleHint" = "Attiva o disattiva questa autorizzazione";
 "archivePasswordFieldHint" = "Imposta la password richiesta per aprire questo archivio";
+"archivePasswordInvalidCharacters" = "La password non può contenere interruzioni di riga o caratteri di controllo.";
 "moreInfoAccessibilityHint" = "Mostra le proprietà dettagliate di questo elemento";
 "iCloudStatusDownloading" = "Download da iCloud in corso";
 "iCloudStatusNotDownloaded" = "Non scaricato da iCloud";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "Impossibile renderizzare l'immagine ridimensionata";
 "imageConverterDestinationFailed" = "Impossibile creare la destinazione dell'immagine";
 "imageConverterFinalizeFailed" = "Impossibile finalizzare la destinazione dell'immagine";
+"imageConverterOutputTooLarge" = "L’immagine è troppo grande per la conversione (oltre {0} megapixel)";
 "syntaxTruncatedNotice" = "\n... (troncato)";
 "fileTemplateMarkdownContent" = "# Titolo\n\nIl contenuto va qui.\n";
 "fileTemplateJSONContent" = "{\n  \"chiave\": \"valore\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "Impossibile spostare {0} di {1} elementi.";
 "searchContentQueryTooShort" = "Digita almeno 3 caratteri per cercare nei file.";
 "searchInvalidRegex" = "Questa espressione regolare non è valida.";
+"smartFolderLocationNotIndexed" = "Questa posizione non è indicizzata da Spotlight, quindi i risultati potrebbero essere incompleti.";
+"resultsTruncatedNotice" = "Vengono mostrati i primi %d di molti";
+"convertingImageEllipsis" = "Conversione immagine…";
+"deletingPermanentlyEllipsis" = "Eliminazione definitiva…";
+"undoingEllipsis" = "Annullamento…";
+"redoingEllipsis" = "Ripristino…";

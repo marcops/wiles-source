@@ -19,13 +19,18 @@ public final class OpenWithService: Sendable {
         applicationsByExtension.removeAll()
     }
 
+    /// Cache hit returns synchronously; a miss runs the LaunchServices query + per-app
+    /// `Bundle`/`resourceValues`/icon-resize scan on a detached task so the first "Open With" menu
+    /// for a common type (e.g. `.txt`) doesn't freeze the main thread.
     @MainActor
-    public static func availableApplications(for url: URL) -> [ApplicationApp] {
+    public static func availableApplications(for url: URL) async -> [ApplicationApp] {
         let ext = url.pathExtension.lowercased()
         if !ext.isEmpty, let cached = applicationsByExtension[ext] {
             return cached
         }
-        let results = computeAvailableApplications(for: url)
+        let results = await Task.detached(priority: .userInitiated) {
+            computeAvailableApplications(for: url)
+        }.value
         if !ext.isEmpty {
             if applicationsByExtension.count >= maxCachedExtensions {
                 applicationsByExtension.removeAll()
@@ -35,8 +40,7 @@ public final class OpenWithService: Sendable {
         return results
     }
 
-    @MainActor
-    private static func computeAvailableApplications(for url: URL) -> [ApplicationApp] {
+    private nonisolated static func computeAvailableApplications(for url: URL) -> [ApplicationApp] {
         let appURLs = NSWorkspace.shared.urlsForApplications(toOpen: url)
         var results: [ApplicationApp] = []
         var seenBundleIDs = Set<String>()

@@ -8,4 +8,6 @@ public enum IconSizeToken {
     /// Icon size change applied per accumulated Cmd/Ctrl + scroll-wheel step (finer-grained
     /// than the keyboard shortcut's `step`).
     public static let scrollWheelStep: Double = 4.0
+    /// The px side icons/thumbnails are rasterized at once; `.resizable()` scales down from here.
+    public static let renderResolution: CGFloat = 512
 }

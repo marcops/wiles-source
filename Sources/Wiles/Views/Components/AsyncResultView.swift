@@ -20,6 +20,10 @@ struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: Vi
     let id: ID
     let operation: () async throws -> Result
     let isEmpty: (Result) -> Bool
+    /// Called once each time a (non-superseded) run produces a value — for seeding `@State` from
+    /// the result without doing it as a side effect inside `operation` (which would be re-run and
+    /// re-seed on every retry / `id` change, silently discarding the user's edits).
+    var onResult: ((Result) -> Void)?
     @ViewBuilder let loading: () -> Loading
     @ViewBuilder let empty: () -> Empty
     @ViewBuilder let failure: (any Error) -> Failure
@@ -55,6 +59,7 @@ struct AsyncResultView<Result: Sendable, ID: Equatable, Loading: View, Empty: Vi
                 // whatever the newer run already produced.
                 if !Task.isCancelled {
                     result = value
+                    onResult?(value)
                 }
             } catch is CancellationError {
                 // Superseded/cancelled run — leave state for the newer run to own.
@@ -72,10 +77,13 @@ extension AsyncResultView where ID == Int {
     init(
         operation: @escaping () async throws -> Result,
         isEmpty: @escaping (Result) -> Bool,
+        onResult: ((Result) -> Void)? = nil,
         @ViewBuilder loading: @escaping () -> Loading,
         @ViewBuilder empty: @escaping () -> Empty,
         @ViewBuilder failure: @escaping (any Error) -> Failure,
         @ViewBuilder content: @escaping (Result) -> Content) {
-        self.init(id: 0, operation: operation, isEmpty: isEmpty, loading: loading, empty: empty, failure: failure, content: content)
+        self.init(
+            id: 0, operation: operation, isEmpty: isEmpty, onResult: onResult,
+            loading: loading, empty: empty, failure: failure, content: content)
     }
 }

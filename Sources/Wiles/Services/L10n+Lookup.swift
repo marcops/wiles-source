@@ -1,14 +1,21 @@
 import Foundation
 
 public extension L10n {
-    static func activeCode(_ preferred: AppLanguage) -> String {
+    static func activeCode(_ preferred: AppLanguage, systemPreferredLanguages: [String] = Locale.preferredLanguages) -> String {
         if preferred != .system {
             return preferred.rawValue
         }
-        let supportedCodes = AppLanguage.allCases.map(\.rawValue)
-        for preference in Locale.preferredLanguages {
+        // `.system` itself is not a locale — only real language codes are match candidates.
+        let supportedCodes = AppLanguage.allCases.filter { $0 != .system }.map(\.rawValue)
+        for preference in systemPreferredLanguages {
             let lower = preference.lowercased()
-            if let match = supportedCodes.first(where: { lower.hasPrefix($0.lowercased()) }) {
+            // Exact or region-variant of a supported code (en-GB → en, zh-Hans-CN → zh-Hans).
+            if let match = supportedCodes.first(where: { lower == $0.lowercased() || lower.hasPrefix($0.lowercased() + "-") }) {
+                return match
+            }
+            // Otherwise the same language family (zh / zh-Hant → zh-Hans; the only zh we ship).
+            let family = lower.split(separator: "-").first
+            if let match = supportedCodes.first(where: { $0.lowercased().split(separator: "-").first == family }) {
                 return match
             }
         }

@@ -70,6 +70,11 @@ struct GlobalKeyMonitor: NSViewRepresentable {
 
         private func processLocalEvent(_ event: NSEvent) -> NSEvent? {
             guard let appState, let windowUIState else { return event }
+            // `addLocalMonitorForEvents` is app-global: with N windows open there are N monitors,
+            // each firing for every window's keyDown/scrollWheel. Without this guard, an arrow key
+            // (or Backspace / F2 / Return) typed in window B also drives selection / trash / rename
+            // in window A. Let the monitor belonging to the event's own window handle it.
+            guard event.window == window else { return event }
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
                 return event
             }

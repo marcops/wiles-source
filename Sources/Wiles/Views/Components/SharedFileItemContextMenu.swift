@@ -6,6 +6,7 @@ struct SharedFileItemContextMenu: View {
     var appState: AppState
     @Environment(WindowUIState.self)
     private var windowUIState
+    @State private var openWithApps: [ApplicationApp]?
 
     var body: some View {
         openSection
@@ -17,21 +18,11 @@ struct SharedFileItemContextMenu: View {
         shareTagsPropertiesSection
     }
 
-    /// Makes `item` the sole selection unless it's already part of the current selection.
-    private func ensureItemIsSelected() {
-        if !appState.selection.selectedURLs.contains(item.url) {
-            appState.selection.selectedURLs = [item.url]
-        }
-    }
-
-    /// The current selection, or just `item` when nothing is selected. Doesn't check membership.
-    private var selectionURLsOrItem: [URL] {
-        appState.selection.selectedURLs.isEmpty ? [item.url] : Array(appState.selection.selectedURLs)
-    }
-
-    /// The current selection when it includes `item`, otherwise just `item` alone.
-    private var itemOrSelectionURLs: [URL] {
-        appState.selection.selectedURLs.contains(item.url) ? Array(appState.selection.selectedURLs) : [item.url]
+    /// Every menu action operates on this. Right-click already guarantees `item` is in the
+    /// selection before the menu opens (`FileItemInteractionsModifier`'s `RightClickDetector`), so
+    /// there's no per-action "ensure selected" step and no item-vs-selection fallback to reconcile.
+    private var actionURLs: [URL] {
+        Array(appState.selection.selectedURLs)
     }
 
     @ViewBuilder private var openSection: some View {
@@ -40,9 +31,10 @@ struct SharedFileItemContextMenu: View {
         Menu(appState.tr(.openWith)) {
             openWithMenuContent
         }
+        .task(id: item.url) { openWithApps = await OpenWithService.availableApplications(for: item.url) }
         if item.isUbiquitousNotDownloaded {
             Button(appState.tr(.downloadFromiCloud)) {
-                for url in selectionURLsOrItem {
+                for url in actionURLs {
                     appState.downloadFromiCloud(url: url)
                 }
             }
@@ -62,15 +54,13 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var clipboardSection: some View {
         Button(appState.trWithShortcutHint(.cut, shortcut: ShortcutRegistry.label(.cut))) {
-            ensureItemIsSelected()
             appState.cutSelected()
         }
         Button(appState.trWithShortcutHint(.copy, shortcut: ShortcutRegistry.label(.copy))) {
-            ensureItemIsSelected()
             appState.copySelected()
         }
         Menu(appState.tr(.copyPath)) {
-            CopyPathMenuContent(urls: selectionURLsOrItem, relativeTo: appState.navigation.currentURL, appState: appState)
+            CopyPathMenuContent(urls: actionURLs, relativeTo: appState.navigation.currentURL, appState: appState)
         }
         Button(appState.trWithShortcutHint(.paste, shortcut: ShortcutRegistry.label(.paste))) { appState.pasteToCurrentDirectory(windowUIState: windowUIState) }
     }
@@ -78,12 +68,10 @@ struct SharedFileItemContextMenu: View {
     @ViewBuilder private var contentActionsSection: some View {
         if !item.isDirectory {
             Button(appState.tr(.copyContent)) {
-                ensureItemIsSelected()
                 appState.copyContentOfSelected()
             }
             if isImageFile {
                 Button(appState.tr(.quickConvertImage)) {
-                    ensureItemIsSelected()
                     windowUIState.activeModal = .imageConverter(item)
                 }
             }
@@ -111,7 +99,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var pdfMergeTargets: [URL] {
-        itemOrSelectionURLs
+        actionURLs
     }
 
     private var canMergeSelectedIntoPDF: Bool {
@@ -133,18 +121,16 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.tr(.compressToZip)) {
-            ensureItemIsSelected()
             appState.compressSelectedToZIP()
         }
         Button(appState.tr(.compressWithPassword)) {
-            windowUIState.activeModal = .passwordCompress(itemOrSelectionURLs)
+            windowUIState.activeModal = .passwordCompress(actionURLs)
         }
     }
 
     @ViewBuilder private var destructiveActionsSection: some View {
         Divider()
         Button(appState.trWithShortcutHint(.rename, shortcut: renameKeyboardHint)) {
-            ensureItemIsSelected()
             if appState.selection.selectedURLs.count > 1 {
                 windowUIState.activeModal = .batchRename
             } else {
@@ -152,20 +138,17 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.trWithShortcutHint(.moveToTrash, shortcut: ShortcutRegistry.label(.moveToTrash)), role: .destructive) {
-            ensureItemIsSelected()
             appState.deleteSelected(windowUIState: windowUIState)
         }
         Button(appState.tr(.deleteImmediately), role: .destructive) {
-            ensureItemIsSelected()
             appState.deletePermanentlySelected(windowUIState: windowUIState)
         }
         Button(appState.tr(.createSymlink)) {
-            ensureItemIsSelected()
             windowUIState.activeModal = .symlink(item)
         }
         Button(appState.tr(.airDropEllipsis)) {
             if let airDrop = NSSharingService(named: .sendViaAirDrop) {
-                airDrop.perform(withItems: [item.url])
+                airDrop.perform(withItems: actionURLs)
             }
         }
     }
@@ -176,7 +159,7 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var shareTagsPropertiesSection: some View {
         Divider()
-        ShareLink(item: item.url) {
+        ShareLink(items: actionURLs) {
             Text(appState.tr(.share))
         }
         .labelStyle(.titleOnly)
@@ -186,31 +169,34 @@ struct SharedFileItemContextMenu: View {
             }
         }
         Button(appState.trWithShortcutHint(.properties, shortcut: ShortcutRegistry.label(.properties))) {
-            ensureItemIsSelected()
             windowUIState.activeModal = .properties(item)
         }
     }
 
     @ViewBuilder private var openWithMenuContent: some View {
-        let availableApps = OpenWithService.availableApplications(for: item.url)
-        ForEach(availableApps) { app in
-            openWithAppButton(app: app)
-        }
-        if !availableApps.isEmpty {
-            Divider()
-        }
-        Button(appState.tr(.selectOtherApp)) {
-            OpenWithService.chooseOtherApplication(toOpen: selectionURLsOrItem, lang: appState.preferences.appearance.appLanguage)
-        }
-        if !availableApps.isEmpty, !item.fileExtension.isEmpty {
-            Divider()
-            changeDefaultAppMenu(availableApps: availableApps)
+        if let availableApps = openWithApps {
+            ForEach(availableApps) { app in
+                openWithAppButton(app: app)
+            }
+            if !availableApps.isEmpty {
+                Divider()
+            }
+            Button(appState.tr(.selectOtherApp)) {
+                OpenWithService.chooseOtherApplication(toOpen: actionURLs, lang: appState.preferences.appearance.appLanguage)
+            }
+            if !availableApps.isEmpty, !item.fileExtension.isEmpty {
+                Divider()
+                changeDefaultAppMenu(availableApps: availableApps)
+            }
+        } else {
+            Button(appState.tr(.loadingApplications)) { }
+                .disabled(true)
         }
     }
 
     private func openWithAppButton(app: ApplicationApp) -> some View {
         Button {
-            OpenWithService.open(urls: selectionURLsOrItem, with: app.url)
+            OpenWithService.open(urls: actionURLs, with: app.url)
         } label: {
             Text(app.name)
         }
@@ -229,7 +215,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     @ViewBuilder private var tagsMenuContent: some View {
-        let targetURLs = itemOrSelectionURLs
+        let targetURLs = actionURLs
         ForEach(SystemTagsService.favoriteTags, id: \.self) { systemTag in
             tagToggleButton(tag: systemTag.name, targetURLs: targetURLs)
         }
@@ -277,6 +263,6 @@ struct SharedFileItemContextMenu: View {
 
     private func reportTagFailures(_ failureCount: Int, total: Int) {
         guard failureCount > 0 else { return }
-        appState.showError(String(format: appState.tr(.tagOperationPartialFailure), failureCount, total))
+        appState.showPartialFailure(.tagOperationPartialFailure, failed: failureCount, total: total)
     }
 }

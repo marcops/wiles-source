@@ -10,7 +10,7 @@ Architecture decisions, release process, and workflow specific to the Wiles app.
 
 ## Lint-Enforced Rules
 
-Some of `SWIFT_LANG_RULES.md`'s rules are mechanically enforced here via `.swiftlint.yml` `custom_rules`, rather than relying on review: `one_type_per_file` (one top-level type per file), `no_any_view` (bans `AnyView(`), `no_print_in_production` (bans `print(` under `Sources/`, points to `ErrorReporter.report(...)` instead — see "Error Reporting" below). When adding a new mechanically-checkable rule, prefer extending this list over writing prose that has to be remembered.
+Some of `SWIFT_LANG_RULES.md`'s rules are mechanically enforced here via `.swiftlint.yml` `custom_rules`, rather than relying on review: `one_type_per_file` (one top-level type per file), `no_any_view` (bans `AnyView(`), `no_print_in_production` (bans `print(` under `Sources/`, points to `ErrorReporter.report(...)` instead — see "Error Reporting" below), and `no_enumerator_without_error_handler` (bans `FileManager.enumerator(` without an `errorHandler:` — Engineering Rule R1). Softer `warning`-level review prompts also live there: `no_int_pref_restore_gt_zero` (LR-3, CB-189), `layout_constant_may_be_inline_literal` (LR-2, CC-171 — deliberately noisy heuristic), `no_formatter_built_in_view` (LR-4). When adding a new mechanically-checkable rule, prefer extending this list over writing prose that has to be remembered.
 
 ## Error Reporting
 
@@ -155,6 +155,31 @@ Wiles supports one or more simultaneously open windows. `AppState` itself is now
 - Any per-window presentation state (sheets, alerts, "currently editing this item" flags) belongs on `WindowUIState`, instantiated as `@State` inside `MainContentView`. AppKit-level code reached through an `NSViewRepresentable` (custom key-event monitors, etc.) gets the per-window object threaded through as an explicit parameter, same as `AppState` already is.
 - A background op with no window in front of it (an auto-organization scan, a network discovery failure) has no `AppState`/`ModalStore` to reach — it reports via `ErrorReporter` only. That's accepted; wire up a shared, deduplicated cross-window alert channel only if one genuinely needs to be user-visible.
 - Code living outside any single window's view hierarchy (menu `Commands` in `WilesApp`) reaches the focused window's `AppState`/`WindowUIState` via `@FocusedValue` — both are optional there, since no window may be focused.
+
+### Singleton Services With Session State Need an Explicit Owner — Not a Per-Window View's `.onAppear`/`.onDisappear`
+
+A `.shared` singleton service that holds live session state — a server that's running, an mDNS browser that's active, a scan in flight — must NOT have its `start()`/`stop()` (or `.start()`/`.cancel()`) driven by the `.onAppear`/`.onDisappear` of a SwiftUI view that is instantiated once **per window**. With two windows open, one window's view disappearing then tears down (or steals) the resource the other window is still using, and one window's view appearing calls `start()` again without the first `start()` having been balanced. Either:
+- the service is genuinely app-wide, and its lifecycle is owned at a single point (the shared `AppState`, or `WilesApp` itself), started/stopped there; or
+- it is per-window, and then it is **not** `.shared` — instantiate it per `AppState` (they can still coordinate over a scarce resource like a TCP port by scanning a range, as `LocalHttpServerService` already does).
+
+This is the same bug class as the `@Observable`-state rule above, one level up: it's about *service* lifecycle, not just state (Engineering Rule R2). Concrete corollary: a `.shared` service must not hold a mutable property representing "what THIS window is doing right now" — a query in flight, a staleness token, a running server, an active browser.
+
+**Shared service lifecycle ownership — code review: BLOCKING.** A `.shared` service that owns session state or active resources must not have its lifecycle controlled by an individual View. Start/stop must have a single app-wide owner, or the service must have explicit non-shared (per-`AppState`) ownership.
+
+All three known violators are now fixed — each is a per-`AppState` instance, not a `.shared` singleton:
+- ~~`SmartFolderService`~~ — per-run `activeQuery`/`currentQueryToken` staleness state used to be shared; now `appState.smartFolderService`. The two `static` persistence helpers stay static (no session state).
+- ~~`LocalHttpServerService`~~ — now `appState.httpServerService`; `HttpShareSheet` drives its own window's instance. Instances coordinate over the TCP port by scanning `portScanRange`.
+- ~~`NetworkDiscoveryService`~~ — now `appState.networkDiscoveryService`; the sidebar's Network section starts/stops its own window's instance.
+
+## High-Frequency Interaction State Must Not Invalidate Rendering
+
+State updated at high frequency during scroll, drag, or geometry tracking (`gridCellFrames`/`listCellFrames`/`gridLabelWidths`, marquee rects, live widths) must NOT be read by `body`/`@ViewBuilder` when doing so makes the View depend on those updates — one such read turns every scroll/drag frame into a re-render of the whole list/grid. Keep this state outside rendering dependencies: read it only from gesture handlers, or hold it somewhere non-`@Observable`. When a `@ViewBuilder` must touch it, gate the access behind a cheap early `guard` so the dependency isn't registered on the common path (as `FileGridView.renameFieldOverlay` does).
+
+Code review: BLOCKING when the dependency is demonstrably on the hot path.
+
+## One Catalog Per File-Type Concept
+
+"Which extensions are images", "which are text", "which are code/source", "which support a Quick Look thumbnail" — each of these is one list, in one place, so adding support for a new format touches exactly one file. The input-classification lists now live in `FileKindCatalog` (`imageExtensions`/`textExtensions`/`codeExtensions`/`documentExtensions`), consumed by `ImageFileType` and `SearchFilterService.matchesKindFilter`/`matchesContent`. Deliberately kept separate: `ThumbnailService.isImage` (the broader `UTType`-based "anything QL can preview, incl. SVG/RAW" superset — documented as such, not a fourth ad-hoc list), `ImageFormat` (output formats, not input classification), and `SyntaxHighlighterService`'s per-language extension→language map (a different concern — it also carries per-language keyword sets). Any new curated input list goes in `FileKindCatalog`, never re-typed at a call site.
 
 ## Never Hardcode the Set of Supported Locales — Applies to Every Layer Here
 

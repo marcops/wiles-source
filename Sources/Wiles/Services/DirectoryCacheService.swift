@@ -3,9 +3,14 @@ import Foundation
 public final class DirectoryCacheService: @unchecked Sendable {
     public static let shared = DirectoryCacheService()
 
-    /// Rough estimated in-memory cost (bytes) per cached directory item, used to scale
-    /// `NSCache`'s cost accounting against `totalCostLimit`.
-    private static let estimatedBytesPerCachedItem = 128
+    /// Rough in-memory cost (bytes) per cached directory item: the name/owner/group/extension
+    /// strings, tag array, four dates, and the retained `NSImage` icon wrapper. The old 128 was
+    /// ~10× low, so `totalCostLimit` never actually bit and only `countLimit` bounded RAM.
+    private static let estimatedBytesPerCachedItem = 1200
+
+    /// A listing larger than this isn't cached at all — storing it would evict most of the cache
+    /// for one folder, and the instant re-render fast path isn't worth that trade.
+    private static let maxCacheableItemCount = 5000
 
     private let cache = NSCache<NSURL, DirectoryCacheEntry>()
 
@@ -16,6 +21,10 @@ public final class DirectoryCacheService: @unchecked Sendable {
 
     public func cacheDirectory(_ result: DirectoryLoadResult, for url: URL) {
         let key = url.standardizedFileURL as NSURL
+        guard result.items.count <= Self.maxCacheableItemCount else {
+            cache.removeObject(forKey: key)
+            return
+        }
         let entry = DirectoryCacheEntry(result: result)
         let cost = result.items.count * Self.estimatedBytesPerCachedItem
         cache.setObject(entry, forKey: key, cost: cost)

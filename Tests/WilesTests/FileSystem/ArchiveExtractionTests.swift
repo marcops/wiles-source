@@ -166,6 +166,70 @@ extension ArchiveTests {
         TestReporter.report("ZipArchive", "NEG: extractZIP wrapper throws when underlying extractArchive fails on a corrupt zip", result: wrapperErrorPassed)
     }
 
+    /// BA-279: an archive that isn't listable here (`listArchiveEntries` returns nil — e.g. a
+    /// zip-format file with a non-.zip/.tar extension, routed to the `ditto` fallback) can't have
+    /// its contents checked for a name collision, so extraction MUST go into a fresh uniquely-named
+    /// subfolder instead of flat — where `ditto` would silently overwrite an existing same-named
+    /// file at the destination. Red→green data-loss regression.
+    static func runUnlistableArchiveGoesToSubfolderTests() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fm = FileManager.default
+
+        // Build a real zip containing `only.txt` = "NEW", then give it a non-.zip/.tar extension so
+        // `listArchiveEntries` returns nil for it (unlistable path).
+        let src = dir.appendingPathComponent("only.txt")
+        try? "NEW".write(to: src, atomically: true, encoding: .utf8)
+        let zipURL = dir.appendingPathComponent("payload.zip")
+        var built = false
+        do {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/zip")
+            process.currentDirectoryURL = dir
+            process.arguments = ["-q", zipURL.path, "only.txt"]
+            try process.run()
+            process.waitUntilExit()
+            built = process.terminationStatus == 0
+        } catch {
+            print("unlistable-archive zip creation error: \(error)")
+        }
+        let mysteryURL = dir.appendingPathComponent("payload.jar")
+        try? fm.copyItem(at: zipURL, to: mysteryURL)
+        try? fm.removeItem(at: src)
+
+        // Destination already holds an `only.txt` the extraction must not clobber.
+        let dest = dir.appendingPathComponent("dest")
+        try? fm.createDirectory(at: dest, withIntermediateDirectories: true)
+        let existing = dest.appendingPathComponent("only.txt")
+        try? "OLD-KEEP".write(to: existing, atomically: true, encoding: .utf8)
+
+        var extracted = false
+        if built {
+            do {
+                try ArchiveService.extractArchive(archiveURL: mysteryURL, to: dest)
+                extracted = true
+            } catch {
+                print("unlistable-archive extraction error: \(error)")
+            }
+        }
+
+        let existingUntouched = (try? String(contentsOf: existing, encoding: .utf8)) == "OLD-KEEP"
+        let subfolderName = (try? fm.contentsOfDirectory(atPath: dest.path))?.first { $0.hasPrefix("payload") }
+        let subfolderHasNew = subfolderName
+            .map { dest.appendingPathComponent($0).appendingPathComponent("only.txt") }
+            .flatMap { try? String(contentsOf: $0, encoding: .utf8) } == "NEW"
+
+        TestReporter.report(
+            "ZipArchive",
+            "POS (BA-279): extracting an unlistable archive into a folder that already has a same-named file leaves that file untouched",
+            result: built && extracted && existingUntouched)
+        TestReporter.report(
+            "ZipArchive",
+            "POS (BA-279): the unlistable archive's contents land in a fresh uniquely-named subfolder, not flat",
+            result: built && extracted && subfolderHasNew)
+    }
+
     static func runCorruptArchiveErrorPathTests() {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

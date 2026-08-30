@@ -1,5 +1,6 @@
 import CoreServices
 import Foundation
+import GitBeacon
 
 final class DirectoryMonitor: @unchecked Sendable {
     private static let coalescingLatency: CFTimeInterval = 0.1
@@ -53,7 +54,21 @@ final class DirectoryMonitor: @unchecked Sendable {
 
         lock.withLock { streamRef = stream }
         FSEventStreamSetDispatchQueue(stream, DispatchQueue.global(qos: .utility))
-        FSEventStreamStart(stream)
+        guard FSEventStreamStart(stream) else {
+            // The stream couldn't start — without this the auto-refresh for this folder would just
+            // silently never fire, with no indication why. Tear down the scheduled-but-not-started
+            // stream (Invalidate/Release, not Stop) and clear the state cancel() would have.
+            FSEventStreamInvalidate(stream)
+            FSEventStreamRelease(stream)
+            lock.withLock {
+                streamRef = nil
+                callback = nil
+            }
+            ErrorReporter.report(
+                NSError(domain: "DirectoryMonitor", code: -1),
+                context: "FSEventStreamStart failed for \(path); this folder will not auto-refresh")
+            return
+        }
     }
 
     func cancel() {

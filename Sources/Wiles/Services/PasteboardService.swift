@@ -17,7 +17,7 @@ public final class PasteboardService: Sendable {
     /// text. Lets the Edit menu's Paste item disable itself the way Cut/Copy already do.
     public static func hasPasteableContent() -> Bool {
         let pb = NSPasteboard.general
-        if let urls = pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], !urls.isEmpty {
+        if pb.canReadObject(forClasses: [NSURL.self], options: nil) {
             return true
         }
         if pb.canReadObject(forClasses: [NSImage.self], options: nil) {
@@ -39,7 +39,7 @@ public final class PasteboardService: Sendable {
         if let image = pb.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage,
            let pngData = pngData(for: image) {
             let destURL = FileSystemService.uniqueDestination(for: "Pasted Image.png", in: folder)
-            try pngData.write(to: destURL)
+            try pngData.write(to: destURL, options: .atomic)
             return destURL
         }
         if let text = pb.string(forType: .string), !text.isEmpty {

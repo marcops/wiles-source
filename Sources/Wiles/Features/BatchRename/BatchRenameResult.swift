@@ -1,7 +1,10 @@
 import Foundation
 
 /// Batch rename isn't transactional — carries both what succeeded and what failed per item.
-public struct BatchRenameResult {
+/// `@unchecked Sendable`: every stored property is a `let`, and the `FileItem`/`Error` values in
+/// `failures` are only ever read (to build `failureError`) — so it's safe to return from the
+/// detached rename operation back to `@MainActor` (same rationale as `FileItem`'s conformance).
+public struct BatchRenameResult: @unchecked Sendable {
     public let renamedURLs: [URL]
     /// old→new URL for every item actually renamed on disk (excludes no-op skips where the
     /// computed name matched the original) — lets the caller record one undo action per rename.

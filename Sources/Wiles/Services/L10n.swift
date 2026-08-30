@@ -170,7 +170,6 @@ public enum L10n {
         case aboutDescription
         case createdBy
         case version
-        case translucentLevel
         case sidebarTranslucentLevel
         case contentTranslucentLevel
         case showTags
@@ -348,7 +347,12 @@ public enum L10n {
         case moveCollisionKeepBoth
         case moveCollisionApplyToAll
         case pastingItemsEllipsis
+        case batchRenamingEllipsis
         case compressingItemsEllipsis
+        case convertingImageEllipsis
+        case deletingPermanentlyEllipsis
+        case undoingEllipsis
+        case redoingEllipsis
         case extractingArchiveEllipsis
         case showInFinder
         case hideSectionMenuItem
@@ -450,11 +454,13 @@ public enum L10n {
         case copyLinkAccessibilityLabel
         case copyLinkAccessibilityHint
         case loadingEntries
+        case loadingApplications
         case noArchiveEntriesFound
         case extractEntryHint
         case archiveFileEntry
         case sharedFolderPageTitle
         case sharedFolderHeading
+        case sharedFolderListingTruncated
         case requirePassword
         case startSharing
         case wifiSharePasswordProtectedNotice
@@ -465,9 +471,11 @@ public enum L10n {
         case cancelTaskAccessibilityHint
         case feedbackKindSelectionHint
         case feedbackDescriptionFieldHint
+        case feedbackPublicNotice
         case applyPermissionsHint
         case permissionToggleHint
         case archivePasswordFieldHint
+        case archivePasswordInvalidCharacters
         case moreInfoAccessibilityHint
         case iCloudStatusDownloading
         case iCloudStatusNotDownloaded
@@ -523,6 +531,7 @@ public enum L10n {
         case imageConverterRenderFailed
         case imageConverterDestinationFailed
         case imageConverterFinalizeFailed
+        case imageConverterOutputTooLarge
         case syntaxTruncatedNotice
         case fileTemplateMarkdownContent
         case fileTemplateJSONContent
@@ -565,5 +574,7 @@ public enum L10n {
 
         case searchContentQueryTooShort
         case searchInvalidRegex
+        case resultsTruncatedNotice
+        case smartFolderLocationNotIndexed
     }
 }

@@ -26,7 +26,7 @@ public struct FileMetadataTests {
         try? "b".write(to: fileB, atomically: true, encoding: .utf8)
 
         var received: [URL] = []
-        for await props in await FileMetadataService.shared.streamBatchProperties(for: [fileA, fileB]) {
+        for await props in FileMetadataService.streamBatchProperties(for: [fileA, fileB]) {
             received.append(props.url)
         }
         report("FileMetadata", "POS: streamBatchProperties yields exactly one item per URL, in order", result: received == [fileA, fileB])
@@ -48,7 +48,7 @@ public struct FileMetadataTests {
         }
 
         var received = 0
-        for await _ in await FileMetadataService.shared.streamBatchProperties(for: urls) {
+        for await _ in FileMetadataService.streamBatchProperties(for: urls) {
             received += 1
             if received == 2 {
                 break
@@ -65,7 +65,7 @@ public struct FileMetadataTests {
         let file = dir.appendingPathComponent("metadata_test.txt")
         try? "hello".write(to: file, atomically: true, encoding: .utf8)
 
-        let props = await FileMetadataService.shared.fetchProperties(for: file)
+        let props = await FileMetadataService.fetchProperties(for: file)
         report("FileMetadata", "POS: owner name is resolved for a real file", result: props.ownerName != nil && !(props.ownerName ?? "").isEmpty)
         report("FileMetadata", "POS: group name is resolved for a real file", result: props.groupName != nil && !(props.groupName ?? "").isEmpty)
         report("FileMetadata", "POS: POSIX permissions string has the expected rwx-style length", result: (props.posixPermissions ?? "").count == 9)
@@ -73,7 +73,7 @@ public struct FileMetadataTests {
 
     private static func testFetchPropertiesForNonExistentFileDoesNotCrash() async {
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).txt")
-        let props = await FileMetadataService.shared.fetchProperties(for: missing)
+        let props = await FileMetadataService.fetchProperties(for: missing)
         report(
             "FileMetadata",
             "NEG: non-existent file returns nil owner/permissions instead of crashing",
@@ -88,7 +88,7 @@ public struct FileMetadataTests {
         let file = dir.appendingPathComponent("kind_test.txt")
         try? "hello world".write(to: file, atomically: true, encoding: .utf8)
 
-        let props = await FileMetadataService.shared.fetchProperties(for: file)
+        let props = await FileMetadataService.fetchProperties(for: file)
         report("FileMetadata", "POS: localized kind description is resolved for a real file", result: props.kind != nil && !(props.kind ?? "").isEmpty)
     }
 
@@ -107,7 +107,7 @@ public struct FileMetadataTests {
             try? png.write(to: file)
         }
 
-        let props = await FileMetadataService.shared.fetchProperties(for: file)
+        let props = await FileMetadataService.fetchProperties(for: file)
         // Note: FileMetadataService resolves dimensions via Spotlight (MDItemCopyAttribute), and
         // Spotlight does not index the per-user temp directory (testTemporaryDirectory()) — confirmed
         // via `mdls` returning null for kMDItemPixelWidth/Height on freshly written temp files even
@@ -125,7 +125,7 @@ public struct FileMetadataTests {
     /// `AsyncStream` must still terminate cleanly via `continuation.finish()`.
     private static func testStreamBatchPropertiesOnEmptyURLListFinishesImmediately() async {
         var received = 0
-        for await _ in await FileMetadataService.shared.streamBatchProperties(for: []) {
+        for await _ in FileMetadataService.streamBatchProperties(for: []) {
             received += 1
         }
         report("FileMetadata", "NEG: streamBatchProperties on an empty URL list yields nothing and finishes", result: received == 0)
@@ -145,7 +145,7 @@ public struct FileMetadataTests {
         try? "x".write(to: file, atomically: true, encoding: .utf8)
         try? FileManager.default.setAttributes([.posixPermissions: 0o751], ofItemAtPath: file.path)
 
-        let props = await FileMetadataService.shared.fetchProperties(for: file)
+        let props = await FileMetadataService.fetchProperties(for: file)
         report("FileMetadata", "POS: formatPermissions renders an explicit rwx/r-x/--x mode exactly", result: props.posixPermissions == "rwxr-x--x")
     }
 

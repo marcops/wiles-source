@@ -6,18 +6,58 @@ import Observation
 public final class FileSystemStore {
     public var items: [FileItem] = [] {
         didSet {
-            totalFileSizeBytes = items.reduce(0) { $0 + ($1.isDirectory ? 0 : $1.size) }
-            itemsByURL = Dictionary(items.map { ($0.url, $0) }, uniquingKeysWith: { first, _ in first })
+            guard streamingBatchDepth == 0 else { return }
+            rebuildDerivedIndexes()
         }
     }
 
-    /// URL → item index, rebuilt on assignment so a `body` can resolve one item by URL without an
+    /// >0 while one or more streaming crawls are re-assigning `items` per batch. The recursive-search
+    /// path re-assigns the whole cumulative match list ~8×/second; rebuilding
+    /// `itemsByURL`/`indexByURL`/`totalFileSizeBytes` on each batch was O(n²) over a long crawl. A
+    /// counter, not a flag, so a superseded crawl's `endBatchStreaming()` can't clear it out from
+    /// under a newer crawl that started before the old one noticed cancellation.
+    private var streamingBatchDepth = 0
+
+    var isStreamingBatches: Bool { streamingBatchDepth > 0 }
+
+    func beginBatchStreaming() { streamingBatchDepth += 1 }
+
+    func endBatchStreaming() {
+        streamingBatchDepth = max(0, streamingBatchDepth - 1)
+        guard streamingBatchDepth == 0 else { return }
+        rebuildDerivedIndexes()
+    }
+
+    /// One pass over `items` feeding all three derived structures, keeping the first entry per URL.
+    private func rebuildDerivedIndexes() {
+        var total: Int64 = 0
+        var byURL = [URL: FileItem](minimumCapacity: items.count)
+        var positions = [URL: Int](minimumCapacity: items.count)
+        for (offset, item) in items.enumerated() {
+            if !item.isDirectory { total += item.size }
+            if byURL[item.url] == nil { byURL[item.url] = item }
+            if positions[item.url] == nil { positions[item.url] = offset }
+        }
+        totalFileSizeBytes = total
+        itemsByURL = byURL
+        indexByURL = positions
+    }
+
+    /// URL → item, rebuilt on assignment so a `body` can resolve one item by URL without an
     /// O(n) `items.first(where:)` scan on every render.
     public private(set) var itemsByURL: [URL: FileItem] = [:]
+
+    /// URL → position in `items`, rebuilt on assignment so keyboard navigation resolves an item's
+    /// index in O(1) instead of an O(selection × items) `firstIndex(where:)` sweep per keypress.
+    public private(set) var indexByURL: [URL: Int] = [:]
 
     /// Sum of every non-directory item's size, maintained on `items` assignment so the footer's
     /// `statusText` doesn't re-`reduce` over the whole (possibly 10k-entry) list on every render.
     public private(set) var totalFileSizeBytes: Int64 = 0
+
+    /// Set when the last applied result set was cut off at its cap (recursive search / smart folder).
+    /// `statusText` surfaces it so a capped list isn't read as the complete set of matches.
+    public internal(set) var resultsTruncated: Bool = false
     public var isLoading: Bool = false
     /// Suppresses `items` refreshes while set — see `AppState.enterRenameForNewlyCreated`.
     public var renamingURL: URL?
@@ -48,6 +88,7 @@ public final class FileSystemStore {
     public func tearDown() {
         refreshTask?.cancel()
         trailingRefreshTask?.cancel()
+        trash.cancelInFlight()
         directoryMonitor.cancel()
         monitoredURL = nil
     }

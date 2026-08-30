@@ -48,25 +48,32 @@ struct FolderNode: Identifiable, Hashable {
 
         var nodes: [Self] = []
         for url in urls {
-            let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            guard isDir else { continue }
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .linkCountKey])
+            guard values?.isDirectory ?? false else { continue }
 
             let stdURL = url.standardizedFileURL
             let name = stdURL.lastPathComponent
             let realPath = stdURL.resolvingSymlinksInPath().path
-            // Component-wise prefix, not a raw string hasPrefix: "/Users/marco" must not match
-            // "/Users/marco2" just because the string happens to start with it.
-            let isAncestorOrHome = homeURL.pathComponents.starts(with: stdURL.pathComponents)
+            let isAncestorOrHome = homeURL.isDescendantOrSelf(of: stdURL)
 
             var children: [Self]?
             if isAncestorOrHome, !ancestorRealPaths.contains(realPath) {
                 children = loadSubfolders(at: stdURL, autoExpandFor: homeURL, ancestorRealPaths: ancestorRealPaths.union([realPath]))
             }
             let loadedChildren = (children?.isEmpty ?? false) ? nil : children
-            let hasSubfolders = loadedChildren.map { !$0.isEmpty } ?? directoryHasSubfolder(at: stdURL)
+            let hasSubfolders = loadedChildren.map { !$0.isEmpty } ?? mayHaveSubfolders(linkCount: values?.linkCount, url: stdURL)
             nodes.append(Self(id: stdURL, name: name, url: stdURL, children: loadedChildren, hasSubfolders: hasSubfolders))
         }
         return nodes.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    /// A directory's hard-link count is 2 (its own `.` plus the parent's entry for it) plus one per
+    /// child subdirectory on POSIX/APFS/HFS+ — so `> 2` answers "has subfolders" from the `stat`
+    /// already done, without an `enumerator` per sibling. Some network mounts report an unreliable
+    /// count (< 2); there, fall back to the first-hit enumerator probe.
+    private static func mayHaveSubfolders(linkCount: Int?, url: URL) -> Bool {
+        guard let linkCount, linkCount >= 2 else { return directoryHasSubfolder(at: url) }
+        return linkCount > 2
     }
 
     /// Uses a lazy `FileManager.enumerator` (not `contentsOfDirectory`) so a folder with thousands
@@ -75,7 +82,13 @@ struct FolderNode: Identifiable, Hashable {
     private static func directoryHasSubfolder(at url: URL) -> Bool {
         let fm = FileManager.default
         let options: FileManager.DirectoryEnumerationOptions = [.skipsHiddenFiles, .skipsSubdirectoryDescendants, .skipsPackageDescendants]
-        guard let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isDirectoryKey], options: options)
+        guard let enumerator = fm.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: options,
+            // Skip an unreadable child instead of aborting on the first one and wrongly answering
+            // "no subfolders" (→ folder shown as non-expandable). R1 / BA-509.
+            errorHandler: { _, _ in true })
         else {
             return false
         }

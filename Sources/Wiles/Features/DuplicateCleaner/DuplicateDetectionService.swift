@@ -28,7 +28,10 @@ public enum DuplicateDetectionService: Sendable {
         guard let enumerator = fm.enumerator(
             at: folderURL,
             includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
-            options: [.skipsHiddenFiles]) else {
+            options: [.skipsHiddenFiles],
+            // Skip an unreadable subdirectory and keep walking — without this the whole walk aborts
+            // at the first protected folder and drops every later sibling (R1 / BA-509).
+            errorHandler: { _, _ in true }) else {
             // enumerator is nil when the folder can't be traversed (missing, not a directory, or —
             // most often for a user-chosen folder — no read access). Surface it, don't report "0 found".
             throw WilesError.permissionDenied(path: folderURL.path)
@@ -91,13 +94,25 @@ public enum DuplicateDetectionService: Sendable {
                 }
             }
             for (fullHashKey, matchedURLs) in fullHashGroups where matchedURLs.count > 1 {
-                let fileItems = matchedURLs.map { FileItem.load(url: $0) }
+                let fileItems = matchedURLs.map { FileItem.load(url: $0) }.sorted(by: Self.keepFirstOrder)
                 let group = DuplicateGroup(hash: fullHashKey, fileSize: size, items: fileItems)
                 groups.append(group)
                 reclaimable += group.reclaimableBytes
             }
         }
         return (groups, reclaimable)
+    }
+
+    /// Orders a duplicate group so its **first** item is the sensible one to keep (the sheet
+    /// pre-selects `dropFirst()` for trashing): shallowest path first — a copy buried deep in a
+    /// cache/build folder loses to one near the top — then oldest as a tiebreak.
+    private static func keepFirstOrder(_ lhs: FileItem, _ rhs: FileItem) -> Bool {
+        let lhsDepth = lhs.url.pathComponents.count
+        let rhsDepth = rhs.url.pathComponents.count
+        if lhsDepth != rhsDepth {
+            return lhsDepth < rhsDepth
+        }
+        return lhs.dateCreated < rhs.dateCreated
     }
 
     private static func computePartialHash(for url: URL) -> String? {

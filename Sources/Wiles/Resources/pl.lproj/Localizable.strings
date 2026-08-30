@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Tworzy chroniony hasłem plik ZIP z wybranych elementów";
 "passwordMismatchHint" = "Hasła nie są zgodne.";
 "pastingItemsEllipsis" = "Wklejanie Elementów…";
+"batchRenamingEllipsis" = "Zmienianie nazw plików…";
 "removeRecentServer" = "Usuń z Ostatnich";
 "removeSmartFolderConfirm" = "Czy na pewno chcesz usunąć ten inteligentny folder? Tej operacji nie można cofnąć.";
 "ruleConditionExtensionEquals" = "Rozszerzenie Równe";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "Narzędzia";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "Kosz";
 "undo" = "Cofnij";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "Nie udało się przenieść %d z %d elementów do Kosza.";
-"tagOperationPartialFailure" = "%d z %d elementów nie można było otagować.";
+"moveToTrashPartialFailure" = "Nie udało się przenieść {0} z {1} elementów do Kosza.";
+"tagOperationPartialFailure" = "{0} z {1} elementów nie można było otagować.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "Kopiuj link";
 "copyLinkAccessibilityHint" = "Kopiuje adres udostępniania do schowka";
 "loadingEntries" = "Wczytywanie elementów...";
+"loadingApplications" = "Ładowanie aplikacji...";
 "noArchiveEntriesFound" = "Nie znaleziono elementów lub nie można odczytać archiwum.";
 "extractEntryHint" = "Wypakowuje ten plik do bieżącego folderu";
 "archiveFileEntry" = "Plik";
 "sharedFolderPageTitle" = "Udostępniony Folder";
 "sharedFolderHeading" = "Udostępniono";
+"sharedFolderListingTruncated" = "… i jeszcze {0} elementów (lista skrócona)";
 "requirePassword" = "Wymagaj Hasła";
 "startSharing" = "Rozpocznij Udostępnianie";
 "wifiSharePasswordProtectedNotice" = "Dostęp do tego folderu wymaga hasła. Nie jest szyfrowany — każdy inny użytkownik tej samej sieci może go potencjalnie przechwycić.";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "Anuluje to zadanie w tle";
 "feedbackKindSelectionHint" = "Wybiera tę kategorię opinii";
 "feedbackDescriptionFieldHint" = "Wpisz szczegółowy opis swojej opinii";
+"feedbackPublicNotice" = "Twoje zgłoszenie trafia do naszego publicznego systemu śledzenia zgłoszeń. Nie podawaj danych osobowych ani poufnych.";
 "applyPermissionsHint" = "Stosuje wybrane uprawnienia do tego elementu";
 "permissionToggleHint" = "Przełącza to uprawnienie";
 "archivePasswordFieldHint" = "Ustawia hasło wymagane do otwarcia tego archiwum";
+"archivePasswordInvalidCharacters" = "Hasło nie może zawierać znaków nowego wiersza ani znaków sterujących.";
 "moreInfoAccessibilityHint" = "Pokazuje szczegółowe właściwości tego elementu";
 "iCloudStatusDownloading" = "Pobieranie z iCloud";
 "iCloudStatusNotDownloaded" = "Nie pobrano z iCloud";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "Nie można wyrenderować przeskalowanego obrazu";
 "imageConverterDestinationFailed" = "Nie można utworzyć miejsca docelowego obrazu";
 "imageConverterFinalizeFailed" = "Nie można sfinalizować miejsca docelowego obrazu";
+"imageConverterOutputTooLarge" = "Obraz jest zbyt duży, aby go przekonwertować (ponad {0} megapikseli)";
 "syntaxTruncatedNotice" = "\n... (skrócono)";
 "fileTemplateMarkdownContent" = "# Tytuł\n\nTreść tutaj.\n";
 "fileTemplateJSONContent" = "{\n  \"klucz\": \"wartość\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "Nie można przenieść {0} z {1} elementów.";
 "searchContentQueryTooShort" = "Wpisz co najmniej 3 znaki, aby przeszukać zawartość plików.";
 "searchInvalidRegex" = "To wyrażenie regularne jest nieprawidłowe.";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "Wyświetlanie pierwszych %d z wielu";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

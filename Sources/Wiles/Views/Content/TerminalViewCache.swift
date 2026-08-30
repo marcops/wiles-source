@@ -18,15 +18,29 @@ final class TerminalViewCache {
     var coordinator: IntegratedTerminalView.Coordinator?
     init() { }
 
-    /// Called from `MainContentView.onDisappear` so a closed window doesn't leak its `/bin/zsh -l`.
-    /// SwiftTerm exposes no public way to kill the PTY child from `LocalProcessTerminalView` (its
-    /// `process` is module-internal and there is no killing `deinit`), so the best available teardown
-    /// is to ask the login shell to exit, then drop our references. `view` is cleared first so
-    /// `Coordinator.processTerminated` sees no cached view and doesn't respawn a replacement shell.
+    /// Called from `MainContentView.onDisappear` so a closed window doesn't leak its `/bin/zsh -l`
+    /// (and whatever it's running — `vim`, `tail -f` — which would swallow a plain `exit`). `view` is
+    /// cleared first so `Coordinator.processTerminated` sees no cached view and doesn't respawn.
     func tearDown() {
         let closingView = view
         view = nil
         coordinator = nil
-        closingView?.send(txt: "exit\r")
+        // SIGKILL the shell's whole process group (login shell in a fresh PTY is the group leader),
+        // reaching any foreground child. `send("exit")` is the fallback if the pid can't be read.
+        if let pid = Self.shellPid(of: closingView), pid > 0 {
+            if kill(-pid, SIGKILL) != 0 {
+                kill(pid, SIGKILL)
+            }
+        } else {
+            closingView?.send(txt: "exit\r")
+        }
+    }
+
+    /// SwiftTerm keeps `LocalProcessTerminalView.process` (and thus `shellPid`) module-internal, so
+    /// read it reflectively. Best-effort: `nil` when the layout changes and we fall back to `exit`.
+    private static func shellPid(of view: LocalProcessTerminalView?) -> pid_t? {
+        guard let view else { return nil }
+        guard let process = Mirror(reflecting: view).children.first(where: { $0.label == "process" })?.value else { return nil }
+        return Mirror(reflecting: process).children.first { $0.label == "shellPid" }?.value as? pid_t
     }
 }

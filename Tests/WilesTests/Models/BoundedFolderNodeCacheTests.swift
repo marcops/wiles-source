@@ -76,23 +76,17 @@ public struct BoundedFolderNodeCacheTests {
 
     private static func testEvictionRemovesOldestEntryFirstWhenOverCapacity() {
         let base = baseURL()
-        // Each node costs 128 (estimatedBytesPerNode) + name bytes + absoluteString bytes. A short
-        // single-character name keeps the per-entry cost small and predictable enough to reason
-        // about the exact eviction boundary below.
-        let entryNode = { (name: String) in node(name: name, base: base) }
-
-        let oneEntryCost = estimatedCost(for: [entryNode("a")])
-        // Cap sized to hold exactly two entries but not three, so inserting a third forces eviction
-        // of the very first (oldest) key while the second and third both survive.
-        var cache = BoundedFolderNodeCache(maxBytes: oneEntryCost * 2)
+        // Cap of two entries: inserting a third evicts the oldest (first-inserted) key while the
+        // second and third both survive.
+        var cache = BoundedFolderNodeCache(maxEntryCount: 2)
 
         let keyA = base.appendingPathComponent("a")
         let keyB = base.appendingPathComponent("b")
         let keyC = base.appendingPathComponent("c")
 
-        cache[keyA] = [entryNode("a")]
-        cache[keyB] = [entryNode("b")]
-        cache[keyC] = [entryNode("c")]
+        cache[keyA] = [node(name: "a", base: base)]
+        cache[keyB] = [node(name: "b", base: base)]
+        cache[keyC] = [node(name: "c", base: base)]
 
         report("Model/BoundedFolderNodeCache", "POS: inserting past capacity evicts the oldest-inserted key", result: cache[keyA] == nil)
         report("Model/BoundedFolderNodeCache", "POS: the two most-recently-inserted keys survive eviction", result: cache[keyB] != nil && cache[keyC] != nil)
@@ -100,27 +94,16 @@ public struct BoundedFolderNodeCacheTests {
 
     private static func testEvictionStopsOnceUnderCapacity() {
         let base = baseURL()
-        let entryNode = { (name: String) in node(name: name, base: base) }
-        let oneEntryCost = estimatedCost(for: [entryNode("a")])
-
-        // Cap large enough for many entries: no eviction should occur, exercising the
-        // `while totalEstimatedBytes > maxBytes` loop condition's false path from the very first
-        // insert (the loop body never executes).
-        var cache = BoundedFolderNodeCache(maxBytes: oneEntryCost * 10)
+        // Cap large enough for every insert: the eviction loop's condition is false from the first
+        // insert on (loop body never runs).
+        var cache = BoundedFolderNodeCache(maxEntryCount: 50)
         let keys = (0 ..< 5).map { base.appendingPathComponent("k\($0)") }
         for (index, key) in keys.enumerated() {
-            cache[key] = [entryNode("k\(index)")]
+            cache[key] = [node(name: "k\(index)", base: base)]
         }
 
         let allPresent = keys.allSatisfy { cache[$0] != nil }
-        report("Model/BoundedFolderNodeCache", "POS: no eviction occurs while total estimated size stays under maxBytes", result: allPresent)
-    }
-
-    /// Mirrors the private `estimatedBytes(for:)` formula so tests can size `maxBytes` precisely
-    /// without reaching into the type's private implementation.
-    private static func estimatedCost(for nodes: [FolderNode]) -> Int {
-        let estimatedBytesPerNode = 128
-        return nodes.reduce(0) { $0 + estimatedBytesPerNode + $1.name.utf8.count + $1.url.absoluteString.utf8.count }
+        report("Model/BoundedFolderNodeCache", "POS: no eviction occurs while the entry count stays under the cap", result: allPresent)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

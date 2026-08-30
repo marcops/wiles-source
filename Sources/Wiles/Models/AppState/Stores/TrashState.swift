@@ -40,10 +40,7 @@ public final class TrashState {
 
     /// `~/.Trash` plus each mounted external volume's `.Trashes/<uid>` (where its deletions land).
     nonisolated static func trashDirectories(fileManager fm: FileManager = .default) -> [URL] {
-        var directories: [URL] = []
-        if let home = fm.urls(for: .trashDirectory, in: .userDomainMask).first {
-            directories.append(home)
-        }
+        var directories: [URL] = [URL.userTrash]
         let uid = String(getuid())
         let volumes = fm.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? []
         for volume in volumes where volume.deletingLastPathComponent().path == "/Volumes" {
@@ -64,7 +61,9 @@ public final class TrashState {
         let keys: [URLResourceKey] = [.fileSizeKey, .isDirectoryKey]
         for directory in directories {
             guard let enumerator = FileManager.default.enumerator(
-                at: directory, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]) else { continue }
+                at: directory, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles],
+                // Skip an unreadable subitem instead of aborting the walk (→ undercounted Trash size). R1 / BA-509.
+                errorHandler: { _, _ in true }) else { continue }
             while let fileURL = enumerator.nextObject() as? URL {
                 if Task.isCancelled {
                     return .cancelled
@@ -83,6 +82,9 @@ public final class TrashState {
     private nonisolated static func removeTrashContents(_ paths: [URL], using fm: FileManager) -> Int {
         var failedCount = 0
         for path in paths {
+            if Task.isCancelled {
+                break
+            }
             do {
                 try fm.removeItem(at: path)
             } catch {
@@ -105,26 +107,40 @@ public final class TrashState {
     /// enumeration already in flight instead of piling another one on top of it. The caller
     /// (`refreshTrashSizeIfNeeded`) already gates this to a real Trash visit or the 30s
     /// `shouldRecompute()` clock, so it isn't actually run per navigation/keystroke.
+    /// Identifies the most recently started enumeration, so a slower older one can't apply its
+    /// result over a newer one — and so a cancel that belongs to the *current* run (teardown, not
+    /// a supersede) still clears `isUpdating` instead of leaving the spinner stuck.
+    private var currentToken = UUID()
+
     public func refreshSize() {
         task?.cancel()
         isUpdating = true
+        let token = UUID()
+        currentToken = token
         task = Task.detached(priority: .background) { [weak self] in
             let result = Self.computeTrashSize()
-            await self?.applyTrashSize(result)
+            await self?.applyTrashSize(result, token: token)
         }
     }
 
+    /// Cancels any in-flight enumeration and clears the spinner — for the owning window's teardown.
+    func cancelInFlight() {
+        task?.cancel()
+        task = nil
+        currentToken = UUID()
+        isUpdating = false
+    }
+
     @MainActor
-    private func applyTrashSize(_ result: TrashSizeResult) {
+    private func applyTrashSize(_ result: TrashSizeResult, token: UUID) {
+        guard token == currentToken else { return }
         switch result {
         case let .success(totalSize):
             sizeString = ByteFormat.fileSize(totalSize)
             sizeBytes = totalSize
             isUpdating = false
-        case .noTrash:
+        case .noTrash, .cancelled:
             isUpdating = false
-        case .cancelled:
-            break
         }
     }
 

@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Maakt een met wachtwoord beveiligde ZIP van de geselecteerde items";
 "passwordMismatchHint" = "Wachtwoorden komen niet overeen.";
 "pastingItemsEllipsis" = "Items Plakken…";
+"batchRenamingEllipsis" = "Bestanden hernoemen…";
 "removeRecentServer" = "Verwijderen uit Recent";
 "removeSmartFolderConfirm" = "Weet je zeker dat je deze slimme map wilt verwijderen? Dit kan niet ongedaan worden gemaakt.";
 "ruleConditionExtensionEquals" = "Extensie Is Gelijk Aan";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "Extra";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "Prullenmand";
 "undo" = "Ongedaan maken";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d van %d items konden niet naar de Prullenmand worden verplaatst.";
-"tagOperationPartialFailure" = "%d van %d items konden niet worden getagd.";
+"moveToTrashPartialFailure" = "{0} van {1} items konden niet naar de Prullenmand worden verplaatst.";
+"tagOperationPartialFailure" = "{0} van {1} items konden niet worden getagd.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "Link kopiëren";
 "copyLinkAccessibilityHint" = "Kopieert het deeladres naar het klembord";
 "loadingEntries" = "Items laden...";
+"loadingApplications" = "Apps worden geladen...";
 "noArchiveEntriesFound" = "Geen items gevonden of het archief kon niet worden gelezen.";
 "extractEntryHint" = "Pakt dit bestand uit naar de huidige map";
 "archiveFileEntry" = "Bestand";
 "sharedFolderPageTitle" = "Gedeelde Map";
 "sharedFolderHeading" = "Gedeeld";
+"sharedFolderListingTruncated" = "… en nog {0} items (lijst ingekort)";
 "requirePassword" = "Wachtwoord Vereisen";
 "startSharing" = "Delen Starten";
 "wifiSharePasswordProtectedNotice" = "Voor toegang tot deze map is een wachtwoord vereist. Ze is niet versleuteld — iedereen op hetzelfde netwerk zou deze mogelijk kunnen onderscheppen.";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "Annuleert deze achtergrondtaak";
 "feedbackKindSelectionHint" = "Selecteert deze feedbackcategorie";
 "feedbackDescriptionFieldHint" = "Voer een gedetailleerde beschrijving van je feedback in";
+"feedbackPublicNotice" = "Je melding wordt naar onze openbare issue-tracker gestuurd. Voeg geen persoonlijke of gevoelige gegevens toe.";
 "applyPermissionsHint" = "Past de geselecteerde machtigingen toe op dit item";
 "permissionToggleHint" = "Schakelt deze machtiging in of uit";
 "archivePasswordFieldHint" = "Stelt het wachtwoord in dat nodig is om dit archief te openen";
+"archivePasswordInvalidCharacters" = "Het wachtwoord mag geen regeleinden of stuurtekens bevatten.";
 "moreInfoAccessibilityHint" = "Toont gedetailleerde eigenschappen van dit item";
 "iCloudStatusDownloading" = "Downloaden van iCloud";
 "iCloudStatusNotDownloaded" = "Niet gedownload van iCloud";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "Kon het formaat gewijzigde afbeelding niet renderen";
 "imageConverterDestinationFailed" = "Kon afbeeldingsbestemming niet maken";
 "imageConverterFinalizeFailed" = "Kon afbeeldingsbestemming niet afronden";
+"imageConverterOutputTooLarge" = "De afbeelding is te groot om te converteren (meer dan {0} megapixels)";
 "syntaxTruncatedNotice" = "\n... (afgekapt)";
 "fileTemplateMarkdownContent" = "# Titel\n\nInhoud komt hier.\n";
 "fileTemplateJSONContent" = "{\n  \"sleutel\": \"waarde\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "{0} van {1} items konden niet worden verplaatst.";
 "searchContentQueryTooShort" = "Typ minstens 3 tekens om in bestanden te zoeken.";
 "searchInvalidRegex" = "Die reguliere expressie is ongeldig.";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "De eerste %d van vele worden weergegeven";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

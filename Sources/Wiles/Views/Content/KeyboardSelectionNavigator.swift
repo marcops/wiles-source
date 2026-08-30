@@ -92,7 +92,7 @@ struct KeyboardSelectionNavigator {
     /// list view should enter a folder, not "navigate to" a selected file.
     private func directoryToEnter(from appState: AppState) -> URL? {
         guard let first = appState.selection.selectedURLs.first else { return nil }
-        guard let item = appState.fileSystem.items.first(where: { $0.url == first }) else { return nil }
+        guard let item = appState.fileSystem.itemsByURL[first] else { return nil }
         return item.isDirectory ? first : nil
     }
 
@@ -103,13 +103,14 @@ struct KeyboardSelectionNavigator {
     private func moveSelection(by offset: Int, isShift: Bool, appState: AppState) {
         let items = appState.fileSystem.items
         guard !items.isEmpty else { return }
+        let indexByURL = appState.fileSystem.indexByURL
 
         if isShift {
             let anchorURL = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first
-            let anchorIndex = items.firstIndex(where: { $0.url == anchorURL }) ?? 0
+            let anchorIndex = anchorURL.flatMap { indexByURL[$0] } ?? 0
             appState.selection.keyboardSelectionAnchorURL = items[anchorIndex].url
 
-            let selectedIndices = appState.selection.selectedURLs.compactMap { url in items.firstIndex(where: { $0.url == url }) }
+            let selectedIndices = appState.selection.selectedURLs.compactMap { indexByURL[$0] }
             let cursorIndex = selectedIndices.max(by: { abs($0 - anchorIndex) < abs($1 - anchorIndex) }) ?? anchorIndex
 
             let newIndex = max(0, min(items.count - 1, cursorIndex + offset))
@@ -119,7 +120,7 @@ struct KeyboardSelectionNavigator {
             appState.selection.lastMovedURL = items[newIndex].url
         } else {
             let currentURL = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first
-            let currentIndex = items.firstIndex(where: { $0.url == currentURL }) ?? -1
+            let currentIndex = currentURL.flatMap { indexByURL[$0] } ?? -1
             let newIndex = max(0, min(items.count - 1, currentIndex + offset))
             let newURL = items[newIndex].url
             appState.selection.keyboardSelectionAnchorURL = newURL
@@ -171,13 +172,13 @@ struct KeyboardSelectionNavigator {
     private func macOSReturnKeyItem(appState: AppState) -> FileItem? {
         guard appState.preferences.view.navigationMode == .macOS else { return nil }
         guard let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first else { return nil }
-        return appState.fileSystem.items.first(where: { $0.url == anchor })
+        return appState.fileSystem.itemsByURL[anchor]
     }
 
     private func triggerRenameForSelected(appState: AppState, windowUIState: WindowUIState) {
         if appState.selection.selectedURLs.count > 1 {
             windowUIState.activeModal = .batchRename
-        } else if let first = appState.selection.selectedURLs.first, let item = appState.fileSystem.items.first(where: { $0.url == first }) {
+        } else if let first = appState.selection.selectedURLs.first, let item = appState.fileSystem.itemsByURL[first] {
             windowUIState.renameItem = item
         }
     }

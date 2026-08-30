@@ -9,12 +9,12 @@ import Foundation
 /// thin panel-configuration pass-through.
 @MainActor
 public struct OpenWithTests {
-    public static func run() {
+    public static func run() async {
         let sampleFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("sample_test.txt")
         try? "test data".write(to: sampleFile, atomically: true, encoding: .utf8)
 
         // POS: Discover applications for .txt file
-        let apps = OpenWithService.availableApplications(for: sampleFile)
+        let apps = await OpenWithService.availableApplications(for: sampleFile)
         TestReporter.report("OpenWith", "POS: availableApplications for .txt file", result: !apps.isEmpty)
 
         // POS: Applications list contains non-empty display names and URLs
@@ -32,17 +32,17 @@ public struct OpenWithTests {
         try? FileManager.default.removeItem(at: sampleFile)
 
         testChooseOtherApplicationWithEmptyURLsIsNoOp()
-        testAvailableApplicationsForFileWithNoExtension()
-        testAvailableApplicationsForNonexistentFileURL()
+        await testAvailableApplicationsForFileWithNoExtension()
+        await testAvailableApplicationsForNonexistentFileURL()
         testSetDefaultApplicationWithValidExtensionAndBogusAppURL()
-        testApplicationsAreDeduplicatedByBundleID()
+        await testApplicationsAreDeduplicatedByBundleID()
         testOpenWithNonEmptyURLsCallsThroughToTheInjectedOpener()
-        testAvailableApplicationsAreMemoizedByExtension()
+        await testAvailableApplicationsAreMemoizedByExtension()
     }
 
     /// The per-extension memo returns the same list for two files of the same type and is dropped
     /// by `invalidateApplicationsCache()`.
-    private static func testAvailableApplicationsAreMemoizedByExtension() {
+    private static func testAvailableApplicationsAreMemoizedByExtension() async {
         OpenWithService.invalidateApplicationsCache()
         let dir = URL(fileURLWithPath: testTemporaryDirectory())
         let memoA = dir.appendingPathComponent("memo-a.txt")
@@ -55,15 +55,15 @@ public struct OpenWithTests {
             OpenWithService.invalidateApplicationsCache()
         }
 
-        let first = OpenWithService.availableApplications(for: memoA).map(\.id)
-        let second = OpenWithService.availableApplications(for: memoB).map(\.id)
+        let first = await OpenWithService.availableApplications(for: memoA).map(\.id)
+        let second = await OpenWithService.availableApplications(for: memoB).map(\.id)
         TestReporter.report(
             "OpenWith",
             "POS: availableApplications returns the same memoized list for two files of the same extension",
             result: first == second)
 
         OpenWithService.invalidateApplicationsCache()
-        let afterInvalidate = OpenWithService.availableApplications(for: memoA).map(\.id)
+        let afterInvalidate = await OpenWithService.availableApplications(for: memoA).map(\.id)
         TestReporter.report(
             "OpenWith",
             "POS: the extension memo still yields the same result after invalidateApplicationsCache()",
@@ -97,7 +97,7 @@ public struct OpenWithTests {
 
     // NEG: a file with no extension at all still returns without crashing (may be empty or may fall back
     // to generic apps depending on system state, so we only assert it doesn't throw/crash and returns an array)
-    private static func testAvailableApplicationsForFileWithNoExtension() {
+    private static func testAvailableApplicationsForFileWithNoExtension() async {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -105,7 +105,7 @@ public struct OpenWithTests {
         let noExtensionFile = dir.appendingPathComponent("no_extension_file")
         try? "data".write(to: noExtensionFile, atomically: true, encoding: .utf8)
 
-        let apps = OpenWithService.availableApplications(for: noExtensionFile)
+        let apps = await OpenWithService.availableApplications(for: noExtensionFile)
         let validApps = apps.allSatisfy { !$0.name.isEmpty && $0.url.isFileURL }
         TestReporter.report(
             "OpenWith",
@@ -115,11 +115,11 @@ public struct OpenWithTests {
 
     // NEG: a well-formed file URL that does not actually exist on disk should not crash the lookup;
     // NSWorkspace resolves candidate apps from the URL's UTI/extension, not from file existence
-    private static func testAvailableApplicationsForNonexistentFileURL() {
+    private static func testAvailableApplicationsForNonexistentFileURL() async {
         let ghostFile = URL(fileURLWithPath: testTemporaryDirectory())
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("txt")
-        let apps = OpenWithService.availableApplications(for: ghostFile)
+        let apps = await OpenWithService.availableApplications(for: ghostFile)
         let validApps = apps.allSatisfy { !$0.name.isEmpty && $0.url.isFileURL }
         TestReporter.report(
             "OpenWith",
@@ -137,12 +137,12 @@ public struct OpenWithTests {
 
     // POS: availableApplications de-duplicates by bundle identifier — verify the returned list never
     // contains two entries with the same id, which would otherwise show duplicate rows in the Open With menu
-    private static func testApplicationsAreDeduplicatedByBundleID() {
+    private static func testApplicationsAreDeduplicatedByBundleID() async {
         let sampleFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).appendingPathExtension("txt")
         try? "test data".write(to: sampleFile, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: sampleFile) }
 
-        let apps = OpenWithService.availableApplications(for: sampleFile)
+        let apps = await OpenWithService.availableApplications(for: sampleFile)
         let ids = apps.map(\.id)
         let uniqueIDs = Set(ids)
         TestReporter.report("OpenWith", "POS: availableApplications returns no duplicate bundle ids", result: ids.count == uniqueIDs.count)

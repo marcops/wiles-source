@@ -4,20 +4,39 @@ public enum BatchRenameService {
     private static let minPaddingDigits = 1
     private static let maxPaddingDigits = 10
 
-    public static func previewNewNames(items: [FileItem], mode: BatchRenameMode) -> [(original: FileItem, newName: String)] {
-        // Compile the regex once for the whole batch, not once per item — a 500-item preview in
-        // `.regex` mode used to build 500 `NSRegularExpression`s on every keystroke.
-        let compiledRegex = compiledRegex(for: mode)
-        return items.enumerated().map { index, item in
-            (original: item, newName: renamedName(for: item, index: index, mode: mode, regex: compiledRegex))
+    /// Outcome of compiling a mode's regex pattern once, shared by the live preview (which tolerates
+    /// `.invalid` as "leave names untouched") and `performBatchRename` (which turns it into a thrown
+    /// error). `.none` covers non-regex modes and an empty pattern.
+    private enum RegexResolution {
+        case none
+        case compiled(NSRegularExpression)
+        case invalid(pattern: String)
+
+        var regex: NSRegularExpression? {
+            if case let .compiled(regex) = self { return regex }
+            return nil
         }
     }
 
-    /// The `NSRegularExpression` for a `.regex` mode with a non-empty, valid pattern; `nil` otherwise
-    /// (including for non-regex modes).
-    private static func compiledRegex(for mode: BatchRenameMode) -> NSRegularExpression? {
-        guard case let .regex(pattern, _) = mode, !pattern.isEmpty else { return nil }
-        return try? NSRegularExpression(pattern: pattern, options: [])
+    private static func resolveRegex(for mode: BatchRenameMode) -> RegexResolution {
+        guard case let .regex(pattern, _) = mode, !pattern.isEmpty else { return .none }
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return .invalid(pattern: pattern)
+        }
+        return .compiled(regex)
+    }
+
+    public static func previewNewNames(items: [FileItem], mode: BatchRenameMode) -> [(original: FileItem, newName: String)] {
+        previewNewNames(items: items, mode: mode, regex: resolveRegex(for: mode).regex)
+    }
+
+    /// Shared core — the regex is compiled once by the caller (not once per item; a 500-item
+    /// `.regex` preview used to build 500 `NSRegularExpression`s on every keystroke).
+    private static func previewNewNames(
+        items: [FileItem], mode: BatchRenameMode, regex: NSRegularExpression?) -> [(original: FileItem, newName: String)] {
+        items.enumerated().map { index, item in
+            (original: item, newName: renamedName(for: item, index: index, mode: mode, regex: regex))
+        }
     }
 
     private static func renamedName(for item: FileItem, index: Int, mode: BatchRenameMode, regex: NSRegularExpression?) -> String {
@@ -52,14 +71,6 @@ public enum BatchRenameService {
         }
 
         return item.isDirectory ? newBaseName : "\(newBaseName)\(extWithDot)"
-    }
-
-    /// Returns the offending pattern string when `mode` is a `.regex` mode whose non-empty pattern
-    /// fails to compile, `nil` otherwise (non-regex modes, or a regex mode with an empty/valid
-    /// pattern never need to abort the rename).
-    private static func invalidRegexPattern(in mode: BatchRenameMode) -> String? {
-        guard case let .regex(pattern, _) = mode, !pattern.isEmpty else { return nil }
-        return (try? NSRegularExpression(pattern: pattern, options: [])) == nil ? pattern : nil
     }
 
     /// `true` when `newName` is non-blank and differs from the item's current name (a real rename).
@@ -120,26 +131,35 @@ public enum BatchRenameService {
         // previewNewNames silently falls back to the original base name for an invalid regex
         // pattern (that fallback is fine for the live preview text), but actually performing the
         // rename must not pretend the user didn't ask for anything - validate the pattern up front
-        // and abort with a real error instead of silently no-op-renaming every item.
-        if let invalidPattern = invalidRegexPattern(in: mode) {
-            throw WilesError.localized(key: .batchRenameInvalidPattern, arguments: [invalidPattern])
+        // and abort with a real error instead of silently no-op-renaming every item. Compiled once
+        // here and threaded into the preview, not compiled a second time.
+        let resolution = resolveRegex(for: mode)
+        if case let .invalid(pattern) = resolution {
+            throw WilesError.localized(key: .batchRenameInvalidPattern, arguments: [pattern])
         }
 
-        let previews = previewNewNames(items: items, mode: mode)
+        let previews = previewNewNames(items: items, mode: mode, regex: resolution.regex)
         try assertNoCollisions(in: previews)
 
         var renamedURLs: [URL] = []
         renamedURLs.reserveCapacity(previews.count)
         var renamedPairs: [(old: URL, new: URL)] = []
         var failures: [(item: FileItem, error: any Error)] = []
+
+        // A permutation (swap A↔B, rotate A→B→C→A) passes `assertNoCollisions` but the sequential
+        // rename below would fail every step — the target name is still occupied by another source.
+        // Stage those sources through a unique temp name first so the finals are always free.
+        let sourceURLByStaged = try await stagePermutationCycles(in: previews)
+
         for (item, newName) in previews {
             try Task.checkCancellation()
             guard isActualRename(item, to: newName) else {
                 renamedURLs.append(item.url)
                 continue
             }
+            let currentURL = sourceURLByStaged[item.url] ?? item.url
             do {
-                let newURL = try await FileSystemService.renameItem(at: item.url, newName: newName)
+                let newURL = try await FileSystemService.renameItem(at: currentURL, newName: newName)
                 renamedURLs.append(newURL)
                 renamedPairs.append((old: item.url, new: newURL))
             } catch {
@@ -147,5 +167,44 @@ public enum BatchRenameService {
             }
         }
         return BatchRenameResult(renamedURLs: renamedURLs, renamedPairs: renamedPairs, failures: failures)
+    }
+
+    private struct StagedRename {
+        let originalURL: URL
+        let tempURL: URL
+        let originalName: String
+    }
+
+    /// For each source directory whose set of new names overlaps its set of old names (a rename
+    /// cycle), renames every participant to a unique hidden temp name up front. Returns
+    /// `originalURL → temp URL` for those so the main loop renames the temp to the final name.
+    private static func stagePermutationCycles(
+        in previews: [(original: FileItem, newName: String)]) async throws -> [URL: URL] {
+        let renames = previews.filter { isActualRename($0.original, to: $0.newName) }
+        let byDirectory = Dictionary(grouping: renames) { $0.original.url.deletingLastPathComponent() }
+
+        var stagedURLByOriginal: [URL: URL] = [:]
+        for (_, group) in byDirectory {
+            let newNames = Set(group.map(\.newName))
+            let oldNames = Set(group.map(\.original.name))
+            guard !newNames.isDisjoint(with: oldNames) else { continue }
+
+            var stagedThisGroup: [StagedRename] = []
+            do {
+                for pair in group {
+                    try Task.checkCancellation()
+                    let tempName = ".wiles-batch-rename-\(UUID().uuidString)"
+                    let tempURL = try await FileSystemService.renameItem(at: pair.original.url, newName: tempName)
+                    stagedThisGroup.append(StagedRename(originalURL: pair.original.url, tempURL: tempURL, originalName: pair.original.name))
+                }
+            } catch {
+                for entry in stagedThisGroup {
+                    _ = try? await FileSystemService.renameItem(at: entry.tempURL, newName: entry.originalName)
+                }
+                throw error
+            }
+            for entry in stagedThisGroup { stagedURLByOriginal[entry.originalURL] = entry.tempURL }
+        }
+        return stagedURLByOriginal
     }
 }

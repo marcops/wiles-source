@@ -14,14 +14,23 @@ struct TappableRow<Content: View>: View {
     var accessibilityLabel: String?
     var accessibilityHint: String?
     var isSelected: Bool = false
+    /// When true, taps are ignored (the caller still owns any dimmed styling). Mirrors a real
+    /// control's `.disabled(...)` for this hand-rolled equivalent.
+    var isDisabled: Bool = false
     let action: () -> Void
     @ViewBuilder let content: () -> Content
+
+    /// The tap handler, extracted so the enabled/disabled gate is unit-testable without a gesture.
+    func handleTap() {
+        guard !isDisabled else { return }
+        action()
+    }
 
     var body: some View {
         let traits: AccessibilityTraits = isSelected ? [.isButton, .isSelected] : .isButton
         let row = content()
             .contentShape(Rectangle())
-            .onTapGesture(perform: action)
+            .onTapGesture(perform: handleTap)
             .accessibilityAddTraits(traits)
 
         if let accessibilityLabel, let accessibilityHint {

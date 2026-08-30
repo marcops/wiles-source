@@ -32,15 +32,6 @@ struct WilesModalSheets: ViewModifier {
             ArchiveInspectionSheetView(archiveURL: url, appState: appState)
         case let .passwordCompress(urls):
             PasswordCompressSheetView(appState: appState, urls: urls)
-        case .batchRename, .connectToServer, .autoOrganization, .duplicateCleaner,
-             .saveSmartFolder, .help, .feedback, .about, .settings:
-            payloadFreeSheet(for: modal)
-        }
-    }
-
-    @ViewBuilder
-    private func payloadFreeSheet(for modal: ActiveModal) -> some View {
-        switch modal {
         case .batchRename:
             BatchRenameSheetView(items: selectedItems, appState: appState)
         case .connectToServer:
@@ -51,8 +42,16 @@ struct WilesModalSheets: ViewModifier {
             DuplicateCleanerSheetView(appState: appState)
         case .saveSmartFolder:
             SaveSmartFolderSheetView(appState: appState)
-        case .help:
-            HelpSheet(appState: appState)
+        case .help, .feedback, .about, .settings:
+            infoSheet(for: modal)
+        }
+    }
+
+    /// The four "app info" sheets (no payload), split off `sheet(for:)` to keep its branch count
+    /// under the `cyclomatic_complexity` limit.
+    @ViewBuilder
+    private func infoSheet(for modal: ActiveModal) -> some View {
+        switch modal {
         case .feedback:
             FeedbackSheetView(appState: appState)
         case .about:
@@ -60,7 +59,7 @@ struct WilesModalSheets: ViewModifier {
         case .settings:
             SettingsView(appState: appState)
         default:
-            EmptyView()
+            HelpSheet(appState: appState)
         }
     }
 

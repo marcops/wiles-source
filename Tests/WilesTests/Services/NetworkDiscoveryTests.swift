@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public struct NetworkDiscoveryTests {
     public static func run() {
-        let service = NetworkDiscoveryService.shared
+        let service = NetworkDiscoveryService()
         service.start()
         service.stop()
         TestReporter.report("NetworkDiscovery", "POS: Bonjour NWBrowser service starts and stops cleanly", result: true)
@@ -23,6 +23,15 @@ public struct NetworkDiscoveryTests {
         TestReporter.report("NetworkDiscovery", "POS: start() after stop() restarts without crashing", result: true)
 
         service.stop()
+
+        // Per-window: each AppState owns its own instance, so one window's stop can't tear down another's.
+        let windowA = AppState()
+        let windowB = AppState()
+        TestReporter.report(
+            "NetworkDiscovery",
+            "POS: NetworkDiscoveryService and LocalHttpServerService are per-AppState, not a shared singleton",
+            result: windowA.networkDiscoveryService !== windowB.networkDiscoveryService
+                && windowA.httpServerService !== windowB.httpServerService)
 
         testNetworkShareInitialization()
         testNetworkShareIdentityIsUniquePerInstance()

@@ -13,6 +13,27 @@ public struct FileTaggingServiceTests {
         testClearAllTagsRemovesExistingTags()
         testClearAllTagsReturnsErrorForMissingFile()
         testCurrentTagsFallsBackToDirectDiskReadWhenNotInSnapshot()
+        testToggleTagOnMixedSelectionAddsToAllThenRemovesFromAll()
+    }
+
+    private static func testToggleTagOnMixedSelectionAddsToAllThenRemovesFromAll() {
+        let dir = tempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let has = dir.appendingPathComponent("has.txt").standardizedFileURL
+        let hasnt = dir.appendingPathComponent("hasnt.txt").standardizedFileURL
+        try? "1".write(to: has, atomically: true, encoding: .utf8)
+        try? "2".write(to: hasnt, atomically: true, encoding: .utf8)
+        try? FileSystemService.setTags(for: has, tags: ["Blue"])
+
+        _ = FileTaggingService.toggleTag("Blue", for: [has, hasnt], itemsSnapshot: [])
+        let bothHave = FileTaggingService.currentTags(for: has, in: []).contains("Blue")
+            && FileTaggingService.currentTags(for: hasnt, in: []).contains("Blue")
+        report("POS: toggling a tag on a mixed selection adds it to every item (not a per-file flip)", result: bothHave)
+
+        _ = FileTaggingService.toggleTag("Blue", for: [has, hasnt], itemsSnapshot: [])
+        let neitherHas = !FileTaggingService.currentTags(for: has, in: []).contains("Blue")
+            && !FileTaggingService.currentTags(for: hasnt, in: []).contains("Blue")
+        report("POS: toggling again removes the tag from every item once the whole selection had it", result: neitherHas)
     }
 
     /// When the URL isn't in `itemsSnapshot`, `currentTags` reads `.tagNamesKey` straight off the

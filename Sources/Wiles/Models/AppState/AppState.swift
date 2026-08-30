@@ -24,6 +24,16 @@ public final class AppState {
     /// so ⌘Z in one window never undoes an action performed in a different window.
     public let undoRedoService = UndoRedoService()
 
+    /// Per-window smart-folder query runner. NOT `.shared`: its in-flight `SpotlightQuery` +
+    /// staleness token are per-run session state, and a shared instance meant one window's smart
+    /// folder discarded its own results when another window ran its own query (BA-108).
+    public let smartFolderService = SmartFolderService()
+
+    /// Per-window (not `.shared`): their live session state — an mDNS browser, a bound listener —
+    /// must not be torn down by another window's view lifecycle.
+    public let networkDiscoveryService = NetworkDiscoveryService()
+    public let httpServerService = LocalHttpServerService()
+
     /// `nonisolated`: a plain constant URL, safe from any context — lets `FileSystemService`
     /// (off-`@MainActor`) reference it directly instead of duplicating the path as a literal.
     public nonisolated static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")

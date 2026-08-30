@@ -11,6 +11,84 @@ public struct FileSystemStoreTests {
 
         testTotalFileSizeBytesTracksItemsAssignment()
         testItemsByURLIndexTracksItemsAssignment()
+        testIndexByURLTracksItemsAssignment()
+        testBatchStreamingDefersDerivedRebuildUntilSettled()
+        testOverlappingStreamsKeepRebuildDeferredUntilAllSettle()
+    }
+
+    /// A superseded crawl's `endBatchStreaming()` must not re-enable per-batch rebuilds while a
+    /// newer crawl is still streaming.
+    private static func testOverlappingStreamsKeepRebuildDeferredUntilAllSettle() {
+        let store = FileSystemStore()
+        let itemA = makeItem(name: "a.txt", size: 10, isDirectory: false)
+        let itemB = makeItem(name: "b.txt", size: 20, isDirectory: false)
+
+        store.beginBatchStreaming()
+        store.beginBatchStreaming()
+        store.endBatchStreaming()
+
+        store.items = [itemA, itemB]
+        report(
+            "Store/FileSystemStore",
+            "NEG: an outer stream still open keeps mid-batch assignments from rebuilding derived indexes",
+            result: store.totalFileSizeBytes == 0 && store.itemsByURL.isEmpty)
+
+        store.endBatchStreaming()
+        report(
+            "Store/FileSystemStore",
+            "POS: the final endBatchStreaming() rebuilds every derived index once",
+            result: store.totalFileSizeBytes == 30 && store.indexByURL[itemB.url] == 1)
+    }
+
+    /// B3-4: while streaming cumulative recursive-search batches, `items` assignments must NOT rebuild
+    /// the derived indexes on each batch — only `endBatchStreaming()` rebuilds them once.
+    private static func testBatchStreamingDefersDerivedRebuildUntilSettled() {
+        let store = FileSystemStore()
+        let itemA = makeItem(name: "a.txt", size: 10, isDirectory: false)
+        let itemB = makeItem(name: "b.txt", size: 20, isDirectory: false)
+        store.items = [itemA]
+
+        store.beginBatchStreaming()
+        store.items = [itemA, itemB]
+        report(
+            "Store/FileSystemStore",
+            "NEG: mid-stream batch assignment leaves derived indexes stale",
+            result: store.totalFileSizeBytes == 10 && store.itemsByURL[itemB.url] == nil && store.indexByURL[itemB.url] == nil)
+
+        store.endBatchStreaming()
+        report(
+            "Store/FileSystemStore",
+            "POS: endBatchStreaming() rebuilds every derived index once from the final list",
+            result: store.totalFileSizeBytes == 30 && store.itemsByURL[itemB.url]?.name == "b.txt" && store.indexByURL[itemB.url] == 1)
+
+        store.items = [itemA]
+        report(
+            "Store/FileSystemStore",
+            "POS: after streaming ends, a plain assignment rebuilds derived indexes again",
+            result: store.totalFileSizeBytes == 10 && store.itemsByURL[itemB.url] == nil)
+    }
+
+    private static func testIndexByURLTracksItemsAssignment() {
+        let store = FileSystemStore()
+        report("Store/FileSystemStore", "POS: indexByURL starts empty", result: store.indexByURL.isEmpty)
+
+        let itemA = makeItem(name: "a.txt", size: 1, isDirectory: false)
+        let itemB = makeItem(name: "b.txt", size: 2, isDirectory: false)
+        let itemC = makeItem(name: "c.txt", size: 3, isDirectory: false)
+        store.items = [itemA, itemB, itemC]
+        report(
+            "Store/FileSystemStore",
+            "POS: assigning items builds a URL -> position index matching array order",
+            result: store.indexByURL[itemA.url] == 0 && store.indexByURL[itemB.url] == 1 && store.indexByURL[itemC.url] == 2)
+
+        store.items = [itemC, itemA]
+        report(
+            "Store/FileSystemStore",
+            "POS: reordering items rebuilds indexByURL positions and drops stale keys",
+            result: store.indexByURL[itemC.url] == 0 && store.indexByURL[itemA.url] == 1 && store.indexByURL[itemB.url] == nil)
+
+        store.items = []
+        report("Store/FileSystemStore", "POS: clearing items empties indexByURL", result: store.indexByURL.isEmpty)
     }
 
     private static func testItemsByURLIndexTracksItemsAssignment() {

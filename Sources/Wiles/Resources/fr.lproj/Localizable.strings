@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Crée un ZIP protégé par mot de passe des éléments sélectionnés";
 "passwordMismatchHint" = "Les mots de passe ne correspondent pas.";
 "pastingItemsEllipsis" = "Collage des Éléments…";
+"batchRenamingEllipsis" = "Renommage des fichiers…";
 "removeRecentServer" = "Retirer des Récents";
 "removeSmartFolderConfirm" = "Voulez-vous vraiment supprimer ce dossier intelligent ? Cette action est irréversible.";
 "ruleConditionExtensionEquals" = "Extension Égale";
@@ -369,7 +370,6 @@
 "targetFormat" = "Format de destination";
 "toolsMenuTitle" = "Outils";
 "topLargestItems" = "Éléments les plus volumineux";
-"translucentLevel" = "Translucidité";
 "trash" = "Corbeille";
 "undo" = "Annuler";
 "version" = "Version";
@@ -393,8 +393,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d sur %d éléments n'ont pas pu être déplacés vers la Corbeille.";
-"tagOperationPartialFailure" = "%d sur %d éléments n'ont pas pu être étiquetés.";
+"moveToTrashPartialFailure" = "{0} sur {1} éléments n'ont pas pu être déplacés vers la Corbeille.";
+"tagOperationPartialFailure" = "{0} sur {1} éléments n'ont pas pu être étiquetés.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -440,11 +440,13 @@
 "copyLinkAccessibilityLabel" = "Copier le lien";
 "copyLinkAccessibilityHint" = "Copie l'adresse de partage dans le presse-papiers";
 "loadingEntries" = "Chargement des éléments...";
+"loadingApplications" = "Chargement des applications...";
 "noArchiveEntriesFound" = "Aucun élément trouvé ou l'archive n'a pas pu être lue.";
 "extractEntryHint" = "Extrait ce fichier vers le dossier actuel";
 "archiveFileEntry" = "Fichier";
 "sharedFolderPageTitle" = "Dossier Partagé";
 "sharedFolderHeading" = "Partagé";
+"sharedFolderListingTruncated" = "… et {0} éléments de plus (liste tronquée)";
 "requirePassword" = "Exiger un Mot de Passe";
 "startSharing" = "Démarrer le Partage";
 "wifiSharePasswordProtectedNotice" = "Ce dossier nécessite un mot de passe pour y accéder. Il n'est pas chiffré — toute autre personne sur le même réseau pourrait potentiellement l'intercepter.";
@@ -452,9 +454,11 @@
 "cancelTaskAccessibilityHint" = "Annule cette tâche en arrière-plan";
 "feedbackKindSelectionHint" = "Sélectionne cette catégorie de commentaire";
 "feedbackDescriptionFieldHint" = "Saisissez une description détaillée de votre commentaire";
+"feedbackPublicNotice" = "Votre rapport est envoyé à notre outil public de suivi des problèmes. N'y incluez pas d'informations personnelles ou sensibles.";
 "applyPermissionsHint" = "Applique les autorisations sélectionnées à cet élément";
 "permissionToggleHint" = "Active ou désactive cette autorisation";
 "archivePasswordFieldHint" = "Définit le mot de passe requis pour ouvrir cette archive";
+"archivePasswordInvalidCharacters" = "Le mot de passe ne peut pas contenir de sauts de ligne ni de caractères de contrôle.";
 "moreInfoAccessibilityHint" = "Affiche les propriétés détaillées de cet élément";
 "iCloudStatusDownloading" = "Téléchargement depuis iCloud";
 "iCloudStatusNotDownloaded" = "Non téléchargé depuis iCloud";
@@ -505,6 +509,7 @@
 "imageConverterRenderFailed" = "Échec du rendu de l'image redimensionnée";
 "imageConverterDestinationFailed" = "Échec de la création de la destination de l'image";
 "imageConverterFinalizeFailed" = "Échec de la finalisation de la destination de l'image";
+"imageConverterOutputTooLarge" = "L’image est trop grande pour être convertie (plus de {0} mégapixels)";
 "syntaxTruncatedNotice" = "\n... (tronqué)";
 "fileTemplateMarkdownContent" = "# Titre\n\nLe contenu va ici.\n";
 "fileTemplateJSONContent" = "{\n  \"clé\": \"valeur\"\n}\n";
@@ -544,3 +549,9 @@
 "movePartialFailure" = "{0} sur {1} éléments n'ont pas pu être déplacés.";
 "searchContentQueryTooShort" = "Saisissez au moins 3 caractères pour rechercher dans les fichiers.";
 "searchInvalidRegex" = "Cette expression régulière n'est pas valide.";
+"smartFolderLocationNotIndexed" = "Cet emplacement n'est pas indexé par Spotlight ; les résultats peuvent être incomplets.";
+"resultsTruncatedNotice" = "Affichage des %d premiers éléments sur un grand nombre";
+"convertingImageEllipsis" = "Conversion de l’image…";
+"deletingPermanentlyEllipsis" = "Suppression définitive…";
+"undoingEllipsis" = "Annulation…";
+"redoingEllipsis" = "Rétablissement…";

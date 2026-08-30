@@ -9,7 +9,7 @@ public struct ConnectToServerSheetView: View {
     @Environment(\.dismiss)
     private var dismiss
     @State private var serverAddress: String = ""
-    @State private var recentServers: [String] = (UserDefaults.standard.stringArray(forKey: DefaultsKey.recentConnectServers.rawValue)) ?? []
+    @State private var recentServers: [String] = []
 
     public init(appState: AppState) {
         self.appState = appState
@@ -28,6 +28,7 @@ public struct ConnectToServerSheetView: View {
                 },
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             content: { formContent })
+            .task { recentServers = UserDefaults.standard.stringArray(forKey: DefaultsKey.recentConnectServers.rawValue) ?? [] }
     }
 
     private var formContent: some View {

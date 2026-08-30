@@ -98,9 +98,9 @@ public extension AppState {
     /// this is the folder being "left" and should be reselected once `newURL`'s contents load.
     private func childToRestore(whenLeaving oldURL: URL, movingTo newURL: URL) -> URL? {
         let oldComponents = oldURL.standardizedFileURL.pathComponents
-        let newComponents = newURL.pathComponents
+        let newComponents = newURL.standardizedFileURL.pathComponents
         guard newComponents.count < oldComponents.count,
-              Array(oldComponents.prefix(newComponents.count)) == newComponents else { return nil }
+              oldURL.isDescendantOrSelf(of: newURL) else { return nil }
         return newURL.appendingPathComponent(oldComponents[newComponents.count])
     }
 
@@ -232,10 +232,18 @@ public extension AppState {
 
     private func performSearchEverywhereRefresh(target: URL, query: String, options: DirectoryLoadOptions, includeHidden: Bool) async {
         do {
+            // Each cumulative batch re-assigns the whole match list; defer the derived-index rebuild
+            // to one pass once the crawl settles instead of once per batch.
+            fileSystem.beginBatchStreaming()
+            defer { fileSystem.endBatchStreaming() }
             try await FileSystemService.loadRecursiveSearchResults(at: .userHome, options: options, includeHidden: includeHidden) { [weak self] batch in
                 Task { @MainActor in
-                    guard let self, !Task.isCancelled, self.isStillCurrent(target: target, query: query) else { return }
-                    self.applyLoadedItems(batch, target: target)
+                    // No `Task.isCancelled` check — this is a fresh unparented `Task`, so it's always
+                    // `false` here; `isStillCurrent` is the real staleness guard.
+                    guard let self, self.isStillCurrent(target: target, query: query) else { return }
+                    self.applyLoadedItems(
+                        batch, target: target,
+                        truncatedAtCap: batch.count >= FileSystemService.recursiveSearchResultLimit)
                 }
             }
         } catch {
@@ -250,7 +258,9 @@ public extension AppState {
                 at: target, options: options, recentURLs: navigation.recentOpenedURLs)
             guard !Task.isCancelled, isStillCurrent(target: target, query: query) else { return }
             await MainActor.run {
-                self.applyLoadedItems(loaded, target: target)
+                self.applyLoadedItems(
+                    loaded, target: target,
+                    truncatedAtCap: loaded.count >= FileSystemService.directoryListingLimit)
                 self.refreshTrashSizeIfNeeded(target: target)
             }
         } catch {
@@ -279,8 +289,7 @@ public extension AppState {
     /// when the user actually navigated into Trash, or opportunistically at most once per
     /// `TrashState.recomputeInterval` so the footer/sidebar figure still drifts back into sync over time.
     private func refreshTrashSizeIfNeeded(target: URL) {
-        let trashURL = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask).first
-        let isTrash = trashURL.map { $0.standardizedFileURL == target.standardizedFileURL } ?? false
+        let isTrash = URL.userTrash.standardizedFileURL == target.standardizedFileURL
         let dueForCoarseCheck = fileSystem.trash.shouldRecompute()
         guard isTrash || dueForCoarseCheck else { return }
         // Reset the coarse-check clock on a direct visit to Trash too (not just on the periodic
@@ -296,9 +305,11 @@ public extension AppState {
     /// real async load, so revisiting a folder shows cached contents immediately while the real load
     /// still runs and reconciles afterward. The `Equatable` on `FileItem` (which ignores `icon`) means
     /// this is a no-op re-render when the cache already matched reality.
-    func applyLoadedItems(_ loaded: [FileItem], target: URL) {
+    func applyLoadedItems(_ loaded: [FileItem], target: URL, truncatedAtCap: Bool = false) {
         guard navigation.currentURL == target else { return }
         guard fileSystem.renamingURL == nil else { return }
+        fileSystem.resultsTruncated = truncatedAtCap
+        selection.cachedSelectedFileSizeBytes = nil
         if fileSystem.items != loaded {
             fileSystem.items = loaded
         }

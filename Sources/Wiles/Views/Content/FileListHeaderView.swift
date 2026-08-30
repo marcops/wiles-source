@@ -70,27 +70,31 @@ struct FileListHeaderView: View {
     }
 
     private func headerCell(_ title: String, option: SortOption, isLeading: Bool) -> some View {
-        Button {
+        TappableRow(
+            accessibilityLabel: title,
+            accessibilityHint: appState.tr(.sortBy),
+            isSelected: appState.preferences.view.sortOption == option,
             // The sort-field / direction change is picked up by `MainContentView`'s
             // `.onChange(of: sortOption/sortAscending)`, which re-sorts the loaded items in place —
             // no explicit refresh here (that used to fire a redundant second directory re-read).
-            if appState.preferences.view.sortOption == option {
-                appState.preferences.view.sortAscending.toggle()
-            } else {
-                appState.preferences.view.sortOption = option
-                appState.preferences.view.sortAscending = true
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(title)
+            action: {
                 if appState.preferences.view.sortOption == option {
-                    Image(systemName: appState.preferences.view.sortAscending ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9, weight: .bold))
+                    appState.preferences.view.sortAscending.toggle()
+                } else {
+                    appState.preferences.view.sortOption = option
+                    appState.preferences.view.sortAscending = true
                 }
-            }
-            .padding(.trailing, isLeading ? 0 : 4)
-        }
-        .buttonStyle(.plain)
+            },
+            content: {
+                HStack(spacing: 4) {
+                    Text(title)
+                    if appState.preferences.view.sortOption == option {
+                        Image(systemName: appState.preferences.view.sortAscending ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                }
+                .padding(.trailing, isLeading ? 0 : 4)
+            })
     }
 
     private func sortOption(for col: ListColumn) -> SortOption {

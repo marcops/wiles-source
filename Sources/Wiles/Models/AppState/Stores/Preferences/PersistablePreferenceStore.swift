@@ -5,7 +5,12 @@ import Foundation
 /// preference persists through one of these on `didSet` instead of a hand-written
 /// `UserDefaults.standard.set(x, forKey: DefaultsKey.x.rawValue)` per property, so the value and
 /// its key can never be typed out of sync.
-protocol PersistablePreferenceStore { }
+@MainActor
+protocol PersistablePreferenceStore: AnyObject {
+    /// True only while `init` is seeding a property from disk — every persisting `didSet` checks it
+    /// and skips writing the just-read value straight back to `UserDefaults`.
+    var isRestoringDefaults: Bool { get set }
+}
 
 extension PersistablePreferenceStore {
     func persist(_ value: Bool, _ key: DefaultsKey) {
@@ -33,7 +38,9 @@ extension PersistablePreferenceStore {
     func loadEnum<T: RawRepresentable>(
         _ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<Self, T>, from defaults: UserDefaults) where T.RawValue == String {
         if let raw = defaults.string(forKey: key.rawValue), let value = T(rawValue: raw) {
+            isRestoringDefaults = true
             self[keyPath: keyPath] = value
+            isRestoringDefaults = false
         }
     }
 
@@ -41,8 +48,17 @@ extension PersistablePreferenceStore {
     /// from an explicitly saved `false` (`UserDefaults.bool(forKey:)` returns false for both).
     func loadBool(_ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<Self, Bool>, from defaults: UserDefaults) {
         if defaults.object(forKey: key.rawValue) != nil {
+            isRestoringDefaults = true
             self[keyPath: keyPath] = defaults.bool(forKey: key.rawValue)
+            isRestoringDefaults = false
         }
+    }
+
+    /// Runs `body` with `isRestoringDefaults` set, so any persisting `didSet` it fires is a no-op.
+    func withRestoringDefaults(_ body: () -> Void) {
+        isRestoringDefaults = true
+        defer { isRestoringDefaults = false }
+        body()
     }
 
     /// Keys to drop to bring a capped collection back to `cap` without reverting the user's whole

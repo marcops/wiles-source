@@ -68,10 +68,10 @@ public struct AppStateOperationsExtraTests {
         return await pollUntilTrue { appState.modal.errorMessage != nil }
     }
 
-    /// Permanent delete is irreversible, so `deletePermanentlySelected(windowUIState:)` only asks
-    /// for confirmation (or runs straight through when `skipDeleteConfirmation` is on); the actual
-    /// shred lives in `performDeletePermanentlySelected()`, which runs in a `Task.detached` — so
-    /// the positive case polls with a bounded timeout.
+    /// Permanent delete is irreversible and bypasses the Trash, so `deletePermanentlySelected`
+    /// **always** asks for confirmation — `skipDeleteConfirmation` (a "move to Trash" preference)
+    /// does not apply. The actual shred lives in `performDeletePermanentlySelected()`, which runs
+    /// in a `Task.detached` — so that case polls with a bounded timeout.
     private static func testDeletePermanentlySelected() async {
         let dir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -96,10 +96,22 @@ public struct AppStateOperationsExtraTests {
             "POS: deletePermanentlySelected() asks for confirmation and leaves the file on disk when confirmation is not skipped",
             result: windowUIState.showDeletePermanentlyConfirmAlert && FileManager.default.fileExists(atPath: guardedFile.path))
 
-        let fileURL = makeFile(named: "to-shred.txt", in: dir)
+        // Even with skipDeleteConfirmation on, permanent delete still only raises the alert — it
+        // never shreds straight through (B2-1: that pref is for the reversible Trash path only).
+        let guardedFile2 = makeFile(named: "guarded2.txt", in: dir)
+        windowUIState.showDeletePermanentlyConfirmAlert = false
         appState.preferences.view.skipDeleteConfirmation = true
-        appState.selection.selectedURLs = [fileURL]
+        appState.selection.selectedURLs = [guardedFile2]
         appState.deletePermanentlySelected(windowUIState: windowUIState)
+        report(
+            "AppState+Operations",
+            "POS: deletePermanentlySelected() still only raises the alert even when skipDeleteConfirmation is on",
+            result: windowUIState.showDeletePermanentlyConfirmAlert && FileManager.default.fileExists(atPath: guardedFile2.path))
+
+        // The alert's confirm button calls performDeletePermanentlySelected(), which does the shred.
+        let fileURL = makeFile(named: "to-shred.txt", in: dir)
+        appState.selection.selectedURLs = [fileURL]
+        appState.performDeletePermanentlySelected()
         var stillExists = true
         for _ in 0 ..< 20 {
             stillExists = FileManager.default.fileExists(atPath: fileURL.path)
@@ -110,7 +122,7 @@ public struct AppStateOperationsExtraTests {
         }
         report(
             "AppState+Operations",
-            "POS: deletePermanentlySelected() with skip-confirmation on removes the file from disk and clears selection",
+            "POS: performDeletePermanentlySelected() removes the file from disk and clears selection",
             result: !stillExists && appState.selection.selectedURLs.isEmpty)
     }
 

@@ -7,6 +7,9 @@ public final class UndoRedoService {
     private var undoStack: [UndoRecord] = []
     private var redoStack: [UndoRecord] = []
     private let maxHistoryLimit = 50
+    /// One step at a time: a second ⌘Z while the first is mid-`await` would pop the next record and
+    /// run both reverse actions interleaved against a half-changed disk.
+    private var isProcessing = false
 
     /// Called after an undo/redo step relocates a file on disk (rename / move / trash-restore).
     /// `AppState` uses it to keep favorites pointing at the new path — undo/redo must not call
@@ -32,7 +35,9 @@ public final class UndoRedoService {
     }
 
     public func undo() async throws -> URL? {
-        guard let record = undoStack.popLast() else { return nil }
+        guard !isProcessing, let record = undoStack.popLast() else { return nil }
+        isProcessing = true
+        defer { isProcessing = false }
         do {
             let outcome = try await executeReverseAction(record.actionType)
             redoStack.append(UndoRecord(actionType: outcome.resultingAction))
@@ -46,7 +51,9 @@ public final class UndoRedoService {
     }
 
     public func redo() async throws -> URL? {
-        guard let record = redoStack.popLast() else { return nil }
+        guard !isProcessing, let record = redoStack.popLast() else { return nil }
+        isProcessing = true
+        defer { isProcessing = false }
         do {
             let outcome = try await executeForwardAction(record.actionType)
             undoStack.append(UndoRecord(actionType: outcome.resultingAction))
@@ -87,7 +94,20 @@ public final class UndoRedoService {
             onFileRelocated?(trashedURL, result)
             return ActionOutcome(
                 url: result, resultingAction: .trash(originalURL: result, trashedURL: trashedURL))
+        case let .chmod(url, previous):
+            return try await applyChmod(url: url, permissions: previous)
         }
+    }
+
+    /// Sets `url`'s POSIX permissions to `permissions`, off the main actor, and returns the
+    /// opposite-stack action carrying whatever they were just before.
+    private func applyChmod(url: URL, permissions: POSIXPermissions) async throws -> ActionOutcome {
+        let priorPermissions = try await Task.detached(priority: .userInitiated) { () -> POSIXPermissions in
+            let prior = FilePermissionsService.getPermissions(for: url) ?? permissions
+            try FilePermissionsService.setPermissions(for: url, permissions: permissions)
+            return prior
+        }.value
+        return ActionOutcome(url: url, resultingAction: .chmod(url: url, previous: priorPermissions))
     }
 
     private func executeForwardAction(_ action: UndoActionType) async throws -> ActionOutcome {
@@ -123,6 +143,8 @@ public final class UndoRedoService {
             return ActionOutcome(
                 url: originalURL.deletingLastPathComponent(),
                 resultingAction: .trash(originalURL: originalURL, trashedURL: trashed))
+        case let .chmod(url, previous):
+            return try await applyChmod(url: url, permissions: previous)
         }
     }
 }

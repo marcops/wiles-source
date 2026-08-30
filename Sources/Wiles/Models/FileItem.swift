@@ -4,7 +4,7 @@ import Foundation
 /// `@unchecked Sendable`: `icon` is an `NSImage` reference, but it is never mutated after `init`
 /// (only formatted once during construction); that post-init immutability is what makes this safe.
 public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
-    private static let highResIconSize: CGFloat = 512
+    private static let highResIconSize = IconSizeToken.renderResolution
 
     public var id: URL {
         url
@@ -93,7 +93,7 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
         let ubiquitous = ubiquitousStatus(from: values)
         // Separate stat/getpwuid/getgrgid syscall path — skip entirely when the caller knows the
         // Owner/Group columns aren't visible.
-        let ownerGroup = needsOwnerGroup ? ownerAndGroup(atPath: std.path) : ("--", "--")
+        let ownerGroup = needsOwnerGroup ? ownerAndGroup(at: std) : ("--", "--")
 
         return Self(
             url: std,
@@ -142,13 +142,9 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
             uploading: values?.ubiquitousItemIsUploading ?? false)
     }
 
-    private static func ownerAndGroup(atPath path: String) -> (owner: String, group: String) {
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: path) else {
-            return ("--", "--")
-        }
-        let owner = (attrs[.ownerAccountName] as? String) ?? "--"
-        let group = (attrs[.groupOwnerAccountName] as? String) ?? "--"
-        return (owner, group)
+    private static func ownerAndGroup(at url: URL) -> (owner: String, group: String) {
+        let ownership = FilePermissionsService.ownership(of: url)
+        return (ownership.owner ?? "--", ownership.group ?? "--")
     }
 
     public var formattedSize: String {
@@ -159,14 +155,14 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     }
 
     // Keyed by resolved language code so switching the in-app language mid-session reformats
-    // dates instead of sticking to whatever locale was captured on first use.
-    private static let dateFormatterCacheLock = NSLock()
-    private nonisolated(unsafe) static var dateFormatterCache: [String: DateFormatter] = [:]
+    // dates instead of sticking to whatever locale was captured on first use. `@MainActor`: every
+    // caller (list/grid cells, properties sheet, tooltip + column-autofit services) is already on
+    // the main actor, so the cache needs no lock and no `nonisolated(unsafe)`.
+    @MainActor private static var dateFormatterCache: [String: DateFormatter] = [:]
 
+    @MainActor
     private static func dateFormatter(for language: AppLanguage) -> DateFormatter {
         let code = L10n.activeCode(language)
-        dateFormatterCacheLock.lock()
-        defer { dateFormatterCacheLock.unlock() }
         if let cached = dateFormatterCache[code] {
             return cached
         }
@@ -182,14 +178,17 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
         return formatter
     }
 
+    @MainActor
     public func formattedDate(language: AppLanguage) -> String {
         Self.dateFormatter(for: language).string(from: dateModified)
     }
 
+    @MainActor
     public func formattedDateCreated(language: AppLanguage) -> String {
         Self.dateFormatter(for: language).string(from: dateCreated)
     }
 
+    @MainActor
     public func formattedDateAccessed(language: AppLanguage) -> String {
         guard let date = dateAccessed else { return "--" }
         return Self.dateFormatter(for: language).string(from: date)

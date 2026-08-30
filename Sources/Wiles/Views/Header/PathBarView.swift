@@ -78,12 +78,16 @@ struct PathBarView: View {
                 .accessibilityIdentifier("PathBarTextField")
                 .onSubmit {
                     let trimmed = appState.navigation.pathText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let url = URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath)
-                    if FileManager.default.fileExists(atPath: url.path) {
-                        appState.navigateTo(url)
-                    } else {
-                        appState.showError(WilesError.itemNotFound(path: url.path))
-                    }
+                    let expanded = (trimmed as NSString).expandingTildeInPath
+                    // A relative entry ("Documents", "../sibling") resolves against the current folder,
+                    // like a shell — only an absolute or `~` path is taken as-is.
+                    let url = expanded.hasPrefix("/")
+                        ? URL(fileURLWithPath: expanded)
+                        : appState.navigation.currentURL.appendingPathComponent(expanded)
+                    // No synchronous `fileExists` pre-check: `navigateTo` → `resolveAndNavigate`
+                    // already does it (hopping off @MainActor for `/Volumes` so a stalled share
+                    // can't freeze the UI) and surfaces `itemNotFound` when the path is missing.
+                    appState.navigateTo(url)
                     windowUIState.isEditingPath = false
                 }
                 .onExitCommand {

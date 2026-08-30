@@ -153,11 +153,13 @@ public final class AutoOrganizationService {
         let stabilityWindow = fileStabilityWindow
         let service = self
         Task.detached(priority: .utility) {
-            for move in pending {
-                guard let before = Self.fileSnapshot(move.file) else { continue }
-                try? await Task.sleep(for: stabilityWindow)
-                guard let after = Self.fileSnapshot(move.file), before == after else {
-                    continue // size or mtime changed → still being written — skip this round
+            // Snapshot every file, wait the window once, then re-check each — so a 100-file dump
+            // settles in O(1) window latency instead of O(n) serial 2s waits.
+            let before = pending.map { Self.fileSnapshot($0.file) }
+            try? await Task.sleep(for: stabilityWindow)
+            for (index, move) in pending.enumerated() {
+                guard Self.isStable(before[index], move.file) else {
+                    continue // size or mtime changed (or vanished) → still being written — skip this round
                 }
                 do {
                     // Unattended — no user to prompt on a name collision, so keep both (unique-rename)
@@ -187,6 +189,13 @@ public final class AutoOrganizationService {
         return FileWriteSnapshot(size: size, modified: attrs[.modificationDate] as? Date)
     }
 
+    /// A file is safe to move only if it existed at both ends of the stability window with an
+    /// identical size + mtime snapshot.
+    private nonisolated static func isStable(_ before: FileWriteSnapshot?, _ url: URL) -> Bool {
+        guard let before, let after = fileSnapshot(url) else { return false }
+        return before == after
+    }
+
     private struct FileWriteSnapshot: Equatable {
         let size: Int64
         let modified: Date?
@@ -202,7 +211,8 @@ public final class AutoOrganizationService {
         case .nameContains:
             return name.localizedCaseInsensitiveContains(rule.conditionValue)
         case .namePrefix:
-            return name.lowercased().hasPrefix(rule.conditionValue.lowercased())
+            guard !rule.conditionValue.isEmpty else { return false }
+            return name.range(of: rule.conditionValue, options: [.caseInsensitive, .anchored]) != nil
         }
     }
 }

@@ -19,6 +19,34 @@ public struct ZIPCentralDirectoryReaderTests {
         testZip64ArchiveResolvesCentralDirectoryViaLocator()
         testZip64MarkerWithMissingLocatorReturnsNoEntries()
         testNonUTF8EntryNameIsDecodedNotDropped()
+        testEOCDIsFoundWhenTrailedByAZipComment()
+    }
+
+    /// B9-6: `findCentralDirectoryOffset` now does a `Data.range(of:options:.backwards)` scan. A ZIP
+    /// with a file comment after the EOCD (so the EOCD isn't the last bytes of the file) must still
+    /// be located — the exact case the backward comment-length scan window exists for.
+    private static func testEOCDIsFoundWhenTrailedByAZipComment() {
+        let names = ["a.txt", "b.txt"]
+        var centralDirectory = Data()
+        for name in names {
+            centralDirectory.append(makeCentralDirectoryRecord(name: name))
+        }
+        var eocd = Data()
+        writeUInt32LE(endOfCentralDirectorySignature, into: &eocd)
+        writeUInt16LE(0, into: &eocd) // disk number
+        writeUInt16LE(0, into: &eocd) // disk with cd
+        writeUInt16LE(2, into: &eocd) // entries this disk
+        writeUInt16LE(2, into: &eocd) // total entries
+        writeUInt32LE(UInt32(centralDirectory.count), into: &eocd) // cd size
+        writeUInt32LE(0, into: &eocd) // cd offset
+        let comment = Data("thanks for reading the zip spec".utf8)
+        writeUInt16LE(UInt16(comment.count), into: &eocd) // comment length
+
+        let result = ZIPCentralDirectoryReader.readEntryNames(from: centralDirectory + eocd + comment)
+        report(
+            "Feature/ZIPCentralDirectoryReader",
+            "POS: the EOCD is still located when a file comment follows it",
+            result: result == names)
     }
 
     /// A Windows-made entry whose name bytes aren't valid UTF-8 (general-purpose bit 11 clear) must

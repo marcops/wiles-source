@@ -4,6 +4,9 @@ import Foundation
 import UniformTypeIdentifiers
 
 public enum ImageConverterService {
+    /// Decodes, crops, resizes and re-encodes an image. Heavy, blocking work — callers **must** run
+    /// this inside `Task.detached` (as `AppState.performImageConversion` does via
+    /// `runDetachedURLOperation`); it does not self-detach.
     public static func convertImage(
         at url: URL,
         targetFormat: ImageFormat,
@@ -17,9 +20,16 @@ public enum ImageConverterService {
 
         let workingImage = applyCrop(cgImage, preset: cropPreset)
         let targetSize = targetSize(for: workingImage, preset: preset)
-        let resizedImage = try renderResizedImage(workingImage, targetSize: targetSize)
+        guard targetSize.width * targetSize.height <= CGFloat(maxOutputPixels) else {
+            throw WilesError.localized(key: .imageConverterOutputTooLarge, arguments: ["\(maxOutputPixels / 1_000_000)"])
+        }
         let destURL = uniqueDestinationURL(for: url, format: targetFormat)
-        try writeImage(resizedImage, to: destURL, format: targetFormat, quality: quality)
+        // The resized bitmap context is w·h·4 bytes of uncompressed pixels; drain it (and the
+        // CGImageDestination buffers) between images so a batch doesn't stack their peaks.
+        try autoreleasepool {
+            let resizedImage = try renderResizedImage(workingImage, targetSize: targetSize)
+            try writeImage(resizedImage, to: destURL, format: targetFormat, quality: quality)
+        }
         return destURL
     }
 
@@ -89,6 +99,10 @@ public enum ImageConverterService {
     }
 
     private static let bitmapBitsPerComponent = 8
+
+    /// Output-pixel ceiling: the resize context alone is `w·h·4` uncompressed bytes (~240 MB at
+    /// this cap), so a caller asking for `.original` on a 100 MP source is refused, not OOM'd.
+    private static let maxOutputPixels = 60_000_000
 
     private static func renderResizedImage(_ image: CGImage, targetSize: CGSize) throws -> CGImage {
         guard let ctx = bitmapContext(for: image, targetSize: targetSize) else {

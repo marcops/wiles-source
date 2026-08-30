@@ -8,64 +8,66 @@ import Observation
 @Observable
 @MainActor
 public final class SidebarPreferences: PersistablePreferenceStore {
+    @ObservationIgnored var isRestoringDefaults = false
+
     public var showDirectoryTree: Bool = false {
-        didSet { persist(showDirectoryTree, .showDirectoryTree) }
+        didSet { guard !isRestoringDefaults else { return }; persist(showDirectoryTree, .showDirectoryTree) }
     }
 
     public var showFavorites: Bool = true {
-        didSet { persist(showFavorites, .showFavorites) }
+        didSet { guard !isRestoringDefaults else { return }; persist(showFavorites, .showFavorites) }
     }
 
     public var showRecents: Bool = true {
-        didSet { persist(showRecents, .showRecents) }
+        didSet { guard !isRestoringDefaults else { return }; persist(showRecents, .showRecents) }
     }
 
     public var showPlaces: Bool = true {
-        didSet { persist(showPlaces, .showPlaces) }
+        didSet { guard !isRestoringDefaults else { return }; persist(showPlaces, .showPlaces) }
     }
 
     public var showNetworkAndCloud: Bool = false {
-        didSet { persist(showNetworkAndCloud, .showNetworkAndCloud) }
+        didSet { guard !isRestoringDefaults else { return }; persist(showNetworkAndCloud, .showNetworkAndCloud) }
     }
 
     public var showSidebarSectionTitles: Bool = true {
-        didSet { persist(showSidebarSectionTitles, .showSidebarSectionTitles) }
+        didSet { guard !isRestoringDefaults else { return }; persist(showSidebarSectionTitles, .showSidebarSectionTitles) }
     }
 
     public var showTags: Bool = false {
-        didSet { persist(showTags, .showTags) }
+        didSet { guard !isRestoringDefaults else { return }; persist(showTags, .showTags) }
     }
 
     public var isFavoritesExpanded: Bool = true {
-        didSet { persist(isFavoritesExpanded, .isFavoritesExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isFavoritesExpanded, .isFavoritesExpanded) }
     }
 
     public var isMacExpanded: Bool = true {
-        didSet { persist(isMacExpanded, .isMacExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isMacExpanded, .isMacExpanded) }
     }
 
     public var isNetworkExpanded: Bool = true {
-        didSet { persist(isNetworkExpanded, .isNetworkExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isNetworkExpanded, .isNetworkExpanded) }
     }
 
     public var isRecentsExpanded: Bool = true {
-        didSet { persist(isRecentsExpanded, .isRecentsExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isRecentsExpanded, .isRecentsExpanded) }
     }
 
     public var isDevicesExpanded: Bool = true {
-        didSet { persist(isDevicesExpanded, .isDevicesExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isDevicesExpanded, .isDevicesExpanded) }
     }
 
     public var isTreeExpanded: Bool = true {
-        didSet { persist(isTreeExpanded, .isTreeExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isTreeExpanded, .isTreeExpanded) }
     }
 
     public var isTagsExpanded: Bool = true {
-        didSet { persist(isTagsExpanded, .isTagsExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isTagsExpanded, .isTagsExpanded) }
     }
 
     public var isSmartFoldersExpanded: Bool = true {
-        didSet { persist(isSmartFoldersExpanded, .isSmartFoldersExpanded) }
+        didSet { guard !isRestoringDefaults else { return }; persist(isSmartFoldersExpanded, .isSmartFoldersExpanded) }
     }
 
     public var expandedTreePaths: Set<String> = [] {

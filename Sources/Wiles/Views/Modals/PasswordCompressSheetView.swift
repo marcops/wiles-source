@@ -13,8 +13,12 @@ struct PasswordCompressSheetView: View {
         password == confirmPassword
     }
 
+    private var passwordHasForbiddenCharacters: Bool {
+        ArchiveService.passwordHasForbiddenCharacters(password)
+    }
+
     private var canSubmit: Bool {
-        !password.isEmpty && passwordsMatch && !urls.isEmpty
+        !password.isEmpty && passwordsMatch && !passwordHasForbiddenCharacters && !urls.isEmpty
     }
 
     var body: some View {
@@ -44,6 +48,11 @@ struct PasswordCompressSheetView: View {
                 .accessibilityLabel(appState.tr(.confirmPassword))
             if !confirmPassword.isEmpty, !passwordsMatch {
                 Text(appState.tr(.passwordMismatchHint))
+                    .font(.system(size: 11))
+                    .foregroundColor(.red)
+            }
+            if passwordHasForbiddenCharacters {
+                Text(appState.tr(.archivePasswordInvalidCharacters))
                     .font(.system(size: 11))
                     .foregroundColor(.red)
             }

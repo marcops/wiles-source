@@ -22,10 +22,42 @@ public struct BatchRenameFeatureTests {
         report("Feature/BatchRename", "POS: Regex replace template works", result: regexPreviews.first?.newName == "document_a.txt")
 
         await testInvalidRegexPatternThrowsInsteadOfSilentlyNoOpingRename()
+        await testValidRegexPatternIsResolvedOnceAndAppliedByPerform()
         testValidateTargets()
         testSequenceNumberPaddingIsClamped(item1: item1)
         await testPerformBatchRenameAbortsUpFrontOnCollision()
         await testPerformBatchRenameSurfacesCancellation()
+        await testPermutationRenameStagesThroughTempNames()
+    }
+
+    /// A shift-up renumber (`file_2 → file_3`, `file_3 → file_4`) is a rename cycle: the sequential
+    /// executor used to fail the first step because `file_3` was still occupied by the other source.
+    private static func testPermutationRenameStagesThroughTempNames() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let two = dir.appendingPathComponent("file_2.txt")
+        let three = dir.appendingPathComponent("file_3.txt")
+        try? "2".write(to: two, atomically: true, encoding: .utf8)
+        try? "3".write(to: three, atomically: true, encoding: .utf8)
+        let items = [
+            FileItem.load(url: two, icon: NSWorkspace.shared.icon(forFile: two.path)),
+            FileItem.load(url: three, icon: NSWorkspace.shared.icon(forFile: three.path))
+        ]
+
+        let result = try? await BatchRenameService.performBatchRename(
+            items: items, mode: .sequenceNumber(prefix: "file", startNumber: 3, paddingDigits: 1))
+
+        let fm = FileManager.default
+        let bothFinalsExist = fm.fileExists(atPath: dir.appendingPathComponent("file_3.txt").path)
+            && fm.fileExists(atPath: dir.appendingPathComponent("file_4.txt").path)
+        let originalGoneAndContentFollowed = !fm.fileExists(atPath: two.path)
+            && (try? String(contentsOf: dir.appendingPathComponent("file_4.txt"))) == "3"
+        let noLeftoverTemp = ((try? fm.contentsOfDirectory(atPath: dir.path)) ?? []).allSatisfy { !$0.hasPrefix(".wiles-batch-rename-") }
+        report(
+            "Feature/BatchRename",
+            "POS: a rename cycle renames every file (staged through temp names) instead of failing the first step",
+            result: (result?.failures.isEmpty ?? false) && bothFinalsExist && originalGoneAndContentFollowed && noLeftoverTemp)
     }
 
     /// Lote 15 (M61): `validateTargets` is the pure pre-flight collision check.
@@ -164,6 +196,32 @@ public struct BatchRenameFeatureTests {
             "Feature/BatchRename",
             "NEG: file keeps its original name when the regex pattern is invalid",
             result: FileManager.default.fileExists(atPath: file.path))
+    }
+
+    /// B9-5: the mode's regex is now compiled once (`resolveRegex`) and shared by the preview and
+    /// the rename, instead of compiling it twice. A valid pattern must still preview and perform to
+    /// the same target name.
+    private static func testValidRegexPatternIsResolvedOnceAndAppliedByPerform() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let file = tempDir.appendingPathComponent("IMG_0042.txt")
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+        let item = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
+
+        let mode = BatchRenameMode.regex(pattern: "IMG_(\\d+)", template: "photo-$1")
+        let preview = BatchRenameService.previewNewNames(items: [item], mode: mode).first?.newName
+
+        var performedName: String?
+        if let result = try? await BatchRenameService.performBatchRename(items: [item], mode: mode) {
+            performedName = result.renamedURLs.first?.lastPathComponent
+        }
+
+        report(
+            "Feature/BatchRename",
+            "POS: a valid regex pattern previews and performs to the same name (photo-0042.txt)",
+            result: preview == "photo-0042.txt" && performedName == "photo-0042.txt")
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

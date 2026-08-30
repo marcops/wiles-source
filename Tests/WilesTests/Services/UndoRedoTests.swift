@@ -22,8 +22,63 @@ public struct UndoRedoTests {
         await testFailedUndoDoesNotCorruptStack(service: service, tempDir: tempDir)
         await testRelocationHookFiresOnMoveUndoRedo(tempDir: tempDir)
         await testUndoOfMoveRemapsFavorites(tempDir: tempDir)
+        await testConcurrentUndoConsumesOnlyOneStep(tempDir: tempDir)
+        await testChmodUndoRestoresPreviousPermissions(tempDir: tempDir)
 
         try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    /// A second ⌘Z fired while the first is still mid-`await` must be rejected, not pop the next
+    /// record and run both reverse actions interleaved.
+    private static func testConcurrentUndoConsumesOnlyOneStep(tempDir: URL) async {
+        let service = UndoRedoService()
+        let one = tempDir.appendingPathComponent("concurrent-1.txt")
+        let two = tempDir.appendingPathComponent("concurrent-2.txt")
+        try? "1".write(to: one, atomically: true, encoding: .utf8)
+        try? "2".write(to: two, atomically: true, encoding: .utf8)
+        let oneRenamed = try? await FileSystemService.renameItem(at: one, newName: "concurrent-1b.txt")
+        let twoRenamed = try? await FileSystemService.renameItem(at: two, newName: "concurrent-2b.txt")
+        service.recordAction(.rename(oldURL: one, newURL: oneRenamed ?? one))
+        service.recordAction(.rename(oldURL: two, newURL: twoRenamed ?? two))
+
+        async let first = service.undo()
+        async let second = service.undo()
+        _ = try? await first
+        _ = try? await second
+
+        TestReporter.report(
+            "UndoRedo",
+            "POS: two concurrent undo() calls consume exactly one step (the second is rejected while the first runs)",
+            result: service.canUndo())
+    }
+
+    private static func testChmodUndoRestoresPreviousPermissions(tempDir: URL) async {
+        let service = UndoRedoService()
+        let file = tempDir.appendingPathComponent("chmod-target.txt")
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+        guard let original = FilePermissionsService.getPermissions(for: file) else {
+            TestReporter.report("UndoRedo", "SKIP: could not read permissions for the chmod test target", result: true)
+            return
+        }
+
+        var changed = original
+        changed.othersWrite.toggle()
+        try? FilePermissionsService.setPermissions(for: file, permissions: changed)
+        service.recordAction(.chmod(url: file, previous: original))
+
+        _ = try? await service.undo()
+        let afterUndo = FilePermissionsService.getPermissions(for: file)
+        TestReporter.report(
+            "UndoRedo",
+            "POS: undoing a .chmod restores the file's previous POSIX permissions",
+            result: afterUndo == original)
+
+        _ = try? await service.redo()
+        let afterRedo = FilePermissionsService.getPermissions(for: file)
+        TestReporter.report(
+            "UndoRedo",
+            "POS: redoing a .chmod re-applies the changed permissions",
+            result: afterRedo == changed)
     }
 
     /// `onFileRelocated` must fire for every undo/redo step that moves a file on disk, with the

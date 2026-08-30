@@ -24,6 +24,31 @@ public struct PreferencesStoreTests {
         testFavoriteURLsFallsBackToDefaultsWhenNoneSaved()
         testFavoriteURLsLoadsSavedArrayOptimisticallyAcceptingVolumesPaths()
         testResolvedFavoritePathsStaysInSyncWithFavoriteURLs()
+        testStandardizedFavoritePathsIsTheUnresolvedSet()
+    }
+
+    /// `standardizedFavoritePaths` — the no-`stat` fast path for `AppState.isFavorite`: plain
+    /// standardized paths, symlinks left unresolved.
+    private static func testStandardizedFavoritePathsIsTheUnresolvedSet() {
+        let key = DefaultsKey.favoriteURLs.rawValue
+        let prior = UserDefaults.standard.stringArray(forKey: key)
+        defer {
+            if let prior { UserDefaults.standard.set(prior, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let real = dir.appendingPathComponent("Real")
+        try? FileManager.default.createDirectory(at: real, withIntermediateDirectories: true)
+        let link = dir.appendingPathComponent("Link")
+        try? FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+
+        let store = PreferencesStore()
+        store.favorites.favoriteURLs = [real, link]
+        report(
+            "Store/PreferencesStore",
+            "POS: standardizedFavoritePaths is the plain (unresolved) standardized path set",
+            result: store.favorites.standardizedFavoritePaths == Set([real, link].map(\.standardizedFileURL.path)))
     }
 
     // MARK: - resolvedFavoritePaths (M25)

@@ -27,7 +27,7 @@ public enum ExifMetadataService: Sendable {
         let dt = exif?[kCGImagePropertyExifDateTimeOriginal] as? String
         let gpsStr = formattedGPS(from: gps)
 
-        if isEmptyMetadata([make, model, isoStr, fnStr, flStr, dt, gpsStr]) {
+        if isEmptyMetadata([make, model, lens, isoStr, fnStr, flStr, dt, gpsStr]) {
             return nil
         }
 

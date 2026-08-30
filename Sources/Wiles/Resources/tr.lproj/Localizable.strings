@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Seçili öğelerin şifre korumalı bir ZIP'ini oluşturur";
 "passwordMismatchHint" = "Şifreler eşleşmiyor.";
 "pastingItemsEllipsis" = "Öğeler Yapıştırılıyor…";
+"batchRenamingEllipsis" = "Dosyalar yeniden adlandırılıyor…";
 "removeRecentServer" = "Sonlardan Kaldır";
 "removeSmartFolderConfirm" = "Bu akıllı klasörü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
 "ruleConditionExtensionEquals" = "Uzantı Eşittir";
@@ -366,7 +367,6 @@
 "targetFormat" = "Target Format";
 "toolsMenuTitle" = "Araçlar";
 "topLargestItems" = "Top Largest Items";
-"translucentLevel" = "Transparency";
 "trash" = "Çöp Kutusu";
 "undo" = "Geri Al";
 "version" = "Version";
@@ -394,8 +394,8 @@
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
-"moveToTrashPartialFailure" = "%d öğeden %d tanesi Çöp Kutusu'na taşınamadı.";
-"tagOperationPartialFailure" = "%d öğeden %d tanesi etiketlenemedi.";
+"moveToTrashPartialFailure" = "{0} öğeden {1} tanesi Çöp Kutusu'na taşınamadı.";
+"tagOperationPartialFailure" = "{0} öğeden {1} tanesi etiketlenemedi.";
 "selectedItemsCount" = "%d selected";
 "selectedItemsCountWithSize" = "%d selected (%@)";
 
@@ -441,11 +441,13 @@
 "copyLinkAccessibilityLabel" = "Bağlantıyı kopyala";
 "copyLinkAccessibilityHint" = "Paylaşım adresini panoya kopyalar";
 "loadingEntries" = "Öğeler yükleniyor...";
+"loadingApplications" = "Uygulamalar yükleniyor...";
 "noArchiveEntriesFound" = "Öğe bulunamadı veya arşiv okunamadı.";
 "extractEntryHint" = "Bu dosyayı geçerli klasöre çıkarır";
 "archiveFileEntry" = "Dosya";
 "sharedFolderPageTitle" = "Paylaşılan Klasör";
 "sharedFolderHeading" = "Paylaşıldı";
+"sharedFolderListingTruncated" = "… ve {0} öğe daha (liste kısaltıldı)";
 "requirePassword" = "Şifre Gerektir";
 "startSharing" = "Paylaşımı Başlat";
 "wifiSharePasswordProtectedNotice" = "Bu klasöre erişmek için bir şifre gerekir. Şifrelenmemiştir — aynı ağdaki başka biri bunu ele geçirebilir.";
@@ -453,9 +455,11 @@
 "cancelTaskAccessibilityHint" = "Bu arka plan görevini iptal eder";
 "feedbackKindSelectionHint" = "Bu geri bildirim kategorisini seçer";
 "feedbackDescriptionFieldHint" = "Geri bildiriminizin ayrıntılı bir açıklamasını girin";
+"feedbackPublicNotice" = "Bildiriminiz herkese açık sorun izleyicimize gönderilir. Lütfen kişisel veya hassas bilgiler eklemeyin.";
 "applyPermissionsHint" = "Seçilen izinleri bu öğeye uygular";
 "permissionToggleHint" = "Bu izni değiştirir";
 "archivePasswordFieldHint" = "Bu arşivi açmak için gereken parolayı ayarlar";
+"archivePasswordInvalidCharacters" = "Parola satır sonu veya denetim karakterleri içeremez.";
 "moreInfoAccessibilityHint" = "Bu öğenin ayrıntılı özelliklerini gösterir";
 "iCloudStatusDownloading" = "iCloud'dan indiriliyor";
 "iCloudStatusNotDownloaded" = "iCloud'dan indirilmedi";
@@ -506,6 +510,7 @@
 "imageConverterRenderFailed" = "Yeniden boyutlandırılan görüntü işlenemedi";
 "imageConverterDestinationFailed" = "Görüntü hedefi oluşturulamadı";
 "imageConverterFinalizeFailed" = "Görüntü hedefi sonlandırılamadı";
+"imageConverterOutputTooLarge" = "Görüntü dönüştürülemeyecek kadar büyük ({0} megapikselden fazla)";
 "syntaxTruncatedNotice" = "\n... (kısaltıldı)";
 "fileTemplateMarkdownContent" = "# Başlık\n\nİçerik buraya gelir.\n";
 "fileTemplateJSONContent" = "{\n  \"anahtar\": \"değer\"\n}\n";
@@ -545,3 +550,9 @@
 "movePartialFailure" = "{1} öğeden {0} tanesi taşınamadı.";
 "searchContentQueryTooShort" = "Dosya içeriğinde aramak için en az 3 karakter girin.";
 "searchInvalidRegex" = "Bu düzenli ifade geçerli değil.";
+"smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
+"resultsTruncatedNotice" = "Çok sayıda öğeden ilk %d tanesi gösteriliyor";
+"convertingImageEllipsis" = "Converting Image…";
+"deletingPermanentlyEllipsis" = "Deleting Permanently…";
+"undoingEllipsis" = "Undoing…";
+"redoingEllipsis" = "Redoing…";

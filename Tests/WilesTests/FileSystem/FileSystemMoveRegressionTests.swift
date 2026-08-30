@@ -32,6 +32,30 @@ enum FileSystemMoveRegressionTests {
             result: stillExists && contentIntact)
 
         await runCollisionRegression(tempDir: tempDir)
+        await runReplacingReportsDisplacedTrashURL(tempDir: tempDir)
+    }
+
+    /// `moveItemReplacing` reports where the displaced file landed in the Trash so the paste path
+    /// can register a `.trash` undo step for it (ML-101: a Replace used to be un-undoable).
+    private static func runReplacingReportsDisplacedTrashURL(tempDir: URL) async {
+        let dest = tempDir.appendingPathComponent("replacing-dest-\(UUID().uuidString)", isDirectory: true)
+        let src = tempDir.appendingPathComponent("replacing-src-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: src, withIntermediateDirectories: true)
+        let incoming = src.appendingPathComponent("note.txt")
+        let existing = dest.appendingPathComponent("note.txt")
+        try? "incoming".write(to: incoming, atomically: true, encoding: .utf8)
+        try? "existing".write(to: existing, atomically: true, encoding: .utf8)
+
+        let outcome = try? await FileSystemService.moveItemReplacing(at: incoming, toFolder: dest)
+
+        let movedIn = (try? String(contentsOf: existing)) == "incoming"
+        let displacedRecoverable = outcome?.displacedTrashedURL.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+        TestReporter.report(
+            "FileSystem",
+            "POS: moveItemReplacing puts the source in place and returns the still-recoverable Trash URL of the file it displaced",
+            result: movedIn && displacedRecoverable)
+        if let trashed = outcome?.displacedTrashedURL { try? FileManager.default.removeItem(at: trashed) }
     }
 
     /// C1 (data-loss regression): moving onto a name that already exists used to call

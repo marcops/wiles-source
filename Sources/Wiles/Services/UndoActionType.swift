@@ -6,4 +6,6 @@ public enum UndoActionType: Sendable {
     case createFolder(url: URL)
     case createFile(url: URL)
     case trash(originalURL: URL, trashedURL: URL)
+    /// A single-item POSIX permission change; `previous` is what it was before, for `⌘Z`.
+    case chmod(url: URL, previous: POSIXPermissions)
 }

@@ -6,7 +6,6 @@ public struct PreferencesStoreExtraTests {
     public static func run() {
         testTrailingInspectorCannotRepresentBothInspectors()
         testLoadTrailingInspectorMigratesLegacyBoolKeys()
-        testTranslucentLevelSetterUpdatesBothSidebarAndContentLevels()
         testOverlayOpacityIsHalvedInLightAppearance()
         testPerFolderViewModesLoadsSavedDictionaryOrFallsBackToEmpty()
         testLoadEnumIgnoresUnrecognizedSavedRawValue()
@@ -151,36 +150,6 @@ public struct PreferencesStoreExtraTests {
             "Store/PreferencesStore",
             "POS: an explicit new-key value wins over a conflicting legacy bool",
             result: PreferencesStore().view.trailingInspector == .none)
-    }
-
-    // MARK: - translucentLevel computed property
-
-    /// Mutates the real `sidebarTranslucentLevel`/`contentTranslucentLevel` `UserDefaults.standard`
-    /// keys via the `translucentLevel` setter, so per rule 17 we snapshot and restore both in `defer`.
-    private static func testTranslucentLevelSetterUpdatesBothSidebarAndContentLevels() {
-        let sKey = DefaultsKey.sidebarTranslucentLevel.rawValue
-        let cKey = DefaultsKey.contentTranslucentLevel.rawValue
-        let priorS = UserDefaults.standard.object(forKey: sKey) as? Int
-        let priorC = UserDefaults.standard.object(forKey: cKey) as? Int
-        defer {
-            if let priorS {
-                UserDefaults.standard.set(priorS, forKey: sKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: sKey)
-            }
-            if let priorC {
-                UserDefaults.standard.set(priorC, forKey: cKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: cKey)
-            }
-        }
-
-        let store = PreferencesStore()
-        store.appearance.translucentLevel = 55
-        report(
-            "Store/PreferencesStore",
-            "POS: setting translucentLevel updates both sidebarTranslucentLevel and contentTranslucentLevel",
-            result: store.appearance.sidebarTranslucentLevel == 55 && store.appearance.contentTranslucentLevel == 55 && store.appearance.translucentLevel == 55)
     }
 
     // MARK: - overlay opacity light-mode halving

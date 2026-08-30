@@ -7,6 +7,37 @@ public struct DirectoryMonitorTests {
         await testStartDetectsFileCreation()
         await testCancelStopsFurtherNotifications()
         testStartOnNonexistentPathDoesNotCrash()
+        await testRestartOnSameMonitorStillDeliversEvents()
+    }
+
+    /// B4-5 added a failure guard around `FSEventStreamStart`. That branch can't be forced without
+    /// fault injection (there's no seam), but this pins the normal restart path it shares: calling
+    /// `start()` a second time (which runs `cancel()` first) must still deliver events.
+    private static func testRestartOnSameMonitorStillDeliversEvents() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        final class Flag: @unchecked Sendable {
+            var triggered = false
+        }
+        let flag = Flag()
+
+        let monitor = DirectoryMonitor()
+        monitor.start(path: dir.path) { }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        monitor.start(path: dir.path) { flag.triggered = true }
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        try? "hello".write(to: dir.appendingPathComponent("restart.txt"), atomically: true, encoding: .utf8)
+
+        var waited: UInt64 = 0
+        while !flag.triggered, waited < 3_000_000_000 {
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            waited += 200_000_000
+        }
+        report("DirectoryMonitor", "POS: start() called twice re-arms and still delivers events", result: flag.triggered)
+        monitor.cancel()
     }
 
     private static func testStartDetectsFileCreation() async {

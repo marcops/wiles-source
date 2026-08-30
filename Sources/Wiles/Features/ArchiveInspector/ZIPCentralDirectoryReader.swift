@@ -18,13 +18,18 @@ enum ZIPCentralDirectoryReader {
     /// how far back from the end of the file we search for the end-of-central-directory record.
     private static let maxZipCommentLength = 65536
 
+    /// Hard cap on entry names materialized from one archive — a crafted (or just huge) central
+    /// directory with millions of entries would otherwise grow `[String]` without bound (OOM).
+    /// Aligned with `FileSystemService.recursiveSearchResultLimit`'s intent, but larger since an
+    /// archive listing is text-only.
+    static let maxEntryCount = 50_000
+
     static func readEntryNames(from data: Data) -> [String] {
         guard let centralDirectoryOffset = findCentralDirectoryOffset(in: data) else { return [] }
 
         var names: [String] = []
         var offset = centralDirectoryOffset
-        while offset + centralDirectoryFileHeaderMinSize <= data.count,
-              readUInt32(data, at: offset) == centralDirectoryFileHeaderSignature {
+        while names.count < maxEntryCount, hasCentralDirectoryHeader(in: data, at: offset) {
             let generalPurposeFlags = readUInt16(data, at: offset + 8)
             let nameLength = Int(readUInt16(data, at: offset + 28))
             let extraLength = Int(readUInt16(data, at: offset + 30))
@@ -40,6 +45,11 @@ enum ZIPCentralDirectoryReader {
             offset = nameStart + nameLength + extraLength + commentLength
         }
         return names
+    }
+
+    private static func hasCentralDirectoryHeader(in data: Data, at offset: Int) -> Bool {
+        offset + centralDirectoryFileHeaderMinSize <= data.count
+            && readUInt32(data, at: offset) == centralDirectoryFileHeaderSignature
     }
 
     /// General-purpose bit 11 means the name is UTF-8. When it isn't set, the name is in the
@@ -63,16 +73,14 @@ enum ZIPCentralDirectoryReader {
     private static func findCentralDirectoryOffset(in data: Data) -> Int? {
         guard data.count >= endOfCentralDirectoryMinSize else { return nil }
         let searchStart = max(0, data.count - endOfCentralDirectoryMinSize - maxZipCommentLength)
-        var position = data.count - endOfCentralDirectoryMinSize
-        while position >= searchStart {
-            if readUInt32(data, at: position) == endOfCentralDirectorySignature {
-                let offset32 = readUInt32(data, at: position + 16)
-                guard offset32 == zip64Marker else { return Int(offset32) }
-                return zip64CentralDirectoryOffset(in: data, eocdPosition: position)
-            }
-            position -= 1
-        }
-        return nil
+        // Upper bound so the whole 22-byte EOCD record (not just its 4-byte signature) fits before EOF.
+        let searchRange = (data.startIndex + searchStart) ..< (data.startIndex + data.count - endOfCentralDirectoryMinSize + 4)
+        let signature = withUnsafeBytes(of: endOfCentralDirectorySignature.littleEndian) { Data($0) }
+        guard let match = data.range(of: signature, options: .backwards, in: searchRange) else { return nil }
+        let position = match.lowerBound - data.startIndex
+        let offset32 = readUInt32(data, at: position + 16)
+        guard offset32 == zip64Marker else { return Int(offset32) }
+        return zip64CentralDirectoryOffset(in: data, eocdPosition: position)
     }
 
     /// Resolves the real central-directory offset via the ZIP64 locator (immediately before the

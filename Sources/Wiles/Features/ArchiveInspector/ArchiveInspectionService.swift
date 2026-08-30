@@ -29,63 +29,87 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
 
     private static func extractSingleEntrySync(from archiveURL: URL, entryPath: String, to destinationFolder: URL) throws -> URL {
         let entryName = (entryPath as NSString).lastPathComponent
-        let destURL = destinationFolder.appendingPathComponent(entryName)
-
-        // Extract into a temporary file first — never touch a pre-existing file at destURL
-        // until extraction is confirmed successful. Truncating destURL up front (the old
-        // behavior) permanently destroyed any existing file there the instant this ran, even
-        // if extraction subsequently failed, since there was no way to restore the original
-        // bytes afterward (DEV_RULES.md "Never Destroy User Data").
-        // Staged in destinationFolder itself, not system temp — replaceItemAt() below is an atomic
-        // move, which fails with EXDEV if the temp file and destURL are on different volumes.
-        let tempURL = destinationFolder
-            .appendingPathComponent(".\(UUID().uuidString)_\(entryName)")
-
-        FileManager.default.createFile(atPath: tempURL.path, contents: nil, attributes: nil)
-        guard let fileHandle = try? FileHandle(forWritingTo: tempURL) else {
+        var destIsDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: destinationFolder.path, isDirectory: &destIsDirectory),
+              destIsDirectory.boolValue else {
             throw WilesError.localized(key: .archiveCouldNotCreateDestinationFile, arguments: [])
         }
-        defer { try? fileHandle.close() }
+        // A guaranteed-free name (Finder's " 2"/" 3" convention) — extracting `foo.txt` into a
+        // folder that already has `foo.txt` keeps both, never destroys the existing file
+        // (DEV_RULES.md "Destination-Collision Handling Must Be Explicit and Non-Destructive").
+        let destURL = FileSystemService.uniqueDestination(for: entryName, in: destinationFolder)
+
+        // Fast path: `unzip -p` streams just this one entry to stdout — no whole-archive stage. Only
+        // for a plain ASCII name with no `unzip` glob metacharacters: a non-ASCII name gets
+        // re-encoded through the process locale and never matches, and a `[`/`*`/`?` would glob-match
+        // a *different* entry. Everything else falls through to the `ditto` whole-archive path.
+        if canUseUnzipPipe(for: entryPath),
+           try extractSingleEntryViaUnzipPipe(archiveURL: archiveURL, entryPath: entryPath, to: destURL) {
+            return destURL
+        }
+
+        // Stage the whole archive with `ditto`, which round-trips real UTF-8 entry names. `ditto`
+        // streams to disk — entry bytes are never buffered in RAM. Staged inside `destinationFolder`
+        // so the final move is a same-volume rename (no EXDEV); nothing lands at `destURL` until
+        // extraction succeeded.
+        let stagingDir = destinationFolder.appendingPathComponent(".\(UUID().uuidString)_unzip", isDirectory: true)
+        try FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: stagingDir) }
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        // `unzip` treats its file-spec argument as a shell-style glob, so an entry literally named
-        // e.g. `foo[1].txt` would match `foo1.txt` instead. Backslash-escape its wildcard chars.
-        process.arguments = ["-p", archiveURL.path, unzipLiteralPattern(entryPath)]
-
-        // Direct standardOutput directly into the FileHandle.
-        // The OS streams the unzipped bytes straight to disk, never accumulating them in RAM.
-        // This prevents an immediate Out-Of-Memory (OOM) crash when extracting massive files.
-        process.standardOutput = fileHandle
-
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        process.arguments = ["-x", "-k", archiveURL.path, stagingDir.path]
         try process.run()
         process.waitUntilExit()
 
-        if process.terminationStatus != 0 {
-            try? FileManager.default.removeItem(at: tempURL)
+        guard process.terminationStatus == 0 else {
             throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }
 
-        // Extraction succeeded — only now is it safe to replace any pre-existing file at
-        // destURL. `replaceItemAt` atomically swaps the temp file into place.
-        try? fileHandle.close()
-        do {
-            _ = try FileManager.default.replaceItemAt(destURL, withItemAt: tempURL)
-        } catch {
-            try? FileManager.default.removeItem(at: tempURL)
-            throw error
+        let extractedURL = stagingDir.appendingPathComponent(entryPath)
+        guard FileManager.default.fileExists(atPath: extractedURL.path) else {
+            throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }
 
+        // `destURL` is a free name from `uniqueDestination`, so a plain move never clobbers
+        // anything; if a race created a file there in the meantime, the move throws and the temp
+        // staging dir is cleaned up by the `defer` above rather than overwriting.
+        try FileManager.default.moveItem(at: extractedURL, to: destURL)
         return destURL
     }
 
-    /// Escapes `unzip`'s wildcard metacharacters so `entryPath` is matched literally. Backslash
-    /// must be escaped first, before the characters it will be used to escape.
-    static func unzipLiteralPattern(_ entryPath: String) -> String {
-        var result = entryPath.replacingOccurrences(of: "\\", with: "\\\\")
-        for wildcard in ["[", "]", "?", "*"] {
-            result = result.replacingOccurrences(of: wildcard, with: "\\" + wildcard)
+    private static func canUseUnzipPipe(for entryPath: String) -> Bool {
+        entryPath.allSatisfy(\.isASCII) && !entryPath.contains(where: { "[]*?\\".contains($0) })
+    }
+
+    /// Streams one entry via `unzip -p archive entry > destURL`. Returns `true` on success, `false`
+    /// when `unzip` couldn't match the entry (so the caller uses the whole-archive `ditto` path).
+    private static func extractSingleEntryViaUnzipPipe(archiveURL: URL, entryPath: String, to destURL: URL) throws -> Bool {
+        FileManager.default.createFile(atPath: destURL.path, contents: nil)
+        guard let sink = try? FileHandle(forWritingTo: destURL) else { return false }
+        defer { try? sink.close() }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+        process.arguments = ["-p", archiveURL.path, entryPath]
+        process.standardOutput = sink
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            try? FileManager.default.removeItem(at: destURL)
+            return false
         }
-        return result
+        process.waitUntilExit()
+
+        let writtenSize = (try? FileManager.default.attributesOfItem(atPath: destURL.path))?[.size] as? Int ?? 0
+        let wroteSomething = writtenSize > 0
+        // `unzip -p` exits 0 and writes the bytes on success; 11 = "no matching files" (non-ASCII
+        // name, or a genuinely empty entry we can't tell apart — fall back to be safe).
+        guard process.terminationStatus == 0, wroteSomething else {
+            try? FileManager.default.removeItem(at: destURL)
+            return false
+        }
+        return true
     }
 }

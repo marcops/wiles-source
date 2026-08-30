@@ -225,16 +225,24 @@ struct MainContentView: View {
     }
 
     /// Shortcuts with no menu home: clear selection and the hidden-files toggle (menu-less by
-    /// design — `⌃H` is a keep-both alternate). Everything else routes through the menus or
-    /// `GlobalKeyMonitor`.
+    /// design — `⌃H` is a keep-both alternate, derived from `ShortcutRegistry`). Everything else
+    /// routes through the menus or `GlobalKeyMonitor`.
     private var keyboardShortcutsHandler: some View {
         HStack {
             Button("") { appState.selection.selectedURLs.removeAll() }
                 .keyboardShortcut(.clearSelection)
                 .hidden()
                 .disabled(windowUIState.showShortcutsHUD)
-            Button("") { toggleHiddenFiles() }.keyboardShortcut(.toggleHiddenFiles).hidden()
-            Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
+            Button("") { toggleHiddenFiles() }
+                .keyboardShortcut(.toggleHiddenFiles)
+                .hidden()
+                .disabled(windowUIState.showShortcutsHUD)
+            if let alternate = ShortcutRegistry.shortcut(.toggleHiddenFiles).alternate {
+                Button("") { toggleHiddenFiles() }
+                    .keyboardShortcut(alternate)
+                    .hidden()
+                    .disabled(windowUIState.showShortcutsHUD)
+            }
         }
     }
 

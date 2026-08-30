@@ -29,13 +29,16 @@ public enum SyntaxHighlighterService: Sendable {
         if let keywordsRegex = keywordRegexByLanguage[highlightLanguage] {
             applyColor(regex: keywordsRegex, color: .systemPink, in: &attributed, content: truncatedContent)
         }
-        applyColor(regex: Self.stringsRegex, color: .systemOrange, in: &attributed, content: truncatedContent)
+        // Comments before strings: a later strings pass then re-colours a `//` sequence that is
+        // actually inside a string literal (e.g. a URL), instead of the comment pass bleeding green
+        // from that `//` to end-of-line.
         if highlightLanguage.usesSlashComments {
             applyColor(regex: Self.slashCommentRegex, color: .systemGreen, in: &attributed, content: truncatedContent)
         }
         if highlightLanguage.usesHashComments {
             applyColor(regex: Self.hashCommentRegex, color: .systemGreen, in: &attributed, content: truncatedContent)
         }
+        applyColor(regex: Self.stringsRegex, color: .systemOrange, in: &attributed, content: truncatedContent)
 
         return attributed
     }

@@ -23,8 +23,21 @@ public final class ArchiveService: Sendable {
         ext == "tar" || ext == "tgz" || isTarFamily(name: name)
     }
 
+    /// Newline/NUL in a password would be silently truncated or mangled by Info-ZIP's `ZIP` env-var
+    /// tokenizer, producing an archive whose real password differs from what the user typed — the
+    /// user only finds out when they can't open it. Rejected up front here (the one service entry
+    /// point) so every caller is covered, not just the compress sheet.
+    private static let forbiddenPasswordCharacters = CharacterSet(charactersIn: "\n\r\u{0}")
+
+    public static func passwordHasForbiddenCharacters(_ password: String) -> Bool {
+        password.rangeOfCharacter(from: forbiddenPasswordCharacters) != nil
+    }
+
     public static func compressToZIP(urls: [URL], in destinationFolder: URL, password: String? = nil) throws {
         guard !urls.isEmpty else { return }
+        if let password, passwordHasForbiddenCharacters(password) {
+            throw WilesError.localized(key: .archivePasswordInvalidCharacters, arguments: [])
+        }
         let destURL = uniqueZipDestination(for: urls, in: destinationFolder)
         do {
             if password == nil, urls.count == 1 {
@@ -53,18 +66,49 @@ public final class ArchiveService: Sendable {
     /// (recursing relative to its own parent, not flattened via -j) while still finding sources
     /// that live outside destinationFolder or outside each other.
     private static func zipItemsIndividually(urls: [URL], to destURL: URL, password: String?) throws {
+        var stagingDir: URL?
+        defer { if let stagingDir { try? FileManager.default.removeItem(at: stagingDir) } }
+
+        var nameCounts: [String: Int] = [:]
         for url in urls {
+            let name = url.lastPathComponent
+            let occurrence = (nameCounts[name] ?? 0) + 1
+            nameCounts[name] = occurrence
+
+            // Two sources with the same last path component would otherwise be added as the same
+            // top-level zip entry — the second silently overwrites the first inside the archive.
+            // Stage the later ones under a `" N"` name so the zip keeps every file.
+            let source = occurrence == 1 ? url : try stageUnderUniqueName(url, occurrence: occurrence, stagingDir: &stagingDir)
+
             var args = ["-r"]
             var environment: [String: String]?
             if let pwd = password, !pwd.isEmpty {
                 environment = zipPasswordEnvironment(pwd)
             }
-            args.append(contentsOf: [destURL.path, url.lastPathComponent])
+            args.append(contentsOf: [destURL.path, source.lastPathComponent])
             try runCompressionProcess(
                 executable: "/usr/bin/zip", arguments: args,
-                currentDirectoryURL: url.deletingLastPathComponent(), environment: environment,
-                failureContext: "zip -r of \(url.lastPathComponent) into \(destURL.lastPathComponent)")
+                currentDirectoryURL: source.deletingLastPathComponent(), environment: environment,
+                failureContext: "zip -r of \(name) into \(destURL.lastPathComponent)")
         }
+    }
+
+    private static func stageUnderUniqueName(_ url: URL, occurrence: Int, stagingDir: inout URL?) throws -> URL {
+        let dir: URL
+        if let stagingDir {
+            dir = stagingDir
+        } else {
+            dir = FileManager.default.temporaryDirectory.appendingPathComponent("wiles-zip-stage-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            stagingDir = dir
+        }
+        let name = url.lastPathComponent
+        let base = (name as NSString).deletingPathExtension
+        let ext = (name as NSString).pathExtension
+        let uniqueName = ext.isEmpty ? "\(base) \(occurrence)" : "\(base) \(occurrence).\(ext)"
+        let staged = dir.appendingPathComponent(uniqueName)
+        try FileManager.default.copyItem(at: url, to: staged)
+        return staged
     }
 
     /// The `zip` password goes through the `ZIP` env var for every password (no whitespace-based
@@ -91,11 +135,21 @@ public final class ArchiveService: Sendable {
         let terminationStatus: Int32
         let standardOutput: Data
         let standardError: String
+        /// `true` when stdout hit `maxCapturedStdoutBytes` and the subprocess was killed — the
+        /// captured `standardOutput` is a prefix, not the full output.
+        var stdoutTruncated = false
     }
+
+    /// Cap on subprocess stdout captured into RAM. `listArchiveEntries` runs `unzip -Z1` / `tar -tf`
+    /// as a pre-extraction safety probe for *every* archive opened, and a crafted archive can carry
+    /// a central directory of millions of entries — reading stdout to EOF without a bound would pull
+    /// all of that text into memory. Past the cap the read stops, the process is terminated, and
+    /// the caller treats the archive as "not listable".
+    private static let maxCapturedStdoutBytes = 8 * 1024 * 1024
 
     /// Accumulates subprocess stderr up to `capacity` bytes so a chatty tool can't grow it without
     /// bound; anything past the cap is dropped. Thread-safe — `readabilityHandler` fires on an
-    /// arbitrary queue while the main flow reads `text` after `waitUntilExit()`.
+    /// arbitrary queue while the main flow reads `text` after the process exits.
     private final class BoundedStderr: @unchecked Sendable {
         private let capacity = 16 * 1024
         private let lock = NSLock()
@@ -118,13 +172,13 @@ public final class ArchiveService: Sendable {
     }
 
     /// Runs a subprocess to completion and returns its exit status, stdout (when
-    /// `captureStandardOutput` is set) and a bounded capture of stderr. Blocks on `waitUntilExit()` —
+    /// `captureStandardOutput` is set) and a bounded capture of stderr. Blocks until the subprocess exits —
     /// every caller (`AppState+Archive`) already runs this inside `Task.detached`, so it must never
     /// be called directly on the main actor. Only `process.run()` throws here; a non-zero exit is
     /// returned, not thrown, so each caller maps it to its own localized error (or, for the listing
     /// probe, treats it as "no collision").
     @discardableResult
-    private static func runProcess(
+    private nonisolated static func runProcess(
         executable: String, arguments: [String], currentDirectoryURL: URL? = nil,
         environment: [String: String]? = nil, captureStandardOutput: Bool = false) throws -> ProcessRunResult {
         let process = Process()
@@ -145,12 +199,34 @@ public final class ArchiveService: Sendable {
         process.standardOutput = outputPipe
 
         try process.run()
-        // Read stdout to EOF *before* waitUntilExit to avoid the same pipe-buffer deadlock.
-        let output = outputPipe?.fileHandleForReading.readDataToEndOfFile() ?? Data()
+        // Read stdout *before* waitUntilExit to avoid the same pipe-buffer deadlock, bounded so a
+        // huge listing can't OOM the app.
+        let (output, truncated) = outputPipe.map {
+            readStdout(from: $0.fileHandleForReading, cap: maxCapturedStdoutBytes, terminating: process)
+        } ?? (Data(), false)
         process.waitUntilExit()
         errorPipe.fileHandleForReading.readabilityHandler = nil
         return ProcessRunResult(
-            terminationStatus: process.terminationStatus, standardOutput: output, standardError: stderrBuffer.text)
+            terminationStatus: process.terminationStatus, standardOutput: output,
+            standardError: stderrBuffer.text, stdoutTruncated: truncated)
+    }
+
+    /// Reads to EOF, or stops at `cap` bytes and kills the subprocess (then drains the pipe so the
+    /// dying process doesn't block on a full buffer). Returns the bytes read and whether it capped.
+    private static func readStdout(from handle: FileHandle, cap: Int, terminating process: Process) -> (Data, truncated: Bool) {
+        var buffer = Data()
+        while true {
+            let chunk = handle.readData(ofLength: 64 * 1024)
+            if chunk.isEmpty {
+                return (buffer, false)
+            }
+            buffer.append(chunk)
+            if buffer.count >= cap {
+                process.terminate()
+                while !handle.readData(ofLength: 64 * 1024).isEmpty { }
+                return (buffer, true)
+            }
+        }
     }
 
     private static func runCompressionProcess(
@@ -185,14 +261,19 @@ public final class ArchiveService: Sendable {
         // destination, before invoking the extraction tool at all.
         try rejectUnsafeEntries(entries)
 
-        // Extracting flat risks silently overwriting same-named existing files. Only when a real
-        // collision is detected upfront does extraction redirect into a fresh, uniquely-named
-        // subfolder instead — the common no-collision case still extracts flat, unchanged.
-        let extractionFolder = collidesWithExisting(entries: entries, in: destinationFolder)
-            ? UniqueFileNaming.uniqueURL(
+        // Extracting flat risks silently overwriting same-named existing files. Extract flat ONLY
+        // when the archive's contents were actually verified (`entries != nil`) AND that listing
+        // showed no name collision at the destination. When the archive isn't listable here
+        // (`entries == nil` — a non-.zip/.tar type routed to the `ditto` fallback, or a listing
+        // probe that failed / was truncated) a collision can't be ruled out, so extraction goes
+        // into a fresh uniquely-named subfolder rather than letting `ditto`/`tar` overwrite whatever
+        // already exists at the destination (BA-279).
+        let canExtractFlat = entries != nil && !collidesWithExisting(entries: entries, in: destinationFolder)
+        let extractionFolder = canExtractFlat
+            ? destinationFolder
+            : UniqueFileNaming.uniqueURL(
                 for: destinationFolder.appendingPathComponent(archiveURL.deletingPathExtension().lastPathComponent),
                 in: destinationFolder, isDirectory: true)
-            : destinationFolder
         try FileManager.default.createDirectory(at: extractionFolder, withIntermediateDirectories: true)
 
         let executable: String
@@ -232,6 +313,7 @@ public final class ArchiveService: Sendable {
         }
         guard let result = try? runProcess(executable: executable, arguments: arguments, captureStandardOutput: true),
               result.terminationStatus == 0,
+              !result.stdoutTruncated,
               let listing = String(bytes: result.standardOutput, encoding: .utf8) else { return nil }
         return listing.split(separator: "\n").map(String.init)
     }

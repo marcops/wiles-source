@@ -4,8 +4,6 @@ import Network
 @Observable
 @MainActor
 public final class NetworkDiscoveryService {
-    public static let shared = NetworkDiscoveryService()
-
     public var discoveredShares: [NetworkShare] = []
 
     private var browser: NWBrowser?
@@ -23,9 +21,9 @@ public final class NetworkDiscoveryService {
     private static let defaultSMBPort = 445
     private static let resolveTimeout: Duration = .seconds(5)
 
-    /// No discovery on construction — `SidebarView` calls `start()`/`stop()` tied to the
-    /// "Network & Cloud" section's visibility so the SMB browser isn't live for the whole app run.
-    private init() { }
+    /// One instance per `AppState` (per window), not a `.shared` singleton — `SidebarView`
+    /// starts/stops it with the "Network & Cloud" section's visibility, which is per-window.
+    public init() { }
 
     public func start() {
         if browser != nil {
@@ -105,10 +103,10 @@ public final class NetworkDiscoveryService {
             case .ready:
                 Task { @MainActor in
                     guard let self else { return }
-                    self.finishResolving(name: name, resolvedEndpoint: self.resolvers[name]?.currentPath?.remoteEndpoint)
+                    self.finishResolving(name: name, resolvedEndpoint: self.resolvers[name]?.currentPath?.remoteEndpoint, ifCurrent: connection)
                 }
             case .failed, .cancelled:
-                Task { @MainActor in self?.finishResolving(name: name, resolvedEndpoint: nil) }
+                Task { @MainActor in self?.finishResolving(name: name, resolvedEndpoint: nil, ifCurrent: connection) }
             default:
                 break
             }
@@ -117,11 +115,15 @@ public final class NetworkDiscoveryService {
 
         Task { @MainActor [weak self] in
             try? await Task.sleep(for: Self.resolveTimeout)
-            self?.finishResolving(name: name, resolvedEndpoint: nil)
+            self?.finishResolving(name: name, resolvedEndpoint: nil, ifCurrent: connection)
         }
     }
 
-    private func finishResolving(name: String, resolvedEndpoint: NWEndpoint?) {
+    /// `ifCurrent` guards the blink case: a share vanishing and reappearing within the resolve
+    /// window replaces `resolvers[name]`, and the old connection's stale timeout/state callback
+    /// must not tear down the new resolver.
+    private func finishResolving(name: String, resolvedEndpoint: NWEndpoint?, ifCurrent expected: NWConnection) {
+        guard resolvers[name] === expected else { return }
         guard let connection = resolvers.removeValue(forKey: name) else { return }
         connection.stateUpdateHandler = nil
         connection.cancel()

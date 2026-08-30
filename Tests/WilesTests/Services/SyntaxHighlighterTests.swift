@@ -24,6 +24,27 @@ public struct SyntaxHighlighterTests {
         await testPythonExtensionIsHighlighted()
 
         await testYmlExtensionWithNoMatchingTokensStaysSingleRun()
+
+        await testUrlInsideStringLiteralIsNotColouredAsComment()
+
+        await testRealTrailingCommentAfterStringIsStillColoured()
+    }
+
+    /// Regression: the strings pass runs after the `//` comment pass, so a `//` that is actually
+    /// inside a string literal (a URL) stays string-coloured instead of bleeding comment-green.
+    private static func testUrlInsideStringLiteralIsNotColouredAsComment() async {
+        let content = "let s = \"https://example.com\""
+        let result = await SyntaxHighlighterService.highlightCode(content: content, fileExtension: "swift", language: .english)
+        let hasCommentColour = result.runs.contains { $0.appKit.foregroundColor == NSColor.systemGreen }
+        report("SyntaxHighlighter", "REG: `//` inside a string literal is not re-coloured as a comment", result: !hasCommentColour)
+    }
+
+    private static func testRealTrailingCommentAfterStringIsStillColoured() async {
+        let content = "let s = \"hi\" // note"
+        let result = await SyntaxHighlighterService.highlightCode(content: content, fileExtension: "swift", language: .english)
+        let hasCommentColour = result.runs.contains { $0.appKit.foregroundColor == NSColor.systemGreen }
+        let hasStringColour = result.runs.contains { $0.appKit.foregroundColor == NSColor.systemOrange }
+        report("SyntaxHighlighter", "POS: a real trailing comment after a string keeps both string and comment colours", result: hasCommentColour && hasStringColour)
     }
 
     private static func testEmptyContentReturnsEmpty() async {
