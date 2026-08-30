@@ -51,6 +51,9 @@ public struct HttpServerTests {
         await checkNestedPathTraversalBlocked()
         await checkDirectoryListingSortedOrder()
         await checkContentLengthMatchesBodySize()
+        await checkRangeRequestReturnsPartialContent()
+        await checkUnsatisfiableRangeReturns416()
+        await checkFullResponseAnnouncesAcceptRanges()
         await checkSiblingDirectoryTraversalBlocked(tempDir: tempDir)
         await checkTrailingSlashDirectoryReturnsListing()
         await checkEmptyDirectoryListing()
@@ -97,6 +100,49 @@ public struct HttpServerTests {
             }
         }
         TestReporter.report("LocalHttpServer", "NEG: Path traversal attempt (/../etc/passwd) blocked with 403 Forbidden", result: blocked)
+    }
+
+    private static func checkRangeRequestReturnsPartialContent() async {
+        var passed = false
+        if let fileURL = URL(string: "http://localhost:8080/public_share.txt") {
+            var request = URLRequest(url: fileURL)
+            request.setValue("bytes=2-5", forHTTPHeaderField: "Range")
+            if let (data, resp) = try? await Self.requestSession.data(for: request),
+               let httpResp = resp as? HTTPURLResponse {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                let contentRange = httpResp.value(forHTTPHeaderField: "Content-Range")
+                // "Public Data"[2...5] == "blic"
+                passed = httpResp.statusCode == 206 && body == "blic" && contentRange == "bytes 2-5/11"
+            }
+        }
+        TestReporter.report(
+            "LocalHttpServer",
+            "POS: GET with Range: bytes=2-5 returns 206 Partial Content with the requested byte slice and Content-Range",
+            result: passed)
+    }
+
+    private static func checkUnsatisfiableRangeReturns416() async {
+        var passed = false
+        if let fileURL = URL(string: "http://localhost:8080/public_share.txt") {
+            var request = URLRequest(url: fileURL)
+            request.setValue("bytes=9999-", forHTTPHeaderField: "Range")
+            if let (_, resp) = try? await Self.requestSession.data(for: request),
+               let httpResp = resp as? HTTPURLResponse {
+                passed = httpResp.statusCode == 416 && httpResp.value(forHTTPHeaderField: "Content-Range") == "bytes */11"
+            }
+        }
+        TestReporter.report("LocalHttpServer", "NEG: GET with an unsatisfiable Range returns 416 with Content-Range: bytes */<size>", result: passed)
+    }
+
+    private static func checkFullResponseAnnouncesAcceptRanges() async {
+        var passed = false
+        if let fileURL = URL(string: "http://localhost:8080/public_share.txt") {
+            if let (_, resp) = try? await Self.requestSession.data(from: fileURL),
+               let httpResp = resp as? HTTPURLResponse {
+                passed = httpResp.statusCode == 200 && httpResp.value(forHTTPHeaderField: "Accept-Ranges") == "bytes"
+            }
+        }
+        TestReporter.report("LocalHttpServer", "POS: a full 200 file response advertises Accept-Ranges: bytes", result: passed)
     }
 
     private static func checkMissingFile404() async {

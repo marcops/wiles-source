@@ -29,19 +29,12 @@ struct SidebarView: View {
         appState.preferences.view.isSidebarCollapsed && !windowUIState.isSidebarPeeking
     }
 
-    var devices: [SidebarItem] {
-        let home = URL.userHome
-        let cloudDocs = home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs")
-        let trashURL = URL.userTrash
-
-        return [
-            SidebarItem(name: appState.tr(.applications), iconName: "square.grid.3x3.fill", url: URL(fileURLWithPath: "/Applications")),
-            SidebarItem(name: appState.tr(.airDrop), iconName: "dot.radiowaves.left.and.right", url: SidebarItem.airDropURL),
-            SidebarItem(name: appState.tr(.iCloudDrive), iconName: "icloud.fill", url: cloudDocs),
-            SidebarItem(name: appState.tr(.macintoshHDName), iconName: "internaldrive.fill", url: URL(fileURLWithPath: "/")),
-            SidebarItem(name: appState.tr(.sidebarTrash), iconName: "trash.fill", url: trashURL)
-        ]
-    }
+    /// Memoized "Favorites" / "Places" / "Network & Cloud" item lists — rebuilt by `rebuildPlaces()`
+    /// only when favorites, discovered network shares, or the app language change, not on every
+    /// `body` pass. See `SidebarPlacesBuilder`.
+    @State private var favoriteItems: [SidebarItem] = []
+    @State private var placeItems: [SidebarItem] = []
+    @State private var networkAndCloudItems: [SidebarItem] = []
 
     @State private var rootFolderNode: FolderNode?
     @State private var treeChildrenCache = BoundedFolderNodeCache()
@@ -70,6 +63,9 @@ struct SidebarView: View {
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
         .onHover(perform: handleSidebarHover)
         .onDisappear { collapseWorkItem?.cancel() }
+        .onChange(of: appState.preferences.favorites.favoriteURLs, initial: true) { _, _ in rebuildPlaces() }
+        .onChange(of: appState.preferences.appearance.appLanguage) { _, _ in rebuildPlaces() }
+        .onChange(of: NetworkDiscoveryService.shared.discoveredShares) { _, _ in rebuildPlaces() }
         .task(id: treeBuildGeneration, buildDirectoryTree)
         .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.sidebarOverlayOpacity, ignoresSafeArea: true)
         // At the SidebarView level (not the ScrollView's), so it reaches the true window top —
@@ -146,17 +142,12 @@ struct SidebarView: View {
         treeBuildGeneration += 1
     }
 
-    private var favoriteItems: [SidebarItem] {
-        appState.preferences.favorites.favoriteURLs.map { sidebarItem(for: $0) }
-    }
-
-    private var networkAndCloudItems: [SidebarItem] {
-        let networkShares = NetworkDiscoveryService.shared.discoveredShares.map {
-            SidebarItem(name: $0.name, iconName: "network", url: $0.url)
-        }
-        var list = [SidebarItem(name: appState.tr(.networkVolumeName), iconName: "network", url: URL(fileURLWithPath: "/Network"))]
-        list.append(contentsOf: networkShares)
-        return list
+    private func rebuildPlaces() {
+        let lang = appState.preferences.appearance.appLanguage
+        favoriteItems = SidebarPlacesBuilder.favorites(urls: appState.preferences.favorites.favoriteURLs, lang: lang)
+        placeItems = SidebarPlacesBuilder.devices(lang: lang)
+        networkAndCloudItems = SidebarPlacesBuilder.networkAndCloud(
+            lang: lang, discoveredShares: NetworkDiscoveryService.shared.discoveredShares)
     }
 
     @ViewBuilder private var sidebarSectionsContent: some View {
@@ -184,7 +175,7 @@ struct SidebarView: View {
         if appState.showsPlacesSection {
             collapsibleSection(
                 title: appState.tr(.places), identifierKey: "PLACES",
-                isExpanded: $appState.preferences.sidebar.isDevicesExpanded, items: devices, isFavoritesSection: false,
+                isExpanded: $appState.preferences.sidebar.isDevicesExpanded, items: placeItems, isFavoritesSection: false,
                 hideAction: { appState.preferences.sidebar.showPlaces = false })
         }
         // The tree/tags/smart-folder sections have their own nested structure that doesn't reduce
@@ -222,43 +213,6 @@ struct SidebarView: View {
                     sidebarRow(for: item, sectionKey: identifierKey, isFavoritesSection: isFavoritesSection)
                 }
             }
-    }
-
-    /// Path -> (localization key, icon) for well-known folders, built once since `URL.userHome`
-    /// is fixed for the process. Avoids re-constructing ~9 URLs via `appendingPathComponent`
-    /// on every sidebar row on every render.
-    private static let wellKnownPaths: [String: (key: L10n.Key, icon: String)] = {
-        let home = URL.userHome.standardizedFileURL
-        return [
-            home.path: (.home, "house.fill"),
-            home.appendingPathComponent("Desktop").path: (.desktop, "desktopcomputer"),
-            home.appendingPathComponent("Documents").path: (.sidebarDocuments, "doc.fill"),
-            home.appendingPathComponent("Downloads").path: (.downloads, "arrow.down.circle.fill"),
-            "/Applications": (.applications, "square.grid.3x3.fill"),
-            home.appendingPathComponent("Music").path: (.music, "music.note"),
-            home.appendingPathComponent("Pictures").path: (.pictures, "photo.fill"),
-            home.appendingPathComponent("Movies").path: (.movies, "film.fill"),
-            URL.userTrash.standardizedFileURL.path: (.sidebarTrash, "trash.fill"),
-            "/": (.macintoshHDName, "internaldrive.fill")
-        ]
-    }()
-
-    private func sidebarItem(for url: URL) -> SidebarItem {
-        let std = url.standardizedFileURL
-
-        if std == AppState.recentsVirtualURL.standardizedFileURL {
-            return SidebarItem(name: appState.tr(.recents), iconName: "clock.fill", url: std)
-        }
-        if let wellKnown = wellKnownSidebarInfo(forPath: std.path) {
-            return SidebarItem(name: wellKnown.name, iconName: wellKnown.icon, url: std)
-        }
-        let name = std.lastPathComponent.isEmpty ? "/" : std.lastPathComponent
-        return SidebarItem(name: name, iconName: "folder.fill", url: std)
-    }
-
-    private func wellKnownSidebarInfo(forPath path: String) -> (name: String, icon: String)? {
-        guard let entry = Self.wellKnownPaths[path] else { return nil }
-        return (appState.tr(entry.key), entry.icon)
     }
 
     private func sidebarRow(for item: SidebarItem, sectionKey: String, isFavoritesSection: Bool = false) -> some View {

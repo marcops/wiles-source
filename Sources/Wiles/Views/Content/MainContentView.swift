@@ -224,27 +224,17 @@ struct MainContentView: View {
         }
     }
 
-    /// Shortcuts kept invisible on purpose: they're aliases for actions already discoverable
-    /// elsewhere (a menu item, a toolbar button, or a mode-dependent alternate binding),
-    /// so a second menu row for the same command would just be noise.
+    /// Shortcuts with no menu home: clear selection and the hidden-files toggle (menu-less by
+    /// design — `⌃H` is a keep-both alternate). Everything else routes through the menus or
+    /// `GlobalKeyMonitor`.
     private var keyboardShortcutsHandler: some View {
         HStack {
             Button("") { appState.selection.selectedURLs.removeAll() }
-                .keyboardShortcut(.escape, modifiers: [])
+                .keyboardShortcut(.clearSelection)
                 .hidden()
                 .disabled(windowUIState.showShortcutsHUD)
-            Button("") { handleDownArrowKey() }.keyboardShortcut(.downArrow, modifiers: .command).hidden()
-            Button("") { toggleHiddenFiles() }.keyboardShortcut(".", modifiers: [.command, .shift]).hidden()
+            Button("") { toggleHiddenFiles() }.keyboardShortcut(.toggleHiddenFiles).hidden()
             Button("") { toggleHiddenFiles() }.keyboardShortcut("h", modifiers: .control).hidden()
-            Button("") { windowUIState.activeModal = .help }.keyboardShortcut("?", modifiers: [.command, .shift]).hidden()
-            Button("") {
-                withAnimation(MotionTokens.snappySpring) {
-                    windowUIState.showShortcutsHUD.toggle()
-                }
-            }.keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom)).hidden()
-        }
-        .onDeleteCommand {
-            appState.deleteSelected(windowUIState: windowUIState)
         }
     }
 
@@ -252,11 +242,5 @@ struct MainContentView: View {
         // The `.onChange(of: showHiddenFiles)` above is the single source of the refresh — don't
         // also call it here or the shortcut fires two back-to-back directory reloads.
         appState.preferences.view.showHiddenFiles.toggle()
-    }
-
-    private func handleDownArrowKey() {
-        if appState.preferences.view.navigationMode == .macOS {
-            appState.openSelectedItem()
-        }
     }
 }

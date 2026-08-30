@@ -87,11 +87,10 @@ public extension AppState {
     }
 
     func performRename(item: FileItem, newName: String) {
-        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed != item.name else { return }
+        guard let sanitized = FilenameSanitizer.sanitize(newName), sanitized != item.name else { return }
         let oldURL = item.url
         runDetachedURLOperation(context: "Renaming item", operation: {
-            try await FileSystemService.renameItem(at: oldURL, newName: trimmed)
+            try await FileSystemService.renameItem(at: oldURL, newName: sanitized)
         }, recordUndo: { .rename(oldURL: oldURL, newURL: $0) })
     }
 

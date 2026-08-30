@@ -22,7 +22,7 @@ struct AppMenuCommands: LocalizedCommands {
         // no `Settings` scene at all, there's nothing left for SwiftUI to auto-generate.
         CommandGroup(replacing: .appSettings) {
             Button(tr(.settingsMenuItem)) { windowUIState?.activeModal = .settings }
-                .keyboardShortcut(",", modifiers: .command)
+                .keyboardShortcut(.settings)
         }
     }
 }

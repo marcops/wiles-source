@@ -35,7 +35,7 @@ public struct FileItemIconView: View {
                 .interpolation(.high)
                 .scaledToFit()
                 .frame(width: size, height: size)
-        } else if ThumbnailService.supportsThumbnail(item: item) {
+        } else if item.supportsThumbnail {
             ImageThumbnailView(url: item.url, size: size, fallback: item.icon)
                 .frame(width: size, height: size)
         } else {

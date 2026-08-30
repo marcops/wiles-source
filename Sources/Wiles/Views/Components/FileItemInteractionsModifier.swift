@@ -100,7 +100,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
         guard wasAlreadySelected else { return }
         let myGeneration = renameRequestGeneration
         Task {
-            try? await Task.sleep(nanoseconds: AsyncDelayTokens.renameDelay)
+            try? await Task.sleep(for: AsyncDelayTokens.renameDelay)
             guard myGeneration == renameRequestGeneration else { return }
             windowUIState.renameItem = item
         }

@@ -17,8 +17,6 @@ struct SharedFileItemContextMenu: View {
         shareTagsPropertiesSection
     }
 
-    private static let imageFileExtensions: Set<String> = ["png", "jpg", "jpeg", "heic", "webp", "tiff", "bmp", "gif"]
-
     /// Makes `item` the sole selection unless it's already part of the current selection.
     private func ensureItemIsSelected() {
         if !appState.selection.selectedURLs.contains(item.url) {
@@ -38,7 +36,7 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var openSection: some View {
         Button(appState.tr(.open)) { appState.openItem(item.url) }
-        Button(appState.trWithShortcutHint(.quickLook, shortcut: "Space")) { windowUIState.quickLookURL = item.url }
+        Button(appState.trWithShortcutHint(.quickLook, shortcut: ShortcutRegistry.label(.quickLook))) { windowUIState.quickLookURL = item.url }
         Menu(appState.tr(.openWith)) {
             openWithMenuContent
         }
@@ -63,23 +61,23 @@ struct SharedFileItemContextMenu: View {
     }
 
     @ViewBuilder private var clipboardSection: some View {
-        Button(appState.trWithShortcutHint(.cut, shortcut: "Cmd+X")) {
+        Button(appState.trWithShortcutHint(.cut, shortcut: ShortcutRegistry.label(.cut))) {
             ensureItemIsSelected()
             appState.cutSelected()
         }
-        Button(appState.trWithShortcutHint(.copy, shortcut: "Cmd+C")) {
+        Button(appState.trWithShortcutHint(.copy, shortcut: ShortcutRegistry.label(.copy))) {
             ensureItemIsSelected()
             appState.copySelected()
         }
         Menu(appState.tr(.copyPath)) {
             CopyPathMenuContent(urls: selectionURLsOrItem, relativeTo: appState.navigation.currentURL, appState: appState)
         }
-        Button(appState.trWithShortcutHint(.paste, shortcut: "Cmd+V")) { appState.pasteToCurrentDirectory(windowUIState: windowUIState) }
+        Button(appState.trWithShortcutHint(.paste, shortcut: ShortcutRegistry.label(.paste))) { appState.pasteToCurrentDirectory(windowUIState: windowUIState) }
     }
 
     @ViewBuilder private var contentActionsSection: some View {
         if !item.isDirectory {
-            Button(appState.trWithShortcutHint(.copyContent, shortcut: "#10")) {
+            Button(appState.tr(.copyContent)) {
                 ensureItemIsSelected()
                 appState.copyContentOfSelected()
             }
@@ -109,7 +107,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var isImageFile: Bool {
-        Self.imageFileExtensions.contains(item.fileExtension.lowercased())
+        ImageFileType.isImage(fileExtension: item.fileExtension)
     }
 
     private var pdfMergeTargets: [URL] {
@@ -119,7 +117,7 @@ struct SharedFileItemContextMenu: View {
     private var canMergeSelectedIntoPDF: Bool {
         let isEligible = pdfMergeTargets.allSatisfy { url in
             let ext = url.pathExtension.lowercased()
-            return ext == "pdf" || Self.imageFileExtensions.contains(ext)
+            return ext == "pdf" || ImageFileType.isImage(fileExtension: ext)
         }
         return isEligible && pdfMergeTargets.count >= 2
     }
@@ -153,11 +151,11 @@ struct SharedFileItemContextMenu: View {
                 windowUIState.renameItem = item
             }
         }
-        Button(appState.tr(.moveToTrash), role: .destructive) {
+        Button(appState.trWithShortcutHint(.moveToTrash, shortcut: ShortcutRegistry.label(.moveToTrash)), role: .destructive) {
             ensureItemIsSelected()
             appState.deleteSelected(windowUIState: windowUIState)
         }
-        Button(appState.trWithShortcutHint(.deleteImmediately, shortcut: "Opt+Cmd+Del"), role: .destructive) {
+        Button(appState.tr(.deleteImmediately), role: .destructive) {
             ensureItemIsSelected()
             appState.deletePermanentlySelected(windowUIState: windowUIState)
         }
@@ -173,7 +171,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var renameKeyboardHint: String {
-        appState.preferences.view.navigationMode == .gnome ? "F2" : "Return"
+        ShortcutRegistry.label(appState.preferences.view.navigationMode == .gnome ? .renameGnome : .renameMacOS)
     }
 
     @ViewBuilder private var shareTagsPropertiesSection: some View {
@@ -187,7 +185,7 @@ struct SharedFileItemContextMenu: View {
                 tagsMenuContent
             }
         }
-        Button(appState.trWithShortcutHint(.properties, shortcut: "Cmd+I")) {
+        Button(appState.trWithShortcutHint(.properties, shortcut: ShortcutRegistry.label(.properties))) {
             ensureItemIsSelected()
             windowUIState.activeModal = .properties(item)
         }

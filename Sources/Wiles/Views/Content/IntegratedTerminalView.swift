@@ -46,7 +46,8 @@ struct IntegratedTerminalView: NSViewRepresentable {
 
     /// Sends the `cd <folder>` (and, for a fresh shell, `clear`) once the PTY has settled.
     static func sendInitialCommands(to view: LocalProcessTerminalView, path: String, clearFirst: Bool) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.terminalInitialCommandDelay) {
+        Task { @MainActor in
+            try? await Task.sleep(for: AsyncDelayTokens.terminalInitialCommandDelay)
             view.send(txt: "cd \(CopyPathService.posixSingleQuoted(path))\r")
             if clearFirst {
                 view.send(txt: "clear\r")

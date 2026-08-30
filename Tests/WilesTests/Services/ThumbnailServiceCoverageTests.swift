@@ -15,6 +15,63 @@ public struct ThumbnailServiceCoverageTests {
         await testLoadThumbnailServesFromCacheOnSecondCall()
         await testPrefetchThumbnailsCancellationBreaksLoop()
         await testCacheKeyChangesWhenFileModificationDateChanges()
+        testShouldPrefetchThumbnailsThreshold()
+        await testCachedThumbnailResolvesViaMtimeIndexWithoutStat()
+    }
+
+    /// L77: prefetch is for image-heavy folders that fit the cache — it fires at or below the cap and
+    /// stops above it, the opposite of the old "only above 500" logic that starved a 400-image folder.
+    private static func testShouldPrefetchThumbnailsThreshold() {
+        TestReporter.report(
+            "ThumbnailService", "POS: shouldPrefetchThumbnails is true for a small folder (0)",
+            result: ThumbnailService.shouldPrefetchThumbnails(forItemCount: 0))
+        TestReporter.report(
+            "ThumbnailService", "POS: shouldPrefetchThumbnails is true for a 400-item folder",
+            result: ThumbnailService.shouldPrefetchThumbnails(forItemCount: 400))
+        TestReporter.report(
+            "ThumbnailService", "POS: shouldPrefetchThumbnails is true exactly at the 500 cap",
+            result: ThumbnailService.shouldPrefetchThumbnails(forItemCount: 500))
+        TestReporter.report(
+            "ThumbnailService", "NEG: shouldPrefetchThumbnails is false just past the cap (501)",
+            result: !ThumbnailService.shouldPrefetchThumbnails(forItemCount: 501))
+        TestReporter.report(
+            "ThumbnailService", "NEG: shouldPrefetchThumbnails is false for a huge folder (5000)",
+            result: !ThumbnailService.shouldPrefetchThumbnails(forItemCount: 5000))
+    }
+
+    /// M40: `cachedThumbnail` (called from an image cell's `.task`) resolves its cache key from the
+    /// in-memory mtime index seeded by `indexModificationDates`, so a hit needs no synchronous `stat`.
+    private static func testCachedThumbnailResolvesViaMtimeIndexWithoutStat() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let pngURL = tempDir.appendingPathComponent("indexed-sample.png")
+        writeSamplePNG(to: pngURL)
+        let item = FileItem.load(url: pngURL, icon: makeFakeIcon())
+        ThumbnailService.shared.indexModificationDates([item])
+
+        let loaded = await ThumbnailService.shared.loadThumbnail(for: pngURL, size: 32)
+        guard loaded != nil else {
+            TestReporter.report(
+                "ThumbnailService",
+                "SKIP: mtime-index fast path not exercisable (QuickLook unavailable in this environment)",
+                result: true)
+            return
+        }
+
+        let hit = ThumbnailService.shared.cachedThumbnail(for: pngURL, size: 32)
+        TestReporter.report(
+            "ThumbnailService",
+            "POS: cachedThumbnail hits after indexModificationDates + loadThumbnail (index-resolved key, no stat)",
+            result: hit != nil)
+
+        // NEG: a URL absent from the mtime index and never loaded is still a clean miss, not a crash.
+        let strangerURL = tempDir.appendingPathComponent("not-indexed-\(UUID().uuidString).png")
+        TestReporter.report(
+            "ThumbnailService",
+            "NEG: cachedThumbnail returns nil for a URL not in the index and never loaded",
+            result: ThumbnailService.shared.cachedThumbnail(for: strangerURL, size: 32) == nil)
     }
 
     /// M7 regression: the cache key folds in `contentModificationDate`, so a file edited/replaced
@@ -27,6 +84,8 @@ public struct ThumbnailServiceCoverageTests {
 
         let pngURL = tempDir.appendingPathComponent("mtime-sample.png")
         writeSamplePNG(to: pngURL)
+        // `cachedThumbnail` keys off the mtime index the app seeds on directory load — seed it here too.
+        ThumbnailService.shared.indexModificationDates([FileItem.load(url: pngURL)])
 
         let loaded = await ThumbnailService.shared.loadThumbnail(for: pngURL, size: 32)
         guard loaded != nil else {
@@ -41,14 +100,15 @@ public struct ThumbnailServiceCoverageTests {
         let beforeBump = ThumbnailService.shared.cachedThumbnail(for: pngURL, size: 32)
         TestReporter.report(
             "ThumbnailService",
-            "POS: thumbnail is cached immediately after a successful loadThumbnail",
+            "POS: thumbnail is cached and resolvable via the mtime index after a successful loadThumbnail",
             result: beforeBump != nil)
 
-        // Rewrite the file so its contentModificationDate advances.
+        // Rewrite the file so its contentModificationDate advances, then re-index (as a directory refresh would).
         try? await Task.sleep(nanoseconds: 1_100_000_000)
         let newDate = Date()
         writeSamplePNG(to: pngURL)
         try? FileManager.default.setAttributes([.modificationDate: newDate], ofItemAtPath: pngURL.path)
+        ThumbnailService.shared.indexModificationDates([FileItem.load(url: pngURL)])
 
         let afterBump = ThumbnailService.shared.cachedThumbnail(for: pngURL, size: 32)
         TestReporter.report(
@@ -268,6 +328,10 @@ public struct ThumbnailServiceCoverageTests {
             pngWritten = (try? pngData.write(to: pngURL)) != nil
         }
         TestReporter.report("ThumbnailService", "POS: sample PNG fixture is written to disk successfully", result: pngWritten)
+
+        // The app seeds the mtime index on every directory load; `cachedThumbnail` resolves its key
+        // from that index, so mirror it here.
+        ThumbnailService.shared.indexModificationDates([FileItem.load(url: pngURL)])
 
         // POS/NEG: loadThumbnail(for:size:) on a real PNG file either returns a generated image, or
         // returns nil gracefully in a headless CI environment without QuickLook support -- either

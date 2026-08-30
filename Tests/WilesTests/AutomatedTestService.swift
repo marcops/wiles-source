@@ -27,6 +27,7 @@ public final class AutomatedTestService {
     private static func runCoreAndFileSystemTests() async {
         NavigationTests.run()
         ArrowKeyNavigationTests.run()
+        KeyboardShortcutDispatchTests.run()
         ListColumnTests.run()
         await UISearchTests.run()
         UITests.run()
@@ -73,12 +74,15 @@ public final class AutomatedTestService {
 
     private static func runModelAndStateTests() async {
         await FileSystemSearchAndSortTests.run()
+        await FileSystemCombinedFilterTests.run()
         await FileSystemRecursiveSearchTests.run()
         AppStateColumnsAndSelectionTests.run()
         await AppStateCoreTests.run()
         await AppStateNavigationExtraTests.run()
+        await AppStateDirectoryRefreshTests.run()
         await AppStateNavigateToVolumesTests.run()
         await AppStateOperationsExtraTests.run()
+        await AppStatePasteAndArchiveTests.run()
         AutoOrganizationRuleTests.run()
         ListColumnSettingsTests.run()
         SmallModelEnumsTests.run()

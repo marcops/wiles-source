@@ -21,6 +21,9 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
     public let groupName: String
     public let isHidden: Bool
     public let fileExtension: String
+    /// Precomputed once at build time so an icon `body` reads a stored flag instead of re-running
+    /// `UTType(filenameExtension:)` + several `conforms(to:)` calls every render.
+    public let supportsThumbnail: Bool
     public let icon: NSImage
     public let tags: [String]
     public let tagColor: NSColor?
@@ -48,6 +51,7 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
         self.groupName = groupName
         self.isHidden = isHidden
         self.fileExtension = fileExtension
+        supportsThumbnail = ThumbnailService.supportsThumbnail(isDirectory: isDirectory, fileExtension: fileExtension)
         self.icon = icon
         self.tags = tags
         self.tagColor = tagColor

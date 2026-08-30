@@ -10,6 +10,29 @@ public struct FileSystemStoreTests {
         report("Store/FileSystemStore", "POS: FileSystemStore isLoading initially false", result: !store.isLoading)
 
         testTotalFileSizeBytesTracksItemsAssignment()
+        testItemsByURLIndexTracksItemsAssignment()
+    }
+
+    private static func testItemsByURLIndexTracksItemsAssignment() {
+        let store = FileSystemStore()
+        report("Store/FileSystemStore", "POS: itemsByURL starts empty", result: store.itemsByURL.isEmpty)
+
+        let itemA = makeItem(name: "a.txt", size: 1, isDirectory: false)
+        let itemB = makeItem(name: "b.txt", size: 2, isDirectory: false)
+        store.items = [itemA, itemB]
+        report(
+            "Store/FileSystemStore",
+            "POS: assigning items builds a URL -> item index matching every entry",
+            result: store.itemsByURL.count == 2 && store.itemsByURL[itemA.url]?.name == "a.txt" && store.itemsByURL[itemB.url]?.name == "b.txt")
+
+        store.items = [makeItem(name: "c.txt", size: 3, isDirectory: false)]
+        report(
+            "Store/FileSystemStore",
+            "POS: reassigning items rebuilds itemsByURL and drops stale keys",
+            result: store.itemsByURL.count == 1 && store.itemsByURL[itemA.url] == nil)
+
+        store.items = []
+        report("Store/FileSystemStore", "POS: clearing items empties itemsByURL", result: store.itemsByURL.isEmpty)
     }
 
     private static func makeItem(name: String, size: Int64, isDirectory: Bool) -> FileItem {

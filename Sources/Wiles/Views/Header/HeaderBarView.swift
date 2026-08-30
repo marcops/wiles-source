@@ -128,7 +128,7 @@ struct HeaderBarView: View {
                     appState.smartFolder.suppressNextSearchFocus = false
                     return
                 }
-                try? await Task.sleep(for: .seconds(AsyncDelayTokens.searchFieldFocusDelay))
+                try? await Task.sleep(for: AsyncDelayTokens.searchFieldFocusDelay)
                 isSearchFocused = true
             }
             .onSubmit {
@@ -251,7 +251,7 @@ struct HeaderBarView: View {
                 .foregroundColor(appState.selection.isSearching ? .accentColor : .primary)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain).help(appState.trWithShortcutHint(.actSearch, shortcut: KeyLabel.cmdF))
+        .buttonStyle(.plain).help(appState.trWithShortcutHint(.actSearch, shortcut: ShortcutRegistry.label(.find)))
         .accessibilityLabel(appState.tr(.actSearch))
         .accessibilityHint(appState.tr(.find))
     }

@@ -81,7 +81,7 @@ public extension AppState {
         do {
             guard let createdURL = try PasteboardService.createFileFromPasteboardContent(in: navigation.currentURL) else { return }
             undoRedoService.recordAction(.createFile(url: createdURL))
-            refreshCurrentDirectory()
+            invalidateCurrentDirectoryCacheAndRefresh()
             selection.selectedURLs = [createdURL]
         } catch {
             showError(error, context: "Creating file from pasteboard content")
@@ -121,7 +121,7 @@ public extension AppState {
                 showError(WilesError.localized(
                     key: .pastePartialFailure, arguments: ["\(failureCount)", "\(urls.count)"]))
             }
-            refreshCurrentDirectory()
+            invalidateCurrentDirectoryCacheAndRefresh()
         }
         BackgroundOperationsService.shared.registerCancellation(id: taskID) { pasteTask.cancel() }
     }
@@ -188,7 +188,7 @@ public extension AppState {
             if failureCount > 0 {
                 showError(String(format: tr(.moveToTrashPartialFailure), failureCount, urls.count))
             }
-            refreshCurrentDirectory()
+            invalidateCurrentDirectoryCacheAndRefresh()
         }
         BackgroundOperationsService.shared.registerCancellation(id: taskID) { deleteTask.cancel() }
     }
@@ -224,7 +224,9 @@ public extension AppState {
         HapticService.shared.play(.levelChange)
         let urls = Array(selection.selectedURLs)
         runDetachedFileOperation(context: "Deleting item permanently", onSuccess: { [weak self] _ in
-            self?.selection.selectedURLs.removeAll()
+            guard let self else { return }
+            selection.selectedURLs.removeAll()
+            DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
         }, operation: {
             try FileShredderService.deletePermanently(urls: urls)
         })

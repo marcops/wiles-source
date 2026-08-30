@@ -46,7 +46,7 @@ public final class TrashState {
         }
         let uid = String(getuid())
         let volumes = fm.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: [.skipHiddenVolumes]) ?? []
-        for volume in volumes where volume.path.hasPrefix("/Volumes/") {
+        for volume in volumes where volume.deletingLastPathComponent().path == "/Volumes" {
             let volumeTrash = volume.appendingPathComponent(".Trashes/\(uid)", isDirectory: true)
             if fm.fileExists(atPath: volumeTrash.path) {
                 directories.append(volumeTrash)
@@ -110,7 +110,7 @@ public final class TrashState {
         isUpdating = true
         task = Task.detached(priority: .background) { [weak self] in
             let result = Self.computeTrashSize()
-            await MainActor.run { self?.applyTrashSize(result) }
+            await self?.applyTrashSize(result)
         }
     }
 

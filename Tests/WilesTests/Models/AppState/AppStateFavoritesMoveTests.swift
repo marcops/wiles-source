@@ -33,22 +33,20 @@ public struct AppStateFavoritesMoveTests {
     /// M23: `moveOneResolvingCollision` returns a `BatchMoveOutcome` whose `displacedExisting` flag
     /// tells the caller whether to record an undo step — false for a clean move or KeepBoth, true
     /// only for a Replace — plus `.cancelled` / `.skipped`. It also syncs favorites + per-folder mode.
+    private static func makeCollisionFile(_ name: String, in dir: URL, _ body: String = "x") -> URL {
+        let url = dir.appendingPathComponent(name)
+        try? body.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
     private static func testMoveOneResolvingCollisionOutcomes() async {
         let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let dest = root.appendingPathComponent("Dest")
+        let srcParent = root.appendingPathComponent("Clean")
         try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: srcParent, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
-        func makeFile(_ name: String, in dir: URL, _ body: String = "x") -> URL {
-            let url = dir.appendingPathComponent(name)
-            try? body.write(to: url, atomically: true, encoding: .utf8)
-            return url
-        }
-
-        // Happy path: no collision -> .moved(displacedExisting:false); favorite + per-folder mode follow.
-        let cleanSrcParent = root.appendingPathComponent("Clean")
-        try? FileManager.default.createDirectory(at: cleanSrcParent, withIntermediateDirectories: true)
-        let cleanSrc = makeFile("clean.txt", in: cleanSrcParent)
         let appState = AppState()
         let windowUIState = WindowUIState(preferences: appState.preferences)
         let priorFavs = appState.preferences.favorites.favoriteURLs
@@ -57,71 +55,89 @@ public struct AppStateFavoritesMoveTests {
             appState.preferences.favorites.favoriteURLs = priorFavs
             appState.preferences.view.perFolderViewModes = priorModes
         }
+
+        await checkCleanMoveSyncsFavorites(appState, windowUIState, dest: dest, srcParent: srcParent)
+        await checkKeepBothKeepsBothFiles(appState, windowUIState, dest: dest, srcParent: srcParent)
+        await checkReplaceDisplacesExisting(appState, windowUIState, dest: dest, srcParent: srcParent)
+        await checkCancelLeavesSourceInPlace(appState, windowUIState, dest: dest, srcParent: srcParent)
+        await checkNilWindowUIStateSkips(appState, dest: dest, srcParent: srcParent)
+    }
+
+    /// Happy path: no collision -> .moved(displacedExisting:false); favorite + per-folder mode follow.
+    private static func checkCleanMoveSyncsFavorites(_ appState: AppState, _ windowUIState: WindowUIState, dest: URL, srcParent: URL) async {
+        let cleanSrc = makeCollisionFile("clean.txt", in: srcParent)
         appState.preferences.favorites.favoriteURLs = [cleanSrc.standardizedFileURL]
         appState.preferences.view.perFolderViewModes[cleanSrc.standardizedFileURL.path] = ViewMode.list.rawValue
-
-        let cleanResult = try? await appState.moveOneResolvingCollision(
+        let result = try? await appState.moveOneResolvingCollision(
             cleanSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
-        var cleanOK = false
-        if case let .moved(to: movedURL, displacedExisting: false)? = cleanResult?.0 {
-            cleanOK = movedURL.lastPathComponent == "clean.txt"
+        var ok = false
+        if case let .moved(to: movedURL, displacedExisting: false)? = result?.0 {
+            ok = movedURL.lastPathComponent == "clean.txt"
                 && appState.preferences.favorites.favoriteURLs.first?.lastPathComponent == "clean.txt"
-                && appState.preferences.favorites.favoriteURLs.first?.path.contains("/Dest/") == true
+                && (appState.preferences.favorites.favoriteURLs.first?.path.contains("/Dest/") ?? false)
                 && appState.preferences.view.perFolderViewModes[movedURL.standardizedFileURL.path] == ViewMode.list.rawValue
         }
         report(
             "AppState",
             "POS: moveOneResolvingCollision clean move returns .moved(displacedExisting:false) and syncs favorites + per-folder mode",
-            result: cleanOK)
+            result: ok)
+    }
 
-        // KeepBoth: dest occupied -> .moved(displacedExisting:false) at a fresh ' 2' name, both files kept.
-        _ = makeFile("dup.txt", in: dest, "existing")
-        let keepBothSrc = makeFile("dup.txt", in: cleanSrcParent, "incoming")
-        let keepBothResult = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .keepBoth, applyToAll: false)) {
+    /// KeepBoth: dest occupied -> .moved(displacedExisting:false) at a fresh ' 2' name, both files kept.
+    private static func checkKeepBothKeepsBothFiles(_ appState: AppState, _ windowUIState: WindowUIState, dest: URL, srcParent: URL) async {
+        _ = makeCollisionFile("dup.txt", in: dest, "existing")
+        let keepBothSrc = makeCollisionFile("dup.txt", in: srcParent, "incoming")
+        let result = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .keepBoth, applyToAll: false)) {
             try await appState.moveOneResolvingCollision(keepBothSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
         }
-        var keepBothOK = false
-        if case let .moved(to: kbURL, displacedExisting: false)? = keepBothResult?.0 {
-            keepBothOK = kbURL.lastPathComponent != "dup.txt"
+        var ok = false
+        if case let .moved(to: kbURL, displacedExisting: false)? = result?.0 {
+            ok = kbURL.lastPathComponent != "dup.txt"
                 && FileManager.default.fileExists(atPath: kbURL.path)
                 && FileManager.default.fileExists(atPath: dest.appendingPathComponent("dup.txt").path)
         }
         report(
             "AppState",
             "POS: moveOneResolvingCollision KeepBoth returns .moved(displacedExisting:false) at a fresh name, keeping both files",
-            result: keepBothOK)
+            result: ok)
+    }
 
-        // Replace: dest occupied -> .moved(displacedExisting:true), incoming lands at the intended name.
-        let replaceSrc = makeFile("dup.txt", in: cleanSrcParent, "replacement")
-        let replaceResult = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .replace, applyToAll: false)) {
+    /// Replace: dest occupied -> .moved(displacedExisting:true), incoming lands at the intended name.
+    private static func checkReplaceDisplacesExisting(_ appState: AppState, _ windowUIState: WindowUIState, dest: URL, srcParent: URL) async {
+        let replaceSrc = makeCollisionFile("dup.txt", in: srcParent, "replacement")
+        let result = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .replace, applyToAll: false)) {
             try await appState.moveOneResolvingCollision(replaceSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
         }
-        var replaceOK = false
-        if case let .moved(to: rURL, displacedExisting: true)? = replaceResult?.0 {
-            replaceOK = rURL.lastPathComponent == "dup.txt" && !FileManager.default.fileExists(atPath: replaceSrc.path)
+        var ok = false
+        if case let .moved(to: rURL, displacedExisting: true)? = result?.0 {
+            ok = rURL.lastPathComponent == "dup.txt" && !FileManager.default.fileExists(atPath: replaceSrc.path)
         }
-        report("AppState", "POS: moveOneResolvingCollision Replace returns .moved(displacedExisting:true)", result: replaceOK)
+        report("AppState", "POS: moveOneResolvingCollision Replace returns .moved(displacedExisting:true)", result: ok)
+    }
 
-        // Cancel: dest occupied, user cancels -> .cancelled, source untouched.
-        let cancelSrc = makeFile("dup.txt", in: cleanSrcParent, "cancelled")
-        let cancelResult = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .cancel, applyToAll: false)) {
+    /// Cancel: dest occupied, user cancels -> .cancelled, source untouched.
+    private static func checkCancelLeavesSourceInPlace(_ appState: AppState, _ windowUIState: WindowUIState, dest: URL, srcParent: URL) async {
+        let cancelSrc = makeCollisionFile("dup.txt", in: srcParent, "cancelled")
+        let result = await withResolvedCollisionPrompt(windowUIState, answer: MoveCollisionChoice(action: .cancel, applyToAll: false)) {
             try await appState.moveOneResolvingCollision(cancelSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: windowUIState)
         }
-        var cancelOK = false
-        if case .cancelled? = cancelResult?.0 {
-            cancelOK = FileManager.default.fileExists(atPath: cancelSrc.path)
+        var ok = false
+        if case .cancelled? = result?.0 {
+            ok = FileManager.default.fileExists(atPath: cancelSrc.path)
         }
-        report("AppState", "POS: moveOneResolvingCollision Cancel returns .cancelled and leaves the source in place", result: cancelOK)
+        report("AppState", "POS: moveOneResolvingCollision Cancel returns .cancelled and leaves the source in place", result: ok)
+    }
 
-        // windowUIState nil + on-disk collision -> .skipped, no move.
-        let skipSrc = makeFile("dup.txt", in: cleanSrcParent, "skipme")
-        let skipResult = try? await appState.moveOneResolvingCollision(
+    /// windowUIState nil + on-disk collision -> .skipped, no move.
+    private static func checkNilWindowUIStateSkips(_ appState: AppState, dest: URL, srcParent: URL) async {
+        let skipSrc = makeCollisionFile("dup.txt", in: srcParent, "skipme")
+        let result = try? await appState.moveOneResolvingCollision(
             skipSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: nil)
-        var skipOK = false
-        if case .skipped? = skipResult?.0 {
-            skipOK = FileManager.default.fileExists(atPath: skipSrc.path)
+        var ok = false
+        if case .skipped? = result?.0 {
+            ok = FileManager.default.fileExists(atPath: skipSrc.path)
         }
-        report("AppState", "NEG: moveOneResolvingCollision with windowUIState nil + collision returns .skipped without moving", result: skipOK)
+        report("AppState", "NEG: moveOneResolvingCollision with windowUIState nil + collision returns .skipped without moving", result: ok)
     }
 
     /// L19: `moveItemsResolvingCollisions` now counts per-item failures and surfaces ONE aggregated

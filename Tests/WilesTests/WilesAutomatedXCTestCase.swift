@@ -14,6 +14,7 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testArrowKeyNavigationTests() {
         ArrowKeyNavigationTests.run()
+        KeyboardShortcutDispatchTests.run()
     }
 
     @MainActor
@@ -264,6 +265,7 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testFileSystemSearchAndSortTests() async {
         await FileSystemSearchAndSortTests.run()
+        await FileSystemCombinedFilterTests.run()
         await FileSystemRecursiveSearchTests.run()
     }
 
@@ -280,6 +282,7 @@ final class WilesAutomatedTests: XCTestCase {
     @MainActor
     func testAppStateNavigationExtraTests() async {
         await AppStateNavigationExtraTests.run()
+        await AppStateDirectoryRefreshTests.run()
     }
 
     @MainActor
@@ -291,6 +294,7 @@ final class WilesAutomatedTests: XCTestCase {
     func testAppStateOperationsExtraTests() async throws {
         try XCTSkipIf(ProcessInfo.processInfo.environment["CI"] != nil, "SKIP-CI-SLOW: exceeds 2s locally")
         await AppStateOperationsExtraTests.run()
+        await AppStatePasteAndArchiveTests.run()
     }
 
     @MainActor

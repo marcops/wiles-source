@@ -15,9 +15,9 @@ struct EditMenuCommands: LocalizedCommands {
     var body: some Commands {
         CommandGroup(replacing: .undoRedo) {
             Button(tr(.undo)) { appState?.undoLastAction() }
-                .keyboardShortcut("z", modifiers: .command)
+                .keyboardShortcut(.undo)
             Button(tr(.redo)) { appState?.redoLastAction() }
-                .keyboardShortcut("z", modifiers: [.command, .shift])
+                .keyboardShortcut(.redo)
         }
         CommandGroup(replacing: .pasteboard) {
             // While the rename field or the path bar's text field is active, these keep their
@@ -31,7 +31,7 @@ struct EditMenuCommands: LocalizedCommands {
             selectAllCommandButton(isRenaming: isRenaming)
             Divider()
             Button(tr(.find)) { appState?.toggleSearching() }
-                .keyboardShortcut("f", modifiers: .command)
+                .keyboardShortcut(.find)
         }
     }
 
@@ -43,7 +43,7 @@ struct EditMenuCommands: LocalizedCommands {
                 appState?.cutSelected()
             }
         }
-        .keyboardShortcut("x", modifiers: .command)
+        .keyboardShortcut(.cut)
         .disabled(!isRenaming && (appState?.selection.selectedURLs.isEmpty ?? true))
     }
 
@@ -55,7 +55,7 @@ struct EditMenuCommands: LocalizedCommands {
                 appState?.copySelected()
             }
         }
-        .keyboardShortcut("c", modifiers: .command)
+        .keyboardShortcut(.copy)
         .disabled(!isRenaming && (appState?.selection.selectedURLs.isEmpty ?? true))
     }
 
@@ -67,7 +67,15 @@ struct EditMenuCommands: LocalizedCommands {
                 appState.pasteToCurrentDirectory(windowUIState: windowUIState)
             }
         }
-        .keyboardShortcut("v", modifiers: .command)
+        .keyboardShortcut(.paste)
+        .disabled(!isRenaming && !canPasteFiles)
+    }
+
+    private var canPasteFiles: Bool {
+        if let clipboard = appState?.transient.clipboard, !clipboard.urls.isEmpty {
+            return true
+        }
+        return PasteboardService.hasPasteableContent()
     }
 
     private func selectAllCommandButton(isRenaming: Bool) -> some View {
@@ -78,6 +86,6 @@ struct EditMenuCommands: LocalizedCommands {
                 appState?.selectAllItems()
             }
         }
-        .keyboardShortcut("a", modifiers: .command)
+        .keyboardShortcut(.selectAll)
     }
 }

@@ -49,6 +49,19 @@ public struct SearchFilterService: Sendable {
         return (parts + [token]).joined(separator: " ")
     }
 
+    /// Splits `query` into everything except the first `prefix…` token (case-insensitive,
+    /// whole-token) and that token's value (the text after `prefix`). Mirrors `extractHiddenFlag`
+    /// for a prefix whose value isn't known ahead of time (`tag:`), so a caller can toggle just
+    /// that token without discarding the rest of the query. Returns `(query, nil)` when absent.
+    public static func extractPrefixedToken(prefix: String, from query: String) -> (remaining: String, value: String?) {
+        let tokens = query.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        guard let match = tokens.first(where: { $0.lowercased().hasPrefix(prefix.lowercased()) }) else {
+            return (query, nil)
+        }
+        let remaining = tokens.filter { $0.lowercased() != match.lowercased() }.joined(separator: " ")
+        return (remaining, String(match.dropFirst(prefix.count)))
+    }
+
     /// Builds a regex for each individual token that looks like one (`r:` prefix, or contains
     /// `*`/`^`/`$`), keyed by the token text — computed once per query and reused across every
     /// candidate file, instead of recompiling per file. Filter tokens (`date:`/`size:`/`kind:`/

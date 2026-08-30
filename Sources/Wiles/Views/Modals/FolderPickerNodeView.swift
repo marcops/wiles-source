@@ -9,12 +9,16 @@ struct FolderPickerNodeView: View {
     @Binding var childrenCache: BoundedFolderNodeCache
     @Binding var loadingURLs: Set<URL>
 
+    private var expansion: DirectoryTreeExpansion {
+        .urlSet($expandedPaths)
+    }
+
     private var children: [FolderNode]? {
-        node.children ?? childrenCache[node.url]
+        node.resolvedChildren(in: childrenCache)
     }
 
     private var isExpanded: Bool {
-        expandedPaths.contains(node.url)
+        expansion.isExpanded(node.url)
     }
 
     private var isLoadingChildren: Bool {
@@ -28,10 +32,8 @@ struct FolderPickerNodeView: View {
         !isLoadingChildren && (children?.isEmpty ?? false)
     }
 
-    /// `FolderNode.buildRootTree()`'s root carries a hardcoded "Root (/)" name; localize it here
-    /// the same way `SidebarView`'s fallback root node already does.
     private var displayName: String {
-        node.url.path == "/" ? appState.tr(.macintoshHDName) : node.name
+        node.displayName(rootLabel: appState.tr(.macintoshHDName))
     }
 
     var body: some View {
@@ -108,24 +110,19 @@ struct FolderPickerNodeView: View {
     }
 
     private func toggleExpanded() {
-        if isExpanded {
-            expandedPaths.remove(node.url)
-        } else {
-            expandedPaths.insert(node.url)
+        let wasExpanded = isExpanded
+        expansion.toggle(node.url)
+        if !wasExpanded {
             loadChildrenIfNeeded()
         }
     }
 
-    /// Loads `node`'s children off `@MainActor` (mirrors `DirectoryTreeNodeView.loadChildrenIfNeeded()`)
-    /// so expanding a folder under a stalled network share can't block the UI.
     private func loadChildrenIfNeeded() {
-        guard children == nil, !loadingURLs.contains(node.url) else { return }
+        guard node.needsChildLoad(cache: childrenCache, inFlight: loadingURLs) else { return }
         let url = node.url
         loadingURLs.insert(url)
         Task {
-            let loaded = await Task.detached(priority: .userInitiated) {
-                FolderNode.loadChildren(of: url)
-            }.value
+            let loaded = await FolderNode.loadChildrenOffMainActor(of: url)
             loadingURLs.remove(url)
             // Only apply if the node is still expanded — collapsing before the load finishes must not
             // resurrect a stale result.

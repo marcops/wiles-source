@@ -169,6 +169,13 @@ public extension AppState {
             fileSystem.items, by: preferences.view.sortOption, ascending: preferences.view.sortAscending)
     }
 
+    /// For a mutation done in the current directory (paste, delete): drop its cached listing first
+    /// so `refreshCurrentDirectory`'s cache fast-path can't paint a stale frame before the reload.
+    func invalidateCurrentDirectoryCacheAndRefresh() {
+        DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
+        refreshCurrentDirectory()
+    }
+
     func refreshCurrentDirectory(isUserInitiated: Bool = false) {
         searchDebounceTask?.cancel()
         if isUserInitiated, fileSystem.items.isEmpty {

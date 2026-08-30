@@ -22,4 +22,30 @@ final class SearchFilterTokenTests: XCTestCase {
     func testContainsReturnsFalseWhenAbsent() {
         XCTAssertFalse(SearchFilterService.containsToken("kind:image", in: "report kind:doc"))
     }
+
+    // MARK: - extractPrefixedToken (tag-token path, used by TagsSectionView)
+
+    func testExtractPrefixedTokenReturnsNilValueWhenAbsent() {
+        let result = SearchFilterService.extractPrefixedToken(prefix: "tag:", from: "report kind:image")
+        XCTAssertEqual(result.remaining, "report kind:image")
+        XCTAssertNil(result.value)
+    }
+
+    func testExtractPrefixedTokenPullsValueAndKeepsOtherTokens() {
+        let result = SearchFilterService.extractPrefixedToken(prefix: "tag:", from: "report tag:Work date:today")
+        XCTAssertEqual(result.remaining, "report date:today")
+        XCTAssertEqual(result.value, "Work")
+    }
+
+    func testExtractPrefixedTokenMatchesPrefixCaseInsensitively() {
+        let result = SearchFilterService.extractPrefixedToken(prefix: "tag:", from: "TAG:Red budget")
+        XCTAssertEqual(result.remaining, "budget")
+        XCTAssertEqual(result.value, "Red")
+    }
+
+    func testExtractPrefixedTokenUsesFirstMatchOnly() {
+        let result = SearchFilterService.extractPrefixedToken(prefix: "tag:", from: "tag:a tag:b")
+        XCTAssertEqual(result.value, "a")
+        XCTAssertEqual(result.remaining, "tag:b")
+    }
 }

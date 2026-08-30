@@ -3,7 +3,7 @@ import SwiftUI
 /// The icon/title/subtitle row (plus an optional accessory like a tab switcher) shared by every
 /// modal via `ModalScaffoldView`. Not used standalone outside the scaffold.
 struct ModalHeaderView<Accessory: View>: View {
-    /// `static let` isn't allowed on a generic type, so these are computed instead.
+    /// `static let` stored properties aren't allowed on a generic type, so these are computed.
     private static var titleFontSize: CGFloat {
         16.0
     }

@@ -85,7 +85,7 @@ struct FileGridView: View {
     /// so it starts out matching the collapsed label exactly and grows from there.
     @ViewBuilder private var renameFieldOverlay: some View {
         if let renameItem = windowUIState.renameItem,
-           let item = appState.fileSystem.items.first(where: { $0.url == renameItem.url }),
+           let item = appState.fileSystem.itemsByURL[renameItem.url],
            let cellFrame = appState.selection.gridCellFrames[renameItem.url] {
             let fontSize = LayoutTokens.gridCardLabelFontSize(forIconSize: iconSize)
             let isSel = appState.selection.selectedURLs.contains(item.url)
@@ -108,7 +108,7 @@ struct FileGridView: View {
     /// Fully-revealed name, same clipped-cell reason and positioning as `renameFieldOverlay`.
     @ViewBuilder private var revealFieldOverlay: some View {
         if let revealURL = appState.selection.revealingFullNameURL,
-           let item = appState.fileSystem.items.first(where: { $0.url == revealURL }),
+           let item = appState.fileSystem.itemsByURL[revealURL],
            let cellFrame = appState.selection.gridCellFrames[revealURL] {
             let fontSize = LayoutTokens.gridCardLabelFontSize(forIconSize: iconSize)
             let nsFont = NSFont.systemFont(ofSize: fontSize, weight: .semibold)

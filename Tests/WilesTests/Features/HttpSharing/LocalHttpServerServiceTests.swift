@@ -78,7 +78,7 @@ public struct HttpSharingFeatureTests {
         report(
             "Feature/HttpSharing",
             "POS: firstAvailablePort skips a port that is already bound and returns a later free one",
-            result: next != nil && next!.rawValue != occupiedValue)
+            result: next.map { $0.rawValue != occupiedValue } ?? false)
     }
 
     // MARK: - Authorization header present but not "Basic " (isAuthorized guard branch)

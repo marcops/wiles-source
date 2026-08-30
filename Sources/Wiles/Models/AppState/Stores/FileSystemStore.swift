@@ -5,8 +5,15 @@ import Observation
 @MainActor
 public final class FileSystemStore {
     public var items: [FileItem] = [] {
-        didSet { totalFileSizeBytes = items.reduce(0) { $0 + ($1.isDirectory ? 0 : $1.size) } }
+        didSet {
+            totalFileSizeBytes = items.reduce(0) { $0 + ($1.isDirectory ? 0 : $1.size) }
+            itemsByURL = Dictionary(items.map { ($0.url, $0) }, uniquingKeysWith: { first, _ in first })
+        }
     }
+
+    /// URL → item index, rebuilt on assignment so a `body` can resolve one item by URL without an
+    /// O(n) `items.first(where:)` scan on every render.
+    public private(set) var itemsByURL: [URL: FileItem] = [:]
 
     /// Sum of every non-directory item's size, maintained on `items` assignment so the footer's
     /// `statusText` doesn't re-`reduce` over the whole (possibly 10k-entry) list on every render.

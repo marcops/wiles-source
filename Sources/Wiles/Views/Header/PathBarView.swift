@@ -12,7 +12,7 @@ struct PathBarView: View {
     @FocusState private var isFocused: Bool
     @State private var isHovering = false
     @State private var isDragHovering = false
-    @State private var scrollWorkItem: DispatchWorkItem?
+    @State private var scrollTask: Task<Void, Never>?
     @State private var dragTargetSegmentID: String?
     @State private var pathSegments: [PathSegment] = []
 
@@ -164,14 +164,14 @@ struct PathBarView: View {
     /// loop tick lands against a still-animating (not yet final) content width and undershoots.
     private func scrollToEnd(proxy: ScrollViewProxy, segments: [PathSegment]) {
         guard let lastID = segments.last?.id else { return }
-        scrollWorkItem?.cancel()
-        let workItem = DispatchWorkItem {
+        scrollTask?.cancel()
+        scrollTask = Task { @MainActor in
+            try? await Task.sleep(for: AsyncDelayTokens.pathBarScrollDelay)
+            guard !Task.isCancelled else { return }
             withAnimation(.linear(duration: 0)) {
                 proxy.scrollTo(lastID, anchor: .trailing)
             }
         }
-        scrollWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + AsyncDelayTokens.pathBarScrollDelay, execute: workItem)
     }
 
     private func breadcrumbPill(for item: PathSegment, isCollapsed: Bool = false) -> some View {

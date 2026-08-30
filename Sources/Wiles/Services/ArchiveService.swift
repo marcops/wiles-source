@@ -113,7 +113,7 @@ public final class ArchiveService: Sendable {
         var text: String {
             lock.lock()
             defer { lock.unlock() }
-            return String(decoding: data, as: UTF8.self)
+            return String(bytes: data, encoding: .utf8) ?? ""
         }
     }
 
@@ -232,7 +232,7 @@ public final class ArchiveService: Sendable {
         }
         guard let result = try? runProcess(executable: executable, arguments: arguments, captureStandardOutput: true),
               result.terminationStatus == 0,
-              let listing = String(data: result.standardOutput, encoding: .utf8) else { return nil }
+              let listing = String(bytes: result.standardOutput, encoding: .utf8) else { return nil }
         return listing.split(separator: "\n").map(String.init)
     }
 

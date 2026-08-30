@@ -17,20 +17,24 @@ struct DirectoryTreeNodeView: View {
         _rightClickedNodePath = rightClickedNodePath
     }
 
+    private var expansion: DirectoryTreeExpansion {
+        .pathSet(Binding(
+            get: { appState.preferences.sidebar.expandedTreePaths },
+            set: { appState.preferences.sidebar.expandedTreePaths = $0 }))
+    }
+
     /// Deep folders (outside the eagerly-loaded home ancestor chain) arrive with `node.children == nil`
     /// even though `hasSubfolders` is true; their children are fetched lazily into `childrenCache` on expand.
     private var children: [FolderNode]? {
-        node.children ?? childrenCache[node.url]
+        node.resolvedChildren(in: childrenCache)
     }
 
     private var isExpanded: Bool {
-        appState.preferences.sidebar.expandedTreePaths.contains(node.url.path)
+        expansion.isExpanded(node.url)
     }
 
-    /// `FolderNode.buildRootTree()`'s root carries a hardcoded "Root (/)" name; localize it here
-    /// the same way `SidebarView`'s fallback root node already does.
     private var displayName: String {
-        node.url.path == "/" ? appState.tr(.macintoshHDName) : node.name
+        node.displayName(rootLabel: appState.tr(.macintoshHDName))
     }
 
     var body: some View {
@@ -51,19 +55,13 @@ struct DirectoryTreeNodeView: View {
     }
 
     private func toggleExpanded() {
-        if isExpanded {
-            appState.preferences.sidebar.expandedTreePaths.remove(node.url.path)
-        } else {
-            appState.preferences.sidebar.expandedTreePaths.insert(node.url.path)
-        }
+        expansion.toggle(node.url)
     }
 
     private func loadChildrenIfNeeded() async {
         guard isExpanded, children == nil else { return }
         let url = node.url
-        let loaded = await Task.detached(priority: .userInitiated) {
-            FolderNode.loadChildren(of: url)
-        }.value
+        let loaded = await FolderNode.loadChildrenOffMainActor(of: url)
         guard !Task.isCancelled else { return }
         childrenCache[url] = loaded
     }

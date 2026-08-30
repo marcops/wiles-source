@@ -7,6 +7,16 @@ public struct FileSystemTests {
     public static func run() async {
         let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        await runBasicFileOps(tempDir: tempDir)
+        await runRenameCollisionCoverage(tempDir: tempDir)
+        try? FileManager.default.removeItem(at: tempDir)
+        await runActionsCoverageExtras()
+        await runMoveAndZipCoverageExtras()
+        await runSearchAndSortCoverageExtras()
+        await runAdditionalCoverageExtras()
+    }
+
+    private static func runBasicFileOps(tempDir: URL) async {
         // Positive: Folder Creation
         let createdDir = try? await FileSystemService.createDirectory(at: tempDir, name: "TestFolder")
         TestReporter.report("FileSystem", "POS: createDirectory", result: createdDir.map { FileManager.default.fileExists(atPath: $0.path) } ?? false)
@@ -26,14 +36,27 @@ public struct FileSystemTests {
             negRenamePassed = true
         }
         TestReporter.report("FileSystem", "NEG: renameItem on non-existent path throws error", result: negRenamePassed)
+        // Negative: Move to Non-Existent Target Folder
+        var negMovePassed = false
+        do {
+            if let renamed = renamedFile {
+                _ = try await FileSystemService.moveItem(at: renamed, toFolder: tempDir.appendingPathComponent("NonExistentFolder"))
+            }
+        } catch {
+            negMovePassed = true
+        }
+        TestReporter.report("FileSystem", "NEG: moveItem to non-existent folder throws error", result: negMovePassed)
+    }
 
+    private static func runRenameCollisionCoverage(tempDir: URL) async {
         // Negative: renaming onto an existing different item throws the explicit destinationExists
         // error, not a raw NSFileWriteFileExistsError.
-        let occupant = tempDir.appendingPathComponent("occupied.txt")
-        try? "x".write(to: occupant, atomically: true, encoding: .utf8)
+        let mover = tempDir.appendingPathComponent("collide_source.txt")
+        try? "x".write(to: mover, atomically: true, encoding: .utf8)
+        try? "x".write(to: tempDir.appendingPathComponent("occupied.txt"), atomically: true, encoding: .utf8)
         var collisionIsExplicit = false
         do {
-            _ = try await FileSystemService.renameItem(at: renamedFile ?? testFile, newName: "occupied.txt")
+            _ = try await FileSystemService.renameItem(at: mover, newName: "occupied.txt")
         } catch let error as WilesError {
             if case .destinationExists = error {
                 collisionIsExplicit = true
@@ -64,30 +87,12 @@ public struct FileSystemTests {
             && (try? String(contentsOf: rpTarget, encoding: .utf8)) == "rp-src"
         TestReporter.report("FileSystem", "POS: renameItem(onCollision: .replace) overwrites the intended name, displacing the occupant", result: replaceOK)
 
-        // Positive: a case-only rename ("renamed_sample.txt" -> "Renamed_Sample.txt") succeeds even
-        // on a case-insensitive volume.
-        var caseOnlyURL: URL?
-        if let renamed = renamedFile {
-            caseOnlyURL = try? await FileSystemService.renameItem(at: renamed, newName: "Renamed_Sample.txt")
-        }
-        let caseOnlyOK = caseOnlyURL.map { $0.lastPathComponent == "Renamed_Sample.txt" && FileManager.default.fileExists(atPath: $0.path) } ?? false
+        // Positive: a case-only rename succeeds even on a case-insensitive volume.
+        let caseSrc = tempDir.appendingPathComponent("case_sample.txt")
+        try? "x".write(to: caseSrc, atomically: true, encoding: .utf8)
+        let caseOnlyURL = try? await FileSystemService.renameItem(at: caseSrc, newName: "Case_Sample.txt")
+        let caseOnlyOK = caseOnlyURL.map { $0.lastPathComponent == "Case_Sample.txt" && FileManager.default.fileExists(atPath: $0.path) } ?? false
         TestReporter.report("FileSystem", "POS: renameItem performs a case-only rename", result: caseOnlyOK)
-        // Negative: Move to Non-Existent Target Folder
-        var negMovePassed = false
-        do {
-            if let renamed = renamedFile {
-                let fakeFolder = tempDir.appendingPathComponent("NonExistentFolder")
-                _ = try await FileSystemService.moveItem(at: renamed, toFolder: fakeFolder)
-            }
-        } catch {
-            negMovePassed = true
-        }
-        TestReporter.report("FileSystem", "NEG: moveItem to non-existent folder throws error", result: negMovePassed)
-        try? FileManager.default.removeItem(at: tempDir)
-        await runActionsCoverageExtras()
-        await runMoveAndZipCoverageExtras()
-        await runSearchAndSortCoverageExtras()
-        await runAdditionalCoverageExtras()
     }
 
     private nonisolated static func loadItems(

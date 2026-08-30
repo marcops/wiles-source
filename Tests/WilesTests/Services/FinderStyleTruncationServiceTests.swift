@@ -62,6 +62,21 @@ final class FinderStyleTruncationServiceTests: XCTestCase {
         XCTAssertLessThanOrEqual(oneLine.split(separator: "\n", omittingEmptySubsequences: false).count, 1)
     }
 
+    /// L69: `wrappedLines` is now memoized in its own bounded `NSCache`. Repeated identical calls
+    /// return an equal result (cache hit), and a wider width is a distinct key that recomputes.
+    func testWrappedLinesMemoizationAndKeying() {
+        let name = String(repeating: "wrap", count: 40) + ".txt"
+        let first = FinderStyleTruncationService.wrappedLines(name, font: font, maxWidth: 120)
+        let second = FinderStyleTruncationService.wrappedLines(name, font: font, maxWidth: 120)
+        XCTAssertEqual(first, second)
+        XCTAssertGreaterThan(first.count, 1)
+
+        let wide = FinderStyleTruncationService.wrappedLines(name, font: font, maxWidth: 4000)
+        XCTAssertLessThan(wide.count, first.count)
+
+        XCTAssertEqual(FinderStyleTruncationService.wrappedLines("", font: font, maxWidth: 200), [""])
+    }
+
     func testMoreAvailableLinesTruncatesLessAggressively() {
         let longName = String(repeating: "c", count: 200) + ".txt"
         let oneLine = FinderStyleTruncationService.truncatedMiddle(longName, font: font, maxWidth: 120, maxLines: 1)

@@ -4,13 +4,7 @@ import Foundation
 @MainActor
 public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @unchecked Sendable {
     public static let shared = SmartFolderService()
-    private var query: NSMetadataQuery?
-    private var queryObserver: (any NSObjectProtocol)?
-    /// Backstop for `NSMetadataQueryDidFinishGathering` never firing — on a volume without Spotlight
-    /// indexing (an SMB share, an external drive with indexing off) the query can gather forever, so
-    /// the caller would spin on `isLoading` and the observer would leak until the next query.
-    private var queryTimeoutTask: Task<Void, Never>?
-    private static let queryTimeout: Duration = .seconds(20)
+    private var activeQuery: SpotlightQuery?
     /// Identifies the most recently started query. `fetchFileItems` resolves icons on a detached
     /// task, so a slower-finishing older query (e.g. one with more results) could otherwise still
     /// call its `completion` after a faster newer one already did, silently overwriting the newer,
@@ -59,77 +53,27 @@ public final class SmartFolderService: NSObject, SmartFolderServiceProtocol, @un
         runQuery(predicate: predicate, searchScopes: [folderURL], completion: completion)
     }
 
-    /// Shared `NSMetadataQuery` setup/teardown boilerplate for `executeQuery` and
-    /// `executeContentQuery`, which differ only in the predicate and search scope they need.
-    /// Owns the same staleness-token handling documented on `currentQueryToken`: each call stops
-    /// any in-flight query, mints a fresh token before starting the new one, and the completion
-    /// only applies its results if that token is still the most recent by the time it fires.
+    /// Shared `SpotlightQuery` orchestration for `executeQuery` and `executeContentQuery`, which
+    /// differ only in the predicate and search scope they need. Owns the staleness-token handling
+    /// documented on `currentQueryToken`: each call abandons any in-flight query, mints a fresh
+    /// token before starting the new one, and only applies results if that token is still current.
     private func runQuery(predicate: NSPredicate, searchScopes: [Any], completion: @escaping @Sendable ([FileItem]) -> Void) {
-        query?.stop()
-        queryTimeoutTask?.cancel()
-        removeQueryObserver()
+        activeQuery?.cancel()
         let token = UUID()
         currentQueryToken = token
-        let metadataQuery = NSMetadataQuery()
-        metadataQuery.predicate = predicate
-        metadataQuery.searchScopes = searchScopes
-
-        queryObserver = NotificationCenter.default
-            .addObserver(forName: .NSMetadataQueryDidFinishGathering, object: metadataQuery, queue: .main) { [weak self] notification in
-                // `NSNotification`/`NSMetadataQuery` handling stays outside any actor-hop closure —
-                // neither is Sendable, and `MainActor.assumeIsolated`'s manual assertion doesn't
-                // prove that to the region-based isolation checker on every Swift toolchain version
-                // (CI runs an older one than local) the way an actual `await`/`Task { @MainActor }`
-                // hop does. Extract the plain data first, then hop once for the `self`-touching part.
-                guard let query = notification.object as? NSMetadataQuery else {
-                    completion([])
-                    return
-                }
-                query.stop()
-                guard let results = query.results as? [NSMetadataItem] else {
-                    completion([])
-                    return
-                }
-                let paths = results.compactMap { $0.value(forAttribute: NSMetadataItemPathKey) as? String }
-                // swiftformat:disable redundantSelf — a nested `Task { @MainActor in }` closure
-                // needs explicit `self.` to capture; the CI toolchain's SwiftFormat would otherwise
-                // strip it and break the build (see M21 — pending config alignment).
+        let spotlight = SpotlightQuery(predicate: predicate, searchScopes: searchScopes)
+        activeQuery = spotlight
+        Task { @MainActor [weak self] in
+            let paths = await spotlight.run()
+            guard let self, currentQueryToken == token else { return }
+            activeQuery = nil
+            Self.fetchFileItems(forPaths: paths) { items in
                 Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    self.queryTimeoutTask?.cancel()
-                    self.removeQueryObserver()
-                    Self.fetchFileItems(forPaths: paths) { [weak self] items in
-                        Task { @MainActor in
-                            guard let self, self.currentQueryToken == token else { return }
-                            completion(items)
-                        }
-                    }
+                    guard let self, currentQueryToken == token else { return }
+                    completion(items)
                 }
-                // swiftformat:enable redundantSelf
             }
-        metadataQuery.start()
-        query = metadataQuery
-        scheduleQueryTimeout(token: token, completion: completion)
-    }
-
-    private func removeQueryObserver() {
-        guard let observer = queryObserver else { return }
-        NotificationCenter.default.removeObserver(observer)
-        queryObserver = nil
-    }
-
-    /// If the query is still the current one after `queryTimeout` (gathering never finished — an
-    /// unindexed volume), give up with an empty result and clean up rather than spin forever.
-    private func scheduleQueryTimeout(token: UUID, completion: @escaping @Sendable ([FileItem]) -> Void) {
-        // swiftformat:disable redundantSelf — see the note in `runQuery`'s inner Task closure.
-        queryTimeoutTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: Self.queryTimeout)
-            guard !Task.isCancelled, let self, self.currentQueryToken == token else { return }
-            self.query?.stop()
-            self.removeQueryObserver()
-            completion([])
         }
-        // swiftformat:enable redundantSelf
     }
 
     /// Resolves `FileItem`s for a Spotlight result set's paths off the main thread. Building them

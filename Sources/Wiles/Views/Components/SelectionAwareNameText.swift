@@ -56,7 +56,7 @@ struct SelectionAwareNameText: View {
         .task(id: isSelected) {
             showFull = false
             guard revealsOnSelect, isSelected else { return }
-            try? await Task.sleep(nanoseconds: AsyncDelayTokens.nameRevealDelay)
+            try? await Task.sleep(for: AsyncDelayTokens.nameRevealDelay)
             guard !Task.isCancelled else { return }
             showFull = true
         }

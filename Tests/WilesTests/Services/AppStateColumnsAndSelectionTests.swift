@@ -233,6 +233,12 @@ public struct AppStateColumnsAndSelectionTests {
         appState.preferences.favorites.favoriteURLs = [oldURL]
         appState.preferences.view.perFolderViewModes[oldURL.path] = ViewMode.grid.rawValue
 
+        let oldParent = oldURL.deletingLastPathComponent()
+        let newParent = newURL.deletingLastPathComponent()
+        let sample = DirectoryLoadResult(items: [])
+        DirectoryCacheService.shared.cacheDirectory(sample, for: oldParent)
+        DirectoryCacheService.shared.cacheDirectory(sample, for: newParent)
+
         appState.remapRelocatedState(from: oldURL, to: newURL)
         report(
             "AppState+Columns",
@@ -240,6 +246,11 @@ public struct AppStateColumnsAndSelectionTests {
             result: appState.preferences.favorites.favoriteURLs == [newURL]
                 && appState.preferences.view.perFolderViewModes[oldURL.path] == nil
                 && appState.preferences.view.perFolderViewModes[newURL.path] == ViewMode.grid.rawValue)
+        report(
+            "AppState+Columns",
+            "POS: remapRelocatedState() drops the cached listing of both the source and destination parent directories",
+            result: DirectoryCacheService.shared.cachedResult(for: oldParent) == nil
+                && DirectoryCacheService.shared.cachedResult(for: newParent) == nil)
     }
 
     private static func testHandleSelectionSingleClick() {

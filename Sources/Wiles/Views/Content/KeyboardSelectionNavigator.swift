@@ -31,11 +31,29 @@ struct KeyboardSelectionNavigator {
                 appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1, windowUIState: windowUIState)
                 return true
             }
+            if isCmd, let handled = handleCommandArrow(arrowCode, appState: appState) {
+                return handled
+            }
             let isShift = NSEvent.modifierFlags.contains(.shift)
             handleArrowKeyDown(arrowCode, isShift: isShift, appState: appState)
             return true
         }
         return handleEditActionKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState)
+    }
+
+    /// Cmd+↑ = enclosing folder (Finder-standard); Cmd+↓ = open the selected item in macOS mode.
+    /// Returns `nil` to let a plain selection-move fall through (Cmd+←/→, or Cmd+↓ in gnome).
+    private func handleCommandArrow(_ key: ArrowKey, appState: AppState) -> Bool? {
+        switch key {
+        case .up:
+            appState.goUp()
+            return true
+        case .down where appState.preferences.view.navigationMode == .macOS:
+            appState.openSelectedItem()
+            return true
+        default:
+            return nil
+        }
     }
 
     /// True when Cmd+Up/Down was pressed while the sidebar's currently-selected favorite
@@ -111,12 +129,12 @@ struct KeyboardSelectionNavigator {
     }
 
     private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
-        if code == KeyCode.f2 {
+        if ShortcutRegistry.physicalKeyCodes(.renameGnome).contains(code) {
             if !appState.selection.selectedURLs.isEmpty {
                 triggerRenameForSelected(appState: appState, windowUIState: windowUIState)
                 return true
             }
-        } else if code == KeyCode.backspace || code == KeyCode.forwardDelete {
+        } else if ShortcutRegistry.physicalKeyCodes(.moveToTrash).contains(code) {
             if !appState.selection.selectedURLs.isEmpty {
                 appState.deleteSelected(windowUIState: windowUIState)
                 return true
@@ -124,7 +142,7 @@ struct KeyboardSelectionNavigator {
                 appState.goUp()
                 return true
             }
-        } else if code == KeyCode.returnKey {
+        } else if ShortcutRegistry.physicalKeyCodes(.renameMacOS).contains(code) {
             return handleReturnKeyDown(isCmd: isCmd, appState: appState, windowUIState: windowUIState)
         }
         return false

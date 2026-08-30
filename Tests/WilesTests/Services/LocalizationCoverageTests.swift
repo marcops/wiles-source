@@ -15,6 +15,21 @@ public struct LocalizationCoverageTests {
         testDisplayNamesAreUnique()
         testAppLanguageCodableRoundTrip()
         testChineseMixedCaseLprojFallbackResolvesRealTranslation()
+        testEnumMatchesBundledLprojFolders()
+    }
+
+    private static func testEnumMatchesBundledLprojFolders() {
+        let bundled = Set(Bundle.wilesResources.localizations.map { $0.lowercased() }).subtracting(["base"])
+        let declared = Set(AppLanguage.allCases.filter { $0 != .system }.map { $0.rawValue.lowercased() })
+        let missingOnDisk = declared.subtracting(bundled)
+        let missingInEnum = bundled.subtracting(declared)
+        if !missingOnDisk.isEmpty || !missingInEnum.isEmpty {
+            print("AppLanguage/.lproj drift — no folder for: \(missingOnDisk.sorted()); no enum case for: \(missingInEnum.sorted())")
+        }
+        TestReporter.report(
+            "Localization",
+            "POS: every non-system AppLanguage case has a matching bundled .lproj folder and vice versa",
+            result: missingOnDisk.isEmpty && missingInEnum.isEmpty)
     }
 
     // Not covered: `L10n.string`'s final `resourceBundle.localizedString(...)` fallback line (both

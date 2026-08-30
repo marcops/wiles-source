@@ -14,6 +14,66 @@ extension HttpSharingFeatureTests {
         await testOversizedRequestHeadReturns431()
         await testNestedSubfolderIsListedNotStreamed()
         testRequestPathRejectsNulByteAndEmptyComponents()
+        testParseByteRange()
+        await testPasswordProtectedRequestWithDifferentLengthPasswordReturns401()
+    }
+
+    private static func testParseByteRange() {
+        typealias Range = LocalHttpServerService.RequestedByteRange
+        func isSatisfiable(_ range: Range, _ start: Int, _ end: Int) -> Bool {
+            if case let .satisfiable(gotStart, gotEnd) = range {
+                return gotStart == start && gotEnd == end
+            }
+            return false
+        }
+        func isNone(_ range: Range) -> Bool {
+            if case .none = range {
+                return true
+            }
+            return false
+        }
+        func isUnsatisfiable(_ range: Range) -> Bool {
+            if case .unsatisfiable = range {
+                return true
+            }
+            return false
+        }
+        let parse = LocalHttpServerService.parseByteRange
+
+        report("Feature/HttpSharing", "POS: no Range header -> .none", result: isNone(parse(nil, 100)))
+        report("Feature/HttpSharing", "POS: 'Range: bytes=0-99' -> .satisfiable(0, 99)", result: isSatisfiable(parse("Range: bytes=0-99", 500), 0, 99))
+        report("Feature/HttpSharing", "POS: open-ended 'bytes=100-' clamps to last byte", result: isSatisfiable(parse("Range: bytes=100-", 500), 100, 499))
+        report("Feature/HttpSharing", "POS: suffix 'bytes=-50' is the last 50 bytes", result: isSatisfiable(parse("Range: bytes=-50", 500), 450, 499))
+        report("Feature/HttpSharing", "POS: end past EOF is clamped to last byte", result: isSatisfiable(parse("Range: bytes=0-99999", 500), 0, 499))
+        report("Feature/HttpSharing", "NEG: start beyond EOF -> .unsatisfiable", result: isUnsatisfiable(parse("Range: bytes=999-", 500)))
+        report("Feature/HttpSharing", "NEG: multi-range spec is ignored -> .none", result: isNone(parse("Range: bytes=0-9,20-29", 500)))
+        report("Feature/HttpSharing", "NEG: non-bytes unit is ignored -> .none", result: isNone(parse("Range: items=0-9", 500)))
+        report("Feature/HttpSharing", "NEG: reversed range (end < start) -> .none", result: isNone(parse("Range: bytes=200-100", 500)))
+    }
+
+    private static func testPasswordProtectedRequestWithDifferentLengthPasswordReturns401() async {
+        // The constant-time check compares SHA-256 digests (no length guard) — a wrong password of a
+        // very different length must still be rejected.
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let server = LocalHttpServerService.shared
+        server.start(sharing: tempDir, password: "secret123")
+        await waitUntil { server.isRunning }
+
+        var passed = false
+        if let sock = rawConnect(port: 8080) {
+            let wrongAuth = "Basic " + Data("someone:x".utf8).base64EncodedString()
+            rawSend(sock, "GET / HTTP/1.1\r\nHost: localhost\r\nAuthorization: \(wrongAuth)\r\n\r\n")
+            let response = rawRecvAll(sock, timeoutMs: 1000)
+            passed = (String(data: response, encoding: .utf8) ?? "").hasPrefix("HTTP/1.1 401")
+            Darwin.close(sock)
+        }
+        report("Feature/HttpSharing", "NEG: GET / with a wrong password of a different length still returns 401 Unauthorized", result: passed)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        try? FileManager.default.removeItem(at: tempDir)
     }
 
     /// `isSafeRequestPath` rejects a decoded path with a NUL byte or an interior empty component,

@@ -22,6 +22,9 @@ public extension AppState {
     func remapRelocatedState(from oldURL: URL, to newURL: URL) {
         remapFavorites(from: oldURL, to: newURL)
         remapPerFolderViewMode(from: oldURL, to: newURL)
+        // Both endpoints' cached listings are now stale; drop them so the next refresh can't flash old contents.
+        DirectoryCacheService.shared.invalidate(url: oldURL.deletingLastPathComponent())
+        DirectoryCacheService.shared.invalidate(url: newURL.deletingLastPathComponent())
     }
 
     /// "Same location" for favorites/path comparisons — resolves symlinks so a path reached via a

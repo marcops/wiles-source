@@ -9,6 +9,7 @@ import SwiftUI
 /// the full dataset is visible. Below the threshold, the whole dataset renders at once with the
 /// entrance animation `FileGridView`/`FileListView` already relied on.
 struct PaginatedItemsSection<ItemContent: View>: View {
+    /// `static let` stored properties aren't allowed on a generic type, so this is computed.
     private static var lazyLoadingBatchSize: Int {
         100
     }
@@ -22,8 +23,9 @@ struct PaginatedItemsSection<ItemContent: View>: View {
         items.count > LayoutTokens.paginationThreshold
     }
 
-    private var visibleItems: [FileItem] {
-        paginate ? Array(items.prefix(visibleLimit)) : items
+    /// Slice, not a fresh Array: `prefix`/`[...]` share the backing store, so `body` allocates nothing.
+    private var visibleItems: ArraySlice<FileItem> {
+        paginate ? items.prefix(visibleLimit) : items[...]
     }
 
     var body: some View {

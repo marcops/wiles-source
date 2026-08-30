@@ -17,6 +17,14 @@ public enum FinderStyleTruncationService {
         return cache
     }()
 
+    /// Same rationale as `truncationCache`, for `wrappedLines` — `revealFieldOverlay` calls it from
+    /// `body`, re-hit on every scroll frame while a name is revealed.
+    private nonisolated(unsafe) static let wrappedLinesCache: NSCache<NSString, NSArray> = {
+        let cache = NSCache<NSString, NSArray>()
+        cache.countLimit = 1000
+        return cache
+    }()
+
     /// One reusable TextKit graph instead of a fresh `NSLayoutManager`/`NSTextStorage`/`NSTextContainer`
     /// per `fits()` step of the binary search. `layoutLock` serializes access since `precompute` runs
     /// off-main while a stray `body` cache-miss can still land on the main thread.
@@ -65,10 +73,16 @@ public enum FinderStyleTruncationService {
     public static func wrappedLines(_ text: String, font: NSFont, maxWidth: CGFloat) -> [String] {
         let maxWidth = maxWidth - measurementSafetyMargin
         guard maxWidth > 0, !text.isEmpty else { return [text] }
+        let cacheKey = "\(font.fontName)|\(font.pointSize)|\(Int(maxWidth.rounded()))|\(text)" as NSString
+        if let cached = wrappedLinesCache.object(forKey: cacheKey) as? [String] {
+            return cached
+        }
         layoutLock.lock()
-        defer { layoutLock.unlock() }
         // `NSTextContainer.maximumNumberOfLines = 0` is AppKit's own "no limit" sentinel.
-        return wrappedLinesLocked(text, font: font, maxWidth: maxWidth, maxLines: 0)
+        let result = wrappedLinesLocked(text, font: font, maxWidth: maxWidth, maxLines: 0)
+        layoutLock.unlock()
+        wrappedLinesCache.setObject(result as NSArray, forKey: cacheKey)
+        return result
     }
 
     /// Binary-searches the largest equal prefix/suffix ("…"-joined) that still fits. Caller holds `layoutLock`.

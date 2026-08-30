@@ -177,6 +177,18 @@ extension FileSystemTests {
         let writtenPaths = Set([pbFileA.path, pbFileB.path])
         let readPaths = Set((readBack ?? []).map(\.path))
         TestReporter.report("FileSystem", "POS: writeToPasteboard/readFromPasteboard round-trips the same file URLs", result: readPaths == writtenPaths)
+        // POS: hasPasteableContent() sees the file URLs just written
+        TestReporter.report(
+            "FileSystem", "POS: hasPasteableContent() is true when file URLs are on the pasteboard",
+            result: PasteboardService.hasPasteableContent())
+        // NEG: an emptied pasteboard has nothing pasteable; POS: a plain string counts
+        NSPasteboard.general.clearContents()
+        let emptyResult = PasteboardService.hasPasteableContent()
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("pasteable text \(UUID().uuidString)", forType: .string)
+        TestReporter.report(
+            "FileSystem", "NEG: hasPasteableContent() is false for an empty pasteboard and true for plain text",
+            result: !emptyResult && PasteboardService.hasPasteableContent())
         // POS: copyFileContentToClipboard writes the file's text content as a pasteboard string
         let clipboardFile = tempDir.appendingPathComponent("clipboard_source.txt")
         let clipboardContent = "clipboard content \(UUID().uuidString)"

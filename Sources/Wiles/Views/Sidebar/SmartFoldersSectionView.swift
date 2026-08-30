@@ -95,12 +95,14 @@ struct SmartFoldersSectionView: View {
                 .font(.system(size: 13))
                 .focused(isRenameFocused)
                 .task {
-                    try? await Task.sleep(for: .seconds(AsyncDelayTokens.searchFieldFocusDelay))
+                    try? await Task.sleep(for: AsyncDelayTokens.searchFieldFocusDelay)
                     isRenameFocused.wrappedValue = true
                 }
                 .onSubmit { commitSmartFolderRename(folder) }
                 .onExitCommand { renamingSmartFolderID = nil }
         }
+        // Mirrors the button row's total inset so the row doesn't shift on entering rename mode:
+        // sidebarRowChrome's 10h/7v inner padding, then the button row's 8h outer padding.
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .padding(.horizontal, 8)

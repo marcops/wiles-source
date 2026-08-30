@@ -49,6 +49,34 @@ public struct FileItemTests {
 
         testResizedCopyDoesNotMutateSharedIcon()
         testEqualityTracksAllICloudTransferFlags()
+        testSupportsThumbnailIsPrecomputed()
+    }
+
+    /// L81: `supportsThumbnail` is computed once in `init` (from `isDirectory` + `fileExtension`) so an
+    /// icon `body` reads a stored flag instead of re-running UTType classification every render.
+    private static func testSupportsThumbnailIsPrecomputed() {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        func item(_ name: String, isDir: Bool = false) -> FileItem {
+            let url = tempDir.appendingPathComponent(name)
+            if isDir {
+                try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            } else {
+                FileManager.default.createFile(atPath: url.path, contents: Data())
+            }
+            return FileItem.load(url: url, icon: NSWorkspace.shared.icon(forFile: url.path))
+        }
+
+        report("Model/FileItem", "POS: supportsThumbnail is true for an image (.png)", result: item("photo.png").supportsThumbnail)
+        report("Model/FileItem", "POS: supportsThumbnail is true for a .pdf", result: item("doc.pdf").supportsThumbnail)
+        report("Model/FileItem", "NEG: supportsThumbnail is false for a directory", result: !item("a-folder", isDir: true).supportsThumbnail)
+        report("Model/FileItem", "NEG: supportsThumbnail is false for plain text (.txt)", result: !item("notes.txt").supportsThumbnail)
+        report(
+            "Model/FileItem",
+            "POS: precomputed supportsThumbnail matches ThumbnailService.supportsThumbnail(item:)",
+            result: item("photo.png").supportsThumbnail == ThumbnailService.supportsThumbnail(item: item("photo.png")))
     }
 
     /// A file that starts or stops downloading/uploading from iCloud must compare unequal to its

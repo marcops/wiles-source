@@ -64,10 +64,22 @@ struct SidebarRowView: View {
                 rowContextMenu
             }
             .opacity(isMissingFavorite ? Self.staleFavoriteOpacity : 1)
-            .task(id: item.url) {
-                await refreshEjectable()
-                await refreshMissingFavoriteStatus()
-            }
+            .task(id: item.url) { await refreshEjectable() }
+            .task(id: favoriteStatusKey) { await refreshMissingFavoriteStatus() }
+    }
+
+    /// Re-runs the missing-favorite check not just once per row, but whenever the user navigates
+    /// or the visible folder's contents change (the directory monitor's live signal) — so a
+    /// favorite deleted while the sidebar stays open stops rendering as live. No timer/poll.
+    private var favoriteStatusKey: String {
+        guard isFavoritesSection else { return item.url.path }
+        return "\(item.url.path)|\(appState.navigation.currentURL.path)|\(appState.fileSystem.items.count)"
+    }
+
+    /// A favorite is dimmed only when it's in the Favorites section and its backing path is gone
+    /// from disk. Pure so the decision is unit-testable without the async `FileManager` hop.
+    static func isFavoriteMissing(isFavoritesSection: Bool, pathExists: Bool) -> Bool {
+        isFavoritesSection && !pathExists
     }
 
     /// A favorite whose folder was deleted or whose volume was unmounted still rendered identically
@@ -83,7 +95,7 @@ struct SidebarRowView: View {
             FileManager.default.fileExists(atPath: url.path)
         }.value
         guard !Task.isCancelled else { return }
-        isMissingFavorite = !exists
+        isMissingFavorite = Self.isFavoriteMissing(isFavoritesSection: isFavoritesSection, pathExists: exists)
     }
 
     /// Real `URLResourceValues.volumeIsEjectable` check, not the old `/Volumes/` path-prefix

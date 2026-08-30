@@ -77,46 +77,50 @@ public extension FileSystemService {
     @discardableResult
     static func renameItem(at url: URL, newName: String, onCollision: MoveCollisionPolicy = .failIfExists) async throws -> URL {
         try await Task.detached(priority: .userInitiated) {
-            let fm = FileManager.default
-            let parent = url.deletingLastPathComponent()
-            var destURL = parent.appendingPathComponent(newName)
-
-            if url.standardizedFileURL == destURL.standardizedFileURL {
-                return url
-            }
-
-            let caseOnlyChange = url.lastPathComponent.lowercased() == newName.lowercased()
-
-            // A plain collision with a different item: resolve per `onCollision` instead of a raw
-            // NSFileWriteFileExistsError.
-            if fm.fileExists(atPath: destURL.path), !caseOnlyChange {
-                switch onCollision {
-                case .failIfExists:
-                    throw WilesError.destinationExists(name: newName)
-                case .keepBoth:
-                    destURL = uniqueDestination(for: newName, in: parent)
-                case .replace:
-                    try fm.trashItem(at: destURL, resultingItemURL: nil)
-                }
-            }
-
-            if caseOnlyChange {
-                // On a case-insensitive volume the destination path resolves to the source itself,
-                // so a direct move can be rejected — rename via a temporary name.
-                let tempURL = parent.appendingPathComponent(".wiles-rename-\(UUID().uuidString)")
-                try fm.moveItem(at: url, to: tempURL)
-                do {
-                    try fm.moveItem(at: tempURL, to: destURL)
-                } catch {
-                    try? fm.moveItem(at: tempURL, to: url)
-                    throw error
-                }
-                return destURL
-            }
-
-            try fm.moveItem(at: url, to: destURL)
-            return destURL
+            try performRenameOnDisk(at: url, newName: newName, onCollision: onCollision)
         }.value
+    }
+
+    private nonisolated static func performRenameOnDisk(at url: URL, newName: String, onCollision: MoveCollisionPolicy) throws -> URL {
+        let fm = FileManager.default
+        let parent = url.deletingLastPathComponent()
+        var destURL = parent.appendingPathComponent(newName)
+
+        if url.standardizedFileURL == destURL.standardizedFileURL {
+            return url
+        }
+
+        let caseOnlyChange = url.lastPathComponent.lowercased() == newName.lowercased()
+
+        // A plain collision with a different item: resolve per `onCollision` instead of a raw
+        // NSFileWriteFileExistsError.
+        if fm.fileExists(atPath: destURL.path), !caseOnlyChange {
+            switch onCollision {
+            case .failIfExists:
+                throw WilesError.destinationExists(name: newName)
+            case .keepBoth:
+                destURL = uniqueDestination(for: newName, in: parent)
+            case .replace:
+                try fm.trashItem(at: destURL, resultingItemURL: nil)
+            }
+        }
+
+        if caseOnlyChange {
+            // On a case-insensitive volume the destination path resolves to the source itself,
+            // so a direct move can be rejected — rename via a temporary name.
+            let tempURL = parent.appendingPathComponent(".wiles-rename-\(UUID().uuidString)")
+            try fm.moveItem(at: url, to: tempURL)
+            do {
+                try fm.moveItem(at: tempURL, to: destURL)
+            } catch {
+                try? fm.moveItem(at: tempURL, to: url)
+                throw error
+            }
+            return destURL
+        }
+
+        try fm.moveItem(at: url, to: destURL)
+        return destURL
     }
 
     @discardableResult

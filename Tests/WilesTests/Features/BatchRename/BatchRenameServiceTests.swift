@@ -80,12 +80,12 @@ public struct BatchRenameFeatureTests {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let a = dir.appendingPathComponent("IMG_001.txt")
-        let b = dir.appendingPathComponent("IMG_002.txt")
-        try? "a".write(to: a, atomically: true, encoding: .utf8)
-        try? "b".write(to: b, atomically: true, encoding: .utf8)
-        let itemA = FileItem.load(url: a, icon: NSWorkspace.shared.icon(forFile: a.path))
-        let itemB = FileItem.load(url: b, icon: NSWorkspace.shared.icon(forFile: b.path))
+        let urlA = dir.appendingPathComponent("IMG_001.txt")
+        let urlB = dir.appendingPathComponent("IMG_002.txt")
+        try? "a".write(to: urlA, atomically: true, encoding: .utf8)
+        try? "b".write(to: urlB, atomically: true, encoding: .utf8)
+        let itemA = FileItem.load(url: urlA, icon: NSWorkspace.shared.icon(forFile: urlA.path))
+        let itemB = FileItem.load(url: urlB, icon: NSWorkspace.shared.icon(forFile: urlB.path))
 
         var threw = false
         do {
@@ -97,7 +97,7 @@ public struct BatchRenameFeatureTests {
         report(
             "Feature/BatchRename",
             "NEG: performBatchRename leaves both originals on disk when it aborts on a collision (no partial renames)",
-            result: FileManager.default.fileExists(atPath: a.path) && FileManager.default.fileExists(atPath: b.path))
+            result: FileManager.default.fileExists(atPath: urlA.path) && FileManager.default.fileExists(atPath: urlB.path))
     }
 
     /// M60: a cancelled `performBatchRename` surfaces `CancellationError`; renames done before the

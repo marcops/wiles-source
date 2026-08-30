@@ -13,6 +13,19 @@ public final class PasteboardService: Sendable {
         return pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL]
     }
 
+    /// Whether a paste right now would produce anything — copied files, an image, or non-empty
+    /// text. Lets the Edit menu's Paste item disable itself the way Cut/Copy already do.
+    public static func hasPasteableContent() -> Bool {
+        let pb = NSPasteboard.general
+        if let urls = pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], !urls.isEmpty {
+            return true
+        }
+        if pb.canReadObject(forClasses: [NSImage.self], options: nil) {
+            return true
+        }
+        return !(pb.string(forType: .string) ?? "").isEmpty
+    }
+
     /// Pasting with nothing "file-shaped" on the pasteboard (no dragged/copied files) still does
     /// something useful, matching Finder's "New Item from Clipboard": a copied screenshot or image
     /// becomes a new `.png`, and copied text becomes a new `.txt`, right in the current folder.

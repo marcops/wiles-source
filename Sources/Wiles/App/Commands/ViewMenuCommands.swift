@@ -55,15 +55,15 @@ struct ViewMenuCommands: LocalizedCommands {
         Toggle(
             tr(windowUIState?.showTerminalDrawer ?? false ? .hideTerminal : .showTerminal),
             isOn: windowUIStateBinding(\.showTerminalDrawer))
-            .keyboardShortcut("j", modifiers: .command)
+            .keyboardShortcut(.toggleTerminal)
         Toggle(
             tr(windowUIState?.trailingInspector == .preview ? .hidePreview : .showPreviewSidebar),
             isOn: inspectorBinding(.preview))
-            .keyboardShortcut("p", modifiers: [.command, .shift])
+            .keyboardShortcut(.togglePreview)
         Toggle(
             tr(windowUIState?.trailingInspector == .diskUsage ? .hideDiskUsageSidebar : .showDiskUsageSidebar),
             isOn: inspectorBinding(.diskUsage))
-            .keyboardShortcut("d", modifiers: [.command, .shift])
+            .keyboardShortcut(.toggleDiskUsage)
         Menu(tr(.sidebarMenuTitle)) {
             Toggle(tr(.showFavorites), isOn: $sharedPreferences.sidebar.showFavorites)
             Toggle(tr(.showPlaces), isOn: $sharedPreferences.sidebar.showPlaces)

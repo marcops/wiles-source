@@ -19,13 +19,13 @@ struct FileMenuCommands: LocalizedCommands {
         // Replacing `.newItem` gives full, translated control over it (see UI_TEST_BACKLOG.md).
         CommandGroup(replacing: .newItem) {
             Button(tr(.newWindow)) { openWindow(id: AppConstants.mainWindowID) }
-                .keyboardShortcut("n", modifiers: .command)
+                .keyboardShortcut(.newWindow)
         }
         // Same story for "Close": it has no dedicated CommandGroupPlacement, so it rides along
         // inside `.saveItem` (the only remaining File-menu placement for non-document scenes).
         CommandGroup(replacing: .saveItem) {
             Button(tr(.close)) { NSApplication.shared.keyWindow?.performClose(nil) }
-                .keyboardShortcut("w", modifiers: .command)
+                .keyboardShortcut(.closeWindow)
         }
         CommandGroup(after: .newItem) {
             fileItemActionCommands
@@ -35,22 +35,22 @@ struct FileMenuCommands: LocalizedCommands {
     @ViewBuilder private var fileItemActionCommands: some View {
         if let appState, let windowUIState {
             Button(tr(.newFolder)) { appState.createNewFolderAndRename(windowUIState: windowUIState) }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
+                .keyboardShortcut(.newFolder)
             Button(tr(.newFileTitle)) { appState.createNewFileAndRename(windowUIState: windowUIState) }
-                .keyboardShortcut("n", modifiers: [.command, .option])
+                .keyboardShortcut(.newFile)
             Divider()
             Button(tr(.open)) { appState.openSelectedItem() }
-                .keyboardShortcut("o", modifiers: .command)
+                .keyboardShortcut(.open)
                 .disabled(appState.selection.selectedURLs.isEmpty)
             Button(tr(.properties)) { appState.openPropertiesForSelected(windowUIState: windowUIState) }
-                .keyboardShortcut("i", modifiers: .command)
+                .keyboardShortcut(.properties)
                 .disabled(appState.selection.selectedURLs.isEmpty)
             Button(tr(.quickLook)) { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
-                .keyboardShortcut(" ", modifiers: [])
+                .keyboardShortcut(.quickLook)
                 .disabled(appState.selection.selectedURLs.isEmpty)
             Divider()
             Button(tr(.moveToTrash)) { appState.deleteSelected(windowUIState: windowUIState) }
-                .keyboardShortcut(.delete, modifiers: [])
+                .keyboardShortcut(.moveToTrash)
                 .disabled(appState.selection.selectedURLs.isEmpty)
         }
     }

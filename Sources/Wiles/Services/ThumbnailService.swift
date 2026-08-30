@@ -46,16 +46,22 @@ public final class ThumbnailService {
     }
 
     public static func supportsThumbnail(item: FileItem) -> Bool {
-        guard !item.isDirectory else { return false }
-        guard !item.fileExtension.isEmpty else { return false }
-        guard let type = UTType(filenameExtension: item.fileExtension) else { return false }
+        item.supportsThumbnail
+    }
+
+    /// Pure UTType classification, no disk access — `FileItem` precomputes this once at build time
+    /// so an icon `body` never re-derives it. `nonisolated` so `FileItem.init` can call it.
+    public nonisolated static func supportsThumbnail(isDirectory: Bool, fileExtension: String) -> Bool {
+        guard !isDirectory else { return false }
+        guard !fileExtension.isEmpty else { return false }
+        guard let type = UTType(filenameExtension: fileExtension) else { return false }
         if isExcludedFromThumbnails(type: type) {
             return false
         }
         return isPreviewableType(type: type)
     }
 
-    private static func isExcludedFromThumbnails(type: UTType) -> Bool {
+    private nonisolated static func isExcludedFromThumbnails(type: UTType) -> Bool {
         type.conforms(to: .sourceCode) ||
             type.conforms(to: .script) ||
             type.conforms(to: .archive) ||
@@ -63,7 +69,7 @@ public final class ThumbnailService {
             type.conforms(to: .executable)
     }
 
-    private static func isPreviewableType(type: UTType) -> Bool {
+    private nonisolated static func isPreviewableType(type: UTType) -> Bool {
         type.conforms(to: .image) ||
             type.conforms(to: .movie) ||
             type.conforms(to: .audiovisualContent) ||
@@ -71,8 +77,18 @@ public final class ThumbnailService {
             type.conforms(to: .presentation)
     }
 
+    /// Prefetch only pays off for image-heavy folders that fit inside the thumbnail cache; above this
+    /// a full-folder prefetch churns the 500-entry cache and burns CPU on thumbnails never scrolled to.
+    private nonisolated static let prefetchItemCountCap: Int = 500
+
+    public nonisolated static func shouldPrefetchThumbnails(forItemCount count: Int) -> Bool {
+        count <= prefetchItemCountCap
+    }
+
+    /// Called from an image cell's `.task` — never `stat`s (`allowStatFallback: false`); a miss when
+    /// the mtime index isn't populated yet just defers to the full `loadThumbnail` path, which hits cache.
     public nonisolated func cachedThumbnail(for url: URL, size _: CGFloat) -> NSImage? {
-        cache.object(forKey: cacheKey(url: url))
+        cache.object(forKey: cacheKey(url: url, allowStatFallback: false))
     }
 
     /// Callers must invoke this on directory load so `cachedThumbnail` from a view body needs no `stat` (wiring: see report).
@@ -131,7 +147,7 @@ public final class ThumbnailService {
     }
 
     public func prefetchThumbnails(for items: [FileItem], size _: CGFloat) {
-        let eligibleURLs = items.filter { Self.supportsThumbnail(item: $0) }.map(\.url)
+        let eligibleURLs = items.filter(\.supportsThumbnail).map(\.url)
         guard !eligibleURLs.isEmpty else { return }
         // Cancel any prefetch still running for a previously-viewed folder — otherwise it keeps
         // burning CPU generating thumbnails for a folder the user already navigated away from.
@@ -152,11 +168,14 @@ public final class ThumbnailService {
         cache.removeObject(forKey: cacheKey(url: url))
     }
 
-    /// Keyed by path + mtime so an externally replaced file re-renders; mtime from `mtimeIndex`, else a `stat`.
-    private nonisolated func cacheKey(url: URL) -> NSString {
+    /// Keyed by path + mtime so an externally replaced file re-renders; mtime from `mtimeIndex`, else a
+    /// `stat` unless `allowStatFallback` is false (render-path callers must never `stat`).
+    private nonisolated func cacheKey(url: URL, allowStatFallback: Bool = true) -> NSString {
         let std = url.standardizedFileURL
-        let mtime = indexedModificationDate(forPath: std.path)
-            ?? (try? std.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        var mtime = indexedModificationDate(forPath: std.path)
+        if mtime == nil, allowStatFallback {
+            mtime = (try? std.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        }
         let stamp = mtime.map { String($0.timeIntervalSinceReferenceDate) } ?? "0"
         return "\(std.path)|\(stamp)" as NSString
     }

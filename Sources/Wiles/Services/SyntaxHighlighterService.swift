@@ -80,7 +80,7 @@ public enum SyntaxHighlighterService: Sendable {
             self = match.language
         }
 
-        private static let uttypeConformances: [(type: UTType, language: HighlightLanguage)] = [
+        private static let uttypeConformances: [(type: UTType, language: Self)] = [
             (.json, .json),
             (.yaml, .yaml),
             (.propertyList, .markup),

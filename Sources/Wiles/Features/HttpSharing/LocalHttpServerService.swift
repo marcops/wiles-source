@@ -1,30 +1,35 @@
+import CryptoKit
 import Foundation
 import GitBeacon
 import Network
+import Observation
 
 @Observable
 public final class LocalHttpServerService: @unchecked Sendable {
     public static let shared = LocalHttpServerService()
 
+    // Observed surface — all `@MainActor`. Everything below is `queue`-owned state, kept
+    // `@ObservationIgnored` so a background mutation never touches the ObservationRegistrar.
     @MainActor public var isRunning: Bool = false
-    public var sharedFolder: URL?
-    /// The port the server is (or last tried) listening on. Seeded to `defaultPort` and bumped to
-    /// the next free port in `portScanRange` when that one is already taken (another app, or a
-    /// second Wiles window already sharing).
-    public var port: NWEndpoint.Port = LocalHttpServerService.defaultPort
     @MainActor public var serverURL: String?
     /// Set when `start(sharing:password:)` fails to stand up the listener, so `HttpShareSheet`
     /// (stuck otherwise on "Starting server…") has something to show and retry from.
     @MainActor public var startError: String?
 
-    private var listener: NWListener?
+    @ObservationIgnored var sharedFolder: URL?
+    /// The port the server is (or last tried) listening on. Seeded to `defaultPort` and bumped to
+    /// the next free port in `portScanRange` when that one is already taken (another app, or a
+    /// second Wiles window already sharing).
+    @ObservationIgnored var port: NWEndpoint.Port = LocalHttpServerService.defaultPort
+
+    @ObservationIgnored private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.wiles.HttpServer")
-    private var connections: [NWConnection] = []
-    private var idleTimeoutWorkItems: [ObjectIdentifier: DispatchWorkItem] = [:]
+    @ObservationIgnored private var connections: [NWConnection] = []
+    @ObservationIgnored private var idleTimeoutWorkItems: [ObjectIdentifier: DispatchWorkItem] = [:]
     /// Bytes received so far per connection, accumulated until the `\r\n\r\n` request-head
     /// terminator arrives — HTTP does not guarantee the head lands in a single TCP segment.
-    private var requestBuffers: [ObjectIdentifier: Data] = [:]
-    private var requiredPassword: String?
+    @ObservationIgnored private var requestBuffers: [ObjectIdentifier: Data] = [:]
+    @ObservationIgnored private var requiredPassword: String?
 
     /// Caps concurrent connections for this local file-sharing feature — plenty for normal LAN
     /// browsing/downloads, low enough to bound memory/FD usage against a runaway client.
@@ -153,7 +158,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         queue.asyncAfter(deadline: .now() + Self.idleConnectionTimeout, execute: workItem)
     }
 
-    private func removeConnection(_ connection: NWConnection) {
+    func removeConnection(_ connection: NWConnection) {
         connections.removeAll(where: { $0 === connection })
         let key = ObjectIdentifier(connection)
         idleTimeoutWorkItems.removeValue(forKey: key)?.cancel()
@@ -227,6 +232,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }
 
         let path = parts[1]
+        let rangeHeader = lines.dropFirst().first(where: { $0.lowercased().hasPrefix("range:") })
 
         guard let folder = sharedFolder else {
             sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Internal Server Error".utf8))
@@ -247,7 +253,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
             return
         }
 
-        serveFile(path: path, folder: folder, connection: connection)
+        serveFile(path: path, folder: folder, connection: connection, rangeHeader: rangeHeader)
     }
 
     /// Password is optional (rule: user chooses with/without auth, HttpShareSheet). When set, every
@@ -274,13 +280,12 @@ public final class LocalHttpServerService: @unchecked Sendable {
         return Self.constantTimeEquals(providedPassword, requiredPassword)
     }
 
-    /// Avoids `==`'s early-exit-on-first-mismatch timing behavior, which could let a remote
-    /// attacker infer the password byte-by-byte from response latency.
+    /// Constant-time password check: compares SHA-256 digests so the work is fixed-width for any
+    /// input, leaking neither a byte-by-byte mismatch position nor (via a length guard) the length.
     private static func constantTimeEquals(_ lhs: String, _ rhs: String) -> Bool {
-        let lhsBytes = Array(lhs.utf8)
-        let rhsBytes = Array(rhs.utf8)
-        guard lhsBytes.count == rhsBytes.count else { return false }
-        return zip(lhsBytes, rhsBytes).reduce(into: UInt8(0)) { result, pair in result |= pair.0 ^ pair.1 } == 0
+        let lhsDigest = Array(SHA256.hash(data: Data(lhs.utf8)))
+        let rhsDigest = Array(SHA256.hash(data: Data(rhs.utf8)))
+        return zip(lhsDigest, rhsDigest).reduce(into: UInt8(0)) { result, pair in result |= pair.0 ^ pair.1 } == 0
     }
 
     /// The listing page is static HTML with inline styles and no scripts; lock everything else down
@@ -339,7 +344,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         }
     }
 
-    private func serveFile(path: String, folder: URL, connection: NWConnection) {
+    private func serveFile(path: String, folder: URL, connection: NWConnection, rangeHeader: String?) {
         guard let decodedPath = path.removingPercentEncoding, Self.isSafeRequestPath(decodedPath) else {
             sendResponse(connection: connection, statusCode: HTTPStatus.badRequest, body: Data("Bad Request".utf8))
             return
@@ -374,76 +379,10 @@ public final class LocalHttpServerService: @unchecked Sendable {
             return
         }
 
-        streamFile(at: fileURL, connection: connection)
+        streamFile(at: fileURL, connection: connection, rangeHeader: rangeHeader)
     }
 
-    /// Chunk size for streaming file bodies: bounds peak memory usage while serving large files
-    /// instead of buffering the entire file into a single `Data` object (see `streamFile`).
-    private static let fileStreamChunkSize = 64 * 1024
-
-    private func streamFile(at fileURL: URL, connection: NWConnection) {
-        do {
-            let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
-            let fileSize = (attributes[.size] as? Int) ?? 0
-            let fileHandle = try FileHandle(forReadingFrom: fileURL)
-            let statusText = HTTPURLResponse.localizedString(forStatusCode: HTTPStatus.ok)
-            let headerStr = """
-            HTTP/1.1 \(HTTPStatus.ok) \(statusText)\r
-            Content-Length: \(fileSize)\r
-            Content-Type: application/octet-stream\r
-            Connection: close\r
-            \r
-
-            """
-            connection.send(content: Data(headerStr.utf8), completion: .contentProcessed { [weak self] error in
-                guard let self, error == nil else {
-                    try? fileHandle.close()
-                    connection.cancel()
-                    self?.removeConnection(connection)
-                    return
-                }
-                sendNextChunk(fileHandle: fileHandle, connection: connection)
-            })
-        } catch {
-            ErrorReporter.report(error, context: "Streaming file over local HTTP share")
-            sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading file".utf8))
-        }
-    }
-
-    private func sendNextChunk(fileHandle: FileHandle, connection: NWConnection) {
-        let chunk: Data?
-        do {
-            chunk = try fileHandle.read(upToCount: Self.fileStreamChunkSize)
-        } catch {
-            // A mid-stream read failure isn't EOF: the client has already been promised
-            // `Content-Length` bytes and will now get fewer. Nothing to do but log it and drop
-            // the connection so the client sees a reset rather than a clean, "complete" close.
-            ErrorReporter.report(error, context: "Reading file mid-stream over local HTTP share (client download will be truncated)")
-            try? fileHandle.close()
-            connection.cancel()
-            removeConnection(connection)
-            return
-        }
-
-        guard let chunk, !chunk.isEmpty else {
-            try? fileHandle.close()
-            connection.cancel()
-            removeConnection(connection)
-            return
-        }
-
-        connection.send(content: chunk, completion: .contentProcessed { [weak self] error in
-            guard let self, error == nil else {
-                try? fileHandle.close()
-                connection.cancel()
-                self?.removeConnection(connection)
-                return
-            }
-            sendNextChunk(fileHandle: fileHandle, connection: connection)
-        })
-    }
-
-    private func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain", extraHeaders: [String: String] = [:]) {
+    func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain", extraHeaders: [String: String] = [:]) {
         let statusText = HTTPURLResponse.localizedString(forStatusCode: statusCode)
         let extraHeaderLines = extraHeaders.map { "\($0.key): \($0.value)\r\n" }.joined()
         let headerStr = """

@@ -7,14 +7,6 @@ struct ImageThumbnailView: View {
     let fallback: NSImage
     @State private var thumbnail: NSImage?
 
-    init(url: URL, size: CGFloat, fallback: NSImage) {
-        self.url = url
-        self.size = size
-        self.fallback = fallback
-        let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size)
-        _thumbnail = State(initialValue: cached)
-    }
-
     var body: some View {
         Image(nsImage: thumbnail ?? fallback)
             .resizable()
@@ -22,6 +14,11 @@ struct ImageThumbnailView: View {
             .scaledToFit()
             .task(id: url) {
                 guard thumbnail == nil else { return }
+                // Instant path: a hit in the in-memory cache (non-stat) shows immediately, no debounce.
+                if let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size) {
+                    thumbnail = cached
+                    return
+                }
                 // Debounce: during a fast scroll fling, rows appear and disappear within a frame
                 // or two. SwiftUI cancels this task the instant the row leaves the hierarchy, so
                 // waiting a beat before starting the real QuickLook I/O means a row that's only

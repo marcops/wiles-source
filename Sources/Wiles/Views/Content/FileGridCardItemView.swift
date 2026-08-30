@@ -34,7 +34,7 @@ struct FileGridCardItemView: View {
                     }
                     return
                 }
-                try? await Task.sleep(nanoseconds: AsyncDelayTokens.nameRevealDelay)
+                try? await Task.sleep(for: AsyncDelayTokens.nameRevealDelay)
                 guard !Task.isCancelled else { return }
                 appState.selection.revealingFullNameURL = item.url
             }

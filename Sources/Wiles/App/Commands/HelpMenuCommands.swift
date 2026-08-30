@@ -10,14 +10,14 @@ struct HelpMenuCommands: LocalizedCommands {
     var body: some Commands {
         CommandGroup(replacing: .help) {
             Button(tr(.wilesHelpAndShortcuts)) { windowUIState?.activeModal = .help }
-                .keyboardShortcut("?", modifiers: .command)
+                .keyboardShortcut(.help)
             Button(tr(.feedbackMenuItem)) { windowUIState?.activeModal = .feedback }
             Button(tr(.shortcutsCheatsheetTitle)) {
                 withAnimation(MotionTokens.snappySpring) {
                     windowUIState?.showShortcutsHUD.toggle()
                 }
             }
-            .keyboardShortcut(KeyboardShortcut("/", modifiers: .command, localization: .custom))
+            .keyboardShortcut(.shortcutsHUD)
         }
     }
 }

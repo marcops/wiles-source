@@ -33,8 +33,24 @@ struct SaveSmartFolderSheetView: View {
             name: folderName,
             icon: "folder.badge.gearshape",
             searchQuery: appState.selection.searchQuery,
-            scopePath: appState.navigation.currentURL.path)
+            scopePath: Self.resolvedScopePath(
+                currentURL: appState.navigation.currentURL,
+                isSmartFolderActive: appState.smartFolder.activeFolderID != nil))
         appState.addSmartFolder(folder)
         dismiss()
+    }
+
+    /// The directory to scope the saved smart folder's query to. A virtual location (Recents, any
+    /// `wiles://` URL) or an active smart-folder view has no real directory to scope to, so this
+    /// returns `""` — `SmartFolderService.executeQuery` reads an empty scope as "search from the
+    /// user's home folder". A real directory passes through unchanged.
+    static func resolvedScopePath(currentURL: URL, isSmartFolderActive: Bool) -> String {
+        guard !isSmartFolderActive, !isVirtualLocation(currentURL) else { return "" }
+        return currentURL.path
+    }
+
+    private static func isVirtualLocation(_ url: URL) -> Bool {
+        let std = url.standardizedFileURL
+        return std == AppState.recentsVirtualURL || std.scheme == "wiles"
     }
 }

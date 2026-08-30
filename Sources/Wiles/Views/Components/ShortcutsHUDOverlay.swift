@@ -214,45 +214,46 @@ struct ShortcutsHUDOverlay: View {
         .contentShape(Rectangle())
     }
 
-    /// Keeps `L10n.Key` (not resolved text) so `merged` can match entries by stable identity, not position.
-    private func navigationShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
-        if mode == .macOS {
-            [
-                (.actNavBackForward, KeyLabel.cmdBracketNavigation),
-                (.actParentFolder, KeyLabel.cmdUpArrow),
-                (.shortcutsOpenFolder, KeyLabel.cmdDownArrow)
-            ]
-        } else {
-            [
-                (.actNavBackForward, KeyLabel.cmdBracketNavigation),
-                (.actParentFolder, KeyLabel.backspace),
-                (.shortcutsOpenFolder, KeyLabel.enter)
-            ]
-        }
+    private typealias Command = ShortcutRegistry.Command
+
+    private var backForwardLabel: String {
+        "\(ShortcutRegistry.label(.goBack))  /  \(ShortcutRegistry.label(.goForward))"
     }
 
-    private func fileActionsShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
-        let renameKey = mode == .gnome ? KeyLabel.f2 : KeyLabel.returnKey
+    /// Keeps `L10n.Key` (not resolved text) so `merged` can match entries by stable identity, not
+    /// position. Every key label comes from `ShortcutRegistry` so the cheat sheet can't drift from
+    /// the real bindings ([M77]).
+    private func navigationShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
+        let parentCommand: Command = mode == .macOS ? .enclosingFolder : .enclosingFolderGnome
+        let openCommand: Command = mode == .macOS ? .openSelected : .openSelectedGnome
         return [
-            (.actCopyShortcut, KeyLabel.cmdC),
-            (.actCutShortcut, KeyLabel.cmdX),
-            (.actPasteShortcut, KeyLabel.cmdV),
-            (.shortcutsRename, renameKey),
-            (.actQuickLook, KeyLabel.space),
-            (.actItemProperties, KeyLabel.cmdI),
-            (.actNewFolderShortcut, KeyLabel.cmdShiftN),
-            (.actMoveTrash, KeyLabel.cmdDelete)
+            (.actNavBackForward, backForwardLabel),
+            (.actParentFolder, ShortcutRegistry.label(parentCommand)),
+            (.shortcutsOpenFolder, ShortcutRegistry.label(openCommand))
         ]
     }
 
-    private func systemShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
-        let hiddenKey = mode == .gnome ? KeyLabel.ctrlH : KeyLabel.cmdShiftPeriod
+    private func fileActionsShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
+        let renameCommand: Command = mode == .gnome ? .renameGnome : .renameMacOS
         return [
-            (.actSearch, KeyLabel.cmdF),
-            (.shortcutsToggleHidden, hiddenKey),
-            (.actUndo, KeyLabel.cmdZ),
-            (.actRedo, KeyLabel.cmdShiftZ),
-            (.shortcutsToggleOverlay, KeyLabel.cmdSlash)
+            (.actCopyShortcut, ShortcutRegistry.label(.copy)),
+            (.actCutShortcut, ShortcutRegistry.label(.cut)),
+            (.actPasteShortcut, ShortcutRegistry.label(.paste)),
+            (.shortcutsRename, ShortcutRegistry.label(renameCommand)),
+            (.actQuickLook, ShortcutRegistry.label(.quickLook)),
+            (.actItemProperties, ShortcutRegistry.label(.properties)),
+            (.actNewFolderShortcut, ShortcutRegistry.label(.newFolder)),
+            (.actMoveTrash, ShortcutRegistry.label(.moveToTrash))
+        ]
+    }
+
+    private func systemShortcuts(for _: NavigationMode) -> [(L10n.Key, String)] {
+        [
+            (.actSearch, ShortcutRegistry.label(.find)),
+            (.shortcutsToggleHidden, ShortcutRegistry.label(.toggleHiddenFiles)),
+            (.actUndo, ShortcutRegistry.label(.undo)),
+            (.actRedo, ShortcutRegistry.label(.redo)),
+            (.shortcutsToggleOverlay, ShortcutRegistry.label(.shortcutsHUD))
         ]
     }
 
@@ -260,16 +261,16 @@ struct ShortcutsHUDOverlay: View {
     /// (the per-mode tabs stay focused on the shortcuts that actually differ between modes).
     private var generalShortcuts: [(L10n.Key, String)] {
         [
-            (.settingsMenuItem, KeyLabel.cmdComma),
-            (.newWindow, KeyLabel.cmdN),
-            (.close, KeyLabel.cmdW),
-            (.open, KeyLabel.cmdO),
-            (.actToggleTerminal, KeyLabel.cmdJ),
-            (.actTogglePreview, KeyLabel.cmdShiftP),
-            (.goToFolder, KeyLabel.cmdL),
-            (.actConnectServer, KeyLabel.cmdK),
-            (.actDiskVisualizer, KeyLabel.cmdShiftD),
-            (.wilesHelpAndShortcuts, KeyLabel.cmdQuestionMark)
+            (.settingsMenuItem, ShortcutRegistry.label(.settings)),
+            (.newWindow, ShortcutRegistry.label(.newWindow)),
+            (.close, ShortcutRegistry.label(.closeWindow)),
+            (.open, ShortcutRegistry.label(.open)),
+            (.actToggleTerminal, ShortcutRegistry.label(.toggleTerminal)),
+            (.actTogglePreview, ShortcutRegistry.label(.togglePreview)),
+            (.goToFolder, ShortcutRegistry.label(.goToFolder)),
+            (.actConnectServer, ShortcutRegistry.label(.connectToServer)),
+            (.actDiskVisualizer, ShortcutRegistry.label(.toggleDiskUsage)),
+            (.wilesHelpAndShortcuts, ShortcutRegistry.label(.help))
         ]
     }
 
