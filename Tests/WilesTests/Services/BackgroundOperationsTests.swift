@@ -16,7 +16,7 @@ public struct BackgroundOperationsTests {
     /// not just hide the progress bar. `completeTask` must also drop the handler so it can't fire
     /// after the operation already finished on its own.
     private static func testCancelTaskInvokesRegisteredHandler() {
-        let service = BackgroundOperationsService.shared
+        let service = BackgroundOperationsService()
 
         // Single-threaded test: the handler is invoked synchronously on the main actor by cancelTask.
         nonisolated(unsafe) var cancelled = false
@@ -34,7 +34,7 @@ public struct BackgroundOperationsTests {
     }
 
     private static func testAddTaskAppearsInActiveTasks() {
-        let service = BackgroundOperationsService.shared
+        let service = BackgroundOperationsService()
         let before = service.activeTasks.count
         let id = service.addTask(title: "Copying files", totalUnits: 1000)
         defer { service.completeTask(id: id) }
@@ -47,7 +47,7 @@ public struct BackgroundOperationsTests {
     }
 
     private static func testUpdateProgressMutatesTheCorrectTask() {
-        let service = BackgroundOperationsService.shared
+        let service = BackgroundOperationsService()
         let idA = service.addTask(title: "Task A", totalUnits: 1000)
         let idB = service.addTask(title: "Task B", totalUnits: 1000)
         defer {
@@ -67,7 +67,7 @@ public struct BackgroundOperationsTests {
     }
 
     private static func testUpdateProgressForUnknownIdIsANoOp() {
-        let service = BackgroundOperationsService.shared
+        let service = BackgroundOperationsService()
         let before = service.activeTasks
         service.updateProgress(id: UUID(), unitsDone: 900)
         report(
@@ -77,7 +77,7 @@ public struct BackgroundOperationsTests {
     }
 
     private static func testCompleteTaskRemovesIt() {
-        let service = BackgroundOperationsService.shared
+        let service = BackgroundOperationsService()
         let id = service.addTask(title: "To complete")
         report("BackgroundOperations", "POS: task exists right after being added", result: service.activeTasks.contains { $0.id == id })
 
@@ -86,7 +86,7 @@ public struct BackgroundOperationsTests {
     }
 
     private static func testCancelTaskMarksCancelledAndRemoves() {
-        let service = BackgroundOperationsService.shared
+        let service = BackgroundOperationsService()
         let id = service.addTask(title: "To cancel")
         service.cancelTask(id: id)
         report("BackgroundOperations", "POS: cancelTask() removes the task (same as completion)", result: !service.activeTasks.contains { $0.id == id })

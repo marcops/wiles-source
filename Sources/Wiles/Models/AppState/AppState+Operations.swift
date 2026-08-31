@@ -15,7 +15,9 @@ public extension AppState {
             let movable = await Self.droppableExcludingSelf(urls, targetFolder: targetFolder)
             guard !movable.isEmpty else { return }
             _ = await moveItemsResolvingCollisions(movable, toFolder: targetFolder, windowUIState: windowUIState)
-            refreshCurrentDirectory()
+            // Drop onto the current folder leaves its cached listing stale — invalidate like the
+            // other in-place mutation paths (paste/delete) do, not a bare refresh.
+            invalidateCurrentDirectoryCacheAndRefresh()
         }
     }
 
@@ -98,6 +100,7 @@ public extension AppState {
         let isCut: Bool
         let undoRedoService: UndoRedoService
         let taskID: UUID
+        let backgroundOperations: BackgroundOperationsService
         weak var owner: AppState?
         weak var windowUIState: WindowUIState?
     }
@@ -109,13 +112,14 @@ public extension AppState {
         let targetFolder = navigation.currentURL
         let undoRedoService = undoRedoService
         let titleKey = tr(.pastingItemsEllipsis)
-        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalUnits: Int64(urls.count))
+        let backgroundOperations = backgroundOperations
+        let taskID = backgroundOperations.addTask(title: titleKey, totalUnits: Int64(urls.count))
         let pasteTask = Task(priority: .userInitiated) { @MainActor [weak self] in
             let context = PasteContext(
                 targetFolder: targetFolder, isCut: isCut, undoRedoService: undoRedoService,
-                taskID: taskID, owner: self, windowUIState: windowUIState)
+                taskID: taskID, backgroundOperations: backgroundOperations, owner: self, windowUIState: windowUIState)
             let (failureCount, movedDestinations) = await Self.pasteAllItems(urls: urls, context: context)
-            BackgroundOperationsService.shared.completeTask(id: taskID)
+            backgroundOperations.completeTask(id: taskID)
             guard let self else { return }
             if isCut, !movedDestinations.isEmpty {
                 selection.selectedURLs = Set(movedDestinations)
@@ -125,7 +129,7 @@ public extension AppState {
             }
             invalidateCurrentDirectoryCacheAndRefresh()
         }
-        BackgroundOperationsService.shared.registerCancellation(id: taskID) { pasteTask.cancel() }
+        backgroundOperations.registerCancellation(id: taskID) { pasteTask.cancel() }
     }
 
     /// Extracted out of `executePaste` so that closure stays short. A cut paste reuses
@@ -147,7 +151,7 @@ public extension AppState {
             },
             progress: { completed in
                 if shouldReportProgress(index: completed - 1, count: urls.count) {
-                    BackgroundOperationsService.shared.updateProgress(id: context.taskID, unitsDone: Int64(completed))
+                    context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(completed))
                 }
             })
         return (failureCount, moved)
@@ -165,7 +169,7 @@ public extension AppState {
                 failureCount += 1
             }
             if shouldReportProgress(index: index, count: urls.count) {
-                BackgroundOperationsService.shared.updateProgress(id: context.taskID, unitsDone: Int64(index + 1))
+                context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(index + 1))
             }
         }
         return (failureCount, [])
@@ -185,10 +189,12 @@ public extension AppState {
         HapticService.shared.play(.levelChange)
         let urls = Array(selection.selectedURLs)
         let titleKey = tr(.movingToTrashEllipsis)
-        let taskID = BackgroundOperationsService.shared.addTask(title: titleKey, totalUnits: Int64(urls.count))
+        let backgroundOperations = backgroundOperations
+        let taskID = backgroundOperations.addTask(title: titleKey, totalUnits: Int64(urls.count))
         let deleteTask = Task(priority: .userInitiated) { @MainActor [weak self] in
-            let failureCount = await Self.trashItems(urls: urls, taskID: taskID, undoRedoService: self?.undoRedoService)
-            BackgroundOperationsService.shared.completeTask(id: taskID)
+            let failureCount = await Self.trashItems(
+                urls: urls, taskID: taskID, undoRedoService: self?.undoRedoService, backgroundOperations: backgroundOperations)
+            backgroundOperations.completeTask(id: taskID)
             guard let self else { return }
             selection.selectedURLs.removeAll()
             if failureCount > 0 {
@@ -196,7 +202,7 @@ public extension AppState {
             }
             invalidateCurrentDirectoryCacheAndRefresh()
         }
-        BackgroundOperationsService.shared.registerCancellation(id: taskID) { deleteTask.cancel() }
+        backgroundOperations.registerCancellation(id: taskID) { deleteTask.cancel() }
     }
 
     /// Progress is hopped to `@MainActor` at most every `progressReportStride` items (plus a final
@@ -204,7 +210,8 @@ public extension AppState {
     private static let progressReportStride = 64
 
     /// Off-main trash loop: no `self` capture, per-item progress hopped back to `@MainActor`.
-    private static func trashItems(urls: [URL], taskID: UUID, undoRedoService: UndoRedoService?) async -> Int {
+    private static func trashItems(
+        urls: [URL], taskID: UUID, undoRedoService: UndoRedoService?, backgroundOperations: BackgroundOperationsService) async -> Int {
         var failureCount = 0
         for (index, url) in urls.enumerated() {
             guard !Task.isCancelled else { break }
@@ -216,7 +223,7 @@ public extension AppState {
                 failureCount += 1
             }
             if shouldReportProgress(index: index, count: urls.count) {
-                await MainActor.run { BackgroundOperationsService.shared.updateProgress(id: taskID, unitsDone: Int64(index + 1)) }
+                await MainActor.run { backgroundOperations.updateProgress(id: taskID, unitsDone: Int64(index + 1)) }
             }
         }
         return failureCount
@@ -256,7 +263,7 @@ public extension AppState {
 
     func undoLastAction() {
         let service = undoRedoService
-        runDetachedFileOperation(context: "Undoing last action", taskTitle: tr(.undoingEllipsis), onSuccess: { [weak self] (target: URL?) in
+        runDetachedFileOperation(context: "Undoing last action", taskTitle: tr(.undoingEllipsis), detached: false, onSuccess: { [weak self] (target: URL?) in
             if let target {
                 self?.selection.selectedURLs = [target]
             }
@@ -265,7 +272,7 @@ public extension AppState {
 
     func redoLastAction() {
         let service = undoRedoService
-        runDetachedFileOperation(context: "Redoing last action", taskTitle: tr(.redoingEllipsis), onSuccess: { [weak self] (target: URL?) in
+        runDetachedFileOperation(context: "Redoing last action", taskTitle: tr(.redoingEllipsis), detached: false, onSuccess: { [weak self] (target: URL?) in
             if let target {
                 self?.selection.selectedURLs = [target]
             }
@@ -328,7 +335,14 @@ public extension AppState {
         fileSystem.renamingURL = url
         selection.selectedURLs = [url]
         windowUIState.renameItem = newItem
-        windowUIState.onRenameCleared = { [weak self] in self?.fileSystem.renamingURL = nil }
+        windowUIState.onRenameCleared = { [weak self] in
+            guard let self else { return }
+            fileSystem.renamingURL = nil
+            // External changes during an open rename get their refresh results discarded; re-trigger
+            // once on clear so the listing reconciles even if no further FSEvents arrives. Idempotent
+            // with `InlineRenameField.endSuppressedRefreshIfNeeded`.
+            refreshCurrentDirectory()
+        }
         guard inFolder.standardizedFileURL == navigation.currentURL.standardizedFileURL else { return }
         DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
         // Place it where the current sort puts it, not at the top — otherwise it visibly jumps
@@ -349,28 +363,26 @@ public extension AppState {
     /// operation's duration (an all-or-nothing 0→1 bar, since these don't report incremental
     /// progress) — otherwise this ran with zero UI signal until the final refresh,
     /// indistinguishable from the app being frozen on a large file.
+    /// `operation` MUST be genuinely `nonisolated`/`Sendable`: the `Task.detached` here does NOT
+    /// move `@MainActor`-isolated work off-main (SE-0338 / R3). A caller whose `operation` is
+    /// `@MainActor`-isolated (undo/redo pass `service.undo()` on a `@MainActor` service) must pass
+    /// `detached: false` — the detach buys nothing structurally there and only adds a Task.
     func runDetachedFileOperation<T: Sendable>(
         context: String,
         priority: TaskPriority = .userInitiated,
         taskTitle: String? = nil,
         refreshOnSuccess: Bool = true,
         reportError: Bool = true,
+        detached: Bool = true,
         onSuccess: @escaping @MainActor (T) -> Void = { _ in },
         operation: @escaping @Sendable () async throws -> T) {
-        let taskID: UUID? = taskTitle.map { BackgroundOperationsService.shared.addTask(title: $0, totalUnits: 1) }
+        let taskID: UUID? = taskTitle.map { backgroundOperations.addTask(title: $0, totalUnits: 1) }
         let opTask = Task(priority: priority) { @MainActor [weak self] in
             do {
-                // Detached for a structural off-main guarantee; the cancellation handler forwards
-                // `opTask.cancel()` (BackgroundOperationsService's cancel button) into it.
-                let inner = Task.detached(priority: priority) { try await operation() }
-                let result = try await withTaskCancellationHandler {
-                    try await inner.value
-                } onCancel: {
-                    inner.cancel()
-                }
+                let result = try await Self.runFileOperation(operation, detached: detached, priority: priority)
                 guard let self else { return }
                 if let taskID {
-                    BackgroundOperationsService.shared.completeTask(id: taskID)
+                    backgroundOperations.completeTask(id: taskID)
                 }
                 onSuccess(result)
                 if refreshOnSuccess {
@@ -385,14 +397,30 @@ public extension AppState {
             }
         }
         if let taskID {
-            BackgroundOperationsService.shared.registerCancellation(id: taskID) { opTask.cancel() }
+            backgroundOperations.registerCancellation(id: taskID) { opTask.cancel() }
+        }
+    }
+
+    /// `detached`: run `operation` in a real `Task.detached` (structural off-main guarantee) and
+    /// forward cancellation into it. `!detached`: `operation` is itself `@MainActor`-isolated, so a
+    /// detach wrapper is meaningless — run it directly and let cooperative cancellation reach it.
+    private static func runFileOperation<T: Sendable>(
+        _ operation: @escaping @Sendable () async throws -> T,
+        detached: Bool,
+        priority: TaskPriority) async throws -> T {
+        guard detached else { return try await operation() }
+        let inner = Task.detached(priority: priority) { try await operation() }
+        return try await withTaskCancellationHandler {
+            try await inner.value
+        } onCancel: {
+            inner.cancel()
         }
     }
 
     @MainActor
     private func handleDetachedOperationFailure(_ error: any Error, taskID: UUID?) {
         if let taskID {
-            BackgroundOperationsService.shared.completeTask(id: taskID)
+            backgroundOperations.completeTask(id: taskID)
         }
         showError(error)
     }

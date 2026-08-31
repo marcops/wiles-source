@@ -16,10 +16,11 @@ public struct OperationsPopoverView: View {
     private static let taskRowCornerRadius: CGFloat = 6
 
     var appState: AppState
-    var service = BackgroundOperationsService.shared
+    var service: BackgroundOperationsService
 
     public init(appState: AppState) {
         self.appState = appState
+        service = appState.backgroundOperations
     }
 
     public var body: some View {

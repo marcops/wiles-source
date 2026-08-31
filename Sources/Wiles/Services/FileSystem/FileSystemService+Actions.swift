@@ -27,19 +27,16 @@ public extension FileSystemService {
             }
 
             switch onCollision {
-            case .failIfExists:
+            case .failIfExists, .replace:
+                // `.replace` never reaches here in production — the interactive collision path calls
+                // `moveItemReplacing`, which reports the displaced file's Trash URL so a `.trash`
+                // undo can be recorded. Treating a stray `.replace` as fail keeps this path from
+                // Trashing a file with no undo entry.
                 throw WilesError.destinationExists(name: url.lastPathComponent)
             case .keepBoth:
                 let freeURL = uniqueDestination(for: url.lastPathComponent, in: targetFolder)
                 try FileManager.default.moveItem(at: url, to: freeURL)
                 return freeURL
-            case .replace:
-                // Send the existing file to Trash (recoverable) before moving the source into place —
-                // never obliterate it. If the move then fails, the source is still untouched and the
-                // old file is in Trash, so nothing is destroyed.
-                try FileManager.default.trashItem(at: destURL, resultingItemURL: nil)
-                try FileManager.default.moveItem(at: url, to: destURL)
-                return destURL
             }
         }.value
     }
@@ -81,15 +78,11 @@ public extension FileSystemService {
                 let destURL = uniqueDestination(for: url.lastPathComponent, in: targetFolder)
                 try FileManager.default.copyItem(at: url, to: destURL)
                 return destURL
-            case .failIfExists:
+            case .failIfExists, .replace:
+                // `.replace` has no production caller here; fold it into fail so a stray one can't
+                // Trash the existing file with no undo record (use `moveItemReplacing` for that).
                 if FileManager.default.fileExists(atPath: namedDestURL.path) {
                     throw WilesError.destinationExists(name: url.lastPathComponent)
-                }
-                try FileManager.default.copyItem(at: url, to: namedDestURL)
-                return namedDestURL
-            case .replace:
-                if FileManager.default.fileExists(atPath: namedDestURL.path) {
-                    try FileManager.default.trashItem(at: namedDestURL, resultingItemURL: nil)
                 }
                 try FileManager.default.copyItem(at: url, to: namedDestURL)
                 return namedDestURL
@@ -159,12 +152,12 @@ public extension FileSystemService {
         // NSFileWriteFileExistsError.
         if fm.fileExists(atPath: destURL.path), !caseOnlyChange {
             switch onCollision {
-            case .failIfExists:
+            case .failIfExists, .replace:
+                // `.replace` has no production caller for rename; fold it into fail so a stray one
+                // can't Trash the occupant with no undo record.
                 throw WilesError.destinationExists(name: newName)
             case .keepBoth:
                 destURL = uniqueDestination(for: newName, in: parent)
-            case .replace:
-                try fm.trashItem(at: destURL, resultingItemURL: nil)
             }
         }
 

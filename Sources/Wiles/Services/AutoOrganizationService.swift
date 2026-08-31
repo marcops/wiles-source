@@ -46,6 +46,11 @@ public final class AutoOrganizationService {
         ruleStore.deleteRule(id: id)
     }
 
+    /// Flushes the rule store's pending debounced stats write — call from `applicationWillTerminate`.
+    public func flushPendingSaves() {
+        ruleStore.flushPendingSaves()
+    }
+
     /// Bumps a rule's "last fired" stats after a background move actually succeeds, so the user
     /// has a way to tell whether a rule has ever done anything. Routed through `bumpStats` so a
     /// burst of moves doesn't rewrite `UserDefaults` (and restart the watchers) once per file.
@@ -114,6 +119,10 @@ public final class AutoOrganizationService {
     }
 
     private nonisolated static func matchMoves(files: [URL], resourceKeys: [URLResourceKey], activeRules: [AutoOrganizationRule]) -> [PendingMove] {
+        // A self-referential rule (source resolves to dest, incl. via symlink) would throw
+        // `itemAlreadyInDestination` for every matched file on every scan — drop it here so it
+        // produces no moves instead of spamming ErrorReporter with no user-visible signal.
+        let activeRules = activeRules.filter { !$0.isSelfReferential }
         var pending: [PendingMove] = []
         for file in files {
             // Ignore hidden files and directories

@@ -72,7 +72,12 @@ public final class PasteboardService: Sendable {
     private static func readTextForClipboard(at url: URL) async throws -> String {
         try await Task.detached(priority: .userInitiated) {
             let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
-            if let size, size >= maxCopyableTextBytes {
+            guard let size else {
+                // `stat` failed — don't fall through to an uncapped `String(contentsOf:)`; read
+                // through a bounded window and treat one byte past the cap as "too large".
+                return try readBoundedText(at: url)
+            }
+            if size >= maxCopyableTextBytes {
                 throw WilesError.localized(key: .copyContentFileTooLarge, arguments: [])
             }
             do {
@@ -81,6 +86,22 @@ public final class PasteboardService: Sendable {
                 throw WilesError.localized(key: .copyContentNotText, arguments: [])
             }
         }.value
+    }
+
+    private static func readBoundedText(at url: URL) throws -> String {
+        guard let handle = try? FileHandle(forReadingFrom: url) else {
+            throw WilesError.localized(key: .copyContentNotText, arguments: [])
+        }
+        defer { try? handle.close() }
+        let data = (try? handle.read(upToCount: maxCopyableTextBytes)) ?? Data()
+        let hasMore = !(((try? handle.read(upToCount: 1)) ?? Data()).isEmpty)
+        if hasMore {
+            throw WilesError.localized(key: .copyContentFileTooLarge, arguments: [])
+        }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw WilesError.localized(key: .copyContentNotText, arguments: [])
+        }
+        return text
     }
 
     private static func copyToClipboard(_ content: String) async {

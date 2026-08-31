@@ -21,6 +21,9 @@ struct IntegratedTerminalView: NSViewRepresentable {
         windowUIState.terminalViewCache.view = terminalView
 
         terminalView.startProcess(executable: Self.loginShellPath, args: ["-l"], environment: nil, execName: nil)
+        // Capture the shell pid now, while SwiftTerm's internal structure is known-good, so teardown
+        // doesn't depend on the same reflection resolving after a future SwiftTerm bump.
+        windowUIState.terminalViewCache.shellPid = TerminalViewCache.reflectShellPid(of: terminalView)
         Self.sendInitialCommands(to: terminalView, path: currentPath, clearFirst: true)
         return terminalView
     }
@@ -96,6 +99,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
                 // Shell is exiting on launch — stop respawning; toggling the drawer starts fresh.
                 guard restartCount <= Self.maxRestartsInWindow else { return }
                 view.startProcess(executable: IntegratedTerminalView.loginShellPath, args: ["-l"], environment: nil, execName: nil)
+                windowUIState?.terminalViewCache.shellPid = TerminalViewCache.reflectShellPid(of: view)
                 IntegratedTerminalView.sendInitialCommands(
                     to: view, path: appState.navigation.currentURL.path, clearFirst: true)
             }

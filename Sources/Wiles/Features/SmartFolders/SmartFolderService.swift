@@ -12,6 +12,9 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
     public init() { }
 
     private var activeQuery: SpotlightQuery?
+    /// The detached `FileItem`-resolution task for the current query, so a rapid smart-folder switch
+    /// cancels the prior run's 2000-item resolve instead of letting it run to completion unused.
+    private var fetchTask: Task<Void, Never>?
     /// Identifies the most recently started query. `fetchFileItems` resolves icons on a detached
     /// task, so a slower-finishing older query (e.g. one with more results) could otherwise still
     /// call its `completion` after a faster newer one already did, silently overwriting the newer,
@@ -78,6 +81,7 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
     /// token before starting the new one, and only applies results if that token is still current.
     private func runQuery(predicate: NSPredicate, searchScopes: [Any], completion: @escaping @Sendable ([FileItem]) -> Void) {
         activeQuery?.cancel()
+        fetchTask?.cancel()
         let token = UUID()
         currentQueryToken = token
         let spotlight = SpotlightQuery(predicate: predicate, searchScopes: searchScopes)
@@ -87,7 +91,7 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
             guard let self, currentQueryToken == token else { return }
             activeQuery = nil
             lastRunTimedOut = timedOut
-            Self.fetchFileItems(forPaths: paths) { items in
+            fetchTask = Self.fetchFileItems(forPaths: paths) { items in
                 Task { @MainActor [weak self] in
                     guard let self, currentQueryToken == token else { return }
                     completion(items)
@@ -106,12 +110,14 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
     /// resourceValues batch + icon resolve. Aligned with `FileSystemService.recursiveSearchResultLimit`.
     nonisolated static let maxResultCount = 2000
 
-    private nonisolated static func fetchFileItems(forPaths paths: [String], completion: @escaping @Sendable ([FileItem]) -> Void) {
+    private nonisolated static func fetchFileItems(
+        forPaths paths: [String], completion: @escaping @Sendable ([FileItem]) -> Void) -> Task<Void, Never> {
         Task.detached(priority: .userInitiated) {
             let cappedPaths = paths.prefix(maxResultCount)
             var items: [FileItem] = []
             items.reserveCapacity(cappedPaths.count)
             for path in cappedPaths {
+                if Task.isCancelled { return }
                 // FileItem resolves the icon from `.effectiveIcon` in its resourceValues batch;
                 // a per-path NSWorkspace.icon IPC here cost seconds on a broad Spotlight result set.
                 items.append(FileItem.load(url: URL(fileURLWithPath: path)))

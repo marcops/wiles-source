@@ -111,7 +111,7 @@ public struct DirectoryCacheTests {
         report("ThumbnailService", "NEG: supportsThumbnail returns false for directories", result: !ThumbnailService.supportsThumbnail(item: dirItem))
 
         // Positive/Negative prefetch execution safely accepts all item types without throwing or crashing
-        ThumbnailService.shared.prefetchThumbnails(for: [pngItem, pdfItem, txtItem, mdItem, dirItem], size: 48)
+        ThumbnailPrefetcher().prefetch(for: [pngItem, pdfItem, txtItem, mdItem, dirItem], size: 48)
         report("ThumbnailService", "POS: prefetchThumbnails handles array containing images, PDFs, text, and directories gracefully", result: true)
     }
 

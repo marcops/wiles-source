@@ -259,14 +259,14 @@ struct AutoOrganizationSheet: View {
 
     private func addRule() {
         guard canAddRule, let src = sourceURL, let dest = destinationURL else { return }
-        // Match `AutoOrganizationRule.init`'s normalization so a pair that only differs by a symlink
-        // can't be created as a self-referential rule.
-        guard src.resolvingSymlinksInPath() != dest.resolvingSymlinksInPath() else { return }
         var trimmedValue = conditionValue.trimmingCharacters(in: .whitespacesAndNewlines)
         if conditionType == .extensionEquals, trimmedValue.hasPrefix(".") {
             trimmedValue.removeFirst()
         }
         let rule = AutoOrganizationRule(sourceURL: src, destinationURL: dest, conditionType: conditionType, conditionValue: trimmedValue)
+        // Symlink-aware self-reference check (touches disk) — once, on the button tap. Same predicate
+        // the runtime move loop uses, so a rule that passes here can't be silently skipped later.
+        guard !rule.isSelfReferential else { return }
         AutoOrganizationService.shared.addRule(rule)
         conditionValue = ""
     }

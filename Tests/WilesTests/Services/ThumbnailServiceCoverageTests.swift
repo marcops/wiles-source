@@ -169,8 +169,9 @@ public struct ThumbnailServiceCoverageTests {
 
         // Two back-to-back calls: the second cancels the first's still-running detached task before
         // it can finish iterating all 12 items.
-        ThumbnailService.shared.prefetchThumbnails(for: items, size: 32)
-        ThumbnailService.shared.prefetchThumbnails(for: items, size: 32)
+        let prefetcher = ThumbnailPrefetcher()
+        prefetcher.prefetch(for: items, size: 32)
+        prefetcher.prefetch(for: items, size: 32)
         try? await Task.sleep(nanoseconds: 300_000_000)
         TestReporter.report(
             "ThumbnailService", "POS: starting a new prefetchThumbnails call cancels the prior in-flight one without crashing or hanging",
@@ -259,7 +260,7 @@ public struct ThumbnailServiceCoverageTests {
 
         // POS: prefetchThumbnails with a mix of eligible/ineligible items filters via supportsThumbnail
         // and returns immediately (fire-and-forget Task.detached), never crashing or hanging on ineligible entries.
-        ThumbnailService.shared.prefetchThumbnails(for: [pngItem, folderItem, zipItem], size: 32)
+        ThumbnailPrefetcher().prefetch(for: [pngItem, folderItem, zipItem], size: 32)
         TestReporter.report(
             "ThumbnailService",
             "POS: prefetchThumbnails(for:size:) with mixed eligible/ineligible items returns without crashing",
@@ -301,7 +302,7 @@ public struct ThumbnailServiceCoverageTests {
 
     private static func testPrefetchEmptyArrayIsNoOp() {
         // NEG: prefetchThumbnails with an empty items array hits the guard and safely no-ops
-        ThumbnailService.shared.prefetchThumbnails(for: [], size: 48)
+        ThumbnailPrefetcher().prefetch(for: [], size: 48)
         TestReporter.report("ThumbnailService", "NEG: prefetchThumbnails with empty items array is a safe no-op", result: true)
     }
 

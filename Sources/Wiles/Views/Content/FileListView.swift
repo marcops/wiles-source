@@ -7,8 +7,6 @@ struct FileListView: View {
 
     @Environment(WindowUIState.self)
     private var windowUIState
-    @State private var lastWindowWidth: CGFloat?
-    @State private var hoveredURL: URL?
     @State private var dropTargetedURL: URL?
 
     var body: some View {
@@ -22,7 +20,6 @@ struct FileListView: View {
             onURLFramesChanged: { frames in appState.selection.listCellFrames = frames },
             onGeometryWidthChange: { newWidth in
                 FileListHeaderView.adjustNameColumnWidth(for: newWidth, appState: appState)
-                lastWindowWidth = newWidth
             },
             nonEmptyContent: { geometry, visibleLimit in
                 listVStackContent(visibleLimit: visibleLimit)

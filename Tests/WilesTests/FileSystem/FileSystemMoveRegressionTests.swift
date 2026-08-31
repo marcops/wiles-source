@@ -61,8 +61,8 @@ enum FileSystemMoveRegressionTests {
     /// C1 (data-loss regression): moving onto a name that already exists used to call
     /// `FileManager.replaceItem` — an atomic, silent overwrite. The displaced file's content was
     /// gone forever. `moveItem` now takes an explicit `onCollision` policy and never overwrites:
-    /// `.failIfExists` throws and touches nothing, `.keepBoth` picks a free name, `.replace` sends
-    /// the existing file to Trash first (recoverable).
+    /// `.failIfExists` throws and touches nothing, `.keepBoth` picks a free name. (The recoverable
+    /// replace-move lives in `moveItemReplacing`, covered separately.)
     private static func runCollisionRegression(tempDir: URL) async {
         let dir = tempDir.appendingPathComponent("Collision-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -77,22 +77,26 @@ enum FileSystemMoveRegressionTests {
             return (source, (try? String(contentsOf: existing)) ?? "")
         }
 
-        // .failIfExists (default): throws, nothing touched.
-        let (failSource, failOriginal) = freshPair("fail")
-        var threw = false
-        do {
-            _ = try await FileSystemService.moveItem(at: failSource, toFolder: dir)
-        } catch WilesError.destinationExists {
-            threw = true
-        } catch {
-            threw = false
+        // .failIfExists (default) and .replace (no production caller — folded into fail) both throw
+        // `destinationExists` and touch neither the source nor the occupant.
+        for policy in [MoveCollisionPolicy.failIfExists, .replace] {
+            let name = policy == .failIfExists ? "fail" : "replace"
+            let (src, original) = freshPair(name)
+            var threw = false
+            do {
+                _ = try await FileSystemService.moveItem(at: src, toFolder: dir, onCollision: policy)
+            } catch WilesError.destinationExists {
+                threw = true
+            } catch {
+                threw = false
+            }
+            let destIntact = (try? String(contentsOf: dir.appendingPathComponent("\(name).txt"))) == original
+            let sourceIntact = FileManager.default.fileExists(atPath: src.path)
+            TestReporter.report(
+                "FileSystem",
+                "NEG: moveItem onCollision .\(name == "fail" ? "failIfExists" : "replace") throws destinationExists and destroys nothing",
+                result: threw && destIntact && sourceIntact)
         }
-        let failDestIntact = (try? String(contentsOf: dir.appendingPathComponent("fail.txt"))) == failOriginal
-        let failSourceIntact = FileManager.default.fileExists(atPath: failSource.path)
-        TestReporter.report(
-            "FileSystem",
-            "NEG: moveItem onto an existing name throws destinationExists and destroys nothing (regression: used to silently overwrite)",
-            result: threw && failDestIntact && failSourceIntact)
 
         // .keepBoth: source lands under a free name, existing file untouched.
         let (keepSource, keepOriginal) = freshPair("keep")
@@ -107,15 +111,5 @@ enum FileSystemMoveRegressionTests {
             "FileSystem",
             "POS: moveItem onCollision .keepBoth renames the moved item and leaves the existing file intact",
             result: keepDestIntact && keptRenamed)
-
-        // .replace: destination ends up with the source's content, source is gone.
-        let (replaceSource, _) = freshPair("replace")
-        _ = try? await FileSystemService.moveItem(at: replaceSource, toFolder: dir, onCollision: .replace)
-        let replacedContent = (try? String(contentsOf: dir.appendingPathComponent("replace.txt"))) ?? ""
-        let sourceConsumed = !FileManager.default.fileExists(atPath: replaceSource.path)
-        TestReporter.report(
-            "FileSystem",
-            "POS: moveItem onCollision .replace puts the source in place and consumes it",
-            result: replacedContent == "SOURCE replace" && sourceConsumed)
     }
 }

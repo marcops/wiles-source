@@ -9,7 +9,7 @@ struct OperationsButtonView: View {
             HStack(spacing: 4) {
                 ProgressView()
                     .controlSize(.mini)
-                Text("\(BackgroundOperationsService.shared.activeTasks.count) \(appState.tr(.backgroundTasksSuffix))")
+                Text("\(appState.backgroundOperations.activeTasks.count) \(appState.tr(.backgroundTasksSuffix))")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.accentColor)
             }

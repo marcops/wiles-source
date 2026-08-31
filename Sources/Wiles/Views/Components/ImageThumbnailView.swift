@@ -29,5 +29,7 @@ struct ImageThumbnailView: View {
                     thumbnail = loaded
                 }
             }
+            // Decorative: the hosting row/card already carries the file's accessible label.
+            .accessibilityHidden(true)
     }
 }

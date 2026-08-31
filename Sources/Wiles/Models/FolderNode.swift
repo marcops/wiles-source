@@ -22,11 +22,20 @@ struct FolderNode: Identifiable, Hashable {
         hasher.combine(id)
     }
 
+    /// Synchronous recursive disk walk (`contentsOfDirectory` + per-entry `resourceValues` for `/`,
+    /// `/Users`, `~`). Callers MUST run this inside `Task.detached` — a `body`/`init` call site would
+    /// beachball proportional to `~`. Prefer `buildRootTreeOffMainActor()`, which makes that structural.
     static func buildRootTree() -> Self {
         let root = URL(fileURLWithPath: "/")
         let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
         let children = loadSubfolders(at: root, autoExpandFor: home, ancestorRealPaths: [root.resolvingSymlinksInPath().path])
         return Self(id: root, name: "Root (/)", url: root, children: children, hasSubfolders: !children.isEmpty)
+    }
+
+    /// `buildRootTree()` with the off-main guarantee made structural (R3) rather than a call-site
+    /// convention. Preferred entry point for anything reached from a View.
+    static func buildRootTreeOffMainActor() async -> Self {
+        await Task.detached(priority: .userInitiated) { buildRootTree() }.value
     }
 
     /// Loads only the immediate subfolders of `folderURL`.

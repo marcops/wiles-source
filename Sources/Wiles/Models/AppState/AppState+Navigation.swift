@@ -307,7 +307,12 @@ public extension AppState {
     /// this is a no-op re-render when the cache already matched reality.
     func applyLoadedItems(_ loaded: [FileItem], target: URL, truncatedAtCap: Bool = false) {
         guard navigation.currentURL == target else { return }
-        guard fileSystem.renamingURL == nil else { return }
+        guard fileSystem.renamingURL == nil else {
+            // Load finished; we just don't apply its items mid-rename. Still clear the spinner so it
+            // doesn't stay stuck until the next completed refresh.
+            fileSystem.isLoading = false
+            return
+        }
         fileSystem.resultsTruncated = truncatedAtCap
         selection.cachedSelectedFileSizeBytes = nil
         if fileSystem.items != loaded {

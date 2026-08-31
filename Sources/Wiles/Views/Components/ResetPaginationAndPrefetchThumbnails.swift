@@ -9,7 +9,7 @@ private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
         // Always index mtimes — `cachedThumbnail` reads the index from every image cell body regardless of folder size.
         ThumbnailService.shared.indexModificationDates(items)
         if ThumbnailService.shouldPrefetchThumbnails(forItemCount: items.count) {
-            ThumbnailService.shared.prefetchThumbnails(for: items, size: thumbnailIconSize)
+            appState.thumbnailPrefetcher.prefetch(for: items, size: thumbnailIconSize)
         }
     }
 

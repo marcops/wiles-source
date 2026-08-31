@@ -100,7 +100,10 @@ public enum DuplicateDetectionService: Sendable {
                 reclaimable += group.reclaimableBytes
             }
         }
-        return (groups, reclaimable)
+        // Built by iterating two dictionaries — deterministic order so the review list doesn't
+        // reshuffle between otherwise identical scans.
+        let orderedGroups = groups.sorted { ($0.items.first?.url.path ?? "") < ($1.items.first?.url.path ?? "") }
+        return (orderedGroups, reclaimable)
     }
 
     /// Orders a duplicate group so its **first** item is the sensible one to keep (the sheet
@@ -112,7 +115,11 @@ public enum DuplicateDetectionService: Sendable {
         if lhsDepth != rhsDepth {
             return lhsDepth < rhsDepth
         }
-        return lhs.dateCreated < rhs.dateCreated
+        if lhs.dateCreated != rhs.dateCreated {
+            return lhs.dateCreated < rhs.dateCreated
+        }
+        // Final tiebreak so "which copy to keep" is stable when depth and creation date both tie.
+        return lhs.url.path < rhs.url.path
     }
 
     private static func computePartialHash(for url: URL) -> String? {

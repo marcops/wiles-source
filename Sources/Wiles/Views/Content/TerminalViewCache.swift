@@ -16,6 +16,11 @@ import SwiftUI
 final class TerminalViewCache {
     var view: LocalProcessTerminalView?
     var coordinator: IntegratedTerminalView.Coordinator?
+    /// Captured by `IntegratedTerminalView.makeNSView` right after `startProcess`, when SwiftTerm's
+    /// internal layout is known-good — so teardown doesn't hinge on the same reflection still
+    /// resolving after a future SwiftTerm bump (that would silently leak the shell). Teardown-time
+    /// reflection stays as a second fallback, then `exit`.
+    var shellPid: pid_t?
     init() { }
 
     /// Called from `MainContentView.onDisappear` so a closed window doesn't leak its `/bin/zsh -l`
@@ -23,11 +28,14 @@ final class TerminalViewCache {
     /// cleared first so `Coordinator.processTerminated` sees no cached view and doesn't respawn.
     func tearDown() {
         let closingView = view
+        let capturedPid = shellPid
         view = nil
         coordinator = nil
+        shellPid = nil
         // SIGKILL the shell's whole process group (login shell in a fresh PTY is the group leader),
-        // reaching any foreground child. `send("exit")` is the fallback if the pid can't be read.
-        if let pid = Self.shellPid(of: closingView), pid > 0 {
+        // reaching any foreground child. Prefer the pid captured at spawn; reflect again, then
+        // `send("exit")`, only if that's missing.
+        if let pid = capturedPid ?? Self.reflectShellPid(of: closingView), pid > 0 {
             if kill(-pid, SIGKILL) != 0 {
                 kill(pid, SIGKILL)
             }
@@ -38,7 +46,7 @@ final class TerminalViewCache {
 
     /// SwiftTerm keeps `LocalProcessTerminalView.process` (and thus `shellPid`) module-internal, so
     /// read it reflectively. Best-effort: `nil` when the layout changes and we fall back to `exit`.
-    private static func shellPid(of view: LocalProcessTerminalView?) -> pid_t? {
+    static func reflectShellPid(of view: LocalProcessTerminalView?) -> pid_t? {
         guard let view else { return nil }
         guard let process = Mirror(reflecting: view).children.first(where: { $0.label == "process" })?.value else { return nil }
         return Mirror(reflecting: process).children.first { $0.label == "shellPid" }?.value as? pid_t

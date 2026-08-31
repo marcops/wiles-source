@@ -26,5 +26,7 @@ public struct TagsIndicatorView: View {
                     .overlay(Circle().stroke(Color(NSColor.windowBackgroundColor), lineWidth: 1))
             }
         }
+        // Decorative: the row that hosts this already carries the file's label.
+        .accessibilityHidden(true)
     }
 }

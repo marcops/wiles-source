@@ -23,7 +23,7 @@ struct FooterBarView: View {
                 loadingIndicator
             }
 
-            if !BackgroundOperationsService.shared.activeTasks.isEmpty {
+            if !appState.backgroundOperations.activeTasks.isEmpty {
                 OperationsButtonView(appState: appState)
             }
 

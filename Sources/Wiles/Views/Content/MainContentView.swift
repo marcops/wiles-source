@@ -18,6 +18,7 @@ struct MainContentView: View {
     @State private var appState: AppState
     @State private var windowUIState: WindowUIState
     @State private var sidebarWidthSaveTask: Task<Void, Never>?
+    @State private var pendingSidebarWidth: CGFloat?
 
     /// Constructs `AppState` directly with the shared stores it needs, instead of default-
     /// initializing throwaway stores and swapping them in later — a default `AppState()` would run
@@ -58,6 +59,9 @@ struct MainContentView: View {
             appState.fileSystem.tearDown()
             windowUIState.tearDown()
             windowUIState.terminalViewCache.tearDown()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            flushPendingSidebarWidth()
         }
     }
 
@@ -208,12 +212,22 @@ struct MainContentView: View {
 
     private func scheduleSidebarWidthSave(_ newWidth: CGFloat) {
         guard newWidth > 0, !isSidebarRail else { return }
+        pendingSidebarWidth = newWidth
         sidebarWidthSaveTask?.cancel()
         sidebarWidthSaveTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(Self.sidebarWidthSaveDebounceMs))
             guard !Task.isCancelled else { return }
             windowUIState.sidebarWidth = Double(newWidth)
+            pendingSidebarWidth = nil
         }
+    }
+
+    /// A divider drag that settles < 400ms before ⌘Q would otherwise lose its final width.
+    private func flushPendingSidebarWidth() {
+        guard let width = pendingSidebarWidth else { return }
+        sidebarWidthSaveTask?.cancel()
+        windowUIState.sidebarWidth = Double(width)
+        pendingSidebarWidth = nil
     }
 
     @ViewBuilder private var contentArea: some View {

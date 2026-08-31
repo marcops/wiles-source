@@ -107,7 +107,13 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
     @MainActor
     public func stop() {
-        queue.sync {
+        // Flip the observable state on the actor immediately; the listener/connection teardown can
+        // wait behind slow queue I/O (a stalled mount mid-`FileHandle.read`) — `queue.async`, not
+        // `.sync`, so that never blocks the main thread. The serial queue keeps this ordered ahead
+        // of any `queue.sync` a following `start()` enqueues.
+        isRunning = false
+        serverURL = nil
+        queue.async { [self] in
             listener?.cancel()
             listener = nil
             for conn in connections {
@@ -119,10 +125,6 @@ public final class LocalHttpServerService: @unchecked Sendable {
             requestBuffers.removeAll()
             sharedFolder = nil
             requiredPassword = nil
-        }
-        Task { @MainActor in
-            isRunning = false
-            serverURL = nil
         }
     }
 

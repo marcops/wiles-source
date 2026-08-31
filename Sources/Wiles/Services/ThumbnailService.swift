@@ -17,7 +17,6 @@ public final class ThumbnailService {
     /// `nonisolated(unsafe)`: `NSCache` is documented thread-safe, so the off-actor generate/prefetch
     /// paths can read/write it directly without hopping to `@MainActor`.
     private nonisolated(unsafe) let cache = NSCache<NSString, NSImage>()
-    private var prefetchTask: Task<Void, Never>?
 
     /// Backing scale captured once at init; not worth a per-thumbnail `MainActor` hop just to re-read it.
     private nonisolated let deviceScale: CGFloat
@@ -150,21 +149,11 @@ public final class ThumbnailService {
         cache.setObject(image, forKey: key as NSString, cost: cost)
     }
 
-    public func prefetchThumbnails(for items: [FileItem], size _: CGFloat) {
-        let eligibleURLs = items.filter(\.supportsThumbnail).map(\.url)
-        guard !eligibleURLs.isEmpty else { return }
-        // Cancel any prefetch still running for a previously-viewed folder — otherwise it keeps
-        // burning CPU generating thumbnails for a folder the user already navigated away from.
-        prefetchTask?.cancel()
-        let scale = deviceScale
-        prefetchTask = Task.detached(priority: .userInitiated) { [weak self] in
-            for url in eligibleURLs {
-                if Task.isCancelled {
-                    break
-                }
-                _ = await self?.thumbnail(for: url, scale: scale)
-            }
-        }
+    /// Warms the shared cache for one image, off `@MainActor`. The prefetch *session* — which
+    /// folder's images, and cancelling a previous folder's walk — is owned per-window by
+    /// `ThumbnailPrefetcher`, not by a task stored on this shared singleton (ML-102).
+    nonisolated func warmCache(for url: URL) async {
+        _ = await thumbnail(for: url, scale: deviceScale)
     }
 
     /// Mirrors `DirectoryCacheService.invalidate` — evicts a stale thumbnail after its file is overwritten.

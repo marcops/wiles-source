@@ -1,11 +1,12 @@
 import Foundation
 import Observation
 
+/// Per-window (one instance per `AppState`), not a `.shared` singleton — `activeTasks` is "what
+/// THIS window is doing right now"; a shared instance surfaced one window's copy/move progress in
+/// every other window's footer, and kept a closed window's cancellation handler alive.
 @Observable
 @MainActor
 public final class BackgroundOperationsService {
-    public static let shared = BackgroundOperationsService()
-
     public var activeTasks: [FileOperationTask] = []
 
     /// Per-task cancellation, kept off `FileOperationTask` (a plain `Sendable` display model).
@@ -13,7 +14,7 @@ public final class BackgroundOperationsService {
     /// kept running.
     private var cancellationHandlers: [UUID: @Sendable () -> Void] = [:]
 
-    private init() { }
+    public init() { }
 
     public func addTask(title: String, totalUnits: Int64 = 0) -> UUID {
         let task = FileOperationTask(title: title, unitsTotal: totalUnits)

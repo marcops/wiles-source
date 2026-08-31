@@ -10,8 +10,12 @@ struct FavoriteToggleButton: View {
     var body: some View {
         if forceRemove || appState.isFavorite(url) {
             Button(appState.tr(.removeFromFavorites)) { appState.removeFavorite(url) }
+                .accessibilityLabel(appState.tr(.removeFromFavorites))
+                .accessibilityAddTraits(.isButton)
         } else {
             Button(appState.tr(.addToFavorites)) { appState.addFavorite(url) }
+                .accessibilityLabel(appState.tr(.addToFavorites))
+                .accessibilityAddTraits(.isButton)
         }
     }
 }

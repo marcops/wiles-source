@@ -15,6 +15,12 @@ public final class NetworkDiscoveryService {
     private var resolvedURLs: [String: URL] = [:]
     /// In-flight endpoint resolvers, one per service-instance name.
     private var resolvers: [String: NWConnection] = [:]
+    /// The 5s timeout task per resolver — kept so it's cancelled on resolve/teardown instead of
+    /// living out its full sleep and no-op'ing via the `ifCurrent` guard.
+    private var resolveTimeoutTasks: [String: Task<Void, Never>] = [:]
+    /// Set by `stop()` so a `browseResultsChangedHandler` callback already queued as a `Task` can't
+    /// repopulate state or spawn resolvers after teardown.
+    private var isStopped = false
 
     private static let smbScheme = "smb"
     private static let mdnsHostSuffix = ".local"
@@ -26,6 +32,7 @@ public final class NetworkDiscoveryService {
     public init() { }
 
     public func start() {
+        isStopped = false
         if browser != nil {
             return
         }
@@ -47,6 +54,7 @@ public final class NetworkDiscoveryService {
     }
 
     public func stop() {
+        isStopped = true
         browser?.cancel()
         browser = nil
         for resolver in resolvers.values {
@@ -54,12 +62,15 @@ public final class NetworkDiscoveryService {
             resolver.cancel()
         }
         resolvers.removeAll()
+        resolveTimeoutTasks.values.forEach { $0.cancel() }
+        resolveTimeoutTasks.removeAll()
         advertisedNames.removeAll()
         resolvedURLs.removeAll()
         discoveredShares = []
     }
 
     private func updateDiscoveredShares(from results: Set<NWBrowser.Result>) {
+        guard !isStopped else { return }
         var current: Set<String> = []
         for result in results {
             guard case let .service(name, _, _, _) = result.endpoint else { continue }
@@ -74,6 +85,7 @@ public final class NetworkDiscoveryService {
                 staleResolver.stateUpdateHandler = nil
                 staleResolver.cancel()
             }
+            resolveTimeoutTasks.removeValue(forKey: stale)?.cancel()
             resolvedURLs.removeValue(forKey: stale)
         }
 
@@ -113,8 +125,10 @@ public final class NetworkDiscoveryService {
         }
         connection.start(queue: queue)
 
-        Task { @MainActor [weak self] in
+        resolveTimeoutTasks[name]?.cancel()
+        resolveTimeoutTasks[name] = Task { @MainActor [weak self] in
             try? await Task.sleep(for: Self.resolveTimeout)
+            guard !Task.isCancelled else { return }
             self?.finishResolving(name: name, resolvedEndpoint: nil, ifCurrent: connection)
         }
     }
@@ -124,6 +138,7 @@ public final class NetworkDiscoveryService {
     /// must not tear down the new resolver.
     private func finishResolving(name: String, resolvedEndpoint: NWEndpoint?, ifCurrent expected: NWConnection) {
         guard resolvers[name] === expected else { return }
+        resolveTimeoutTasks.removeValue(forKey: name)?.cancel()
         guard let connection = resolvers.removeValue(forKey: name) else { return }
         connection.stateUpdateHandler = nil
         connection.cancel()

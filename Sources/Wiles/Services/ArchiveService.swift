@@ -340,8 +340,10 @@ public final class ArchiveService: Sendable {
     /// (falls back to the prior flat-extraction behavior).
     private static func collidesWithExisting(entries: [String]?, in destinationFolder: URL) -> Bool {
         guard let entries else { return false }
-        let topLevelEntryNames = Set(entries.compactMap { $0.split(separator: "/").first.map(String.init) })
-        let existingNames = (try? FileManager.default.contentsOfDirectory(atPath: destinationFolder.path)) ?? []
+        // Case-insensitive both ways (conservative): on a case-insensitive volume a zip's `Foo` vs an
+        // on-disk `foo` IS a collision, and `ditto -x -k` would overwrite it with no Trash safety net.
+        let topLevelEntryNames = Set(entries.compactMap { $0.split(separator: "/").first.map { String($0).lowercased() } })
+        let existingNames = Set(((try? FileManager.default.contentsOfDirectory(atPath: destinationFolder.path)) ?? []).map { $0.lowercased() })
         return !topLevelEntryNames.isDisjoint(with: existingNames)
     }
 }

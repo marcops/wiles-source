@@ -29,6 +29,12 @@ public struct FileItemIconView: View {
     }()
 
     public var body: some View {
+        iconContent
+            // Decorative: the hosting row/card/sidebar entry already carries the file's label.
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var iconContent: some View {
         if item.isDirectory, isOpenTargeted {
             Image(nsImage: Self.openFolderIcon)
                 .resizable()

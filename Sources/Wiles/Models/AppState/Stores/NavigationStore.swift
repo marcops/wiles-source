@@ -50,7 +50,7 @@ public final class NavigationStore {
         if let savedRecents = UserDefaults.standard.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) {
             // Direct assignment in init — `didSet` does not fire, so no redundant write-back here.
             recentOpenedURLs = savedRecents.compactMap { path in
-                SlowVolumePathValidator.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path) : nil
+                SlowVolumePathValidator.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path).standardizedFileURL : nil
             }
         }
 
@@ -93,7 +93,7 @@ public final class NavigationStore {
             return
         }
         let persistedPaths = UserDefaults.standard.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) ?? []
-        var current = persistedPaths.map { URL(fileURLWithPath: $0) }.filter { $0.standardizedFileURL != std }
+        var current = persistedPaths.map { URL(fileURLWithPath: $0).standardizedFileURL }.filter { $0 != std }
         current.insert(std, at: 0)
         if current.count > maxRecentOpenedCount {
             current = Array(current.prefix(maxRecentOpenedCount))

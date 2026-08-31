@@ -231,6 +231,20 @@ public final class ViewPreferences: PersistablePreferenceStore {
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.iconSizeSaveDebounceInterval, execute: workItem)
     }
 
+    /// Runs every pending debounced write immediately and cancels its timer. Call from
+    /// `applicationWillTerminate` — a value changed inside the last debounce interval before ⌘Q
+    /// would otherwise never reach `UserDefaults` and restore stale next launch.
+    func flushPendingSaves() {
+        // `perform()` before `cancel()`: a cancelled `DispatchWorkItem` no longer runs on `perform()`.
+        for work in [pendingColumnStatesSave, pendingIconSizeSave, pendingPerFolderViewModesSave] {
+            work?.perform()
+            work?.cancel()
+        }
+        pendingColumnStatesSave = nil
+        pendingIconSizeSave = nil
+        pendingPerFolderViewModesSave = nil
+    }
+
     /// Coalesces repeated `perFolderViewModes` edits into one `UserDefaults` write.
     private func schedulePerFolderViewModesSave() {
         pendingPerFolderViewModesSave?.cancel()

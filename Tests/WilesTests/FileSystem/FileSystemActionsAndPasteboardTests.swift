@@ -107,8 +107,9 @@ extension FileSystemTests {
         await runTrashCoverageExtra(tempDir: tempDir)
     }
 
-    /// `copyItem(onCollision:)` — the parameter added for symmetry with `moveItem`. `.replace` must
-    /// send the existing file to Trash (recoverable), never obliterate it.
+    /// `copyItem(onCollision:)` — the parameter added for symmetry with `moveItem`. `.replace` has
+    /// no production caller and is folded into `.failIfExists` so a stray one can't Trash a file
+    /// with no undo record.
     static func runCopyItemCollisionPolicyExtras(tempDir: URL) async {
         let folder = tempDir.appendingPathComponent("CollisionPolicy-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -129,18 +130,19 @@ extension FileSystemTests {
             "FileSystem", "POS: copyItem(onCollision: .failIfExists) throws on a name clash and leaves the existing file untouched",
             result: failIfExistsThrew && existingUntouched)
 
-        // .replace overwrites at the SAME name (no " 2" suffix) but only after the old file is
-        // safely in the Trash — never a raw obliteration.
-        var replacePassed = false
+        // .replace is folded into fail: throws on a real collision, leaves the occupant untouched.
+        var replaceThrew = false
         do {
-            let dest = try await FileSystemService.copyItem(at: source, toFolder: folder, onCollision: .replace)
-            replacePassed = dest == occupied && (try? String(contentsOf: dest, encoding: .utf8)) == "SOURCE"
+            _ = try await FileSystemService.copyItem(at: source, toFolder: folder, onCollision: .replace)
+        } catch WilesError.destinationExists {
+            replaceThrew = true
         } catch {
-            print("copyItem .replace error: \(error)")
+            replaceThrew = false
         }
+        let occupantUntouched = (try? String(contentsOf: occupied, encoding: .utf8)) == "EXISTING"
         TestReporter.report(
-            "FileSystem", "POS: copyItem(onCollision: .replace) writes over the same name after trashing the old file",
-            result: replacePassed)
+            "FileSystem", "NEG: copyItem(onCollision: .replace) is folded into fail (throws destinationExists, occupant untouched)",
+            result: replaceThrew && occupantUntouched)
 
         try? FileManager.default.removeItem(at: folder)
         try? FileManager.default.removeItem(at: source)

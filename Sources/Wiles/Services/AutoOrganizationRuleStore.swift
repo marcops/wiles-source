@@ -53,6 +53,15 @@ final class AutoOrganizationRuleStore {
         }
     }
 
+    /// Runs the pending debounced stats persist immediately — call from `applicationWillTerminate`
+    /// so a burst of auto-moves in the last 2s before quit isn't lost.
+    func flushPendingSaves() {
+        guard statsSaveTask != nil else { return }
+        statsSaveTask?.cancel()
+        statsSaveTask = nil
+        saveRules()
+    }
+
     /// Loads persisted rules from `UserDefaults`. A no-op if none are stored yet; logs and reports
     /// (without mutating `rules`) if the stored data fails to decode.
     func load() {

@@ -64,8 +64,8 @@ public struct FileSystemTests {
         } catch { }
         TestReporter.report("FileSystem", "NEG: renameItem onto an existing name throws WilesError.destinationExists", result: collisionIsExplicit)
 
-        // M36: renameItem(onCollision:) — .keepBoth lands on a free " 2" name keeping both files;
-        // .replace trashes the occupant and lands at the intended name.
+        // M36: renameItem(onCollision:) — .keepBoth lands on a free " 2" name keeping both files.
+        // (.replace has no rename caller; it's folded into fail — asserted below.)
         let kbSource = tempDir.appendingPathComponent("kb_source.txt")
         try? "kb-src".write(to: kbSource, atomically: true, encoding: .utf8)
         try? "kb-occupant".write(to: tempDir.appendingPathComponent("kb_target.txt"), atomically: true, encoding: .utf8)
@@ -81,11 +81,18 @@ public struct FileSystemTests {
         let rpTarget = tempDir.appendingPathComponent("rp_target.txt")
         try? "rp-src".write(to: rpSource, atomically: true, encoding: .utf8)
         try? "rp-occupant".write(to: rpTarget, atomically: true, encoding: .utf8)
-        let rpResult = try? await FileSystemService.renameItem(at: rpSource, newName: "rp_target.txt", onCollision: .replace)
-        let replaceOK = rpResult?.lastPathComponent == "rp_target.txt"
-            && !FileManager.default.fileExists(atPath: rpSource.path)
-            && (try? String(contentsOf: rpTarget, encoding: .utf8)) == "rp-src"
-        TestReporter.report("FileSystem", "POS: renameItem(onCollision: .replace) overwrites the intended name, displacing the occupant", result: replaceOK)
+        var rpThrew = false
+        do {
+            _ = try await FileSystemService.renameItem(at: rpSource, newName: "rp_target.txt", onCollision: .replace)
+        } catch WilesError.destinationExists {
+            rpThrew = true
+        } catch {
+            rpThrew = false
+        }
+        let replaceOK = rpThrew
+            && FileManager.default.fileExists(atPath: rpSource.path)
+            && (try? String(contentsOf: rpTarget, encoding: .utf8)) == "rp-occupant"
+        TestReporter.report("FileSystem", "NEG: renameItem(onCollision: .replace) is folded into fail (throws, occupant untouched)", result: replaceOK)
 
         // Positive: a case-only rename succeeds even on a case-insensitive volume.
         let caseSrc = tempDir.appendingPathComponent("case_sample.txt")

@@ -34,6 +34,15 @@ public final class AppState {
     public let networkDiscoveryService = NetworkDiscoveryService()
     public let httpServerService = LocalHttpServerService()
 
+    /// Per-window (not `.shared`): `activeTasks` is this window's in-flight copy/move/delete
+    /// progress — a shared instance leaked it into every other window's footer/popover.
+    public let backgroundOperations = BackgroundOperationsService()
+
+    /// Per-window thumbnail prefetch session. The `ThumbnailService.shared` cache stays shared; only
+    /// the "which folder am I prefetching" task is per-window, so two windows don't cancel each
+    /// other's prefetch continuously.
+    public let thumbnailPrefetcher = ThumbnailPrefetcher()
+
     /// `nonisolated`: a plain constant URL, safe from any context — lets `FileSystemService`
     /// (off-`@MainActor`) reference it directly instead of duplicating the path as a literal.
     public nonisolated static let recentsVirtualURL = URL(fileURLWithPath: "/virtual/recents")
