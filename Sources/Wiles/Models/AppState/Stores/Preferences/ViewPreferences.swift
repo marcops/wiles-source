@@ -11,54 +11,76 @@ public final class ViewPreferences: PersistablePreferenceStore {
     @ObservationIgnored var isRestoringDefaults = false
 
     public var viewMode: ViewMode = .grid {
-        didSet { guard !isRestoringDefaults else { return }; persist(viewMode, .viewMode) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(viewMode, .viewMode)
+        }
     }
 
     public var sortOption: SortOption = .name {
-        didSet { guard !isRestoringDefaults else { return }; persist(sortOption, .sortOption) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(sortOption, .sortOption)
+        }
     }
 
     public var sortAscending: Bool = true {
-        didSet { guard !isRestoringDefaults else { return }; persist(sortAscending, .sortAscending) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(sortAscending, .sortAscending)
+        }
     }
 
     public var showHiddenFiles: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(showHiddenFiles, .showHiddenFiles) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(showHiddenFiles, .showHiddenFiles)
+        }
     }
 
     public var navigationMode: NavigationMode = .gnome {
-        didSet { guard !isRestoringDefaults else { return }; persist(navigationMode, .navigationMode) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(navigationMode, .navigationMode)
+        }
     }
 
     public var isCompactMode: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(isCompactMode, .isCompactMode) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(isCompactMode, .isCompactMode)
+        }
     }
 
     /// Persisted default for a *new* window's sidebar width — each open window's actual current
     /// width lives on that window's own `WindowUIState.sidebarWidth`, seeded from this at window
     /// construction and written back here on change so the next new window picks up the latest value.
     public var sidebarWidth = Double(LayoutTokens.sidebarIdealWidth) {
-        didSet { guard !isRestoringDefaults else { return }; persist(sidebarWidth, .sidebarWidth) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(sidebarWidth, .sidebarWidth)
+        }
     }
 
     public var isSidebarCollapsed: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(isSidebarCollapsed, .isSidebarCollapsed) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(isSidebarCollapsed, .isSidebarCollapsed)
+        }
     }
 
     /// Finder-style middle-ellipsis truncation for long file names (Grid, List) instead of
     /// the default end-only truncation. Defaults on, matching Finder's own behavior.
     public var middleTruncateNames: Bool = true {
-        didSet { guard !isRestoringDefaults else { return }; persist(middleTruncateNames, .middleTruncateNames) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(middleTruncateNames, .middleTruncateNames)
+        }
     }
 
     /// When off (default), the path bar collapses to just the current folder and expands to the
     /// full breadcrumb trail on hover. When on, the full path is always shown.
     public var alwaysShowFullPathBar: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(alwaysShowFullPathBar, .alwaysShowFullPathBar) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(alwaysShowFullPathBar, .alwaysShowFullPathBar)
+        }
     }
 
     public var showFooter: Bool = true {
-        didSet { guard !isRestoringDefaults else { return }; persist(showFooter, .showFooter) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(showFooter, .showFooter)
+        }
     }
 
     /// Persisted default for a *new* window's terminal drawer — see `sidebarWidth` above for the
@@ -66,16 +88,22 @@ public final class ViewPreferences: PersistablePreferenceStore {
     /// alongside `terminalViewCache`, never here, so toggling this in one window can't spawn a PTY
     /// in every other open window.
     public var showTerminalDrawer: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(showTerminalDrawer, .showTerminalDrawer) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(showTerminalDrawer, .showTerminalDrawer)
+        }
     }
 
     /// Persisted default trailing inspector for a *new* window — see `sidebarWidth` above.
     public var trailingInspector: TrailingInspector = .none {
-        didSet { guard !isRestoringDefaults else { return }; persist(trailingInspector, .trailingInspector) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(trailingInspector, .trailingInspector)
+        }
     }
 
     public var skipDeleteConfirmation: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(skipDeleteConfirmation, .skipDeleteConfirmation) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(skipDeleteConfirmation, .skipDeleteConfirmation)
+        }
     }
 
     /// Persistence is debounced: the footer's size slider drives this every frame of a drag, and
@@ -86,7 +114,9 @@ public final class ViewPreferences: PersistablePreferenceStore {
 
     /// When off, `AppState.viewModeForFolder` just uses the single global `viewMode`.
     public var perFolderViewModeEnabled: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(perFolderViewModeEnabled, .perFolderViewModeEnabled) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(perFolderViewModeEnabled, .perFolderViewModeEnabled)
+        }
     }
 
     /// Populated from disk in `init`, not as a stored-property default.

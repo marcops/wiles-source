@@ -44,7 +44,10 @@ public struct SyntaxHighlighterTests {
         let result = await SyntaxHighlighterService.highlightCode(content: content, fileExtension: "swift", language: .english)
         let hasCommentColour = result.runs.contains { $0.appKit.foregroundColor == NSColor.systemGreen }
         let hasStringColour = result.runs.contains { $0.appKit.foregroundColor == NSColor.systemOrange }
-        report("SyntaxHighlighter", "POS: a real trailing comment after a string keeps both string and comment colours", result: hasCommentColour && hasStringColour)
+        report(
+            "SyntaxHighlighter",
+            "POS: a real trailing comment after a string keeps both string and comment colours",
+            result: hasCommentColour && hasStringColour)
     }
 
     private static func testEmptyContentReturnsEmpty() async {

@@ -12,12 +12,28 @@ extension LocalHttpServerService {
     /// First port in `range` that a TCP socket can `bind()` right now, or `nil` if every one is
     /// taken. Best-effort (a port can still be claimed between this check and `NWListener` binding),
     /// but it turns the common "8080 already in use" case from a dead feature into a working one on
-    /// the next port.
-    static func firstAvailablePort(in range: ClosedRange<UInt16>) -> NWEndpoint.Port? {
+    /// the next port. `preferred`, when free, wins over the scan order so a restart keeps its port.
+    static func firstAvailablePort(in range: ClosedRange<UInt16>, preferring preferred: UInt16? = nil) -> NWEndpoint.Port? {
+        if let preferred, range.contains(preferred), isPortBindable(preferred) {
+            return NWEndpoint.Port(rawValue: preferred)
+        }
         for candidate in range where isPortBindable(candidate) {
             return NWEndpoint.Port(rawValue: candidate)
         }
         return nil
+    }
+
+    /// `NWListener.cancel()` frees its socket asynchronously. On an immediate restart, briefly wait
+    /// (bounded, local) for the just-cancelled `port` to become bindable again so the restart reuses
+    /// it instead of the scan skipping past a port that's about to be free.
+    static func waitForPortRelease(_ port: UInt16, timeout: TimeInterval) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if isPortBindable(port) {
+                return
+            }
+            Thread.sleep(forTimeInterval: 0.01)
+        }
     }
 
     private static func isPortBindable(_ port: UInt16) -> Bool {

@@ -8,7 +8,7 @@ public struct FileSystemService: Sendable {
     /// of real entries (Maildir, `.git/objects`, some `node_modules`) would otherwise grow
     /// `fileSystem.items` — each with an `NSImage` icon — without bound. `AppState` surfaces the cut
     /// via `resultsTruncated`, same channel the recursive search uses.
-    static let directoryListingLimit: Int = 20_000
+    static let directoryListingLimit: Int = 20000
     /// Minimum wall-clock gap between `onBatch` calls during a recursive crawl (the first match is
     /// always reported immediately). Time-based, not count-based: every call rebuilds `AppState`'s
     /// URL indices over the whole cumulative array.
@@ -38,7 +38,10 @@ public struct FileSystemService: Sendable {
                 items.append(FileItem.load(url: fileURL, fetchTags: options.showTags, needsOwnerGroup: options.showOwnerGroup))
             }
             if !options.searchQuery.isEmpty {
-                let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
+                let parsedQuery = SearchFilterService.parsedQuery(
+                    query: options.searchQuery,
+                    scope: options.searchScope,
+                    caseSensitive: options.searchCaseSensitive)
                 items = items.filter {
                     SearchFilterService.matchesSearch(
                         fileURL: $0.url, parsed: parsedQuery,
@@ -250,11 +253,11 @@ public struct FileSystemService: Sendable {
         case .dateAccessed: { ($0.dateAccessed ?? .distantPast) < ($1.dateAccessed ?? .distantPast) }
         case .size: { $0.size < $1.size }
         case .kind: {
-            let extOrder = $0.fileExtension.localizedStandardCompare($1.fileExtension)
-            return extOrder == .orderedSame
-                ? $0.name.localizedStandardCompare($1.name) == .orderedAscending
-                : extOrder == .orderedAscending
-        }
+                let extOrder = $0.fileExtension.localizedStandardCompare($1.fileExtension)
+                return extOrder == .orderedSame
+                    ? $0.name.localizedStandardCompare($1.name) == .orderedAscending
+                    : extOrder == .orderedAscending
+            }
         case .owner: { $0.ownerName.localizedStandardCompare($1.ownerName) == .orderedAscending }
         case .group: { $0.groupName.localizedStandardCompare($1.groupName) == .orderedAscending }
         }

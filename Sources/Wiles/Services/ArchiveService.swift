@@ -67,7 +67,11 @@ public final class ArchiveService: Sendable {
     /// that live outside destinationFolder or outside each other.
     private static func zipItemsIndividually(urls: [URL], to destURL: URL, password: String?) throws {
         var stagingDir: URL?
-        defer { if let stagingDir { try? FileManager.default.removeItem(at: stagingDir) } }
+        defer {
+            if let stagingDir {
+                try? FileManager.default.removeItem(at: stagingDir)
+            }
+        }
 
         var nameCounts: [String: Int] = [:]
         for url in urls {

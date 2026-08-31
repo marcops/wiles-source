@@ -382,19 +382,6 @@ custom_rules:
     regex: '\A(?:(?!(?:Task\.detached|nonisolated ))[\s\S])*\b(?:waitUntilExit\(\)|readDataToEndOfFile\(\))'
     message: "This service file makes a blocking subprocess call (waitUntilExit()/readDataToEndOfFile()) but never uses Task.detached or nonisolated — the off-main guarantee is implicit and a future @MainActor caller silently loses it. Wrap it in Task.detached or mark the function nonisolated (SWIFT_LANG_RULES.md checklist item 15; ARCHITECTURE_CODE_REVIEW.md AC-2)."
     severity: warning
-  debounce_should_reuse_shared_helper:
-    name: "Ad-Hoc Debounce — Reuse the Shared Helper"
-    # ARCHITECTURE_CODE_REVIEW.md B3-1: the same debounce is hand-rolled 6+ times
-    # (`DispatchWorkItem { ... } ; DispatchQueue.*.asyncAfter(deadline:)` in ViewPreferences,
-    # SidebarPreferences, FolderWatcher, SidebarView, MainContentView, PathBarView, HeaderBarView).
-    # Once the shared `persistDebounced(_:_:interval:)` / `Debouncer` helper exists, every one of
-    # these should route through it. Flags a `DispatchWorkItem { ... }` followed by an
-    # `asyncAfter(deadline:` in the same file, outside a file whose name contains "Debouncer".
-    included: ".*/Sources/.*\\.swift"
-    excluded: ".*/.*Debouncer.*\\.swift"
-    regex: 'DispatchWorkItem\s*\{[\s\S]{0,400}?asyncAfter\(deadline:'
-    message: "Hand-rolled debounce (DispatchWorkItem + asyncAfter). Route it through the shared debounce helper instead of adding another copy (ARCHITECTURE_CODE_REVIEW.md B3-1)."
-    severity: warning
   no_adhoc_path_within_check:
     name: "Ad-Hoc pathComponents.prefix() Containment Check"
     # ARCHITECTURE_CODE_REVIEW.md (Consolidação — DRY): the component-wise "is X inside/equal to Y"
@@ -425,49 +412,6 @@ custom_rules:
     regex: '\.enumerator\((?![\s\S]{0,400}?errorHandler:)'
     message: "FileManager.enumerator(...) with no `errorHandler:` aborts the whole walk on the first unreadable directory and returns a silent partial result (ARCHITECTURE_CODE_REVIEW.md BA-509). Pass `errorHandler: { _, _ in true }` — see FileSystemService.makeRecursiveSearchEnumerator."
     severity: error
-  no_int_pref_restore_gt_zero:
-    name: "Int/Double Preference Restored With `if x > 0` (LR-3)"
-    # ARCHITECTURE_CODE_REVIEW.md CB-189 (Engineering Rule R5-adjacent). `let x = defaults
-    # .integer(forKey:)` / `.double(forKey:)` followed by `if x > 0 { self.foo = x }` treats an
-    # explicitly-saved 0 identically to "never saved" — a valid 0 (opaque translucency, zero inset,
-    # zero width) silently reverts to the default on the next launch. `UserDefaults.object(forKey:)
-    # != nil` is the real presence check (see PersistablePreferenceStore.loadBool). Prefer the
-    # shared loadInt/loadDouble helpers. Matches `.integer(forKey:` / `.double(forKey:` within ~200
-    # chars of an `if <name> > 0`.
-    included: ".*/Sources/.*\\.swift"
-    regex: '\.(integer|double)\(forKey:[\s\S]{0,220}?\bif\s+\w[\w.]*\s*>\s*0\b'
-    message: "An Int/Double preference restored with `if x > 0` treats a saved 0 as \"never saved\" — a valid 0 reverts to the default (ARCHITECTURE_CODE_REVIEW.md CB-189). Use a presence check (object(forKey:) != nil) / the loadInt/loadDouble helpers."
-    severity: warning
-  layout_constant_may_be_inline_literal:
-    name: "Single-Use Layout Constant May Stay an Inline Literal (LR-2)"
-    # ARCHITECTURE_CODE_REVIEW.md CC-171 / WILES_UI_UX_RULES.md "Single-Use Layout Literals in a
-    # `View` Body May Stay Inline". A purely-visual `private static let` used exactly once in a
-    # View reads worse than the literal (`.padding(.horizontal, Self.tabHorizontalPadding)` vs
-    # `.padding(.horizontal, 10)`). ShortcutsHUDOverlay (~50 of them) is the named anti-pattern;
-    # OperationsPopoverView / AutoOrganizationSheet have clusters too. A regex CANNOT verify "used
-    # exactly once" — this is a deliberately noisy HEURISTIC that flags every `private static let
-    # <name…suffix>: CGFloat/Double = <literal>` in a Views/ file so a reviewer glances and either
-    # inlines it or confirms it's shared 2+x / a non-obvious multiplier (the two documented
-    # exceptions). `warning`, expected false positives — a prompt to check, not a proven violation.
-    # Genuinely-shared tokens live in LayoutTokens/MotionTokens/Theme (path-excluded).
-    included: ".*/Sources/Wiles/Views/.*\\.swift"
-    excluded: ".*/(LayoutTokens|MotionTokens|.*Tokens|Theme/.*)\\.swift"
-    regex: 'private static let \w+(Padding|Spacing|Radius|Opacity|Offset|Inset|Width|Height|FontSize|IconSize|Scale|Damping|Margin)\s*:\s*(CGFloat|Double)\s*=\s*-?[0-9]'
-    message: "Single-use visual layout constant in a View (heuristic — CC-171). If used exactly once, inline the literal; keep it only if shared 2+x or a non-obvious multiplier/threshold (WILES_UI_UX_RULES.md 'Single-Use Layout Literals May Stay Inline')."
-    severity: warning
-  no_formatter_built_in_view:
-    name: "No DateFormatter/NumberFormatter Constructed in a View File (LR-4)"
-    # ARCHITECTURE_CODE_REVIEW.md V10 / CB-111 area — same class as `no_adhoc_byte_count_formatter`
-    # above. `DateFormatter()` / `NumberFormatter()` / `DateComponentsFormatter()` construction is
-    # expensive and in a View tends to run per row per render (AutoOrganizationSheet.ruleStatusText
-    # builds one per rule per body pass). Cache it as a `static let`, or reuse FileItem's
-    # language-keyed dateFormatterCache. Heuristic: flags the constructor anywhere in a Views/
-    # file. `warning` — a genuinely one-shot formatter in a rarely-rebuilt sheet is borderline
-    # acceptable, but every hit is worth a glance.
-    included: ".*/Sources/Wiles/Views/.*\\.swift"
-    regex: '\b(DateFormatter|NumberFormatter|DateComponentsFormatter)\('
-    message: "A Formatter constructed in a View file tends to run per-render/per-row (ARCHITECTURE_CODE_REVIEW.md V10). Cache it as a static let or reuse FileItem.dateFormatterCache."
-    severity: warning
   shared_service_lifecycle_in_view_appear:
     name: "Shared Service start/stop in a Per-Window View's onAppear/onDisappear"
     # A per-window view can't own a .shared service's session lifecycle — a second window's teardown kills it for the first.

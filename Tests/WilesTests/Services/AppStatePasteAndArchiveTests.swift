@@ -145,12 +145,13 @@ public struct AppStatePasteAndArchiveTests {
         await drainUndoRedoService(appState)
     }
 
-    /// M23: a cut-paste whose destination already holds a same-named file records an undo `.move`
-    /// step only when the resolution keeps both files. A Replace displaces the existing file to
-    /// Trash, so no `.move` undo is recorded for that item; KeepBoth records exactly one.
+    /// M23 / ML-101: a cut-paste whose destination already holds a same-named file records undo
+    /// steps for the resolution. KeepBoth records exactly one `.move`. Replace records two — a
+    /// `.trash` for the displaced file (deeper in the stack) plus the `.move` — so ⌘Z undoes the
+    /// move and ⌘Z again restores the file Replace displaced.
     private static func testCutPasteCollisionUndoRecording() async {
         await assertCutPasteCollisionUndo(answer: .keepBoth, expectedUndoSteps: 1)
-        await assertCutPasteCollisionUndo(answer: .replace, expectedUndoSteps: 0)
+        await assertCutPasteCollisionUndo(answer: .replace, expectedUndoSteps: 2)
     }
 
     private static func assertCutPasteCollisionUndo(answer: MoveCollisionChoice.Action, expectedUndoSteps: Int) async {

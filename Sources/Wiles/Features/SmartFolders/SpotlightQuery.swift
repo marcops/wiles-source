@@ -12,7 +12,7 @@ final class SpotlightQuery {
     /// Backstop for `NSMetadataQueryDidFinishGathering` never firing — on a volume without
     /// Spotlight indexing (an SMB share, an external drive with indexing off) the query gathers
     /// forever, so without this the caller would await it indefinitely.
-    private static let defaultTimeout: Duration = .seconds(20)
+    static let defaultTimeout: Duration = .seconds(20)
     private let timeout: Duration
 
     init(predicate: NSPredicate, searchScopes: [Any], timeout: Duration = SpotlightQuery.defaultTimeout) {

@@ -56,6 +56,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // reference left to cancel it — so `firstAvailablePort` then skips that (still-occupied) port
         // and the new server lands on the next one (BB-358). `stop()` also clears `sharedFolder`/
         // `requiredPassword`, which is why they're (re)assigned only *after* it, just below.
+        let previousPort: UInt16? = listener != nil ? port.rawValue : nil
         stop()
 
         // `sharedFolder`/`requiredPassword` are read from `processRequest`, which always runs on
@@ -63,11 +64,16 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // connection is started with `connection.start(queue: queue)`). Routing the write through
         // `queue.sync` here — the same mechanism already used for `listener` below — establishes a
         // proper happens-before relationship with that on-queue read, closing the data race.
+        // The `queue.sync` also drains `stop()`'s async teardown, so `listener?.cancel()` has run
+        // by the time the port scan below happens.
         queue.sync {
             sharedFolder = folder
             requiredPassword = !(password?.isEmpty ?? true) ? password : nil
         }
-        port = Self.firstAvailablePort(in: Self.portScanRange) ?? Self.defaultPort
+        if let previousPort {
+            Self.waitForPortRelease(previousPort, timeout: 0.5)
+        }
+        port = Self.firstAvailablePort(in: Self.portScanRange, preferring: previousPort) ?? Self.defaultPort
         do {
             let parameters = NWParameters.tcp
             let newListener = try NWListener(using: parameters, on: port)

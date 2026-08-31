@@ -9,19 +9,27 @@ public final class AppearancePreferences: PersistablePreferenceStore {
     @ObservationIgnored var isRestoringDefaults = false
 
     public var appAppearance: AppAppearance = .system {
-        didSet { guard !isRestoringDefaults else { return }; persist(appAppearance, .appAppearance) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(appAppearance, .appAppearance)
+        }
     }
 
     public var appLanguage: AppLanguage = .system {
-        didSet { guard !isRestoringDefaults else { return }; persist(appLanguage, .appLanguage) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(appLanguage, .appLanguage)
+        }
     }
 
     public var sidebarTranslucentLevel: Int = 80 {
-        didSet { guard !isRestoringDefaults else { return }; persist(sidebarTranslucentLevel, .sidebarTranslucentLevel) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(sidebarTranslucentLevel, .sidebarTranslucentLevel)
+        }
     }
 
     public var contentTranslucentLevel: Int = 40 {
-        didSet { guard !isRestoringDefaults else { return }; persist(contentTranslucentLevel, .contentTranslucentLevel) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(contentTranslucentLevel, .contentTranslucentLevel)
+        }
     }
 
     /// Light mode's window is already brighter, so the translucency overlay is dialed back to

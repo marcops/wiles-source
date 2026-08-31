@@ -3,18 +3,22 @@ import Foundation
 
 @MainActor
 public final class SmartFolderService: SmartFolderServiceProtocol {
-    // Instantiated per `AppState` (`appState.smartFolderService`), NOT a `.shared` singleton: the
-    // per-run `activeQuery`/`currentQueryToken` staleness state used to be shared across every open
-    // window, so a smart-folder run in one window silently discarded its own results the moment
-    // another window started its own run (`token != currentQueryToken`) — BA-108 / WILES_RULES.md
-    // "Singleton Services With Session State Need an Explicit Owner". The two `static` persistence
-    // helpers below hold no session state and stay static.
+    /// Instantiated per `AppState` (`appState.smartFolderService`), NOT a `.shared` singleton: the
+    /// per-run `activeQuery`/`currentQueryToken` staleness state used to be shared across every open
+    /// window, so a smart-folder run in one window silently discarded its own results the moment
+    /// another window started its own run (`token != currentQueryToken`) — BA-108 / WILES_RULES.md
+    /// "Singleton Services With Session State Need an Explicit Owner". The two `static` persistence
+    /// helpers below hold no session state and stay static.
     public init() { }
 
     private var activeQuery: SpotlightQuery?
     /// The detached `FileItem`-resolution task for the current query, so a rapid smart-folder switch
     /// cancels the prior run's 2000-item resolve instead of letting it run to completion unused.
     private var fetchTask: Task<Void, Never>?
+
+    /// Backstop timeout for each `NSMetadataQuery` gather. Overridable so tests don't have to sit
+    /// through the full 20 s when Spotlight is cold/unindexed in the runner.
+    var queryTimeout: Duration = SpotlightQuery.defaultTimeout
     /// Identifies the most recently started query. `fetchFileItems` resolves icons on a detached
     /// task, so a slower-finishing older query (e.g. one with more results) could otherwise still
     /// call its `completion` after a faster newer one already did, silently overwriting the newer,
@@ -84,7 +88,7 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
         fetchTask?.cancel()
         let token = UUID()
         currentQueryToken = token
-        let spotlight = SpotlightQuery(predicate: predicate, searchScopes: searchScopes)
+        let spotlight = SpotlightQuery(predicate: predicate, searchScopes: searchScopes, timeout: queryTimeout)
         activeQuery = spotlight
         Task { @MainActor [weak self] in
             let (paths, timedOut) = await spotlight.run()
@@ -117,7 +121,9 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
             var items: [FileItem] = []
             items.reserveCapacity(cappedPaths.count)
             for path in cappedPaths {
-                if Task.isCancelled { return }
+                if Task.isCancelled {
+                    return
+                }
                 // FileItem resolves the icon from `.effectiveIcon` in its resourceValues batch;
                 // a per-path NSWorkspace.icon IPC here cost seconds on a broad Spotlight result set.
                 items.append(FileItem.load(url: URL(fileURLWithPath: path)))

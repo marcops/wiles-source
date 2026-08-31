@@ -14,17 +14,30 @@ import XCTest
 /// request), so it's safe to exercise for real.
 @MainActor
 final class SmartFolderQueryTests: XCTestCase {
+    /// Spotlight's cold-start / unindexed-scope latency is unbounded in a headless runner, so every
+    /// test caps the gather at 1 s (production stays 20 s) and waits comfortably past that — the
+    /// completion always fires, with real results or an empty timeout result.
+    private static let testQueryTimeout: Duration = .seconds(1)
+    private static let waitTimeout: TimeInterval = 4
+
+    private func makeService() -> SmartFolderService {
+        let service = SmartFolderService()
+        service.queryTimeout = Self.testQueryTimeout
+        return service
+    }
+
     func testExecuteQueryWithValidScopePathCompletes() {
         let exp = expectation(description: "executeQuery with a valid scopePath completes")
         let home = FileManager.default.homeDirectoryForCurrentUser
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
 
-        SmartFolderService().executeQuery(for: folder) { items in
+        let service = makeService()
+        service.executeQuery(for: folder) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
-        wait(for: [exp], timeout: 1.4)
+        wait(for: [exp], timeout: Self.waitTimeout)
     }
 
     func testExecuteQueryWithEmptyScopePathFallsBackToHomeScope() {
@@ -33,12 +46,13 @@ final class SmartFolderQueryTests: XCTestCase {
         let exp = expectation(description: "executeQuery with an empty scopePath completes")
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: "")
 
-        SmartFolderService().executeQuery(for: folder) { items in
+        let service = makeService()
+        service.executeQuery(for: folder) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
-        wait(for: [exp], timeout: 1.4)
+        wait(for: [exp], timeout: Self.waitTimeout)
     }
 
     func testExecuteQueryWithNonexistentScopePathFallsBackToHomeScope() {
@@ -47,12 +61,13 @@ final class SmartFolderQueryTests: XCTestCase {
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString).path
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: missing)
 
-        SmartFolderService().executeQuery(for: folder) { items in
+        let service = makeService()
+        service.executeQuery(for: folder) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
-        wait(for: [exp], timeout: 1.4)
+        wait(for: [exp], timeout: Self.waitTimeout)
     }
 
     func testExecuteQueryCalledTwiceStopsThePriorQuery() {
@@ -65,7 +80,7 @@ final class SmartFolderQueryTests: XCTestCase {
         let folderB = SmartFolder(name: "B", searchQuery: "Documents", scopePath: home.path)
 
         // Two calls on the SAME instance: the second supersedes the first (staleness token).
-        let service = SmartFolderService()
+        let service = makeService()
         service.executeQuery(for: folderA) { _ in
             XCTFail("The first query's completion should not fire once superseded by a second call")
         }
@@ -74,7 +89,7 @@ final class SmartFolderQueryTests: XCTestCase {
             exp.fulfill()
         }
 
-        wait(for: [exp], timeout: 1.4)
+        wait(for: [exp], timeout: Self.waitTimeout)
     }
 
     /// BA-108: `SmartFolderService` is now per-`AppState`, not `.shared`. Two independent instances
@@ -85,8 +100,8 @@ final class SmartFolderQueryTests: XCTestCase {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let folderA = SmartFolder(name: "A", searchQuery: "Desktop", scopePath: home.path)
         let folderB = SmartFolder(name: "B", searchQuery: "Documents", scopePath: home.path)
-        let windowA = SmartFolderService()
-        let windowB = SmartFolderService()
+        let windowA = makeService()
+        let windowB = makeService()
         let expA = expectation(description: "window A's run still delivers its own results")
         let expB = expectation(description: "window B's run delivers its results")
 
@@ -99,7 +114,7 @@ final class SmartFolderQueryTests: XCTestCase {
             expB.fulfill()
         }
 
-        wait(for: [expA, expB], timeout: 1.6)
+        wait(for: [expA, expB], timeout: Self.waitTimeout)
     }
 
     func testExecuteContentQueryCompletes() {
@@ -108,11 +123,12 @@ final class SmartFolderQueryTests: XCTestCase {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        SmartFolderService().executeContentQuery(queryText: "test", in: dir) { items in
+        let service = makeService()
+        service.executeContentQuery(queryText: "test", in: dir) { items in
             XCTAssertTrue(items.allSatisfy(\.url.isFileURL))
             exp.fulfill()
         }
 
-        wait(for: [exp], timeout: 1.4)
+        wait(for: [exp], timeout: Self.waitTimeout)
     }
 }

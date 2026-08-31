@@ -33,7 +33,11 @@ public struct PreferencesStoreTests {
         let key = DefaultsKey.favoriteURLs.rawValue
         let prior = UserDefaults.standard.stringArray(forKey: key)
         defer {
-            if let prior { UserDefaults.standard.set(prior, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+            if let prior {
+                UserDefaults.standard.set(prior, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
         }
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

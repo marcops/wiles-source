@@ -45,7 +45,9 @@ public enum LayoutTokens {
         }
         let font = NSFont.systemFont(ofSize: gridCardLabelFontSize(forIconSize: iconSize), weight: .semibold)
         let height = (font.ascender - font.descender + font.leading) * 2 + gridCardLabelVerticalPadding
-        if twoLineLabelHeightCache.count > 32 { twoLineLabelHeightCache.removeAll(keepingCapacity: true) }
+        if twoLineLabelHeightCache.count > 32 {
+            twoLineLabelHeightCache.removeAll(keepingCapacity: true)
+        }
         twoLineLabelHeightCache[iconSize] = height
         return height
     }

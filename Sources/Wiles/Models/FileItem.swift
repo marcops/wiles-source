@@ -154,10 +154,10 @@ public struct FileItem: Identifiable, Hashable, @unchecked Sendable {
         return ByteFormat.fileSize(size)
     }
 
-    // Keyed by resolved language code so switching the in-app language mid-session reformats
-    // dates instead of sticking to whatever locale was captured on first use. `@MainActor`: every
-    // caller (list/grid cells, properties sheet, tooltip + column-autofit services) is already on
-    // the main actor, so the cache needs no lock and no `nonisolated(unsafe)`.
+    /// Keyed by resolved language code so switching the in-app language mid-session reformats
+    /// dates instead of sticking to whatever locale was captured on first use. `@MainActor`: every
+    /// caller (list/grid cells, properties sheet, tooltip + column-autofit services) is already on
+    /// the main actor, so the cache needs no lock and no `nonisolated(unsafe)`.
     @MainActor private static var dateFormatterCache: [String: DateFormatter] = [:]
 
     @MainActor

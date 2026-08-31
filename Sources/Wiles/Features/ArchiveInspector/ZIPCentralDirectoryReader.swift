@@ -22,7 +22,7 @@ enum ZIPCentralDirectoryReader {
     /// directory with millions of entries would otherwise grow `[String]` without bound (OOM).
     /// Aligned with `FileSystemService.recursiveSearchResultLimit`'s intent, but larger since an
     /// archive listing is text-only.
-    static let maxEntryCount = 50_000
+    static let maxEntryCount = 50000
 
     static func readEntryNames(from data: Data) -> [String] {
         guard let centralDirectoryOffset = findCentralDirectoryOffset(in: data) else { return [] }

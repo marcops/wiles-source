@@ -30,8 +30,19 @@ enum FileKindCatalog {
         "doc", "docx", "pdf", "pages", "txt", "md", "rtf", "odt", "xls", "xlsx"
     ]
 
-    static func isImage(_ fileExtension: String) -> Bool { imageExtensions.contains(fileExtension.lowercased()) }
-    static func isText(_ fileExtension: String) -> Bool { textExtensions.contains(fileExtension.lowercased()) }
-    static func isCode(_ fileExtension: String) -> Bool { codeExtensions.contains(fileExtension.lowercased()) }
-    static func isDocument(_ fileExtension: String) -> Bool { documentExtensions.contains(fileExtension.lowercased()) }
+    static func isImage(_ fileExtension: String) -> Bool {
+        imageExtensions.contains(fileExtension.lowercased())
+    }
+
+    static func isText(_ fileExtension: String) -> Bool {
+        textExtensions.contains(fileExtension.lowercased())
+    }
+
+    static func isCode(_ fileExtension: String) -> Bool {
+        codeExtensions.contains(fileExtension.lowercased())
+    }
+
+    static func isDocument(_ fileExtension: String) -> Bool {
+        documentExtensions.contains(fileExtension.lowercased())
+    }
 }

@@ -10,7 +10,10 @@ struct HttpShareSheet: View {
     var appState: AppState
     var folderURL: URL
 
-    private var serverService: LocalHttpServerService { appState.httpServerService }
+    private var serverService: LocalHttpServerService {
+        appState.httpServerService
+    }
+
     @State private var isConfiguring = true
     @State private var requireAuth = false
     @State private var password = ""

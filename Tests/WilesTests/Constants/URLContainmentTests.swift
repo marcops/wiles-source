@@ -4,7 +4,9 @@ import XCTest
 /// Standalone suite for `URL.isDescendantOrSelf(of:)` — the shared component-wise path-containment
 /// helper that replaced the copy-pasted `Array(pathComponents.prefix(...)) == ...` idiom.
 final class URLContainmentTests: XCTestCase {
-    private func url(_ path: String) -> URL { URL(fileURLWithPath: path) }
+    private func url(_ path: String) -> URL {
+        URL(fileURLWithPath: path)
+    }
 
     func testSelfIsDescendantOrSelf() {
         XCTAssertTrue(url("/Users/foo").isDescendantOrSelf(of: url("/Users/foo")))

@@ -9,17 +9,23 @@ public final class SearchPreferences: PersistablePreferenceStore {
     @ObservationIgnored var isRestoringDefaults = false
 
     public var searchScope: SearchScope = .name {
-        didSet { guard !isRestoringDefaults else { return }; persist(searchScope, .searchScope) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(searchScope, .searchScope)
+        }
     }
 
     public var searchCaseSensitive: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(searchCaseSensitive, .searchCaseSensitive) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(searchCaseSensitive, .searchCaseSensitive)
+        }
     }
 
     /// When on, a search query recurses through the whole user home directory (`URL.userHome`)
     /// instead of just the current folder's direct children.
     public var searchEverywhere: Bool = false {
-        didSet { guard !isRestoringDefaults else { return }; persist(searchEverywhere, .searchEverywhere) }
+        didSet { guard !isRestoringDefaults else { return }
+            persist(searchEverywhere, .searchEverywhere)
+        }
     }
 
     public init() {

@@ -13,7 +13,9 @@ public enum BatchRenameService {
         case invalid(pattern: String)
 
         var regex: NSRegularExpression? {
-            if case let .compiled(regex) = self { return regex }
+            if case let .compiled(regex) = self {
+                return regex
+            }
             return nil
         }
     }
@@ -203,7 +205,9 @@ public enum BatchRenameService {
                 }
                 throw error
             }
-            for entry in stagedThisGroup { stagedURLByOriginal[entry.originalURL] = entry.tempURL }
+            for entry in stagedThisGroup {
+                stagedURLByOriginal[entry.originalURL] = entry.tempURL
+            }
         }
         return stagedURLByOriginal
     }

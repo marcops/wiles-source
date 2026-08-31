@@ -8,6 +8,9 @@ import XCTest
 final class PreferenceStoreLoadDoesNotPersistTests: XCTestCase {
     private final class WriteSpy: NSObject {
         var count = 0
+        // Block-based KVO needs a Swift KeyPath; `UserDefaults` is observed here by dynamic string
+        // key (`addObserver(_:forKeyPath:)`), which only the classic override supports.
+        // swiftlint:disable:next block_based_kvo
         override func observeValue(
             forKeyPath _: String?, of _: Any?, change _: [NSKeyValueChangeKey: Any]?, context _: UnsafeMutableRawPointer?) {
             count += 1
@@ -24,7 +27,11 @@ final class PreferenceStoreLoadDoesNotPersistTests: XCTestCase {
         let originals = keys.map { defaults.object(forKey: $0) }
         defer {
             for (key, value) in zip(keys, originals) {
-                if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) }
+                if let value {
+                    defaults.set(value, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
             }
         }
 
@@ -33,8 +40,12 @@ final class PreferenceStoreLoadDoesNotPersistTests: XCTestCase {
         defaults.set(true, forKey: DefaultsKey.searchEverywhere.rawValue)
 
         let spy = WriteSpy()
-        for key in keys { defaults.addObserver(spy, forKeyPath: key, options: [], context: nil) }
-        defer { for key in keys { defaults.removeObserver(spy, forKeyPath: key) } }
+        for key in keys {
+            defaults.addObserver(spy, forKeyPath: key, options: [], context: nil)
+        }
+        defer { for key in keys {
+            defaults.removeObserver(spy, forKeyPath: key)
+        } }
 
         let store = SearchPreferences()
 
@@ -49,7 +60,11 @@ final class PreferenceStoreLoadDoesNotPersistTests: XCTestCase {
         let key = DefaultsKey.searchEverywhere.rawValue
         let original = defaults.object(forKey: key)
         defer {
-            if let original { defaults.set(original, forKey: key) } else { defaults.removeObject(forKey: key) }
+            if let original {
+                defaults.set(original, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
         }
 
         let store = SearchPreferences()

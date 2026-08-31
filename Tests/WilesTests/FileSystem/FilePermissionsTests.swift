@@ -161,10 +161,14 @@ public struct FilePermissionsTests {
     /// `POSIXPermissions.symbolicString` (the `rwx…` form, one source of truth) and the consolidated
     /// `FilePermissionsService.ownership(of:)` read (owner + group + permissions in one call).
     private static func testSymbolicStringAndOwnership(tempFile: URL, missing: URL) {
-        TestReporter.report("Permissions", "POS: symbolicString renders 0o754 as \"rwxr-xr--\"",
-                            result: POSIXPermissions(posixPermissions: 0o754).symbolicString == "rwxr-xr--")
-        TestReporter.report("Permissions", "POS: symbolicString renders 0o000 as \"---------\"",
-                            result: POSIXPermissions(posixPermissions: 0).symbolicString == "---------")
+        TestReporter.report(
+            "Permissions",
+            "POS: symbolicString renders 0o754 as \"rwxr-xr--\"",
+            result: POSIXPermissions(posixPermissions: 0o754).symbolicString == "rwxr-xr--")
+        TestReporter.report(
+            "Permissions",
+            "POS: symbolicString renders 0o000 as \"---------\"",
+            result: POSIXPermissions(posixPermissions: 0).symbolicString == "---------")
 
         let ownership = FilePermissionsService.ownership(of: tempFile)
         TestReporter.report(

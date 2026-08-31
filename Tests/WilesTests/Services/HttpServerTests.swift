@@ -373,9 +373,12 @@ public struct HttpServerTests {
         try? await Task.sleep(nanoseconds: 300_000_000)
 
         server.start(sharing: emptyDir)
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        for _ in 0 ..< 40 where !server.isRunning {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
 
-        if let rootURL = URL(string: "http://localhost:8080") {
+        // Use the port the server actually bound (the scan can land past 8080 if it's briefly held).
+        if let rootURL = URL(string: "http://localhost:\(server.port.rawValue)") {
             if let (data, resp) = try? await Self.requestSession.data(from: rootURL),
                let httpResp = resp as? HTTPURLResponse, httpResp.statusCode == 200 {
                 let html = String(data: data, encoding: .utf8) ?? ""

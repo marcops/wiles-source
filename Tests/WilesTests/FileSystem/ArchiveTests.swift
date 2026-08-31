@@ -60,7 +60,9 @@ public struct ArchiveTests {
         let dirA = root.appendingPathComponent("a")
         let dirB = root.appendingPathComponent("b")
         let out = root.appendingPathComponent("out")
-        for dir in [dirA, dirB, out] { try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) }
+        for dir in [dirA, dirB, out] {
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
         try? "from A".write(to: dirA.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
         try? "from B".write(to: dirB.appendingPathComponent("report.txt"), atomically: true, encoding: .utf8)
 
@@ -71,7 +73,7 @@ public struct ArchiveTests {
             let extractTarget = out.appendingPathComponent("Extracted")
             try FileManager.default.createDirectory(at: extractTarget, withIntermediateDirectories: true)
             try ArchiveService.extractArchive(archiveURL: zip, to: extractTarget)
-            let names = Set(((try? FileManager.default.contentsOfDirectory(atPath: extractTarget.path)) ?? []))
+            let names = Set((try? FileManager.default.contentsOfDirectory(atPath: extractTarget.path)) ?? [])
             bothKept = names.contains("report.txt") && names.contains("report 2.txt")
         } catch {
             print("same-name zip error: \(error)")

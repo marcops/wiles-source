@@ -23,6 +23,7 @@ final class SidebarRowViewTests: XCTestCase {
     }
 
     // MARK: - B18-2: favoriteStatusKey only folds in the folder-contents signal for the favorite
+
     // whose parent is the folder on screen, so an FSEvents refresh doesn't re-check every favorite.
 
     private func key(_ favorite: String, current: String, count: Int, isFavorites: Bool = true) -> String {

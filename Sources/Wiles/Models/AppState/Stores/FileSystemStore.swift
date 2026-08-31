@@ -18,9 +18,13 @@ public final class FileSystemStore {
     /// under a newer crawl that started before the old one noticed cancellation.
     private var streamingBatchDepth = 0
 
-    var isStreamingBatches: Bool { streamingBatchDepth > 0 }
+    var isStreamingBatches: Bool {
+        streamingBatchDepth > 0
+    }
 
-    func beginBatchStreaming() { streamingBatchDepth += 1 }
+    func beginBatchStreaming() {
+        streamingBatchDepth += 1
+    }
 
     func endBatchStreaming() {
         streamingBatchDepth = max(0, streamingBatchDepth - 1)
@@ -34,9 +38,15 @@ public final class FileSystemStore {
         var byURL = [URL: FileItem](minimumCapacity: items.count)
         var positions = [URL: Int](minimumCapacity: items.count)
         for (offset, item) in items.enumerated() {
-            if !item.isDirectory { total += item.size }
-            if byURL[item.url] == nil { byURL[item.url] = item }
-            if positions[item.url] == nil { positions[item.url] = offset }
+            if !item.isDirectory {
+                total += item.size
+            }
+            if byURL[item.url] == nil {
+                byURL[item.url] = item
+            }
+            if positions[item.url] == nil {
+                positions[item.url] = offset
+            }
         }
         totalFileSizeBytes = total
         itemsByURL = byURL

@@ -55,7 +55,9 @@ enum FileSystemMoveRegressionTests {
             "FileSystem",
             "POS: moveItemReplacing puts the source in place and returns the still-recoverable Trash URL of the file it displaced",
             result: movedIn && displacedRecoverable)
-        if let trashed = outcome?.displacedTrashedURL { try? FileManager.default.removeItem(at: trashed) }
+        if let trashed = outcome?.displacedTrashedURL {
+            try? FileManager.default.removeItem(at: trashed)
+        }
     }
 
     /// C1 (data-loss regression): moving onto a name that already exists used to call
