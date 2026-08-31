@@ -549,6 +549,7 @@ Se houver uma regra simples que possa ser implementada por Regex e que seja real
 NÃO crie regras de lint apenas por criar.
 
 Se tiver algum que pode gerar falso positivo NAO Queremos
+OU SEJA NAO QUEREMOS HEURISTICOS QUE PODEM DAR FALSO POSITIVO. TEM QUE SER 100% ASSERTIVO
 
 ## IGNORAR.md
 
@@ -726,11 +727,12 @@ FIcando os findings POR EXEMPLO
 
 O FILTRO do NOT WORTH e:
 
-LOW + ROI < 1.00 → NOT WORTH
+LOW, SUGESTION, COSMETIC,UI UX,  + ROI < 1.00 → NOT WORTH
 MEDIUM + ROI < 0.70 → NOT WORTH
 Todas as demais descobertas permanecem na lista principal.
 
 Os itens em NOT WORTH devem ser resumidos em UMA ÚNICA LINHA cada.
+OU SEJA NAO FICAM COMPLETOS NO FINDINGS ID
 
 Não incluir os detalhes completos desses itens.
 Não criar seções adicionais, consolidações ou agrupamentos além de NOT WORTH.
@@ -916,3 +918,8 @@ Sem overengineering.
 REGRA IMPORTANTE:
 NAO GERE O ARQUIVO NO FINAL; VAI FAZENDO APPEND CONFORME FOR AVALIANDO
 Conforme for fazendo vai dando a % de progresso no chat
+
+
+Se voce pensou em ignorar algum item porque ele tem comentario, coloca este finding com o item completo do finding (todas as propriedades, roi etc)
+mas em uma sessao no FINAL
+FINDINGS skipped by comments in the SOURCE CODE
