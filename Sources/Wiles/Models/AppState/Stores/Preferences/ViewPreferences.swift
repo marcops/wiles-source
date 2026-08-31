@@ -152,14 +152,13 @@ public final class ViewPreferences: PersistablePreferenceStore {
 
     /// Caps `perFolderViewModes` for the same reason as `SidebarPreferences.expandedTreePaths`.
     private static let maxPerFolderViewModes = 500
-    private static let perFolderViewModesSaveDebounceInterval: TimeInterval = 0.5
-    private var pendingPerFolderViewModesSave: DispatchWorkItem?
 
-    private static let iconSizeSaveDebounceInterval: TimeInterval = 0.3
-    private var pendingIconSizeSave: DispatchWorkItem?
-
-    private static let columnStatesSaveDebounceInterval: TimeInterval = 0.3
-    private var pendingColumnStatesSave: DispatchWorkItem?
+    // Debounced `UserDefaults` writes, each auto-registered for the terminate-time flush via
+    // `DebouncedWriteRegistry` (finding MM-171). Replaces three hand-rolled
+    // `pendingX?.cancel()` + `asyncAfter` + manual-flush trios.
+    private let perFolderViewModesWrite = DebouncedDefaultsWrite(interval: 0.5)
+    private let iconSizeWrite = DebouncedDefaultsWrite(interval: 0.3)
+    private let columnStatesWrite = DebouncedDefaultsWrite(interval: 0.3)
 
     public init() {
         let defaults = UserDefaults.standard
@@ -206,14 +205,11 @@ public final class ViewPreferences: PersistablePreferenceStore {
     /// `persist: false`) into a single encode + write once the resize settles. `saveListColumnStates()`
     /// itself stays synchronous for the drag-end / explicit callers.
     func scheduleListColumnStatesSave() {
-        pendingColumnStatesSave?.cancel()
-        let workItem = DispatchWorkItem { [weak self] in self?.saveListColumnStates() }
-        pendingColumnStatesSave = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.columnStatesSaveDebounceInterval, execute: workItem)
+        columnStatesWrite.schedule { [weak self] in self?.saveListColumnStates() }
     }
 
     func saveListColumnStates() {
-        pendingColumnStatesSave?.cancel()
+        columnStatesWrite.cancel()
         do {
             let data = try JSONEncoder().encode(listColumnStates)
             UserDefaults.standard.set(data, forKey: DefaultsKey.listColumnStates.rawValue)
@@ -252,37 +248,25 @@ public final class ViewPreferences: PersistablePreferenceStore {
     /// Coalesces a drag's worth of `iconSize` changes into one `UserDefaults` write once the
     /// slider settles.
     private func scheduleIconSizeSave() {
-        pendingIconSizeSave?.cancel()
         let value = iconSize
-        let workItem = DispatchWorkItem {
+        iconSizeWrite.schedule {
             UserDefaults.standard.set(value, forKey: DefaultsKey.iconSize.rawValue)
         }
-        pendingIconSizeSave = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.iconSizeSaveDebounceInterval, execute: workItem)
     }
 
-    /// Runs every pending debounced write immediately and cancels its timer. Call from
-    /// `applicationWillTerminate` — a value changed inside the last debounce interval before ⌘Q
-    /// would otherwise never reach `UserDefaults` and restore stale next launch.
+    /// Runs every pending debounced write immediately. Called from `applicationWillTerminate` via
+    /// `DebouncedWriteRegistry.flushAll()`; kept as a named method for direct test/caller use.
     func flushPendingSaves() {
-        // `perform()` before `cancel()`: a cancelled `DispatchWorkItem` no longer runs on `perform()`.
-        for work in [pendingColumnStatesSave, pendingIconSizeSave, pendingPerFolderViewModesSave] {
-            work?.perform()
-            work?.cancel()
-        }
-        pendingColumnStatesSave = nil
-        pendingIconSizeSave = nil
-        pendingPerFolderViewModesSave = nil
+        columnStatesWrite.flush()
+        iconSizeWrite.flush()
+        perFolderViewModesWrite.flush()
     }
 
     /// Coalesces repeated `perFolderViewModes` edits into one `UserDefaults` write.
     private func schedulePerFolderViewModesSave() {
-        pendingPerFolderViewModesSave?.cancel()
         let modes = perFolderViewModes
-        let workItem = DispatchWorkItem {
+        perFolderViewModesWrite.schedule {
             UserDefaults.standard.set(modes, forKey: DefaultsKey.perFolderViewModes.rawValue)
         }
-        pendingPerFolderViewModesSave = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.perFolderViewModesSaveDebounceInterval, execute: workItem)
     }
 }

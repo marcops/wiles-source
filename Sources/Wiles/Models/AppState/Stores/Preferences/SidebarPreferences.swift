@@ -113,9 +113,9 @@ public final class SidebarPreferences: PersistablePreferenceStore {
 
     /// Caps `expandedTreePaths` so an unbounded set of ever-expanded folders isn't retained forever.
     private static let maxExpandedTreePaths = 500
-    /// Coalesces rapid expand/collapse toggles into a single `UserDefaults` write.
-    private static let expandedTreePathsSaveDebounceInterval: TimeInterval = 0.5
-    private var pendingExpandedTreePathsSave: DispatchWorkItem?
+    /// Coalesces rapid expand/collapse toggles into a single `UserDefaults` write; auto-registered
+    /// for the terminate-time flush (findings MM-171 / ML-259).
+    private let expandedTreePathsWrite = DebouncedDefaultsWrite(interval: 0.5)
 
     public init() {
         let defaults = UserDefaults.standard
@@ -143,12 +143,16 @@ public final class SidebarPreferences: PersistablePreferenceStore {
     /// Coalesces repeated `expandedTreePaths` edits into one `UserDefaults` write, resetting the
     /// timer on every new toggle so a burst of expand/collapse calls only serializes the set once.
     private func scheduleExpandedTreePathsSave() {
-        pendingExpandedTreePathsSave?.cancel()
         let paths = expandedTreePaths
-        let workItem = DispatchWorkItem {
+        expandedTreePathsWrite.schedule {
             UserDefaults.standard.set(Array(paths), forKey: DefaultsKey.expandedTreePaths.rawValue)
         }
-        pendingExpandedTreePathsSave = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.expandedTreePathsSaveDebounceInterval, execute: workItem)
+    }
+
+    /// Runs the pending debounced `expandedTreePaths` write immediately. Called from
+    /// `applicationWillTerminate` via `DebouncedWriteRegistry.flushAll()`; kept as a named method
+    /// for direct test/caller use (finding ML-259).
+    public func flushPendingSaves() {
+        expandedTreePathsWrite.flush()
     }
 }

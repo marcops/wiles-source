@@ -6,6 +6,10 @@ import UniformTypeIdentifiers
 /// Sendable so awaiting generateBestRepresentation(for:) can return it into MainActor context.
 extension QLThumbnailRepresentation: @retroactive @unchecked Sendable { }
 
+/// The request is a value object we build once and never mutate; safe to hand to the `@Sendable`
+/// cancellation handler that calls `QLThumbnailGenerator.cancel(_:)` on it.
+extension QLThumbnailGenerator.Request: @retroactive @unchecked Sendable { }
+
 /// Generates real image previews via QuickLookThumbnailing, replacing the generic file-type
 /// icon `NSWorkspace.icon(forFile:)` otherwise returns for every file regardless of its contents.
 /// Always generated once at `maxDimension`, cached per path — SwiftUI's `.resizable()` scales the
@@ -21,12 +25,27 @@ public final class ThumbnailService {
     /// Backing scale captured once at init; not worth a per-thumbnail `MainActor` hop just to re-read it.
     private nonisolated let deviceScale: CGFloat
 
-    /// Path→mtime snapshot from the most recent directory load; lets `cacheKey` skip a per-call `stat`.
-    private nonisolated(unsafe) var mtimeIndex: [String: Date] = [:]
-    private nonisolated let mtimeIndexLock = NSLock()
+    /// In-flight generations keyed by cache key, so a duplicate request awaits the first instead of
+    /// regenerating. `awaiters` tracks how many `.task`s are currently waiting on it — when the last
+    /// one is cancelled (its image cell scrolled off screen) the generation is cancelled too, so a
+    /// fast scroll through a 2000-image folder doesn't run 2000 QuickLook generations to completion
+    /// for thumbnails nobody will see (finding MM-118).
+    private final class InFlightThumbnail: @unchecked Sendable {
+        let task: Task<Void, Never>
+        var awaiters = 0
+        init(task: Task<Void, Never>) {
+            self.task = task
+        }
+    }
 
-    /// In-flight generations keyed by cache key, so a duplicate request awaits the first instead of regenerating.
-    private nonisolated(unsafe) var inFlight: [String: Task<Void, Never>] = [:]
+    /// One-shot latch so a single waiter's release runs exactly once even though
+    /// `withTaskCancellationHandler` can invoke both its body's tail and `onCancel`. Only ever read
+    /// or written under `inFlightLock`.
+    private final class ReleaseGuard: @unchecked Sendable {
+        var released = false
+    }
+
+    private nonisolated(unsafe) var inFlight: [String: InFlightThumbnail] = [:]
     private nonisolated let inFlightLock = NSLock()
 
     private init() {
@@ -87,62 +106,81 @@ public final class ThumbnailService {
         count <= prefetchItemCountCap
     }
 
-    /// Called from an image cell's `.task` — never `stat`s (`allowStatFallback: false`); a miss when
-    /// the mtime index isn't populated yet just defers to the full `loadThumbnail` path, which hits cache.
-    public nonisolated func cachedThumbnail(for url: URL, size _: CGFloat) -> NSImage? {
-        cache.object(forKey: cacheKey(url: url, allowStatFallback: false))
+    /// Called from an image cell's `.task` — never `stat`s (`allowStatFallback: false`). The caller
+    /// passes its `FileItem.dateModified` directly (ML-090): the mtime used to come from a shared
+    /// `mtimeIndex` on this singleton that a second window's directory load would overwrite,
+    /// silently breaking the first window's cache-key fast path.
+    public nonisolated func cachedThumbnail(for url: URL, size _: CGFloat, dateModified: Date?) -> NSImage? {
+        cache.object(forKey: cacheKey(url: url, mtime: dateModified, allowStatFallback: false))
     }
 
-    /// Callers must invoke this on directory load so `cachedThumbnail` from a view body needs no `stat` (wiring: see report).
-    public nonisolated func indexModificationDates(_ items: [FileItem]) {
-        var index: [String: Date] = [:]
-        index.reserveCapacity(items.count)
-        for item in items {
-            index[item.url.standardizedFileURL.path] = item.dateModified
-        }
-        mtimeIndexLock.lock()
-        mtimeIndex = index
-        mtimeIndexLock.unlock()
-    }
-
-    public nonisolated func loadThumbnail(for url: URL, size _: CGFloat) async -> NSImage? {
-        await thumbnail(for: url, scale: deviceScale)
+    public nonisolated func loadThumbnail(for url: URL, size _: CGFloat, dateModified: Date?) async -> NSImage? {
+        await thumbnail(for: url, scale: deviceScale, mtime: dateModified)
     }
 
     /// Cache-check + generate, entirely off `@MainActor`. `QLThumbnailGenerator` tolerates a missing
     /// file (returns nil via the thrown error), so no synchronous `fileExists` pre-check is needed.
-    private nonisolated func thumbnail(for url: URL, scale: CGFloat) async -> NSImage? {
-        let key = cacheKey(url: url)
+    private nonisolated func thumbnail(for url: URL, scale: CGFloat, mtime: Date?) async -> NSImage? {
+        let key = cacheKey(url: url, mtime: mtime)
         if let cached = cache.object(forKey: key) {
             return cached
         }
         let dedupKey = key as String
-        let (generation, isOwner) = inFlightLock.withLock { () -> (Task<Void, Never>, Bool) in
+        let entry = inFlightLock.withLock { () -> InFlightThumbnail in
+            let existing: InFlightThumbnail
             if let running = inFlight[dedupKey] {
-                return (running, false)
+                existing = running
+            } else {
+                let new = InFlightThumbnail(task: Task<Void, Never> { [weak self] in
+                    await self?.generateAndCache(for: url, key: dedupKey, scale: scale)
+                })
+                inFlight[dedupKey] = new
+                existing = new
             }
-            let new = Task<Void, Never> { [weak self] in
-                await self?.generateAndCache(for: url, key: dedupKey, scale: scale)
-            }
-            inFlight[dedupKey] = new
-            return (new, true)
+            existing.awaiters += 1
+            return existing
         }
-        await generation.value
-        if isOwner {
-            inFlightLock.withLock { _ = inFlight.removeValue(forKey: dedupKey) }
+
+        let guardOnce = ReleaseGuard()
+        await withTaskCancellationHandler {
+            await entry.task.value
+            releaseAwaiter(entry, dedupKey: dedupKey, once: guardOnce)
+        } onCancel: {
+            releaseAwaiter(entry, dedupKey: dedupKey, once: guardOnce)
         }
         return cache.object(forKey: key)
     }
 
+    /// Drops one waiter from `entry` (exactly once via `once`); when the last waiter leaves,
+    /// cancels the generation and removes it from `inFlight` so a later request starts fresh.
+    private nonisolated func releaseAwaiter(_ entry: InFlightThumbnail, dedupKey: String, once: ReleaseGuard) {
+        inFlightLock.withLock {
+            guard !once.released else { return }
+            once.released = true
+            entry.awaiters -= 1
+            guard entry.awaiters <= 0 else { return }
+            entry.task.cancel()
+            if inFlight[dedupKey] === entry {
+                inFlight.removeValue(forKey: dedupKey)
+            }
+        }
+    }
+
     private nonisolated func generateAndCache(for url: URL, key: String, scale: CGFloat) async {
+        guard !Task.isCancelled else { return }
         let request = QLThumbnailGenerator.Request(
             fileAt: url,
             size: CGSize(width: Self.maxDimension, height: Self.maxDimension),
             scale: scale,
             representationTypes: .thumbnail)
-        guard let representation = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) else {
-            return
+        let representation = await withTaskCancellationHandler {
+            try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
+        } onCancel: {
+            // Stop the QuickLook work itself, not just the awaiting task, once every viewer of this
+            // thumbnail has scrolled away (finding MM-118).
+            QLThumbnailGenerator.shared.cancel(request)
         }
+        guard !Task.isCancelled, let representation else { return }
         let image = representation.nsImage
         // `image.size` is points; the backing bitmap is scale× per axis, so real RGBA bytes are ·scale².
         let cost = Int(image.size.width * image.size.height * 4 * scale * scale)
@@ -152,30 +190,25 @@ public final class ThumbnailService {
     /// Warms the shared cache for one image, off `@MainActor`. The prefetch *session* — which
     /// folder's images, and cancelling a previous folder's walk — is owned per-window by
     /// `ThumbnailPrefetcher`, not by a task stored on this shared singleton (ML-102).
-    nonisolated func warmCache(for url: URL) async {
-        _ = await thumbnail(for: url, scale: deviceScale)
+    nonisolated func warmCache(for url: URL, dateModified: Date?) async {
+        _ = await thumbnail(for: url, scale: deviceScale, mtime: dateModified)
     }
 
     /// Mirrors `DirectoryCacheService.invalidate` — evicts a stale thumbnail after its file is overwritten.
     public nonisolated func invalidate(url: URL) {
-        cache.removeObject(forKey: cacheKey(url: url))
+        cache.removeObject(forKey: cacheKey(url: url, mtime: nil))
     }
 
-    /// Keyed by path + mtime so an externally replaced file re-renders; mtime from `mtimeIndex`, else a
-    /// `stat` unless `allowStatFallback` is false (render-path callers must never `stat`).
-    private nonisolated func cacheKey(url: URL, allowStatFallback: Bool = true) -> NSString {
+    /// Keyed by path + mtime so an externally replaced file re-renders. `mtime` is the caller's
+    /// `FileItem.dateModified` (per-window, never shared — ML-090); when it's `nil` a `stat` fills
+    /// it in unless `allowStatFallback` is false (render-path callers must never `stat`).
+    private nonisolated func cacheKey(url: URL, mtime: Date?, allowStatFallback: Bool = true) -> NSString {
         let std = url.standardizedFileURL
-        var mtime = indexedModificationDate(forPath: std.path)
+        var mtime = mtime
         if mtime == nil, allowStatFallback {
             mtime = (try? std.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
         }
         let stamp = mtime.map { String($0.timeIntervalSinceReferenceDate) } ?? "0"
         return "\(std.path)|\(stamp)" as NSString
-    }
-
-    private nonisolated func indexedModificationDate(forPath path: String) -> Date? {
-        mtimeIndexLock.lock()
-        defer { mtimeIndexLock.unlock() }
-        return mtimeIndex[path]
     }
 }

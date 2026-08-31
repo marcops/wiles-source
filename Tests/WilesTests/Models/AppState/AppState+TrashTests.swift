@@ -25,6 +25,38 @@ public struct AppStateTrashTests {
         await testTrashStateIsIndependentPerAppState()
         testTrashDirectoriesIncludesUserTrash()
         testCancelInFlightClearsTheUpdatingSpinner()
+        testAllTrashedItemsCountsUnreadableDirectoriesAsFailures()
+    }
+
+    /// LP-012: a Trash folder that exists but can't be listed (permission-denied external volume)
+    /// must be counted as `unreadableDirectories`, not silently contribute zero items — otherwise
+    /// an empty-trash over it reports "0 failed" = total success while its contents are untouched.
+    private static func testAllTrashedItemsCountsUnreadableDirectoriesAsFailures() {
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("trash-lp012-\(UUID().uuidString)")
+        let readable = root.appendingPathComponent("readable")
+        let unreadable = root.appendingPathComponent("unreadable")
+        let missing = root.appendingPathComponent("missing")
+        try? fm.createDirectory(at: readable, withIntermediateDirectories: true)
+        try? fm.createDirectory(at: unreadable, withIntermediateDirectories: true)
+        try? "x".write(to: readable.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
+        try? "y".write(to: readable.appendingPathComponent("b.txt"), atomically: true, encoding: .utf8)
+        try? fm.setAttributes([.posixPermissions: 0], ofItemAtPath: unreadable.path)
+        defer {
+            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: unreadable.path)
+            try? fm.removeItem(at: root)
+        }
+
+        let result = TrashState.allTrashedItems(in: [readable, unreadable, missing], using: fm)
+
+        report(
+            "AppState+Trash",
+            "POS: allTrashedItems collects every file from the readable Trash directory",
+            result: result.items.count == 2)
+        report(
+            "AppState+Trash",
+            "POS: a Trash directory that exists but can't be listed is counted as unreadable (LP-012)",
+            result: result.unreadableDirectories == 1)
     }
 
     private static func testCancelInFlightClearsTheUpdatingSpinner() {

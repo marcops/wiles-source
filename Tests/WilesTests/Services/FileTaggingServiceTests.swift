@@ -7,7 +7,8 @@ public struct FileTaggingServiceTests {
     public static func run() {
         testToggleTagAddsWhenAbsent()
         testToggleTagRemovesWhenPresent()
-        testToggleTagUsesItemsSnapshotOverDiskState()
+        testToggleTagUsesSnapshotForDirectionButDiskForContent()
+        testToggleTagWithDuplicateURLsDoesNotCrash()
         testToggleTagReturnsErrorForMissingFile()
         testToggleTagAcrossMultipleURLsReturnsLastError()
         testClearAllTagsRemovesExistingTags()
@@ -87,33 +88,43 @@ public struct FileTaggingServiceTests {
         report("NEG: toggleTag removes a tag already present, with no error", result: failureCount == 0 && !readBack.tags.contains("Red"))
     }
 
-    /// Proves `currentItem` comes from `itemsSnapshot` (when the URL is present there) rather than
-    /// always re-reading tags from disk — the snapshot's in-memory tags are stale on purpose here.
-    private static func testToggleTagUsesItemsSnapshotOverDiskState() {
+    /// MM-219: the snapshot decides add-vs-remove *direction*, but the tag set actually written is
+    /// re-read from disk immediately before the write — so a tag added out-of-band (Finder, another
+    /// app, another window) since the last directory load is preserved, not clobbered.
+    private static func testToggleTagUsesSnapshotForDirectionButDiskForContent() {
         let dir = tempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
-        // Standardized up front so it matches FileItem's own `url.standardizedFileURL` storage
-        // exactly — toggleTag looks up `itemsSnapshot` by raw `==` on `url`, and /tmp resolving
-        // through a symlink would otherwise make the snapshot lookup silently miss.
-        let file = dir.appendingPathComponent("snapshot.txt").standardizedFileURL
+        let file = dir.appendingPathComponent("external.txt").standardizedFileURL
         try? "x".write(to: file, atomically: true, encoding: .utf8)
-        try? FileSystemService.setTags(for: file, tags: ["Blue"])
+        try? FileSystemService.setTags(for: file, tags: ["Work"])
         let snapshotItem = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
 
-        // Disk now disagrees with the snapshot: snapshot says ["Blue"], disk says ["Green"].
-        try? FileSystemService.setTags(for: file, tags: ["Green"])
+        // Another app adds "Red" on disk after the snapshot was taken.
+        try? FileSystemService.setTags(for: file, tags: ["Work", "Red"])
 
-        // toggleTag replaces the full tag set wholesale (`setTags(tags: newTags)`), it doesn't merge.
-        // Starting from the snapshot's ["Blue"] and toggling "Blue" off yields an empty set: neither
-        // "Blue" (removed) nor "Green" (never part of the snapshot-derived set) survives. Had toggleTag
-        // instead re-read fresh from disk, it would have started from ["Green"], found "Blue" absent,
-        // and added it — leaving both "Green" and "Blue" present. Asserting the tag set ends up empty
-        // is therefore what actually distinguishes "used the snapshot" from "read fresh from disk".
-        let failureCount = FileTaggingService.toggleTag("Blue", for: [file], itemsSnapshot: [snapshotItem])
-        let readBack = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true)
+        // Snapshot = ["Work"], missing "Important" ⇒ direction is "add". The write must start from
+        // the current disk set ["Work", "Red"] and add "Important" — NOT from the stale snapshot,
+        // which would drop "Red".
+        let failureCount = FileTaggingService.toggleTag("Important", for: [file], itemsSnapshot: [snapshotItem])
+        let readBack = Set(FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true).tags)
         report(
-            "POS: toggleTag computes the new tag set from itemsSnapshot's tags, not a fresh disk read",
-            result: failureCount == 0 && readBack.tags.isEmpty)
+            "POS: toggleTag re-reads tags from disk before writing, so an externally-added tag is not clobbered (MM-219)",
+            result: failureCount == 0 && readBack == ["Work", "Red", "Important"])
+    }
+
+    /// ML-085: `toggleTag` builds a `[URL: [String]]`; a caller passing a list with duplicates used
+    /// to `fatalError` on `Dictionary(uniqueKeysWithValues:)`. It must now tolerate duplicates.
+    private static func testToggleTagWithDuplicateURLsDoesNotCrash() {
+        let dir = tempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("dupe.txt").standardizedFileURL
+        try? "x".write(to: file, atomically: true, encoding: .utf8)
+
+        let failureCount = FileTaggingService.toggleTag("Red", for: [file, file, file], itemsSnapshot: [])
+        let tagged = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path), fetchTags: true).tags.contains("Red")
+        report(
+            "POS: toggleTag with a duplicated URL in the list does not crash and still applies the tag",
+            result: failureCount == 0 && tagged)
     }
 
     private static func testToggleTagReturnsErrorForMissingFile() {

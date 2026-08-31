@@ -63,14 +63,38 @@ final class FileSystemRenameTempTrashTests: XCTestCase {
     func testResolveTrashedItemURLReturnsExistingItemInTrashDir() throws {
         let tempDir = try makeTempDir()
         let landed = try makeFile("moved.txt", in: tempDir)
-        let resolved = try FileSystemService.resolveTrashedItemURL(named: "moved.txt", in: tempDir)
+        let resolved = FileSystemService.resolveTrashedItemURL(named: "moved.txt", in: tempDir)
         XCTAssertEqual(resolved.standardizedFileURL, landed.standardizedFileURL)
     }
 
-    func testResolveTrashedItemURLThrowsWhenItemNotFound() throws {
+    /// MM-150: `trashItem` renames on a name collision inside the Trash, so a lookup of the exact
+    /// original name misses. The resolver must find the collision-renamed sibling (newest wins) and
+    /// hand back a real, existing path so the `.trash` undo works — not a false failure.
+    func testResolveTrashedItemURLFindsCollisionRenamedSibling() throws {
         let tempDir = try makeTempDir()
-        XCTAssertThrowsError(try FileSystemService.resolveTrashedItemURL(named: "ghost.txt", in: tempDir)) { error in
-            XCTAssertEqual(error as? WilesError, .operationFailed(reason: "ghost.txt"))
-        }
+        let older = try makeFile("note 2.txt", in: tempDir, ageSeconds: 120)
+        let newer = try makeFile("note 10-30-45.txt", in: tempDir)
+        _ = older
+
+        let resolved = FileSystemService.resolveTrashedItemURL(named: "note.txt", in: tempDir)
+
+        XCTAssertEqual(resolved.standardizedFileURL, newer.standardizedFileURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: resolved.path))
+    }
+
+    /// A different extension is not a match even if the stem looks similar.
+    func testResolveTrashedItemURLIgnoresDifferentExtension() throws {
+        let tempDir = try makeTempDir()
+        _ = try makeFile("note 2.md", in: tempDir)
+        let resolved = FileSystemService.resolveTrashedItemURL(named: "note.txt", in: tempDir)
+        XCTAssertEqual(resolved.standardizedFileURL, tempDir.appendingPathComponent("note.txt").standardizedFileURL)
+    }
+
+    /// MM-150: when nothing can be found, return the expected path rather than throwing — the item
+    /// is in the Trash regardless, and a false "couldn't move to Trash" alert + lost undo is worse.
+    func testResolveTrashedItemURLReturnsExpectedPathWhenNothingFound() throws {
+        let tempDir = try makeTempDir()
+        let resolved = FileSystemService.resolveTrashedItemURL(named: "ghost.txt", in: tempDir)
+        XCTAssertEqual(resolved.standardizedFileURL, tempDir.appendingPathComponent("ghost.txt").standardizedFileURL)
     }
 }

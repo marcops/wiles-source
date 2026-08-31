@@ -103,9 +103,27 @@ public struct FileItemInteractionsModifier: ViewModifier {
         let myGeneration = renameRequestGeneration
         Task {
             try? await Task.sleep(for: AsyncDelayTokens.renameDelay)
-            guard myGeneration == renameRequestGeneration else { return }
+            guard Self.shouldEnterRename(
+                scheduledGeneration: myGeneration,
+                currentGeneration: renameRequestGeneration,
+                selectedURLs: appState.selection.selectedURLs,
+                itemURL: item.url,
+                itemStillListed: appState.fileSystem.itemsByURL[item.url] != nil) else { return }
             windowUIState.renameItem = item
         }
+    }
+
+    /// The delayed "click, pause → rename" only fires if nothing changed during the pause. A
+    /// keyboard navigation within `renameDelay` moves the selection (or leaves the folder) without
+    /// touching `renameRequestGeneration`, so the generation check alone let a rename field open on
+    /// an item no longer selected / no longer on screen, leaving `isTextFieldEditingActive` stuck
+    /// (LB-030). Also require the item to still be the sole selection and still listed.
+    static func shouldEnterRename(
+        scheduledGeneration: Int, currentGeneration: Int,
+        selectedURLs: Set<URL>, itemURL: URL, itemStillListed: Bool) -> Bool {
+        scheduledGeneration == currentGeneration
+            && selectedURLs == [itemURL]
+            && itemStillListed
     }
 }
 

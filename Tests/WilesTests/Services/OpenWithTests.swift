@@ -68,6 +68,17 @@ public struct OpenWithTests {
             "OpenWith",
             "POS: the extension memo still yields the same result after invalidateApplicationsCache()",
             result: afterInvalidate == first)
+
+        // SL-072: `invalidateApplicationsCache()` is now wired to `NSWorkspace.didLaunchApplication`
+        // in `WilesApp`, so it fires at arbitrary times — including with nothing cached. Repeated /
+        // empty-cache calls must be harmless.
+        OpenWithService.invalidateApplicationsCache()
+        OpenWithService.invalidateApplicationsCache()
+        let stillWorks = await OpenWithService.availableApplications(for: memoA).map(\.id)
+        TestReporter.report(
+            "OpenWith",
+            "POS: back-to-back invalidateApplicationsCache() calls (as the workspace observer can trigger) are a safe no-op",
+            result: stillWorks == first)
     }
 
     // POS: open(urls:with:) with a non-empty urls array passes the guard and reaches the real

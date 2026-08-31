@@ -16,6 +16,20 @@ public final class UndoRedoService {
     /// `FileSystemService.moveItem` without this, or a favorited folder's undo breaks the favorite.
     public var onFileRelocated: ((_ from: URL, _ to: URL) -> Void)?
 
+    /// Called when an undo/redo step could NOT put the file back under its intended name because
+    /// that name is taken again, so the `.keepBoth` policy landed it on a free one instead (e.g.
+    /// undoing a rename of `A`→`B` after a new `A` was created restores the file as `A 2`, not `A`).
+    /// The step still "succeeded" and is safe, but the state wasn't fully reverted — `AppState`
+    /// surfaces this so the user isn't misled (finding MM-091). `intendedName` is what the step
+    /// aimed to restore; `actualName` is what it got.
+    public var onRestoreDiverged: ((_ intendedName: String, _ actualName: String) -> Void)?
+
+    /// Fires `onRestoreDiverged` when `result`'s name differs from `intendedName`.
+    private func noteRestoreDivergence(intendedName: String, result: URL) {
+        guard result.lastPathComponent != intendedName else { return }
+        onRestoreDiverged?(intendedName, result.lastPathComponent)
+    }
+
     public init() { }
 
     public func recordAction(_ action: UndoActionType) {
@@ -40,7 +54,9 @@ public final class UndoRedoService {
         defer { isProcessing = false }
         do {
             let outcome = try await executeReverseAction(record.actionType)
-            redoStack.append(UndoRecord(actionType: outcome.resultingAction))
+            if outcome.redoable {
+                redoStack.append(UndoRecord(actionType: outcome.resultingAction))
+            }
             return outcome.url
         } catch {
             // Action wasn't actually undone: put the record back so it remains available
@@ -67,9 +83,15 @@ public final class UndoRedoService {
     /// `url` is where the file ended up; `resultingAction` is the action to push onto the opposite
     /// stack — rewritten to point at that URL when `.keepBoth` had to land the item on a free name,
     /// so a later redo/undo acts on the file's real location instead of a stale path.
+    ///
+    /// `redoable` being false (only the reverse of `.createFile`) means "don't push anything onto the
+    /// redo stack": a file's creation can't be faithfully redone — its original content was never
+    /// stored — so redoing it should be a silent no-op, not a re-thrown error that also leaves the
+    /// entry stuck on the stack forever (finding ML-135).
     private struct ActionOutcome {
         let url: URL
         let resultingAction: UndoActionType
+        var redoable = true
     }
 
     private func executeReverseAction(_ action: UndoActionType) async throws -> ActionOutcome {
@@ -78,20 +100,28 @@ public final class UndoRedoService {
             let result = try await FileSystemService.renameItem(
                 at: newURL, newName: oldURL.lastPathComponent, onCollision: .keepBoth)
             onFileRelocated?(newURL, result)
+            noteRestoreDivergence(intendedName: oldURL.lastPathComponent, result: result)
             return ActionOutcome(url: result, resultingAction: .rename(oldURL: result, newURL: newURL))
         case let .move(sourceURL, destinationURL):
             let result = try await FileSystemService.moveItem(
                 at: destinationURL, toFolder: sourceURL.deletingLastPathComponent(), onCollision: .keepBoth)
             onFileRelocated?(destinationURL, result)
+            noteRestoreDivergence(intendedName: sourceURL.lastPathComponent, result: result)
             return ActionOutcome(
                 url: result, resultingAction: .move(sourceURL: result, destinationURL: destinationURL))
-        case let .createFolder(url), let .createFile(url):
+        case let .createFolder(url):
             _ = try await FileSystemService.moveToTrash(url: url)
             return ActionOutcome(url: url.deletingLastPathComponent(), resultingAction: action)
+        case let .createFile(url):
+            _ = try await FileSystemService.moveToTrash(url: url)
+            // No redo entry: a created file's content was never captured, so it can't be redone —
+            // ⌘⇧Z should quietly do nothing rather than raise `fileCreationNotRedoable` (ML-135).
+            return ActionOutcome(url: url.deletingLastPathComponent(), resultingAction: action, redoable: false)
         case let .trash(originalURL, trashedURL):
             let result = try await FileSystemService.moveItem(
                 at: trashedURL, toFolder: originalURL.deletingLastPathComponent(), onCollision: .keepBoth)
             onFileRelocated?(trashedURL, result)
+            noteRestoreDivergence(intendedName: originalURL.lastPathComponent, result: result)
             return ActionOutcome(
                 url: result, resultingAction: .trash(originalURL: result, trashedURL: trashedURL))
         case let .chmod(url, previous):
@@ -116,11 +146,13 @@ public final class UndoRedoService {
             let result = try await FileSystemService.renameItem(
                 at: oldURL, newName: newURL.lastPathComponent, onCollision: .keepBoth)
             onFileRelocated?(oldURL, result)
+            noteRestoreDivergence(intendedName: newURL.lastPathComponent, result: result)
             return ActionOutcome(url: result, resultingAction: .rename(oldURL: oldURL, newURL: result))
         case let .move(sourceURL, destinationURL):
             let result = try await FileSystemService.moveItem(
                 at: sourceURL, toFolder: destinationURL.deletingLastPathComponent(), onCollision: .keepBoth)
             onFileRelocated?(sourceURL, result)
+            noteRestoreDivergence(intendedName: destinationURL.lastPathComponent, result: result)
             return ActionOutcome(
                 url: result, resultingAction: .move(sourceURL: sourceURL, destinationURL: result))
         case let .createFolder(url):

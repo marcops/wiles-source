@@ -45,9 +45,59 @@ public struct AutoOrganizationTests {
         testProcessFolderOnNonexistentFolderReturnsEarly(service: service, targetDir: targetDir)
         await testMoveFailureIsReportedNotCrashed(service: service, inputDir: inputDir)
         await testFileDeletedDuringStabilityCheckIsSkippedNotCrashed(service: service, inputDir: inputDir, targetDir: targetDir)
+        await testCrossVolumeStabilityHelpers(baseTemp: baseTemp)
 
         service.rules = oldRules
         try? FileManager.default.removeItem(at: baseTemp)
+    }
+
+    /// LL-063: before a **cross-volume** auto-move (a non-atomic copy+delete) the service now
+    /// requires several more consecutive unchanged stability windows, so a download that stalls for
+    /// one window and resumes isn't truncated at the destination. Same-volume moves (atomic rename)
+    /// keep the single-window check.
+    private static func testCrossVolumeStabilityHelpers(baseTemp: URL) async {
+        let dir = baseTemp.appendingPathComponent("llo63")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        // sameVolume: two paths under the same temp tree share a volume.
+        let fileA = dir.appendingPathComponent("a.txt")
+        try? "a".write(to: fileA, atomically: true, encoding: .utf8)
+        TestReporter.report(
+            "AutoOrganization", "POS: sameVolume() is true for two paths on the same mounted volume",
+            result: AutoOrganizationService.sameVolume(fileA, dir.appendingPathComponent("dest.txt")))
+
+        // sameVolume: an unresolvable path → treated as cross-volume (the safer default).
+        let ghost = URL(fileURLWithPath: "/no-such-volume-\(UUID().uuidString)/x")
+        TestReporter.report(
+            "AutoOrganization", "NEG: sameVolume() returns false when a volume can't be resolved (safer = cross-volume)",
+            result: !AutoOrganizationService.sameVolume(ghost, fileA))
+
+        // confirmStableAcrossExtraWindows: a file that isn't changing passes.
+        let stable = dir.appendingPathComponent("stable.bin")
+        try? Data(count: 16).write(to: stable)
+        let stablePassed = await AutoOrganizationService.confirmStableAcrossExtraWindows(stable, window: .milliseconds(15))
+        TestReporter.report(
+            "AutoOrganization", "POS: confirmStableAcrossExtraWindows() is true for a file whose size/mtime stay put",
+            result: stablePassed)
+
+        // confirmStableAcrossExtraWindows: a file still being appended fails.
+        let growing = dir.appendingPathComponent("growing.bin")
+        try? Data(count: 1).write(to: growing)
+        let appender = Task.detached {
+            for _ in 0 ..< 40 {
+                if let handle = try? FileHandle(forWritingTo: growing) {
+                    _ = try? handle.seekToEnd()
+                    _ = try? handle.write(contentsOf: Data(count: 32))
+                    _ = try? handle.close()
+                }
+                try? await Task.sleep(nanoseconds: 5_000_000)
+            }
+        }
+        let growingPassed = await AutoOrganizationService.confirmStableAcrossExtraWindows(growing, window: .milliseconds(15))
+        appender.cancel()
+        TestReporter.report(
+            "AutoOrganization", "NEG: confirmStableAcrossExtraWindows() is false for a file that is still growing",
+            result: !growingPassed)
     }
 
     /// The service's own pipeline (folder scan → 150ms size-stability check → move) can take longer

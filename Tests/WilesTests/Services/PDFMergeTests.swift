@@ -27,6 +27,31 @@ public struct PDFMergeTests {
 
         await runScenarios(tempDir: tempDir, imgFile: imgFile, unsupportedFile: unsupportedFile)
         await runWriteFailureScenario(imgFile: imgFile)
+        await runCancellationScenario(tempDir: tempDir, imgFile: imgFile)
+    }
+
+    /// AM-140: `mergeFiles` runs its per-file loop inside `CancellableWork.detached`, so the
+    /// `try Task.checkCancellation()` in that loop is now live — cancelling the awaiting task
+    /// actually aborts the merge instead of letting it run to completion as zombie work.
+    private static func runCancellationScenario(tempDir: URL, imgFile: URL) async {
+        let inputs = Array(repeating: imgFile, count: 20)
+        let task = Task {
+            try await PDFMergeService.mergeFiles(urls: inputs, in: tempDir, outputName: "Cancelled.pdf")
+        }
+        task.cancel()
+
+        var cancelled = false
+        do {
+            _ = try await task.value
+        } catch is CancellationError {
+            cancelled = true
+        } catch {
+            cancelled = false
+        }
+        TestReporter.report(
+            "PDFMerge",
+            "POS: cancelling the task awaiting mergeFiles aborts it with CancellationError (AM-140)",
+            result: cancelled)
     }
 
     /// Covers mergeFiles' "guard outputPDF.write(to: destURL) else { throw ... }" branch: a

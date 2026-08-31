@@ -52,6 +52,20 @@ final class FilenameSanitizerTests: XCTestCase {
         XCTAssertTrue(result.hasPrefix("aaa"))
     }
 
+    /// LL-010: when the "extension" alone is ≥ 255 bytes (degenerate input), the result must still
+    /// be `<stem>.<ext>` shaped and within the byte cap — not a name hard-cut through the middle of
+    /// the extension.
+    func testExtensionLongerThanTheByteCapIsItselfTruncatedKeepingTheDot() throws {
+        let hugeExt = String(repeating: "z", count: 400)
+        let result = try XCTUnwrap(FilenameSanitizer.sanitize("report." + hugeExt))
+        XCTAssertLessThanOrEqual(result.utf8.count, 255)
+        XCTAssertTrue(result.contains("."), "the dot separator must survive")
+        let ext = (result as NSString).pathExtension
+        XCTAssertFalse(ext.isEmpty, "the result still has an extension component")
+        XCTAssertTrue(ext.allSatisfy { $0 == "z" }, "the extension is a clean prefix of the original, not garbled")
+        XCTAssertFalse(result.hasSuffix("."), "no dangling trailing dot")
+    }
+
     func testOverLongNameWithoutExtensionIsHardTruncated() {
         let result = FilenameSanitizer.sanitize(String(repeating: "b", count: 500))
         XCTAssertEqual(result, String(repeating: "b", count: 255))

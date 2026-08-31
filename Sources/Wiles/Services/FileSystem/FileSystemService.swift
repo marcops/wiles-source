@@ -24,7 +24,7 @@ public struct FileSystemService: Sendable {
     }
 
     private static func loadRecentsVirtualDirectory(recentURLs: [URL], options: DirectoryLoadOptions) async -> [FileItem] {
-        await Task.detached(priority: .userInitiated) {
+        await CancellableWork.detached(priority: .userInitiated) {
             let fm = FileManager.default
             var items: [FileItem] = []
             for fileURL in recentURLs {
@@ -49,13 +49,13 @@ public struct FileSystemService: Sendable {
                 }
             }
             return items
-        }.value
+        }
     }
 
     private static func loadRealDirectoryContents(at url: URL, options: DirectoryLoadOptions) async throws -> [FileItem] {
-        try await Task.detached(priority: .userInitiated) {
+        try await CancellableWork.detached(priority: .userInitiated) {
             try loadRealDirectoryContentsSync(at: url, options: options)
-        }.value
+        }
     }
 
     /// A directory that no longer exists (deleted, unmounted, or moved out from under the user
@@ -141,9 +141,9 @@ public struct FileSystemService: Sendable {
         options: DirectoryLoadOptions,
         includeHidden: Bool,
         onBatch: @escaping @Sendable ([FileItem]) -> Void) async throws {
-        try await Task.detached(priority: .userInitiated) {
+        try await CancellableWork.detached(priority: .userInitiated) {
             try performRecursiveSearch(at: root, options: options, includeHidden: includeHidden, onBatch: onBatch)
-        }.value
+        }
     }
 
     /// Without an `errorHandler`, `FileManager.enumerator` silently aborts the ENTIRE walk
@@ -194,6 +194,9 @@ public struct FileSystemService: Sendable {
 
         let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
         let isOrderedBefore = sortComparator(for: options.sortOption, ascending: options.sortAscending)
+        // Cap total disk reads for content matching across the whole crawl so a broad Content/Both
+        // "search everywhere" can't read gigabytes under `~` synchronously (finding MM-096).
+        let contentBudget = ContentReadBudget(totalBytes: SearchFilterService.recursiveContentByteBudget)
         var items: [FileItem] = []
         // Throttle `onBatch` by wall-clock, not match count: each call hands the whole cumulative
         // array to `AppState`, which rebuilds its URL indices — so ~8 calls/second over a long
@@ -208,7 +211,8 @@ public struct FileSystemService: Sendable {
             }
             if !SearchFilterService.matchesSearch(
                 fileURL: fileURL, parsed: parsedQuery,
-                scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
+                scope: options.searchScope, caseSensitive: options.searchCaseSensitive,
+                contentBudget: contentBudget) {
                 continue
             }
 
@@ -223,7 +227,17 @@ public struct FileSystemService: Sendable {
                 break
             }
         }
+        if contentBudget.exhausted {
+            reportContentBudgetExhausted(under: root)
+        }
         onBatch(items)
+    }
+
+    private static func reportContentBudgetExhausted(under root: URL) {
+        let mb = SearchFilterService.recursiveContentByteBudget / (1024 * 1024)
+        ErrorReporter.report(
+            WilesError.operationFailed(reason: "recursive content-search read budget exhausted"),
+            context: "Recursive search hit its \(mb) MB content-read budget; some files under \(root.path) were not scanned for content")
     }
 
     private static func isFileHidden(fileURL: URL, showHidden: Bool) -> Bool {

@@ -65,5 +65,9 @@ public final class AppState {
         selection.setSearchQueryHandler { [weak self] in self?.scheduleSearchRefresh() }
         navigation.onVolumeUnreachable = { [weak self] fallback in self?.navigateTo(fallback) }
         undoRedoService.onFileRelocated = { [weak self] from, to in self?.remapRelocatedState(from: from, to: to) }
+        undoRedoService.onRestoreDiverged = { [weak self] intended, actual in
+            guard let self else { return }
+            showError(WilesError.localized(key: .undoRestoredDifferentName, arguments: [actual, intended]))
+        }
     }
 }

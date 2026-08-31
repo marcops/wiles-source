@@ -23,7 +23,10 @@ final class SpotlightQueryTests: XCTestCase {
     func testRunReportsTimeoutWhenGatherNeverFinishes() async {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let predicate = NSPredicate(format: "kMDItemFSName ==[cd] %@", "*\(UUID().uuidString)*")
-        let query = SpotlightQuery(predicate: predicate, searchScopes: [home], timeout: .milliseconds(1))
+        // `startsQuery: false` ⇒ the gather notification can never fire, so only the timeout path
+        // resolves — deterministic, instead of racing Spotlight's real (host-dependent) latency.
+        let query = SpotlightQuery(
+            predicate: predicate, searchScopes: [home], timeout: .milliseconds(20), startsQuery: false)
 
         let result = await query.run()
         XCTAssertTrue(result.timedOut)

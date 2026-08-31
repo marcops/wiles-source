@@ -13,8 +13,19 @@ public enum ImageConverterService {
         preset: ResizePreset,
         cropPreset: CropPreset = .none,
         quality: Double = 0.85) throws -> URL {
-        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+        guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+            throw WilesError.localized(key: .imageConverterLoadFailed, arguments: [url.path])
+        }
+
+        // Refuse an oversized SOURCE from its metadata, before `CGImageSourceCreateImageAtIndex`
+        // inflates the whole thing to RAM (a 100 MP source ≈ 400 MB RGBA). The output-size guard
+        // below only ran *after* that decode, so a huge input still OOM-risked the app (ML-078).
+        if let inputPixels = sourcePixelCount(of: imageSource), inputPixelCountExceedsLimit(inputPixels) {
+            throw WilesError.localized(
+                key: .imageConverterOutputTooLarge, arguments: ["\(maxInputPixels / 1_000_000)"])
+        }
+
+        guard let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
             throw WilesError.localized(key: .imageConverterLoadFailed, arguments: [url.path])
         }
 
@@ -103,6 +114,24 @@ public enum ImageConverterService {
     /// Output-pixel ceiling: the resize context alone is `w·h·4` uncompressed bytes (~240 MB at
     /// this cap), so a caller asking for `.original` on a 100 MP source is refused, not OOM'd.
     private static let maxOutputPixels = 60_000_000
+    /// Ceiling on the SOURCE image's pixel count, checked from metadata before any decode.
+    static let maxInputPixels = 100_000_000
+
+    static func inputPixelCountExceedsLimit(_ count: Int) -> Bool {
+        count > maxInputPixels
+    }
+
+    /// The source image's `width × height` from its metadata (no decode). `nil` when the
+    /// dimensions aren't present; `Int.max` on multiply overflow (a crafted metadata claiming
+    /// enormous dimensions) so the caller treats it as "too large".
+    static func sourcePixelCount(of source: CGImageSource) -> Int? {
+        guard let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = props[kCGImagePropertyPixelWidth] as? Int,
+              let height = props[kCGImagePropertyPixelHeight] as? Int,
+              width > 0, height > 0 else { return nil }
+        let (product, overflow) = width.multipliedReportingOverflow(by: height)
+        return overflow ? Int.max : product
+    }
 
     private static func renderResizedImage(_ image: CGImage, targetSize: CGSize) throws -> CGImage {
         guard let ctx = bitmapContext(for: image, targetSize: targetSize) else {

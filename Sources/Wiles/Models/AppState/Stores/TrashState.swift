@@ -17,6 +17,9 @@ public final class TrashState {
     /// In-flight Trash enumeration spawned by `refreshSize()`. Cancelled and replaced on every
     /// call so it never piles up multiple concurrent full-Trash walks.
     var task: Task<Void, Never>?
+    /// In-flight `emptyTrash()` operation. Stored so the owning window's teardown can cancel it —
+    /// `removeTrashContents` checks `Task.isCancelled` per item (LP-012).
+    private var emptyTask: Task<Void, Never>?
     /// Timestamp of the last trash-size enumeration triggered opportunistically from
     /// `refreshCurrentDirectory()`, used to coalesce it to a coarse interval instead of firing on
     /// every navigation/search keystroke/FSEvents refresh.
@@ -96,11 +99,28 @@ public final class TrashState {
     }
 
     /// Enumerates the contents of every directory in `trashDirectories()` (home + external volumes),
-    /// off the main actor.
-    private nonisolated static func allTrashedItems(using fm: FileManager) -> [URL] {
-        trashDirectories(fileManager: fm).flatMap { directory in
-            (try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil, options: [])) ?? []
+    /// off the main actor. `unreadableDirectories` counts the Trash folders that couldn't be listed
+    /// at all (e.g. a permission-denied external volume) — those contribute zero URLs, so without
+    /// this an empty-trash over an unlistable volume would report "0 failed" = total success even
+    /// though that volume's Trash was untouched (LP-012).
+    private nonisolated static func allTrashedItems(using fm: FileManager) -> (items: [URL], unreadableDirectories: Int) {
+        allTrashedItems(in: trashDirectories(fileManager: fm), using: fm)
+    }
+
+    /// `directories` split out for testing — production always passes `trashDirectories()`.
+    nonisolated static func allTrashedItems(
+        in directories: [URL], using fm: FileManager) -> (items: [URL], unreadableDirectories: Int) {
+        var items: [URL] = []
+        var unreadable = 0
+        for directory in directories {
+            if let contents = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil, options: []) {
+                items.append(contentsOf: contents)
+            } else if fm.fileExists(atPath: directory.path) {
+                // The directory is there but couldn't be read — a real failure, not "no Trash here".
+                unreadable += 1
+            }
         }
+        return (items, unreadable)
     }
 
     /// Recomputes `sizeString`/`sizeBytes` from a fresh Trash enumeration. Supersedes any
@@ -127,6 +147,8 @@ public final class TrashState {
     func cancelInFlight() {
         task?.cancel()
         task = nil
+        emptyTask?.cancel()
+        emptyTask = nil
         currentToken = UUID()
         isUpdating = false
     }
@@ -150,10 +172,11 @@ public final class TrashState {
     /// that's the caller's job.
     public func emptyTrash(onComplete: @escaping @MainActor (Int) -> Void) {
         isUpdating = true
-        Task.detached(priority: .userInitiated) { [weak self] in
+        emptyTask?.cancel()
+        emptyTask = Task.detached(priority: .userInitiated) { [weak self] in
             let fm = FileManager.default
-            let paths = Self.allTrashedItems(using: fm)
-            let failedCount = Self.removeTrashContents(paths, using: fm)
+            let (paths, unreadableDirectories) = Self.allTrashedItems(using: fm)
+            let failedCount = Self.removeTrashContents(paths, using: fm) + unreadableDirectories
             await self?.finishEmptyTrash(failed: failedCount, onComplete: onComplete)
         }
     }

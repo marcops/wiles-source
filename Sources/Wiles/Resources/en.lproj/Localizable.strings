@@ -523,6 +523,7 @@
 "expandCollapseFolderHint" = "Double-tap to show or hide this folder's subfolders.";
 "smartFolderHint" = "Shows files matching this smart folder's saved search.";
 "removeSmartFolderConfirm" = "Are you sure you want to delete this smart folder? This can't be undone.";
+"deleteSmartFolder" = "Delete Smart Folder";
 "discard" = "Discard";
 "discardPermissionChangesMessage" = "Discard the permission changes you made?";
 "confirmPassword" = "Confirm Password";
@@ -547,8 +548,10 @@
 "batchRenameWouldCollide" = "Batch rename would create name collisions: {0}";
 "batchRenameInvalidPattern" = "Invalid rename pattern: {0}";
 "movePartialFailure" = "{0} of {1} items could not be moved.";
+"undoRestoredDifferentName" = "Restored as “{0}” because “{1}” is already in use.";
 "searchContentQueryTooShort" = "Type at least 3 characters to search inside files.";
 "searchInvalidRegex" = "That regular expression isn't valid.";
+"searchInvalidFilterToken" = "The filter “%@” isn't valid, so nothing can match it.";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "Showing the first %d of many";
 "convertingImageEllipsis" = "Converting Image…";

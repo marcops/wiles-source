@@ -54,6 +54,17 @@ extension PersistablePreferenceStore {
         }
     }
 
+    /// Restores an `Int` preference, distinguishing "never saved" (leave the property's default)
+    /// from an explicitly saved `0` (`UserDefaults.integer(forKey:)` returns 0 for both — a raw
+    /// `if value > 0` restore silently drops a user's choice of 0, e.g. a translucency level of 0%).
+    func loadInt(_ key: DefaultsKey, into keyPath: ReferenceWritableKeyPath<Self, Int>, from defaults: UserDefaults) {
+        if defaults.object(forKey: key.rawValue) != nil {
+            isRestoringDefaults = true
+            self[keyPath: keyPath] = defaults.integer(forKey: key.rawValue)
+            isRestoringDefaults = false
+        }
+    }
+
     /// Runs `body` with `isRestoringDefaults` set, so any persisting `didSet` it fires is a no-op.
     func withRestoringDefaults(_ body: () -> Void) {
         isRestoringDefaults = true

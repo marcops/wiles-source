@@ -14,6 +14,31 @@ public struct FileSystemStoreTests {
         testIndexByURLTracksItemsAssignment()
         testBatchStreamingDefersDerivedRebuildUntilSettled()
         testOverlappingStreamsKeepRebuildDeferredUntilAllSettle()
+        testIsStreamingBatchesReflectsBeginEndDepth()
+    }
+
+    /// LP-040: `ResetPaginationAndPrefetchThumbnails` gates its ~8×/s prefetch on
+    /// `isStreamingBatches` — so this flag must be `true` for the whole crawl (any nesting depth)
+    /// and back to `false` only once every stream has ended.
+    private static func testIsStreamingBatchesReflectsBeginEndDepth() {
+        let store = FileSystemStore()
+        report("Store/FileSystemStore", "NEG: isStreamingBatches is false with no stream open", result: !store.isStreamingBatches)
+
+        store.beginBatchStreaming()
+        report("Store/FileSystemStore", "POS: isStreamingBatches is true while a stream is open", result: store.isStreamingBatches)
+
+        store.beginBatchStreaming()
+        store.endBatchStreaming()
+        report(
+            "Store/FileSystemStore",
+            "POS: isStreamingBatches stays true while an outer stream is still open (nesting)",
+            result: store.isStreamingBatches)
+
+        store.endBatchStreaming()
+        report(
+            "Store/FileSystemStore",
+            "POS: isStreamingBatches returns to false once every stream has ended (prefetch can run — LP-040)",
+            result: !store.isStreamingBatches)
     }
 
     /// A superseded crawl's `endBatchStreaming()` must not re-enable per-batch rebuilds while a

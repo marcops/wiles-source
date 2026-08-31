@@ -30,7 +30,40 @@ public struct ImageConverterCoverageTests {
         testImageFormatIdAndDisplayNameForAllCases()
         testResizePresetIdAndDisplayNameForAllCases()
         testCropPresetIdAndDisplayNameForAllCases()
+        testSourcePixelCountAndInputCeiling()
         ImageConverterCoverageExtraTests.run()
+    }
+
+    /// ML-078: the source's pixel count is read from metadata (no decode) and an oversized source
+    /// is refused before `CGImageSourceCreateImageAtIndex` inflates it to RAM.
+    private static func testSourcePixelCountAndInputCeiling() {
+        let url = makeTestImage(width: 120, height: 90)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+            report("ImageConverter", "SETUP: could not open fixture image source", result: false)
+            return
+        }
+        report(
+            "ImageConverter",
+            "POS: sourcePixelCount reads width×height (120×90 = 10800) straight from metadata",
+            result: ImageConverterService.sourcePixelCount(of: source) == 10800)
+
+        report(
+            "ImageConverter",
+            "NEG: a pixel count within the input ceiling is not rejected",
+            result: !ImageConverterService.inputPixelCountExceedsLimit(ImageConverterService.maxInputPixels))
+        report(
+            "ImageConverter",
+            "POS: a pixel count one over the input ceiling is rejected (ML-078)",
+            result: ImageConverterService.inputPixelCountExceedsLimit(ImageConverterService.maxInputPixels + 1))
+
+        // A normal image still converts — the pre-decode guard doesn't reject valid input.
+        let converted = (try? ImageConverterService.convertImage(at: url, targetFormat: .png, preset: .original)) != nil
+        report(
+            "ImageConverter",
+            "POS: a normally-sized image still converts after the input-size pre-check was added",
+            result: converted)
     }
 
     // MARK: - Fixtures

@@ -16,6 +16,27 @@ public struct LocalizationCoverageTests {
         testAppLanguageCodableRoundTrip()
         testChineseMixedCaseLprojFallbackResolvesRealTranslation()
         testEnumMatchesBundledLprojFolders()
+        testEveryKeyResolvesNonEmptyInEveryLocale()
+    }
+
+    /// ML-138: `L10n.string` passes `value: ""` to the per-locale lookup and, on an empty result
+    /// (key present in `en.lproj` but missing from `<code>.lproj`), degrades to the English string
+    /// rather than the raw enum identifier. This guards the fix's contract — no key may ever come
+    /// back empty for any shipped locale.
+    private static func testEveryKeyResolvesNonEmptyInEveryLocale() {
+        var offenders: [String] = []
+        for lang in AppLanguage.allCases where lang != .system {
+            for key in L10n.Key.allCases where L10n.string(key, lang: lang).isEmpty {
+                offenders.append("\(lang.rawValue):\(key.rawValue)")
+            }
+        }
+        if !offenders.isEmpty {
+            print("L10n keys resolving to an empty string (\(offenders.count)): \(offenders.joined(separator: ", "))")
+        }
+        TestReporter.report(
+            "Localization",
+            "POS: L10n.string never returns an empty string for any key in any shipped locale (ML-138 fallback intact)",
+            result: offenders.isEmpty)
     }
 
     private static func testEnumMatchesBundledLprojFolders() {

@@ -15,6 +15,50 @@ public struct PreferencesStoreExtraTests {
         testWithColumnStatePersistenceSuppressedIsNestingSafe()
         testSmartFolderCRUDReturnsNilOnSuccessAndAppliesInMemory()
         testKeysToEvictPrefersOldBaselineThenJustAdded()
+        testSidebarPreferencesFlushPendingSavesDrainsExpandedTreePaths()
+    }
+
+    /// ML-259: `SidebarPreferences.expandedTreePaths` has a 0.5s debounced save but used to expose
+    /// no `flushPendingSaves()`, so a tree expand/collapse in the last half-second before ⌘Q never
+    /// reached `UserDefaults`. `flushPendingSaves()` now runs the pending write synchronously.
+    private static func testSidebarPreferencesFlushPendingSavesDrainsExpandedTreePaths() {
+        let key = "wiles_expandedTreePaths"
+        let defaults = UserDefaults.standard
+        let saved = defaults.stringArray(forKey: key)
+        defer {
+            if let saved {
+                defaults.set(saved, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        defaults.removeObject(forKey: key)
+
+        let prefs = SidebarPreferences()
+        let paths: Set = ["/a/one", "/a/two", "/a/three"]
+        prefs.expandedTreePaths = paths
+
+        // Debounce timer (0.5s) has not fired yet — nothing persisted synchronously.
+        let persistedBeforeFlush = defaults.stringArray(forKey: key)
+        report(
+            "Models/PreferencesStore",
+            "NEG: setting expandedTreePaths does not write to UserDefaults synchronously (it debounces)",
+            result: persistedBeforeFlush == nil)
+
+        prefs.flushPendingSaves()
+
+        let persistedAfterFlush = Set(defaults.stringArray(forKey: key) ?? [])
+        report(
+            "Models/PreferencesStore",
+            "POS: SidebarPreferences.flushPendingSaves() writes the pending expandedTreePaths immediately",
+            result: persistedAfterFlush == paths)
+
+        // Idempotent: a second flush with nothing pending is a harmless no-op.
+        prefs.flushPendingSaves()
+        report(
+            "Models/PreferencesStore",
+            "POS: a second flushPendingSaves() with nothing pending does not crash or change the value",
+            result: Set(defaults.stringArray(forKey: key) ?? []) == paths)
     }
 
     /// `keysToEvict` (shared by `expandedTreePaths`/`perFolderViewModes` caps): evicts the

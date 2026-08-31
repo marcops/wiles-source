@@ -33,7 +33,7 @@ public final class NavigationStore {
 
     /// Set by `AppState.init` to `{ [weak self] fallback in self?.navigateTo(fallback) }` — lets a
     /// dead saved volume route through the real navigation path (refresh, history, recents) instead
-    /// of `validateSlowVolumePaths` silently reassigning `currentURL` with no reload. Same idiom as
+    /// of `validateRecentAndCurrentPaths` silently reassigning `currentURL` with no reload. Same idiom as
     /// `SelectionStore.onSearchQueryChanged`.
     public var onVolumeUnreachable: ((URL) -> Void)?
 
@@ -48,23 +48,24 @@ public final class NavigationStore {
         pathText = resolvedURL.path
 
         if let savedRecents = UserDefaults.standard.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) {
-            // Direct assignment in init — `didSet` does not fire, so no redundant write-back here.
-            recentOpenedURLs = savedRecents.compactMap { path in
-                SlowVolumePathValidator.existsOptimistically(atPath: path) ? URL(fileURLWithPath: path).standardizedFileURL : nil
-            }
+            // Map optimistically — NO per-path `fileExists` here. That was up to ~50 synchronous
+            // stat syscalls on the main thread during window construction (LP-050). Dead entries
+            // (and unreachable `/Volumes/` ones) are pruned by `validateRecentAndCurrentPaths()`
+            // off the main actor right after. Direct assignment ⇒ `didSet` doesn't fire here.
+            recentOpenedURLs = savedRecents.map { URL(fileURLWithPath: $0).standardizedFileURL }
         }
 
         Task { [weak self] in
-            await self?.validateSlowVolumePaths()
+            await self?.validateRecentAndCurrentPaths()
         }
     }
 
-    /// `/Volumes/` paths (network shares, external drives) are accepted optimistically at init
-    /// time instead of a synchronous `fileExists` check, which could stall window construction for
-    /// seconds against a sleeping/unreachable mount (same rationale as `AppState+Navigation.swift`'s
-    /// `navigateTo`). This verifies them afterward and corrects state if any turned out to be gone.
-    private func validateSlowVolumePaths() async {
-        let pathsToCheck = Set(([currentURL] + recentOpenedURLs).map(\.path).filter(SlowVolumePathValidator.isLikelySlowVolume))
+    /// Verifies `currentURL` + every recent path off `@MainActor` and prunes the ones that turned
+    /// out to be gone. Run just after init so window construction never blocks on a `fileExists`
+    /// (cheap for local paths, but seconds for a sleeping `/Volumes/` mount — same rationale as
+    /// `AppState+Navigation.swift`'s `navigateTo`).
+    private func validateRecentAndCurrentPaths() async {
+        let pathsToCheck = Set(([currentURL] + recentOpenedURLs).map(\.path))
         guard !pathsToCheck.isEmpty else { return }
 
         let existence = await Task.detached(priority: .utility) {

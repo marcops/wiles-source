@@ -48,7 +48,15 @@ public extension L10n {
     static func string(_ key: Key, lang: AppLanguage) -> String {
         let code = activeCode(lang)
         if let langBundle = langBundle(forCode: code) {
-            return langBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
+            // `value: ""` (not `key.rawValue`): `localizedString` returns `value` verbatim on a
+            // miss, so this comes back empty when `<code>.lproj` exists but lacks this key — rather
+            // than returning the raw enum name (`"shortcutsAllTab"`) straight to the UI. Degrade to
+            // the English string instead; only a key absent from *every* locale falls through to
+            // the identifier below (finding ML-138).
+            let localized = langBundle.localizedString(forKey: key.rawValue, value: "", table: nil)
+            if !localized.isEmpty {
+                return localized
+            }
         }
         return resourceBundle.localizedString(forKey: key.rawValue, value: key.rawValue, table: nil)
     }

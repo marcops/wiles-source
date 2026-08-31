@@ -25,7 +25,7 @@ public struct NavigationStoreTests {
         testInitFallsBackToInitialURLWhenNoSavedPath()
         testInitRestoresSavedPathWhenItExists()
         testInitFallsBackWhenSavedPathNoLongerExists()
-        testInitRestoresRecentsFilteringMissingPaths()
+        await testInitRestoresRecentsFilteringMissingPaths()
         testCurrentURLDidSetUpdatesPathTextAndPersists()
         testAddToRecentsExcludesRecentsVirtualURLAndWilesScheme()
         testAddToRecentsDeduplicatesAndCapsAt50()
@@ -34,6 +34,7 @@ public struct NavigationStoreTests {
         testPopBackAndPopForwardRoundTrip()
         testHistoryStacksCapAt200()
         await testVolumePathValidationFallsBackWhenGone()
+        await testNonexistentLocalRecentIsAcceptedAtInitThenPrunedAsync()
     }
 
     private static func restore(_ value: String?, forKey key: String) {
@@ -70,13 +71,19 @@ public struct NavigationStoreTests {
             result: store.currentURL == fallback)
     }
 
-    private static func testInitRestoresRecentsFilteringMissingPaths() {
+    private static func testInitRestoresRecentsFilteringMissingPaths() async {
         let existingDir = URL(fileURLWithPath: testTemporaryDirectory())
         let missingDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("gone_\(UUID().uuidString)")
         UserDefaults.standard.set([existingDir.path, missingDir.path], forKey: recentOpenedURLsKey)
         UserDefaults.standard.removeObject(forKey: lastOpenedFolderKey)
 
         let store = NavigationStore(initialURL: existingDir)
+        // The missing path is pruned off the main actor after init (no synchronous filter — LP-050),
+        // so poll for the corrected list rather than asserting synchronously.
+        let deadline = Date().addingTimeInterval(5.0)
+        while store.recentOpenedURLs.map(\.path).contains(missingDir.path), Date() < deadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
         report(
             "Store/NavigationStore",
             "POS: init restores recentOpenedURLs, keeping only paths that still exist",
@@ -226,9 +233,9 @@ public struct NavigationStoreTests {
             result: store.historyForward.count == 200)
     }
 
-    /// Covers `validateSlowVolumePaths()`: a `/Volumes/`-prefixed path is accepted optimistically at
-    /// init (no synchronous `fileExists`), then corrected asynchronously once the detached existence
-    /// check finds it doesn't actually exist.
+    /// Covers `validateRecentAndCurrentPaths()`: a `/Volumes/`-prefixed path is accepted
+    /// optimistically at init (no synchronous `fileExists`), then corrected asynchronously once the
+    /// detached existence check finds it doesn't actually exist.
     private static func testVolumePathValidationFallsBackWhenGone() async {
         let fakeVolumePath = "/Volumes/WilesTestNonexistentVolume_\(UUID().uuidString)"
         let fakeVolumeURL = URL(fileURLWithPath: fakeVolumePath)
@@ -241,16 +248,47 @@ public struct NavigationStoreTests {
             "POS: a /Volumes/ path is accepted optimistically at init without a synchronous existence check",
             result: store.currentURL == fakeVolumeURL)
 
-        // Give the init-time detached validateSlowVolumePaths() Task a chance to run and correct
-        // state — polled rather than a single fixed sleep since this can race under heavy system load.
+        // Give the init-time detached validateRecentAndCurrentPaths() Task a chance to run and
+        // correct state — polled rather than a single fixed sleep since this can race under load.
         let deadline = Date().addingTimeInterval(5.0)
         while store.currentURL == fakeVolumeURL, Date() < deadline {
             try? await Task.sleep(nanoseconds: 50_000_000)
         }
         report(
             "Store/NavigationStore",
-            "POS: validateSlowVolumePaths() falls back to the home directory once a /Volumes/ currentURL is confirmed missing",
+            "POS: validateRecentAndCurrentPaths() falls back to the home directory once a /Volumes/ currentURL is confirmed missing",
             result: store.currentURL == FileManager.default.homeDirectoryForCurrentUser)
+    }
+
+    /// LP-050: recents are mapped at init with NO synchronous `fileExists` per path — a
+    /// nonexistent local recent is present right after `init` and pruned asynchronously.
+    private static func testNonexistentLocalRecentIsAcceptedAtInitThenPrunedAsync() async {
+        let realDir = URL(fileURLWithPath: testTemporaryDirectory())
+            .appendingPathComponent("nav-recent-real-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: realDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: realDir) }
+        let ghostDir = URL(fileURLWithPath: testTemporaryDirectory())
+            .appendingPathComponent("nav-recent-ghost-\(UUID().uuidString)")
+
+        UserDefaults.standard.removeObject(forKey: lastOpenedFolderKey)
+        UserDefaults.standard.set([ghostDir.path, realDir.path], forKey: recentOpenedURLsKey)
+        defer { UserDefaults.standard.removeObject(forKey: recentOpenedURLsKey) }
+
+        let store = NavigationStore(initialURL: realDir)
+        report(
+            "Store/NavigationStore",
+            "POS: a nonexistent local recent is kept at init without a synchronous existence check (LP-050)",
+            result: store.recentOpenedURLs.map(\.path).contains(ghostDir.path))
+
+        let deadline = Date().addingTimeInterval(5.0)
+        while store.recentOpenedURLs.map(\.path).contains(ghostDir.path), Date() < deadline {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        let paths = store.recentOpenedURLs.map(\.path)
+        report(
+            "Store/NavigationStore",
+            "POS: the dead recent is pruned off the main actor after init; the real one survives",
+            result: !paths.contains(ghostDir.path) && paths.contains(realDir.path))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

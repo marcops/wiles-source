@@ -28,6 +28,70 @@ public struct BatchRenameFeatureTests {
         await testPerformBatchRenameAbortsUpFrontOnCollision()
         await testPerformBatchRenameSurfacesCancellation()
         await testPermutationRenameStagesThroughTempNames()
+        await testRecoverStrandedStagingTempsDeHidesCrashLeftovers()
+        await testCancelledPermutationRenameLeavesNoHiddenStagingTemp()
+    }
+
+    /// MM-113: a batch rename that crashed between staging and the final rename leaves the file
+    /// parked under a hidden `.wiles-batch-rename-*` name. The next batch rename in that folder
+    /// renames it to a visible `Recovered …` name (never deletes it — it's the only copy). A temp
+    /// younger than the age gate (this run's own in-flight staging) is left untouched.
+    private static func testRecoverStrandedStagingTempsDeHidesCrashLeftovers() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fm = FileManager.default
+
+        let stale = dir.appendingPathComponent("\(BatchRenameService.stagingTempPrefix)DEAD-1234")
+        try? "user data".write(to: stale, atomically: true, encoding: .utf8)
+        try? fm.setAttributes([.modificationDate: Date().addingTimeInterval(-120)], ofItemAtPath: stale.path)
+
+        let fresh = dir.appendingPathComponent("\(BatchRenameService.stagingTempPrefix)LIVE-5678")
+        try? "in flight".write(to: fresh, atomically: true, encoding: .utf8)
+
+        await BatchRenameService.recoverStrandedStagingTemps(in: [dir])
+
+        let entries = (try? fm.contentsOfDirectory(atPath: dir.path)) ?? []
+        let staleDeHidden = !fm.fileExists(atPath: stale.path)
+            && entries.contains { $0.hasPrefix("Recovered ") }
+            && (try? String(contentsOf: dir.appendingPathComponent("Recovered DEAD-1234"))) == "user data"
+        let freshLeftAlone = fm.fileExists(atPath: fresh.path)
+        report(
+            "Feature/BatchRename",
+            "POS: recoverStrandedStagingTemps de-hides a crash leftover to a visible 'Recovered' name and never deletes it (MM-113)",
+            result: staleDeHidden && freshLeftAlone)
+    }
+
+    /// MM-113: cancelling a permutation batch rename (which stages participants under hidden temp
+    /// names first) must not leave any file stranded under `.wiles-batch-rename-*`.
+    private static func testCancelledPermutationRenameLeavesNoHiddenStagingTemp() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fm = FileManager.default
+
+        var items: [FileItem] = []
+        for i in 1 ... 6 {
+            let url = dir.appendingPathComponent("f_\(i).txt")
+            try? "\(i)".write(to: url, atomically: true, encoding: .utf8)
+            items.append(FileItem.load(url: url, icon: NSWorkspace.shared.icon(forFile: url.path)))
+        }
+        // Shift-up renumber = a rename cycle ⇒ staging kicks in.
+        let task = Task {
+            try await BatchRenameService.performBatchRename(
+                items: items, mode: .sequenceNumber(prefix: "f", startNumber: 2, paddingDigits: 1))
+        }
+        task.cancel()
+        _ = try? await task.value
+
+        // Whatever the outcome (finished or aborted), no file may be left under the hidden prefix.
+        let noHiddenTemp = ((try? fm.contentsOfDirectory(atPath: dir.path)) ?? [])
+            .allSatisfy { !$0.hasPrefix(BatchRenameService.stagingTempPrefix) }
+        let sameFileCount = ((try? fm.contentsOfDirectory(atPath: dir.path)) ?? []).count == 6
+        report(
+            "Feature/BatchRename",
+            "POS: a cancelled permutation batch rename strands no file under a hidden .wiles-batch-rename- name (MM-113)",
+            result: noHiddenTemp && sameFileCount)
     }
 
     /// A shift-up renumber (`file_2 → file_3`, `file_3 → file_4`) is a rename cycle: the sequential

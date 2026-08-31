@@ -48,7 +48,8 @@ enum ZIPCentralDirectoryReader {
     }
 
     private static func hasCentralDirectoryHeader(in data: Data, at offset: Int) -> Bool {
-        offset + centralDirectoryFileHeaderMinSize <= data.count
+        offset >= 0
+            && offset + centralDirectoryFileHeaderMinSize <= data.count
             && readUInt32(data, at: offset) == centralDirectoryFileHeaderSignature
     }
 
@@ -90,11 +91,14 @@ enum ZIPCentralDirectoryReader {
         guard locatorPosition >= 0,
               readUInt32(data, at: locatorPosition) == zip64LocatorSignature else { return nil }
 
-        let recordOffset = Int(readUInt64(data, at: locatorPosition + 8))
-        // ZIP64 EOCD record: signature (4) + ... + central-directory offset at byte 48.
-        guard recordOffset >= 0, recordOffset + 56 <= data.count,
+        // `Int(exactly:)`, not `Int(_:)` — these offsets are read straight from attacker-controlled
+        // archive bytes, and `Int(someUInt64 > Int.max)` is a `fatalError`. A crafted ZIP64 with
+        // `0xFFFFFFFFFFFFFFFF` here used to crash the Archive Inspector on open (finding MM-247).
+        guard let recordOffset = Int(exactly: readUInt64(data, at: locatorPosition + 8)),
+              recordOffset >= 0, recordOffset + 56 <= data.count,
               readUInt32(data, at: recordOffset) == zip64EndOfCentralDirectorySignature else { return nil }
-        return Int(readUInt64(data, at: recordOffset + 48))
+        // ZIP64 EOCD record: signature (4) + ... + central-directory offset at byte 48.
+        return Int(exactly: readUInt64(data, at: recordOffset + 48))
     }
 
     private static func readUInt16(_ data: Data, at offset: Int) -> UInt16 {

@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "正在重命名文件…";
 "removeRecentServer" = "从最近使用中移除";
 "removeSmartFolderConfirm" = "确定要删除此智能文件夹吗？此操作无法撤销。";
+"deleteSmartFolder" = "删除智能文件夹";
 "ruleConditionExtensionEquals" = "扩展名等于";
 "ruleConditionNameContains" = "名称包含";
 "ruleConditionNamePrefix" = "名称开头为";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "批量重命名会造成名称冲突：{0}";
 "batchRenameInvalidPattern" = "无效的重命名模式：{0}";
 "movePartialFailure" = "{1} 项中的 {0} 项无法移动。";
+"undoRestoredDifferentName" = "由于“{1}”已被占用，已还原为“{0}”。";
 "searchContentQueryTooShort" = "输入至少 3 个字符以搜索文件内容。";
 "searchInvalidRegex" = "该正则表达式无效。";
+"searchInvalidFilterToken" = "筛选条件“%@”无效，因此无法匹配任何内容。";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "正在显示众多结果中的前 %d 个";
 "convertingImageEllipsis" = "Converting Image…";

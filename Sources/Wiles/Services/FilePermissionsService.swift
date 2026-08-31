@@ -73,12 +73,19 @@ public enum FilePermissionsService: Sendable {
             return (applied, errors)
         }
         // `while`/`nextObject()` rather than `for…in`: the enumerator's iterator is unavailable in
-        // an async context. Deep trees can take seconds; stop as soon as the caller's task is cancelled.
+        // an async context. Deep trees can take seconds; stop as soon as the caller's task is
+        // cancelled — and yield periodically so a cancellation from the sheet's `.onDisappear`
+        // (LL-025) actually lands mid-walk instead of only being seen after it finishes.
+        var processed = 0
         while let childURL = enumerator.nextObject() as? URL {
             if Task.isCancelled {
                 break
             }
             apply(to: childURL)
+            processed += 1
+            if processed % 200 == 0 {
+                await Task.yield()
+            }
         }
         return (applied, errors)
     }

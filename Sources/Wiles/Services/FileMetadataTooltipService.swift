@@ -17,7 +17,11 @@ public enum FileMetadataTooltipService {
     }()
 
     public static func tooltip(for item: FileItem, language: AppLanguage) async -> String {
-        let key = "\(L10n.activeCode(language))|\(item.url.path)" as NSString
+        // Key includes `dateModified`: without it, a file edited/replaced on disk kept showing its
+        // old PDF page count / image dimensions / size in the tooltip until the 1000-entry cap
+        // eventually evicted the stale entry — and there was no live invalidation path (SL-090).
+        // Same fix `ThumbnailService.cacheKey` and `SearchFilterService.contentCache` already use.
+        let key = "\(L10n.activeCode(language))|\(item.dateModified.timeIntervalSinceReferenceDate)|\(item.url.path)" as NSString
         if let cached = cache.object(forKey: key) {
             return cached as String
         }
@@ -42,16 +46,6 @@ public enum FileMetadataTooltipService {
         let text = lines.joined(separator: "\n")
         cache.setObject(text as NSString, forKey: key)
         return text
-    }
-
-    public static func invalidate(url: URL) {
-        // Cache keys are "<languageCode>|<path>" (see `tooltip(for:language:)`), and `NSCache`
-        // can't enumerate/pattern-match its keys — so every language's entry for this path must be
-        // removed individually rather than trying to remove by bare path.
-        for lang in AppLanguage.allCases {
-            let key = "\(L10n.activeCode(lang))|\(url.path)" as NSString
-            cache.removeObject(forKey: key)
-        }
     }
 
     private static func kindDescription(for item: FileItem, type: UTType?, language: AppLanguage) -> String {

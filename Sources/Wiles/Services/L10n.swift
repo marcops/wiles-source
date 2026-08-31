@@ -182,6 +182,7 @@ public enum L10n {
         case batchRenameWouldCollide
         case batchRenameInvalidPattern
         case movePartialFailure
+        case undoRestoredDifferentName
 
         case showPreviewSidebar
         case showDiskUsageSidebar
@@ -560,6 +561,7 @@ public enum L10n {
         case expandCollapseFolderHint
         case smartFolderHint
         case removeSmartFolderConfirm
+        case deleteSmartFolder
 
         // MARK: - G5 Modals slice fixes
 
@@ -574,6 +576,7 @@ public enum L10n {
 
         case searchContentQueryTooShort
         case searchInvalidRegex
+        case searchInvalidFilterToken
         case resultsTruncatedNotice
         case smartFolderLocationNotIndexed
     }

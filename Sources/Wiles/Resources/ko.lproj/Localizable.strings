@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "파일 이름 변경 중…";
 "removeRecentServer" = "최근 항목에서 제거";
 "removeSmartFolderConfirm" = "이 스마트 폴더를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.";
+"deleteSmartFolder" = "스마트 폴더 삭제";
 "ruleConditionExtensionEquals" = "확장자 일치";
 "ruleConditionNameContains" = "이름 포함";
 "ruleConditionNamePrefix" = "이름으로 시작";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "일괄 이름 변경 시 이름 충돌이 발생합니다: {0}";
 "batchRenameInvalidPattern" = "잘못된 이름 변경 패턴: {0}";
 "movePartialFailure" = "{1}개 중 {0}개 항목을 이동할 수 없습니다.";
+"undoRestoredDifferentName" = "“{1}”이(가) 이미 사용 중이므로 “{0}”(으)로 복원했습니다.";
 "searchContentQueryTooShort" = "파일 내용을 검색하려면 3자 이상 입력하세요.";
 "searchInvalidRegex" = "정규 표현식이 올바르지 않습니다.";
+"searchInvalidFilterToken" = "필터 “%@”이(가) 유효하지 않아 일치하는 항목이 없습니다.";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "많은 항목 중 처음 %d개를 표시합니다";
 "convertingImageEllipsis" = "Converting Image…";

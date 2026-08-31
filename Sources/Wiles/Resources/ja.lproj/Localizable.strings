@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "ファイルの名前を変更中…";
 "removeRecentServer" = "最近使った項目から削除";
 "removeSmartFolderConfirm" = "このスマートフォルダを削除してもよろしいですか？この操作は元に戻せません。";
+"deleteSmartFolder" = "スマートフォルダを削除";
 "ruleConditionExtensionEquals" = "拡張子が一致";
 "ruleConditionNameContains" = "名前を含む";
 "ruleConditionNamePrefix" = "名前で始まる";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "一括リネームで名前の重複が発生します: {0}";
 "batchRenameInvalidPattern" = "無効なリネームパターン: {0}";
 "movePartialFailure" = "{1} 件中 {0} 件の項目を移動できませんでした。";
+"undoRestoredDifferentName" = "「{1}」はすでに使用されているため、「{0}」として復元しました。";
 "searchContentQueryTooShort" = "ファイル内を検索するには3文字以上入力してください。";
 "searchInvalidRegex" = "その正規表現は無効です。";
+"searchInvalidFilterToken" = "フィルタ「%@」が無効なため、一致するものはありません。";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "多数のうち最初の %d 件を表示しています";
 "convertingImageEllipsis" = "Converting Image…";

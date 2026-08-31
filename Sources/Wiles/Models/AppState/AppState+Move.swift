@@ -25,17 +25,34 @@ public extension AppState {
 
     /// Moves each URL into `targetFolder` sequentially via `moveOneResolvingCollision` (the same
     /// per-item mover the cut/paste loop uses), aggregating failures into one alert. `.cancel` stops
-    /// the batch. Used by the drag-onto-folder and breadcrumb-drop paths, which don't record undo.
+    /// the batch. Records a `.move` undo per item — plus a `.trash` when a Replace displaced an
+    /// existing file — so ⌘Z reverts a drag-onto-folder / breadcrumb drop just like it reverts a
+    /// cut/paste (finding HM-146).
     @discardableResult
     func moveItemsResolvingCollisions(
         _ urls: [URL],
         toFolder targetFolder: URL,
         windowUIState: WindowUIState) async -> [URL] {
-        let (moved, failureCount) = await moveBatchResolvingCollisions(urls, into: targetFolder, windowUIState: windowUIState)
+        let (moved, failureCount) = await moveBatchResolvingCollisions(
+            urls, into: targetFolder, windowUIState: windowUIState,
+            onMoved: { source, dest, _, displacedTrashedURL in
+                recordResolvedMoveUndo(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL)
+            })
         if failureCount > 0 {
             showPartialFailure(.movePartialFailure, failed: failureCount, total: urls.count)
         }
         return moved
+    }
+
+    /// The undo bookkeeping for one completed collision-resolving move, shared by the cut/paste loop
+    /// (`pasteAllItems`) and the drag-onto-folder / breadcrumb-drop path so the two can't diverge
+    /// again (finding HM-146). The displaced-file `.trash` is recorded first — deeper in the stack —
+    /// so ⌘Z undoes the move and a second ⌘Z restores the file a Replace sent to the Trash.
+    func recordResolvedMoveUndo(source: URL, dest: URL, displacedTrashedURL: URL?) {
+        if let displacedTrashedURL {
+            undoRedoService.recordAction(.trash(originalURL: dest, trashedURL: displacedTrashedURL))
+        }
+        undoRedoService.recordAction(.move(sourceURL: source, destinationURL: dest))
     }
 
     /// The shared sequential collision-resolving move loop behind both `moveItemsResolvingCollisions`

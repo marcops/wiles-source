@@ -39,8 +39,42 @@ public struct HttpSharingFeatureTests {
         testFirstAvailablePortSkipsAnOccupiedPort()
         await testServerURLReflectsTheScannedPort(server)
         await testRestartWithoutStopReusesTheSamePort()
+        await testStartDoesNotBlockTheMainThreadOnRestart()
 
         server.stop()
+    }
+
+    /// ML-086: `start()` used to run `waitForPortRelease`'s `Thread.sleep` (up to 0.5s) and the
+    /// bind-probe loop on the main thread. The scan now runs on the service's queue; `start()`
+    /// returns immediately and `isStarting` is the synchronous signal, while the server still
+    /// reaches `isRunning`.
+    private static func testStartDoesNotBlockTheMainThreadOnRestart() async {
+        let server = LocalHttpServerService()
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory())
+        defer { server.stop() }
+
+        server.start(sharing: tempDir)
+        await waitUntil(timeoutSeconds: 3) { server.isRunning }
+
+        // Restart on the same port — the path that previously slept on the main thread.
+        let before = Date()
+        server.start(sharing: tempDir)
+        let elapsed = Date().timeIntervalSince(before)
+
+        report(
+            "Feature/HttpSharing",
+            "POS: start() returns without blocking the main thread on the port-release wait (restart call took \(String(format: "%.3f", elapsed))s)",
+            result: elapsed < 0.2)
+        report(
+            "Feature/HttpSharing",
+            "POS: start() flips isStarting synchronously so the sheet isn't stuck with no signal",
+            result: server.isStarting || server.isRunning)
+
+        await waitUntil(timeoutSeconds: 3) { server.isRunning }
+        report(
+            "Feature/HttpSharing",
+            "POS: the server still reaches isRunning after the non-blocking start()",
+            result: server.isRunning && !server.isStarting)
     }
 
     /// BB-358: `start()` now tears down any prior listener before standing up a new one — a second
@@ -160,7 +194,7 @@ public struct HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var passed = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             rawSend(sock, "GET / HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer sometoken\r\n\r\n")
             let response = rawRecvAll(sock, timeoutMs: 1000)
             let text = String(data: response, encoding: .utf8) ?? ""
@@ -215,7 +249,7 @@ public struct HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var danglingSocket: Int32?
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             danglingSocket = sock
             // Give the accept handler time to run and append the connection before stop() below.
             try? await Task.sleep(nanoseconds: 150_000_000)
@@ -273,7 +307,7 @@ public struct HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var passed = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             rawSend(sock, "GET /%zz HTTP/1.1\r\nHost: localhost\r\n\r\n")
             let response = rawRecvAll(sock, timeoutMs: 1000)
             let text = String(data: response, encoding: .utf8) ?? ""
@@ -300,7 +334,7 @@ public struct HttpSharingFeatureTests {
         server.start(sharing: tempDir)
         await waitUntil { server.isRunning }
 
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             // Disconnect immediately without writing anything.
             Darwin.close(sock)
         }
@@ -331,7 +365,7 @@ public struct HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var connectionWasClosedByServer = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             // 0xFF/0xFE are never valid standalone UTF-8 lead bytes - this is guaranteed invalid.
             rawSendBytes(sock, [0xFF, 0xFE, 0x00, 0x01])
             let response = rawRecvAll(sock, timeoutMs: 1000)

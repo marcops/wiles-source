@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "Byter namn på filer…";
 "removeRecentServer" = "Ta Bort Från Senaste";
 "removeSmartFolderConfirm" = "Är du säker på att du vill ta bort den här smarta mappen? Detta kan inte ångras.";
+"deleteSmartFolder" = "Radera smart mapp";
 "ruleConditionExtensionEquals" = "Filändelse Är";
 "ruleConditionNameContains" = "Namn Innehåller";
 "ruleConditionNamePrefix" = "Namn Börjar Med";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "Massomdöpning skulle skapa namnkonflikter: {0}";
 "batchRenameInvalidPattern" = "Ogiltigt mönster för omdöpning: {0}";
 "movePartialFailure" = "{0} av {1} objekt kunde inte flyttas.";
+"undoRestoredDifferentName" = "Återställd som ”{0}” eftersom ”{1}” redan används.";
 "searchContentQueryTooShort" = "Skriv minst 3 tecken för att söka i filer.";
 "searchInvalidRegex" = "Det reguljära uttrycket är ogiltigt.";
+"searchInvalidFilterToken" = "Filtret ”%@” är ogiltigt, så inget kan matcha det.";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "Visar de första %d av många";
 "convertingImageEllipsis" = "Converting Image…";

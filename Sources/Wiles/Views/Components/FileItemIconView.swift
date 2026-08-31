@@ -42,7 +42,7 @@ public struct FileItemIconView: View {
                 .scaledToFit()
                 .frame(width: size, height: size)
         } else if item.supportsThumbnail {
-            ImageThumbnailView(url: item.url, size: size, fallback: item.icon)
+            ImageThumbnailView(url: item.url, size: size, fallback: item.icon, dateModified: item.dateModified)
                 .frame(width: size, height: size)
         } else {
             Image(nsImage: item.icon)

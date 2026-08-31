@@ -18,6 +18,8 @@ public struct ZIPCentralDirectoryReaderTests {
         testBufferShorterThanEOCDReturnsNoEntries()
         testZip64ArchiveResolvesCentralDirectoryViaLocator()
         testZip64MarkerWithMissingLocatorReturnsNoEntries()
+        testZip64WithOutOfRangeLocatorOffsetDoesNotCrash()
+        testZip64WithOutOfRangeCentralDirectoryOffsetDoesNotCrash()
         testNonUTF8EntryNameIsDecodedNotDropped()
         testEOCDIsFoundWhenTrailedByAZipComment()
     }
@@ -161,7 +163,9 @@ public struct ZIPCentralDirectoryReaderTests {
     /// `[central directory][zip64 EOCD record][zip64 locator][regular EOCD]`, where the regular
     /// EOCD's 32-bit central-directory-offset is the 0xFFFFFFFF marker, so the real offset (0) must
     /// be read from the ZIP64 EOCD record found via the locator.
-    private static func makeZip64Buffer(entryNames: [String], includeLocator: Bool) -> Data {
+    private static func makeZip64Buffer(
+        entryNames: [String], includeLocator: Bool,
+        locatorEOCDOffsetOverride: UInt64? = nil, cdOffsetOverride: UInt64? = nil) -> Data {
         var centralDirectory = Data()
         for name in entryNames {
             centralDirectory.append(makeCentralDirectoryRecord(name: name))
@@ -177,13 +181,13 @@ public struct ZIPCentralDirectoryReaderTests {
         writeUInt64LE(UInt64(entryNames.count), into: &zip64EOCD) // 24: entries on this disk
         writeUInt64LE(UInt64(entryNames.count), into: &zip64EOCD) // 32: total entries
         writeUInt64LE(UInt64(centralDirectory.count), into: &zip64EOCD) // 40: central directory size
-        writeUInt64LE(0, into: &zip64EOCD) // 48: central directory offset
+        writeUInt64LE(cdOffsetOverride ?? 0, into: &zip64EOCD) // 48: central directory offset
 
         let zip64EOCDOffset = centralDirectory.count
         var locator = Data()
         writeUInt32LE(0x0706_4B50, into: &locator) // 0: zip64 locator signature
         writeUInt32LE(0, into: &locator) // 4: disk with zip64 EOCD
-        writeUInt64LE(UInt64(zip64EOCDOffset), into: &locator) // 8: offset of zip64 EOCD
+        writeUInt64LE(locatorEOCDOffsetOverride ?? UInt64(zip64EOCDOffset), into: &locator) // 8: offset of zip64 EOCD
         writeUInt32LE(1, into: &locator) // 16: total number of disks
 
         let eocd = makeEndOfCentralDirectory(
@@ -214,6 +218,31 @@ public struct ZIPCentralDirectoryReaderTests {
         TestReporter.report(
             "Feature/ArchiveInspector",
             "NEG: a 0xFFFFFFFF offset with no ZIP64 locator present returns no entries rather than crashing",
+            result: result.isEmpty)
+    }
+
+    /// MM-247: the ZIP64 locator's "offset of ZIP64 EOCD" field is `0xFFFFFFFFFFFFFFFF`. Converting
+    /// that with `Int(_:)` was a `fatalError`; `Int(exactly:)` now rejects it and the reader returns
+    /// no entries instead of crashing the Archive Inspector.
+    private static func testZip64WithOutOfRangeLocatorOffsetDoesNotCrash() {
+        let buffer = makeZip64Buffer(
+            entryNames: ["a", "b"], includeLocator: true, locatorEOCDOffsetOverride: .max)
+        let result = ZIPCentralDirectoryReader.readEntryNames(from: buffer)
+        TestReporter.report(
+            "Feature/ArchiveInspector",
+            "NEG: a ZIP64 locator with a 0xFFFFFFFFFFFFFFFF EOCD offset returns no entries, no crash (MM-247)",
+            result: result.isEmpty)
+    }
+
+    /// MM-247: the ZIP64 EOCD record's "central directory offset" field (byte 48) is
+    /// `0xFFFFFFFFFFFFFFFF`. Same `Int(_:)` trap, same fix.
+    private static func testZip64WithOutOfRangeCentralDirectoryOffsetDoesNotCrash() {
+        let buffer = makeZip64Buffer(
+            entryNames: ["a", "b"], includeLocator: true, cdOffsetOverride: .max)
+        let result = ZIPCentralDirectoryReader.readEntryNames(from: buffer)
+        TestReporter.report(
+            "Feature/ArchiveInspector",
+            "NEG: a ZIP64 EOCD record with a 0xFFFFFFFFFFFFFFFF central-directory offset returns no entries, no crash (MM-247)",
             result: result.isEmpty)
     }
 

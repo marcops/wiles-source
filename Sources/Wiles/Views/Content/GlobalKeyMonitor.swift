@@ -37,7 +37,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             if window != nil, monitor == nil {
-                monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel]) { [weak self] event in
+                monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel, .leftMouseUp]) { [weak self] event in
                     self?.processLocalEvent(event)
                 }
             }
@@ -68,6 +68,14 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             }
         }
 
+        /// True when `firstResponder` is the integrated terminal's PTY view or a descendant of it.
+        /// Pulled out as a pure function so the terminal-yield rule (finding CH-321) is unit-testable
+        /// without an `NSWindow`/event.
+        static func eventTargetsTerminal(firstResponder: NSResponder?, terminalView: NSView?) -> Bool {
+            guard let terminalView, let responderView = firstResponder as? NSView else { return false }
+            return responderView.isDescendant(of: terminalView)
+        }
+
         private func processLocalEvent(_ event: NSEvent) -> NSEvent? {
             guard let appState, let windowUIState else { return event }
             // `addLocalMonitorForEvents` is app-global: with N windows open there are N monitors,
@@ -75,6 +83,22 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             // (or Backspace / F2 / Return) typed in window B also drives selection / trash / rename
             // in window A. Let the monitor belonging to the event's own window handle it.
             guard event.window == window else { return event }
+            // Keep the terminal-focus flag current for `FileMenuCommands` (menu key equivalents)
+            // and yield every keystroke to the integrated terminal when it's focused — a custom
+            // `NSView` from SwiftTerm, so the `NSTextView`/`NSTextField` check below never covers
+            // it. Without this, Backspace in the terminal fires `.moveToTrash` on the list behind
+            // it (data loss), and arrows / Return / F2 leak too. See finding CH-321.
+            let terminalFocused = Self.eventTargetsTerminal(
+                firstResponder: event.window?.firstResponder, terminalView: windowUIState.terminalViewCache.view)
+            if windowUIState.isTerminalFocused != terminalFocused {
+                windowUIState.isTerminalFocused = terminalFocused
+            }
+            if terminalFocused {
+                return event
+            }
+            if event.type == .leftMouseUp {
+                return event
+            }
             if let firstResponder = event.window?.firstResponder, firstResponder is NSTextView || firstResponder is NSTextField {
                 return event
             }

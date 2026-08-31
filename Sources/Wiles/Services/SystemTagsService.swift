@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// Bridges Wiles' tag UI to the user's actual Finder tag list instead of a hardcoded set.
@@ -10,36 +11,53 @@ import Foundation
 public enum SystemTagsService {
     private static let finderDomain = "com.apple.finder"
     private static let favoriteTagsKey = "FavoriteTagNames"
-    /// `favoriteTags` is read once per tag per row per render (`colorForTag` in `TagsIndicatorView`).
-    /// Re-parsing `com.apple.finder`'s prefs each time is a cross-app UserDefaults read per cell per
-    /// frame; the list changes at most a handful of times a session, so a short cache reduces that
-    /// to one parse every few seconds while staying fresh enough to pick up a Finder edit.
-    private static let cacheTTL: TimeInterval = 5
 
+    /// Cached Finder favorite-tag list. Populated by `startObserving()` at app launch and refreshed
+    /// when any app is activated (Finder edits its tag list while frontmost; switching back to Wiles
+    /// then picks the change up). It is NEVER read from disk inside a SwiftUI `body` — the old
+    /// getter did a cross-app `UserDefaults` parse per tag per row every time its 5s TTL lapsed,
+    /// i.e. `DEV_RULES.md` #19 (finding ML-070). `nil` until the first refresh; readers fall back
+    /// to the seven standard colors until then.
     private static var cachedFavoriteTags: [SystemTag]?
-    private static var cacheTimestamp: Date = .distantPast
+    private static var activationObserver: (any NSObjectProtocol)?
 
-    /// The user's Finder favorite tags in Finder's own order. Falls back to the seven standard
-    /// colors (English names) when Finder has never been customized or its prefs aren't readable.
-    public static var favoriteTags: [SystemTag] {
-        if let cachedFavoriteTags, Date().timeIntervalSince(cacheTimestamp) < cacheTTL {
-            return cachedFavoriteTags
-        }
-        let fresh = readFavoriteTagsFromFinderPrefs()
-        cachedFavoriteTags = fresh
-        cacheTimestamp = Date()
-        return fresh
+    private static var standardFallback: [SystemTag] {
+        TagColor.allCases.map { SystemTag(name: $0.rawValue.capitalized, color: $0) }
     }
 
-    /// Drops the cache so the next `favoriteTags` read re-parses Finder's prefs immediately.
+    /// The user's Finder favorite tags in Finder's own order, from the cache only. Falls back to the
+    /// seven standard colors (English names) until `startObserving()`/`refresh()` has run or when
+    /// Finder's prefs aren't readable.
+    public static var favoriteTags: [SystemTag] {
+        cachedFavoriteTags ?? standardFallback
+    }
+
+    /// Seeds the cache and keeps it current off the render path. Call once from app launch;
+    /// idempotent.
+    public static func startObserving() {
+        guard activationObserver == nil else { return }
+        refresh()
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { refresh() }
+            }
+    }
+
+    /// Re-reads Finder's favorite tags into the cache. This is the one place the cross-app
+    /// `UserDefaults` read happens, and it's only ever called from `startObserving`'s observer or
+    /// an explicit `invalidateCache()` — never from a view body.
+    public static func refresh() {
+        cachedFavoriteTags = readFavoriteTagsFromFinderPrefs()
+    }
+
+    /// Forces an immediate re-parse of Finder's prefs.
     public static func invalidateCache() {
-        cachedFavoriteTags = nil
-        cacheTimestamp = .distantPast
+        refresh()
     }
 
     private static func readFavoriteTagsFromFinderPrefs() -> [SystemTag] {
         guard let raw = UserDefaults(suiteName: finderDomain)?.stringArray(forKey: favoriteTagsKey) else {
-            return TagColor.allCases.map { SystemTag(name: $0.rawValue.capitalized, color: $0) }
+            return standardFallback
         }
         return raw.enumerated().compactMap { index, name in
             let trimmed = name.trimmingCharacters(in: .whitespaces)

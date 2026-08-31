@@ -918,6 +918,7 @@ Sem overengineering.
 REGRA IMPORTANTE:
 NAO GERE O ARQUIVO NO FINAL; VAI FAZENDO APPEND CONFORME FOR AVALIANDO
 Conforme for fazendo vai dando a % de progresso no chat
+com quantos high, medium, low, etc encontrados
 
 
 Se voce pensou em ignorar algum item porque ele tem comentario, coloca este finding com o item completo do finding (todas as propriedades, roi etc)

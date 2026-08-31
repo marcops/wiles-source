@@ -14,7 +14,7 @@ public final class PDFMergeService: Sendable {
             throw WilesError.localized(key: .pdfMergeNoFilesProvided, arguments: [])
         }
 
-        return try await Task.detached(priority: .userInitiated) {
+        return try await CancellableWork.detached(priority: .userInitiated) {
             let outputPDF = PDFDocument()
             var pageIndex = 0
             var skippedCount = 0
@@ -40,7 +40,7 @@ public final class PDFMergeService: Sendable {
                 throw WilesError.localized(key: .pdfMergeWriteFailed, arguments: [])
             }
             return (destURL, skippedCount)
-        }.value
+        }
     }
 
     /// autoreleasepool ensures each image's uncompressed bitmap (which can be tens of MB for a

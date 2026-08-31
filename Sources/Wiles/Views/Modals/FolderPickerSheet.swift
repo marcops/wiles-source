@@ -1,9 +1,6 @@
 import SwiftUI
 
 struct FolderPickerSheet: View {
-    /// GCD timer, not a sibling `Task`, mirroring `SidebarView`: a stuck detached scan can starve
-    /// the cooperative thread pool, and a `Task.sleep` timeout sharing that pool would starve too.
-    private static let rootTreeFallbackTimeout: TimeInterval = 6
     private static let sheetWidth: CGFloat = 640
     private static let sheetHeight: CGFloat = 560
     private static let favoritesColumnWidth: CGFloat = 140
@@ -60,27 +57,18 @@ struct FolderPickerSheet: View {
             }
     }
 
-    /// Builds the root tree off `@MainActor`, mirroring `SidebarView`'s `.task` — `FolderNode.buildRootTree()`
-    /// walks the whole home directory synchronously and would otherwise freeze the sheet on appear.
-    /// On the fallback timeout it leaves `rootNode == nil` and shows a Retry state (like `SidebarView`);
-    /// the still-running scan can still finish and populate the tree, or Retry restarts it.
+    /// Shared with `SidebarView` via `RootDirectoryTreeLoader` — builds the home-directory tree off
+    /// `@MainActor` with a fallback-timeout Retry state (LL-020).
     private func buildRootNodeIfNeeded() async {
-        guard rootNode == nil else { return }
-        rootTreeTimedOut = false
-        let buildTask = Task.detached(priority: .userInitiated) { FolderNode.buildRootTree() }
-        let fallbackWorkItem = DispatchWorkItem {
-            guard rootNode == nil else { return }
-            rootTreeTimedOut = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.rootTreeFallbackTimeout, execute: fallbackWorkItem)
-        let node = await buildTask.value
-        guard rootNode == nil else { return }
-        fallbackWorkItem.cancel()
-        rootTreeTimedOut = false
-        rootNode = node
-        if let selectedURL {
-            expandAncestors(of: selectedURL)
-        }
+        await RootDirectoryTreeLoader.load(
+            isPending: { rootNode == nil },
+            setTimedOut: { rootTreeTimedOut = $0 },
+            apply: { node in
+                rootNode = node
+                if let selectedURL {
+                    expandAncestors(of: selectedURL)
+                }
+            })
     }
 
     private func retryTreeBuild() {

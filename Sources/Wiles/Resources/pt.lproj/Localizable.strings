@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "Renomeando arquivos…";
 "removeRecentServer" = "Remover dos Recentes";
 "removeSmartFolderConfirm" = "Tem certeza de que deseja excluir esta pasta inteligente? Isso não pode ser desfeito.";
+"deleteSmartFolder" = "Apagar Pasta Inteligente";
 "ruleConditionExtensionEquals" = "Extensão Igual a";
 "ruleConditionNameContains" = "Nome Contém";
 "ruleConditionNamePrefix" = "Nome Começa Com";
@@ -547,8 +548,10 @@
 "batchRenameWouldCollide" = "A renomeação em lote criaria conflitos de nome: {0}";
 "batchRenameInvalidPattern" = "Padrão de renomeação inválido: {0}";
 "movePartialFailure" = "{0} de {1} itens não puderam ser movidos.";
+"undoRestoredDifferentName" = "Restaurado como “{0}” porque “{1}” já está em uso.";
 "searchContentQueryTooShort" = "Digite ao menos 3 caracteres para buscar dentro dos arquivos.";
 "searchInvalidRegex" = "Essa expressão regular não é válida.";
+"searchInvalidFilterToken" = "O filtro “%@” não é válido, então nada pode corresponder a ele.";
 "smartFolderLocationNotIndexed" = "Este local não está indexado pelo Spotlight, então os resultados podem estar incompletos.";
 "resultsTruncatedNotice" = "Mostrando os primeiros %d de muitos";
 "convertingImageEllipsis" = "Convertendo Imagem…";

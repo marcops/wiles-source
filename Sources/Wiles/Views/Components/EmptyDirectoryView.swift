@@ -52,6 +52,8 @@ public struct EmptyDirectoryView: View {
             appState.tr(.searchContentQueryTooShort)
         case .invalidRegex:
             appState.tr(.searchInvalidRegex)
+        case let .invalidFilterToken(token):
+            String(format: appState.tr(.searchInvalidFilterToken), token)
         case nil:
             nil
         }

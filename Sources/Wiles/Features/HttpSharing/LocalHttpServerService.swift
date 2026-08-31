@@ -13,6 +13,14 @@ public final class LocalHttpServerService: @unchecked Sendable {
     /// Set when `start(sharing:password:)` fails to stand up the listener, so `HttpShareSheet`
     /// (stuck otherwise on "Starting server…") has something to show and retry from.
     @MainActor public var startError: String?
+    /// True from the moment `start(...)` is called until the listener is ready or has failed. The
+    /// port scan (`waitForPortRelease`'s `Thread.sleep`, socket-probe loop) now runs off the main
+    /// thread, so this is the immediate signal `HttpShareSheet` shows instead of `start()` blocking
+    /// the UI for up to ~0.5s + probe time (finding ML-086).
+    @MainActor public var isStarting: Bool = false
+    /// Bumped per `start(...)`; a stale async port-scan whose `finishStarting` lands after a newer
+    /// `start(...)`/`stop()` checks this and bails.
+    @MainActor @ObservationIgnored private var startGeneration = 0
 
     @ObservationIgnored var sharedFolder: URL?
     /// The port the server is (or last tried) listening on. Seeded to `defaultPort` and bumped to
@@ -58,25 +66,38 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // `requiredPassword`, which is why they're (re)assigned only *after* it, just below.
         let previousPort: UInt16? = listener != nil ? port.rawValue : nil
         stop()
+        startGeneration &+= 1
+        let generation = startGeneration
+        isStarting = true
+        startError = nil
 
-        // `sharedFolder`/`requiredPassword` are read from `processRequest`, which always runs on
-        // `queue` (it's invoked from an `NWConnection` receive completion handler, and every
-        // connection is started with `connection.start(queue: queue)`). Routing the write through
-        // `queue.sync` here — the same mechanism already used for `listener` below — establishes a
-        // proper happens-before relationship with that on-queue read, closing the data race.
-        // The `queue.sync` also drains `stop()`'s async teardown, so `listener?.cancel()` has run
-        // by the time the port scan below happens.
-        queue.sync {
+        // Everything that can block — draining `stop()`'s async teardown, `waitForPortRelease`'s
+        // `Thread.sleep`, the bind-probe loop in `firstAvailablePort` — runs on `queue`, off the
+        // main thread. `sharedFolder`/`requiredPassword` are `queue`-owned state read from
+        // `processRequest` (also on `queue`), so assigning them here gives the same happens-before
+        // the old `queue.sync` did. Only the resolved port hops back to `@MainActor` (ML-086).
+        queue.async { [weak self] in
+            guard let self else { return }
             sharedFolder = folder
             requiredPassword = !(password?.isEmpty ?? true) ? password : nil
+            if let previousPort {
+                Self.waitForPortRelease(previousPort, timeout: 0.5)
+            }
+            let chosen = Self.firstAvailablePort(in: Self.portScanRange, preferring: previousPort) ?? Self.defaultPort
+            Task { @MainActor [weak self] in
+                self?.finishStarting(on: chosen, generation: generation)
+            }
         }
-        if let previousPort {
-            Self.waitForPortRelease(previousPort, timeout: 0.5)
-        }
-        port = Self.firstAvailablePort(in: Self.portScanRange, preferring: previousPort) ?? Self.defaultPort
+    }
+
+    /// Second half of `start(...)`, back on `@MainActor` once the off-main port scan has picked a
+    /// free port: stand up the `NWListener` (cheap, non-blocking) and publish state.
+    @MainActor
+    private func finishStarting(on chosenPort: NWEndpoint.Port, generation: Int) {
+        guard generation == startGeneration, isStarting else { return } // superseded by a newer start()/stop()
+        port = chosenPort
         do {
-            let parameters = NWParameters.tcp
-            let newListener = try NWListener(using: parameters, on: port)
+            let newListener = try NWListener(using: NWParameters.tcp, on: chosenPort)
 
             newListener.stateUpdateHandler = { [weak self] state in
                 Task { @MainActor in
@@ -85,9 +106,11 @@ public final class LocalHttpServerService: @unchecked Sendable {
                     case .ready:
                         self.updateServerURL()
                         self.isRunning = true
+                        self.isStarting = false
                         self.startError = nil
                     case .failed, .cancelled:
                         self.isRunning = false
+                        self.isStarting = false
                         self.serverURL = nil
                     default:
                         break
@@ -99,14 +122,12 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 self?.handleConnection(connection)
             }
 
-            // `listener` is also read/written from stop() on whatever thread the caller uses, so
-            // every mutation is routed through `queue` (the same queue connection handling runs on).
             queue.sync { listener = newListener }
             newListener.start(queue: queue)
         } catch {
             ErrorReporter.report(error, context: "Starting local HTTP share server")
-            let message = error.localizedDescription
-            Task { @MainActor [weak self] in self?.startError = message }
+            startError = error.localizedDescription
+            isStarting = false
             stop()
         }
     }
@@ -118,6 +139,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // `.sync`, so that never blocks the main thread. The serial queue keeps this ordered ahead
         // of any `queue.sync` a following `start()` enqueues.
         isRunning = false
+        isStarting = false
         serverURL = nil
         queue.async { [self] in
             listener?.cancel()
@@ -430,23 +452,29 @@ public final class LocalHttpServerService: @unchecked Sendable {
     }
 
     func sendResponse(connection: NWConnection, statusCode: Int, body: Data, contentType: String = "text/plain", extraHeaders: [String: String] = [:]) {
-        let statusText = HTTPURLResponse.localizedString(forStatusCode: statusCode)
         let headers: [(String, String)] = [
             ("Content-Length", "\(body.count)"),
             ("Content-Type", contentType),
             ("Connection", "close")
         ] + extraHeaders.map { ($0.key, $0.value) }
-        // Build the head from a header list so the CRLF-per-line + blank-line terminator can't be
-        // broken by editing a template string (and an empty `extraHeaders` needs no special case).
-        let headerBlock = "HTTP/1.1 \(statusCode) \(statusText)\r\n"
-            + headers.map { "\($0.0): \($0.1)\r\n" }.joined()
-            + "\r\n"
-        var responseData = Data(headerBlock.utf8)
+        var responseData = Self.httpHead(statusCode: statusCode, headers: headers)
         responseData.append(body)
 
         connection.send(content: responseData, completion: .contentProcessed { [weak self] _ in
             connection.cancel()
             self?.removeConnection(connection)
         })
+    }
+
+    /// The one HTTP response-head builder: status line + one CRLF-terminated line per header +
+    /// the blank line. Built from a `(name, value)` list — never a template string — so a stray
+    /// edit can't drop a `\r` and desync the frame. Shared by `sendResponse` and the file-streaming
+    /// path's `streamResponseHeader` (finding LL-055).
+    nonisolated static func httpHead(statusCode: Int, headers: [(String, String)]) -> Data {
+        let statusText = HTTPURLResponse.localizedString(forStatusCode: statusCode)
+        let block = "HTTP/1.1 \(statusCode) \(statusText)\r\n"
+            + headers.map { "\($0.0): \($0.1)\r\n" }.joined()
+            + "\r\n"
+        return Data(block.utf8)
     }
 }

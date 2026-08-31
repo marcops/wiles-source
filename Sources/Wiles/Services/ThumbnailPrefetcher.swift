@@ -16,16 +16,16 @@ public final class ThumbnailPrefetcher {
     }
 
     public func prefetch(for items: [FileItem], size _: CGFloat) {
-        let eligibleURLs = items.filter(\.supportsThumbnail).map(\.url)
-        guard !eligibleURLs.isEmpty else { return }
+        let eligible = items.filter(\.supportsThumbnail).map { ($0.url, $0.dateModified) }
+        guard !eligible.isEmpty else { return }
         prefetchTask?.cancel()
         let service = service
         prefetchTask = Task.detached(priority: .userInitiated) {
-            for url in eligibleURLs {
+            for (url, dateModified) in eligible {
                 if Task.isCancelled {
                     break
                 }
-                await service.warmCache(for: url)
+                await service.warmCache(for: url, dateModified: dateModified)
             }
         }
     }

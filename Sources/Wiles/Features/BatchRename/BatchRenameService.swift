@@ -143,32 +143,85 @@ public enum BatchRenameService {
         let previews = previewNewNames(items: items, mode: mode, regex: resolution.regex)
         try assertNoCollisions(in: previews)
 
-        var renamedURLs: [URL] = []
-        renamedURLs.reserveCapacity(previews.count)
-        var renamedPairs: [(old: URL, new: URL)] = []
-        var failures: [(item: FileItem, error: any Error)] = []
+        // De-hide any staging temps a previously crashed batch rename stranded in these folders
+        // (MM-113): the temp IS the user's file, so it's renamed to a visible name, never deleted.
+        await recoverStrandedStagingTemps(in: Set(items.map { $0.url.deletingLastPathComponent() }))
 
         // A permutation (swap A↔B, rotate A→B→C→A) passes `assertNoCollisions` but the sequential
         // rename below would fail every step — the target name is still occupied by another source.
         // Stage those sources through a unique temp name first so the finals are always free.
         let sourceURLByStaged = try await stagePermutationCycles(in: previews)
+        return try await renameStagedPreviews(previews, sourceURLByStaged: sourceURLByStaged)
+    }
 
-        for (item, newName) in previews {
-            try Task.checkCancellation()
-            guard isActualRename(item, to: newName) else {
-                renamedURLs.append(item.url)
-                continue
+    /// The sequential temp→final rename loop. Each staged original is cleared from `unresolvedStaged`
+    /// as it resolves (renamed to its final name, or restored on failure); whatever's left when the
+    /// loop exits early (cancellation) is restored so nothing is stranded under a hidden name (MM-113).
+    private static func renameStagedPreviews(
+        _ previews: [(original: FileItem, newName: String)],
+        sourceURLByStaged: [URL: URL]) async throws -> BatchRenameResult {
+        var renamedURLs: [URL] = []
+        renamedURLs.reserveCapacity(previews.count)
+        var renamedPairs: [(old: URL, new: URL)] = []
+        var failures: [(item: FileItem, error: any Error)] = []
+        var unresolvedStaged = sourceURLByStaged
+
+        do {
+            for (item, newName) in previews {
+                try Task.checkCancellation()
+                guard isActualRename(item, to: newName) else {
+                    renamedURLs.append(item.url)
+                    continue
+                }
+                let currentURL = sourceURLByStaged[item.url] ?? item.url
+                do {
+                    let newURL = try await FileSystemService.renameItem(at: currentURL, newName: newName)
+                    renamedURLs.append(newURL)
+                    renamedPairs.append((old: item.url, new: newURL))
+                    unresolvedStaged[item.url] = nil
+                } catch {
+                    failures.append((item, error))
+                    if currentURL != item.url {
+                        _ = try? await FileSystemService.renameItem(
+                            at: currentURL, newName: item.name, onCollision: .keepBoth)
+                        unresolvedStaged[item.url] = nil
+                    }
+                }
             }
-            let currentURL = sourceURLByStaged[item.url] ?? item.url
-            do {
-                let newURL = try await FileSystemService.renameItem(at: currentURL, newName: newName)
-                renamedURLs.append(newURL)
-                renamedPairs.append((old: item.url, new: newURL))
-            } catch {
-                failures.append((item, error))
-            }
+        } catch {
+            await restoreStaged(unresolvedStaged)
+            throw error
         }
         return BatchRenameResult(renamedURLs: renamedURLs, renamedPairs: renamedPairs, failures: failures)
+    }
+
+    /// Batch-rename staging temp prefix — the hidden name a participant is parked under between
+    /// `stagePermutationCycles` and its final rename.
+    static let stagingTempPrefix = ".wiles-batch-rename-"
+
+    /// Renames every still-staged original (`originalURL → tempURL`) back to a visible name.
+    static func restoreStaged(_ staged: [URL: URL]) async {
+        for (originalURL, tempURL) in staged {
+            _ = try? await FileSystemService.renameItem(
+                at: tempURL, newName: originalURL.lastPathComponent, onCollision: .keepBoth)
+        }
+    }
+
+    /// Renames any `.wiles-batch-rename-*` leftover older than a few seconds (i.e. from a crashed
+    /// prior run, not this one's in-flight staging) to a visible `Recovered …` name so the user can
+    /// find their file. Never deletes — the temp is the only copy (MM-113).
+    static func recoverStrandedStagingTemps(in directories: Set<URL>) async {
+        for directory in directories {
+            guard let entries = try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.contentModificationDateKey], options: []) else { continue }
+            for entry in entries where entry.lastPathComponent.hasPrefix(stagingTempPrefix) {
+                let mtime = (try? entry.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                guard let mtime, Date().timeIntervalSince(mtime) > 5 else { continue }
+                let suffix = entry.lastPathComponent.dropFirst(stagingTempPrefix.count)
+                _ = try? await FileSystemService.renameItem(
+                    at: entry, newName: "Recovered \(suffix)", onCollision: .keepBoth)
+            }
+        }
     }
 
     private struct StagedRename {
@@ -195,7 +248,7 @@ public enum BatchRenameService {
             do {
                 for pair in group {
                     try Task.checkCancellation()
-                    let tempName = ".wiles-batch-rename-\(UUID().uuidString)"
+                    let tempName = "\(stagingTempPrefix)\(UUID().uuidString)"
                     let tempURL = try await FileSystemService.renameItem(at: pair.original.url, newName: tempName)
                     stagedThisGroup.append(StagedRename(originalURL: pair.original.url, tempURL: tempURL, originalName: pair.original.name))
                 }

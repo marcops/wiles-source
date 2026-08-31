@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "جارٍ إعادة تسمية الملفات…";
 "removeRecentServer" = "إزالة من العناصر الأخيرة";
 "removeSmartFolderConfirm" = "هل أنت متأكد أنك تريد حذف هذا المجلد الذكي؟ لا يمكن التراجع عن هذا.";
+"deleteSmartFolder" = "حذف المجلد الذكي";
 "ruleConditionExtensionEquals" = "الامتداد يساوي";
 "ruleConditionNameContains" = "الاسم يحتوي على";
 "ruleConditionNamePrefix" = "الاسم يبدأ بـ";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "ستؤدي إعادة التسمية الدُفعية إلى تعارض في الأسماء: {0}";
 "batchRenameInvalidPattern" = "نمط إعادة تسمية غير صالح: {0}";
 "movePartialFailure" = "تعذّر نقل {0} من {1} عنصرًا.";
+"undoRestoredDifferentName" = "تمت الاستعادة باسم ”{0}“ لأن ”{1}“ قيد الاستخدام بالفعل.";
 "searchContentQueryTooShort" = "اكتب 3 أحرف على الأقل للبحث داخل الملفات.";
 "searchInvalidRegex" = "هذا التعبير النمطي غير صالح.";
+"searchInvalidFilterToken" = "عامل التصفية ”%@“ غير صالح، لذا لا يمكن لأي عنصر أن يطابقه.";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "عرض أول %d من عناصر كثيرة";
 "convertingImageEllipsis" = "Converting Image…";

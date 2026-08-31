@@ -24,8 +24,59 @@ public struct UndoRedoTests {
         await testUndoOfMoveRemapsFavorites(tempDir: tempDir)
         await testConcurrentUndoConsumesOnlyOneStep(tempDir: tempDir)
         await testChmodUndoRestoresPreviousPermissions(tempDir: tempDir)
+        await testRestoreDivergenceFiresWhenOriginalNameIsTaken(tempDir: tempDir)
+        await testRestoreDivergenceSilentOnCleanUndo(tempDir: tempDir)
 
         try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    /// MM-091: undoing `A`→`B` after a new `A` was created can't restore the file as `A` (taken),
+    /// so `.keepBoth` lands it on `A 2`. The step still succeeds, but `onRestoreDiverged` must fire
+    /// so the user isn't left believing the state was fully reverted.
+    private static func testRestoreDivergenceFiresWhenOriginalNameIsTaken(tempDir: URL) async {
+        let service = UndoRedoService()
+        let dir = tempDir.appendingPathComponent("diverge-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let original = dir.appendingPathComponent("A.txt")
+        try? "payload".write(to: original, atomically: true, encoding: .utf8)
+
+        let renamed = await (try? FileSystemService.renameItem(at: original, newName: "B.txt")) ?? original
+        service.recordAction(.rename(oldURL: original, newURL: renamed))
+        // The original name is re-taken before the undo runs.
+        try? "squatter".write(to: original, atomically: true, encoding: .utf8)
+
+        var reported: (intended: String, actual: String)?
+        service.onRestoreDiverged = { intended, actual in reported = (intended, actual) }
+
+        let result = try? await service.undo()
+
+        let firedWithRightNames = reported?.intended == "A.txt" && (reported?.actual.hasPrefix("A ") ?? false)
+        let landedOnFreeName = result?.lastPathComponent != "A.txt" && result != nil
+        TestReporter.report(
+            "UndoRedo",
+            "POS: onRestoreDiverged fires (intended 'A.txt', actual 'A 2.txt') when undo can't reclaim the original name",
+            result: firedWithRightNames && landedOnFreeName)
+    }
+
+    /// The signal must NOT fire on a normal undo where the original name is free.
+    private static func testRestoreDivergenceSilentOnCleanUndo(tempDir: URL) async {
+        let service = UndoRedoService()
+        let dir = tempDir.appendingPathComponent("noverge-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let original = dir.appendingPathComponent("X.txt")
+        try? "x".write(to: original, atomically: true, encoding: .utf8)
+
+        let renamed = await (try? FileSystemService.renameItem(at: original, newName: "Y.txt")) ?? original
+        service.recordAction(.rename(oldURL: original, newURL: renamed))
+
+        var fired = false
+        service.onRestoreDiverged = { _, _ in fired = true }
+        let result = try? await service.undo()
+
+        TestReporter.report(
+            "UndoRedo",
+            "NEG: onRestoreDiverged stays silent when undo restores the file under its original name",
+            result: !fired && result?.lastPathComponent == "X.txt")
     }
 
     /// A second ⌘Z fired while the first is still mid-`await` must be rejected, not pop the next
@@ -231,11 +282,11 @@ public struct UndoRedoTests {
         TestReporter.report("UndoRedo", "NEG: recording a new action clears the redo stack", result: !service.canRedo())
     }
 
-    /// Regression coverage for the `.create(url:)` → `.createFolder`/`.createFile` split:
-    /// `.createFile`'s content was never stored, so redoing an undone file creation must throw
-    /// `WilesError.fileCreationNotRedoable` instead of silently recreating a FOLDER at the file's
-    /// former path (the bug this split fixes — `.createFolder`'s redo still recreates fine, covered
-    /// by `testCreateTrashAndHistoryCap` above).
+    /// Regression coverage for the `.create(url:)` → `.createFolder`/`.createFile` split plus
+    /// finding ML-135: `.createFile`'s content was never stored, so undoing a file creation must
+    /// NOT leave a redo entry behind — ⌘⇧Z afterwards is a silent no-op, not a re-thrown
+    /// `fileCreationNotRedoable` error that also stays stuck on the redo stack. (`.createFolder`'s
+    /// redo still recreates fine, covered by `testCreateTrashAndHistoryCap` above.)
     private static func testCreateFileRedoThrowsExplicitError(service: UndoRedoService, tempDir: URL) async {
         let createdFile = tempDir.appendingPathComponent("created_by_test.txt")
         try? "created file content".write(to: createdFile, atomically: true, encoding: .utf8)
@@ -245,27 +296,26 @@ public struct UndoRedoTests {
         let undoCreateFilePos = undoCreateFile != nil && !FileManager.default.fileExists(atPath: createdFile.path)
         TestReporter.report("UndoRedo", "POS: undo() on a createFile action trashes the created file", result: undoCreateFilePos)
 
-        var redoThrewFileCreationNotRedoable = false
+        TestReporter.report(
+            "UndoRedo",
+            "POS: undoing a createFile leaves nothing on the redo stack (ML-135)",
+            result: !service.canRedo())
+
+        var redoThrew = false
+        var redoResult: URL?
         do {
-            _ = try await service.redo()
-        } catch let error as WilesError {
-            redoThrewFileCreationNotRedoable = error == .fileCreationNotRedoable
+            redoResult = try await service.redo()
         } catch {
-            redoThrewFileCreationNotRedoable = false
+            redoThrew = true
         }
         TestReporter.report(
             "UndoRedo",
-            "NEG: redo() on an undone createFile action throws WilesError.fileCreationNotRedoable instead of creating a folder",
-            result: redoThrewFileCreationNotRedoable)
+            "POS: redo() after an undone createFile is a silent no-op — returns nil, throws nothing (ML-135)",
+            result: !redoThrew && redoResult == nil)
         TestReporter.report(
             "UndoRedo",
-            "NEG: redo() on an undone createFile action does not create a folder at the file's former path",
+            "NEG: redo() after an undone createFile does not recreate a file/folder at the former path",
             result: !FileManager.default.fileExists(atPath: createdFile.path))
-
-        // A failed redo() re-pushes the record onto the redo stack (see redo()'s catch), not the
-        // undo stack — no explicit drain needed here: the next recordAction() call (in
-        // testHistoryCap below) clears the whole redo stack as a side effect, same as any other
-        // newly recorded action would.
     }
 
     private static func testHistoryCap(service: UndoRedoService, tempDir: URL) async {

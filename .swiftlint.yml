@@ -433,3 +433,17 @@ custom_rules:
     regex: 'contentsOfDirectory\((?![\s\S]{0,240}?skipsHiddenFiles)'
     message: "Pass .skipsHiddenFiles to the LAN share's directory read (and refuse dotfile requests in serveFile) — it currently exposes .git/.env/.ssh."
     severity: warning
+  no_raw_int_pref_restore:
+    name: "No Raw defaults.integer(forKey:) in a Preference Store"
+    # `UserDefaults.integer(forKey:)` returns 0 for both "never saved" and "explicitly saved 0", so
+    # a restore guarded by `if value > 0` silently drops a user's choice of 0 (e.g. a translucency
+    # level of 0% reverting to the default on relaunch — DEV_RULES.md "Complete State Persistence").
+    # In a preference store you always want the "was it ever written" distinction — that's exactly
+    # what PersistablePreferenceStore.loadInt(_:into:from:) does (mirrors loadBool). Route every Int
+    # restore through it. The helper file itself is exempt — it's the one place the raw call is
+    # correct — same as loadBool.
+    included: ".*/Stores/Preferences/.*\\.swift"
+    excluded: ".*/PersistablePreferenceStore\\.swift"
+    regex: '\.integer\(forKey:'
+    message: "Restore an Int preference via PersistablePreferenceStore.loadInt(_:into:from:), not raw defaults.integer(forKey:) — the latter can't tell 'never saved' from 'saved as 0', silently dropping a user's choice of 0."
+    severity: error

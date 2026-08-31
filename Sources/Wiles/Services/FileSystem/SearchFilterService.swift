@@ -9,6 +9,9 @@ public struct SearchFilterService: Sendable {
     public static let minContentQueryLength = 3
     /// Largest file whose bytes are read for a content-search match — a bigger read would stall.
     static let maxContentSearchFileBytes = 2_000_000
+    /// Total disk bytes a single recursive "search everywhere" is allowed to read for content
+    /// matching before it stops opening new files (finding MM-096). Cache hits don't count.
+    static let recursiveContentByteBudget = 128 * 1024 * 1024
 
     /// The one whitespace-split used everywhere the query string is broken into tokens.
     static func tokens(of query: String) -> [String] {
@@ -119,6 +122,9 @@ public struct SearchFilterService: Sendable {
         for token in tokens {
             let lower = token.lowercased()
             if isFilterToken(lower) || lower == "hidden:true" {
+                if invalidFilterTokenValue(lower) {
+                    return .invalidFilterToken(token: token)
+                }
                 continue
             }
             if token.hasPrefix("r:") || containsRegexMetacharacter(token) {
@@ -146,6 +152,36 @@ public struct SearchFilterService: Sendable {
     private static func isFilterToken(_ lowerToken: String) -> Bool {
         lowerToken.hasPrefix("date:") || lowerToken.hasPrefix("size:") || lowerToken.hasPrefix("kind:")
             || lowerToken.hasPrefix("ext:") || lowerToken.hasPrefix("tag:")
+    }
+
+    /// `true` when a `size:` / `date:` token's value can't parse at all, so `matchesSizeFilter` /
+    /// `matchesDateFilter` reject every file — the query looks valid but is guaranteed empty
+    /// (finding ML-140). `kind:` / `ext:` / `tag:` accept any string (they fall back to a substring
+    /// match), so they're never "invalid" this way.
+    private static func invalidFilterTokenValue(_ lowerToken: String) -> Bool {
+        if lowerToken.hasPrefix("size:") {
+            return !isParsableSizeFilterValue(String(lowerToken.dropFirst(5)))
+        }
+        if lowerToken.hasPrefix("date:") {
+            return !isParsableDateFilterValue(String(lowerToken.dropFirst(5)))
+        }
+        return false
+    }
+
+    private static func isParsableSizeFilterValue(_ value: String) -> Bool {
+        let (_, valueStr) = splitOperator(from: value)
+        let digits = valueStr.filter(\.isNumber)
+        guard !digits.isEmpty, Int64(digits) != nil else { return false }
+        return sizeFilterMultiplier(unit: valueStr.filter(\.isLetter)) != nil
+    }
+
+    private static func isParsableDateFilterValue(_ value: String) -> Bool {
+        if value == "today" || value == "yesterday" {
+            return true
+        }
+        let (_, valueStr) = splitOperator(from: value)
+        let digits = valueStr.filter(\.isNumber)
+        return !digits.isEmpty && Int(digits) != nil
     }
 
     /// Tokenizes and analyses `query` **once** per load — split tokens, compiled regexes, and the
@@ -183,18 +219,29 @@ public struct SearchFilterService: Sendable {
 
     /// `scope` is the explicit Name/Content/Both menu choice — no implicit fallback. Each token is
     /// matched against its own regex, if it has one, never the whole query string.
+    /// `contentBudget` (recursive "search everywhere" only) caps total bytes read from disk for
+    /// content matching across the whole crawl — see `ContentReadBudget` / finding MM-096. `nil`
+    /// leaves content reads unbounded, which is fine for a single-folder listing.
     public static func matchesSearch(
-        fileURL: URL, parsed: ParsedSearchQuery, scope: SearchScope, caseSensitive: Bool) -> Bool {
+        fileURL: URL, parsed: ParsedSearchQuery, scope: SearchScope, caseSensitive: Bool,
+        contentBudget: ContentReadBudget? = nil) -> Bool {
         guard !parsed.isEmpty else { return true }
 
+        let options = MatchOptions(scope: scope, caseSensitive: caseSensitive, contentBudget: contentBudget)
         let attributes = prefetchAttributes(for: fileURL, resourceKeys: parsed.resourceKeys)
         for token in parsed.tokens
-            where !matchesToken(
-                token: token, regex: parsed.tokenRegexes[token], scope: scope,
-                caseSensitive: caseSensitive, attributes: attributes) {
+            where !matchesToken(token: token, regex: parsed.tokenRegexes[token], attributes: attributes, options: options) {
             return false
         }
         return true
+    }
+
+    /// The per-search constants (don't vary per token) threaded into the token matchers.
+    private struct MatchOptions {
+        let scope: SearchScope
+        let caseSensitive: Bool
+        /// Recursive "search everywhere" only — total disk-read cap for content matching (MM-096).
+        let contentBudget: ContentReadBudget?
     }
 
     /// One `resourceValues` fetch covering `resourceKeys` (precomputed by `parsedQuery`). Returns
@@ -212,8 +259,7 @@ public struct SearchFilterService: Sendable {
     }
 
     private static func matchesToken(
-        token: String, regex: NSRegularExpression?, scope: SearchScope,
-        caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
+        token: String, regex: NSRegularExpression?, attributes: PrefetchedAttributes, options: MatchOptions) -> Bool {
         let lowerToken = token.lowercased()
         if lowerToken.hasPrefix("date:") {
             return matchesDateFilter(token: String(token.dropFirst(5)), attributes: attributes)
@@ -225,9 +271,7 @@ public struct SearchFilterService: Sendable {
         } else if lowerToken.hasPrefix("tag:") {
             return matchesTagFilter(tag: String(token.dropFirst(4)), attributes: attributes)
         }
-        return matchesTextOrRegex(
-            token: token, regex: regex, scope: scope,
-            caseSensitive: caseSensitive, attributes: attributes)
+        return matchesTextOrRegex(token: token, regex: regex, attributes: attributes, options: options)
     }
 
     private static func matchesDateFilter(token: String, attributes: PrefetchedAttributes) -> Bool {
@@ -351,16 +395,16 @@ public struct SearchFilterService: Sendable {
     }
 
     private static func matchesTextOrRegex(
-        token: String, regex: NSRegularExpression?, scope: SearchScope,
-        caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
-        switch scope {
+        token: String, regex: NSRegularExpression?, attributes: PrefetchedAttributes, options: MatchOptions) -> Bool {
+        let caseSensitive = options.caseSensitive
+        switch options.scope {
         case .name:
-            matchesFileName(token: token, regex: regex, caseSensitive: caseSensitive, attributes: attributes)
+            return matchesFileName(token: token, regex: regex, caseSensitive: caseSensitive, attributes: attributes)
         case .content:
-            matchesContent(query: token, caseSensitive: caseSensitive, attributes: attributes)
+            return matchesContent(query: token, caseSensitive: caseSensitive, attributes: attributes, budget: options.contentBudget)
         case .both:
-            matchesFileName(token: token, regex: regex, caseSensitive: caseSensitive, attributes: attributes)
-                || matchesContent(query: token, caseSensitive: caseSensitive, attributes: attributes)
+            return matchesFileName(token: token, regex: regex, caseSensitive: caseSensitive, attributes: attributes)
+                || matchesContent(query: token, caseSensitive: caseSensitive, attributes: attributes, budget: options.contentBudget)
         }
     }
 
@@ -384,20 +428,28 @@ public struct SearchFilterService: Sendable {
         return cache
     }()
 
-    private static func matchesContent(query: String, caseSensitive: Bool, attributes: PrefetchedAttributes) -> Bool {
+    private static func matchesContent(
+        query: String, caseSensitive: Bool, attributes: PrefetchedAttributes, budget: ContentReadBudget?) -> Bool {
         guard query.count >= minContentQueryLength else { return false }
         guard FileKindCatalog.isText(attributes.url.pathExtension) else { return false }
         guard let size = attributes.fileSize, size < maxContentSearchFileBytes else { return false }
-        guard let content = cachedTextContent(of: attributes.url, mtime: attributes.modificationDate, size: size) else { return false }
+        guard let content = cachedTextContent(
+            of: attributes.url, mtime: attributes.modificationDate, size: size, budget: budget) else { return false }
         return caseSensitive ? content.contains(query) : content.localizedCaseInsensitiveContains(query)
     }
 
-    private static func cachedTextContent(of fileURL: URL, mtime: Date?, size: Int) -> String? {
+    private static func cachedTextContent(of fileURL: URL, mtime: Date?, size: Int, budget: ContentReadBudget?) -> String? {
         let key = "\(fileURL.path)|\(mtime?.timeIntervalSinceReferenceDate ?? 0)|\(size)" as NSString
         if let hit = contentCache.object(forKey: key) {
             return hit as String
         }
+        // Cache miss ⇒ this call would hit the disk. Stop once the recursive search has spent its
+        // total read budget (finding MM-096); a `nil` budget is unbounded.
+        if let budget, !budget.canRead() {
+            return nil
+        }
         guard let text = readTextContent(of: fileURL) else { return nil }
+        budget?.consume(text.utf8.count)
         contentCache.setObject(text as NSString, forKey: key, cost: text.utf8.count)
         return text
     }

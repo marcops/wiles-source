@@ -27,6 +27,10 @@ struct FilePropertiesSheet: View {
     @State private var showRecursivePermissionsConfirmation = false
     @State private var isApplyingPermissions = false
     @State private var applyPermissionsResult: String?
+    /// The in-flight (possibly recursive) chmod. Held so it can be cancelled when the sheet is
+    /// dismissed — `setPermissionsRecursively` checks `Task.isCancelled` per item, which was dead
+    /// while nothing ever cancelled this task (LL-025).
+    @State private var applyPermissionsTask: Task<Void, Never>?
 
     private var hasPendingPermissionChanges: Bool {
         hasPermissions && permissions != (lastAppliedPermissions ?? permissions)
@@ -50,11 +54,14 @@ struct FilePropertiesSheet: View {
                 appState.tr(.applyToEnclosedItemsConfirmMessage),
                 isPresented: $showRecursivePermissionsConfirmation,
                 titleVisibility: .visible) {
-                    Button(appState.tr(.apply), role: .destructive) { Task { await applyPermissions() } }
+                    Button(appState.tr(.apply), role: .destructive) { applyPermissionsTask = Task { await applyPermissions() } }
                     Button(appState.tr(.cancel), role: .cancel) { }
             }
             .task {
                 await loadProperties()
+            }
+            .onDisappear {
+                applyPermissionsTask?.cancel()
             }
     }
 
@@ -210,7 +217,7 @@ struct FilePropertiesSheet: View {
                 if applyToEnclosedItems {
                     showRecursivePermissionsConfirmation = true
                 } else {
-                    Task { await applyPermissions() }
+                    applyPermissionsTask = Task { await applyPermissions() }
                 }
             }
             .buttonStyle(.borderedProminent)

@@ -15,5 +15,14 @@ public struct LocalizationTests {
 
         let sysStr = L10n.string(.aboutWiles, lang: .system)
         TestReporter.report("Localization", "POS/NEG: System language fallback resolution", result: !sysStr.isEmpty)
+
+        // LU-030b: deleting a smart folder removes a saved query — it must NOT be labelled
+        // "Move to Trash" (nothing is trashed).
+        let deleteLabel = L10n.string(.deleteSmartFolder, lang: .english)
+        let trashLabel = L10n.string(.moveToTrash, lang: .english)
+        TestReporter.report(
+            "Localization",
+            "POS: the smart-folder delete action has its own label, distinct from 'Move to Trash' (LU-030b)",
+            result: !deleteLabel.isEmpty && deleteLabel != trashLabel)
     }
 }

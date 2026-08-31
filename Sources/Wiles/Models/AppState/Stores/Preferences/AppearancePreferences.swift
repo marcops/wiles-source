@@ -51,13 +51,7 @@ public final class AppearancePreferences: PersistablePreferenceStore {
         loadEnum(.appAppearance, into: \.appAppearance, from: defaults)
         loadEnum(.appLanguage, into: \.appLanguage, from: defaults)
 
-        let sLevel = defaults.integer(forKey: DefaultsKey.sidebarTranslucentLevel.rawValue)
-        if sLevel > 0 {
-            sidebarTranslucentLevel = sLevel
-        }
-        let cLevel = defaults.integer(forKey: DefaultsKey.contentTranslucentLevel.rawValue)
-        if cLevel > 0 {
-            contentTranslucentLevel = cLevel
-        }
+        loadInt(.sidebarTranslucentLevel, into: \.sidebarTranslucentLevel, from: defaults)
+        loadInt(.contentTranslucentLevel, into: \.contentTranslucentLevel, from: defaults)
     }
 }

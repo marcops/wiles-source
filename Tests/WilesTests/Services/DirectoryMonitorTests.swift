@@ -8,6 +8,33 @@ public struct DirectoryMonitorTests {
         await testCancelStopsFurtherNotifications()
         testStartOnNonexistentPathDoesNotCrash()
         await testRestartOnSameMonitorStillDeliversEvents()
+        await testCancelReleasesRetainedSelfSoMonitorDeallocates()
+    }
+
+    /// ML-120: the FSEvents context now holds `Unmanaged.passRetained(self)` with a `release`
+    /// callback, so a background callback can't touch a freed monitor mid-teardown. The flip side
+    /// must hold too — `cancel()` (via `FSEventStreamRelease`) drops that +1, so once the owner
+    /// lets go the monitor actually deallocates instead of leaking behind a permanent cycle.
+    private static func testCancelReleasesRetainedSelfSoMonitorDeallocates() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        weak var weakMonitor: DirectoryMonitor?
+        do {
+            let monitor = DirectoryMonitor()
+            weakMonitor = monitor
+            monitor.start(path: dir.path) { }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            monitor.cancel()
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        report(
+            "DirectoryMonitor",
+            "POS: after cancel() the stream's retained self-reference is released and the monitor deallocates (no leak/cycle)",
+            result: weakMonitor == nil)
     }
 
     /// B4-5 added a failure guard around `FSEventStreamStart`. That branch can't be forced without

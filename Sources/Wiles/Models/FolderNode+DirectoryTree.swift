@@ -22,6 +22,6 @@ extension FolderNode {
     /// Loads immediate subfolders off the main actor — a stalled share must never block the UI
     /// (both trees previously inlined this `Task.detached` hop).
     static func loadChildrenOffMainActor(of url: URL) async -> [FolderNode] {
-        await Task.detached(priority: .userInitiated) { Self.loadChildren(of: url) }.value
+        await CancellableWork.detached(priority: .userInitiated) { Self.loadChildren(of: url) }
     }
 }

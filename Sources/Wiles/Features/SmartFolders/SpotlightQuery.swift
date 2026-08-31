@@ -14,11 +14,18 @@ final class SpotlightQuery {
     /// forever, so without this the caller would await it indefinitely.
     static let defaultTimeout: Duration = .seconds(20)
     private let timeout: Duration
+    /// Test-only: when `false`, `run()` never starts the `NSMetadataQuery` (and never observes its
+    /// gather notification), so only the timeout can resolve it — the deterministic way to exercise
+    /// the "gather never finishes" path without racing Spotlight's real, host-dependent latency.
+    private let startsQuery: Bool
 
-    init(predicate: NSPredicate, searchScopes: [Any], timeout: Duration = SpotlightQuery.defaultTimeout) {
+    init(
+        predicate: NSPredicate, searchScopes: [Any],
+        timeout: Duration = SpotlightQuery.defaultTimeout, startsQuery: Bool = true) {
         query.predicate = predicate
         query.searchScopes = searchScopes
         self.timeout = timeout
+        self.startsQuery = startsQuery
     }
 
     /// Gathers once, then resolves with the matching file paths — empty on timeout or if abandoned
@@ -27,14 +34,16 @@ final class SpotlightQuery {
     func run() async -> (paths: [String], timedOut: Bool) {
         await withCheckedContinuation { continuation in
             self.continuation = continuation
-            observer = NotificationCenter.default.addObserver(
-                forName: .NSMetadataQueryDidFinishGathering, object: query, queue: .main) { notification in
-                    // `NSMetadataQuery`/`Notification` aren't Sendable — pull the plain paths out here,
-                    // then hop once for the `self`-touching teardown.
-                    let paths = Self.paths(from: notification)
-                    Task { @MainActor [weak self] in self?.complete(with: paths) }
-                }
-            query.start()
+            if startsQuery {
+                observer = NotificationCenter.default.addObserver(
+                    forName: .NSMetadataQueryDidFinishGathering, object: query, queue: .main) { notification in
+                        // `NSMetadataQuery`/`Notification` aren't Sendable — pull the plain paths out
+                        // here, then hop once for the `self`-touching teardown.
+                        let paths = Self.paths(from: notification)
+                        Task { @MainActor [weak self] in self?.complete(with: paths) }
+                    }
+                query.start()
+            }
             timeoutTask = Task { [weak self, timeout] in
                 try? await Task.sleep(for: timeout)
                 guard !Task.isCancelled else { return }

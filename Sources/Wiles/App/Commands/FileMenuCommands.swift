@@ -47,11 +47,13 @@ struct FileMenuCommands: LocalizedCommands {
                 .disabled(appState.selection.selectedURLs.isEmpty)
             Button(tr(.quickLook)) { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
                 .keyboardShortcut(.quickLook)
-                .disabled(appState.selection.selectedURLs.isEmpty)
+                .disabled(appState.selection.selectedURLs.isEmpty || windowUIState.isTerminalFocused)
             Divider()
+            // `.disabled` while the terminal is focused so the plain Space / Delete menu key
+            // equivalents can't fire from terminal input (finding CH-321).
             Button(tr(.moveToTrash)) { appState.deleteSelected(windowUIState: windowUIState) }
                 .keyboardShortcut(.moveToTrash)
-                .disabled(appState.selection.selectedURLs.isEmpty)
+                .disabled(appState.selection.selectedURLs.isEmpty || windowUIState.isTerminalFocused)
         }
     }
 }

@@ -26,9 +26,15 @@ enum FilenameSanitizer {
         guard name.utf8.count > maxNameByteCount else { return name }
         let ext = (name as NSString).pathExtension
         let dotExt = ext.isEmpty ? "" : "." + ext
-        let stemBudget = maxNameByteCount - dotExt.utf8.count
-        guard stemBudget > 0 else { return truncatedToByteCount(name, limit: maxNameByteCount) }
         let stem = (name as NSString).deletingPathExtension
+        let stemBudget = maxNameByteCount - dotExt.utf8.count
+        guard stemBudget > 0 else {
+            // The extension alone is ≥ the byte cap (degenerate input). Hard-truncating the whole
+            // name here used to cut through the middle of the extension; instead keep a `stem.ext`
+            // shape by truncating the extension itself (LL-010).
+            let prefix = truncatedToByteCount(stem, limit: 1) + "."
+            return prefix + truncatedToByteCount(ext, limit: maxNameByteCount - prefix.utf8.count)
+        }
         return truncatedToByteCount(stem, limit: stemBudget) + dotExt
     }
 

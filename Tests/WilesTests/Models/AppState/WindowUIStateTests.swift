@@ -14,6 +14,31 @@ public struct WindowUIStateTests {
         testCancelRenameIfSelectionChanged()
         testPerWindowDefaultsSeedAndWriteBack()
         testMoveCollisionPromptResolvesOnceAndOnTearDown()
+        testOnRenameClearedIsOneShot()
+    }
+
+    /// ML-139: `onRenameCleared` is set only for the newly-created-item rename session and must be
+    /// consumed the first time `renameItem` clears — otherwise every later F2 / context-menu rename
+    /// re-runs the stale closure and fires an extra directory refresh.
+    private static func testOnRenameClearedIsOneShot() {
+        let state = WindowUIState(preferences: PreferencesStore())
+        let item = FileItem.load(url: URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("wiles-onrenamecleared-\(UUID().uuidString).txt"))
+
+        var fireCount = 0
+        state.onRenameCleared = { fireCount += 1 }
+
+        state.renameItem = item
+        state.renameItem = nil // ends the "newly created" rename session
+        report("Models/WindowUIState", "POS: onRenameCleared fires once when its rename session ends", result: fireCount == 1)
+        report("Models/WindowUIState", "POS: onRenameCleared is cleared after firing", result: state.onRenameCleared == nil)
+
+        // A later, unrelated rename (F2) must NOT re-run the consumed closure.
+        state.renameItem = item
+        state.renameItem = nil
+        report(
+            "Models/WindowUIState",
+            "POS: a subsequent rename does not re-run the stale onRenameCleared (ML-139)",
+            result: fireCount == 1)
     }
 
     /// A suspended move loop awaits `promptMoveCollision`. A prompt must never resolve twice (that

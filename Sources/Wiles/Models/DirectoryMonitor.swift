@@ -24,6 +24,17 @@ final class DirectoryMonitor: @unchecked Sendable {
         onChange?()
     }
 
+    /// Balances the `Unmanaged.passRetained(self)` handed to the stream's `info` in `start()`:
+    /// FSEvents invokes this when the stream is released (`FSEventStreamRelease` in `cancel()` /
+    /// the start-failure path), dropping that +1. Result: the monitor is guaranteed alive for as
+    /// long as the stream can still call `fsEventsCallback` on the utility queue — closing the
+    /// use-after-free window when an FS event lands exactly as `deinit`/`cancel()` runs on another
+    /// thread (finding ML-120). Canonical FSEvents ownership pattern.
+    private static let releaseContextInfo: @convention(c) (UnsafeRawPointer?) -> Void = { info in
+        guard let info else { return }
+        Unmanaged<DirectoryMonitor>.fromOpaque(info).release()
+    }
+
     /// `@MainActor`: every caller (`FileSystemStore`) already runs here — this turns that into a
     /// compiler-checked guarantee instead of just an assertion. `cancel()` deliberately stays
     /// `nonisolated` (already thread-safe via `lock`) since the synchronous `deinit` below
@@ -34,11 +45,15 @@ final class DirectoryMonitor: @unchecked Sendable {
         lock.withLock { callback = onChange }
 
         let pathsToWatch = [path as NSString] as CFArray
+        // `passRetained` + a `release` callback (not `passUnretained`): the stream keeps the
+        // monitor alive until `FSEventStreamRelease`, so a callback already running on the utility
+        // queue can't touch a freed object mid-teardown (finding ML-120).
+        let retainedInfo = Unmanaged.passRetained(self)
         var context = FSEventStreamContext(
             version: 0,
-            info: Unmanaged.passUnretained(self).toOpaque(),
+            info: retainedInfo.toOpaque(),
             retain: nil,
-            release: nil,
+            release: Self.releaseContextInfo,
             copyDescription: nil)
 
         let flags = UInt32(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer)
@@ -50,7 +65,11 @@ final class DirectoryMonitor: @unchecked Sendable {
             pathsToWatch,
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
             Self.coalescingLatency,
-            flags) else { return }
+            flags) else {
+            // No stream was created, so the `release` callback will never fire — drop the +1 here.
+            retainedInfo.release()
+            return
+        }
 
         lock.withLock { streamRef = stream }
         FSEventStreamSetDispatchQueue(stream, DispatchQueue.global(qos: .utility))

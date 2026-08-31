@@ -27,15 +27,28 @@ public final class WindowUIState {
     public var renameItem: FileItem? {
         didSet {
             guard renameItem == nil, oldValue != nil else { return }
-            onRenameCleared?()
+            // One-shot: consume the closure as it fires. It's only ever set for the
+            // newly-created-item rename session (`enterRenameForNewlyCreated`); leaving it set made
+            // every *later* F2 / context-menu rename in the window also run this stale closure,
+            // firing an extra `refreshCurrentDirectory()` on top of the ones commit()/cancel()
+            // already do — 2-3 back-to-back directory reloads per rename (finding ML-139).
+            let onCleared = onRenameCleared
+            onRenameCleared = nil
+            onCleared?()
         }
     }
 
     /// Set by `AppState.enterRenameForNewlyCreated` to clear `FileSystemStore.renamingURL` (the
-    /// per-window refresh-suppression flag for the item being renamed) whenever `renameItem` goes
-    /// back to nil, regardless of which of this rename session's several cancel/commit paths did it —
-    /// keeping the two flags in sync without every call site having to remember both.
+    /// per-window refresh-suppression flag for the item being renamed) when that rename session's
+    /// `renameItem` goes back to nil — whichever of its several cancel/commit paths did it. Consumed
+    /// (set back to nil) the first time it fires, so it never outlives its one rename session.
     public var onRenameCleared: (() -> Void)?
+    /// True while the integrated terminal drawer's PTY view is this window's first responder.
+    /// Maintained by `GlobalKeyMonitor` on every key/scroll/click event. `GlobalKeyMonitor` yields
+    /// keystrokes to the terminal when this is set, and `FileMenuCommands` disables the plain-key
+    /// destructive menu items (Delete → Trash, Space → Quick Look) so their menu key equivalents
+    /// can't fire from terminal input. See finding CH-321.
+    public var isTerminalFocused: Bool = false
     public var showEmptyTrashAlert: Bool = false
     public var showDeleteConfirmAlert: Bool = false
     /// Permanent-delete (shred) confirmation. Separate from `showDeleteConfirmAlert` because that

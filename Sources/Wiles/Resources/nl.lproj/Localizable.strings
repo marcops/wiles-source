@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "Bestanden hernoemen…";
 "removeRecentServer" = "Verwijderen uit Recent";
 "removeSmartFolderConfirm" = "Weet je zeker dat je deze slimme map wilt verwijderen? Dit kan niet ongedaan worden gemaakt.";
+"deleteSmartFolder" = "Slimme map verwijderen";
 "ruleConditionExtensionEquals" = "Extensie Is Gelijk Aan";
 "ruleConditionNameContains" = "Naam Bevat";
 "ruleConditionNamePrefix" = "Naam Begint Met";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "Batchhernoemen zou naamconflicten veroorzaken: {0}";
 "batchRenameInvalidPattern" = "Ongeldig hernoempatroon: {0}";
 "movePartialFailure" = "{0} van {1} items konden niet worden verplaatst.";
+"undoRestoredDifferentName" = "Hersteld als “{0}” omdat “{1}” al in gebruik is.";
 "searchContentQueryTooShort" = "Typ minstens 3 tekens om in bestanden te zoeken.";
 "searchInvalidRegex" = "Die reguliere expressie is ongeldig.";
+"searchInvalidFilterToken" = "Het filter “%@” is ongeldig, dus niets kan eraan voldoen.";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "De eerste %d van vele worden weergegeven";
 "convertingImageEllipsis" = "Converting Image…";

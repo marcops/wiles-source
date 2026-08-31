@@ -43,6 +43,37 @@ final class NetworkServerServiceTests: XCTestCase {
         XCTAssertEqual(fake.openedSingleURLs, [URL(string: "ftp://myserver.local")])
     }
 
+    // LU-020: a share name with spaces ("Time Machine Backups") is a legitimate target. It must
+    // resolve to a URL (percent-encoded) and reach the opener, not fail as "invalid URL".
+    func testConnectToServerAcceptsAShareNameContainingSpaces() throws {
+        let fake = NetworkServerFakeWorkspaceOpener()
+        let previousOpener = NetworkServerService.opener
+        NetworkServerService.opener = fake
+        defer { NetworkServerService.opener = previousOpener }
+
+        try NetworkServerService.connectToServer(urlAddress: "nas.local/Time Machine Backups")
+
+        XCTAssertEqual(fake.openedSingleURLs.count, 1)
+        let opened = fake.openedSingleURLs.first
+        XCTAssertEqual(opened?.scheme, "smb")
+        XCTAssertFalse(opened?.absoluteString.contains(" ") ?? true, "the space must be encoded, not passed raw")
+        XCTAssertTrue(opened?.absoluteString.contains("Time%20Machine%20Backups") ?? false)
+    }
+
+    func testServerURLResolvesSpacesButRejectsGenuineGarbage() {
+        let withSpaces = NetworkServerService.serverURL(fromFullAddress: "smb://nas/My Share")
+        XCTAssertNotNil(withSpaces)
+        XCTAssertFalse(withSpaces?.absoluteString.contains(" ") ?? true)
+
+        // An already-encoded address round-trips unchanged.
+        XCTAssertEqual(
+            NetworkServerService.serverURL(fromFullAddress: "smb://nas/already%20encoded"),
+            URL(string: "smb://nas/already%20encoded"))
+
+        // Backslashes are still invalid even after the space fallback.
+        XCTAssertNil(NetworkServerService.serverURL(fromFullAddress: "smb://\\\\still bad"))
+    }
+
     // POS: when the injected opener reports failure (mirrors a real connection failure), the
     // NSError-construction branch is reached and thrown, instead of returning silently.
     func testConnectToServerThrowsServerConnectionFailedWhenOpenerReportsFailure() throws {

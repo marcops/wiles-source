@@ -21,7 +21,7 @@ public struct FileMetadataTooltipServiceTests {
         await testTooltipHandlesCorruptImageGracefully()
         await testTooltipFallsBackToDocumentForExtensionlessFile()
         await testTooltipUppercasesUnknownExtension()
-        await testInvalidateClearsCachedTooltip()
+        await testTooltipCacheKeyIncludesModificationDate()
         testFirstCharacterUppercasedOnlyTouchesFirstCharacter()
         testFirstCharacterUppercasedIsSafeOnEmptyAndSingleChar()
     }
@@ -234,39 +234,35 @@ public struct FileMetadataTooltipServiceTests {
             result: tooltip.contains("MADEUPEXT123"))
     }
 
-    /// Verifies real cache/invalidation behavior end-to-end: a second `tooltip(for:)` call for the
-    /// same path returns the *stale* cached text even after the underlying file changes size, until
-    /// `invalidate(url:)` is called, after which the freshly computed text reflects the new size.
-    private static func testInvalidateClearsCachedTooltip() async {
+    /// SL-090: the tooltip cache key now folds in `dateModified`, so a file edited/replaced on disk
+    /// is a cache MISS on the next hover (fresh metadata), while an unchanged file is still served
+    /// from cache. Previously the key was `<lang>|<path>` and stale metadata lingered until eviction.
+    private static func testTooltipCacheKeyIncludesModificationDate() async {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
 
-        let file = dir.appendingPathComponent("invalidate_test.txt")
+        let file = dir.appendingPathComponent("tooltip_mtime_test.txt")
         try? Data(repeating: 0x61, count: 10).write(to: file)
         let smallItem = FileItem.load(url: file, icon: NSWorkspace.shared.icon(forFile: file.path))
         let firstTooltip = await FileMetadataTooltipService.tooltip(for: smallItem, language: .english)
 
+        // Same FileItem (same mtime) ⇒ served from cache.
+        let cachedAgain = await FileMetadataTooltipService.tooltip(for: smallItem, language: .english)
+        report(
+            "FileMetadataTooltipService",
+            "POS: a repeat tooltip(for:) for an unchanged file is served from cache (identical text)",
+            result: cachedAgain == firstTooltip)
+
+        // Rewrite the file so its size + modification date change, then load a fresh FileItem.
+        try? await Task.sleep(nanoseconds: 1_100_000_000)
         try? Data(repeating: 0x62, count: 100_000).write(to: file)
-        // `URL.resourceValues(forKeys:)` caches results on the URL value itself, so re-using the
-        // same `file` URL instance here would silently keep returning the old 10-byte size (as
-        // confirmed by direct testing). A fresh `URL(fileURLWithPath:)` instance forces a real,
-        // uncached stat read of the file's current on-disk size.
-        let largeFileURL = URL(fileURLWithPath: file.path)
-        let largeItem = FileItem.load(url: largeFileURL, icon: NSWorkspace.shared.icon(forFile: file.path))
-        let staleTooltip = await FileMetadataTooltipService.tooltip(for: largeItem, language: .english)
+        let changedItem = FileItem.load(url: URL(fileURLWithPath: file.path), icon: NSWorkspace.shared.icon(forFile: file.path))
+        let freshTooltip = await FileMetadataTooltipService.tooltip(for: changedItem, language: .english)
 
         report(
             "FileMetadataTooltipService",
-            "POS: tooltip(for:) returns the cached (stale) text for a previously-seen path without recomputing",
-            result: staleTooltip == firstTooltip)
-
-        FileMetadataTooltipService.invalidate(url: largeItem.url)
-        let freshTooltip = await FileMetadataTooltipService.tooltip(for: largeItem, language: .english)
-
-        report(
-            "FileMetadataTooltipService",
-            "POS: invalidate(url:) clears the cache so the next tooltip(for:) call reflects the file's new size",
+            "POS: after the file changes on disk the tooltip is recomputed, not served stale (SL-090)",
             result: freshTooltip != firstTooltip)
     }
 

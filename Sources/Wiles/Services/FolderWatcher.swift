@@ -13,6 +13,10 @@ final class FolderWatcher {
     /// after activity settles, instead of firing once per write.
     private var pendingScans: [String: DispatchWorkItem] = [:]
     private let debounceInterval: TimeInterval
+    /// Bumped on every `watch(folders:)` call. A `startWatching` whose off-main `open()` finishes
+    /// after a newer `watch(...)` has superseded it checks this and discards its fd instead of
+    /// wiring up a stale `DispatchSource` (finding ML-103).
+    private var watchGeneration = 0
 
     /// Invoked (debounced) on the main queue whenever a watched folder receives a `.write` event.
     var onChange: ((URL) -> Void)?
@@ -24,6 +28,7 @@ final class FolderWatcher {
     /// Replaces the current set of watched folders: stops all existing watchers and pending
     /// debounced scans, then starts a fresh `DispatchSource` watcher for each folder in `folders`.
     func watch(folders: Set<URL>) {
+        watchGeneration &+= 1
         stopAll()
         for folder in folders {
             startWatching(folder: folder)
@@ -44,25 +49,49 @@ final class FolderWatcher {
         pendingScans.removeAll()
     }
 
+    /// `open(_:O_EVTONLY)` is a synchronous syscall that blocks until the filesystem responds — for
+    /// a source folder on a stalled `/Volumes` mount that's an indefinite freeze of the main thread.
+    /// Do it off the main actor, then wire up the `DispatchSource` back on `@MainActor` (ML-103).
     private func startWatching(folder: URL) {
-        let fd = open(folder.path, O_EVTONLY)
+        let generation = watchGeneration
+        let path = folder.path
+        Task { [weak self] in
+            let fd = await Self.openForEvents(path: path)
+            guard let self else {
+                if fd != -1 {
+                    close(fd)
+                }
+                return
+            }
+            attachWatcher(folder: folder, fd: fd, generation: generation)
+        }
+    }
+
+    private nonisolated static func openForEvents(path: String) async -> Int32 {
+        await Task.detached(priority: .userInitiated) { open(path, O_EVTONLY) }.value
+    }
+
+    private func attachWatcher(folder: URL, fd: Int32, generation: Int) {
         guard fd != -1 else {
             ErrorReporter.report(
                 NSError(domain: NSPOSIXErrorDomain, code: Int(errno)),
                 context: "FolderWatcher: open(O_EVTONLY) failed for \(folder.path); this folder will not be watched")
             return
         }
+        // A newer `watch(...)` superseded this one while `open()` was in flight, or this folder is
+        // somehow already watched — don't leak the fd or wire up a stale source.
+        guard generation == watchGeneration, fileMonitors[folder.path] == nil else {
+            close(fd)
+            return
+        }
 
         let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: .write, queue: .main)
-
         source.setEventHandler { [weak self] in
             self?.scheduleCallback(for: folder)
         }
-
         source.setCancelHandler {
             close(fd)
         }
-
         fileMonitors[folder.path] = source
         source.resume()
     }

@@ -14,7 +14,6 @@ struct SidebarView: View {
     /// resting position) itself.
     private static let topFadeHeight: CGFloat = 20.0
     private static let peekCollapseDelayMs: Int = 250
-    private static let rootTreeFallbackTimeout: TimeInterval = 6
 
     var appState: AppState
     @Environment(WindowUIState.self)
@@ -117,23 +116,13 @@ struct SidebarView: View {
         }
     }
 
-    /// After `rootTreeFallbackTimeout`, leaves `rootFolderNode` nil so the Retry button shows
-    /// instead of a fake node — the still-running scan can still finish and populate it later.
+    /// After `RootDirectoryTreeLoader.fallbackTimeout`, leaves `rootFolderNode` nil so the Retry
+    /// button shows instead of a fake node — the still-running scan can still finish and populate it.
     private func buildDirectoryTree() async {
-        guard rootFolderNode == nil else { return }
-        treeBuildTimedOut = false
-        let buildTask = Task.detached(priority: .userInitiated) { FolderNode.buildRootTree() }
-        // GCD timer, not a sibling Task: a stuck detached scan can starve the cooperative thread
-        // pool, and a `Task.sleep` timeout sharing that pool would starve right along with it.
-        let fallbackWorkItem = DispatchWorkItem {
-            guard rootFolderNode == nil else { return }
-            treeBuildTimedOut = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.rootTreeFallbackTimeout, execute: fallbackWorkItem)
-        let node = await buildTask.value
-        fallbackWorkItem.cancel()
-        treeBuildTimedOut = false
-        rootFolderNode = node
+        await RootDirectoryTreeLoader.load(
+            isPending: { rootFolderNode == nil },
+            setTimedOut: { treeBuildTimedOut = $0 },
+            apply: { rootFolderNode = $0 })
     }
 
     private func retryTreeBuild() {

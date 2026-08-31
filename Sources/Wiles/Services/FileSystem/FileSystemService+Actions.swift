@@ -44,23 +44,53 @@ public extension FileSystemService {
     /// A `.replace` move that also reports where the displaced file landed in the Trash, so the
     /// caller can register a `.trash` undo step for it. `displacedTrashedURL` is `nil` when nothing
     /// was actually at the destination.
+    ///
+    /// Staged, not destroy-then-move: any existing file at the destination is first renamed aside to
+    /// a hidden sibling; only after the incoming move actually succeeds is that staged file sent to
+    /// the Trash. If the move fails, the staged file is restored to its original name and the error
+    /// is rethrown — nothing ever reaches the Trash unless the constructive half happened (HM-110).
     @discardableResult
     static func moveItemReplacing(
         at url: URL, toFolder targetFolder: URL) async throws -> (destination: URL, displacedTrashedURL: URL?) {
         try await Task.detached(priority: .userInitiated) {
-            let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
-            guard url.standardizedFileURL != destURL.standardizedFileURL else {
-                throw WilesError.itemAlreadyInDestination
-            }
-            var displaced: URL?
-            if FileManager.default.fileExists(atPath: destURL.path) {
-                var trashedURL: NSURL?
-                try FileManager.default.trashItem(at: destURL, resultingItemURL: &trashedURL)
-                displaced = trashedURL as URL?
-            }
-            try FileManager.default.moveItem(at: url, to: destURL)
-            return (destURL, displaced)
+            try moveItemReplacingSync(at: url, toFolder: targetFolder)
         }.value
+    }
+
+    private nonisolated static func moveItemReplacingSync(
+        at url: URL, toFolder targetFolder: URL) throws -> (destination: URL, displacedTrashedURL: URL?) {
+        let fm = FileManager.default
+        let destURL = targetFolder.appendingPathComponent(url.lastPathComponent)
+        guard url.standardizedFileURL != destURL.standardizedFileURL else {
+            throw WilesError.itemAlreadyInDestination
+        }
+
+        var stagedURL: URL?
+        if fm.fileExists(atPath: destURL.path) {
+            let staged = targetFolder.appendingPathComponent(".wiles-replace-\(UUID().uuidString)")
+            try fm.moveItem(at: destURL, to: staged)
+            stagedURL = staged
+        }
+
+        do {
+            try fm.moveItem(at: url, to: destURL)
+        } catch {
+            if let stagedURL {
+                try? fm.moveItem(at: stagedURL, to: destURL)
+            }
+            throw error
+        }
+
+        guard let stagedURL else { return (destURL, nil) }
+        var trashedURL: NSURL?
+        do {
+            try fm.trashItem(at: stagedURL, resultingItemURL: &trashedURL)
+        } catch {
+            // Move already succeeded; the displaced file is safe under its hidden sibling name.
+            // Report that as the recoverable location instead of failing the whole operation.
+            return (destURL, stagedURL)
+        }
+        return (destURL, trashedURL as URL?)
     }
 
     /// Symmetric with `moveItem`'s `onCollision`. Defaults to `.keepBoth` (the historical behavior:
@@ -115,19 +145,43 @@ public extension FileSystemService {
             // `.trash` undo on `originalURL == trashedURL` would fail with `itemAlreadyInDestination`).
             let trashDirectory = try FileManager.default.url(
                 for: .trashDirectory, in: .userDomainMask, appropriateFor: url, create: false)
-            return try resolveTrashedItemURL(named: url.lastPathComponent, in: trashDirectory)
+            return resolveTrashedItemURL(named: url.lastPathComponent, in: trashDirectory)
         }.value
     }
 
-    /// The trashed item's real location: `trashDirectory/<name>` when it exists there, otherwise a
-    /// thrown error — the item is safely in the Trash, we just can't point at it, which beats
-    /// handing back a stale path a later undo/reveal would choke on.
-    nonisolated static func resolveTrashedItemURL(named name: String, in trashDirectory: URL) throws -> URL {
+    /// The trashed item's real location. `trashItem` succeeded (this is only reached when it did),
+    /// so the item IS in the Trash — the job here is only to point at it:
+    /// - `trashDirectory/<name>` when it's there under its original name, else
+    /// - the most-recently-added Trash entry whose name is `<stem>`/`<stem> …<ext>` — `trashItem`
+    ///   renames on a name collision inside the Trash (`note 2.txt`, `note 10-30-45.txt`), else
+    /// - `trashDirectory/<name>` as a last resort (a possibly-stale path still beats reporting a
+    ///   false "couldn't move to Trash" failure and dropping the `.trash` undo — finding MM-150).
+    nonisolated static func resolveTrashedItemURL(named name: String, in trashDirectory: URL) -> URL {
+        let fm = FileManager.default
         let expected = trashDirectory.appendingPathComponent(name)
-        guard FileManager.default.fileExists(atPath: expected.path) else {
-            throw WilesError.operationFailed(reason: name)
+        if fm.fileExists(atPath: expected.path) {
+            return expected
         }
-        return expected
+        let stem = (name as NSString).deletingPathExtension
+        let ext = (name as NSString).pathExtension
+        let dateKeys: [URLResourceKey] = [.addedToDirectoryDateKey, .contentModificationDateKey]
+        let entries = (try? fm.contentsOfDirectory(
+            at: trashDirectory, includingPropertiesForKeys: dateKeys, options: [.skipsHiddenFiles])) ?? []
+        let matches = entries.filter { entry in
+            let entryName = entry.lastPathComponent
+            guard (entryName as NSString).pathExtension == ext else { return false }
+            let entryStem = (entryName as NSString).deletingPathExtension
+            return entryStem == stem || entryStem.hasPrefix(stem + " ")
+        }
+        let newest = matches.max { lhs, rhs in
+            trashEntryOrderingDate(lhs) < trashEntryOrderingDate(rhs)
+        }
+        return newest ?? expected
+    }
+
+    private nonisolated static func trashEntryOrderingDate(_ url: URL) -> Date {
+        let values = try? url.resourceValues(forKeys: [.addedToDirectoryDateKey, .contentModificationDateKey])
+        return values?.addedToDirectoryDate ?? values?.contentModificationDate ?? .distantPast
     }
 
     @discardableResult

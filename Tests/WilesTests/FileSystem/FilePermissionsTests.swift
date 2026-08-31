@@ -25,6 +25,7 @@ public struct FilePermissionsTests {
         testDirectoryTraversableAddsExecuteWhereRead()
         await testRecursiveApplyKeepsSubfoldersTraversable()
         await testRecursiveApplyContinuesPastUnreadableSubdir()
+        await testRecursiveApplyStopsWhenItsTaskIsCancelled()
 
         // NEG: non-existent file returns nil
         let missing = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-\(UUID().uuidString).txt")
@@ -84,6 +85,28 @@ public struct FilePermissionsTests {
             "Permissions",
             "POS: setPermissionsRecursively applies to the folder plus all 3 nested items with no errors",
             result: result.applied == 4 && result.errors.isEmpty)
+    }
+
+    /// LL-025: `setPermissionsRecursively` bails as soon as its task is cancelled (the sheet's
+    /// `.onDisappear` now cancels it) — it must NOT keep chmod-ing the whole tree.
+    private static func testRecursiveApplyStopsWhenItsTaskIsCancelled() async {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("perms_cancel_\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let total = 600
+        for i in 0 ..< total {
+            try? "x".write(to: dir.appendingPathComponent("f\(i).txt"), atomically: true, encoding: .utf8)
+        }
+
+        let task = Task { await FilePermissionsService.setPermissionsRecursively(
+            for: dir, permissions: POSIXPermissions(posixPermissions: 0o644)) }
+        task.cancel()
+        let result = await task.value
+
+        TestReporter.report(
+            "Permissions",
+            "POS: a cancelled setPermissionsRecursively stops early instead of walking the whole tree (LL-025)",
+            result: result.applied < total)
     }
 
     /// `directoryTraversable` grants execute for exactly the classes that already have read,

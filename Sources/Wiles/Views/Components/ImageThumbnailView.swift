@@ -5,6 +5,9 @@ struct ImageThumbnailView: View {
     let url: URL
     let size: CGFloat
     let fallback: NSImage
+    /// The cell's own `FileItem.dateModified` — the thumbnail cache key's mtime component. Passed
+    /// in rather than looked up from shared state so a second window can't invalidate it (ML-090).
+    let dateModified: Date
     @State private var thumbnail: NSImage?
 
     var body: some View {
@@ -15,7 +18,7 @@ struct ImageThumbnailView: View {
             .task(id: url) {
                 guard thumbnail == nil else { return }
                 // Instant path: a hit in the in-memory cache (non-stat) shows immediately, no debounce.
-                if let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size) {
+                if let cached = ThumbnailService.shared.cachedThumbnail(for: url, size: size, dateModified: dateModified) {
                     thumbnail = cached
                     return
                 }
@@ -25,7 +28,7 @@ struct ImageThumbnailView: View {
                 // ever transiently visible never costs any CPU — only rows the scroll settles on do.
                 try? await Task.sleep(for: AsyncDelayTokens.scrollSettleDebounce)
                 guard !Task.isCancelled, thumbnail == nil else { return }
-                if let loaded = await ThumbnailService.shared.loadThumbnail(for: url, size: size) {
+                if let loaded = await ThumbnailService.shared.loadThumbnail(for: url, size: size, dateModified: dateModified) {
                     thumbnail = loaded
                 }
             }

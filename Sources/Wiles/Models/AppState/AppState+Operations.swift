@@ -142,12 +142,7 @@ public extension AppState {
         let (moved, failureCount) = await owner.moveBatchResolvingCollisions(
             urls, into: context.targetFolder, windowUIState: context.windowUIState,
             onMoved: { source, dest, _, displacedTrashedURL in
-                // `.trash` first (deeper in the stack): ⌘Z undoes the move, ⌘Z again restores the
-                // file the Replace displaced.
-                if let displacedTrashedURL {
-                    context.undoRedoService.recordAction(.trash(originalURL: dest, trashedURL: displacedTrashedURL))
-                }
-                context.undoRedoService.recordAction(.move(sourceURL: source, destinationURL: dest))
+                context.owner?.recordResolvedMoveUndo(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL)
             },
             progress: { completed in
                 if shouldReportProgress(index: completed - 1, count: urls.count) {

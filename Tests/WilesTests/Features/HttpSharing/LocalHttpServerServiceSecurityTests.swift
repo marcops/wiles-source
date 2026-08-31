@@ -17,6 +17,75 @@ extension HttpSharingFeatureTests {
         testRequestPathRejectsNulByteAndEmptyComponents()
         testParseByteRange()
         await testPasswordProtectedRequestWithDifferentLengthPasswordReturns401()
+        testHttpHeadIsCrlfFramed()
+        await testRangeResponseHeaderIsWellFramed()
+    }
+
+    /// LL-055: both response paths now build the head via the one list-based `httpHead` — every
+    /// header line ends `\r\n` and the block ends with exactly one blank `\r\n`.
+    private static func testHttpHeadIsCrlfFramed() {
+        let text = String(
+            data: LocalHttpServerService.httpHead(statusCode: 200, headers: [
+                ("Content-Length", "5"),
+                ("Content-Type", "text/plain"),
+                ("Connection", "close")
+            ]),
+            encoding: .utf8) ?? ""
+        // status line + exactly 3 header lines + the terminating blank line, all CRLF, nothing after.
+        let lines = text.components(separatedBy: "\r\n")
+        let framed = text.hasPrefix("HTTP/1.1 200 ")
+            && text.hasSuffix("\r\n\r\n")
+            && !text.contains("\n\n") // no bare-LF blank line
+            && lines.count == 6 // status, 3 headers, "", "" (trailing)
+            && lines[1] == "Content-Length: 5"
+            && lines[2] == "Content-Type: text/plain"
+            && lines[3] == "Connection: close"
+        report(
+            "Feature/HttpSharing",
+            "POS: httpHead emits status line + CRLF-terminated headers + a single blank line",
+            result: framed)
+
+        let empty = String(data: LocalHttpServerService.httpHead(statusCode: 404, headers: []), encoding: .utf8) ?? ""
+        report(
+            "Feature/HttpSharing",
+            "POS: httpHead with no headers is still a valid frame (status line then blank line)",
+            result: empty.hasPrefix("HTTP/1.1 404 ") && empty.hasSuffix("\r\n\r\n") && empty.components(separatedBy: "\r\n").count == 3)
+    }
+
+    /// LL-055: exercise the file-streaming path (`streamResponseHeader`, now delegating to
+    /// `httpHead`) end-to-end with a real range request — the 206 head must be well-framed and
+    /// carry the range headers.
+    private static func testRangeResponseHeaderIsWellFramed() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let file = tempDir.appendingPathComponent("payload.bin")
+        try? Data(repeating: 0x41, count: 200).write(to: file)
+
+        let server = LocalHttpServerService()
+        server.start(sharing: tempDir)
+        await waitUntil(timeoutSeconds: 3) { server.isRunning }
+
+        var ok = false
+        if let sock = rawConnect(port: server.port.rawValue) {
+            rawSend(sock, "GET /payload.bin HTTP/1.1\r\nHost: localhost\r\nRange: bytes=0-49\r\n\r\n")
+            let text = String(data: rawRecvAll(sock, timeoutMs: 1500), encoding: .utf8) ?? ""
+            Darwin.close(sock)
+            let headEnd = text.range(of: "\r\n\r\n")
+            let head = headEnd.map { String(text[text.startIndex ..< $0.lowerBound]) } ?? ""
+            ok = text.hasPrefix("HTTP/1.1 206")
+                && head.contains("\r\nContent-Range: bytes 0-49/200\r\n")
+                && head.contains("\r\nAccept-Ranges: bytes\r\n")
+                && head.contains("\r\nConnection: close")
+                && headEnd != nil
+        }
+        report(
+            "Feature/HttpSharing",
+            "POS: a Range request's 206 response head is CRLF-framed and carries Content-Range / Accept-Ranges (LL-055)",
+            result: ok)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        try? FileManager.default.removeItem(at: tempDir)
     }
 
     private static func testParseByteRange() {
@@ -63,7 +132,7 @@ extension HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var passed = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             let wrongAuth = "Basic " + Data("someone:x".utf8).base64EncodedString()
             rawSend(sock, "GET / HTTP/1.1\r\nHost: localhost\r\nAuthorization: \(wrongAuth)\r\n\r\n")
             let response = rawRecvAll(sock, timeoutMs: 1000)
@@ -203,7 +272,7 @@ extension HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var passed = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             rawSend(sock, "GET / HTTP/1.1\r\n")
             try? await Task.sleep(nanoseconds: 120_000_000)
             rawSend(sock, "Host: localhost\r\n\r\n")
@@ -232,7 +301,7 @@ extension HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var passed = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             rawSend(sock, "GET / HTTP/1.1\r\n")
             let filler = "X-Pad: " + String(repeating: "a", count: 4000) + "\r\n"
             for _ in 0 ..< 12 {

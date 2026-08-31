@@ -8,9 +8,9 @@ public enum SyntaxHighlighterService: Sendable {
     private static let highlightFontSize: CGFloat = 11
 
     public static func highlightCode(content: String, fileExtension: String, language: AppLanguage) async -> AttributedString {
-        await Task.detached(priority: .userInitiated) {
+        await CancellableWork.detached(priority: .userInitiated) {
             buildHighlighted(content: content, fileExtension: fileExtension, language: language)
-        }.value
+        }
     }
 
     private static func buildHighlighted(content: String, fileExtension: String, language: AppLanguage) -> AttributedString {

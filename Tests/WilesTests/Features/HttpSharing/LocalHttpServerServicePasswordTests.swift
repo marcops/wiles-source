@@ -45,7 +45,7 @@ extension HttpSharingFeatureTests {
 
         var passed = false
         var hasChallengeHeader = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             rawSend(sock, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
             let response = rawRecvAll(sock, timeoutMs: 1000)
             let text = String(data: response, encoding: .utf8) ?? ""
@@ -70,7 +70,7 @@ extension HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var passed = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             let wrongAuth = "Basic " + Data("someone:wrongpass".utf8).base64EncodedString()
             rawSend(sock, "GET / HTTP/1.1\r\nHost: localhost\r\nAuthorization: \(wrongAuth)\r\n\r\n")
             let response = rawRecvAll(sock, timeoutMs: 1000)
@@ -94,7 +94,7 @@ extension HttpSharingFeatureTests {
         await waitUntil { server.isRunning }
 
         var passed = false
-        if let sock = rawConnect(port: 8080) {
+        if let sock = rawConnect(port: server.port.rawValue) {
             // Username is ignored by design (isAuthorized only checks the password half) — use an
             // arbitrary one to prove that.
             let correctAuth = "Basic " + Data("anyone:secret123".utf8).base64EncodedString()

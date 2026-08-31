@@ -4,6 +4,10 @@ import SwiftUI
 
 @main
 struct WilesApp: App {
+    /// App-global lifecycle hooks (terminate-time flush, "Open With" cache invalidation) — kept
+    /// here rather than as per-window `.onReceive(...)` so they run once for the process (LL-015).
+    @NSApplicationDelegateAdaptor(WilesAppDelegate.self)
+    private var appDelegate
     @State private var sharedPreferences = PreferencesStore()
     @State private var sharedTransient = TransientStore()
 
@@ -68,12 +72,6 @@ struct WilesApp: App {
             }
             .task { await performLaunchSetupOnce() }
             .onAppear { configureNewWindows() }
-            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-                // `.onDisappear` doesn't fire on ⌘Q with windows open, and wouldn't drain a still-
-                // pending debounce anyway — flush every coalesced write before the process dies.
-                sharedPreferences.view.flushPendingSaves()
-                AutoOrganizationService.shared.flushPendingSaves()
-            }
     }
 
     /// App-global launch work, guarded so it runs exactly once no matter how many windows open
@@ -90,6 +88,7 @@ struct WilesApp: App {
             PermissionService.requestInitialPermissions(language: sharedPreferences.appearance.appLanguage)
         }
         AutoOrganizationService.shared.startMonitoring()
+        SystemTagsService.startObserving()
         await GitBeacon.processPendingReports()
     }
 

@@ -24,8 +24,8 @@ final class AutoOrganizationRuleStore {
     /// save covers it instead (a burst of background moves otherwise rewrote `UserDefaults` and
     /// restarted every watcher once per file).
     private var isBumpingStats = false
-    private var statsSaveTask: Task<Void, Never>?
-    private static let statsSaveDebounce: Duration = .seconds(2)
+    /// Debounced stats persist, auto-registered for the terminate-time flush (finding MM-171).
+    private let statsWrite = DebouncedDefaultsWrite(interval: 2)
 
     var rules: [AutoOrganizationRule] = [] {
         didSet {
@@ -45,34 +45,46 @@ final class AutoOrganizationRuleStore {
         rules[index].totalMovedCount += 1
         isBumpingStats = false
 
-        statsSaveTask?.cancel()
-        statsSaveTask = Task { [weak self] in
-            try? await Task.sleep(for: Self.statsSaveDebounce)
-            guard let self, !Task.isCancelled else { return }
-            saveRules()
-        }
+        statsWrite.schedule { [weak self] in self?.saveRules() }
     }
 
-    /// Runs the pending debounced stats persist immediately — call from `applicationWillTerminate`
+    /// Runs the pending debounced stats persist immediately. Called from `applicationWillTerminate`
+    /// via `DebouncedWriteRegistry.flushAll()` (and `AutoOrganizationService.flushPendingSaves()`)
     /// so a burst of auto-moves in the last 2s before quit isn't lost.
     func flushPendingSaves() {
-        guard statsSaveTask != nil else { return }
-        statsSaveTask?.cancel()
-        statsSaveTask = nil
-        saveRules()
+        statsWrite.flush()
     }
 
-    /// Loads persisted rules from `UserDefaults`. A no-op if none are stored yet; logs and reports
-    /// (without mutating `rules`) if the stored data fails to decode.
+    /// Loads persisted rules from `UserDefaults`. A no-op if none are stored yet.
+    ///
+    /// Decoded element-by-element (`FailableDecodable`): a single corrupt or forward-incompatible
+    /// record (e.g. a `RuleConditionType` from a newer build, then a downgrade) drops just that
+    /// entry instead of wiping every rule. Any survivors are re-persisted so the bad record can't
+    /// re-fail on every launch, and the drop is reported via `ErrorReporter` (no window at launch
+    /// to surface it in). If the top-level JSON itself is unreadable, `rules` is left untouched.
+    /// (finding ML-104)
     func load() {
         guard let data = UserDefaults.standard.data(forKey: rulesKey) else { return }
+        isLoading = true
+        defer { isLoading = false }
         do {
-            isLoading = true
-            defer { isLoading = false }
-            rules = try JSONDecoder().decode([AutoOrganizationRule].self, from: data)
+            let decoded = try JSONDecoder().decode([FailableDecodable<AutoOrganizationRule>].self, from: data)
+            let valid = decoded.compactMap(\.value)
+            rules = valid
+            let dropped = decoded.count - valid.count
+            if dropped > 0 {
+                ErrorReporter.report(
+                    RuleDecodeError.partialFailure(dropped: dropped, total: decoded.count),
+                    context: "Auto-organization: \(dropped) of \(decoded.count) saved rules could not be decoded and were skipped")
+                saveRules()
+            }
         } catch {
             ErrorReporter.report(error, context: "Decoding auto-organization rules")
         }
+    }
+
+    enum RuleDecodeError: Error {
+        case partialFailure(dropped: Int, total: Int)
     }
 
     private func saveRules() {

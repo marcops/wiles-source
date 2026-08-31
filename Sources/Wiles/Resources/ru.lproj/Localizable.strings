@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "Переименование файлов…";
 "removeRecentServer" = "Удалить из недавних";
 "removeSmartFolderConfirm" = "Вы уверены, что хотите удалить эту умную папку? Отменить это будет невозможно.";
+"deleteSmartFolder" = "Удалить смарт-папку";
 "ruleConditionExtensionEquals" = "Расширение Равно";
 "ruleConditionNameContains" = "Имя Содержит";
 "ruleConditionNamePrefix" = "Имя Начинается С";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "Пакетное переименование привело бы к конфликтам имён: {0}";
 "batchRenameInvalidPattern" = "Недопустимый шаблон переименования: {0}";
 "movePartialFailure" = "Не удалось переместить {0} из {1} объектов.";
+"undoRestoredDifferentName" = "Восстановлено как «{0}», так как имя «{1}» уже используется.";
 "searchContentQueryTooShort" = "Введите не менее 3 символов для поиска внутри файлов.";
 "searchInvalidRegex" = "Это регулярное выражение недопустимо.";
+"searchInvalidFilterToken" = "Фильтр «%@» недопустим, поэтому ничего не может ему соответствовать.";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "Показаны первые %d из многих";
 "convertingImageEllipsis" = "Converting Image…";

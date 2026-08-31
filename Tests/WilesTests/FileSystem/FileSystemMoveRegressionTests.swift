@@ -33,6 +33,38 @@ enum FileSystemMoveRegressionTests {
 
         await runCollisionRegression(tempDir: tempDir)
         await runReplacingReportsDisplacedTrashURL(tempDir: tempDir)
+        await runReplacingLeavesDestinationUntouchedWhenMoveFails(tempDir: tempDir)
+    }
+
+    /// HM-110 (data-relocation regression): `moveItemReplacing` used to `trashItem(destURL)` FIRST
+    /// and move SECOND — a failing move (source vanished, permission error, disk full) left the
+    /// destination's file in the Trash with the move never having happened and no undo recorded. It
+    /// now stages the existing file aside and only trashes it after the move succeeds; a failed move
+    /// restores the staged file and rethrows, touching the Trash not at all.
+    private static func runReplacingLeavesDestinationUntouchedWhenMoveFails(tempDir: URL) async {
+        let dest = tempDir.appendingPathComponent("hm110-dest-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
+        let existing = dest.appendingPathComponent("keep.txt")
+        let body = "PRECIOUS-\(UUID().uuidString)"
+        try? body.write(to: existing, atomically: true, encoding: .utf8)
+
+        // Source does not exist → the inner `moveItem` throws after the existing file was staged.
+        let missingSource = tempDir.appendingPathComponent("hm110-missing-\(UUID().uuidString).txt")
+
+        var threw = false
+        do {
+            _ = try await FileSystemService.moveItemReplacing(at: missingSource, toFolder: dest)
+        } catch {
+            threw = true
+        }
+
+        let destIntact = (try? String(contentsOf: existing)) == body
+        let noStagedLeftovers = ((try? FileManager.default.contentsOfDirectory(atPath: dest.path)) ?? [])
+            .allSatisfy { !$0.hasPrefix(".wiles-replace-") }
+        TestReporter.report(
+            "FileSystem",
+            "NEG: moveItemReplacing with a failing move restores the destination file and never trashes it (HM-110)",
+            result: threw && destIntact && noStagedLeftovers)
     }
 
     /// `moveItemReplacing` reports where the displaced file landed in the Trash so the paste path

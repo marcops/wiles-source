@@ -51,6 +51,7 @@
 "batchRenamingEllipsis" = "Dosyalar yeniden adlandırılıyor…";
 "removeRecentServer" = "Sonlardan Kaldır";
 "removeSmartFolderConfirm" = "Bu akıllı klasörü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
+"deleteSmartFolder" = "Akıllı Klasörü Sil";
 "ruleConditionExtensionEquals" = "Uzantı Eşittir";
 "ruleConditionNameContains" = "Ad İçerir";
 "ruleConditionNamePrefix" = "Ad İle Başlar";
@@ -548,8 +549,10 @@
 "batchRenameWouldCollide" = "Toplu yeniden adlandırma ad çakışmalarına neden olur: {0}";
 "batchRenameInvalidPattern" = "Geçersiz yeniden adlandırma deseni: {0}";
 "movePartialFailure" = "{1} öğeden {0} tanesi taşınamadı.";
+"undoRestoredDifferentName" = "“{1}” adı zaten kullanıldığından “{0}” olarak geri yüklendi.";
 "searchContentQueryTooShort" = "Dosya içeriğinde aramak için en az 3 karakter girin.";
 "searchInvalidRegex" = "Bu düzenli ifade geçerli değil.";
+"searchInvalidFilterToken" = "“%@” filtresi geçersiz, bu yüzden hiçbir şey eşleşemez.";
 "smartFolderLocationNotIndexed" = "This location isn't indexed by Spotlight, so results may be incomplete.";
 "resultsTruncatedNotice" = "Çok sayıda öğeden ilk %d tanesi gösteriliyor";
 "convertingImageEllipsis" = "Converting Image…";

@@ -58,11 +58,14 @@ extension LocalHttpServerService {
                 try? fileHandle.seek(toOffset: UInt64(start))
                 let header = Self.streamResponseHeader(
                     status: HTTPStatus.partialContent, contentLength: end - start + 1,
-                    extraHeaderLines: "Content-Range: bytes \(start)-\(end)/\(fileSize)\r\nAccept-Ranges: bytes\r\n")
+                    extraHeaders: [
+                        ("Content-Range", "bytes \(start)-\(end)/\(fileSize)"),
+                        ("Accept-Ranges", "bytes")
+                    ])
                 sendStreamHeader(header, fileHandle: fileHandle, connection: connection, remaining: end - start + 1)
             case .none:
                 let header = Self.streamResponseHeader(
-                    status: HTTPStatus.ok, contentLength: fileSize, extraHeaderLines: "Accept-Ranges: bytes\r\n")
+                    status: HTTPStatus.ok, contentLength: fileSize, extraHeaders: [("Accept-Ranges", "bytes")])
                 sendStreamHeader(header, fileHandle: fileHandle, connection: connection, remaining: fileSize)
             }
         } catch {
@@ -71,16 +74,14 @@ extension LocalHttpServerService {
         }
     }
 
-    private nonisolated static func streamResponseHeader(status: Int, contentLength: Int, extraHeaderLines: String) -> Data {
-        let statusText = HTTPURLResponse.localizedString(forStatusCode: status)
-        return Data("""
-        HTTP/1.1 \(status) \(statusText)\r
-        Content-Length: \(contentLength)\r
-        Content-Type: application/octet-stream\r
-        \(extraHeaderLines)Connection: close\r
-        \r
-
-        """.utf8)
+    /// Delegates to the shared list-based `httpHead` builder so the two response paths can't drift
+    /// (finding LL-055). Keeps the historical line order: fixed headers, then range headers, then
+    /// `Connection: close`.
+    private nonisolated static func streamResponseHeader(status: Int, contentLength: Int, extraHeaders: [(String, String)]) -> Data {
+        httpHead(statusCode: status, headers: [
+            ("Content-Length", "\(contentLength)"),
+            ("Content-Type", "application/octet-stream")
+        ] + extraHeaders + [("Connection", "close")])
     }
 
     private func sendStreamHeader(_ header: Data, fileHandle: FileHandle, connection: NWConnection, remaining: Int) {

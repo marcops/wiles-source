@@ -35,7 +35,7 @@ struct FolderNode: Identifiable, Hashable {
     /// `buildRootTree()` with the off-main guarantee made structural (R3) rather than a call-site
     /// convention. Preferred entry point for anything reached from a View.
     static func buildRootTreeOffMainActor() async -> Self {
-        await Task.detached(priority: .userInitiated) { buildRootTree() }.value
+        await CancellableWork.detached(priority: .userInitiated) { buildRootTree() }
     }
 
     /// Loads only the immediate subfolders of `folderURL`.

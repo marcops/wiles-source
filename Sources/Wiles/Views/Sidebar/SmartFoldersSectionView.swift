@@ -25,7 +25,7 @@ struct SmartFoldersSectionView: View {
                         }
                     }),
                 titleVisibility: .visible) {
-                    Button(appState.tr(.moveToTrash), role: .destructive) {
+                    Button(appState.tr(.deleteSmartFolder), role: .destructive) {
                         if let folder = pendingDeleteFolder {
                             appState.removeSmartFolder(folder)
                         }
@@ -78,7 +78,7 @@ struct SmartFoldersSectionView: View {
             }
             .disabled(appState.selection.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty)
             Divider()
-            Button(appState.tr(.moveToTrash), role: .destructive) {
+            Button(appState.tr(.deleteSmartFolder), role: .destructive) {
                 pendingDeleteFolder = folder
             }
         }

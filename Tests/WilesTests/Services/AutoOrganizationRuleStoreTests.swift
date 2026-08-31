@@ -23,6 +23,7 @@ public struct AutoOrganizationRuleStoreTests {
         testLoadWithNoStoredDataIsNoOp()
         testLoadDecodesPreviouslySavedRules()
         testLoadWithCorruptDataLeavesRulesUnchanged()
+        testLoadSkipsOneBadRecordAndKeepsTheValidOnes()
         testAddUpdateDeleteRuleMutateAndPersist()
         testUpdateRuleWithUnknownIdIsNoOp()
         testOnChangeFiresOnEveryMutation()
@@ -121,6 +122,41 @@ public struct AutoOrganizationRuleStoreTests {
             "Services/AutoOrganizationRuleStore",
             "NEG: load() with corrupt stored data logs/reports the decode error and leaves rules untouched (empty)",
             result: store.rules.isEmpty)
+    }
+
+    /// ML-104: a single forward-incompatible / corrupt record (here an unknown `conditionType`,
+    /// e.g. saved by a newer build then opened after a downgrade) must not wipe every rule. The
+    /// valid entries survive, and are re-persisted so the bad one can't re-fail next launch.
+    private static func testLoadSkipsOneBadRecordAndKeepsTheValidOnes() {
+        let valid = makeRule()
+        guard let validData = try? JSONEncoder().encode(valid),
+              let validObj = (try? JSONSerialization.jsonObject(with: validData)) as? [String: Any] else {
+            report("Services/AutoOrganizationRuleStore", "SETUP: could not build fixture JSON", result: false)
+            return
+        }
+        var badObj = validObj
+        badObj["id"] = UUID().uuidString
+        badObj["conditionType"] = "conditionFromANewerBuild"
+        guard let arrayData = try? JSONSerialization.data(withJSONObject: [validObj, badObj]) else {
+            report("Services/AutoOrganizationRuleStore", "SETUP: could not serialize fixture array", result: false)
+            return
+        }
+        UserDefaults.standard.set(arrayData, forKey: rulesKey)
+
+        let store = AutoOrganizationRuleStore()
+        store.load()
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: load() skips the undecodable record and keeps the valid rule (ML-104: was all-or-nothing)",
+            result: store.rules.map(\.id) == [valid.id])
+
+        // The survivors were re-saved, so a fresh load sees a clean list with nothing left to drop.
+        let store2 = AutoOrganizationRuleStore()
+        store2.load()
+        report(
+            "Services/AutoOrganizationRuleStore",
+            "POS: load() re-persists the surviving rules so the bad record doesn't re-fail every launch",
+            result: store2.rules.map(\.id) == [valid.id])
     }
 
     private static func testAddUpdateDeleteRuleMutateAndPersist() {
