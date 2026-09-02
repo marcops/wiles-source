@@ -331,79 +331,28 @@ public final class LocalHttpServerService: @unchecked Sendable {
         return zip(lhsDigest, rhsDigest).reduce(into: UInt8(0)) { result, pair in result |= pair.0 ^ pair.1 } == 0
     }
 
-    /// The listing page is static HTML with inline styles and no scripts; lock everything else down
-    /// so an entry name that still slipped markup through can't load or run anything.
-    private static let listingContentSecurityPolicy =
-        "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'"
-
-    /// URL-path prefix (percent-encoded, leading slash, no trailing slash) locating `folder` inside
-    /// the share root, so a nested listing's links stay root-relative like the request paths
-    /// `serveFile` resolves. Empty when `folder` is the share root itself.
-    private func listingLinkPrefix(for folder: URL) -> String {
-        let rootComponents = (sharedFolder ?? folder).resolvingSymlinksInPath().pathComponents
-        let relativeComponents = folder.resolvingSymlinksInPath().pathComponents.dropFirst(rootComponents.count)
-        return relativeComponents.reduce(into: "") { result, component in
-            result += "/" + (component.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? component)
-        }
-    }
-
-    /// Cap on entries rendered into one directory listing — the whole HTML page is buffered in RAM
-    /// before it's sent, so a folder with hundreds of thousands of files can't turn into a
-    /// hundreds-of-MB response. Aligned with `FileSystemService.recursiveSearchResultLimit`.
-    private static let maxListingEntries = 2000
-
+    /// The `contentsOfDirectory` + per-entry `isDirectory` reads + template render for a huge shared
+    /// subfolder can take a while — running it on the serial `queue` would stall every other
+    /// in-flight connection behind it (LM-069). Build the whole response on a detached task
+    /// (`buildDirectoryListing`, in `+DirectoryListing.swift`), then hop back to `queue` only for
+    /// `sendResponse` (which mutates `queue`-owned connection state).
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {
-        do {
-            // Hidden entries are never listed over the LAN — sharing a project folder must not
-            // expose `.git/`, `.env`, `.ssh`, `.DS_Store`, etc. `serveFile` refuses them too.
-            let allURLs = try FileManager.default.contentsOfDirectory(
-                at: folder, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
-            let sorted = allURLs.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-            let rawLanguage = UserDefaults.standard.string(forKey: DefaultsKey.appLanguage.rawValue) ?? AppLanguage.system.rawValue
-            let language = AppLanguage(rawValue: rawLanguage) ?? .system
-            let items = listingItemsHTML(sorted: sorted, linkPrefix: listingLinkPrefix(for: folder), language: language)
-
-            guard let html = TemplateRenderingService.render(
-                resource: "SharedFolder",
-                replacements: [
-                    "FOLDER_NAME": HTMLEscaping.escape(folder.lastPathComponent),
-                    "ITEMS": items,
-                    "PAGE_TITLE": L10n.string(.sharedFolderPageTitle, lang: language),
-                    "HEADING": L10n.string(.sharedFolderHeading, lang: language)
-                ]) else {
-                sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Missing SharedFolder template".utf8))
-                return
+        let shareRoot = sharedFolder ?? folder
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let result = Self.buildDirectoryListing(folder: folder, shareRoot: shareRoot)
+            self?.queue.async { [weak self] in
+                guard let self else { return }
+                switch result {
+                case let .ok(html):
+                    sendResponse(
+                        connection: connection, statusCode: HTTPStatus.ok, body: Data(html.utf8),
+                        contentType: "text/html",
+                        extraHeaders: ["Content-Security-Policy": Self.listingContentSecurityPolicy])
+                case let .failure(status, message):
+                    sendResponse(connection: connection, statusCode: status, body: Data(message.utf8))
+                }
             }
-            sendResponse(
-                connection: connection,
-                statusCode: HTTPStatus.ok,
-                body: Data(html.utf8),
-                contentType: "text/html",
-                extraHeaders: ["Content-Security-Policy": Self.listingContentSecurityPolicy])
-        } catch {
-            ErrorReporter.report(error, context: "Serving directory listing over local HTTP share")
-            sendResponse(connection: connection, statusCode: HTTPStatus.internalServerError, body: Data("Error reading directory".utf8))
         }
-    }
-
-    /// The `<li>` list for a directory listing, capped at `maxListingEntries` with a localized
-    /// "listing truncated" note when the folder has more.
-    private func listingItemsHTML(sorted: [URL], linkPrefix: String, language: AppLanguage) -> String {
-        var items = sorted.prefix(Self.maxListingEntries).map { url -> String in
-            let name = url.lastPathComponent
-            let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
-            let href = "\(linkPrefix)/\(encoded)" + (isDirectory ? "/" : "")
-            let label = HTMLEscaping.escape(name) + (isDirectory ? "/" : "")
-            let marker = isDirectory ? "\u{1F4C1} " : ""
-            return "<li style='margin-bottom: 8px;'><a href=\"\(href)\" style='text-decoration: none; color: #0066cc;'>\(marker)\(label)</a></li>"
-        }.joined()
-        if sorted.count > Self.maxListingEntries {
-            let note = L10n.string(.sharedFolderListingTruncated, lang: language)
-                .replacingOccurrences(of: "{0}", with: "\(sorted.count - Self.maxListingEntries)")
-            items += "<li style='margin-top: 12px; color: #999;'>\(HTMLEscaping.escape(note))</li>"
-        }
-        return items
     }
 
     private func serveFile(path: String, folder: URL, connection: NWConnection, rangeHeader: String?) {

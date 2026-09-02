@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "Schema di rinomina non valido: {0}";
 "movePartialFailure" = "Impossibile spostare {0} di {1} elementi.";
 "undoRestoredDifferentName" = "Ripristinato come “{0}” perché “{1}” è già in uso.";
+"undoPartialFailure" = "Non è stato possibile annullare {0} di {1} modifiche.";
 "searchContentQueryTooShort" = "Digita almeno 3 caratteri per cercare nei file.";
 "searchInvalidRegex" = "Questa espressione regolare non è valida.";
 "searchInvalidFilterToken" = "Il filtro “%@” non è valido, quindi nulla può corrispondere.";

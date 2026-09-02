@@ -95,8 +95,9 @@ extension AppStateOperationsExtraTests {
                 && appState.selection.selectedURLs == Set([createdURL]))
     }
 
-    /// `folder` may differ from `navigation.currentURL` — the new item still gets created, but
-    /// `fileSystem.items` (the CURRENT directory's contents) must not be touched.
+    /// `folder` may differ from `navigation.currentURL` — the folder still gets created, but the app
+    /// must NOT enter rename mode for it (the item isn't on screen, and `renamingURL` would freeze
+    /// the visible directory's refresh) and must not touch `fileSystem.items` — ML-072.
     private static func testCreateNewFolderAndRenameInOtherFolder() async {
         let currentDir = makeTempDir()
         let otherFolder = makeTempDir()
@@ -111,18 +112,14 @@ extension AppStateOperationsExtraTests {
         appState.fileSystem.items = []
         appState.createNewFolderAndRename(in: otherFolder, windowUIState: windowUIState)
 
-        let entered = await pollUntilTrue { windowUIState.renameItem != nil }
-        guard entered, let createdURL = windowUIState.renameItem?.url else {
-            report(
-                "AppState+Operations",
-                "NEG: createNewFolderAndRename(in:) targeting a non-current folder does not insert into fileSystem.items",
-                result: false)
-            return
+        let created = await pollUntilTrue {
+            !(((try? FileManager.default.contentsOfDirectory(atPath: otherFolder.path)) ?? []).isEmpty)
         }
+        let noRenameSession = windowUIState.renameItem == nil && appState.fileSystem.renamingURL == nil
         report(
             "AppState+Operations",
-            "NEG: createNewFolderAndRename(in:) targeting a non-current folder does not insert into fileSystem.items",
-            result: FileManager.default.fileExists(atPath: createdURL.path) && appState.fileSystem.items.isEmpty)
+            "NEG: createNewFolderAndRename(in:) targeting a non-current folder creates it without entering rename mode or touching fileSystem.items",
+            result: created && noRenameSession && appState.fileSystem.items.isEmpty)
     }
 
     private static func testCreateNewFolderAndRenameFailure() async {

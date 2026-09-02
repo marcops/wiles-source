@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "无效的重命名模式：{0}";
 "movePartialFailure" = "{1} 项中的 {0} 项无法移动。";
 "undoRestoredDifferentName" = "由于“{1}”已被占用，已还原为“{0}”。";
+"undoPartialFailure" = "{1} 项更改中有 {0} 项无法撤销。";
 "searchContentQueryTooShort" = "输入至少 3 个字符以搜索文件内容。";
 "searchInvalidRegex" = "该正则表达式无效。";
 "searchInvalidFilterToken" = "筛选条件“%@”无效，因此无法匹配任何内容。";

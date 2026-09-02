@@ -20,6 +20,11 @@ final class WilesAppDelegate: NSObject, NSApplicationDelegate {
         // debounce anyway — flush every coalesced `UserDefaults` write before the process dies.
         // Every `DebouncedDefaultsWrite` self-registers, so a newly-added one is covered here by
         // construction (findings MM-171 / ML-259).
-        MainActor.assumeIsolated { DebouncedWriteRegistry.shared.flushAll() }
+        MainActor.assumeIsolated {
+            DebouncedWriteRegistry.shared.flushAll()
+            // Same reasoning for the integrated terminal: SIGKILL every window's shell so it isn't
+            // left orphaned after ⌘Q (finding MM-122).
+            TerminalProcessRegistry.shared.tearDownAll()
+        }
     }
 }

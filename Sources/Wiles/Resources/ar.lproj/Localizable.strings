@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "نمط إعادة تسمية غير صالح: {0}";
 "movePartialFailure" = "تعذّر نقل {0} من {1} عنصرًا.";
 "undoRestoredDifferentName" = "تمت الاستعادة باسم ”{0}“ لأن ”{1}“ قيد الاستخدام بالفعل.";
+"undoPartialFailure" = "تعذّر التراجع عن {0} من {1} تغييرات.";
 "searchContentQueryTooShort" = "اكتب 3 أحرف على الأقل للبحث داخل الملفات.";
 "searchInvalidRegex" = "هذا التعبير النمطي غير صالح.";
 "searchInvalidFilterToken" = "عامل التصفية ”%@“ غير صالح، لذا لا يمكن لأي عنصر أن يطابقه.";

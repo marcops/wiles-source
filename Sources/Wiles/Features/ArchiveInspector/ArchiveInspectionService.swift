@@ -28,6 +28,14 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
     }
 
     private static func extractSingleEntrySync(from archiveURL: URL, entryPath: String, to destinationFolder: URL) throws -> URL {
+        // `entryPath` is the raw central-directory name — attacker-controlled. A `..`/absolute name
+        // would make the `ditto` fallback's `stagingDir.appendingPathComponent(entryPath)` resolve
+        // OUTSIDE `stagingDir`, and the subsequent `moveItem` would then relocate an arbitrary
+        // readable file (SSH keys, credentials). Same guard `ArchiveService.extractArchive` already
+        // runs on every entry (HH-234).
+        guard !ArchiveService.entryEscapesDestination(entryPath) else {
+            throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
+        }
         let entryName = (entryPath as NSString).lastPathComponent
         var destIsDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: destinationFolder.path, isDirectory: &destIsDirectory),
@@ -67,6 +75,12 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         }
 
         let extractedURL = stagingDir.appendingPathComponent(entryPath)
+        // Defense in depth on top of the `entryEscapesDestination` gate above: confirm the resolved
+        // path is still inside the staging dir before touching it, so a symlink planted by the
+        // archive can't redirect the read/move either (HH-234).
+        guard extractedURL.resolvingSymlinksInPath().isDescendantOrSelf(of: stagingDir.resolvingSymlinksInPath()) else {
+            throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
+        }
         guard FileManager.default.fileExists(atPath: extractedURL.path) else {
             throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }

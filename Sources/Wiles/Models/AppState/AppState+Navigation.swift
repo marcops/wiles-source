@@ -138,9 +138,10 @@ public extension AppState {
 
     func startDirectoryMonitoring(for url: URL) {
         fileSystem.startDirectoryMonitoring(for: url) { [weak self] in
-            Task { @MainActor in
-                guard let self else { return }
-                self.refreshCurrentDirectory(isUserInitiated: false)
+            // Invoked from `FileSystemStore.handleMonitorEvent`, already on `@MainActor` — assume
+            // isolation instead of spawning an unstructured `Task { @MainActor }` per event (SM-055).
+            MainActor.assumeIsolated {
+                self?.refreshCurrentDirectory(isUserInitiated: false)
             }
         }
     }

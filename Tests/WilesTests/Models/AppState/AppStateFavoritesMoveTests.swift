@@ -137,16 +137,19 @@ public struct AppStateFavoritesMoveTests {
         report("AppState", "POS: moveOneResolvingCollision Cancel returns .cancelled and leaves the source in place", result: ok)
     }
 
-    /// windowUIState nil + on-disk collision -> .skipped, no move.
+    /// windowUIState nil + on-disk collision -> throws (so the batch loop counts it as a failure and
+    /// surfaces a partial-failure message), source untouched — ML-048.
     private static func checkNilWindowUIStateSkips(_ appState: AppState, dest: URL, srcParent: URL) async {
         let skipSrc = makeCollisionFile("dup.txt", in: srcParent, "skipme")
-        let result = try? await appState.moveOneResolvingCollision(
-            skipSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: nil)
-        var ok = false
-        if case .skipped? = result?.0 {
-            ok = FileManager.default.fileExists(atPath: skipSrc.path)
+        var threw = false
+        do {
+            _ = try await appState.moveOneResolvingCollision(
+                skipSrc, into: dest, sticky: nil, moreFollow: false, windowUIState: nil)
+        } catch {
+            threw = true
         }
-        report("AppState", "NEG: moveOneResolvingCollision with windowUIState nil + collision returns .skipped without moving", result: ok)
+        let ok = threw && FileManager.default.fileExists(atPath: skipSrc.path)
+        report("AppState", "NEG: moveOneResolvingCollision with windowUIState nil + collision throws (counted as failure), source untouched", result: ok)
     }
 
     /// L19: `moveItemsResolvingCollisions` now counts per-item failures and surfaces ONE aggregated

@@ -65,9 +65,13 @@ public extension FileSystemService {
             throw WilesError.itemAlreadyInDestination
         }
 
+        // Sweep aged `.wiles-replace-`/`.wiles-rename-` orphans a prior crashed run stranded here,
+        // so they can't linger with no cleanup path (MM-121).
+        sweepStaleRenameTemps(in: targetFolder)
+
         var stagedURL: URL?
         if fm.fileExists(atPath: destURL.path) {
-            let staged = targetFolder.appendingPathComponent(".wiles-replace-\(UUID().uuidString)")
+            let staged = targetFolder.appendingPathComponent("\(replaceTempPrefix)\(UUID().uuidString)")
             try fm.moveItem(at: destURL, to: staged)
             stagedURL = staged
         }
@@ -76,7 +80,16 @@ public extension FileSystemService {
             try fm.moveItem(at: url, to: destURL)
         } catch {
             if let stagedURL {
-                try? fm.moveItem(at: stagedURL, to: destURL)
+                do {
+                    try fm.moveItem(at: stagedURL, to: destURL)
+                } catch let restoreError {
+                    // Rollback failed too: the displaced file is stranded under the hidden sibling.
+                    // Name the exact path in the error, like `performRenameOnDisk` does (MM-121).
+                    ErrorReporter.report(
+                        restoreError,
+                        context: "Replace rollback failed; \(destURL.lastPathComponent) is stranded at \(stagedURL.path)")
+                    throw WilesError.operationFailed(reason: "\(destURL.lastPathComponent) → \(stagedURL.lastPathComponent)")
+                }
             }
             throw error
         }
@@ -243,18 +256,24 @@ public extension FileSystemService {
 
     /// Prefix for the throwaway name a case-only rename hops through (see `performRenameOnDisk`).
     static let renameTempPrefix = ".wiles-rename-"
-    /// A live case-only rename holds its temp for milliseconds; anything older is a leftover from a
-    /// run that crashed between the two moves.
+    /// Prefix for the hidden sibling a `.replace` move parks the displaced file under between staging
+    /// and Trash (see `moveItemReplacingSync`). Swept alongside `renameTempPrefix` so a crash between
+    /// those two steps can't strand the user's file under a hidden UUID name forever (MM-121).
+    static let replaceTempPrefix = ".wiles-replace-"
+    /// A live case-only rename / staged replace holds its temp for milliseconds; anything older is a
+    /// leftover from a run that crashed between the two moves.
     static let staleRenameTempMaxAge: TimeInterval = 60
 
-    /// Removes rename temps left stranded in `directory` by a prior crashed case-only rename, so the
-    /// dot-prefixed file can't linger forever with no cleanup path. Best-effort.
+    /// Removes staging temps (`renameTempPrefix` / `replaceTempPrefix`) left stranded in `directory`
+    /// by a prior crashed case-only rename or `.replace` move, so the dot-prefixed file can't linger
+    /// forever with no cleanup path. Best-effort.
     nonisolated static func sweepStaleRenameTemps(
         in directory: URL, olderThan maxAge: TimeInterval = staleRenameTempMaxAge, fileManager fm: FileManager = .default) {
         guard let entries = try? fm.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.contentModificationDateKey], options: []) else { return }
         let now = Date()
-        for entry in entries where entry.lastPathComponent.hasPrefix(renameTempPrefix) {
+        for entry in entries where entry.lastPathComponent.hasPrefix(renameTempPrefix)
+            || entry.lastPathComponent.hasPrefix(replaceTempPrefix) {
             let mtime = (try? entry.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
             guard let mtime, now.timeIntervalSince(mtime) > maxAge else { continue }
             do {

@@ -549,6 +549,7 @@
 "batchRenameInvalidPattern" = "Ungültiges Umbenennungsmuster: {0}";
 "movePartialFailure" = "{0} von {1} Objekten konnten nicht verschoben werden.";
 "undoRestoredDifferentName" = "Als „{0}“ wiederhergestellt, da „{1}“ bereits verwendet wird.";
+"undoPartialFailure" = "{0} von {1} Änderungen konnten nicht widerrufen werden.";
 "searchContentQueryTooShort" = "Gib mindestens 3 Zeichen ein, um in Dateien zu suchen.";
 "searchInvalidRegex" = "Dieser reguläre Ausdruck ist ungültig.";
 "searchInvalidFilterToken" = "Der Filter „%@“ ist ungültig, daher kann nichts darauf zutreffen.";

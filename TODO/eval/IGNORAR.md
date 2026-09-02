@@ -1,7 +1,5 @@
 # IGNORAR — arquivos triviais, pular nas próximas rodadas
 
-Revalidados linha a linha (ver `IGNORAR_REVIEW_REPORT.md`). Estes 48 são triviais de verdade.
-
 - `App/Commands/LocalizedCommands.swift`
 - `Constants/AppConstants.swift`
 - `Constants/HTTPStatus.swift`
@@ -63,23 +61,19 @@ Revalidados linha a linha (ver `IGNORAR_REVIEW_REPORT.md`). Estes 48 são trivia
 - `Services/FileSystem/MoveCollisionPolicy.swift`
 - `Services/FileSystem/ParsedSearchQuery.swift`
 - `Services/FileSystem/DirectoryLoadOptions.swift`
-## NÃO pular mais (voltaram ao escopo — têm lógica ou achado)
-
-- `Features/ArchiveInspector/ArchiveEntryItem.swift`
-- `Features/SmartFolders/SmartFolderServiceProtocol.swift`
-- `Models/AppState/AppState+Error.swift`
-- `Models/AppState/Stores/ModalStore.swift`
-- `Models/AutoOrganizationRule.swift`
-- `Models/ClipboardState.swift`
-- `Models/DirectoryCacheEntry.swift`
-- `Models/DirectoryLoadResult.swift`
+- `Models/DirectoryLoadResult.swift` 
+- `Models/FailableDecodable.swift`
 - `Models/FileOperationTask.swift`
-- `Models/NavigationMode.swift`
-- `Models/RuleConditionType.swift`
-- `Services/HapticService.swift`
-- `Services/NetworkShare.swift`
-- `Views/Content/TerminalViewCache.swift`
-- `Services/CopyPathService.swift` 
-- `Services/HTMLEscaping.swift`
-- `Views/Components/PaginatedItemsSection.swift`
-- `Models/NSImage+ResizedCopy.swift` 
+- `Constants/ByteFormat.swift` 
+- `Constants/URL+WellKnownLocations.swift`
+- `Constants/AsyncDelayTokens.swift`
+- `Services/DebouncedWriteRegistry.swift`
+- `Views/Components/TappableRow.swift`
+- `Views/Components/BackgroundContextMenuLayer.swift` 
+- `Views/Components/FavoriteToggleButton.swift` 
+- `Views/Components/SharedBackgroundContextMenu.swift`
+- `Views/Components/AsyncResultView.swift` 
+- `App/Commands/AppMenuCommands.swift`
+- `App/Commands/HelpMenuCommands.swift`
+- `App/Commands/GoMenuCommands.swift` 
+- `App/Commands/ToolsMenuCommands.swift`

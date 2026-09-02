@@ -169,18 +169,21 @@ public struct DuplicateCleanerSheetView: View {
         let urls = Array(selectedURLsToTrash)
         trashTask = Task.detached(priority: .userInitiated) {
             var failureCount = 0
+            var undoActions: [UndoActionType] = []
             for fileURL in urls {
                 if Task.isCancelled {
                     return
                 }
                 do {
                     let trashed = try await FileSystemService.moveToTrash(url: fileURL)
-                    await appState.undoRedoService.recordAction(.trash(originalURL: fileURL, trashedURL: trashed))
+                    undoActions.append(.trash(originalURL: fileURL, trashedURL: trashed))
                 } catch {
                     ErrorReporter.report(error, context: "Moving duplicate file to Trash")
                     failureCount += 1
                 }
             }
+            // One grouped undo entry so a single ⌘Z restores every trashed duplicate (HH-089).
+            await appState.undoRedoService.recordActions(undoActions)
             await MainActor.run {
                 DirectoryCacheService.shared.invalidate(url: appState.navigation.currentURL)
                 appState.refreshCurrentDirectory()

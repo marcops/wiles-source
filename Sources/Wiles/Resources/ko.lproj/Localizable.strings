@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "잘못된 이름 변경 패턴: {0}";
 "movePartialFailure" = "{1}개 중 {0}개 항목을 이동할 수 없습니다.";
 "undoRestoredDifferentName" = "“{1}”이(가) 이미 사용 중이므로 “{0}”(으)로 복원했습니다.";
+"undoPartialFailure" = "{1}개 변경 사항 중 {0}개를 실행 취소할 수 없습니다.";
 "searchContentQueryTooShort" = "파일 내용을 검색하려면 3자 이상 입력하세요.";
 "searchInvalidRegex" = "정규 표현식이 올바르지 않습니다.";
 "searchInvalidFilterToken" = "필터 “%@”이(가) 유효하지 않아 일치하는 항목이 없습니다.";

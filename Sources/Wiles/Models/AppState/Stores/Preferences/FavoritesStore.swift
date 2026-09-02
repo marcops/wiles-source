@@ -53,15 +53,25 @@ public final class FavoritesStore: PersistablePreferenceStore {
 
     /// `/Volumes/` favorites are accepted optimistically above instead of a synchronous
     /// `fileExists` check that could stall init against a sleeping network share (same pattern as
-    /// `NavigationStore.init`). Verifies them afterward and drops any that turned out to be gone.
+    /// `NavigationStore.init`). Verifies them afterward and drops a favorite ONLY when its volume is
+    /// mounted but the folder itself is gone — never when the whole `/Volumes/<name>` is offline,
+    /// which would permanently wipe a hand-curated favorite over a transient state (MH-118).
     private func validateSlowVolumeFavorites() async {
-        let pathsToCheck = Set(favoriteURLs.map(\.path).filter(SlowVolumePathValidator.isLikelySlowVolume))
-        guard !pathsToCheck.isEmpty else { return }
+        let slowPaths = Set(favoriteURLs.map(\.path).filter(SlowVolumePathValidator.isLikelySlowVolume))
+        guard !slowPaths.isEmpty else { return }
+        let mountRoots = Set(slowPaths.compactMap(SlowVolumePathValidator.volumeMountRoot(forPath:)))
+        let pathsToCheck = slowPaths.union(mountRoots)
 
         let existence = await Task.detached(priority: .utility) {
             Dictionary(uniqueKeysWithValues: pathsToCheck.map { ($0, FileManager.default.fileExists(atPath: $0)) })
         }.value
 
-        favoriteURLs = favoriteURLs.filter { existence[$0.path] ?? true }
+        favoriteURLs = favoriteURLs.filter { url in
+            guard SlowVolumePathValidator.isLikelySlowVolume(url.path) else { return true }
+            if existence[url.path] ?? true {
+                return true
+            }
+            return SlowVolumePathValidator.shouldKeepUnreachableSlowVolumePath(url.path, exists: existence)
+        }
     }
 }

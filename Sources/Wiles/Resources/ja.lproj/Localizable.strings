@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "無効なリネームパターン: {0}";
 "movePartialFailure" = "{1} 件中 {0} 件の項目を移動できませんでした。";
 "undoRestoredDifferentName" = "「{1}」はすでに使用されているため、「{0}」として復元しました。";
+"undoPartialFailure" = "{1} 件中 {0} 件の変更を取り消せませんでした。";
 "searchContentQueryTooShort" = "ファイル内を検索するには3文字以上入力してください。";
 "searchInvalidRegex" = "その正規表現は無効です。";
 "searchInvalidFilterToken" = "フィルタ「%@」が無効なため、一致するものはありません。";

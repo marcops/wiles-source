@@ -183,6 +183,13 @@ public final class AutoOrganizationService {
                    await !(Self.confirmStableAcrossExtraWindows(move.file, window: stabilityWindow)) {
                     continue
                 }
+                // The rule may have been disabled or deleted during the (2s–8s) stability window —
+                // re-check before actually moving so a just-turned-off rule doesn't fire one last
+                // "ghost" move (finding LL-063b).
+                let ruleStillActive = await MainActor.run {
+                    service.rules.contains { $0.id == move.ruleID && $0.isEnabled }
+                }
+                guard ruleStillActive else { continue }
                 do {
                     // Unattended — no user to prompt on a name collision, so keep both (unique-rename)
                     // rather than overwrite. See C1/H3.

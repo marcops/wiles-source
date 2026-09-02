@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "Nieprawidłowy wzorzec zmiany nazwy: {0}";
 "movePartialFailure" = "Nie można przenieść {0} z {1} elementów.";
 "undoRestoredDifferentName" = "Przywrócono jako „{0}”, ponieważ nazwa „{1}” jest już używana.";
+"undoPartialFailure" = "Nie można cofnąć {0} z {1} zmian.";
 "searchContentQueryTooShort" = "Wpisz co najmniej 3 znaki, aby przeszukać zawartość plików.";
 "searchInvalidRegex" = "To wyrażenie regularne jest nieprawidłowe.";
 "searchInvalidFilterToken" = "Filtr „%@” jest nieprawidłowy, więc nic nie może go spełnić.";

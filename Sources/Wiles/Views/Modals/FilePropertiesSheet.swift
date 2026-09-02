@@ -238,12 +238,16 @@ struct FilePropertiesSheet: View {
     }
 
     private func loadProperties() async {
-        detailedProps = await FileMetadataService.fetchProperties(for: item.url)
-        exifData = await ExifMetadataService.extractExif(from: item.url)
         let url = item.url
-        if let loadedPermissions = await Task.detached(priority: .userInitiated, operation: {
-            FilePermissionsService.getPermissions(for: url)
-        }).value {
+        // Kick all three reads off in parallel — a slow network file otherwise staggered the
+        // metadata / EXIF / permissions sections in one after another.
+        async let props = FileMetadataService.fetchProperties(for: url)
+        async let exif = ExifMetadataService.extractExif(from: url)
+        async let perms = Task.detached(priority: .userInitiated) { FilePermissionsService.getPermissions(for: url) }.value
+
+        detailedProps = await props
+        exifData = await exif
+        if let loadedPermissions = await perms {
             permissions = loadedPermissions
             lastAppliedPermissions = loadedPermissions
             hasPermissions = true

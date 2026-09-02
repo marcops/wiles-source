@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "Недопустимый шаблон переименования: {0}";
 "movePartialFailure" = "Не удалось переместить {0} из {1} объектов.";
 "undoRestoredDifferentName" = "Восстановлено как «{0}», так как имя «{1}» уже используется.";
+"undoPartialFailure" = "Не удалось отменить {0} из {1} изменений.";
 "searchContentQueryTooShort" = "Введите не менее 3 символов для поиска внутри файлов.";
 "searchInvalidRegex" = "Это регулярное выражение недопустимо.";
 "searchInvalidFilterToken" = "Фильтр «%@» недопустим, поэтому ничего не может ему соответствовать.";

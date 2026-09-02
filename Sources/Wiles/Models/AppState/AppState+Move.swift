@@ -33,26 +33,33 @@ public extension AppState {
         _ urls: [URL],
         toFolder targetFolder: URL,
         windowUIState: WindowUIState) async -> [URL] {
+        var undoActions: [UndoActionType] = []
         let (moved, failureCount) = await moveBatchResolvingCollisions(
             urls, into: targetFolder, windowUIState: windowUIState,
             onMoved: { source, dest, _, displacedTrashedURL in
-                recordResolvedMoveUndo(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL)
+                undoActions.append(contentsOf: resolvedMoveUndoActions(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL))
             })
+        // One grouped undo entry for the whole drag/breadcrumb drop, not one per item (HH-089).
+        undoRedoService.recordActions(undoActions)
         if failureCount > 0 {
             showPartialFailure(.movePartialFailure, failed: failureCount, total: urls.count)
         }
         return moved
     }
 
-    /// The undo bookkeeping for one completed collision-resolving move, shared by the cut/paste loop
-    /// (`pasteAllItems`) and the drag-onto-folder / breadcrumb-drop path so the two can't diverge
-    /// again (finding HM-146). The displaced-file `.trash` is recorded first — deeper in the stack —
-    /// so ⌘Z undoes the move and a second ⌘Z restores the file a Replace sent to the Trash.
-    func recordResolvedMoveUndo(source: URL, dest: URL, displacedTrashedURL: URL?) {
+    /// The per-item undo actions for one completed collision-resolving move, shared by the cut/paste
+    /// loop (`pasteAllItems`) and the drag-onto-folder / breadcrumb-drop path so the two can't
+    /// diverge (finding HM-146). Callers accumulate these across the batch and record them once via
+    /// `recordActions` (HH-089). Order per item is `[.trash(displaced)?, .move]` — a batch undo
+    /// reverses the whole list, so ⌘Z undoes the move first, then restores any Replace-displaced
+    /// file, matching the pre-batch stack order.
+    func resolvedMoveUndoActions(source: URL, dest: URL, displacedTrashedURL: URL?) -> [UndoActionType] {
+        var actions: [UndoActionType] = []
         if let displacedTrashedURL {
-            undoRedoService.recordAction(.trash(originalURL: dest, trashedURL: displacedTrashedURL))
+            actions.append(.trash(originalURL: dest, trashedURL: displacedTrashedURL))
         }
-        undoRedoService.recordAction(.move(sourceURL: source, destinationURL: dest))
+        actions.append(.move(sourceURL: source, destinationURL: dest))
+        return actions
     }
 
     /// The shared sequential collision-resolving move loop behind both `moveItemsResolvingCollisions`
@@ -110,7 +117,10 @@ public extension AppState {
             remapRelocatedState(from: url, to: dest)
             return (.moved(to: dest, displacedExisting: false, displacedTrashedURL: nil), sticky)
         } catch WilesError.destinationExists {
-            guard let windowUIState else { return (.skipped, sticky) }
+            // No window to prompt in (e.g. it closed mid-paste). Re-throw so the batch loop counts
+            // this as a failure and surfaces a partial-failure message, rather than silently
+            // dropping the item with `.skipped` (which isn't counted) — ML-048.
+            guard let windowUIState else { throw WilesError.destinationExists(name: url.lastPathComponent) }
             let resolution = await resolveCollision(
                 itemName: url.lastPathComponent, moreCollisionsPossible: moreFollow,
                 sticky: sticky, windowUIState: windowUIState)

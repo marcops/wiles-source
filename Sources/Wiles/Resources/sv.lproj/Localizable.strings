@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "Ogiltigt mönster för omdöpning: {0}";
 "movePartialFailure" = "{0} av {1} objekt kunde inte flyttas.";
 "undoRestoredDifferentName" = "Återställd som ”{0}” eftersom ”{1}” redan används.";
+"undoPartialFailure" = "{0} av {1} ändringar kunde inte ångras.";
 "searchContentQueryTooShort" = "Skriv minst 3 tecken för att söka i filer.";
 "searchInvalidRegex" = "Det reguljära uttrycket är ogiltigt.";
 "searchInvalidFilterToken" = "Filtret ”%@” är ogiltigt, så inget kan matcha det.";

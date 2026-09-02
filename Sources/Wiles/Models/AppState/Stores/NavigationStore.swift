@@ -65,13 +65,19 @@ public final class NavigationStore {
     /// (cheap for local paths, but seconds for a sleeping `/Volumes/` mount — same rationale as
     /// `AppState+Navigation.swift`'s `navigateTo`).
     private func validateRecentAndCurrentPaths() async {
-        let pathsToCheck = Set(([currentURL] + recentOpenedURLs).map(\.path))
+        let basePaths = ([currentURL] + recentOpenedURLs).map(\.path)
+        // Also check each `/Volumes/<name>` mount root so a recent on an offline volume is kept
+        // (transient), not pruned as if the folder were deleted (MH-118).
+        let mountRoots = basePaths.compactMap(SlowVolumePathValidator.volumeMountRoot(forPath:))
+        let pathsToCheck = Set(basePaths + mountRoots)
         guard !pathsToCheck.isEmpty else { return }
 
         let existence = await Task.detached(priority: .utility) {
             Dictionary(uniqueKeysWithValues: pathsToCheck.map { ($0, FileManager.default.fileExists(atPath: $0)) })
         }.value
 
+        // `currentURL` still falls back to home for the session when unreachable — there's nothing
+        // to show — but the persisted recents list is not pruned for a merely-offline volume.
         if let exists = existence[currentURL.path], !exists {
             let fallback = FileManager.default.homeDirectoryForCurrentUser
             if let onVolumeUnreachable {
@@ -80,7 +86,12 @@ public final class NavigationStore {
                 currentURL = fallback
             }
         }
-        recentOpenedURLs = recentOpenedURLs.filter { existence[$0.path] ?? true }
+        recentOpenedURLs = recentOpenedURLs.filter { url in
+            if existence[url.path] ?? true {
+                return true
+            }
+            return SlowVolumePathValidator.shouldKeepUnreachableSlowVolumePath(url.path, exists: existence)
+        }
     }
 
     /// Inserts/refreshes `url` at the front of `recentOpenedURLs`, capped at 50 entries. Excludes

@@ -78,20 +78,27 @@ struct SharedFileItemContextMenu: View {
         }
         if canMergeSelectedIntoPDF {
             Button(appState.tr(.mergeIntoPDF)) {
-                Task {
-                    do {
-                        let result = try await PDFMergeService.mergeFiles(urls: pdfMergeTargets, in: appState.navigation.currentURL)
-                        if result.skippedCount > 0 {
-                            appState.showError(WilesError.localized(
-                                key: .pdfMergePartialFailure, arguments: ["\(result.skippedCount)"]))
-                        }
-                    } catch {
-                        appState.showError(error, context: "Merging files into PDF")
-                    }
-                    appState.refreshCurrentDirectory()
-                }
+                mergeSelectedIntoPDF()
             }
         }
+    }
+
+    /// Routes the merge through `runDetachedFileOperation(taskTitle:)` so it shows a progress entry
+    /// in the operations popover and its ✕ actually cancels the merge (`PDFMergeService` checks
+    /// `Task.checkCancellation()` per file) — instead of a bare `Task {}` with no UI signal (LL-070).
+    private func mergeSelectedIntoPDF() {
+        let targets = pdfMergeTargets
+        let folder = appState.navigation.currentURL
+        appState.runDetachedFileOperation(
+            context: "Merging files into PDF",
+            taskTitle: appState.tr(.mergeIntoPDF),
+            onSuccess: { [appState] (result: (url: URL, skippedCount: Int)) in
+                if result.skippedCount > 0 {
+                    appState.showError(WilesError.localized(key: .pdfMergePartialFailure, arguments: ["\(result.skippedCount)"]))
+                }
+                appState.selection.selectedURLs = [result.url]
+            },
+            operation: { try await PDFMergeService.mergeFiles(urls: targets, in: folder) })
     }
 
     private var isImageFile: Bool {

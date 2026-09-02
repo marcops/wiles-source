@@ -115,6 +115,10 @@ public struct FileSystemService: Sendable {
                 break
             }
         }
+        // A cancelled load (rapid navigation / search keystroke) breaks out of the loop above with a
+        // partial `items`. Bail before caching so the next visit's cache fast-path can't paint an
+        // incomplete listing as if it were the whole folder (LM-081).
+        try Task.checkCancellation()
         let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
         if options.searchQuery.isEmpty {
             DirectoryCacheService.shared.cacheDirectory(DirectoryLoadResult(items: sortedItems), for: url)

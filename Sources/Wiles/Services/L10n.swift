@@ -183,6 +183,7 @@ public enum L10n {
         case batchRenameInvalidPattern
         case movePartialFailure
         case undoRestoredDifferentName
+        case undoPartialFailure
 
         case showPreviewSidebar
         case showDiskUsageSidebar

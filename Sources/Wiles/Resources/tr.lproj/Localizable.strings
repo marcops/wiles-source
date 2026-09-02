@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "Geçersiz yeniden adlandırma deseni: {0}";
 "movePartialFailure" = "{1} öğeden {0} tanesi taşınamadı.";
 "undoRestoredDifferentName" = "“{1}” adı zaten kullanıldığından “{0}” olarak geri yüklendi.";
+"undoPartialFailure" = "{1} değişiklikten {0} tanesi geri alınamadı.";
 "searchContentQueryTooShort" = "Dosya içeriğinde aramak için en az 3 karakter girin.";
 "searchInvalidRegex" = "Bu düzenli ifade geçerli değil.";
 "searchInvalidFilterToken" = "“%@” filtresi geçersiz, bu yüzden hiçbir şey eşleşemez.";

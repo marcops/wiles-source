@@ -549,6 +549,7 @@
 "batchRenameInvalidPattern" = "Invalid rename pattern: {0}";
 "movePartialFailure" = "{0} of {1} items could not be moved.";
 "undoRestoredDifferentName" = "Restored as “{0}” because “{1}” is already in use.";
+"undoPartialFailure" = "{0} of {1} changes could not be undone.";
 "searchContentQueryTooShort" = "Type at least 3 characters to search inside files.";
 "searchInvalidRegex" = "That regular expression isn't valid.";
 "searchInvalidFilterToken" = "The filter “%@” isn't valid, so nothing can match it.";

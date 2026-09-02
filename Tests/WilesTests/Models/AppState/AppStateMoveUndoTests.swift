@@ -5,7 +5,7 @@ import Foundation
 /// (`moveItemsResolvingCollisions`) used to pass the no-op `onMoved`, so a drag move recorded no
 /// undo at all, and a Replace sent the displaced file to the Trash with no `.trash` undo either.
 /// It now records the same `.move` (+ `.trash`) entries the cut/paste loop records, via the shared
-/// `recordResolvedMoveUndo` helper.
+/// `resolvedMoveUndoActions` helper — grouped into ONE undo entry per drag (HH-089).
 @MainActor
 public struct AppStateMoveUndoTests {
     public static func run() async {
@@ -85,16 +85,19 @@ public struct AppStateMoveUndoTests {
             "AppState+Move", "POS: Replace via drag moves the incoming file into place",
             result: moved.count == 1 && replaced)
 
-        // Two undo entries were recorded: .trash (displaced file) then .move — undoing twice
-        // consumes both, undoing once still leaves the .trash entry available.
+        // One grouped undo entry covers the whole Replace drag (.trash of the displaced file + the
+        // .move) — a single ⌘Z reverts both and leaves nothing further to undo (HH-089).
         let hadUndo = appState.undoRedoService.canUndo()
         _ = try? await appState.undoRedoService.undo()
-        let stillHasUndoAfterOne = appState.undoRedoService.canUndo()
-        _ = try? await appState.undoRedoService.undo()
-        let noUndoAfterTwo = !appState.undoRedoService.canUndo()
-        report(
-            "AppState+Move", "POS: a Replace drag records exactly two undo steps (.trash + .move), not zero",
-            result: hadUndo && stillHasUndoAfterOne && noUndoAfterTwo)
+        let noUndoAfterOne = !appState.undoRedoService.canUndo()
+        let incomingBackAtSource = FileManager.default.fileExists(atPath: source.path)
+        // The displaced "PRECIOUS-" file comes back into `dest/` — under `dup.txt` when free, or a
+        // `dup 2.txt`-style free name if the Trash renamed it on the way in (MM-091 behaviour).
+        let displacedRestored = (((try? FileManager.default.contentsOfDirectory(atPath: dest.path)) ?? [])
+            .contains { ((try? String(contentsOf: dest.appendingPathComponent($0))) ?? "").hasPrefix("PRECIOUS-") })
+        report("AppState+Move", "POS: Replace drag is undoable in one ⌘Z (nothing further to undo after)", result: hadUndo && noUndoAfterOne)
+        report("AppState+Move", "POS: ⌘Z on a Replace drag returns the incoming file to the drag source", result: incomingBackAtSource)
+        report("AppState+Move", "POS: ⌘Z on a Replace drag restores the file the Replace displaced", result: displacedRestored)
 
         try? FileManager.default.removeItem(at: root)
     }
@@ -105,17 +108,19 @@ public struct AppStateMoveUndoTests {
         let src = tmp.appendingPathComponent("a-\(UUID().uuidString).txt")
         let dst = tmp.appendingPathComponent("b-\(UUID().uuidString).txt")
 
-        appState.recordResolvedMoveUndo(source: src, dest: dst, displacedTrashedURL: nil)
+        let noDisplaced = appState.resolvedMoveUndoActions(source: src, dest: dst, displacedTrashedURL: nil)
+        appState.undoRedoService.recordActions(noDisplaced)
         report(
-            "AppState+Move", "POS: recordResolvedMoveUndo with no displaced file records an undo step",
-            result: appState.undoRedoService.canUndo())
+            "AppState+Move", "POS: resolvedMoveUndoActions with no displaced file is one .move action",
+            result: noDisplaced.count == 1 && appState.undoRedoService.canUndo())
 
         let displaced = tmp.appendingPathComponent("c-\(UUID().uuidString).txt")
         let fresh = AppState()
-        fresh.recordResolvedMoveUndo(source: src, dest: dst, displacedTrashedURL: displaced)
+        let withDisplaced = fresh.resolvedMoveUndoActions(source: src, dest: dst, displacedTrashedURL: displaced)
+        fresh.undoRedoService.recordActions(withDisplaced)
         report(
-            "AppState+Move", "POS: recordResolvedMoveUndo with a displaced file also records undo (.trash + .move)",
-            result: fresh.undoRedoService.canUndo())
+            "AppState+Move", "POS: resolvedMoveUndoActions with a displaced file is [.trash, .move]",
+            result: withDisplaced.count == 2 && fresh.undoRedoService.canUndo())
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

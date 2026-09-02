@@ -21,7 +21,11 @@ final class TerminalViewCache {
     /// resolving after a future SwiftTerm bump (that would silently leak the shell). Teardown-time
     /// reflection stays as a second fallback, then `exit`.
     var shellPid: pid_t?
-    init() { }
+    init() {
+        // Registered so `applicationWillTerminate` can SIGKILL this window's shell on ⌘Q, which
+        // never triggers `MainContentView.onDisappear` (finding MM-122).
+        TerminalProcessRegistry.shared.register(self)
+    }
 
     /// Called from `MainContentView.onDisappear` so a closed window doesn't leak its `/bin/zsh -l`
     /// (and whatever it's running — `vim`, `tail -f` — which would swallow a plain `exit`). `view` is

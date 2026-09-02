@@ -59,11 +59,25 @@ Any use of reflection or KVC to read non-public state or structure of an externa
 - Unattended callers (background rules, auto-organization) must take path (a) — there is no user present to prompt.
 - Each collision fix ships with the red→green regression test the "Never Destroy User Data" rule mandates: the old code destroys the destination, the new code doesn't.
 
+### Untrusted Archive Entry Names Are Boundary-Checked Before Becoming a Filesystem Path
+
+- Every code path that turns an archive entry name (read from a ZIP central directory, `unzip`/`tar` output, an inspector list, …) into a `URL` you then read, move, or write MUST first reject the name if it contains a `..` path component or is absolute, AND — after building the URL — confirm the resolved path (`resolvingSymlinksInPath()`) is still inside the intended staging/destination directory. Never rely on the extraction tool (`ditto`/`bsdtar`) to sanitize on your behalf, and never compute a *source* path from the raw entry name and then `moveItem` whatever happens to be there.
+- The failure this prevents: a crafted archive with an entry named `../../../…/.ssh/id_rsa` (any `..` chain to a real readable file) makes the code relocate an arbitrary file the user can read — SSH keys, credentials, cookie DBs — out of its real location; if the target folder is itself LAN-shared, that then exposes it.
+- `ArchiveService.entryEscapesDestination` is the shared check. `ArchiveService.extractArchive` and `ArchiveInspectionService.extractSingleEntrySync` both run it; any third archive-consuming path runs it too.
+- Code review: BLOCKING.
+
 ### A Destructive Action Is Either Undoable Through the Standard Path, or Warns Explicitly (R4)
 
 - Any action that removes or relocates the user's data MUST either (a) record an undo step through the app's normal undo path (so ⌘Z reverses it), or (b) show explicit copy that it can't be undone that way ("files go to the Trash and can be restored from there; ⌘Z does not undo this", or "this cannot be undone").
-- The user's mental model is set by the *normal* path: a plain "Move to Trash" IS ⌘Z-undoable, so any other flow that also says "Move to Trash" (bulk duplicate cleanup, an inline sheet action) must either match that — record `.trash` undo entries per item — or say up front that it doesn't.
-- Reference points: `AutoOrganizationSheet` shows an explicit "no undo" notice; `FileShredderService` always confirms because it bypasses the Trash entirely. `DuplicateCleanerSheetView.trashSelected` now records a `.trash` undo per item; single-file `chmod` in `FilePropertiesSheet` records a `.chmod` undo. Recursive `chmod` still relies on its confirmation dialog. Code-review checklist item; not mechanically detectable.
+- The user's mental model is set by the *normal* path: a plain "Move to Trash" IS ⌘Z-undoable, so any other flow that also says "Move to Trash" (bulk duplicate cleanup, an inline sheet action) must either match that — record a **single grouped undo entry** covering every item (see the batch-undo rule below) — or say up front that it doesn't.
+- Reference points: `AutoOrganizationSheet` shows an explicit "no undo" notice; `FileShredderService` always confirms because it bypasses the Trash entirely. `DuplicateCleanerSheetView.trashSelected` records one grouped `.batch` undo for the whole selection; single-file `chmod` in `FilePropertiesSheet` records a `.chmod` undo. Recursive `chmod` still relies on its confirmation dialog. Code-review checklist item; not mechanically detectable.
+
+### Batch Operations Record One Grouped Undo Entry, Never One Per Item
+
+- Any operation acting on a multi-item selection (bulk move, move-to-Trash, cut/copy-paste, batch rename, duplicate cleanup) MUST record **exactly one** undo entry covering every item — never a `for` loop of `recordAction` per item. Accumulate the per-item actions and record them through the grouped-undo primitive (`UndoRedoService.recordActions(_:)` → `UndoActionType.batch`), which degrades to the bare action for a one-item batch.
+- Two failures this prevents: (1) `⌘Z` reverting one item at a time, contrary to the platform mental model where a plain multi-file "Move to Trash" is one undo step; (2) the fixed-size undo history (`maxHistoryLimit`) silently dropping the oldest items of a large operation — those become un-undoable with no signal to the user. The cap must count **user actions**, not items.
+- The primitive reverts each sub-action independently: a failed item is re-pushed as a retryable grouped entry and reported ("N of M changes could not be undone"), the rest still revert. `UndoRedoService.undoBatch` / `redoBatch` are the reference.
+- Code review: BLOCKING for any new call site recording undo for a multi-item action.
 
 ### Preflight/Executor Consistency
 

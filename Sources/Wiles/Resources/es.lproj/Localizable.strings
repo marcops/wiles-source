@@ -549,6 +549,7 @@
 "batchRenameInvalidPattern" = "Patrón de cambio de nombre no válido: {0}";
 "movePartialFailure" = "No se pudieron mover {0} de {1} elementos.";
 "undoRestoredDifferentName" = "Restaurado como «{0}» porque «{1}» ya está en uso.";
+"undoPartialFailure" = "No se pudieron deshacer {0} de {1} cambios.";
 "searchContentQueryTooShort" = "Escribe al menos 3 caracteres para buscar dentro de los archivos.";
 "searchInvalidRegex" = "Esa expresión regular no es válida.";
 "searchInvalidFilterToken" = "El filtro «%@» no es válido, por lo que nada puede coincidir.";

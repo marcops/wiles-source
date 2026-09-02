@@ -40,6 +40,16 @@ public final class UndoRedoService {
         redoStack.removeAll()
     }
 
+    /// Records N per-item actions from ONE user operation as a single grouped `.batch` entry (or,
+    /// for exactly one, that action verbatim). This is what call sites doing bulk trash / move /
+    /// paste / batch-rename must use instead of a `for` loop of `recordAction` — otherwise `⌘Z`
+    /// reverts one item at a time and the `maxHistoryLimit` cap silently drops the oldest items of
+    /// a >50-item operation with no way to undo them (finding HH-089). Empty input is a no-op.
+    public func recordActions(_ actions: [UndoActionType]) {
+        guard let first = actions.first else { return }
+        recordAction(actions.count == 1 ? first : .batch(actions))
+    }
+
     public func canUndo() -> Bool {
         !undoStack.isEmpty
     }
@@ -52,6 +62,9 @@ public final class UndoRedoService {
         guard !isProcessing, let record = undoStack.popLast() else { return nil }
         isProcessing = true
         defer { isProcessing = false }
+        if case let .batch(actions) = record.actionType {
+            return try await undoBatch(actions)
+        }
         do {
             let outcome = try await executeReverseAction(record.actionType)
             if outcome.redoable {
@@ -70,6 +83,9 @@ public final class UndoRedoService {
         guard !isProcessing, let record = redoStack.popLast() else { return nil }
         isProcessing = true
         defer { isProcessing = false }
+        if case let .batch(actions) = record.actionType {
+            return try await redoBatch(actions)
+        }
         do {
             let outcome = try await executeForwardAction(record.actionType)
             undoStack.append(UndoRecord(actionType: outcome.resultingAction))
@@ -78,6 +94,64 @@ public final class UndoRedoService {
             redoStack.append(record)
             throw error
         }
+    }
+
+    private func wrap(_ actions: [UndoActionType]) -> UndoActionType {
+        actions.count == 1 ? actions[0] : .batch(actions)
+    }
+
+    /// Reverts a batch last-first, each sub-action independently: whatever reverts goes to the redo
+    /// stack (grouped, only when every reverted piece is redoable); whatever fails is re-pushed as a
+    /// retryable batch on the undo stack and reported. Returns the first restored URL for selection.
+    private func undoBatch(_ actions: [UndoActionType]) async throws -> URL? {
+        var revertedForward: [UndoActionType] = []
+        var failedOriginals: [UndoActionType] = []
+        var allRedoable = true
+        var firstURL: URL?
+        for action in actions.reversed() {
+            do {
+                let outcome = try await executeReverseAction(action)
+                revertedForward.insert(outcome.resultingAction, at: 0)
+                allRedoable = allRedoable && outcome.redoable
+                firstURL = firstURL ?? outcome.url
+            } catch {
+                failedOriginals.insert(action, at: 0)
+            }
+        }
+        if !revertedForward.isEmpty, allRedoable {
+            redoStack.append(UndoRecord(actionType: wrap(revertedForward)))
+        }
+        guard failedOriginals.isEmpty else {
+            undoStack.append(UndoRecord(actionType: wrap(failedOriginals)))
+            throw WilesError.localized(
+                key: .undoPartialFailure, arguments: ["\(failedOriginals.count)", "\(actions.count)"])
+        }
+        return firstURL
+    }
+
+    /// Mirror of `undoBatch` for `⌘⇧Z`: re-applies a batch first-last.
+    private func redoBatch(_ actions: [UndoActionType]) async throws -> URL? {
+        var reappliedReverse: [UndoActionType] = []
+        var failedOriginals: [UndoActionType] = []
+        var firstURL: URL?
+        for action in actions {
+            do {
+                let outcome = try await executeForwardAction(action)
+                reappliedReverse.append(outcome.resultingAction)
+                firstURL = firstURL ?? outcome.url
+            } catch {
+                failedOriginals.append(action)
+            }
+        }
+        if !reappliedReverse.isEmpty {
+            undoStack.append(UndoRecord(actionType: wrap(reappliedReverse)))
+        }
+        guard failedOriginals.isEmpty else {
+            redoStack.append(UndoRecord(actionType: wrap(failedOriginals)))
+            throw WilesError.localized(
+                key: .undoPartialFailure, arguments: ["\(failedOriginals.count)", "\(actions.count)"])
+        }
+        return firstURL
     }
 
     /// `url` is where the file ended up; `resultingAction` is the action to push onto the opposite
@@ -126,7 +200,37 @@ public final class UndoRedoService {
                 url: result, resultingAction: .trash(originalURL: result, trashedURL: trashedURL))
         case let .chmod(url, previous):
             return try await applyChmod(url: url, permissions: previous)
+        case let .batch(actions):
+            return try await reverseNestedBatch(actions)
         }
+    }
+
+    /// Top-level `.batch` records are handled by `undoBatch` (which owns partial-failure recovery);
+    /// this covers only the defensive nested case — revert last-first, all-or-throw.
+    private func reverseNestedBatch(_ actions: [UndoActionType]) async throws -> ActionOutcome {
+        var reverted: [UndoActionType] = []
+        var redoable = true
+        var url: URL?
+        for action in actions.reversed() {
+            let outcome = try await executeReverseAction(action)
+            reverted.insert(outcome.resultingAction, at: 0)
+            redoable = redoable && outcome.redoable
+            url = url ?? outcome.url
+        }
+        return ActionOutcome(
+            url: url ?? URL(fileURLWithPath: "/"), resultingAction: wrap(reverted), redoable: redoable)
+    }
+
+    /// Mirror of `reverseNestedBatch` for the defensive nested redo case.
+    private func forwardNestedBatch(_ actions: [UndoActionType]) async throws -> ActionOutcome {
+        var reapplied: [UndoActionType] = []
+        var url: URL?
+        for action in actions {
+            let outcome = try await executeForwardAction(action)
+            reapplied.append(outcome.resultingAction)
+            url = url ?? outcome.url
+        }
+        return ActionOutcome(url: url ?? URL(fileURLWithPath: "/"), resultingAction: wrap(reapplied))
     }
 
     /// Sets `url`'s POSIX permissions to `permissions`, off the main actor, and returns the
@@ -177,6 +281,8 @@ public final class UndoRedoService {
                 resultingAction: .trash(originalURL: originalURL, trashedURL: trashed))
         case let .chmod(url, previous):
             return try await applyChmod(url: url, permissions: previous)
+        case let .batch(actions):
+            return try await forwardNestedBatch(actions)
         }
     }
 }

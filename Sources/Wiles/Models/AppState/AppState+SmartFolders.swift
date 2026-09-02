@@ -32,7 +32,9 @@ public extension AppState {
         fileSystem.refreshTask?.cancel()
         let target = navigation.currentURL
         smartFolderService.executeQuery(for: folder) { [weak self] items in
-            Task { @MainActor in
+            // `SmartFolderService.runQuery` already invokes this completion from inside a
+            // `Task { @MainActor }`, so assume isolation instead of nesting another one (SM-055).
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 self.smartFolder.lastRunTimedOut = self.smartFolderService.lastRunTimedOut
                 self.applyLoadedItems(

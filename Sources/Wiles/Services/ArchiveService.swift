@@ -208,18 +208,40 @@ public final class ArchiveService: Sendable {
         let (output, truncated) = outputPipe.map {
             readStdout(from: $0.fileHandleForReading, cap: maxCapturedStdoutBytes, terminating: process)
         } ?? (Data(), false)
+        // Poll instead of a bare `waitUntilExit()` so cancelling the operation (the ✕ in the
+        // operations popover) actually SIGTERMs the `ditto`/`zip`/`tar` subprocess instead of
+        // letting it run to completion for a bar that "won't cancel" (finding MM-104). This runs in
+        // a `Task.detached`, so `Task.isCancelled` reflects the forwarded cancellation.
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                break
+            }
+            Thread.sleep(forTimeInterval: cancellationPollInterval)
+        }
         process.waitUntilExit()
         errorPipe.fileHandleForReading.readabilityHandler = nil
+        if Task.isCancelled {
+            throw CancellationError()
+        }
         return ProcessRunResult(
             terminationStatus: process.terminationStatus, standardOutput: output,
             standardError: stderrBuffer.text, stdoutTruncated: truncated)
     }
+
+    /// How often `runProcess` checks for cancellation while a subprocess is running.
+    private static let cancellationPollInterval: TimeInterval = 0.1
 
     /// Reads to EOF, or stops at `cap` bytes and kills the subprocess (then drains the pipe so the
     /// dying process doesn't block on a full buffer). Returns the bytes read and whether it capped.
     private static func readStdout(from handle: FileHandle, cap: Int, terminating process: Process) -> (Data, truncated: Bool) {
         var buffer = Data()
         while true {
+            if Task.isCancelled {
+                process.terminate()
+                while !handle.readData(ofLength: 64 * 1024).isEmpty { }
+                return (buffer, true)
+            }
             let chunk = handle.readData(ofLength: 64 * 1024)
             if chunk.isEmpty {
                 return (buffer, false)
@@ -291,8 +313,22 @@ public final class ArchiveService: Sendable {
             arguments = ["-x", "-k", archiveURL.path, extractionFolder.path]
         }
 
-        let result = try runProcess(executable: executable, arguments: arguments)
+        let result: ProcessRunResult
+        do {
+            result = try runProcess(executable: executable, arguments: arguments)
+        } catch {
+            // Cancelled (or `run()` failed) mid-extraction: drop the half-written unique subfolder
+            // we just created — but never `destinationFolder` itself, which was already there and
+            // may hold the user's other files (MM-104).
+            if extractionFolder != destinationFolder {
+                try? FileManager.default.removeItem(at: extractionFolder)
+            }
+            throw error
+        }
         if result.terminationStatus != 0 {
+            if extractionFolder != destinationFolder {
+                try? FileManager.default.removeItem(at: extractionFolder)
+            }
             let failure = WilesError.localized(key: .archiveExtractionFailed, arguments: [])
             ErrorReporter.report(
                 failure, context: diagnosticContext("\(executable) extraction of \(archiveURL.lastPathComponent)", result))
@@ -331,7 +367,10 @@ public final class ArchiveService: Sendable {
         throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
     }
 
-    private static func entryEscapesDestination(_ entry: String) -> Bool {
+    /// `true` when an archive entry name would write outside the destination via a `..` component or
+    /// an absolute path. `internal` (not `private`) so `ArchiveInspectionService.extractSingleEntry`
+    /// runs the same check on the single entry it extracts (HH-234).
+    static func entryEscapesDestination(_ entry: String) -> Bool {
         let normalized = entry.replacingOccurrences(of: "\\", with: "/")
         if normalized.hasPrefix("/") {
             return true

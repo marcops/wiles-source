@@ -20,10 +20,11 @@ struct EditMenuCommands: LocalizedCommands {
                 .keyboardShortcut(.redo)
         }
         CommandGroup(replacing: .pasteboard) {
-            // While the rename field or the path bar's text field is active, these keep their
-            // shortcut but forward to the system's standard text editing actions instead, so that
-            // field's own text gets cut/copied/pasted/selected instead of the selected files.
-            let isRenaming = isTextFieldEditingActive ?? false
+            // While ANY text field is focused (rename, path bar, the header search box, or a field
+            // inside a sheet), these keep their shortcut but forward to the system's standard text
+            // editing actions instead — so the field's own text gets cut/copied/pasted/selected
+            // rather than the selected files (finding MM-133).
+            let isRenaming = isEditingText
             cutCommandButton(isRenaming: isRenaming)
             copyCommandButton(isRenaming: isRenaming)
             pasteCommandButton(isRenaming: isRenaming)
@@ -33,6 +34,20 @@ struct EditMenuCommands: LocalizedCommands {
             Button(tr(.find)) { appState?.toggleSearching() }
                 .keyboardShortcut(.find)
         }
+    }
+
+    /// True when a text field currently owns keyboard focus, so file cut/copy/paste/select-all must
+    /// defer to `NSText`'s own actions. `isTextFieldEditingActive` is the per-window signal for the
+    /// rename field / path bar; `isSearching` and the live first-responder check add the header
+    /// search box and any sheet text field it doesn't track (finding MM-133).
+    private var isEditingText: Bool {
+        if isTextFieldEditingActive ?? false {
+            return true
+        }
+        if appState?.selection.isSearching ?? false {
+            return true
+        }
+        return NSApplication.shared.keyWindow?.firstResponder is NSText
     }
 
     private func cutCommandButton(isRenaming: Bool) -> some View {

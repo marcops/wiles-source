@@ -139,26 +139,32 @@ public extension AppState {
     private static func pasteAllItems(urls: [URL], context: PasteContext) async -> (failureCount: Int, movedDestinations: [URL]) {
         guard context.isCut else { return await copyAllItems(urls: urls, context: context) }
         guard let owner = context.owner else { return (0, []) }
+        var undoActions: [UndoActionType] = []
         let (moved, failureCount) = await owner.moveBatchResolvingCollisions(
             urls, into: context.targetFolder, windowUIState: context.windowUIState,
             onMoved: { source, dest, _, displacedTrashedURL in
-                context.owner?.recordResolvedMoveUndo(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL)
+                if let owner = context.owner {
+                    undoActions.append(contentsOf: owner.resolvedMoveUndoActions(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL))
+                }
             },
             progress: { completed in
                 if shouldReportProgress(index: completed - 1, count: urls.count) {
                     context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(completed))
                 }
             })
+        // One grouped undo entry for the whole cut/paste, not one per item (finding HH-089).
+        context.owner?.undoRedoService.recordActions(undoActions)
         return (failureCount, moved)
     }
 
     private static func copyAllItems(urls: [URL], context: PasteContext) async -> (failureCount: Int, movedDestinations: [URL]) {
         var failureCount = 0
+        var undoActions: [UndoActionType] = []
         for (index, url) in urls.enumerated() {
             guard !Task.isCancelled else { break }
             do {
                 let destURL = try await FileSystemService.copyItem(at: url, toFolder: context.targetFolder)
-                context.undoRedoService.recordAction(.createFile(url: destURL))
+                undoActions.append(.createFile(url: destURL))
             } catch {
                 ErrorReporter.report(error, context: "Pasting items to current directory")
                 failureCount += 1
@@ -167,6 +173,8 @@ public extension AppState {
                 context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(index + 1))
             }
         }
+        // One grouped undo entry for the whole paste, not one per file (finding HH-089).
+        context.undoRedoService.recordActions(undoActions)
         return (failureCount, [])
     }
 
@@ -204,15 +212,18 @@ public extension AppState {
     /// update) rather than once per item — trashing 20k files shouldn't mean 20k actor hops.
     private static let progressReportStride = 64
 
-    /// Off-main trash loop: no `self` capture, per-item progress hopped back to `@MainActor`.
+    /// Off-main trash loop: no `self` capture, per-item progress hopped back to `@MainActor`. The
+    /// whole multi-file trash is recorded as ONE grouped undo entry so a single ⌘Z restores every
+    /// item (finding HH-089).
     private static func trashItems(
         urls: [URL], taskID: UUID, undoRedoService: UndoRedoService?, backgroundOperations: BackgroundOperationsService) async -> Int {
         var failureCount = 0
+        var undoActions: [UndoActionType] = []
         for (index, url) in urls.enumerated() {
             guard !Task.isCancelled else { break }
             do {
                 let trashed = try await FileSystemService.moveToTrash(url: url)
-                await undoRedoService?.recordAction(.trash(originalURL: url, trashedURL: trashed))
+                undoActions.append(.trash(originalURL: url, trashedURL: trashed))
             } catch {
                 ErrorReporter.report(error, context: "Moving item to Trash")
                 failureCount += 1
@@ -221,6 +232,7 @@ public extension AppState {
                 await MainActor.run { backgroundOperations.updateProgress(id: taskID, unitsDone: Int64(index + 1)) }
             }
         }
+        undoRedoService?.recordActions(undoActions)
         return failureCount
     }
 
@@ -321,9 +333,15 @@ public extension AppState {
         })
     }
 
-    /// `folder` may differ from `navigation.currentURL` — only touch `fileSystem.items` when
-    /// they're the same folder.
+    /// Only enters rename UI when the item was created in the folder currently on screen. Creating
+    /// in a different folder (e.g. a sidebar/tree context-menu action) must NOT set `renamingURL`
+    /// for an off-screen item — that both shows a rename overlay for something not in the list and
+    /// freezes the visible directory's refresh until the rename ends (ML-072).
     private func enterRenameForNewlyCreated(at url: URL, inFolder: URL, windowUIState: WindowUIState) {
+        guard inFolder.standardizedFileURL == navigation.currentURL.standardizedFileURL else {
+            DirectoryCacheService.shared.invalidate(url: inFolder)
+            return
+        }
         // Built on @MainActor for a freshly-created local file; the rename row doesn't show
         // Owner/Group, so skip that extra stat/getpwuid syscall path (M3).
         let newItem = FileItem.load(url: url, needsOwnerGroup: false)
@@ -338,7 +356,6 @@ public extension AppState {
             // with `InlineRenameField.endSuppressedRefreshIfNeeded`.
             refreshCurrentDirectory()
         }
-        guard inFolder.standardizedFileURL == navigation.currentURL.standardizedFileURL else { return }
         DirectoryCacheService.shared.invalidate(url: navigation.currentURL)
         // Place it where the current sort puts it, not at the top — otherwise it visibly jumps
         // when the follow-up refresh reorders the list.
@@ -382,6 +399,12 @@ public extension AppState {
                 onSuccess(result)
                 if refreshOnSuccess {
                     refreshCurrentDirectory()
+                }
+            } catch is CancellationError {
+                // The user cancelled via the operations popover ✕ — just clear the progress entry,
+                // never surface it as an error alert (MM-104).
+                if let taskID {
+                    self?.backgroundOperations.completeTask(id: taskID)
                 }
             } catch {
                 // Skipped when `operation` already reports richer diagnostics itself (e.g. ArchiveService's stderr capture).

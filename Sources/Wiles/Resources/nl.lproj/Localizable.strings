@@ -550,6 +550,7 @@
 "batchRenameInvalidPattern" = "Ongeldig hernoempatroon: {0}";
 "movePartialFailure" = "{0} van {1} items konden niet worden verplaatst.";
 "undoRestoredDifferentName" = "Hersteld als “{0}” omdat “{1}” al in gebruik is.";
+"undoPartialFailure" = "{0} van {1} wijzigingen konden niet ongedaan worden gemaakt.";
 "searchContentQueryTooShort" = "Typ minstens 3 tekens om in bestanden te zoeken.";
 "searchInvalidRegex" = "Die reguliere expressie is ongeldig.";
 "searchInvalidFilterToken" = "Het filter “%@” is ongeldig, dus niets kan eraan voldoen.";

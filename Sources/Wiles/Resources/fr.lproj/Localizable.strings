@@ -549,6 +549,7 @@
 "batchRenameInvalidPattern" = "Modèle de renommage non valide : {0}";
 "movePartialFailure" = "{0} sur {1} éléments n'ont pas pu être déplacés.";
 "undoRestoredDifferentName" = "Restauré sous « {0} » car « {1} » est déjà utilisé.";
+"undoPartialFailure" = "{0} modification(s) sur {1} n’ont pas pu être annulées.";
 "searchContentQueryTooShort" = "Saisissez au moins 3 caractères pour rechercher dans les fichiers.";
 "searchInvalidRegex" = "Cette expression régulière n'est pas valide.";
 "searchInvalidFilterToken" = "Le filtre « %@ » n'est pas valide, rien ne peut donc y correspondre.";
