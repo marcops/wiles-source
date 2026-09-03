@@ -9,6 +9,9 @@ struct ArchiveInspectionSheetView: View {
     var appState: AppState
     @Environment(\.dismiss)
     private var dismiss
+    /// The in-flight single-entry extraction, so closing the sheet cancels the `ditto`/`unzip`
+    /// subprocess instead of letting it run to completion in the background (MM-078).
+    @State private var extractionTask: Task<Void, Never>?
 
     var body: some View {
         ModalScaffoldView(
@@ -18,6 +21,7 @@ struct ArchiveInspectionSheetView: View {
             height: Self.sheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.close)) { dismiss() },
             content: { contentArea })
+            .onDisappear { extractionTask?.cancel() }
     }
 
     private var contentArea: some View {
@@ -86,7 +90,8 @@ struct ArchiveInspectionSheetView: View {
 
     private func extractButton(for entry: ArchiveEntryItem) -> some View {
         Button(appState.tr(.extractArchive)) {
-            Task {
+            extractionTask?.cancel()
+            extractionTask = Task {
                 await extractEntry(entry)
             }
         }
@@ -99,6 +104,9 @@ struct ArchiveInspectionSheetView: View {
     private func extractEntry(_ entry: ArchiveEntryItem) async {
         do {
             _ = try await ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.navigation.currentURL)
+        } catch is CancellationError {
+            // Sheet closed mid-extraction — the subprocess was terminated; nothing to surface (MM-078).
+            return
         } catch {
             await MainActor.run {
                 appState.showError(error, context: "Extracting single archive entry")

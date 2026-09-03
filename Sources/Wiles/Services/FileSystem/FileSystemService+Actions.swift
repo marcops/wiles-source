@@ -99,9 +99,11 @@ public extension FileSystemService {
         do {
             try fm.trashItem(at: stagedURL, resultingItemURL: &trashedURL)
         } catch {
-            // Move already succeeded; the displaced file is safe under its hidden sibling name.
-            // Report that as the recoverable location instead of failing the whole operation.
-            return (destURL, stagedURL)
+            // Trash is unavailable on this volume (SMB/AFP share, FAT/exFAT drive). The move already
+            // succeeded; park the displaced file under a visible, non-swept name so
+            // `sweepStaleRenameTemps` can't delete it and the `.trash` undo can still restore it (CH-190).
+            return (destURL, recoverUntrashableDisplacedFile(
+                stagedAt: stagedURL, originalName: url.lastPathComponent, in: targetFolder, fileManager: fm))
         }
         return (destURL, trashedURL as URL?)
     }
@@ -282,6 +284,36 @@ public extension FileSystemService {
                 ErrorReporter.report(error, context: "Sweeping stale rename temp \(entry.lastPathComponent)")
             }
         }
+    }
+
+    /// A `.replace` move staged the displaced file aside, then `trashItem` failed (a volume with no
+    /// Trash support). Rename that staged `replaceTempPrefix` file to a **visible, non-swept** unique
+    /// name in `targetFolder` so `sweepStaleRenameTemps` can never delete it and the `.trash` undo
+    /// can still restore it. Returns the recovered URL, or `stagedURL` unchanged if even this rename
+    /// fails — still better than a false success (CH-190).
+    nonisolated static func recoverUntrashableDisplacedFile(
+        stagedAt stagedURL: URL, originalName: String, in targetFolder: URL, fileManager fm: FileManager = .default) -> URL {
+        let isDir = (try? stagedURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+        let recovered = UniqueFileNaming.uniqueURL(
+            for: targetFolder.appendingPathComponent(displacedRecoveryName(for: originalName, isDirectory: isDir)),
+            in: targetFolder, isDirectory: isDir, using: fm)
+        do {
+            try fm.moveItem(at: stagedURL, to: recovered)
+            return recovered
+        } catch {
+            ErrorReporter.report(error, context: "Recovering un-trashable displaced file \(originalName)")
+            return stagedURL
+        }
+    }
+
+    /// `"note.txt"` → `"note (replaced).txt"`; `"README"` → `"README (replaced)"`; a directory keeps
+    /// its full name so `"My.Files"` → `"My.Files (replaced)"` (no extension split).
+    nonisolated static func displacedRecoveryName(for name: String, isDirectory: Bool) -> String {
+        guard !isDirectory else { return "\(name) (replaced)" }
+        let ns = name as NSString
+        let ext = ns.pathExtension
+        guard !ext.isEmpty else { return "\(name) (replaced)" }
+        return "\(ns.deletingPathExtension) (replaced).\(ext)"
     }
 
     @discardableResult

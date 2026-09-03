@@ -50,9 +50,23 @@ final class TerminalViewCache {
 
     /// SwiftTerm keeps `LocalProcessTerminalView.process` (and thus `shellPid`) module-internal, so
     /// read it reflectively. Best-effort: `nil` when the layout changes and we fall back to `exit`.
+    ///
+    /// `process` is declared `var process: LocalProcess!` — an implicitly-unwrapped optional — so
+    /// `Mirror(reflecting:)` on that child walks the `Optional` wrapper, whose only member is
+    /// `some`, and `shellPid` never resolves. Unwrap one optional layer first (MM-143). Covered by
+    /// `TerminalShellPidReflectionCanaryTests`.
     static func reflectShellPid(of view: LocalProcessTerminalView?) -> pid_t? {
         guard let view else { return nil }
-        guard let process = Mirror(reflecting: view).children.first(where: { $0.label == "process" })?.value else { return nil }
+        guard let processChild = Mirror(reflecting: view).children.first(where: { $0.label == "process" })?.value else { return nil }
+        let process = unwrappingOneOptionalLayer(processChild)
         return Mirror(reflecting: process).children.first { $0.label == "shellPid" }?.value as? pid_t
+    }
+
+    /// Returns the wrapped value of a single-level `Optional` (`.some`), or `value` unchanged when
+    /// it isn't an optional. Needed because SwiftTerm's `process` is an IUO — see `reflectShellPid`.
+    private static func unwrappingOneOptionalLayer(_ value: Any) -> Any {
+        let mirror = Mirror(reflecting: value)
+        guard mirror.displayStyle == .optional else { return value }
+        return mirror.children.first?.value ?? value
     }
 }

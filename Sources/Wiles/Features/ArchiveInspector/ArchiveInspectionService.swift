@@ -22,9 +22,11 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
     }
 
     public static func extractSingleEntry(from archiveURL: URL, entryPath: String, to destinationFolder: URL) async throws -> URL {
-        try await Task.detached(priority: .userInitiated) {
+        // `CancellableWork.detached` (not a bare `Task.detached`) so closing the sheet actually
+        // reaches `Task.isCancelled` inside `waitForExitOrCancel` and stops `ditto`/`unzip` (MM-078).
+        try await CancellableWork.detached(priority: .userInitiated) {
             try extractSingleEntrySync(from: archiveURL, entryPath: entryPath, to: destinationFolder)
-        }.value
+        }
     }
 
     private static func extractSingleEntrySync(from archiveURL: URL, entryPath: String, to destinationFolder: URL) throws -> URL {
@@ -36,6 +38,9 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         guard !ArchiveService.entryEscapesDestination(entryPath) else {
             throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }
+        // Reclaim any `.wiles-unzip-*` staging dir a prior crashed extraction stranded here — it's a
+        // redundant copy of archive contents the user still has, so it's safe to remove (MM-078).
+        sweepStaleUnzipStagingDirs(in: destinationFolder)
         let entryName = (entryPath as NSString).lastPathComponent
         var destIsDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: destinationFolder.path, isDirectory: &destIsDirectory),
@@ -60,7 +65,8 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         // streams to disk — entry bytes are never buffered in RAM. Staged inside `destinationFolder`
         // so the final move is a same-volume rename (no EXDEV); nothing lands at `destURL` until
         // extraction succeeded.
-        let stagingDir = destinationFolder.appendingPathComponent(".\(UUID().uuidString)_unzip", isDirectory: true)
+        let stagingDir = destinationFolder.appendingPathComponent(
+            "\(Self.unzipStagingPrefix)\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: stagingDir) }
 
@@ -68,7 +74,10 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
         process.arguments = ["-x", "-k", archiveURL.path, stagingDir.path]
         try process.run()
-        process.waitUntilExit()
+        // Poll for cancellation — closing the Archive Inspector sheet must actually stop `ditto`,
+        // not let it unpack the whole archive in the background (MM-078). The `defer` above still
+        // clears the staging dir on the thrown `CancellationError`.
+        try ArchiveService.waitForExitOrCancel(process)
 
         guard process.terminationStatus == 0 else {
             throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
@@ -114,7 +123,14 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
             try? FileManager.default.removeItem(at: destURL)
             return false
         }
-        process.waitUntilExit()
+        do {
+            // Cancellable wait — a closed sheet stops `unzip -p` instead of streaming the whole
+            // entry (MM-078). Drop the partial `destURL` on cancellation before rethrowing.
+            try ArchiveService.waitForExitOrCancel(process)
+        } catch {
+            try? FileManager.default.removeItem(at: destURL)
+            throw error
+        }
 
         let writtenSize = (try? FileManager.default.attributesOfItem(atPath: destURL.path))?[.size] as? Int ?? 0
         let wroteSomething = writtenSize > 0
@@ -125,5 +141,27 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
             return false
         }
         return true
+    }
+
+    /// Prefix for the hidden whole-archive staging dir `extractSingleEntrySync` uses for the `ditto`
+    /// fallback path. A live extraction holds it for seconds; a `.wiles-unzip-*` dir older than
+    /// `staleUnzipStagingMaxAge` is a crash leftover (MM-078).
+    static let unzipStagingPrefix = ".wiles-unzip-"
+    private static let staleUnzipStagingMaxAge: TimeInterval = 60
+
+    /// Removes `.wiles-unzip-*` staging dirs a prior crashed single-entry extraction stranded in
+    /// `folder`. Safe to delete: the staging dir only ever holds a redundant extraction of an
+    /// archive the user still has. Best-effort. The `olderThan` guard keeps it from touching a
+    /// concurrent extraction's fresh staging dir.
+    static func sweepStaleUnzipStagingDirs(
+        in folder: URL, olderThan maxAge: TimeInterval = staleUnzipStagingMaxAge, fileManager fm: FileManager = .default) {
+        guard let entries = try? fm.contentsOfDirectory(
+            at: folder, includingPropertiesForKeys: [.contentModificationDateKey], options: []) else { return }
+        let now = Date()
+        for entry in entries where entry.lastPathComponent.hasPrefix(unzipStagingPrefix) {
+            let mtime = (try? entry.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            guard let mtime, now.timeIntervalSince(mtime) > maxAge else { continue }
+            try? fm.removeItem(at: entry)
+        }
     }
 }

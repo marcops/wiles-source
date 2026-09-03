@@ -27,7 +27,10 @@ let package = Package(
             ]),
         .testTarget(
             name: "WilesTests",
-            dependencies: ["Wiles"],
+            dependencies: [
+                "Wiles",
+                .product(name: "SwiftTerm", package: "SwiftTerm")
+            ],
             path: "Tests/WilesTests"),
         .testTarget(
             name: "WilesUITests",

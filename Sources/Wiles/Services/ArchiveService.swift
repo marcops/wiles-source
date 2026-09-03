@@ -229,8 +229,27 @@ public final class ArchiveService: Sendable {
             standardError: stderrBuffer.text, stdoutTruncated: truncated)
     }
 
-    /// How often `runProcess` checks for cancellation while a subprocess is running.
-    private static let cancellationPollInterval: TimeInterval = 0.1
+    /// How often `runProcess` (and `waitForExitOrCancel`) checks for cancellation while a subprocess
+    /// is running.
+    static let cancellationPollInterval: TimeInterval = 0.1
+
+    /// Blocks until `process` exits, but polls `Task.isCancelled` every `cancellationPollInterval`
+    /// and `terminate()`s the subprocess + throws `CancellationError` when the calling task is
+    /// cancelled. For subprocess waits that don't go through `runProcess` (e.g.
+    /// `ArchiveInspectionService`'s single-entry `ditto`/`unzip` extraction) so closing the sheet
+    /// actually stops the tool instead of letting it run to completion (MM-078). Must be called
+    /// inside a `Task.detached` — same off-main requirement as `runProcess`.
+    nonisolated static func waitForExitOrCancel(_ process: Process) throws {
+        while process.isRunning {
+            if Task.isCancelled {
+                process.terminate()
+                break
+            }
+            Thread.sleep(forTimeInterval: cancellationPollInterval)
+        }
+        process.waitUntilExit()
+        try Task.checkCancellation()
+    }
 
     /// Reads to EOF, or stops at `cap` bytes and kills the subprocess (then drains the pipe so the
     /// dying process doesn't block on a full buffer). Returns the bytes read and whether it capped.
