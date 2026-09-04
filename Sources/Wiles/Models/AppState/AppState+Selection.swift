@@ -65,10 +65,32 @@ public extension AppState {
             ?? selection.selectedURLs.first
     }
 
-    func toggleSearching() {
+    func toggleSearching(windowUIState: WindowUIState) {
         selection.isSearching.toggle()
-        if !selection.isSearching {
+        if selection.isSearching {
+            // cmd-F / the search button means "I want to type" — land straight in the editable
+            // field, not a name pill.
+            windowUIState.isEditingSearch = true
+        } else {
+            windowUIState.isEditingSearch = false
             selection.searchQuery = ""
+        }
+    }
+
+    /// Sidebar tag row tap: makes `tag` the active filter (or clears it if it already was), shown in
+    /// the header as a non-editable tag pill. Any active smart folder is left behind first, so its
+    /// saved query is never carried into the tag filter (bug: `pdf` + `tag:red`).
+    func toggleTagFilter(_ tag: String, windowUIState: WindowUIState) {
+        let base = smartFolder.activeFolderID == nil ? selection.searchQuery : ""
+        smartFolder.activeFolderID = nil
+        windowUIState.isEditingSearch = false
+        let newQuery = SearchFilterService.toggledTagQuery(tag: tag, in: base)
+        if newQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+            selection.isSearching = false
+            selection.searchQuery = ""
+        } else {
+            selection.isSearching = true
+            selection.searchQuery = newQuery
         }
     }
 }

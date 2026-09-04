@@ -31,8 +31,12 @@ struct EditMenuCommands: LocalizedCommands {
             Divider()
             selectAllCommandButton(isRenaming: isRenaming)
             Divider()
-            Button(tr(.find)) { appState?.toggleSearching() }
-                .keyboardShortcut(.find)
+            Button(tr(.find)) {
+                if let appState, let windowUIState {
+                    appState.toggleSearching(windowUIState: windowUIState)
+                }
+            }
+            .keyboardShortcut(.find)
         }
     }
 

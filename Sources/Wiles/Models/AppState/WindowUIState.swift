@@ -61,6 +61,10 @@ public final class WindowUIState {
     public var quickLookURL: URL?
     public var selectedFavoriteURL: URL?
     public var isEditingPath: Bool = false
+    /// True while the header's search field is shown as an editable text box. When false and a
+    /// search is active with a nameable context (a saved smart folder, or a lone `tag:` token),
+    /// the header shows a non-editable name pill instead — clicking it flips this back on.
+    public var isEditingSearch: Bool = false
     /// True while hovering a collapsed sidebar rail, temporarily widening it back out.
     public var isSidebarPeeking: Bool = false
     /// Keeps this window's terminal PTY/NSView alive across drawer show/hide cycles — per-window so

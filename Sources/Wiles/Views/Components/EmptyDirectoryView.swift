@@ -83,16 +83,6 @@ public struct EmptyDirectoryView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: Self.noticeMaxWidth)
         }
-
-        Button {
-            appState.selection.searchQuery = ""
-        } label: {
-            Text(appState.tr(.clearSearch))
-                .font(.system(size: Self.bodyFontSize, weight: .medium))
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .accessibilityLabel(appState.tr(.clearSearch))
     }
 
     @ViewBuilder private var unreadableFolderView: some View {

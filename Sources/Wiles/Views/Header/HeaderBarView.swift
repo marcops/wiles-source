@@ -22,11 +22,7 @@ struct HeaderBarView: View {
     var body: some View {
         HStack(spacing: 12) {
             historyButtons
-            if appState.selection.isSearching {
-                searchField.frame(maxWidth: .infinity)
-            } else {
-                PathBarView(appState: appState).frame(maxWidth: .infinity)
-            }
+            headerCenter.frame(maxWidth: .infinity)
             rightControls
         }
         .padding(.leading, sidebarProvidesSafeLeadingInset ? Self.defaultLeadingInset : Self.trafficLightsSafeLeadingInset)
@@ -51,6 +47,71 @@ struct HeaderBarView: View {
                 }
             })
         .doubleClickToZoom()
+        // `isEditingSearch` is a transient "the field is open for typing" flag — it must not
+        // outlive the search itself or a later smart-folder/tag activation would still render the
+        // raw editable field instead of its name pill. Mirrors how `PathBarView` self-clears
+        // `isEditingPath`.
+        .onChange(of: appState.selection.isSearching) { _, searching in
+            if !searching {
+                windowUIState.isEditingSearch = false
+            }
+        }
+        .onChange(of: appState.navigation.currentURL) { _, _ in
+            windowUIState.isEditingSearch = false
+        }
+    }
+
+    @ViewBuilder private var headerCenter: some View {
+        switch headerCenterMode {
+        case .breadcrumb:
+            PathBarView(appState: appState)
+        case .editableSearch:
+            searchField
+        case let .tagPill(tag):
+            // No click-to-edit for a tag pill: a tag filter is refined only from the sidebar.
+            searchContextPill {
+                Circle()
+                    .fill(SystemTagsService.color(forTagNamed: tag)?.displayColor ?? .secondary)
+                    .frame(width: 10, height: 10)
+                Text(tag).font(.system(size: 12, weight: .medium))
+            }
+        case let .smartFolderPill(name):
+            searchContextPill {
+                Image(systemName: activeSmartFolder?.icon ?? "folder.badge.gearshape")
+                    .font(.system(size: 12))
+                    .foregroundColor(.accentColor)
+                Text(name).font(.system(size: 12, weight: .medium)).lineLimit(1)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                appState.smartFolder.suppressNextSearchFocus = false
+                windowUIState.isEditingSearch = true
+            }
+        }
+    }
+
+    private var headerCenterMode: HeaderCenterMode {
+        HeaderCenterMode.resolve(
+            isSearching: appState.selection.isSearching,
+            isEditingSearch: windowUIState.isEditingSearch,
+            activeSmartFolderName: activeSmartFolder?.name,
+            searchQuery: appState.selection.searchQuery)
+    }
+
+    private var activeSmartFolder: SmartFolder? {
+        guard let id = appState.smartFolder.activeFolderID else { return nil }
+        return appState.preferences.smartFolders.first { $0.id == id }
+    }
+
+    /// Non-editable name shown in the path-bar slot for a nameable search context. Styled like a
+    /// `PathBarView` breadcrumb segment — no field chrome — so it reads as "where you are", not an
+    /// input.
+    private func searchContextPill(@ViewBuilder _ content: () -> some View) -> some View {
+        HStack(spacing: 6) { content() }
+            .foregroundColor(.primary)
+            .padding(.horizontal, 6)
+            .frame(height: 28)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// False whenever the sidebar isn't reserving enough leading width to clear the repositioned
@@ -254,7 +315,7 @@ struct HeaderBarView: View {
         TappableRow(
             accessibilityLabel: appState.tr(.actSearch),
             accessibilityHint: appState.tr(.find),
-            action: { withAnimation(MotionTokens.quickEase) { appState.toggleSearching() } },
+            action: { withAnimation(MotionTokens.quickEase) { appState.toggleSearching(windowUIState: windowUIState) } },
             content: {
                 Image(systemName: "magnifyingglass").font(.system(size: 13, weight: .medium))
                     .frame(width: 30, height: 28)

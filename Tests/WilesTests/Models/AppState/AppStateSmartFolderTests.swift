@@ -17,30 +17,74 @@ public struct AppStateSmartFolderTests {
         testPrepareForSmartFolderRunSuppressesFocusOnlyWhenSearchWasClosed()
         await testNormalSearchQueryEditKeepsSidebarHighlight()
         await testRunSmartFolderAppliesResultsToFileSystemItems()
-        await testRunSmartFolderCompletionIsDroppedAfterNavigatingAway()
+        await testRunSmartFolderNavigatesToScopeAndUsesSearchEngine()
+        testToggleTagFilter()
     }
 
-    /// If the user navigates away while a smart-folder query is still running, the completion must
-    /// write nothing — not `fileSystem.items`, and not `smartFolder.lastRunTimedOut` (whose stale
-    /// value would briefly show the "can't tell / timed out" empty-state badge for the new folder).
-    private static func testRunSmartFolderCompletionIsDroppedAfterNavigatingAway() async {
+    /// A saved smart folder navigates to its `scopePath` and runs its query through the standard
+    /// search engine (same as typing in the header field) — keeping the sidebar highlight and the
+    /// non-editable name pill.
+    private static func testRunSmartFolderNavigatesToScopeAndUsesSearchEngine() async {
         let appState = AppState()
-        let stale = URL(fileURLWithPath: "/tmp/keep-me-\(UUID().uuidString).txt")
-        appState.fileSystem.items = [FileItem.load(url: stale)]
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
+        let scope = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: scope, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: scope) }
+        let match = scope.appendingPathComponent("quarterly-report.txt")
+        let noMatch = scope.appendingPathComponent("holiday-photo.jpg")
+        try? "x".write(to: match, atomically: true, encoding: .utf8)
+        try? "x".write(to: noMatch, atomically: true, encoding: .utf8)
+        appState.navigation.currentURL = FileManager.default.homeDirectoryForCurrentUser
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        let folder = SmartFolder(name: "Reports", searchQuery: "report", scopePath: scope.path)
 
-        appState.runSmartFolder(folder)
-        // Navigate away before the async NSMetadataQuery completion can land.
-        appState.navigation.currentURL = URL(fileURLWithPath: NSTemporaryDirectory())
+        appState.runSmartFolder(folder, windowUIState: windowUIState)
 
-        for _ in 0 ..< 20 {
+        report(
+            "AppState", "POS: runSmartFolder navigates to the folder's scopePath",
+            result: appState.navigation.currentURL.standardizedFileURL.path == scope.standardizedFileURL.path)
+        report(
+            "AppState", "POS: runSmartFolder keeps the sidebar highlight and shows the name pill",
+            result: appState.smartFolder.activeFolderID == folder.id
+                && appState.selection.isSearching && !windowUIState.isEditingSearch)
+
+        var attempts = 0
+        while !appState.fileSystem.items.contains(where: { $0.url.lastPathComponent == "quarterly-report.txt" }), attempts < 20 {
             try? await Task.sleep(nanoseconds: 100_000_000)
+            attempts += 1
         }
         report(
             "AppState",
-            "NEG: runSmartFolder completion after navigating away leaves fileSystem.items and lastRunTimedOut untouched",
-            result: appState.fileSystem.items.contains { $0.url == stale } && !appState.smartFolder.lastRunTimedOut)
+            "POS: runSmartFolder's query is applied by the search engine (match present, non-match filtered out)",
+            result: appState.fileSystem.items.contains { $0.url.lastPathComponent == "quarterly-report.txt" }
+                && !appState.fileSystem.items.contains { $0.url.lastPathComponent == "holiday-photo.jpg" })
+    }
+
+    /// Sidebar tag row: activating a tag turns on search with the lone `tag:` token; activating it
+    /// again clears it; and switching to a tag from an active smart folder drops the folder's query
+    /// instead of appending the tag onto it.
+    private static func testToggleTagFilter() {
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+
+        appState.toggleTagFilter("Red", windowUIState: windowUIState)
+        report(
+            "AppState", "POS: toggleTagFilter turns on search with just the tag token",
+            result: appState.selection.isSearching
+                && appState.selection.searchQuery == "tag:Red" && !windowUIState.isEditingSearch)
+
+        appState.toggleTagFilter("Red", windowUIState: windowUIState)
+        report(
+            "AppState", "POS: toggleTagFilter on the active tag clears it and exits search",
+            result: !appState.selection.isSearching && appState.selection.searchQuery.isEmpty)
+
+        appState.smartFolder.activeFolderID = UUID()
+        appState.selection.setSearchQuerySilently("pdf")
+        appState.selection.isSearching = true
+        appState.toggleTagFilter("Blue", windowUIState: windowUIState)
+        report(
+            "AppState",
+            "NEG: toggleTagFilter from a smart folder does not carry its query into the tag filter",
+            result: appState.selection.searchQuery == "tag:Blue" && appState.smartFolder.activeFolderID == nil)
     }
 
     private static func testAddSmartFolder() {
@@ -297,32 +341,29 @@ public struct AppStateSmartFolderTests {
         return false
     }
 
-    /// `runSmartFolder` is `prepareForSmartFolderRun` plus the actual `SmartFolderService.shared
-    /// .executeQuery` (real `NSMetadataQuery`/Spotlight) call, re-entering `@MainActor` to write
-    /// `fileSystem.items`. `SmartFolderQueryTests` already established real Spotlight queries are
-    /// safe/fast enough to exercise directly in this environment (no system UI, cold-start latency
-    /// independent of indexed results) — only proving the callback actually lands in `fileSystem
-    /// .items`, not that results are non-empty.
+    /// `runSmartFolder` navigates to `scopePath` and runs the query through `refreshCurrentDirectory`
+    /// (the standard search engine), which replaces `fileSystem.items` with the results. Proving the
+    /// stale pre-run item is cleared once the async refresh lands.
     private static func testRunSmartFolderAppliesResultsToFileSystemItems() async {
         let appState = AppState()
-        appState.fileSystem.items = [FileItem.load(url: URL(fileURLWithPath: "/tmp/stale-item.txt"))]
+        let stale = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("stale-\(UUID().uuidString).txt")
+        appState.fileSystem.items = [FileItem.load(url: stale)]
         let home = FileManager.default.homeDirectoryForCurrentUser
         let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
+        let windowUIState = WindowUIState(preferences: appState.preferences)
 
-        appState.runSmartFolder(folder)
-        report("AppState", "POS: runSmartFolder triggers a search via prepareForSmartFolderRun", result: appState.selection.searchQuery == folder.searchQuery)
+        appState.runSmartFolder(folder, windowUIState: windowUIState)
+        report("AppState", "POS: runSmartFolder sets the search query to the folder's query", result: appState.selection.searchQuery == folder.searchQuery)
 
-        // Poll briefly for the async NSMetadataQuery completion to land on fileSystem.items,
-        // matching SmartFolderQueryTests' expectation-based waits for the same underlying call.
         var attempts = 0
-        while appState.fileSystem.items.contains(where: { $0.url.path == "/tmp/stale-item.txt" }), attempts < 20 {
+        while appState.fileSystem.items.contains(where: { $0.url == stale }), attempts < 20 {
             try? await Task.sleep(nanoseconds: 100_000_000)
             attempts += 1
         }
         report(
             "AppState",
-            "POS: runSmartFolder replaces fileSystem.items with the executeQuery results (stale item is gone)",
-            result: !appState.fileSystem.items.contains { $0.url.path == "/tmp/stale-item.txt" })
+            "POS: runSmartFolder replaces fileSystem.items with the search results (stale item is gone)",
+            result: !appState.fileSystem.items.contains { $0.url == stale })
     }
 
     // `persistSmartFolders`'s `catch` branch (ErrorReporter.report + showError) is unreachable from

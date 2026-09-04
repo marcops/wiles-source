@@ -85,6 +85,26 @@ public struct SearchFilterService: Sendable {
         return (remaining, String(match.dropFirst(prefix.count)))
     }
 
+    /// The tag when `query` is exactly one `tag:value` token and nothing else — the case the header
+    /// renders as a non-editable tag pill rather than the raw editable search field.
+    public static func soleTagValue(in query: String) -> String? {
+        let parts = tokens(of: query)
+        guard parts.count == 1, let only = parts.first, only.lowercased().hasPrefix("tag:") else { return nil }
+        let value = String(only.dropFirst("tag:".count))
+        return value.isEmpty ? nil : value
+    }
+
+    /// Toggles a `tag:<tag>` token in `query`: removes it when that exact tag is already the active
+    /// one, otherwise swaps in the new tag while preserving any free text / other tokens. A single
+    /// `tag:` token at a time — picking a different tag replaces the current one.
+    public static func toggledTagQuery(tag: String, in query: String) -> String {
+        let (remaining, currentTag) = extractPrefixedToken(prefix: "tag:", from: query)
+        if currentTag?.lowercased() == tag.lowercased() {
+            return remaining
+        }
+        return remaining.isEmpty ? "tag:\(tag)" : "\(remaining) tag:\(tag)"
+    }
+
     /// Builds a regex for each individual token that looks like one (`r:` prefix, or contains
     /// `*`/`^`/`$`), keyed by the token text — computed once per query and reused across every
     /// candidate file, instead of recompiling per file. Filter tokens (`date:`/`size:`/`kind:`/

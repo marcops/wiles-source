@@ -112,4 +112,29 @@ final class SearchFilterTokenTests: XCTestCase {
             SearchFilterService.toggleExclusiveToken("kind:pdf", groupPrefix: "kind:", in: "report kind:image date:today"),
             "report date:today kind:pdf")
     }
+
+    // MARK: - soleTagValue / toggledTagQuery (sidebar tag row → header tag pill)
+
+    func testSoleTagValueReturnsTagWhenQueryIsJustThatToken() {
+        XCTAssertEqual(SearchFilterService.soleTagValue(in: "tag:Red"), "Red")
+        XCTAssertEqual(SearchFilterService.soleTagValue(in: "  tag:Red  "), "Red")
+    }
+
+    func testSoleTagValueIsNilWhenOtherTokensOrFreeTextPresent() {
+        XCTAssertNil(SearchFilterService.soleTagValue(in: "pdf tag:Red"))
+        XCTAssertNil(SearchFilterService.soleTagValue(in: "tag:Red tag:Blue"))
+        XCTAssertNil(SearchFilterService.soleTagValue(in: "tag:"))
+        XCTAssertNil(SearchFilterService.soleTagValue(in: ""))
+        XCTAssertNil(SearchFilterService.soleTagValue(in: "report"))
+    }
+
+    func testToggledTagQueryAddsToEmptyAndToFreeText() {
+        XCTAssertEqual(SearchFilterService.toggledTagQuery(tag: "Red", in: ""), "tag:Red")
+        XCTAssertEqual(SearchFilterService.toggledTagQuery(tag: "Red", in: "report"), "report tag:Red")
+    }
+
+    func testToggledTagQueryRemovesTheActiveTagAndReplacesADifferentOne() {
+        XCTAssertEqual(SearchFilterService.toggledTagQuery(tag: "Red", in: "report tag:red"), "report")
+        XCTAssertEqual(SearchFilterService.toggledTagQuery(tag: "Blue", in: "report tag:Red"), "report tag:Blue")
+    }
 }

@@ -141,17 +141,22 @@ public struct AppStateOperationsTests {
 
     private static func testToggleSearching() {
         let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.selection.searchQuery = "leftover query"
         appState.selection.isSearching = false
 
-        appState.toggleSearching()
+        appState.toggleSearching(windowUIState: windowUIState)
         report("AppState+Operations", "POS: toggleSearching() enables search mode", result: appState.selection.isSearching)
-
-        appState.toggleSearching()
         report(
             "AppState+Operations",
-            "NEG: toggleSearching() off again clears the search query",
-            result: !appState.selection.isSearching && appState.selection.searchQuery.isEmpty)
+            "POS: toggleSearching() on lands in the editable field (isEditingSearch)",
+            result: windowUIState.isEditingSearch)
+
+        appState.toggleSearching(windowUIState: windowUIState)
+        report(
+            "AppState+Operations",
+            "NEG: toggleSearching() off again clears the search query and isEditingSearch",
+            result: !appState.selection.isSearching && appState.selection.searchQuery.isEmpty && !windowUIState.isEditingSearch)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

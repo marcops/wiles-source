@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SmartFoldersSectionView: View {
     var appState: AppState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @Binding var isExpanded: Bool
     @Binding var renamingSmartFolderID: SmartFolder.ID?
     @Binding var smartFolderRenameText: String
@@ -60,7 +62,7 @@ struct SmartFoldersSectionView: View {
         }
         .sidebarRowChrome(isSelected: isSel)
         .onTapGesture {
-            appState.runSmartFolder(folder)
+            appState.runSmartFolder(folder, windowUIState: windowUIState)
         }
         .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])
         .accessibilityLabel(folder.name)

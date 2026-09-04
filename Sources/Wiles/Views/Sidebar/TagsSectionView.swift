@@ -2,6 +2,8 @@ import SwiftUI
 
 struct TagsSectionView: View {
     var appState: AppState
+    @Environment(WindowUIState.self)
+    private var windowUIState
     @Binding var isExpanded: Bool
 
     var body: some View {
@@ -20,7 +22,7 @@ struct TagsSectionView: View {
     /// for composite (icon + text) label content, so this uses a plain view + `.onTapGesture`.
     private func tagRow(systemTag: SystemTag) -> some View {
         let tag = systemTag.name
-        let (remainingQuery, currentTag) = SearchFilterService.extractPrefixedToken(
+        let (_, currentTag) = SearchFilterService.extractPrefixedToken(
             prefix: "tag:", from: appState.selection.searchQuery)
         let isSel = currentTag?.lowercased() == tag.lowercased()
         return HStack(spacing: 10) {
@@ -32,11 +34,7 @@ struct TagsSectionView: View {
         }
         .sidebarRowChrome(isSelected: isSel)
         .onTapGesture {
-            if isSel {
-                appState.selection.searchQuery = remainingQuery
-            } else {
-                appState.selection.searchQuery = remainingQuery.isEmpty ? "tag:\(tag)" : "\(remainingQuery) tag:\(tag)"
-            }
+            appState.toggleTagFilter(tag, windowUIState: windowUIState)
         }
         .padding(.horizontal, 8)
         .accessibilityAddTraits(isSel ? [.isButton, .isSelected] : [.isButton])

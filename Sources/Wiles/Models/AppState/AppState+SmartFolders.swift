@@ -1,11 +1,11 @@
 import Foundation
 
 public extension AppState {
-    /// Resets selection state, then sets `selection.searchQuery` to the folder's query *silently* —
-    /// `runSmartFolder` runs its own Spotlight query right after, and the normal debounced search
-    /// refresh would otherwise re-read the current directory and race those results. Selection is
-    /// cleared first so the query's async completion never reinstates a stale `pendingSelectionURL`
-    /// / `selectedURLs` from whatever was selected before the smart folder ran.
+    /// Puts the search UI into "showing smart folder `folder`" state: sidebar highlight, cleared
+    /// selection, spinner, and `folder.searchQuery` set *silently* (the caller drives the reload
+    /// itself, so the debounced search refresh must not also fire and race it). Selection is
+    /// cleared first so a slow reload's completion can't reinstate a stale `pendingSelectionURL` /
+    /// `selectedURLs` from whatever was selected before.
     func prepareForSmartFolderRun(_ folder: SmartFolder) {
         smartFolder.activeFolderID = folder.id
         smartFolder.lastRunTimedOut = false
@@ -16,30 +16,23 @@ public extension AppState {
         }
         selection.isSearching = true
         selection.setSearchQuerySilently(folder.searchQuery)
+        fileSystem.isLoading = true
     }
 
-    /// Preps the search UI for `folder` via `prepareForSmartFolderRun`, then runs its Spotlight
-    /// query and applies the results to `fileSystem.items`. `SmartFolderService.executeQuery`
-    /// already guards its completion with a per-call UUID token so an older, slower-finishing
-    /// query can't clobber a newer one's results (see its doc comment) — this just re-enters the
-    /// main actor before writing to AppState, matching every other Service-completion call site.
-    func runSmartFolder(_ folder: SmartFolder) {
-        prepareForSmartFolderRun(folder)
-        // Cancel any in-flight directory refresh from a prior navigation so it can't race this
-        // Spotlight query to write `fileSystem.items` last.
-        fileSystem.refreshTask?.cancel()
-        let target = navigation.currentURL
-        smartFolderService.executeQuery(for: folder) { [weak self] items in
-            // `SmartFolderService.runQuery` already invokes this completion from inside a
-            // `Task { @MainActor }`, so assume isolation instead of nesting another one (SM-055).
-            MainActor.assumeIsolated {
-                guard let self, self.navigation.currentURL == target else { return }
-                self.smartFolder.lastRunTimedOut = self.smartFolderService.lastRunTimedOut
-                self.applyLoadedItems(
-                    items, target: target,
-                    truncatedAtCap: items.count >= SmartFolderService.maxResultCount)
-            }
+    /// Opens a saved smart folder: navigates to the folder it was saved from, then runs its query
+    /// through the **same engine as the header search field** (`refreshCurrentDirectory`), so it
+    /// honors the live search settings — "search everywhere", name/content scope, case sensitivity.
+    /// The old path went straight to Spotlight (`NSMetadataQuery`) scoped to `folder.scopePath`,
+    /// which ignored every one of those settings and returned nothing when Spotlight had no local
+    /// index for that scope.
+    func runSmartFolder(_ folder: SmartFolder, windowUIState: WindowUIState) {
+        // Show the folder's sidebar name as a non-editable pill, not the raw editable query.
+        windowUIState.isEditingSearch = false
+        if !folder.scopePath.isEmpty, FileManager.default.fileExists(atPath: folder.scopePath) {
+            navigateTo(URL(fileURLWithPath: folder.scopePath))
         }
+        prepareForSmartFolderRun(folder)
+        refreshCurrentDirectory(isUserInitiated: true)
     }
 
     /// These forward to `PreferencesStore+SmartFolders` and surface a persistence failure — the

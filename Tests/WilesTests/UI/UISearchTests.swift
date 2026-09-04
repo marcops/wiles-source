@@ -19,18 +19,19 @@ public struct UISearchTests {
     /// layer and isn't reachable from a state-only test — this only proves the underlying model
     /// toggle itself is sound.
     private static func testToggleSearchingIsDeterministic(appState: AppState) {
+        let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.selection.isSearching = false
         appState.selection.searchQuery = ""
 
-        appState.toggleSearching()
+        appState.toggleSearching(windowUIState: windowUIState)
         report("UI/Search", "POS: toggleSearching() opens search from closed", result: appState.selection.isSearching)
 
-        appState.toggleSearching()
+        appState.toggleSearching(windowUIState: windowUIState)
         report("UI/Search", "POS: toggleSearching() closes search from open", result: !appState.selection.isSearching)
         report("UI/Search", "POS: toggleSearching() clears the query when closing", result: appState.selection.searchQuery.isEmpty)
 
-        appState.toggleSearching()
-        appState.toggleSearching()
+        appState.toggleSearching(windowUIState: windowUIState)
+        appState.toggleSearching(windowUIState: windowUIState)
         report("UI/Search", "POS: toggleSearching() is stable across repeated open/close cycles", result: !appState.selection.isSearching)
     }
 
