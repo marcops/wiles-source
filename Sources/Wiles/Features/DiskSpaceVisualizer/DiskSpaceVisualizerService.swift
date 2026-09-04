@@ -4,7 +4,7 @@ import Foundation
 public enum DiskSpaceVisualizerService {
     /// File cap per folder, aligned with `DuplicateDetectionService`. A lower cap under-scans big
     /// folders and misranks the chart; the wall-clock budget below is what bounds a pathological scan.
-    static let maxScannedFileCount = 50_000
+    static let maxScannedFileCount = 50000
 
     /// Total wall-clock budget for one `calculateDiskUsage` run, shared across every subfolder walk.
     /// Past it, folders report what was summed so far and are flagged approximate.
@@ -119,8 +119,7 @@ public enum DiskSpaceVisualizerService {
         folderURL: URL,
         maxFiles: Int = maxScannedFileCount,
         deadline: ContinuousClock.Instant = .now.advanced(by: scanWallClockBudget),
-        wallClockCheckInterval: Int = 4096
-    ) throws -> (total: Int64, wasTruncated: Bool) {
+        wallClockCheckInterval: Int = 4096) throws -> (total: Int64, wasTruncated: Bool) {
         let fm = FileManager.default
         guard let enumerator = fm.enumerator(
             at: folderURL,

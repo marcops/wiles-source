@@ -31,9 +31,9 @@ final class FavoritesStoreResolvedPathsTests: XCTestCase {
 
     func testResolvedPathsPassesThroughPlainPaths() throws {
         let root = try makeTempDir()
-        let a = root.appendingPathComponent("a")
-        let b = root.appendingPathComponent("b")
-        XCTAssertEqual(FavoritesStore.resolvedPaths(for: [a, b]), [a.path, b.path])
+        let dirA = root.appendingPathComponent("a")
+        let dirB = root.appendingPathComponent("b")
+        XCTAssertEqual(FavoritesStore.resolvedPaths(for: [dirA, dirB]), [dirA.path, dirB.path])
     }
 
     // MARK: - store: sync path is pure, resolved set catches up async
@@ -60,21 +60,23 @@ final class FavoritesStoreResolvedPathsTests: XCTestCase {
     func testLatestAssignmentWins() async throws {
         let root = try makeTempDir()
         let store = FavoritesStore()
-        let a = root.appendingPathComponent("a")
-        let b = root.appendingPathComponent("b")
-        try FileManager.default.createDirectory(at: a, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(at: b, withIntermediateDirectories: true)
+        let dirA = root.appendingPathComponent("a")
+        let dirB = root.appendingPathComponent("b")
+        try FileManager.default.createDirectory(at: dirA, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: dirB, withIntermediateDirectories: true)
 
-        store.favoriteURLs = [a]
-        store.favoriteURLs = [b]
+        store.favoriteURLs = [dirA]
+        store.favoriteURLs = [dirB]
 
-        let converged = await pollUntilTrue { store.resolvedFavoritePaths == [b.path] }
+        let converged = await pollUntilTrue { store.resolvedFavoritePaths == [dirB.path] }
         XCTAssertTrue(converged, "resolvedFavoritePaths must converge to the last assignment, not a stale earlier one")
     }
 
     private func pollUntilTrue(_ condition: () -> Bool) async -> Bool {
         for _ in 0 ..< 50 {
-            if condition() { return true }
+            if condition() {
+                return true
+            }
             try? await Task.sleep(nanoseconds: 40_000_000)
         }
         return condition()

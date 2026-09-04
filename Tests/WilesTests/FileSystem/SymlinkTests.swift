@@ -168,7 +168,7 @@ public struct SymlinkTests {
             targetURL: target, destinationFolder: dir, symlinkName: "a/b", mode: .absolute)
 
         let parentAfter = Set((try? FileManager.default.contentsOfDirectory(atPath: parent.path)) ?? [])
-        let createdLinksAllInsideChosenFolder = [escapeAttempt, slashAttempt].compactMap { $0 }.allSatisfy {
+        let createdLinksAllInsideChosenFolder = [escapeAttempt, slashAttempt].compactMap(\.self).allSatisfy {
             $0.deletingLastPathComponent().resolvingSymlinksInPath().path
                 == dir.resolvingSymlinksInPath().path
         }

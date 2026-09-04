@@ -15,7 +15,7 @@ public struct NewFileTemplateTests {
         let firstOK = first.map {
             FileManager.default.fileExists(atPath: $0.path)
                 && $0.lastPathComponent == NewFileTemplateService.defaultFileName
-                && (try? Data(contentsOf: $0))?.isEmpty == true
+                && (try? Data(contentsOf: $0))?.isEmpty ?? false
         } ?? false
         TestReporter.report(
             "NewFileTemplate", "POS: createTextFile writes an empty file named the default placeholder", result: firstOK)

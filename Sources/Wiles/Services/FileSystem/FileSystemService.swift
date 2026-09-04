@@ -76,24 +76,31 @@ public struct FileSystemService: Sendable {
         }
     }
 
-    private static func loadRealDirectoryContentsSync(at url: URL, options: DirectoryLoadOptions) throws -> [FileItem] {
-        // Prefetching creationDateKey/contentAccessDateKey/effectiveIconKey here — not just the
-        // keys FileItem strictly needs for its primary fields — means FileItem's own
-        // resourceValues(forKeys:) call below hits URL's warm resource cache for all of them
-        // instead of triggering a fresh per-file stat/IPC call for whichever ones were missing.
-        // effectiveIconKey in particular replaces a blocking NSWorkspace.icon(forFile:) call per
-        // file (a LaunchServices IPC round trip) with one bulk-fetched alongside everything else.
+    /// Prefetches creationDateKey/contentAccessDateKey/effectiveIconKey too — not just what
+    /// `FileItem` strictly needs — so its own `resourceValues(forKeys:)` hits URL's warm cache
+    /// instead of a fresh per-file stat/IPC. `effectiveIconKey` in particular replaces a blocking
+    /// `NSWorkspace.icon(forFile:)` per file with one bulk fetch.
+    private static func listingResourceKeys(showTags: Bool) -> [URLResourceKey] {
         var keys: [URLResourceKey] = [
             .isDirectoryKey, .fileSizeKey, .contentModificationDateKey, .isHiddenKey,
             .creationDateKey, .contentAccessDateKey, .effectiveIconKey,
             .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
             .ubiquitousItemIsDownloadingKey, .ubiquitousItemIsUploadingKey
         ]
-        if options.showTags {
+        if showTags {
             keys.append(.tagNamesKey)
             keys.append(.labelColorKey)
         }
-        let fileURLs = try directoryEntries(at: url, keys: keys)
+        return keys
+    }
+
+    private static func loadRealDirectoryContentsSync(at url: URL, options: DirectoryLoadOptions) throws -> [FileItem] {
+        // keys FileItem strictly needs for its primary fields — means FileItem's own
+        // resourceValues(forKeys:) call below hits URL's warm resource cache for all of them
+        // instead of triggering a fresh per-file stat/IPC call for whichever ones were missing.
+        // effectiveIconKey in particular replaces a blocking NSWorkspace.icon(forFile:) call per
+        // file (a LaunchServices IPC round trip) with one bulk-fetched alongside everything else.
+        let fileURLs = try directoryEntries(at: url, keys: listingResourceKeys(showTags: options.showTags))
 
         let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
         // `directoryListingLimit` bounds results, not files read — cap total content-read bytes here
@@ -121,7 +128,7 @@ public struct FileSystemService: Sendable {
                 break
             }
         }
-        if contentBudget?.exhausted == true {
+        if contentBudget?.exhausted ?? false {
             reportContentBudgetExhausted(under: url)
         }
         // A cancelled load (rapid navigation / search keystroke) breaks out of the loop above with a

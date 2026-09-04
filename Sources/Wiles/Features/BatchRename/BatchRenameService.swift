@@ -253,7 +253,7 @@ public enum BatchRenameService {
         var stagedURLByOriginal: [URL: URL] = [:]
         for (_, group) in byDirectory {
             let newNames = Set(group.map(\.newName))
-            let oldNames = Set(group.map { $0.url.lastPathComponent })
+            let oldNames = Set(group.map(\.url.lastPathComponent))
             guard !newNames.isDisjoint(with: oldNames) else { continue }
 
             var stagedThisGroup: [StagedRename] = []

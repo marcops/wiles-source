@@ -375,7 +375,8 @@ extension HttpSharingFeatureTests {
             result: connectionClosedWithoutResponse)
 
         var stillHealthy = false
-        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:\(server.port.rawValue)/")!),
+        let healthURL = URL(string: "http://localhost:\(server.port.rawValue)/") ?? URL(fileURLWithPath: "/")
+        if let (_, resp) = try? await requestSession.data(from: healthURL),
            let httpResp = resp as? HTTPURLResponse {
             stillHealthy = httpResp.statusCode == 200
         }
@@ -412,7 +413,8 @@ extension HttpSharingFeatureTests {
         // Well past the deadline: a spuriously-surviving timer would have torn state down by now.
         try? await Task.sleep(nanoseconds: 700_000_000)
         var stillHealthy = false
-        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:\(server.port.rawValue)/")!),
+        let healthURL = URL(string: "http://localhost:\(server.port.rawValue)/") ?? URL(fileURLWithPath: "/")
+        if let (_, resp) = try? await requestSession.data(from: healthURL),
            let httpResp = resp as? HTTPURLResponse {
             stillHealthy = httpResp.statusCode == 200
         }

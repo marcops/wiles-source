@@ -151,8 +151,8 @@ public final class UndoRedoService {
     private func renamesFormACollidingPermutation(_ pairs: [(oldURL: URL, newURL: URL)]) -> Bool {
         let byDirectory = Dictionary(grouping: pairs) { $0.newURL.deletingLastPathComponent() }
         return byDirectory.values.contains { group in
-            let sourceNames = Set(group.map { $0.newURL.lastPathComponent })
-            let targetNames = Set(group.map { $0.oldURL.lastPathComponent })
+            let sourceNames = Set(group.map(\.newURL.lastPathComponent))
+            let targetNames = Set(group.map(\.oldURL.lastPathComponent))
             return !sourceNames.isDisjoint(with: targetNames)
         }
     }
@@ -190,8 +190,8 @@ public final class UndoRedoService {
     private func redoRenamesFormACollidingPermutation(_ pairs: [(oldURL: URL, newURL: URL)]) -> Bool {
         let byDirectory = Dictionary(grouping: pairs) { $0.oldURL.deletingLastPathComponent() }
         return byDirectory.values.contains { group in
-            let sourceNames = Set(group.map { $0.oldURL.lastPathComponent })
-            let targetNames = Set(group.map { $0.newURL.lastPathComponent })
+            let sourceNames = Set(group.map(\.oldURL.lastPathComponent))
+            let targetNames = Set(group.map(\.newURL.lastPathComponent))
             return !sourceNames.isDisjoint(with: targetNames)
         }
     }
@@ -257,7 +257,7 @@ public final class UndoRedoService {
     /// stack — rewritten to point at that URL when `.keepBoth` had to land the item on a free name,
     /// so a later redo/undo acts on the file's real location instead of a stale path.
     ///
-    /// `redoable == false` means "push nothing onto the redo stack" (⌘⇧Z is a silent no-op). Used for
+    /// A false `redoable` means "push nothing onto the redo stack" (⌘⇧Z is a silent no-op). Used for
     /// the reverse of `.createFile`, and of a `.createFolder` non-empty at undo time.
     private struct ActionOutcome {
         let url: URL

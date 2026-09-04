@@ -9,6 +9,7 @@ import Foundation
 public struct AppStatePasteAndArchiveTests {
     public static func run() async {
         await testPasteToCurrentDirectory()
+        await testCutPasteClipboardLifecycle()
         await testUndoRedoLastAction()
         await testCutPasteCollisionUndoRecording()
         await testDownloadFromiCloudFailure()
@@ -74,6 +75,17 @@ public struct AppStatePasteAndArchiveTests {
             "POS: pasteToCurrentDirectory() with a .copy clipboard duplicates the file into the current directory and preserves the source",
             result: copiedExists && sourceStillExists && appState.transient.clipboard != nil)
 
+        await drainUndoRedoService(appState)
+    }
+
+    private static func testCutPasteClipboardLifecycle() async {
+        let sourceDir = makeTempDir()
+        let destDir = makeTempDir()
+        defer {
+            try? FileManager.default.removeItem(at: sourceDir)
+            try? FileManager.default.removeItem(at: destDir)
+        }
+
         // ML-138: a cut-clipboard paste does NOT clear the clipboard synchronously — it waits until
         // at least one item has actually moved, so a 100%-failed cut-paste keeps the pending cut.
         let cutFile = makeFile(named: "cut-me.txt", in: sourceDir, content: "cut content")
@@ -113,7 +125,6 @@ public struct AppStatePasteAndArchiveTests {
             "POS (ML-138): a cut-paste that moves nothing keeps the pending cut clipboard for retry",
             result: appState3.transient.clipboard != nil)
 
-        await drainUndoRedoService(appState)
         await drainUndoRedoService(appState2)
         await drainUndoRedoService(appState3)
     }

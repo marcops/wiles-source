@@ -36,7 +36,7 @@ final class ArchiveCollisionNormalizationTests: XCTestCase {
     /// `Documents/` overwritten. GREEN after: `topLevelEntryComponent` yields `Documents`.
     func testTarCfDotArchiveCollidesWithExistingFolder() {
         let entries = ["./", "./Documents/", "./Documents/notes.txt", "./photo.jpg"]
-        let onDisk: Set<String> = ["documents", "music"]
+        let onDisk: Set = ["documents", "music"]
         XCTAssertTrue(
             ArchiveService.entriesCollide(entries: entries, existingLowercasedNames: onDisk),
             "a `tar cf x.tar .` archive whose `./Documents/...` collides with an on-disk `Documents` must be detected")

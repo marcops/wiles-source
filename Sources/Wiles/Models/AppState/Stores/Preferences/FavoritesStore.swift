@@ -32,13 +32,13 @@ public final class FavoritesStore: PersistablePreferenceStore {
         resolvedPathsTask?.cancel()
         let urls = favoriteURLs
         let slow = urls.filter { SlowVolumePathValidator.isLikelySlowVolume($0.path) }
-        let localResolved = FavoritesStore.resolvedPaths(for: urls.filter { !slow.contains($0) })
+        let localResolved = Self.resolvedPaths(for: urls.filter { !slow.contains($0) })
         resolvedFavoritePaths = localResolved
         guard !slow.isEmpty else { return }
         resolvedPathsTask = Task { [weak self] in
-            let slowResolved = await Task.detached(priority: .utility) { FavoritesStore.resolvedPaths(for: slow) }.value
-            guard !Task.isCancelled, let self, self.favoriteURLs == urls else { return }
-            self.resolvedFavoritePaths = localResolved.union(slowResolved)
+            let slowResolved = await Task.detached(priority: .utility) { Self.resolvedPaths(for: slow) }.value
+            guard !Task.isCancelled, let self, favoriteURLs == urls else { return }
+            resolvedFavoritePaths = localResolved.union(slowResolved)
         }
     }
 

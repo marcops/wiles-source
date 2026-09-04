@@ -20,7 +20,7 @@ extension NSImage {
                   bitsPerPixel: 0)
         else {
             // Degenerate size — fall back to a logical resize of a copy so we still never touch self.
-            let copy = (self.copy() as? NSImage) ?? NSImage(size: size)
+            let copy = (copy() as? NSImage) ?? NSImage(size: size)
             copy.size = size
             return copy
         }
