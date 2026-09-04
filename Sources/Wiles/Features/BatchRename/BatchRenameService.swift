@@ -235,13 +235,25 @@ public enum BatchRenameService {
     /// `originalURL → temp URL` for those so the main loop renames the temp to the final name.
     private static func stagePermutationCycles(
         in previews: [(original: FileItem, newName: String)]) async throws -> [URL: URL] {
-        let renames = previews.filter { isActualRename($0.original, to: $0.newName) }
-        let byDirectory = Dictionary(grouping: renames) { $0.original.url.deletingLastPathComponent() }
+        try await stagePermutationCycles(
+            pairs: previews
+                .filter { isActualRename($0.original, to: $0.newName) }
+                .map { (url: $0.original.url, newName: $0.newName) })
+    }
+
+    /// Lower-level form working on plain `(url, newName)` pairs so `UndoRedoService.undoBatch` can
+    /// reuse it. Per directory whose targets overlap its sources, stages participants to a hidden temp.
+    static func stagePermutationCycles(pairs: [(url: URL, newName: String)]) async throws -> [URL: URL] {
+        let renames = pairs.filter {
+            !$0.newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && $0.newName != $0.url.lastPathComponent
+        }
+        let byDirectory = Dictionary(grouping: renames) { $0.url.deletingLastPathComponent() }
 
         var stagedURLByOriginal: [URL: URL] = [:]
         for (_, group) in byDirectory {
             let newNames = Set(group.map(\.newName))
-            let oldNames = Set(group.map(\.original.name))
+            let oldNames = Set(group.map { $0.url.lastPathComponent })
             guard !newNames.isDisjoint(with: oldNames) else { continue }
 
             var stagedThisGroup: [StagedRename] = []
@@ -249,8 +261,9 @@ public enum BatchRenameService {
                 for pair in group {
                     try Task.checkCancellation()
                     let tempName = "\(stagingTempPrefix)\(UUID().uuidString)"
-                    let tempURL = try await FileSystemService.renameItem(at: pair.original.url, newName: tempName)
-                    stagedThisGroup.append(StagedRename(originalURL: pair.original.url, tempURL: tempURL, originalName: pair.original.name))
+                    let tempURL = try await FileSystemService.renameItem(at: pair.url, newName: tempName)
+                    stagedThisGroup.append(
+                        StagedRename(originalURL: pair.url, tempURL: tempURL, originalName: pair.url.lastPathComponent))
                 }
             } catch {
                 for entry in stagedThisGroup {

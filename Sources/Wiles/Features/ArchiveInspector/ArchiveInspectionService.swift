@@ -10,15 +10,54 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
             // process locale, even though tools like `ditto`/`zip` store genuine UTF-8 bytes
             // in the ZIP central directory. Parsing the central directory ourselves and
             // decoding names directly as UTF-8 sidesteps that mangling entirely.
-            let data: Data
-            do {
-                data = try Data(contentsOf: archiveURL, options: .mappedIfSafe)
-            } catch {
-                // Can't read the archive at all — surface it instead of showing "no entries".
-                throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
-            }
-            return ZIPCentralDirectoryReader.readEntryNames(from: data).map { ArchiveEntryItem(path: $0) }
+            try readCentralDirectoryNames(in: archiveURL).map { ArchiveEntryItem(path: $0) }
         }.value
+    }
+
+    /// Above this size, only the central-directory region is read via `FileHandle` — `.mappedIfSafe`
+    /// silently does a full in-RAM read on network/removable volumes, which could OOM-kill on a huge `.zip`.
+    private static let wholeReadByteCeiling = 64 * 1024 * 1024
+    /// First tail window: large enough to hold the end-of-central-directory record (+ ZIP64
+    /// locator/record) of any real archive.
+    private static let tailWindowBytes = 1 * 1024 * 1024
+
+    private static func readCentralDirectoryNames(in archiveURL: URL) throws -> [String] {
+        let fileSize = (try? FileManager.default.attributesOfItem(atPath: archiveURL.path)[.size]) as? Int
+
+        if let fileSize, fileSize > wholeReadByteCeiling,
+           let windowed = try? readCentralDirectoryViaFileHandle(archiveURL: archiveURL, fileSize: fileSize) {
+            return windowed
+        }
+
+        let data: Data
+        do {
+            data = try Data(contentsOf: archiveURL, options: .mappedIfSafe)
+        } catch {
+            // Can't read the archive at all — surface it instead of showing "no entries".
+            throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
+        }
+        return ZIPCentralDirectoryReader.readEntryNames(from: data)
+    }
+
+    /// Reads a tail window to locate the central directory, then reads exactly `[cdOffset, EOF)` —
+    /// the central directory plus the trailing records, nothing of the (large) entry data.
+    private static func readCentralDirectoryViaFileHandle(archiveURL: URL, fileSize: Int) throws -> [String] {
+        let handle = try FileHandle(forReadingFrom: archiveURL)
+        defer { try? handle.close() }
+
+        let tailStart = max(0, fileSize - tailWindowBytes)
+        try handle.seek(toOffset: UInt64(tailStart))
+        let tail = try handle.readToEnd() ?? Data()
+        guard let centralDirectoryOffset = ZIPCentralDirectoryReader.centralDirectoryFileOffset(
+            fromTail: tail, tailStart: tailStart) else { return [] }
+
+        if centralDirectoryOffset >= tailStart {
+            return ZIPCentralDirectoryReader.readEntryNames(from: tail, windowFileOffset: tailStart)
+        }
+        try handle.seek(toOffset: UInt64(centralDirectoryOffset))
+        let centralDirectory = try handle.readToEnd() ?? Data()
+        return ZIPCentralDirectoryReader.readEntryNames(
+            from: centralDirectory, windowFileOffset: centralDirectoryOffset)
     }
 
     public static func extractSingleEntry(from archiveURL: URL, entryPath: String, to destinationFolder: URL) async throws -> URL {

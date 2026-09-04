@@ -7,8 +7,9 @@ public struct SymlinkService: Sendable {
         symlinkName: String,
         mode: SymlinkMode) throws -> URL {
         let fm = FileManager.default
-        let trimmed = symlinkName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let name = trimmed.isEmpty ? targetURL.lastPathComponent + " link" : trimmed
+        // Route the typed name through the same sanitizer as inline rename: a `/` becomes `:`, and
+        // `.`/`..`/empty is rejected so `../evil` can't place the link outside the chosen folder.
+        let name = FilenameSanitizer.sanitize(symlinkName) ?? (targetURL.lastPathComponent + " link")
 
         let destinationURL = destinationFolder.appendingPathComponent(name)
 

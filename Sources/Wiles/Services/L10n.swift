@@ -21,7 +21,6 @@ public enum L10n {
         case feedbackSubmit
         case feedbackSubmitting
         case feedbackSuccessMessage
-        case feedbackConfirmMessage
         case sortBy
         case viewMode
         case gridView
@@ -30,18 +29,14 @@ public enum L10n {
         case showHiddenFilesGnome
         case showHiddenFilesMac
         case showHiddenFilesHint
-        case hideStatusBar
-        case showStatusBar
         case showFavorites
         case showFavoritesHint
-        case showMacSection
         case showRecents
         case showRecentsHint
         case showPlaces
         case showPlacesHint
         case showSidebarSectionTitles
         case showSidebarSectionTitlesHint
-        case sidebarMode
         case sidebarMenuTitle
         case places
         case directoryTree
@@ -77,7 +72,6 @@ public enum L10n {
         case activeSuffix
         case backgroundTasksSuffix
         case compressToZip
-        case extractHere
         case rename
         case properties
         case noResultsFound
@@ -88,13 +82,11 @@ public enum L10n {
         case kind
         case folder
         case favorites
-        case mac
         case recents
         case devices
         case searchPlaceholder
         case home
         case desktop
-        case documents
         case downloads
         case music
         case pictures
@@ -107,7 +99,6 @@ public enum L10n {
         case airDrop
         case airDropEllipsis
         case iCloudDrive
-        case freeSpace
         case freeSpaceFormat
         case itemsCount
         case itemsCountWithSize
@@ -115,28 +106,19 @@ public enum L10n {
         case selectionCountWithSize
         case moveToTrashPartialFailure
         case tagOperationPartialFailure
-        case selectedItemsCount
-        case selectedItemsCountWithSize
         case language
         case languageSystemDefault
         case cancel
         case create
-        case createNewFolder
-        case folderNamePlaceholder
         case defaultFolderName
         case enterPathPlaceholder
         case root
         case ascending
         case location
-        case modified
         case hidden
-        case yes
-        case no
         case close
-        case parentFolder
         case done
         case confirm
-        case helpShortcuts
         case batchRename
         case find
         case replaceWith
@@ -155,12 +137,9 @@ public enum L10n {
         case cropPreset
         case quality
         case convert
-        case diskUsageVisualizer
         case topLargestItems
         case aboutWiles
         case newFileTitle
-        case selectTemplate
-        case fileNameLabel
         case extractArchive
         case connectToServer
         case connectToServerSubtitle
@@ -176,7 +155,6 @@ public enum L10n {
         case showTagsHint
         case tags
         case clearAllTags
-        case services
         case share
         case pdfMergePartialFailure
         case batchRenameWouldCollide
@@ -197,7 +175,6 @@ public enum L10n {
         case lastOpened
         case dimensions
         case duration
-        case fetchError
         case compactDensity
         case compactDensityHint
         case helpGuideTitle
@@ -205,7 +182,6 @@ public enum L10n {
         case tabFeatures
         case tabSystem
         case overviewDesc
-        case domainToolsTitle
         case helpTagsTitle
         case helpTagsDesc
         case helpTerminalTitle
@@ -226,7 +202,6 @@ public enum L10n {
         case helpCopyContentDesc
         case helpServerTitle
         case helpServerDesc
-        case navSystemTitle
         case helpUndoTitle
         case helpUndoDesc
         case helpPreviewTitle
@@ -290,7 +265,6 @@ public enum L10n {
         case deleteImmediately
         case deleteImmediatelyConfirm
         case createSymlink
-        case compressToTarGz
         case hideTerminal
         case showTerminal
         case hidePreview
@@ -316,9 +290,7 @@ public enum L10n {
         case wifiShareStartFailed
         case retry
         case linkType
-        case symlinkName
         case noSelection
-        case codePreview
         case openWith
         case selectOtherApp
         case downloadFromiCloud
@@ -362,9 +334,7 @@ public enum L10n {
         case folderPickerCantReadFolder
         case compressWithPassword
         case enterPassword
-        case password
         case others
-        case changeAllDefaultApp
         case changeAllDefaultAppEllipsis
         case recentServers
         case mergeIntoPDF
@@ -394,8 +364,6 @@ public enum L10n {
         case noDuplicatesFound
         case duplicateScanTruncatedNotice
         case duplicateKeepFirstCopyNotice
-        case batchRenameTitle
-        case namingPattern
         case regexReplace
         case emptyTrash
         case emptyTrashEllipsis
@@ -416,7 +384,6 @@ public enum L10n {
         case theme
         case skipDeleteConfirmation
         case skipDeleteConfirmationHint
-        case settingsWindowTitle
         case settingsHeaderSubtitle
         case settingsMenuItem
         case settingsGeneralTab
@@ -513,6 +480,7 @@ public enum L10n {
         case wilesErrorDestinationExists
         case batchRenamePartialFailure
         case fileShredderPartialFailure
+        case fileShredderCancelledPartial
         case pastePartialFailure
         case symlinkCannotReplaceOwnTarget
         case tooltipFolder
@@ -535,8 +503,6 @@ public enum L10n {
         case imageConverterFinalizeFailed
         case imageConverterOutputTooLarge
         case syntaxTruncatedNotice
-        case fileTemplateMarkdownContent
-        case fileTemplateJSONContent
         case filterModifiedToday
         case filterModified30Days
         case serverAddressPlaceholder

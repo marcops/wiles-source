@@ -104,6 +104,23 @@ public struct FileItemTests {
         report("Model/FileItem", "POS: resizedCopy returns a different image instance", result: resized !== shared)
         report("Model/FileItem", "POS: resizedCopy applies the requested size to the copy", result: resized.size == NSSize(width: 512, height: 512))
         report("Model/FileItem", "NEG: resizedCopy leaves the source (possibly shared) icon's size unchanged", result: shared.size == originalSize)
+
+        // LM-185: the result must be a single rasterized rep at the target pixel size — not the
+        // source's full set of multi-resolution reps kept behind a smaller logical size.
+        let reps = resized.representations
+        let singleTargetRep = reps.count == 1
+            && reps[0].pixelsWide == 512 && reps[0].pixelsHigh == 512
+        report(
+            "Model/FileItem",
+            "POS: resizedCopy holds exactly one rep at the target pixel size (no retained full-res system-icon reps)",
+            result: singleTargetRep)
+
+        // NEG: a degenerate 0×0 size must not crash and must not mutate the source.
+        let zero = shared.resizedCopy(to: .zero)
+        report(
+            "Model/FileItem",
+            "NEG: resizedCopy(to: .zero) returns without crashing and still leaves the source untouched",
+            result: zero !== shared && shared.size == originalSize)
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

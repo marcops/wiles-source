@@ -23,6 +23,39 @@ public struct DiskSpaceVisualizerFeatureTests {
         await testSubfolderSizeIsIncludedViaComputeFolderSizeFast()
         await testOthersBucketAggregatesItemsPastTop10()
         await testUnreadableSubdirDoesNotAbortSizeWalk()
+        testComputeFolderSizeFastStopsOnTheFileCapAndTheWallClockBudget()
+    }
+
+    /// MM-081: the file cap is 50k (aligned with `DuplicateDetectionService`) so the chart doesn't
+    /// under-scan a big folder and misrank it, and a shared wall-clock budget is what actually bounds
+    /// a pathological scan. Both stop conditions flag the folder truncated (→ `isApproximate`).
+    private static func testComputeFolderSizeFastStopsOnTheFileCapAndTheWallClockBudget() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for index in 0 ..< 40 {
+            try? Data(repeating: 0x41, count: 100).write(to: dir.appendingPathComponent("f\(index).bin"))
+        }
+
+        let full = (try? DiskSpaceVisualizerService.computeFolderSizeFast(folderURL: dir)) ?? (total: Int64(0), wasTruncated: false)
+        report(
+            "Feature/DiskSpaceVisualizer",
+            "POS: a small folder well under both caps is scanned in full (not flagged truncated)",
+            result: full.total == 4000 && !full.wasTruncated)
+
+        let fileCapped = (try? DiskSpaceVisualizerService.computeFolderSizeFast(
+            folderURL: dir, maxFiles: 10)) ?? (total: Int64(0), wasTruncated: false)
+        report(
+            "Feature/DiskSpaceVisualizer",
+            "POS: hitting the file cap stops the walk early and flags the folder truncated",
+            result: fileCapped.wasTruncated && fileCapped.total < full.total && fileCapped.total > 0)
+
+        let timeCapped = (try? DiskSpaceVisualizerService.computeFolderSizeFast(
+            folderURL: dir, deadline: .now, wallClockCheckInterval: 4)) ?? (total: Int64(0), wasTruncated: false)
+        report(
+            "Feature/DiskSpaceVisualizer",
+            "POS: passing the wall-clock deadline stops the walk and flags the folder truncated",
+            result: timeCapped.wasTruncated && timeCapped.total < full.total)
     }
 
     /// R1 / BA-509: `computeFolderSizeFast`'s enumerator now passes `errorHandler: { _, _ in true }`,

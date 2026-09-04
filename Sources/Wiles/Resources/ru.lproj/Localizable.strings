@@ -59,18 +59,14 @@
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "фоновых задач";
 "batchRename" = "Batch Rename";
-"batchRenameTitle" = "Пакетное переименование файлов";
 "camera" = "Камера";
 "cancel" = "Отмена";
-"changeAllDefaultApp" = "Всегда открывать в";
 "changeAllDefaultAppEllipsis" = "Всегда открывать в…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "Очистить поиск";
 "close" = "Закрыть";
-"codePreview" = "Code Preview";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Использует более плотный интервал между строками в представлениях списка и сетки.";
-"compressToTarGz" = "Compress to .tar.gz";
 "compressToZip" = "Compress to ZIP";
 "compressWithPassword" = "Сжать с паролем...";
 "connect" = "Connect";
@@ -95,7 +91,6 @@
 "smartFolderHint" = "Показывает файлы, соответствующие сохранённому поиску этой умной папки.";
 "symlinkModeAbsolute" = "Абсолютный";
 "symlinkModeRelative" = "Относительный";
-"createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Создать Символическую Ссылку";
 "createSymlink" = "Создать Символическую Ссылку...";
 "created" = "Created";
@@ -111,10 +106,7 @@
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
-"diskUsageVisualizer" = "Folder Disk Usage Visualizer";
 "diskUsageOthersItemsFormat" = "Другие (%d элементов)";
-"documents" = "Документы";
-"domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
 "confirm" = "Подтвердить";
 "downloadFromiCloud" = "Загрузить из iCloud";
@@ -131,10 +123,7 @@
 "enterPathPlaceholder" = "Enter path...";
 "execute" = "Исполнение";
 "extractArchive" = "Extract Archive";
-"extractHere" = "Extract Archive Here";
 "favorites" = "FAVORITES";
-"fetchError" = "Unable to load properties.";
-"fileNameLabel" = "File Name";
 "filterCodeFiles" = "Filter Code Files (kind:code)";
 "filterDocuments" = "Filter Documents (kind:doc)";
 "filterFolders" = "Filter Folders (kind:folder)";
@@ -147,10 +136,8 @@
 "focalLength" = "Фокусное расстояние";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";
-"folderNamePlaceholder" = "Folder Name";
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
-"freeSpace" = "Свободно";
 "freeSpaceFormat" = "%@ Свободно";
 "fullDiskAccessNotice" = "Предоставьте полный доступ к диску в Системных настройках, чтобы иметь доступ ко всем папкам без повторных запросов.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
@@ -180,7 +167,6 @@
 "helpPreviewTitle" = "Syntax-Highlighted Preview Sidebar";
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
-"helpShortcuts" = "Help & Shortcuts";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -201,7 +187,6 @@
 "helpZipTitle" = "ZIP Archive Compression & Extraction";
 "hidden" = "Hidden";
 "hidePreview" = "Hide Preview";
-"hideStatusBar" = "Hide Status Bar";
 "hideTerminal" = "Hide Terminal";
 "home" = "Личная папка";
 "iCloudDrive" = "iCloud Drive";
@@ -216,11 +201,9 @@
 "linkType" = "Link Type";
 "listView" = "List View";
 "location" = "Location";
-"mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
 "macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "Объединить в один PDF";
-"modified" = "Modified";
 "moreInfo" = "More Info...";
 "moveTo" = "Move to:";
 "moveToTrash" = "Move to Trash";
@@ -229,14 +212,11 @@
 "movies" = "Фильмы";
 "music" = "Музыка";
 "name" = "Name";
-"namingPattern" = "Шаблон имени";
 "navProfilesTitle" = "Navigation Shortcut Profiles";
-"navSystemTitle" = "Navigation, System & Customization";
 "networkAndCloud" = "NETWORK & CLOUD";
 "newFileTitle" = "New File";
 "newFolder" = "Новая папка";
 "newName" = "New Name";
-"no" = "No";
 "noActiveOperations" = "No active operations";
 "noAutoOrgRules" = "No Auto-Organization Rules";
 "noAutoOrgRulesDesc" = "Files will stay where they are.";
@@ -253,8 +233,6 @@
 "others" = "Другие";
 "overviewDesc" = "Wiles — это полностью нативный файловый менеджер для macOS, созданный с нуля так, будто он всегда был частью вашего Mac. Каждое действие, от открытия папки до переименования тысячи файлов сразу, ощущается мгновенным.";
 "owner" = "Owner";
-"parentFolder" = "Parent Folder";
-"password" = "Пароль";
 "paste" = "Вставить";
 "permissionDeniedNotice" = "Доступ запрещен: Wiles не может прочитать содержимое этой папки.";
 "permissions" = "Sharing & Permissions";
@@ -299,9 +277,7 @@
 "selectFolderSubtitle" = "Выберите папку на вашем Mac";
 "invalidFolderPath" = "Эта папка не существует";
 "selectOtherApp" = "Другое...";
-"selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";
-"services" = "Services";
 "shareFolderWifi" = "Share Folder over Wi-Fi";
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "Общий доступ и права";
@@ -324,7 +300,6 @@
 "showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Показывает файлы и папки, имя которых начинается с точки.";
-"showMacSection" = "Show MAC Section";
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showNetworkAndCloudHint" = "Показывает раздел «Сеть и облако» на боковой панели.";
 "showPlaces" = "Показать Места";
@@ -338,11 +313,9 @@
 "showDirectoryTreeHint" = "Показывает раскрывающееся дерево папок на боковой панели.";
 "showSidebarSectionTitles" = "Показать Заголовки Разделов";
 "showSidebarSectionTitlesHint" = "Показывает заголовки разделов над списками боковой панели.";
-"showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTagsHint" = "Показывает раздел «Метки» на боковой панели.";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar";
 "sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
@@ -359,7 +332,6 @@
 "wifiShareStartFailed" = "Не Удалось Запустить Сервер";
 "retry" = "Повторить";
 "suffix" = "Suffix";
-"symlinkName" = "Symlink Name";
 "symlinkNameLabel" = "Имя Ссылки";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
@@ -384,9 +356,7 @@
 "feedbackSubmit" = "Отправить";
 "feedbackSubmitting" = "Отправка...";
 "feedbackSuccessMessage" = "Спасибо! Ваш отзыв отправлен.";
-"feedbackConfirmMessage" = "Отправить этот отзыв?";
 "write" = "Запись";
-"yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "Извлечь том";
@@ -397,15 +367,12 @@
 "selectionCountWithSize" = "%d / %d (%@)";
 "moveToTrashPartialFailure" = "{0} из {1} объектов не удалось переместить в Корзину.";
 "tagOperationPartialFailure" = "Не удалось пометить {0} из {1} элементов.";
-"selectedItemsCount" = "%d selected";
-"selectedItemsCountWithSize" = "%d selected (%@)";
 
 // MARK: - Settings window & menu-bar cleanup (added)
 "newWindow" = "Новое Окно";
 "theme" = "Тема";
 "skipDeleteConfirmation" = "Не запрашивать подтверждение удаления";
 "skipDeleteConfirmationHint" = "Немедленно перемещает элементы в Корзину, не запрашивая подтверждение.";
-"settingsWindowTitle" = "Настройки Wiles";
 "settingsHeaderSubtitle" = "Настройте Wiles под свои предпочтения.";
 "settingsMenuItem" = "Настройки…";
 "settingsGeneralTab" = "Основные";
@@ -513,8 +480,6 @@
 "imageConverterFinalizeFailed" = "Не удалось завершить назначение изображения";
 "imageConverterOutputTooLarge" = "Изображение слишком большое для преобразования (более {0} мегапикселей)";
 "syntaxTruncatedNotice" = "\n... (обрезано)";
-"fileTemplateMarkdownContent" = "# Заголовок\n\nСодержимое здесь.\n";
-"fileTemplateJSONContent" = "{\n  \"ключ\": \"значение\"\n}\n";
 "filterModifiedToday" = "Изменено Сегодня (date:today)";
 "filterModified30Days" = "Изменено за Последние 30 Дней (date:30d)";
 "serverAddressPlaceholder" = "smb://сервер/ресурс";
@@ -542,6 +507,7 @@
 "languageSystemDefault" = "Системный язык";
 "batchRenamePartialFailure" = "Переименовано {0} из {1} объектов. Ошибка — {2}";
 "fileShredderPartialFailure" = "Завершено {0} из {1} объектов. Ошибка — {2}";
+"fileShredderCancelledPartial" = "Отменено — {0} из {1} объектов удалены безвозвратно (без Корзины, без отмены).";
 "pastePartialFailure" = "Не удалось вставить {0} из {1} объектов.";
 "symlinkCannotReplaceOwnTarget" = "Невозможно создать символическую ссылку, которая заменила бы собственную цель.";
 "share" = "Поделиться…";

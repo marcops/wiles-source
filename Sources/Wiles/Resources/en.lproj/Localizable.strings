@@ -54,18 +54,14 @@
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "background tasks";
 "batchRename" = "Batch Rename";
-"batchRenameTitle" = "Batch Rename Files";
 "camera" = "Camera";
 "cancel" = "Cancel";
-"changeAllDefaultApp" = "Always Open With";
 "changeAllDefaultAppEllipsis" = "Always Open With…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "Clear Search";
 "close" = "Close";
-"codePreview" = "Code Preview";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Use tighter spacing between rows in list and grid views.";
-"compressToTarGz" = "Compress to .tar.gz";
 "compressToZip" = "Compress to ZIP";
 "compressWithPassword" = "Compress with Password...";
 "connect" = "Connect";
@@ -87,7 +83,6 @@
 "createLink" = "Create Link";
 "symlinkModeAbsolute" = "Absolute";
 "symlinkModeRelative" = "Relative";
-"createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Create Symbolic Link";
 "createSymlink" = "Create Symlink...";
 "created" = "Created";
@@ -103,10 +98,7 @@
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
-"diskUsageVisualizer" = "Folder Disk Usage Visualizer";
 "diskUsageOthersItemsFormat" = "Others (%d items)";
-"documents" = "Documents";
-"domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
 "confirm" = "Confirm";
 "downloadFromiCloud" = "Download from iCloud";
@@ -123,10 +115,7 @@
 "enterPathPlaceholder" = "Enter path...";
 "execute" = "Execute";
 "extractArchive" = "Extract Archive";
-"extractHere" = "Extract Archive Here";
 "favorites" = "FAVORITES";
-"fetchError" = "Unable to load properties.";
-"fileNameLabel" = "File Name";
 "filterCodeFiles" = "Filter Code Files (kind:code)";
 "filterDocuments" = "Filter Documents (kind:doc)";
 "filterFolders" = "Filter Folders (kind:folder)";
@@ -139,10 +128,8 @@
 "focalLength" = "Focal Length";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";
-"folderNamePlaceholder" = "Folder Name";
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
-"freeSpace" = "free";
 "freeSpaceFormat" = "%@ free";
 "fullDiskAccessNotice" = "Grant Full Disk Access in System Settings to access all folders without repeated permission prompts.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
@@ -172,7 +159,6 @@
 "helpPreviewTitle" = "Syntax-Highlighted Preview Sidebar";
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
-"helpShortcuts" = "Help & Shortcuts";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -193,7 +179,6 @@
 "helpZipTitle" = "ZIP Archive Compression & Extraction";
 "hidden" = "Hidden";
 "hidePreview" = "Hide Preview";
-"hideStatusBar" = "Hide Status Bar";
 "hideTerminal" = "Hide Terminal";
 "home" = "Home";
 "iCloudDrive" = "iCloud Drive";
@@ -208,11 +193,9 @@
 "linkType" = "Link Type";
 "listView" = "List View";
 "location" = "Location";
-"mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
 "macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "Merge into Single PDF";
-"modified" = "Modified";
 "moreInfo" = "More Info...";
 "moveTo" = "Move to:";
 "moveToTrash" = "Move to Trash";
@@ -221,14 +204,11 @@
 "movies" = "Movies";
 "music" = "Music";
 "name" = "Name";
-"namingPattern" = "Naming Pattern";
 "navProfilesTitle" = "Navigation Shortcut Profiles";
-"navSystemTitle" = "Navigation, System & Customization";
 "networkAndCloud" = "NETWORK & CLOUD";
 "newFileTitle" = "New File";
 "newFolder" = "New Folder...";
 "newName" = "New Name";
-"no" = "No";
 "noActiveOperations" = "No active operations";
 "noAutoOrgRules" = "No Auto-Organization Rules";
 "noAutoOrgRulesDesc" = "Files will stay where they are.";
@@ -245,8 +225,6 @@
 "others" = "Others";
 "overviewDesc" = "Wiles is a fully native macOS file manager, built from the ground up to feel like it belongs on your Mac. Every interaction, from opening a folder to renaming a thousand files at once, is designed to feel instant.";
 "owner" = "Owner";
-"parentFolder" = "Parent Folder";
-"password" = "Password";
 "paste" = "Paste";
 "permissionDeniedNotice" = "Permission Denied: Wiles cannot read contents of this folder.";
 "permissions" = "Sharing & Permissions";
@@ -291,9 +269,7 @@
 "selectFolderSubtitle" = "Choose a folder on your Mac";
 "invalidFolderPath" = "This folder doesn't exist";
 "selectOtherApp" = "Other...";
-"selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";
-"services" = "Services";
 "shareFolderWifi" = "Share Folder over Wi-Fi";
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "Sharing & Permissions";
@@ -316,7 +292,6 @@
 "showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Show files and folders whose name starts with a dot.";
-"showMacSection" = "Show MAC Section";
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showNetworkAndCloudHint" = "Show the Network & Cloud section in the sidebar.";
 "showPlaces" = "Show Places";
@@ -330,13 +305,11 @@
 "showDirectoryTreeHint" = "Show the expandable folder tree in the sidebar.";
 "showSidebarSectionTitles" = "Show Section Titles";
 "showSidebarSectionTitlesHint" = "Show section titles above sidebar lists.";
-"showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTagsHint" = "Show the Tags section in the sidebar.";
 "showTerminal" = "Show Terminal";
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "Eject Volume";
-"sidebarMode" = "Sidebar";
 "sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "sidebarTrash" = "Trash";
@@ -351,7 +324,6 @@
 "wifiShareStartFailed" = "Could Not Start Server";
 "retry" = "Retry";
 "suffix" = "Suffix";
-"symlinkName" = "Symlink Name";
 "symlinkNameLabel" = "Symlink Name";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
@@ -376,24 +348,19 @@
 "feedbackSubmit" = "Submit";
 "feedbackSubmitting" = "Submitting...";
 "feedbackSuccessMessage" = "Thanks! Your feedback has been submitted.";
-"feedbackConfirmMessage" = "Send this feedback?";
 "write" = "Write";
-"yes" = "Yes";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
 "moveToTrashPartialFailure" = "{0} of {1} items could not be moved to Trash.";
 "tagOperationPartialFailure" = "{0} of {1} items could not be tagged.";
-"selectedItemsCount" = "%d selected";
-"selectedItemsCountWithSize" = "%d selected (%@)";
 
 // MARK: - Settings window & menu-bar cleanup (added)
 "newWindow" = "New Window";
 "theme" = "Theme";
 "skipDeleteConfirmation" = "Skip delete confirmation";
 "skipDeleteConfirmationHint" = "Move items to the Trash immediately without asking for confirmation.";
-"settingsWindowTitle" = "Wiles Settings";
 "settingsHeaderSubtitle" = "Customize Wiles to your preferences.";
 "settingsMenuItem" = "Settings…";
 "settingsGeneralTab" = "General";
@@ -501,8 +468,6 @@
 "imageConverterFinalizeFailed" = "Failed to finalize image destination";
 "imageConverterOutputTooLarge" = "Image is too large to convert (over {0} megapixels)";
 "syntaxTruncatedNotice" = "\n... (truncated)";
-"fileTemplateMarkdownContent" = "# Title\n\nContent goes here.\n";
-"fileTemplateJSONContent" = "{\n  \"key\": \"value\"\n}\n";
 "filterModifiedToday" = "Modified Today (date:today)";
 "filterModified30Days" = "Modified Past 30 Days (date:30d)";
 "serverAddressPlaceholder" = "smb://server/share";
@@ -541,6 +506,7 @@
 "languageSystemDefault" = "System Default";
 "batchRenamePartialFailure" = "{0} of {1} items renamed. Failed — {2}";
 "fileShredderPartialFailure" = "{0} of {1} items completed. Failed — {2}";
+"fileShredderCancelledPartial" = "Cancelled — {0} of {1} items were permanently deleted (no Trash, not undoable).";
 "pastePartialFailure" = "{0} of {1} items could not be pasted.";
 "symlinkCannotReplaceOwnTarget" = "Cannot create a symlink that would replace its own target.";
 "share" = "Share…";

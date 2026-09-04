@@ -157,6 +157,14 @@ else
   echo "xcodebuild UI tests OK"
 fi
 
+section "L10n key references (R-LINT-2 — no orphan L10n.Key cases / dead translations)"
+if ! scripts/check_l10n_keys.sh; then
+  echo "FAIL: orphan L10n.Key case(s) — see above"
+  FAILED=1
+else
+  echo "check_l10n_keys OK"
+fi
+
 section "SwiftLint (required — never releases with lint non-zero)"
 if ! command -v swiftlint >/dev/null 2>&1; then
   echo "FAIL: swiftlint not installed (brew install swiftlint) — lint is mandatory, not optional, for a release"

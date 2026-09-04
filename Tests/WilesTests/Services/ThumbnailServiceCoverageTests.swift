@@ -16,6 +16,7 @@ public struct ThumbnailServiceCoverageTests {
         await testCancelledLoadThumbnailIsRecoverable()
         await testConcurrentAwaiterSurvivesSiblingCancellation()
         await testPrefetchThumbnailsCancellationBreaksLoop()
+        await testPrefetcherDeinitCancelsInFlightPrefetch()
         await testCacheKeyChangesWhenFileModificationDateChanges()
         testShouldPrefetchThumbnailsThreshold()
         await testCachedThumbnailResolvesViaMtimeIndexWithoutStat()
@@ -337,6 +338,37 @@ public struct ThumbnailServiceCoverageTests {
         let zipCached = ThumbnailService.shared.cachedThumbnail(for: zipURL, size: 32, dateModified: Self.mtime(zipURL))
         TestReporter.report("ThumbnailService", "NEG: prefetchThumbnails never populates the cache for an ineligible directory", result: folderCached == nil)
         TestReporter.report("ThumbnailService", "NEG: prefetchThumbnails never populates the cache for an ineligible zip archive", result: zipCached == nil)
+    }
+
+    /// LL-355: the prefetcher's detached walk captures `ThumbnailService` strongly, not `self`, so
+    /// the owning window closing does NOT stop it on its own — only `deinit { prefetchTask?.cancel() }`
+    /// does. Dropping the last reference mid-walk must leave part of a large folder un-warmed.
+    private static func testPrefetcherDeinitCancelsInFlightPrefetch() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        var items: [FileItem] = []
+        for index in 0 ..< 48 {
+            let url = tempDir.appendingPathComponent("deinit-sample-\(index).png")
+            writeSamplePNG(to: url)
+            items.append(FileItem.load(url: url, icon: makeFakeIcon()))
+        }
+
+        do {
+            var prefetcher: ThumbnailPrefetcher? = ThumbnailPrefetcher()
+            prefetcher?.prefetch(for: items, size: 32)
+            prefetcher = nil // deinit → prefetchTask?.cancel()
+        }
+
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        let warmed = items.filter {
+            ThumbnailService.shared.cachedThumbnail(for: $0.url, size: 32, dateModified: Self.mtime($0.url)) != nil
+        }.count
+        TestReporter.report(
+            "ThumbnailService",
+            "POS: dropping the ThumbnailPrefetcher mid-walk cancels the prefetch instead of warming every item",
+            result: warmed < items.count)
     }
 
     private static func testIsImage() {

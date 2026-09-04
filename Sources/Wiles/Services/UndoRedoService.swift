@@ -104,6 +104,12 @@ public final class UndoRedoService {
     /// stack (grouped, only when every reverted piece is redoable); whatever fails is re-pushed as a
     /// retryable batch on the undo stack and reported. Returns the first restored URL for selection.
     private func undoBatch(_ actions: [UndoActionType]) async throws -> URL? {
+        // Reversing a name rotation is itself a rotation — naive per-item reverse hits `.keepBoth`
+        // and strands files on `… 2`. Stage colliding groups through hidden temps, like the forward path.
+        if let renamePairs = renamePairsIfAllRenames(actions), renamesFormACollidingPermutation(renamePairs) {
+            return try await undoRenamePermutation(renamePairs, originalActions: actions)
+        }
+
         var revertedForward: [UndoActionType] = []
         var failedOriginals: [UndoActionType] = []
         var allRedoable = true
@@ -129,8 +135,101 @@ public final class UndoRedoService {
         return firstURL
     }
 
+    /// `[(oldURL, newURL)]` when every action in the batch is a `.rename`, else `nil` (the cyclic
+    /// path only applies to a homogeneous rename batch).
+    private func renamePairsIfAllRenames(_ actions: [UndoActionType]) -> [(oldURL: URL, newURL: URL)]? {
+        var pairs: [(oldURL: URL, newURL: URL)] = []
+        for action in actions {
+            guard case let .rename(oldURL, newURL) = action else { return nil }
+            pairs.append((oldURL, newURL))
+        }
+        return pairs
+    }
+
+    /// True when reversing the batch would land a file on a name a sibling in the same batch still
+    /// holds (the rotation case needing temp staging); a batch with all-free reverse names uses the plain loop.
+    private func renamesFormACollidingPermutation(_ pairs: [(oldURL: URL, newURL: URL)]) -> Bool {
+        let byDirectory = Dictionary(grouping: pairs) { $0.newURL.deletingLastPathComponent() }
+        return byDirectory.values.contains { group in
+            let sourceNames = Set(group.map { $0.newURL.lastPathComponent })
+            let targetNames = Set(group.map { $0.oldURL.lastPathComponent })
+            return !sourceNames.isDisjoint(with: targetNames)
+        }
+    }
+
+    /// Reverses a name-permuting batch-rename: stage cyclic groups to hidden temps, then rename each
+    /// back to its pre-rename name. On failure, unstage and re-push the batch for retry.
+    private func undoRenamePermutation(
+        _ pairs: [(oldURL: URL, newURL: URL)], originalActions: [UndoActionType]) async throws -> URL? {
+        let staged = try await BatchRenameService.stagePermutationCycles(
+            pairs: pairs.map { (url: $0.newURL, newName: $0.oldURL.lastPathComponent) })
+
+        var revertedForward: [UndoActionType] = []
+        var firstURL: URL?
+        do {
+            for pair in pairs.reversed() {
+                let currentURL = staged[pair.newURL] ?? pair.newURL
+                let result = try await FileSystemService.renameItem(
+                    at: currentURL, newName: pair.oldURL.lastPathComponent, onCollision: .keepBoth)
+                onFileRelocated?(pair.newURL, result)
+                noteRestoreDivergence(intendedName: pair.oldURL.lastPathComponent, result: result)
+                revertedForward.insert(.rename(oldURL: result, newURL: pair.newURL), at: 0)
+                firstURL = firstURL ?? result
+            }
+        } catch {
+            await BatchRenameService.restoreStaged(staged)
+            undoStack.append(UndoRecord(actionType: wrap(originalActions)))
+            throw error
+        }
+        redoStack.append(UndoRecord(actionType: wrap(revertedForward)))
+        return firstURL
+    }
+
+    /// Forward-direction mirror of `renamesFormACollidingPermutation` — redo of a reversed rotation
+    /// also has to stage through temps.
+    private func redoRenamesFormACollidingPermutation(_ pairs: [(oldURL: URL, newURL: URL)]) -> Bool {
+        let byDirectory = Dictionary(grouping: pairs) { $0.oldURL.deletingLastPathComponent() }
+        return byDirectory.values.contains { group in
+            let sourceNames = Set(group.map { $0.oldURL.lastPathComponent })
+            let targetNames = Set(group.map { $0.newURL.lastPathComponent })
+            return !sourceNames.isDisjoint(with: targetNames)
+        }
+    }
+
+    /// Re-applies a batch-rename that permuted names, staging the cyclic groups to hidden temps
+    /// first — the forward-direction mirror of `undoRenamePermutation`.
+    private func redoRenamePermutation(
+        _ pairs: [(oldURL: URL, newURL: URL)], originalActions: [UndoActionType]) async throws -> URL? {
+        let staged = try await BatchRenameService.stagePermutationCycles(
+            pairs: pairs.map { (url: $0.oldURL, newName: $0.newURL.lastPathComponent) })
+
+        var reappliedReverse: [UndoActionType] = []
+        var firstURL: URL?
+        do {
+            for pair in pairs {
+                let currentURL = staged[pair.oldURL] ?? pair.oldURL
+                let result = try await FileSystemService.renameItem(
+                    at: currentURL, newName: pair.newURL.lastPathComponent, onCollision: .keepBoth)
+                onFileRelocated?(pair.oldURL, result)
+                noteRestoreDivergence(intendedName: pair.newURL.lastPathComponent, result: result)
+                reappliedReverse.append(.rename(oldURL: pair.oldURL, newURL: result))
+                firstURL = firstURL ?? result
+            }
+        } catch {
+            await BatchRenameService.restoreStaged(staged)
+            redoStack.append(UndoRecord(actionType: wrap(originalActions)))
+            throw error
+        }
+        undoStack.append(UndoRecord(actionType: wrap(reappliedReverse)))
+        return firstURL
+    }
+
     /// Mirror of `undoBatch` for `⌘⇧Z`: re-applies a batch first-last.
     private func redoBatch(_ actions: [UndoActionType]) async throws -> URL? {
+        if let renamePairs = renamePairsIfAllRenames(actions), redoRenamesFormACollidingPermutation(renamePairs) {
+            return try await redoRenamePermutation(renamePairs, originalActions: actions)
+        }
+
         var reappliedReverse: [UndoActionType] = []
         var failedOriginals: [UndoActionType] = []
         var firstURL: URL?
@@ -158,10 +257,8 @@ public final class UndoRedoService {
     /// stack — rewritten to point at that URL when `.keepBoth` had to land the item on a free name,
     /// so a later redo/undo acts on the file's real location instead of a stale path.
     ///
-    /// `redoable` being false (only the reverse of `.createFile`) means "don't push anything onto the
-    /// redo stack": a file's creation can't be faithfully redone — its original content was never
-    /// stored — so redoing it should be a silent no-op, not a re-thrown error that also leaves the
-    /// entry stuck on the stack forever (finding ML-135).
+    /// `redoable == false` means "push nothing onto the redo stack" (⌘⇧Z is a silent no-op). Used for
+    /// the reverse of `.createFile`, and of a `.createFolder` non-empty at undo time.
     private struct ActionOutcome {
         let url: URL
         let resultingAction: UndoActionType
@@ -184,8 +281,13 @@ public final class UndoRedoService {
             return ActionOutcome(
                 url: result, resultingAction: .move(sourceURL: result, destinationURL: destinationURL))
         case let .createFolder(url):
+            // If the folder gained contents after creation, redoing it would recreate an empty shell
+            // while those contents sit in the Trash — so non-empty → no redo entry.
+            let folderWasEmpty = ((try? FileManager.default.contentsOfDirectory(
+                at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]))?.isEmpty) ?? true
             _ = try await FileSystemService.moveToTrash(url: url)
-            return ActionOutcome(url: url.deletingLastPathComponent(), resultingAction: action)
+            return ActionOutcome(
+                url: url.deletingLastPathComponent(), resultingAction: action, redoable: folderWasEmpty)
         case let .createFile(url):
             _ = try await FileSystemService.moveToTrash(url: url)
             // No redo entry: a created file's content was never captured, so it can't be redone —
@@ -260,13 +362,15 @@ public final class UndoRedoService {
             return ActionOutcome(
                 url: result, resultingAction: .move(sourceURL: sourceURL, destinationURL: result))
         case let .createFolder(url):
+            // Only reached when the reverse marked this redoable, i.e. the folder was empty at undo
+            // time, so recreating the empty folder here loses nothing.
             let folder = url.deletingLastPathComponent()
             let name = url.lastPathComponent
             let result = try await FileSystemService.createDirectory(at: folder, name: name)
             return ActionOutcome(url: result, resultingAction: action)
         case .createFile:
-            // Unlike .createFolder (an empty folder has no content to lose, so recreating it via
-            // createDirectory is always faithful), a file's redo would need its original content —
+            // Unlike a redoable .createFolder (empty at undo time, so recreating it via
+            // createDirectory loses nothing), a file's redo would need its original content —
             // which .createFile never stored (the paste-from-pasteboard-content call site has no
             // source at all to redo from). Throw explicitly instead of silently creating a folder
             // where the file used to be.

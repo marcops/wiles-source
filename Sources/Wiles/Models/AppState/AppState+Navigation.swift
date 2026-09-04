@@ -195,12 +195,21 @@ public extension AppState {
             scope: preferences.search.searchScope,
             caseSensitive: preferences.search.searchCaseSensitive)
 
-        startDirectoryMonitoring(for: snapshot.target)
+        // "Search everywhere" results come from a recursive `~` walk, not `snapshot.target` — a
+        // monitor on `target` would re-run the whole home recrawl on every `.DS_Store`/download write.
+        if snapshot.searchEverywhere {
+            fileSystem.stopDirectoryMonitoring()
+        } else {
+            startDirectoryMonitoring(for: snapshot.target)
+        }
 
         if query.isEmpty, let cached = DirectoryCacheService.shared.cachedResult(for: snapshot.target) {
             // Cache is keyed by URL only, so re-sort to the current option — showing it raw flickers the wrong order.
             let ordered = FileSystemService.sortItems(cached.items, by: snapshot.sort, ascending: snapshot.asc)
-            applyLoadedItems(ordered, target: snapshot.target)
+            // Carry the truncation flag through the fast path so the "showing N of many" notice doesn't blink off.
+            applyLoadedItems(
+                ordered, target: snapshot.target,
+                truncatedAtCap: cached.items.count >= FileSystemService.directoryListingLimit)
         }
 
         // Cancel any load already in flight — every keystroke of a search or rapid navigation used to

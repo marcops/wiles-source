@@ -9,6 +9,7 @@ public struct FileShredderTests {
 
         runDeletePermanentlyCoverage(tempDir: tempDir)
         await runCancellationCoverage(tempDir: tempDir)
+        runCancelledPartialNoticeCoverage()
 
         try? FileManager.default.removeItem(at: tempDir)
     }
@@ -61,5 +62,23 @@ public struct FileShredderTests {
         for url in deleteURLs {
             try? FileManager.default.removeItem(at: url)
         }
+    }
+
+    /// A shred cancelled *after* some files were already deleted must not vanish silently: the
+    /// files are permanently gone (no Trash), so `deletePermanently` throws a real, user-visible
+    /// error naming "N of M deleted" instead of a `CancellationError` that `runDetachedFileOperation`
+    /// swallows. Nothing-deleted-yet still propagates the plain `CancellationError`.
+    private static func runCancelledPartialNoticeCoverage() {
+        TestReporter.report(
+            "FileShredder",
+            "NEG: cancelling a shred before anything is deleted surfaces no error notice",
+            result: FileShredderService.cancelledPartialError(deletedCount: 0, totalCount: 5) == nil)
+
+        let partial = FileShredderService.cancelledPartialError(deletedCount: 3, totalCount: 10)
+        let message = partial.map { ($0 as? WilesError)?.localizedDescription ?? "\($0)" } ?? ""
+        TestReporter.report(
+            "FileShredder",
+            "POS: cancelling a shred after 3 of 10 deletions surfaces an error that names the partial count",
+            result: partial != nil && !(partial is CancellationError) && message.contains("3") && message.contains("10"))
     }
 }

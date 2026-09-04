@@ -15,6 +15,36 @@ public struct FileSystemStoreTests {
         testBatchStreamingDefersDerivedRebuildUntilSettled()
         testOverlappingStreamsKeepRebuildDeferredUntilAllSettle()
         testIsStreamingBatchesReflectsBeginEndDepth()
+        testStopDirectoryMonitoringClearsAndAllowsReWiring()
+    }
+
+    /// MM-177: `stopDirectoryMonitoring()` (used while "search everywhere" is active) must clear
+    /// `monitoredURL` so a later `startDirectoryMonitoring(for:)` for the *same* folder actually
+    /// re-wires — the `guard std != monitoredURL` fast-path would otherwise silently skip it.
+    private static func testStopDirectoryMonitoringClearsAndAllowsReWiring() {
+        let store = FileSystemStore()
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let std = dir.standardizedFileURL
+
+        report("Store/FileSystemStore", "NEG (MM-177): monitoredURL nil before monitoring", result: store.monitoredURL == nil)
+
+        store.startDirectoryMonitoring(for: dir) { }
+        report("Store/FileSystemStore", "POS (MM-177): startDirectoryMonitoring sets monitoredURL", result: store.monitoredURL == std)
+
+        store.stopDirectoryMonitoring()
+        report("Store/FileSystemStore", "POS (MM-177): stopDirectoryMonitoring clears monitoredURL", result: store.monitoredURL == nil)
+
+        // A no-op when already stopped.
+        store.stopDirectoryMonitoring()
+        report("Store/FileSystemStore", "POS (MM-177): stopDirectoryMonitoring is idempotent", result: store.monitoredURL == nil)
+
+        // Re-wiring the same folder now takes effect (would be skipped if stop hadn't cleared it).
+        store.startDirectoryMonitoring(for: dir) { }
+        report("Store/FileSystemStore", "POS (MM-177): the same folder can be re-monitored after a stop", result: store.monitoredURL == std)
+
+        store.tearDown()
     }
 
     /// LP-040: `ResetPaginationAndPrefetchThumbnails` gates its ~8×/s prefetch on

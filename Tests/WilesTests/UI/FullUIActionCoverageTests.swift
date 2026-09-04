@@ -165,13 +165,8 @@ public struct FullUIActionCoverageTests {
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        let templates = FileTemplate.allCases
-        report("UI/NewFile", "POS: Default templates available (Plain, Markdown, Swift, JSON, Python)", result: templates.count >= 4)
-
-        if let template = templates.first {
-            let created = try? NewFileTemplateService.createTemplateFile(in: tempDir, fileName: "test_new.txt", template: template)
-            report("UI/NewFile", "POS: Creating template file returns valid file URL", result: created != nil)
-        }
+        let created = try? NewFileTemplateService.createTextFile(in: tempDir)
+        report("UI/NewFile", "POS: Creating a new file returns a valid file URL", result: created != nil)
     }
 
     private static func testBatchRenameSheetFlows(appState _: AppState) {

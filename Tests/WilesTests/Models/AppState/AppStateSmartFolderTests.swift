@@ -17,6 +17,30 @@ public struct AppStateSmartFolderTests {
         testPrepareForSmartFolderRunSuppressesFocusOnlyWhenSearchWasClosed()
         await testNormalSearchQueryEditKeepsSidebarHighlight()
         await testRunSmartFolderAppliesResultsToFileSystemItems()
+        await testRunSmartFolderCompletionIsDroppedAfterNavigatingAway()
+    }
+
+    /// If the user navigates away while a smart-folder query is still running, the completion must
+    /// write nothing — not `fileSystem.items`, and not `smartFolder.lastRunTimedOut` (whose stale
+    /// value would briefly show the "can't tell / timed out" empty-state badge for the new folder).
+    private static func testRunSmartFolderCompletionIsDroppedAfterNavigatingAway() async {
+        let appState = AppState()
+        let stale = URL(fileURLWithPath: "/tmp/keep-me-\(UUID().uuidString).txt")
+        appState.fileSystem.items = [FileItem.load(url: stale)]
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let folder = SmartFolder(name: "Test", searchQuery: "Desktop", scopePath: home.path)
+
+        appState.runSmartFolder(folder)
+        // Navigate away before the async NSMetadataQuery completion can land.
+        appState.navigation.currentURL = URL(fileURLWithPath: NSTemporaryDirectory())
+
+        for _ in 0 ..< 20 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        report(
+            "AppState",
+            "NEG: runSmartFolder completion after navigating away leaves fileSystem.items and lastRunTimedOut untouched",
+            result: appState.fileSystem.items.contains { $0.url == stale } && !appState.smartFolder.lastRunTimedOut)
     }
 
     private static func testAddSmartFolder() {

@@ -63,6 +63,10 @@ struct MainContentView: View {
             appState.fileSystem.tearDown()
             windowUIState.tearDown()
             windowUIState.terminalViewCache.tearDown()
+            // Per-window network services — reliable teardown point vs the sheet's/section's nested
+            // .onDisappear. Idempotent with those.
+            appState.httpServerService.stop()
+            appState.networkDiscoveryService.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             flushPendingSidebarWidth()

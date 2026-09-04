@@ -21,9 +21,14 @@ public extension FileSystemService {
             }
 
             // When the destination doesn't exist yet, there's nothing to resolve — a plain move.
-            guard FileManager.default.fileExists(atPath: destURL.path) else {
-                try FileManager.default.moveItem(at: url, to: destURL)
-                return destURL
+            if !FileManager.default.fileExists(atPath: destURL.path) {
+                do {
+                    try FileManager.default.moveItem(at: url, to: destURL)
+                    return destURL
+                } catch let error as CocoaError where error.code == .fileWriteFileExists {
+                    // Lost a TOCTOU race — another process created the destination between the check
+                    // and the move. Resolve via `onCollision` below instead of the raw Cocoa error.
+                }
             }
 
             switch onCollision {
@@ -57,6 +62,23 @@ public extension FileSystemService {
         }.value
     }
 
+    /// Renames any file at `destURL` aside to a `.wiles-replace-<UUID>` sibling (UUID registered
+    /// in-flight so a concurrent sweep can't orphan it). Returns `(staged URL, UUID)` or `nil` if free.
+    private nonisolated static func stageDisplacedFile(
+        at destURL: URL, in targetFolder: URL, fileManager fm: FileManager) throws -> (url: URL, uuid: String)? {
+        guard fm.fileExists(atPath: destURL.path) else { return nil }
+        let uuid = UUID().uuidString
+        StagingTempRegistry.register(uuid)
+        let staged = targetFolder.appendingPathComponent("\(replaceTempPrefix)\(uuid)")
+        do {
+            try fm.moveItem(at: destURL, to: staged)
+        } catch {
+            StagingTempRegistry.unregister(uuid)
+            throw error
+        }
+        return (staged, uuid)
+    }
+
     private nonisolated static func moveItemReplacingSync(
         at url: URL, toFolder targetFolder: URL) throws -> (destination: URL, displacedTrashedURL: URL?) {
         let fm = FileManager.default
@@ -69,11 +91,14 @@ public extension FileSystemService {
         // so they can't linger with no cleanup path (MM-121).
         sweepStaleRenameTemps(in: targetFolder)
 
-        var stagedURL: URL?
-        if fm.fileExists(atPath: destURL.path) {
-            let staged = targetFolder.appendingPathComponent("\(replaceTempPrefix)\(UUID().uuidString)")
-            try fm.moveItem(at: destURL, to: staged)
-            stagedURL = staged
+        let staged = try stageDisplacedFile(at: destURL, in: targetFolder, fileManager: fm)
+        let stagedURL = staged?.url
+        // Kept live in `StagingTempRegistry` until trashed/recovered below, so a concurrent
+        // `sweepStaleRenameTemps` can't delete it while the (slow, cross-volume) move is still running.
+        defer {
+            if let stagedUUID = staged?.uuid {
+                StagingTempRegistry.unregister(stagedUUID)
+            }
         }
 
         do {
@@ -234,7 +259,10 @@ public extension FileSystemService {
             // On a case-insensitive volume the destination path resolves to the source itself,
             // so a direct move can be rejected — rename via a temporary name.
             sweepStaleRenameTemps(in: parent)
-            let tempURL = parent.appendingPathComponent("\(renameTempPrefix)\(UUID().uuidString)")
+            let tempUUID = UUID().uuidString
+            StagingTempRegistry.register(tempUUID)
+            defer { StagingTempRegistry.unregister(tempUUID) }
+            let tempURL = parent.appendingPathComponent("\(renameTempPrefix)\(tempUUID)")
             try fm.moveItem(at: url, to: tempURL)
             do {
                 try fm.moveItem(at: tempURL, to: destURL)
@@ -262,8 +290,8 @@ public extension FileSystemService {
     /// and Trash (see `moveItemReplacingSync`). Swept alongside `renameTempPrefix` so a crash between
     /// those two steps can't strand the user's file under a hidden UUID name forever (MM-121).
     static let replaceTempPrefix = ".wiles-replace-"
-    /// A live case-only rename / staged replace holds its temp for milliseconds; anything older is a
-    /// leftover from a run that crashed between the two moves.
+    /// Backstop age for a staging temp with no live owner in `StagingTempRegistry` (crash leftover).
+    /// A still-registered UUID is kept regardless of age — its cross-volume move can outrun this.
     static let staleRenameTempMaxAge: TimeInterval = 60
 
     /// Removes staging temps (`renameTempPrefix` / `replaceTempPrefix`) left stranded in `directory`
@@ -276,6 +304,12 @@ public extension FileSystemService {
         let now = Date()
         for entry in entries where entry.lastPathComponent.hasPrefix(renameTempPrefix)
             || entry.lastPathComponent.hasPrefix(replaceTempPrefix) {
+            // Never touch a temp another concurrent operation is still mid-way through using — its
+            // constructive step (a cross-volume move) can outlast `maxAge`.
+            if StagingTempRegistry.isLiveTempFileName(
+                entry.lastPathComponent, prefixes: [renameTempPrefix, replaceTempPrefix]) {
+                continue
+            }
             let mtime = (try? entry.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
             guard let mtime, now.timeIntervalSince(mtime) > maxAge else { continue }
             do {

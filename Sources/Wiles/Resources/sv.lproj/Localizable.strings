@@ -59,18 +59,14 @@
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "bakgrundsuppgifter";
 "batchRename" = "Batch Rename";
-"batchRenameTitle" = "Bylte döpa om filer";
 "camera" = "Kamera";
 "cancel" = "Avbryt";
-"changeAllDefaultApp" = "Öppna alltid med";
 "changeAllDefaultAppEllipsis" = "Öppna alltid med…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "Rensa sökning";
 "close" = "Stäng";
-"codePreview" = "Code Preview";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Använder tätare radavstånd i list- och rutnätsvyer.";
-"compressToTarGz" = "Compress to .tar.gz";
 "compressToZip" = "Compress to ZIP";
 "compressWithPassword" = "Komprimera med lösenord...";
 "connect" = "Connect";
@@ -95,7 +91,6 @@
 "smartFolderHint" = "Visar filer som matchar den här smarta mappens sparade sökning.";
 "symlinkModeAbsolute" = "Absolut";
 "symlinkModeRelative" = "Relativ";
-"createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Skapa Symbolisk Länk";
 "createSymlink" = "Skapa Symbolisk Länk...";
 "created" = "Created";
@@ -111,10 +106,7 @@
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
-"diskUsageVisualizer" = "Folder Disk Usage Visualizer";
 "diskUsageOthersItemsFormat" = "Övriga (%d objekt)";
-"documents" = "Dokument";
-"domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
 "confirm" = "Bekräfta";
 "downloadFromiCloud" = "Hämta från iCloud";
@@ -131,10 +123,7 @@
 "enterPathPlaceholder" = "Enter path...";
 "execute" = "Kör";
 "extractArchive" = "Extract Archive";
-"extractHere" = "Extract Archive Here";
 "favorites" = "FAVORITES";
-"fetchError" = "Unable to load properties.";
-"fileNameLabel" = "File Name";
 "filterCodeFiles" = "Filter Code Files (kind:code)";
 "filterDocuments" = "Filter Documents (kind:doc)";
 "filterFolders" = "Filter Folders (kind:folder)";
@@ -147,10 +136,8 @@
 "focalLength" = "Brännvidd";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";
-"folderNamePlaceholder" = "Folder Name";
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
-"freeSpace" = "Ledigt utrymme";
 "freeSpaceFormat" = "%@ Ledigt utrymme";
 "fullDiskAccessNotice" = "Bevilja full skivtillgång i Systeminställningar för att komma åt alla mappar utan upprepade förfrågningar.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
@@ -180,7 +167,6 @@
 "helpPreviewTitle" = "Syntax-Highlighted Preview Sidebar";
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
-"helpShortcuts" = "Help & Shortcuts";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -201,7 +187,6 @@
 "helpZipTitle" = "ZIP Archive Compression & Extraction";
 "hidden" = "Hidden";
 "hidePreview" = "Hide Preview";
-"hideStatusBar" = "Hide Status Bar";
 "hideTerminal" = "Hide Terminal";
 "home" = "Hem";
 "iCloudDrive" = "iCloud Drive";
@@ -216,11 +201,9 @@
 "linkType" = "Link Type";
 "listView" = "List View";
 "location" = "Location";
-"mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
 "macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "Slå ihop till en enda PDF";
-"modified" = "Modified";
 "moreInfo" = "More Info...";
 "moveTo" = "Move to:";
 "moveToTrash" = "Move to Trash";
@@ -229,14 +212,11 @@
 "movies" = "Filmer";
 "music" = "Musik";
 "name" = "Name";
-"namingPattern" = "Namngivningsmönster";
 "navProfilesTitle" = "Navigation Shortcut Profiles";
-"navSystemTitle" = "Navigation, System & Customization";
 "networkAndCloud" = "NETWORK & CLOUD";
 "newFileTitle" = "New File";
 "newFolder" = "Ny mapp";
 "newName" = "New Name";
-"no" = "No";
 "noActiveOperations" = "No active operations";
 "noAutoOrgRules" = "No Auto-Organization Rules";
 "noAutoOrgRulesDesc" = "Files will stay where they are.";
@@ -253,8 +233,6 @@
 "others" = "Andra";
 "overviewDesc" = "Wiles är en helt nativ filhanterare för macOS, byggd från grunden för att kännas som en del av din Mac från första stund. Varje interaktion, från att öppna en mapp till att döpa om tusen filer på en gång, är gjord för att kännas omedelbar.";
 "owner" = "Owner";
-"parentFolder" = "Parent Folder";
-"password" = "Lösenord";
 "paste" = "Klistra in";
 "permissionDeniedNotice" = "Åtkomst nekad: Wiles kan inte läsa innehållet i denna mapp.";
 "permissions" = "Sharing & Permissions";
@@ -299,9 +277,7 @@
 "selectFolderSubtitle" = "Välj en mapp på din Mac";
 "invalidFolderPath" = "Den här mappen finns inte";
 "selectOtherApp" = "Annan...";
-"selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";
-"services" = "Services";
 "shareFolderWifi" = "Share Folder over Wi-Fi";
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "Delning och behörigheter";
@@ -324,7 +300,6 @@
 "showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Visar filer och mappar vars namn börjar med en punkt.";
-"showMacSection" = "Show MAC Section";
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showNetworkAndCloudHint" = "Visar avsnittet Nätverk och moln i sidofältet.";
 "showPlaces" = "Visa Platser";
@@ -338,11 +313,9 @@
 "showDirectoryTreeHint" = "Visar det expanderbara mappträdet i sidofältet.";
 "showSidebarSectionTitles" = "Visa Avsnittsrubriker";
 "showSidebarSectionTitlesHint" = "Visar avsnittsrubriker ovanför listorna i sidofältet.";
-"showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTagsHint" = "Visar avsnittet Taggar i sidofältet.";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar";
 "sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
@@ -359,7 +332,6 @@
 "wifiShareStartFailed" = "Kunde Inte Starta Servern";
 "retry" = "Försök Igen";
 "suffix" = "Suffix";
-"symlinkName" = "Symlink Name";
 "symlinkNameLabel" = "Symlänk-namn";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
@@ -384,9 +356,7 @@
 "feedbackSubmit" = "Skicka";
 "feedbackSubmitting" = "Skickar...";
 "feedbackSuccessMessage" = "Tack! Din feedback har skickats.";
-"feedbackConfirmMessage" = "Skicka denna feedback?";
 "write" = "Skriv";
-"yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "Mata ut volym";
@@ -397,15 +367,12 @@
 "selectionCountWithSize" = "%d / %d (%@)";
 "moveToTrashPartialFailure" = "{0} av {1} objekt kunde inte flyttas till Papperskorgen.";
 "tagOperationPartialFailure" = "{0} av {1} objekt kunde inte taggas.";
-"selectedItemsCount" = "%d selected";
-"selectedItemsCountWithSize" = "%d selected (%@)";
 
 // MARK: - Settings window & menu-bar cleanup (added)
 "newWindow" = "Nytt Fönster";
 "theme" = "Tema";
 "skipDeleteConfirmation" = "Hoppa över raderingsbekräftelse";
 "skipDeleteConfirmationHint" = "Flyttar objekt till Papperskorgen direkt, utan att be om bekräftelse.";
-"settingsWindowTitle" = "Wiles-inställningar";
 "settingsHeaderSubtitle" = "Anpassa Wiles efter dina preferenser.";
 "settingsMenuItem" = "Inställningar…";
 "settingsGeneralTab" = "Allmänt";
@@ -513,8 +480,6 @@
 "imageConverterFinalizeFailed" = "Det gick inte att slutföra bildmålet";
 "imageConverterOutputTooLarge" = "Bilden är för stor för att konvertera (över {0} megapixel)";
 "syntaxTruncatedNotice" = "\n... (avkortad)";
-"fileTemplateMarkdownContent" = "# Titel\n\nInnehåll kommer här.\n";
-"fileTemplateJSONContent" = "{\n  \"nyckel\": \"värde\"\n}\n";
 "filterModifiedToday" = "Ändrad Idag (date:today)";
 "filterModified30Days" = "Ändrad de Senaste 30 Dagarna (date:30d)";
 "serverAddressPlaceholder" = "smb://server/resurs";
@@ -542,6 +507,7 @@
 "languageSystemDefault" = "Systemstandard";
 "batchRenamePartialFailure" = "{0} av {1} objekt omdöpta. Misslyckades — {2}";
 "fileShredderPartialFailure" = "{0} av {1} objekt slutförda. Misslyckades — {2}";
+"fileShredderCancelledPartial" = "Avbröts — {0} av {1} objekt raderades permanent (ingen papperskorg, kan inte ångras).";
 "pastePartialFailure" = "{0} av {1} objekt kunde inte klistras in.";
 "symlinkCannotReplaceOwnTarget" = "Det går inte att skapa en symbolisk länk som skulle ersätta sitt eget mål.";
 "share" = "Dela…";

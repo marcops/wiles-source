@@ -1,7 +1,9 @@
 import Foundation
 
 public struct NetworkShare: Identifiable, Hashable, Sendable {
-    public let id = UUID()
+    /// Content-derived, not a per-instance `UUID()`: the service rebuilds the array on every mDNS
+    /// update, and a fresh id each time made `ForEach` recreate the whole sidebar Network section.
+    public var id: String { "\(name)\n\(url.absoluteString)" }
     public let name: String
     public let url: URL
 

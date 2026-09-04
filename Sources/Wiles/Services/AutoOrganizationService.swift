@@ -124,6 +124,16 @@ public final class AutoOrganizationService {
         rules.filter { $0.isEnabled && $0.sourceURL.standardizedFileURL == folder.standardizedFileURL }
     }
 
+    /// In-progress-download extensions (Chrome/Safari/Firefox/Opera/uTorrent/aria2) — auto-org must
+    /// never move one: a `nameContains` rule can match the temp name and the stability window is beatable.
+    nonisolated static let inProgressDownloadExtensions: Set<String> = [
+        "crdownload", "download", "part", "partial", "opdownload", "!ut", "aria2"
+    ]
+
+    nonisolated static func isInProgressDownload(_ file: URL) -> Bool {
+        inProgressDownloadExtensions.contains(file.pathExtension.lowercased())
+    }
+
     private nonisolated static func matchMoves(files: [URL], resourceKeys: [URLResourceKey], activeRules: [AutoOrganizationRule]) -> [PendingMove] {
         // A self-referential rule (source resolves to dest, incl. via symlink) would throw
         // `itemAlreadyInDestination` for every matched file on every scan — drop it here so it
@@ -133,6 +143,11 @@ public final class AutoOrganizationService {
         for file in files {
             // Ignore hidden files and directories
             if file.lastPathComponent.hasPrefix(".") {
+                continue
+            }
+            // Never touch a browser/torrent partial download, even if a rule's name match hits its
+            // temp name — the stability window alone can't guarantee it isn't mid-write.
+            if isInProgressDownload(file) {
                 continue
             }
             let resourceValues = try? file.resourceValues(forKeys: Set(resourceKeys))

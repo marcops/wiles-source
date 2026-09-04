@@ -61,7 +61,10 @@ extension LocalHttpServerService {
         let rootComponents = shareRoot.resolvingSymlinksInPath().pathComponents
         let relativeComponents = folder.resolvingSymlinksInPath().pathComponents.dropFirst(rootComponents.count)
         return relativeComponents.reduce(into: "") { result, component in
-            result += "/" + (component.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? component)
+            // Escape the fallback: `addingPercentEncoding` returns nil for a lone surrogate, and the
+            // raw value lands in an `href` attribute.
+            result += "/" + (component.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+                ?? HTMLEscaping.escape(component))
         }
     }
 
@@ -71,7 +74,10 @@ extension LocalHttpServerService {
         var items = sorted.prefix(maxListingEntries).map { url -> String in
             let name = url.lastPathComponent
             let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+            // Escape the fallback: `addingPercentEncoding` returns nil for a lone surrogate, which
+            // would otherwise put the raw name (incl. a `"`) straight into the `href` attribute.
+            let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+                ?? HTMLEscaping.escape(name)
             let href = "\(linkPrefix)/\(encoded)" + (isDirectory ? "/" : "")
             let label = HTMLEscaping.escape(name) + (isDirectory ? "/" : "")
             let marker = isDirectory ? "\u{1F4C1} " : ""

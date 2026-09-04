@@ -171,6 +171,38 @@ All three known violators are now fixed — each is a per-`AppState` instance, n
 - ~~`LocalHttpServerService`~~ — now `appState.httpServerService`; `HttpShareSheet` drives its own window's instance. Instances coordinate over the TCP port by scanning `portScanRange`.
 - ~~`NetworkDiscoveryService`~~ — now `appState.networkDiscoveryService`; the sidebar's Network section starts/stops its own window's instance.
 
+## Every User-Typed Name That Becomes a Path Component Goes Through `FilenameSanitizer`
+
+Any `folder.appendingPathComponent(<a string the user typed>)` must be immediately preceded by
+`FilenameSanitizer.sanitize` (which maps `/` → `:` Finder-style and rejects `.`/`..`/empty). This
+covers inline rename, new file, new symlink, new-file-from-template, and any future name-entry
+sheet. Without it a name like `../evil` escapes the folder the user picked in the picker, or a raw
+`FileManager` error surfaces instead of Finder-style handling. `AppState.performRename` is the
+reference; `SymlinkService.createSymlink` and `NewFileTemplateService` were retrofitted (finding
+LL-144). Code review: BLOCKING for a new call site that turns typed input into a path component.
+
+## An Undo Path Needs the Same Cycle Pre-Flight as Its Forward Path
+
+If the forward direction of an operation stages participants through hidden temps to survive a
+rename cycle / swap / collision (`BatchRenameService.stagePermutationCycles`,
+`FileSystemService.moveItemReplacing`), the **undo** of that operation in `UndoRedoService` must do
+the same — reversing a rotation is itself a rotation, and a naive per-item `.keepBoth` reverse
+strands most files on `… 2` while reporting success. `undoBatch`/`redoBatch` detect a `.rename`
+batch whose reverse targets collide with its own sources and route it through the same staging
+primitive (finding MM-070). Code review: BLOCKING for a new `UndoActionType` whose reverse can
+collide with siblings recorded in the same `.batch`.
+
+## Read System Appearance / Locale From the System, Never the App-Overridden Value
+
+When code needs to know "what is the OS's current theme / language", it must read the *system*
+preference — `UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)` or
+`CFPreferencesCopyAppValue(_, kCFPreferencesAnyApplication)` — never `NSApp.effectiveAppearance` /
+`Locale.current`, because this app sets a concrete `NSApp.appearance` (and applies its own language
+override) the moment it resolves "System". After that, the app-effective value is frozen and stops
+tracking the OS, so a live theme/language switch is never observed (finding MM-161).
+`SystemAppearanceObserver` is the reference. Code review: BLOCKING for a new "what does the OS
+want" read that goes through an app-overridable API.
+
 ## High-Frequency Interaction State Must Not Invalidate Rendering
 
 State updated at high frequency during scroll, drag, or geometry tracking (`gridCellFrames`/`listCellFrames`/`gridLabelWidths`, marquee rects, live widths) must NOT be read by `body`/`@ViewBuilder` when doing so makes the View depend on those updates — one such read turns every scroll/drag frame into a re-render of the whole list/grid. Keep this state outside rendering dependencies: read it only from gesture handlers, or hold it somewhere non-`@Observable`. When a `@ViewBuilder` must touch it, gate the access behind a cheap early `guard` so the dependency isn't registered on the common path (as `FileGridView.renameFieldOverlay` does).

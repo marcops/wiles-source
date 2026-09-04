@@ -59,18 +59,14 @@
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "バックグラウンドタスク";
 "batchRename" = "Batch Rename";
-"batchRenameTitle" = "一括ファイルリネーム";
 "camera" = "カメラ";
 "cancel" = "キャンセル";
-"changeAllDefaultApp" = "常にこのアプリで開く";
 "changeAllDefaultAppEllipsis" = "常にこのアプリで開く…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "検索を消去";
 "close" = "閉じる";
-"codePreview" = "Code Preview";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "リスト表示とグリッド表示で行間をより詰めて表示します。";
-"compressToTarGz" = "Compress to .tar.gz";
 "compressToZip" = "Compress to ZIP";
 "compressWithPassword" = "パスワードで圧縮...";
 "connect" = "Connect";
@@ -95,7 +91,6 @@
 "smartFolderHint" = "このスマートフォルダの保存された検索に一致するファイルを表示します。";
 "symlinkModeAbsolute" = "絶対";
 "symlinkModeRelative" = "相対";
-"createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "シンボリックリンクを作成";
 "createSymlink" = "シンボリックリンクを作成...";
 "created" = "Created";
@@ -111,10 +106,7 @@
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
-"diskUsageVisualizer" = "Folder Disk Usage Visualizer";
 "diskUsageOthersItemsFormat" = "その他 (%d項目)";
-"documents" = "書類";
-"domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
 "confirm" = "確認";
 "downloadFromiCloud" = "iCloudからダウンロード";
@@ -131,10 +123,7 @@
 "enterPathPlaceholder" = "Enter path...";
 "execute" = "実行";
 "extractArchive" = "Extract Archive";
-"extractHere" = "Extract Archive Here";
 "favorites" = "FAVORITES";
-"fetchError" = "Unable to load properties.";
-"fileNameLabel" = "File Name";
 "filterCodeFiles" = "Filter Code Files (kind:code)";
 "filterDocuments" = "Filter Documents (kind:doc)";
 "filterFolders" = "Filter Folders (kind:folder)";
@@ -147,10 +136,8 @@
 "focalLength" = "焦点距離";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";
-"folderNamePlaceholder" = "Folder Name";
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
-"freeSpace" = "空き容量";
 "freeSpaceFormat" = "%@ 空き容量";
 "fullDiskAccessNotice" = "システム設定でフルディスクアクセスを許可すると、確認なしですべてのフォルダにアクセスできます。";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
@@ -180,7 +167,6 @@
 "helpPreviewTitle" = "Syntax-Highlighted Preview Sidebar";
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
-"helpShortcuts" = "Help & Shortcuts";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -201,7 +187,6 @@
 "helpZipTitle" = "ZIP Archive Compression & Extraction";
 "hidden" = "Hidden";
 "hidePreview" = "Hide Preview";
-"hideStatusBar" = "Hide Status Bar";
 "hideTerminal" = "Hide Terminal";
 "home" = "ホーム";
 "iCloudDrive" = "iCloud Drive";
@@ -216,11 +201,9 @@
 "linkType" = "Link Type";
 "listView" = "List View";
 "location" = "Location";
-"mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
 "macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "単一のPDFに結合";
-"modified" = "Modified";
 "moreInfo" = "More Info...";
 "moveTo" = "Move to:";
 "moveToTrash" = "Move to Trash";
@@ -229,14 +212,11 @@
 "movies" = "ムービー";
 "music" = "ミュージック";
 "name" = "Name";
-"namingPattern" = "命名パターン";
 "navProfilesTitle" = "Navigation Shortcut Profiles";
-"navSystemTitle" = "Navigation, System & Customization";
 "networkAndCloud" = "NETWORK & CLOUD";
 "newFileTitle" = "New File";
 "newFolder" = "新規フォルダ";
 "newName" = "New Name";
-"no" = "No";
 "noActiveOperations" = "No active operations";
 "noAutoOrgRules" = "No Auto-Organization Rules";
 "noAutoOrgRulesDesc" = "Files will stay where they are.";
@@ -253,8 +233,6 @@
 "others" = "その他";
 "overviewDesc" = "Wilesは完全にネイティブなmacOSファイルマネージャーで、最初からMacの一部だったかのように感じられるようゼロから作られています。フォルダを開く操作から千個のファイルを一括リネームする操作まで、すべての操作が瞬時に感じられるよう設計されています。";
 "owner" = "Owner";
-"parentFolder" = "Parent Folder";
-"password" = "パスワード";
 "paste" = "貼り付け";
 "permissionDeniedNotice" = "アクセス権がありません：Wilesはこのフォルダを読み取れません。";
 "permissions" = "Sharing & Permissions";
@@ -299,9 +277,7 @@
 "selectFolderSubtitle" = "Macでフォルダを選択してください";
 "invalidFolderPath" = "このフォルダは存在しません";
 "selectOtherApp" = "その他...";
-"selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";
-"services" = "Services";
 "shareFolderWifi" = "Share Folder over Wi-Fi";
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "共有とアクセス権";
@@ -324,7 +300,6 @@
 "showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "名前がドットで始まるファイルとフォルダを表示します。";
-"showMacSection" = "Show MAC Section";
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showNetworkAndCloudHint" = "サイドバーに「ネットワークとクラウド」セクションを表示します。";
 "showPlaces" = "場所を表示";
@@ -338,11 +313,9 @@
 "showDirectoryTreeHint" = "サイドバーに展開可能なフォルダツリーを表示します。";
 "showSidebarSectionTitles" = "セクションタイトルを表示";
 "showSidebarSectionTitlesHint" = "サイドバーのリストの上にセクションタイトルを表示します。";
-"showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTagsHint" = "サイドバーに「タグ」セクションを表示します。";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar";
 "sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
@@ -359,7 +332,6 @@
 "wifiShareStartFailed" = "サーバーを開始できませんでした";
 "retry" = "再試行";
 "suffix" = "Suffix";
-"symlinkName" = "Symlink Name";
 "symlinkNameLabel" = "シンボリックリンク名";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
@@ -384,9 +356,7 @@
 "feedbackSubmit" = "送信";
 "feedbackSubmitting" = "送信中...";
 "feedbackSuccessMessage" = "ありがとうございます！フィードバックが送信されました。";
-"feedbackConfirmMessage" = "このフィードバックを送信しますか？";
 "write" = "書き込み";
-"yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "ボリュームを取り出す";
@@ -397,15 +367,12 @@
 "selectionCountWithSize" = "%d / %d (%@)";
 "moveToTrashPartialFailure" = "{0}/{1} 個の項目をゴミ箱に移動できませんでした。";
 "tagOperationPartialFailure" = "{0} 件中 {1} 件のタグ付けに失敗しました。";
-"selectedItemsCount" = "%d selected";
-"selectedItemsCountWithSize" = "%d selected (%@)";
 
 // MARK: - Settings window & menu-bar cleanup (added)
 "newWindow" = "新規ウインドウ";
 "theme" = "テーマ";
 "skipDeleteConfirmation" = "削除確認をスキップ";
 "skipDeleteConfirmationHint" = "確認を求めずに項目をすぐにゴミ箱に移動します。";
-"settingsWindowTitle" = "Wilesの設定";
 "settingsHeaderSubtitle" = "Wilesをお好みに合わせてカスタマイズします。";
 "settingsMenuItem" = "設定…";
 "settingsGeneralTab" = "一般";
@@ -513,8 +480,6 @@
 "imageConverterFinalizeFailed" = "画像の出力先を確定できませんでした";
 "imageConverterOutputTooLarge" = "画像が大きすぎて変換できません（{0}メガピクセル超）";
 "syntaxTruncatedNotice" = "\n... (省略されました)";
-"fileTemplateMarkdownContent" = "# タイトル\n\nここに内容を入力します。\n";
-"fileTemplateJSONContent" = "{\n  \"キー\": \"値\"\n}\n";
 "filterModifiedToday" = "今日更新 (date:today)";
 "filterModified30Days" = "過去30日間に更新 (date:30d)";
 "serverAddressPlaceholder" = "smb://サーバー/共有";
@@ -542,6 +507,7 @@
 "languageSystemDefault" = "システムのデフォルト";
 "batchRenamePartialFailure" = "{1} 件中 {0} 件の名前を変更しました。失敗 — {2}";
 "fileShredderPartialFailure" = "{1} 件中 {0} 件が完了しました。失敗 — {2}";
+"fileShredderCancelledPartial" = "キャンセルされました — {1} 項目のうち {0} 項目を完全に削除しました（ゴミ箱なし、取り消し不可）。";
 "pastePartialFailure" = "{1} 件中 {0} 件の項目を貼り付けできませんでした。";
 "symlinkCannotReplaceOwnTarget" = "自身のターゲットを置き換えるシンボリックリンクは作成できません。";
 "share" = "共有…";

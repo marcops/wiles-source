@@ -165,7 +165,7 @@ public struct LocalizationCoverageTests {
     private static func testOrphanKeys() {
         // NEG: known-orphan keys that were never given catalog entries must not crash,
         // and should still return SOME non-crashing string (even if it's just the raw key as fallback).
-        let orphanKeys: [L10n.Key] = [.itemsCount, .itemsCountWithSize, .selectedItemsCount, .selectedItemsCountWithSize]
+        let orphanKeys: [L10n.Key] = [.itemsCount, .itemsCountWithSize]
         var allReturnedSomething = true
         for key in orphanKeys {
             let value = L10n.string(key, lang: .english)
@@ -175,7 +175,7 @@ public struct LocalizationCoverageTests {
         }
         TestReporter.report(
             "Localization",
-            "NEG: L10n.string on orphan keys (itemsCount, itemsCountWithSize, selectedItemsCount, selectedItemsCountWithSize) "
+            "NEG: L10n.string on orphan keys (itemsCount, itemsCountWithSize) "
                 + "does not crash and returns a non-empty fallback string",
             result: allReturnedSomething)
     }
@@ -193,7 +193,7 @@ public struct LocalizationCoverageTests {
         let languagesToTest = AppLanguage.allCases.filter { $0 != .system }
         // These keys are intentionally left without catalog entries (see the orphan-key NEG test
         // above) and fall back to their raw camelCase name by design, not by translation gap.
-        let knownOrphanKeys: Set<L10n.Key> = [.itemsCount, .itemsCountWithSize, .selectedItemsCount, .selectedItemsCountWithSize]
+        let knownOrphanKeys: Set<L10n.Key> = [.itemsCount, .itemsCountWithSize]
 
         for lang in languagesToTest {
             for key in L10n.Key.allCases where !knownOrphanKeys.contains(key) {

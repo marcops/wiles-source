@@ -59,18 +59,14 @@
 "backgroundOperations" = "Operaciones en Segundo Plano";
 "backgroundTasksSuffix" = "tareas en segundo plano";
 "batchRename" = "Renombrar en Lote";
-"batchRenameTitle" = "Renombrar archivos en lote";
 "camera" = "Cámara";
 "cancel" = "Cancelar";
-"changeAllDefaultApp" = "Abrir Siempre Con";
 "changeAllDefaultAppEllipsis" = "Abrir Siempre Con…";
 "clearAllTags" = "Borrar todas las etiquetas";
 "clearSearch" = "Limpiar búsqueda";
 "close" = "Cerrar";
-"codePreview" = "Vista Previa de Código";
 "compactDensity" = "Diseño de Densidad Compacta";
 "compactDensityHint" = "Usa un espaciado más compacto entre filas en las vistas de lista y cuadrícula.";
-"compressToTarGz" = "Comprimir a .tar.gz";
 "compressToZip" = "Comprimir a ZIP";
 "compressWithPassword" = "Comprimir con Contraseña...";
 "connect" = "Conectar";
@@ -95,7 +91,6 @@
 "smartFolderHint" = "Muestra los archivos que coinciden con la búsqueda guardada de esta carpeta inteligente.";
 "symlinkModeAbsolute" = "Absoluto";
 "symlinkModeRelative" = "Relativo";
-"createNewFolder" = "Crear Nueva Carpeta";
 "createSymbolicLink" = "Crear Enlace Simbólico";
 "createSymlink" = "Crear Enlace Simbólico...";
 "created" = "Creado";
@@ -111,10 +106,7 @@
 "devices" = "DISPOSITIVOS";
 "dimensions" = "Dimensiones";
 "directoryTree" = "ÁRBOLES DE DIRECTORIOS";
-"diskUsageVisualizer" = "Visualizador de Uso de Disco";
 "diskUsageOthersItemsFormat" = "Otros (%d elementos)";
-"documents" = "Documentos";
-"domainToolsTitle" = "Herramientas del Dominio y Destacados";
 "done" = "Hecho";
 "confirm" = "Confirmar";
 "downloadFromiCloud" = "Descargar de iCloud";
@@ -131,10 +123,7 @@
 "enterPathPlaceholder" = "Ingrese ruta...";
 "execute" = "Ejecución";
 "extractArchive" = "Extraer Archivo";
-"extractHere" = "Extraer Archivo Aquí";
 "favorites" = "FAVORITOS";
-"fetchError" = "No se pudieron cargar las propiedades.";
-"fileNameLabel" = "Nombre del Archivo";
 "filterCodeFiles" = "Filtrar Archivos de Código (kind:code)";
 "filterDocuments" = "Filtrar Documentos (kind:doc)";
 "filterFolders" = "Filtrar Carpetas (kind:folder)";
@@ -147,10 +136,8 @@
 "focalLength" = "Distancia Focal";
 "folder" = "Carpeta";
 "folderIsEmpty" = "La Carpeta está Vacía";
-"folderNamePlaceholder" = "Nombre de la Carpeta";
 "folderProperties" = "Propiedades de la Carpeta";
 "forward" = "Adelante";
-"freeSpace" = "libre";
 "freeSpaceFormat" = "%@ libre";
 "fullDiskAccessNotice" = "Conceda acceso total al disco en Configuración del Sistema para acceder a todas las carpetas sin avisos repetidos.";
 "fullDiskAccessPromptMessage" = "Wiles necesita Acceso Total al Disco para explorar todas tus carpetas sin solicitudes de permiso repetidas. Concédelo una vez en Ajustes del Sistema.";
@@ -180,7 +167,6 @@
 "helpPreviewTitle" = "Barra Lateral de Vista Previa con Resaltado de Sintaxis";
 "helpServerDesc" = "Presione Cmd+K para conectarse a servidores de red.";
 "helpServerTitle" = "Conectarse al Servidor de Red";
-"helpShortcuts" = "Ayuda y Atajos";
 "helpSymlinkDesc" = "Haga clic derecho -> 'Crear Enlace Simbólico...'.";
 "helpSymlinkTitle" = "Creación de Enlaces Simbólicos";
 "helpTagsDesc" = "Active 'Mostrar Etiquetas' en el menú Vista u Opciones.";
@@ -201,7 +187,6 @@
 "helpZipTitle" = "Compresión y Extracción de Archivos ZIP";
 "hidden" = "Oculto";
 "hidePreview" = "Ocultar Vista Previa";
-"hideStatusBar" = "Ocultar Barra de Estado";
 "hideTerminal" = "Ocultar Terminal";
 "home" = "Inicio";
 "iCloudDrive" = "iCloud Drive";
@@ -216,11 +201,9 @@
 "linkType" = "Tipo de Enlace";
 "listView" = "Vista de Lista";
 "location" = "Ubicación";
-"mac" = "MAC";
 "macModeDesc" = "• Cmd+Abajo: Abrir carpeta\n• Enter: Renombrar\n• Cmd+Arriba: Carpeta superior\n• Cmd+Shift+.: Archivos ocultos";
 "macModeTitle" = "Modo macOS";
 "mergeIntoPDF" = "Combinar en un Solo PDF";
-"modified" = "Modificado";
 "moreInfo" = "Más Información...";
 "moveTo" = "Mover a:";
 "moveToTrash" = "Mover a la Papelera";
@@ -229,14 +212,11 @@
 "movies" = "Películas";
 "music" = "Música";
 "name" = "Nombre";
-"namingPattern" = "Patrón de nombre";
 "navProfilesTitle" = "Perfiles de Atajos de Navegación";
-"navSystemTitle" = "Navegación, Sistema y Personalización";
 "networkAndCloud" = "RED Y NUBE";
 "newFileTitle" = "Nuevo Archivo";
 "newFolder" = "Nueva Carpeta...";
 "newName" = "Nuevo Nombre";
-"no" = "No";
 "noActiveOperations" = "Sin operaciones activas";
 "noAutoOrgRules" = "Sin reglas";
 "noAutoOrgRulesDesc" = "Los archivos no se moverán.";
@@ -253,8 +233,6 @@
 "others" = "Otros";
 "overviewDesc" = "Wiles es un administrador de archivos totalmente nativo para macOS, creado desde cero para sentirse parte de tu Mac. Cada interacción, desde abrir una carpeta hasta renombrar mil archivos a la vez, está diseñada para sentirse instantánea.";
 "owner" = "Propietario";
-"parentFolder" = "Carpeta Superior";
-"password" = "Contraseña";
 "paste" = "Pegar";
 "permissionDeniedNotice" = "Permiso Denegado: Wiles no puede leer el contenido de esta carpeta.";
 "permissions" = "Compartir y Permisos";
@@ -299,9 +277,7 @@
 "selectFolderSubtitle" = "Elige una carpeta en tu Mac";
 "invalidFolderPath" = "Esta carpeta no existe";
 "selectOtherApp" = "Otro...";
-"selectTemplate" = "Seleccionar Plantilla";
 "sequenceNumbering" = "Numeración Secuencial";
-"services" = "Servicios";
 "shareFolderWifi" = "Compartir Carpeta por Wi-Fi";
 "sharingActive" = "Compartición Activa";
 "sharingAndPermissions" = "Compartir y Permisos";
@@ -324,7 +300,6 @@
 "showHiddenFilesGnome" = "Mostrar Arquivos Ocultos (Ctrl+H)";
 "showHiddenFilesMac" = "Mostrar Arquivos Ocultos (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Muestra archivos y carpetas cuyo nombre empieza con un punto.";
-"showMacSection" = "Mostrar Sección MAC";
 "showNetworkAndCloud" = "Mostrar Red y Nube";
 "showNetworkAndCloudHint" = "Muestra la sección Red y Nube en la barra lateral.";
 "showPlaces" = "Mostrar Lugares";
@@ -338,13 +313,11 @@
 "showDirectoryTreeHint" = "Muestra el árbol de carpetas expandible en la barra lateral.";
 "showSidebarSectionTitles" = "Mostrar Títulos de Secciones";
 "showSidebarSectionTitlesHint" = "Muestra los títulos de sección sobre las listas de la barra lateral.";
-"showStatusBar" = "Mostrar Barra de Estado";
 "showTags" = "Mostrar Etiquetas";
 "showTagsHint" = "Muestra la sección Etiquetas en la barra lateral.";
 "showTerminal" = "Mostrar Terminal";
 "sidebarDocuments" = "Documentos";
 "ejectVolume" = "Expulsar volumen";
-"sidebarMode" = "Barra Lateral";
 "sidebarMenuTitle" = "Barra Lateral";
 "sidebarTranslucentLevel" = "Transparencia Lateral";
 "sidebarTrash" = "Papelera";
@@ -362,7 +335,6 @@
 "wifiShareStartFailed" = "No se Pudo Iniciar el Servidor";
 "retry" = "Reintentar";
 "suffix" = "Sufijo";
-"symlinkName" = "Nombre del Enlace Simbólico";
 "symlinkNameLabel" = "Nombre del Enlace";
 "tabFeatures" = "Funciones y Herramientas";
 "tabOverview" = "Visión General";
@@ -387,24 +359,19 @@
 "feedbackSubmit" = "Enviar";
 "feedbackSubmitting" = "Enviando...";
 "feedbackSuccessMessage" = "¡Gracias! Tu comentario ha sido enviado.";
-"feedbackConfirmMessage" = "¿Enviar este comentario?";
 "write" = "Escritura";
-"yes" = "Sí";
 "itemsCount" = "%d items";
 "itemsCountWithSize" = "%d items (%@)";
 "selectionCount" = "%d / %d";
 "selectionCountWithSize" = "%d / %d (%@)";
 "moveToTrashPartialFailure" = "{0} de {1} elementos no se pudieron mover a la Papelera.";
 "tagOperationPartialFailure" = "{0} de {1} elementos no se pudieron etiquetar.";
-"selectedItemsCount" = "%d selected";
-"selectedItemsCountWithSize" = "%d selected (%@)";
 
 // MARK: - Settings window & menu-bar cleanup (added)
 "newWindow" = "Nueva Ventana";
 "theme" = "Tema";
 "skipDeleteConfirmation" = "Omitir confirmación de eliminación";
 "skipDeleteConfirmationHint" = "Mueve los elementos a la Papelera de inmediato, sin pedir confirmación.";
-"settingsWindowTitle" = "Ajustes de Wiles";
 "settingsHeaderSubtitle" = "Personaliza Wiles según tus preferencias.";
 "settingsMenuItem" = "Ajustes…";
 "settingsGeneralTab" = "General";
@@ -512,8 +479,6 @@
 "imageConverterFinalizeFailed" = "No se pudo finalizar el destino de la imagen";
 "imageConverterOutputTooLarge" = "La imagen es demasiado grande para convertir (más de {0} megapíxeles)";
 "syntaxTruncatedNotice" = "\n... (truncado)";
-"fileTemplateMarkdownContent" = "# Título\n\nEl contenido va aquí.\n";
-"fileTemplateJSONContent" = "{\n  \"clave\": \"valor\"\n}\n";
 "filterModifiedToday" = "Modificado Hoy (date:today)";
 "filterModified30Days" = "Modificado en los Últimos 30 Días (date:30d)";
 "serverAddressPlaceholder" = "smb://servidor/recurso";
@@ -541,6 +506,7 @@
 "languageSystemDefault" = "Predeterminado del sistema";
 "batchRenamePartialFailure" = "{0} de {1} elementos renombrados. Error — {2}";
 "fileShredderPartialFailure" = "{0} de {1} elementos completados. Error — {2}";
+"fileShredderCancelledPartial" = "Cancelado — {0} de {1} elementos se eliminaron permanentemente (sin Papelera, sin deshacer).";
 "pastePartialFailure" = "No se pudieron pegar {0} de {1} elementos.";
 "symlinkCannotReplaceOwnTarget" = "No se puede crear un enlace simbólico que reemplazaría su propio destino.";
 "share" = "Compartir…";

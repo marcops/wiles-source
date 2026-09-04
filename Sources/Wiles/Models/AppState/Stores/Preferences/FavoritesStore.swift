@@ -12,9 +12,33 @@ public final class FavoritesStore: PersistablePreferenceStore {
     public var favoriteURLs: [URL] = [] {
         didSet {
             standardizedFavoritePaths = Set(favoriteURLs.map(\.standardizedFileURL.path))
-            resolvedFavoritePaths = Set(favoriteURLs.map { $0.resolvingSymlinksInPath().standardizedFileURL.path })
+            recomputeResolvedFavoritePaths()
             guard !isRestoringDefaults else { return }
             persist(favoriteURLs.map(\.path), .favoriteURLs)
+        }
+    }
+
+    @ObservationIgnored private var resolvedPathsTask: Task<Void, Never>?
+
+    /// Pure: symlink-resolved standardized paths of `urls`.
+    nonisolated static func resolvedPaths(for urls: [URL]) -> Set<String> {
+        Set(urls.map { $0.resolvingSymlinksInPath().standardizedFileURL.path })
+    }
+
+    /// Recomputes `resolvedFavoritePaths` on every `favoriteURLs` change. Local favorites resolve
+    /// now (a fast `lstat`); only `/Volumes/` favorites — where `resolvingSymlinksInPath()` can block
+    /// seconds on a stalled share — are deferred off the main actor and merged in when they land.
+    private func recomputeResolvedFavoritePaths() {
+        resolvedPathsTask?.cancel()
+        let urls = favoriteURLs
+        let slow = urls.filter { SlowVolumePathValidator.isLikelySlowVolume($0.path) }
+        let localResolved = FavoritesStore.resolvedPaths(for: urls.filter { !slow.contains($0) })
+        resolvedFavoritePaths = localResolved
+        guard !slow.isEmpty else { return }
+        resolvedPathsTask = Task { [weak self] in
+            let slowResolved = await Task.detached(priority: .utility) { FavoritesStore.resolvedPaths(for: slow) }.value
+            guard !Task.isCancelled, let self, self.favoriteURLs == urls else { return }
+            self.resolvedFavoritePaths = localResolved.union(slowResolved)
         }
     }
 

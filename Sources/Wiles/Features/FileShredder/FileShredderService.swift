@@ -10,10 +10,18 @@ public struct FileShredderService: Sendable {
     public static func deletePermanently(urls: [URL]) throws {
         let fm = FileManager.default
         var failures: [(url: URL, error: any Error)] = []
+        var deletedCount = 0
         for url in urls where fm.fileExists(atPath: url.path) {
-            try Task.checkCancellation()
+            do {
+                try Task.checkCancellation()
+            } catch {
+                // Cancelled mid-batch: what's deleted is permanently gone, so surface a real error
+                // instead of the CancellationError `runDetachedFileOperation` swallows.
+                throw Self.cancelledPartialError(deletedCount: deletedCount, totalCount: urls.count) ?? error
+            }
             do {
                 try fm.removeItem(at: url)
+                deletedCount += 1
             } catch {
                 failures.append((url, error))
             }
@@ -21,6 +29,14 @@ public struct FileShredderService: Sendable {
         if !failures.isEmpty {
             throw Self.summarizeFailures(failures, totalCount: urls.count)
         }
+    }
+
+    /// Error to surface when a shred is cancelled after `deletedCount` of `totalCount` were removed.
+    /// `nil` when nothing was deleted yet — a bare `CancellationError` propagates fine then.
+    static func cancelledPartialError(deletedCount: Int, totalCount: Int) -> (any Error)? {
+        guard deletedCount > 0 else { return nil }
+        return WilesError.localized(
+            key: .fileShredderCancelledPartial, arguments: ["\(deletedCount)", "\(totalCount)"])
     }
 
     /// A single-item batch surfaces its one error directly instead of a "0 of 1" summary.

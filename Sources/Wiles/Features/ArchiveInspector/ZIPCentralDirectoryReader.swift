@@ -24,8 +24,11 @@ enum ZIPCentralDirectoryReader {
     /// archive listing is text-only.
     static let maxEntryCount = 50000
 
-    static func readEntryNames(from data: Data) -> [String] {
-        guard let centralDirectoryOffset = findCentralDirectoryOffset(in: data) else { return [] }
+    /// `windowFileOffset` = absolute file position of `data`'s first byte (`0` for the whole archive).
+    /// Archive-record offsets are file-absolute; the reader subtracts it to index into `data`.
+    static func readEntryNames(from data: Data, windowFileOffset: Int = 0) -> [String] {
+        guard let centralDirectoryOffset = findCentralDirectoryOffset(
+            in: data, windowFileOffset: windowFileOffset) else { return [] }
 
         var names: [String] = []
         var offset = centralDirectoryOffset
@@ -45,6 +48,13 @@ enum ZIPCentralDirectoryReader {
             offset = nameStart + nameLength + extraLength + commentLength
         }
         return names
+    }
+
+    /// File-absolute offset of the central directory, from `tail` (the last bytes of the file,
+    /// starting at `tailStart`). `nil` if the EOCD isn't in `tail` or the archive is malformed.
+    static func centralDirectoryFileOffset(fromTail tail: Data, tailStart: Int) -> Int? {
+        guard let relative = findCentralDirectoryOffset(in: tail, windowFileOffset: tailStart) else { return nil }
+        return relative + tailStart
     }
 
     private static func hasCentralDirectoryHeader(in data: Data, at offset: Int) -> Bool {
@@ -71,7 +81,14 @@ enum ZIPCentralDirectoryReader {
         return String(data: bytes, encoding: .isoLatin1)
     }
 
-    private static func findCentralDirectoryOffset(in data: Data) -> Int? {
+    /// File-absolute offset → index in `data` (which starts at `windowFileOffset`). `nil` if outside `data`.
+    private static func bufferIndex(forAbsolute absolute: Int, in data: Data, windowFileOffset: Int) -> Int? {
+        let index = absolute - windowFileOffset
+        guard index >= 0, index < data.count else { return nil }
+        return index
+    }
+
+    private static func findCentralDirectoryOffset(in data: Data, windowFileOffset: Int) -> Int? {
         guard data.count >= endOfCentralDirectoryMinSize else { return nil }
         let searchStart = max(0, data.count - endOfCentralDirectoryMinSize - maxZipCommentLength)
         // Upper bound so the whole 22-byte EOCD record (not just its 4-byte signature) fits before EOF.
@@ -80,13 +97,16 @@ enum ZIPCentralDirectoryReader {
         guard let match = data.range(of: signature, options: .backwards, in: searchRange) else { return nil }
         let position = match.lowerBound - data.startIndex
         let offset32 = readUInt32(data, at: position + 16)
-        guard offset32 == zip64Marker else { return Int(offset32) }
-        return zip64CentralDirectoryOffset(in: data, eocdPosition: position)
+        guard offset32 == zip64Marker else {
+            return bufferIndex(forAbsolute: Int(offset32), in: data, windowFileOffset: windowFileOffset)
+        }
+        return zip64CentralDirectoryOffset(in: data, eocdPosition: position, windowFileOffset: windowFileOffset)
     }
 
     /// Resolves the real central-directory offset via the ZIP64 locator (immediately before the
     /// regular EOCD) → ZIP64 EOCD record. Returns nil if either structure is missing or truncated.
-    private static func zip64CentralDirectoryOffset(in data: Data, eocdPosition: Int) -> Int? {
+    private static func zip64CentralDirectoryOffset(
+        in data: Data, eocdPosition: Int, windowFileOffset: Int) -> Int? {
         let locatorPosition = eocdPosition - zip64LocatorSize
         guard locatorPosition >= 0,
               readUInt32(data, at: locatorPosition) == zip64LocatorSignature else { return nil }
@@ -94,11 +114,13 @@ enum ZIPCentralDirectoryReader {
         // `Int(exactly:)`, not `Int(_:)` — these offsets are read straight from attacker-controlled
         // archive bytes, and `Int(someUInt64 > Int.max)` is a `fatalError`. A crafted ZIP64 with
         // `0xFFFFFFFFFFFFFFFF` here used to crash the Archive Inspector on open (finding MM-247).
-        guard let recordOffset = Int(exactly: readUInt64(data, at: locatorPosition + 8)),
-              recordOffset >= 0, recordOffset + 56 <= data.count,
+        guard let recordAbsolute = Int(exactly: readUInt64(data, at: locatorPosition + 8)),
+              let recordOffset = bufferIndex(forAbsolute: recordAbsolute, in: data, windowFileOffset: windowFileOffset),
+              recordOffset + 56 <= data.count,
               readUInt32(data, at: recordOffset) == zip64EndOfCentralDirectorySignature else { return nil }
         // ZIP64 EOCD record: signature (4) + ... + central-directory offset at byte 48.
-        return Int(exactly: readUInt64(data, at: recordOffset + 48))
+        guard let centralDirectoryAbsolute = Int(exactly: readUInt64(data, at: recordOffset + 48)) else { return nil }
+        return bufferIndex(forAbsolute: centralDirectoryAbsolute, in: data, windowFileOffset: windowFileOffset)
     }
 
     private static func readUInt16(_ data: Data, at offset: Int) -> UInt16 {

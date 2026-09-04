@@ -12,6 +12,22 @@ public struct DebouncedDefaultsWriteTests {
         testCancelDropsThePendingWrite()
         testRegistryFlushAllRunsAPendingWrite()
         testFlushWithNothingPendingIsANoOp()
+        testASecondFlushDoesNotRunTheWriteAgain()
+    }
+
+    /// The scheduled block clears `pending` when it runs, so once a write has happened (via `flush`
+    /// here, or the timer in production) a later `flush` — e.g. quit-time `flushAll()` after the
+    /// timer already fired — is a no-op instead of a redundant second write of the same value.
+    private static func testASecondFlushDoesNotRunTheWriteAgain() {
+        let writer = DebouncedDefaultsWrite(interval: 60)
+        var runs = 0
+        writer.schedule { runs += 1 }
+        writer.flush()
+        writer.flush()
+        report(
+            "Services/DebouncedDefaultsWrite",
+            "POS: a second flush() after the write already ran does not run it again",
+            result: runs == 1)
     }
 
     private static func testScheduleDoesNotRunSynchronouslyButFlushDoes() {

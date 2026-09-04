@@ -22,7 +22,14 @@ public struct NetworkDiscoveryTests {
         service.start()
         TestReporter.report("NetworkDiscovery", "POS: start() after stop() restarts without crashing", result: true)
 
+        // MainContentView.onDisappear now also calls stop(), so the sidebar section's nested
+        // .onDisappear and the window teardown can both stop the same instance in a row.
         service.stop()
+        service.stop()
+        TestReporter.report(
+            "NetworkDiscovery",
+            "POS: a second stop() right after the first (nested hook + window teardown) is a safe no-op",
+            result: service.discoveredShares.isEmpty)
 
         // Per-window: each AppState owns its own instance, so one window's stop can't tear down another's.
         let windowA = AppState()
@@ -34,7 +41,7 @@ public struct NetworkDiscoveryTests {
                 && windowA.httpServerService !== windowB.httpServerService)
 
         testNetworkShareInitialization()
-        testNetworkShareIdentityIsUniquePerInstance()
+        testNetworkShareIdentityIsDerivedFromNameAndURL()
         testNetworkShareSortingMatchesLocalizedStandardOrder()
 
         // `updateDiscoveredShares(from:)` (the `guard case .service`/percent-encoding/URL-building/
@@ -55,19 +62,22 @@ public struct NetworkDiscoveryTests {
         TestReporter.report("NetworkDiscovery", "POS: NetworkShare init stores name and url as provided", result: matches)
     }
 
-    // NEG: two NetworkShare values built from identical name/url are NOT equal, because `id` is a
-    // freshly generated UUID per instance rather than derived from name/url — this means the service's
-    // `updateDiscoveredShares` will always produce brand-new identities on every browse update.
-    private static func testNetworkShareIdentityIsUniquePerInstance() {
+    // POS: `id` is derived from name+url, so two NetworkShare values for the same share are equal
+    // and share an identity — `NetworkDiscoveryService` rebuilds the array on every browse/resolve
+    // update, and a stable id keeps `ForEach` from recreating the whole sidebar Network section.
+    private static func testNetworkShareIdentityIsDerivedFromNameAndURL() {
         let url = URL(string: "smb://duplicate.local")!
         let shareA = NetworkShare(name: "Duplicate", url: url)
         let shareB = NetworkShare(name: "Duplicate", url: url)
-        let idsDiffer = shareA.id != shareB.id
-        let notEqual = shareA != shareB
+        let shareC = NetworkShare(name: "Other", url: url)
         TestReporter.report(
             "NetworkDiscovery",
-            "NEG: NetworkShare instances with identical name/url still have distinct ids and are unequal",
-            result: idsDiffer && notEqual)
+            "POS: two NetworkShare values for the same name/url share an id and are equal",
+            result: shareA.id == shareB.id && shareA == shareB)
+        TestReporter.report(
+            "NetworkDiscovery",
+            "NEG: NetworkShare values that differ in name have different ids",
+            result: shareA.id != shareC.id)
     }
 
     // POS: the same localizedStandardCompare-based ordering the service applies to discoveredShares

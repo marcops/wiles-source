@@ -34,6 +34,20 @@ public final class SystemAppearanceObserver {
     }
 
     private static func currentIsDark() -> Bool {
-        NSApplication.shared.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        isDark(appleInterfaceStyle: systemAppleInterfaceStyle())
+    }
+
+    /// System-wide `AppleInterfaceStyle` (`"Dark"` in Dark Mode, absent for Light). Read from the
+    /// global domain, not `NSApp.effectiveAppearance` — the app freezes that once it resolves "System".
+    private static func systemAppleInterfaceStyle() -> String? {
+        if let global = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain) {
+            return global["AppleInterfaceStyle"] as? String
+        }
+        return CFPreferencesCopyAppValue("AppleInterfaceStyle" as CFString, kCFPreferencesAnyApplication) as? String
+    }
+
+    /// Pure decision: only `"Dark"` (case-insensitively) is dark; `nil`/`"Light"`/anything else is light.
+    static func isDark(appleInterfaceStyle style: String?) -> Bool {
+        style?.caseInsensitiveCompare("Dark") == .orderedSame
     }
 }

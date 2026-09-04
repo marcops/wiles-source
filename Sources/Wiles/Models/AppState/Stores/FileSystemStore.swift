@@ -75,7 +75,9 @@ public final class FileSystemStore {
     private let directoryMonitor = DirectoryMonitor()
     /// The URL currently watched by `directoryMonitor` — lets `startDirectoryMonitoring` skip a
     /// redundant stop/start cycle when called again for the same folder.
-    private var monitoredURL: URL?
+    /// `private(set)` (not `private`): read by tests to confirm `startDirectoryMonitoring` /
+    /// `stopDirectoryMonitoring` transitions. Only ever written by those two + `tearDown`.
+    private(set) var monitoredURL: URL?
     /// Last time an FSEvents-triggered refresh actually ran — debounces `directoryMonitor`'s
     /// callback. `kFSEventStreamCreateFlagFileEvents` (needed for per-file granularity) also fires
     /// on routine metadata churn a real, Finder-visited folder generates on its own (e.g.
@@ -114,6 +116,16 @@ public final class FileSystemStore {
                 self.handleMonitorEvent(refreshHandler: refreshHandler)
             }
         }
+    }
+
+    /// Stops watching the current folder — used during a "search everywhere" crawl so `.DS_Store`/
+    /// download churn on `currentURL` can't re-run the whole `~` recrawl. No-op when nothing is monitored.
+    public func stopDirectoryMonitoring() {
+        guard monitoredURL != nil else { return }
+        directoryMonitor.cancel()
+        monitoredURL = nil
+        trailingRefreshTask?.cancel()
+        trailingRefreshTask = nil
     }
 
     private func handleMonitorEvent(refreshHandler: @escaping @Sendable () -> Void) {

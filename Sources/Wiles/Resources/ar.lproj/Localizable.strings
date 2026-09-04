@@ -59,18 +59,14 @@
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "مهام في الخلفية";
 "batchRename" = "Batch Rename";
-"batchRenameTitle" = "إعادة تسمية الملفات دفعة واحدة";
 "camera" = "الكاميرا";
 "cancel" = "إلغاء";
-"changeAllDefaultApp" = "الفتح دائماً بواسطة";
 "changeAllDefaultAppEllipsis" = "الفتح دائماً بواسطة…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "مسح البحث";
 "close" = "إغلاق";
-"codePreview" = "Code Preview";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "يستخدم تباعدًا أضيق بين الصفوف في عروض القائمة والشبكة.";
-"compressToTarGz" = "Compress to .tar.gz";
 "compressToZip" = "Compress to ZIP";
 "compressWithPassword" = "ضغط بكلمة سر...";
 "connect" = "Connect";
@@ -95,7 +91,6 @@
 "smartFolderHint" = "يعرض الملفات المطابقة لعملية البحث المحفوظة لهذا المجلد الذكي.";
 "symlinkModeAbsolute" = "مطلق";
 "symlinkModeRelative" = "نسبي";
-"createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "إنشاء رابط رمزي";
 "createSymlink" = "إنشاء رابط رمزي...";
 "created" = "Created";
@@ -111,10 +106,7 @@
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
-"diskUsageVisualizer" = "Folder Disk Usage Visualizer";
 "diskUsageOthersItemsFormat" = "أخرى (%d عنصر)";
-"documents" = "المستندات";
-"domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
 "confirm" = "تأكيد";
 "downloadFromiCloud" = "تنزيل من iCloud";
@@ -131,10 +123,7 @@
 "enterPathPlaceholder" = "Enter path...";
 "execute" = "تنفيذ";
 "extractArchive" = "Extract Archive";
-"extractHere" = "Extract Archive Here";
 "favorites" = "FAVORITES";
-"fetchError" = "Unable to load properties.";
-"fileNameLabel" = "File Name";
 "filterCodeFiles" = "Filter Code Files (kind:code)";
 "filterDocuments" = "Filter Documents (kind:doc)";
 "filterFolders" = "Filter Folders (kind:folder)";
@@ -147,10 +136,8 @@
 "focalLength" = "البعد البؤري";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";
-"folderNamePlaceholder" = "Folder Name";
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
-"freeSpace" = "المساحة الفارغة";
 "freeSpaceFormat" = "%@ المساحة الفارغة";
 "fullDiskAccessNotice" = "امنح وصولاً كاملاً للقرص في إعدادات النظام للوصول إلى جميع المجلدات دون المطالبة بإذونات متكررة.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
@@ -180,7 +167,6 @@
 "helpPreviewTitle" = "Syntax-Highlighted Preview Sidebar";
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
-"helpShortcuts" = "Help & Shortcuts";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -201,7 +187,6 @@
 "helpZipTitle" = "ZIP Archive Compression & Extraction";
 "hidden" = "Hidden";
 "hidePreview" = "Hide Preview";
-"hideStatusBar" = "Hide Status Bar";
 "hideTerminal" = "Hide Terminal";
 "home" = "الصفحة الرئيسية";
 "iCloudDrive" = "iCloud Drive";
@@ -216,11 +201,9 @@
 "linkType" = "Link Type";
 "listView" = "List View";
 "location" = "Location";
-"mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
 "macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "دمج في ملف PDF واحد";
-"modified" = "Modified";
 "moreInfo" = "More Info...";
 "moveTo" = "Move to:";
 "moveToTrash" = "Move to Trash";
@@ -229,14 +212,11 @@
 "movies" = "الأفلام";
 "music" = "الموسيقى";
 "name" = "Name";
-"namingPattern" = "نمط التسمية";
 "navProfilesTitle" = "Navigation Shortcut Profiles";
-"navSystemTitle" = "Navigation, System & Customization";
 "networkAndCloud" = "NETWORK & CLOUD";
 "newFileTitle" = "New File";
 "newFolder" = "مجلد جديد";
 "newName" = "New Name";
-"no" = "No";
 "noActiveOperations" = "No active operations";
 "noAutoOrgRules" = "No Auto-Organization Rules";
 "noAutoOrgRulesDesc" = "Files will stay where they are.";
@@ -253,8 +233,6 @@
 "others" = "آخرون";
 "overviewDesc" = "‏Wiles هو مدير ملفات أصلي بالكامل لنظام macOS، صُمم من الصفر ليبدو وكأنه كان دائمًا جزءًا من جهاز Mac الخاص بك. كل تفاعل، من فتح مجلد إلى إعادة تسمية ألف ملف دفعة واحدة، صُمم ليبدو فوريًا.";
 "owner" = "Owner";
-"parentFolder" = "Parent Folder";
-"password" = "كلمة السر";
 "paste" = "لصق";
 "permissionDeniedNotice" = "تم رفض الإذن: لا يمكن لـ Wiles قراءة محتويات هذا المجلد.";
 "permissions" = "Sharing & Permissions";
@@ -299,9 +277,7 @@
 "selectFolderSubtitle" = "اختر مجلدًا على جهاز Mac الخاص بك";
 "invalidFolderPath" = "هذا المجلد غير موجود";
 "selectOtherApp" = "آخر...";
-"selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";
-"services" = "Services";
 "shareFolderWifi" = "Share Folder over Wi-Fi";
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "المشاركة والأذونات";
@@ -324,7 +300,6 @@
 "showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "يعرض الملفات والمجلدات التي يبدأ اسمها بنقطة.";
-"showMacSection" = "Show MAC Section";
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showNetworkAndCloudHint" = "يعرض قسم الشبكة والسحابة في الشريط الجانبي.";
 "showPlaces" = "إظهار الأماكن";
@@ -338,11 +313,9 @@
 "showDirectoryTreeHint" = "يعرض شجرة المجلدات القابلة للتوسيع في الشريط الجانبي.";
 "showSidebarSectionTitles" = "إظهار عناوين الأقسام";
 "showSidebarSectionTitlesHint" = "يعرض عناوين الأقسام أعلى قوائم الشريط الجانبي.";
-"showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTagsHint" = "يعرض قسم الوسوم في الشريط الجانبي.";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar";
 "sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
@@ -359,7 +332,6 @@
 "wifiShareStartFailed" = "تعذر بدء الخادم";
 "retry" = "إعادة المحاولة";
 "suffix" = "Suffix";
-"symlinkName" = "Symlink Name";
 "symlinkNameLabel" = "اسم الرابط الرمزي";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
@@ -384,9 +356,7 @@
 "feedbackSubmit" = "إرسال";
 "feedbackSubmitting" = "جارٍ الإرسال...";
 "feedbackSuccessMessage" = "شكرًا! تم إرسال ملاحظاتك.";
-"feedbackConfirmMessage" = "هل تريد إرسال هذه الملاحظات؟";
 "write" = "كتابة";
-"yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "إخراج القرص";
@@ -397,15 +367,12 @@
 "selectionCountWithSize" = "%d / %d (%@)";
 "moveToTrashPartialFailure" = "تعذر نقل {0} من {1} عناصر إلى سلة المهملات.";
 "tagOperationPartialFailure" = "تعذر وضع علامة على {0} من {1} عناصر.";
-"selectedItemsCount" = "%d selected";
-"selectedItemsCountWithSize" = "%d selected (%@)";
 
 // MARK: - Settings window & menu-bar cleanup (added)
 "newWindow" = "نافذة جديدة";
 "theme" = "المظهر";
 "skipDeleteConfirmation" = "تخطي تأكيد الحذف";
 "skipDeleteConfirmationHint" = "ينقل العناصر إلى المهملات فورًا دون طلب التأكيد.";
-"settingsWindowTitle" = "إعدادات Wiles";
 "settingsHeaderSubtitle" = "خصص Wiles وفقًا لتفضيلاتك.";
 "settingsMenuItem" = "إعدادات…";
 "settingsGeneralTab" = "عام";
@@ -513,8 +480,6 @@
 "imageConverterFinalizeFailed" = "تعذر إنهاء وجهة الصورة";
 "imageConverterOutputTooLarge" = "الصورة كبيرة جدًا بحيث لا يمكن تحويلها (أكثر من {0} ميجابكسل)";
 "syntaxTruncatedNotice" = "\n... (تم الاختصار)";
-"fileTemplateMarkdownContent" = "# العنوان\n\nيوضع المحتوى هنا.\n";
-"fileTemplateJSONContent" = "{\n  \"مفتاح\": \"قيمة\"\n}\n";
 "filterModifiedToday" = "تم التعديل اليوم (date:today)";
 "filterModified30Days" = "تم التعديل خلال آخر 30 يومًا (date:30d)";
 "serverAddressPlaceholder" = "smb://server/share";
@@ -542,6 +507,7 @@
 "languageSystemDefault" = "إعداد النظام الافتراضي";
 "batchRenamePartialFailure" = "تمت إعادة تسمية {0} من {1} عنصرًا. فشل — {2}";
 "fileShredderPartialFailure" = "اكتمل {0} من {1} عنصرًا. فشل — {2}";
+"fileShredderCancelledPartial" = "أُلغيت — تم حذف {0} من {1} عنصرًا نهائيًا (بدون سلة المهملات، لا يمكن التراجع).";
 "pastePartialFailure" = "تعذّر لصق {0} من {1} عنصرًا.";
 "symlinkCannotReplaceOwnTarget" = "لا يمكن إنشاء رابط رمزي يستبدل هدفه الخاص.";
 "share" = "مشاركة…";

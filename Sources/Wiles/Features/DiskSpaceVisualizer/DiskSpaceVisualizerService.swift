@@ -2,8 +2,13 @@ import AppKit
 import Foundation
 
 public enum DiskSpaceVisualizerService {
-    /// Guardrail: stop enumerating a folder's contents after this many files to keep scans fast.
-    private static let maxScannedFileCount = 5000
+    /// File cap per folder, aligned with `DuplicateDetectionService`. A lower cap under-scans big
+    /// folders and misranks the chart; the wall-clock budget below is what bounds a pathological scan.
+    static let maxScannedFileCount = 50_000
+
+    /// Total wall-clock budget for one `calculateDiskUsage` run, shared across every subfolder walk.
+    /// Past it, folders report what was summed so far and are flagged approximate.
+    static let scanWallClockBudget: Duration = .seconds(6)
 
     /// At most this many largest items get their own chart slice; the rest fold into "Others".
     private static let maxTopItems = 10
@@ -30,6 +35,7 @@ public enum DiskSpaceVisualizerService {
         // already navigated away from. `withTaskCancellationHandler` explicitly forwards
         // cancellation to the detached task, and the detached task now throws
         // `CancellationError` promptly instead of running to completion.
+        let deadline = ContinuousClock.now.advanced(by: scanWallClockBudget)
         let scanTask = Task.detached(priority: .userInitiated) { () throws -> DiskUsageReport in
             let fm = FileManager.default
             // A read failure here (no access to the folder) must surface, not read as "0 bytes".
@@ -38,7 +44,7 @@ public enum DiskSpaceVisualizerService {
                 includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
                 options: [.skipsHiddenFiles])
 
-            let rawItems = try collectRawItems(in: contents, fm: fm)
+            let rawItems = try collectRawItems(in: contents, fm: fm, deadline: deadline)
             let grandTotal = rawItems.reduce(0) { $0 + $1.size }
             guard grandTotal > 0 else {
                 return DiskUsageReport(totalSize: 0, topItems: [], othersItem: nil)
@@ -57,7 +63,8 @@ public enum DiskSpaceVisualizerService {
         }
     }
 
-    private static func collectRawItems(in contents: [URL], fm _: FileManager) throws -> [RawItem] {
+    private static func collectRawItems(
+        in contents: [URL], fm _: FileManager, deadline: ContinuousClock.Instant) throws -> [RawItem] {
         var rawItems: [RawItem] = []
         for itemURL in contents {
             try Task.checkCancellation()
@@ -65,7 +72,7 @@ public enum DiskSpaceVisualizerService {
             let size: Int64
             var wasTruncated = false
             if isDir {
-                (size, wasTruncated) = try computeFolderSizeFast(folderURL: itemURL)
+                (size, wasTruncated) = try computeFolderSizeFast(folderURL: itemURL, deadline: deadline)
             } else {
                 let values = try? itemURL.resourceValues(forKeys: [.fileSizeKey])
                 size = Int64(values?.fileSize ?? 0)
@@ -108,7 +115,12 @@ public enum DiskSpaceVisualizerService {
         return DiskUsageReport(totalSize: grandTotal, topItems: formattedTopItems, othersItem: othersItem, isApproximate: isApproximate)
     }
 
-    private static func computeFolderSizeFast(folderURL: URL) throws -> (total: Int64, wasTruncated: Bool) {
+    static func computeFolderSizeFast(
+        folderURL: URL,
+        maxFiles: Int = maxScannedFileCount,
+        deadline: ContinuousClock.Instant = .now.advanced(by: scanWallClockBudget),
+        wallClockCheckInterval: Int = 4096
+    ) throws -> (total: Int64, wasTruncated: Bool) {
         let fm = FileManager.default
         guard let enumerator = fm.enumerator(
             at: folderURL,
@@ -128,7 +140,11 @@ public enum DiskSpaceVisualizerService {
                 total += Int64(fileSize)
             }
             count += 1
-            if count > maxScannedFileCount {
+            if count > maxFiles {
+                return (total, true)
+            }
+            // Wall-clock guard, checked in batches so `ContinuousClock.now` isn't read per file.
+            if count % wallClockCheckInterval == 0, ContinuousClock.now >= deadline {
                 return (total, true)
             }
         }

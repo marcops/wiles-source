@@ -63,8 +63,9 @@ public final class TrashState {
         var totalSize: Int64 = 0
         let keys: [URLResourceKey] = [.fileSizeKey, .isDirectoryKey]
         for directory in directories {
+            // No `.skipsHiddenFiles`: "Empty Trash" removes hidden entries too, so the size must count them.
             guard let enumerator = FileManager.default.enumerator(
-                at: directory, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles],
+                at: directory, includingPropertiesForKeys: keys, options: [],
                 // Skip an unreadable subitem instead of aborting the walk (→ undercounted Trash size). R1 / BA-509.
                 errorHandler: { _, _ in true }) else { continue }
             while let fileURL = enumerator.nextObject() as? URL {

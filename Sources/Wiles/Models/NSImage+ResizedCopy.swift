@@ -1,18 +1,43 @@
 import AppKit
 
 extension NSImage {
-    /// Returns a copy of this image sized to `size`, without ever mutating the receiver. Icons
-    /// from `.effectiveIcon` / `NSWorkspace.shared.icon(forFile:)` are shared, cached system
-    /// objects — resizing one in place corrupts it everywhere else it's used.
+    /// New image rasterized to `size` (never mutates the receiver — icons are shared system objects).
+    /// One `NSBitmapImageRep` at the target size, unlike `copy().size =` which keeps every full-res rep.
     func resizedCopy(to size: NSSize) -> NSImage {
-        if let copy = copy() as? NSImage {
+        let pixelsWide = Int(size.width.rounded())
+        let pixelsHigh = Int(size.height.rounded())
+        guard pixelsWide > 0, pixelsHigh > 0,
+              let bitmap = NSBitmapImageRep(
+                  bitmapDataPlanes: nil,
+                  pixelsWide: pixelsWide,
+                  pixelsHigh: pixelsHigh,
+                  bitsPerSample: 8,
+                  samplesPerPixel: 4,
+                  hasAlpha: true,
+                  isPlanar: false,
+                  colorSpaceName: .deviceRGB,
+                  bytesPerRow: 0,
+                  bitsPerPixel: 0)
+        else {
+            // Degenerate size — fall back to a logical resize of a copy so we still never touch self.
+            let copy = (self.copy() as? NSImage) ?? NSImage(size: size)
             copy.size = size
             return copy
         }
-        // `copy()` failed — draw into a fresh image rather than resizing the shared original.
-        return NSImage(size: size, flipped: false) { [self] rect in
-            draw(in: rect)
-            return true
-        }
+        bitmap.size = size
+
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        NSGraphicsContext.current?.imageInterpolation = .high
+        draw(
+            in: NSRect(origin: .zero, size: size),
+            from: .zero,
+            operation: .copy,
+            fraction: 1.0)
+        NSGraphicsContext.restoreGraphicsState()
+
+        let result = NSImage(size: size)
+        result.addRepresentation(bitmap)
+        return result
     }
 }

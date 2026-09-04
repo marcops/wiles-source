@@ -10,9 +10,8 @@ struct IntegratedTerminalView: NSViewRepresentable {
         let currentPath = appState.navigation.currentURL.path
 
         if let cached = windowUIState.terminalViewCache.view {
-            // Drawer was reopened — `cd` to wherever the browser is now, once. It does NOT keep
-            // following navigation after this (see `updateNSView`).
-            Self.sendInitialCommands(to: cached, path: currentPath, clearFirst: false)
+            // Drawer reopened: return the cached terminal untouched. Injecting `cd <folder>\r` here
+            // appended to whatever was on the input line — corrupting a running program or command.
             return cached
         }
 
@@ -24,7 +23,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
         // Capture the shell pid now, while SwiftTerm's internal structure is known-good, so teardown
         // doesn't depend on the same reflection resolving after a future SwiftTerm bump.
         windowUIState.terminalViewCache.shellPid = TerminalViewCache.reflectShellPid(of: terminalView)
-        Self.sendInitialCommands(to: terminalView, path: currentPath, clearFirst: true)
+        Self.sendInitialCommands(to: terminalView, path: currentPath)
         return terminalView
     }
 
@@ -32,9 +31,8 @@ struct IntegratedTerminalView: NSViewRepresentable {
     /// the environment doesn't carry it.
     static let loginShellPath = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
 
-    /// Deliberately a no-op: the terminal syncs to the current folder only when the drawer opens
-    /// (`makeNSView`), never on every navigation — an injected `cd` mid-command would corrupt the
-    /// user's input or run at an unexpected time.
+    /// Deliberately a no-op: the terminal is `cd`'d only once, at shell start/respawn — never on
+    /// navigation or drawer reopen (an injected `cd` would corrupt whatever is on the input line).
     func updateNSView(_: LocalProcessTerminalView, context _: Context) { }
 
     func makeCoordinator() -> Coordinator {
@@ -47,14 +45,13 @@ struct IntegratedTerminalView: NSViewRepresentable {
         return coordinator
     }
 
-    /// Sends the `cd <folder>` (and, for a fresh shell, `clear`) once the PTY has settled.
-    static func sendInitialCommands(to view: LocalProcessTerminalView, path: String, clearFirst: Bool) {
+    /// Seeds a freshly-started shell with `cd <folder>` then `clear`, once the PTY has settled.
+    /// Only ever run against a brand-new shell (first open or respawn).
+    static func sendInitialCommands(to view: LocalProcessTerminalView, path: String) {
         Task { @MainActor in
             try? await Task.sleep(for: AsyncDelayTokens.terminalInitialCommandDelay)
             view.send(txt: "cd \(CopyPathService.posixSingleQuoted(path))\r")
-            if clearFirst {
-                view.send(txt: "clear\r")
-            }
+            view.send(txt: "clear\r")
         }
     }
 
@@ -101,7 +98,7 @@ struct IntegratedTerminalView: NSViewRepresentable {
                 view.startProcess(executable: IntegratedTerminalView.loginShellPath, args: ["-l"], environment: nil, execName: nil)
                 windowUIState?.terminalViewCache.shellPid = TerminalViewCache.reflectShellPid(of: view)
                 IntegratedTerminalView.sendInitialCommands(
-                    to: view, path: appState.navigation.currentURL.path, clearFirst: true)
+                    to: view, path: appState.navigation.currentURL.path)
             }
         }
     }

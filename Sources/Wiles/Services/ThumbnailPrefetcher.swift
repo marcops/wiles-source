@@ -15,6 +15,12 @@ public final class ThumbnailPrefetcher {
         self.service = service
     }
 
+    /// Stops the in-flight prefetch walk when the owning window goes away (otherwise the detached
+    /// task keeps warming the cache for a folder nobody is viewing).
+    deinit {
+        prefetchTask?.cancel()
+    }
+
     public func prefetch(for items: [FileItem], size _: CGFloat) {
         let eligible = items.filter(\.supportsThumbnail).map { ($0.url, $0.dateModified) }
         guard !eligible.isEmpty else { return }

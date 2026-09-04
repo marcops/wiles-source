@@ -10,8 +10,11 @@ import Foundation
 extension HttpSharingFeatureTests {
     static func runSecurityAndRobustnessChecks() async {
         await testDirectoryListingEscapesEntryNamesAndSetsCSP()
+        testDirectoryListingHrefCannotBreakOutOfTheAttribute()
         await testFragmentedRequestHeadIsAccumulatedBeforeParsing()
         await testOversizedRequestHeadReturns431()
+        await testSlowlorisPartialHeadIsCancelledAtTheRequestHeadDeadline()
+        await testCompleteHeadWithinTheDeadlineIsServedNormally()
         await testNestedSubfolderIsListedNotStreamed()
         await testHiddenEntriesAreNeitherListedNorServed()
         testRequestPathRejectsNulByteAndEmptyComponents()
@@ -258,6 +261,23 @@ extension HttpSharingFeatureTests {
         try? FileManager.default.removeItem(at: tempDir)
     }
 
+    /// The `href` of every listing entry must be attribute-safe — a `"` in a file name can't break
+    /// out of `href="…"` (percent-encoded on the normal path; the nil-fallback is now HTML-escaped
+    /// rather than the raw name).
+    private static func testDirectoryListingHrefCannotBreakOutOfTheAttribute() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let nasty = dir.appendingPathComponent("a\" onmouseover=x b<c.txt")
+        let html = LocalHttpServerService.listingItemsHTML(sorted: [nasty], linkPrefix: "", language: .english)
+
+        // The raw `" onmouseover=x` sequence (a real quote closing the attribute early) must appear
+        // nowhere — the name's `"` is `%22` in the href and `&quot;` in the label.
+        let noAttributeBreakout = !html.contains("\" onmouseover=x") && !html.contains("<c.txt")
+        report(
+            "Feature/HttpSharing",
+            "NEG: a file name containing a double quote / '<' produces no href/attribute breakout",
+            result: noAttributeBreakout)
+    }
+
     // MARK: - Fragmented / oversized request head (M11 regression)
 
     /// The request line and headers can arrive in separate TCP segments. Before the fix,
@@ -315,6 +335,91 @@ extension HttpSharingFeatureTests {
             "Feature/HttpSharing",
             "NEG: a request head exceeding the size cap returns 431 Request Header Fields Too Large",
             result: passed)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    // MARK: - Slowloris (MM-146 regression)
+
+    /// A client that opens a connection and dribbles head bytes without ever sending the `\r\n\r\n`
+    /// terminator used to hold its connection slot until it chose to close — 32 of them stopped the
+    /// server accepting connections. The request-head deadline is now a hard limit from connect
+    /// time, not extended by incoming bytes, so the connection is cancelled at the deadline.
+    private static func testSlowlorisPartialHeadIsCancelledAtTheRequestHeadDeadline() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let server = LocalHttpServerService()
+        server.requestHeadDeadlineOverride = 0.4
+        server.start(sharing: tempDir)
+        await waitUntil { server.isRunning }
+
+        let sock = rawConnect(port: server.port.rawValue)
+        var connectionClosedWithoutResponse = false
+        if let sock {
+            // A partial request head, never terminated with `\r\n\r\n`.
+            rawSend(sock, "GET / HTTP/1.1\r\n")
+        }
+        // Wait past the (overridden) request-head deadline; the server must cancel the connection.
+        try? await Task.sleep(nanoseconds: 900_000_000)
+        if let sock {
+            let response = rawRecvAll(sock, timeoutMs: 300)
+            connectionClosedWithoutResponse = response.isEmpty
+            Darwin.close(sock)
+        }
+        report(
+            "Feature/HttpSharing",
+            "NEG: a slowloris connection that never completes its head is cancelled at the request-head deadline",
+            result: connectionClosedWithoutResponse)
+
+        var stillHealthy = false
+        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:\(server.port.rawValue)/")!),
+           let httpResp = resp as? HTTPURLResponse {
+            stillHealthy = httpResp.statusCode == 200
+        }
+        report(
+            "Feature/HttpSharing",
+            "POS: the server keeps serving after a slowloris connection is cancelled",
+            result: stillHealthy)
+
+        server.stop()
+        await waitUntil { !server.isRunning }
+        try? FileManager.default.removeItem(at: tempDir)
+    }
+
+    /// The deadline must not punish a legitimate client: a complete head that arrives before it
+    /// (even under a very tight deadline) is served, and the deadline is cleared so it can't later
+    /// fire against the now-streaming connection.
+    private static func testCompleteHeadWithinTheDeadlineIsServedNormally() async {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        try? "hello".write(to: tempDir.appendingPathComponent("f.txt"), atomically: true, encoding: .utf8)
+
+        let server = LocalHttpServerService()
+        server.requestHeadDeadlineOverride = 0.5
+        server.start(sharing: tempDir)
+        await waitUntil { server.isRunning }
+
+        var served = false
+        if let sock = rawConnect(port: server.port.rawValue) {
+            rawSend(sock, "GET /f.txt HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            let text = String(data: rawRecvAll(sock, timeoutMs: 1000), encoding: .utf8) ?? ""
+            served = text.hasPrefix("HTTP/1.1 200") && text.hasSuffix("hello")
+            Darwin.close(sock)
+        }
+        // Well past the deadline: a spuriously-surviving timer would have torn state down by now.
+        try? await Task.sleep(nanoseconds: 700_000_000)
+        var stillHealthy = false
+        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:\(server.port.rawValue)/")!),
+           let httpResp = resp as? HTTPURLResponse {
+            stillHealthy = httpResp.statusCode == 200
+        }
+        report(
+            "Feature/HttpSharing",
+            "POS: a complete head received before the deadline is served and the deadline is cleared",
+            result: served && stillHealthy)
 
         server.stop()
         await waitUntil { !server.isRunning }

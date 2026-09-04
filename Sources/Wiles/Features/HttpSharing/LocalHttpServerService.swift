@@ -35,7 +35,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
     @ObservationIgnored private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.wiles.HttpServer")
     @ObservationIgnored private var connections: [NWConnection] = []
-    @ObservationIgnored private var idleTimeoutWorkItems: [ObjectIdentifier: DispatchWorkItem] = [:]
+    @ObservationIgnored private var headDeadlineWorkItems: [ObjectIdentifier: DispatchWorkItem] = [:]
     /// Bytes received so far per connection, accumulated until the `\r\n\r\n` request-head
     /// terminator arrives — HTTP does not guarantee the head lands in a single TCP segment.
     @ObservationIgnored private var requestBuffers: [ObjectIdentifier: Data] = [:]
@@ -44,9 +44,11 @@ public final class LocalHttpServerService: @unchecked Sendable {
     /// Caps concurrent connections for this local file-sharing feature — plenty for normal LAN
     /// browsing/downloads, low enough to bound memory/FD usage against a runaway client.
     private static let maxConcurrentConnections = 32
-    /// A connection that opens and never sends a request is cancelled after this long instead of
-    /// sitting in `connections` forever.
-    private static let idleConnectionTimeout: TimeInterval = 15
+    /// A connection must deliver its complete request head (`\r\n\r\n`) within this window of opening,
+    /// or it's cancelled — not extended by incoming bytes, so a slowloris client can't hold its slot.
+    private static let requestHeadDeadline: TimeInterval = 15
+    /// Test seam: overrides `requestHeadDeadline` so a slowloris case doesn't need a real 15s wait.
+    @ObservationIgnored var requestHeadDeadlineOverride: TimeInterval?
     /// Upper bound on the buffered request head before the `\r\n\r\n` terminator; a client that
     /// keeps sending header bytes past this gets `431` instead of growing memory unbounded.
     private static let maxRequestHeadBytes = 32 * 1024
@@ -148,8 +150,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
                 conn.cancel()
             }
             connections.removeAll()
-            idleTimeoutWorkItems.values.forEach { $0.cancel() }
-            idleTimeoutWorkItems.removeAll()
+            headDeadlineWorkItems.values.forEach { $0.cancel() }
+            headDeadlineWorkItems.removeAll()
             requestBuffers.removeAll()
             sharedFolder = nil
             requiredPassword = nil
@@ -188,23 +190,30 @@ public final class LocalHttpServerService: @unchecked Sendable {
             }
         }
         connection.start(queue: queue)
-        scheduleIdleTimeout(for: connection)
+        scheduleRequestHeadDeadline(for: connection)
         receiveRequest(on: connection)
     }
 
-    private func scheduleIdleTimeout(for connection: NWConnection) {
+    private func scheduleRequestHeadDeadline(for connection: NWConnection) {
         let workItem = DispatchWorkItem { [weak self] in
             connection.cancel()
             self?.removeConnection(connection)
         }
-        idleTimeoutWorkItems[ObjectIdentifier(connection)] = workItem
-        queue.asyncAfter(deadline: .now() + Self.idleConnectionTimeout, execute: workItem)
+        headDeadlineWorkItems[ObjectIdentifier(connection)] = workItem
+        queue.asyncAfter(
+            deadline: .now() + (requestHeadDeadlineOverride ?? Self.requestHeadDeadline), execute: workItem)
+    }
+
+    /// Cancels the request-head deadline once the head is in hand (parsed, or rejected as too large)
+    /// so it can't fire against a connection that is now streaming a legitimate large download.
+    private func clearRequestHeadDeadline(for key: ObjectIdentifier) {
+        headDeadlineWorkItems.removeValue(forKey: key)?.cancel()
     }
 
     func removeConnection(_ connection: NWConnection) {
         connections.removeAll(where: { $0 === connection })
         let key = ObjectIdentifier(connection)
-        idleTimeoutWorkItems.removeValue(forKey: key)?.cancel()
+        clearRequestHeadDeadline(for: key)
         requestBuffers.removeValue(forKey: key)
     }
 
@@ -223,8 +232,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
     private func handleReceivedBytes(_ content: Data?, isComplete: Bool, on connection: NWConnection) {
         let key = ObjectIdentifier(connection)
         if let content, !content.isEmpty {
-            // A real request byte arrived — this connection is no longer merely idle.
-            idleTimeoutWorkItems.removeValue(forKey: key)?.cancel()
+            // Deliberately does NOT reset the request-head deadline — it's a hard limit on the
+            // complete head, cleared only once the head is parsed or rejected.
             requestBuffers[key, default: Data()].append(content)
         }
 
@@ -237,6 +246,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         if let headEnd = buffer.range(of: Data("\r\n\r\n".utf8)) {
             let head = buffer.subdata(in: buffer.startIndex ..< headEnd.lowerBound)
             requestBuffers.removeValue(forKey: key)
+            clearRequestHeadDeadline(for: key)
             guard let requestStr = String(bytes: head, encoding: .utf8) else {
                 connection.cancel()
                 removeConnection(connection)
@@ -248,6 +258,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
         if buffer.count > Self.maxRequestHeadBytes {
             requestBuffers.removeValue(forKey: key)
+            clearRequestHeadDeadline(for: key)
             sendResponse(connection: connection, statusCode: HTTPStatus.requestHeaderFieldsTooLarge, body: Data("Request Header Fields Too Large".utf8))
             return
         }
@@ -268,7 +279,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
             return
         }
 
-        let parts = firstLine.components(separatedBy: " ")
+        // `omittingEmptySubsequences` so a double space in the request line doesn't make `parts[1]` empty.
+        let parts = firstLine.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
         guard parts.count >= 2, parts[0] == "GET" else {
             sendResponse(connection: connection, statusCode: HTTPStatus.methodNotAllowed, body: Data("Method Not Allowed".utf8))
             return

@@ -397,15 +397,29 @@ public final class ArchiveService: Sendable {
         return normalized.split(separator: "/", omittingEmptySubsequences: false).contains("..")
     }
 
+    /// First real path component of an archive entry, ignoring a leading `./` and `\`-vs-`/`.
+    /// `nil` for an entry that is only `.`/`./`/empty (so a `tar cf .` archive isn't seen as top-level `.`).
+    static func topLevelEntryComponent(_ entry: String) -> String? {
+        let normalized = entry.replacingOccurrences(of: "\\", with: "/")
+        for component in normalized.split(separator: "/", omittingEmptySubsequences: true) where component != "." {
+            return String(component)
+        }
+        return nil
+    }
+
+    /// Pure: `true` when any entry's top-level component matches a name in `existingLowercasedNames`
+    /// (caller lowercases both — a case-insensitive volume's `Foo` vs on-disk `foo` is a collision).
+    static func entriesCollide(entries: [String]?, existingLowercasedNames: Set<String>) -> Bool {
+        guard let entries else { return false }
+        let topLevelEntryNames = Set(entries.compactMap { topLevelEntryComponent($0)?.lowercased() })
+        return !topLevelEntryNames.isDisjoint(with: existingLowercasedNames)
+    }
+
     /// Checks whether any of the archive's top-level entry names already exists in
     /// `destinationFolder` — `nil` entries (listing unavailable) is treated as "no collision"
     /// (falls back to the prior flat-extraction behavior).
     private static func collidesWithExisting(entries: [String]?, in destinationFolder: URL) -> Bool {
-        guard let entries else { return false }
-        // Case-insensitive both ways (conservative): on a case-insensitive volume a zip's `Foo` vs an
-        // on-disk `foo` IS a collision, and `ditto -x -k` would overwrite it with no Trash safety net.
-        let topLevelEntryNames = Set(entries.compactMap { $0.split(separator: "/").first.map { String($0).lowercased() } })
         let existingNames = Set(((try? FileManager.default.contentsOfDirectory(atPath: destinationFolder.path)) ?? []).map { $0.lowercased() })
-        return !topLevelEntryNames.isDisjoint(with: existingNames)
+        return entriesCollide(entries: entries, existingLowercasedNames: existingNames)
     }
 }

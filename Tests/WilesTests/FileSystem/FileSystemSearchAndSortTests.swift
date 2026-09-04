@@ -26,6 +26,26 @@ public struct FileSystemSearchAndSortTests {
         await testSearchScopeContentExcludesNameOnlyMatches()
         await testSearchScopeBothMatchesEither()
         await testCaseSensitiveSearch()
+        await testSingleFolderContentSearchStillWorksWithBudgetWired()
+    }
+
+    /// LL-163: `loadRealDirectoryContentsSync` now threads a `ContentReadBudget` into `matchesSearch`
+    /// for Content/Both scope (previously unbounded — a folder of large text files read them all).
+    /// This asserts the wiring didn't regress the common case: a small folder's content search still
+    /// finds every match well within the (128 MB) budget.
+    private static func testSingleFolderContentSearchStillWorksWithBudgetWired() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try? "the needle is buried here".write(to: dir.appendingPathComponent("has-match.txt"), atomically: true, encoding: .utf8)
+        try? "nothing of interest".write(to: dir.appendingPathComponent("no-match.txt"), atomically: true, encoding: .utf8)
+        try? "another needle".write(to: dir.appendingPathComponent("also-match.md"), atomically: true, encoding: .utf8)
+
+        let results = await load(at: dir, query: "needle", scope: .content)
+        let names = Set(results.map(\.name))
+        report(
+            "POS (LL-163): single-folder Content search still returns every match after ContentReadBudget wiring",
+            result: names == ["has-match.txt", "also-match.md"])
     }
 
     private static func tempDir() -> URL {

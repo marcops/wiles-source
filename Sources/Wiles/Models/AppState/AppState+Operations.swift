@@ -69,10 +69,9 @@ public extension AppState {
             }
             return
         }
+        // `transient.clipboard` is NOT cleared here — a 100%-failed cut-paste would lose the pending
+        // cut with nothing moved. `executePaste` clears it once at least one item has actually moved.
         executePaste(urls: clip.urls, isCut: clip.action == .cut, windowUIState: windowUIState)
-        if clip.action == .cut {
-            transient.clipboard = nil
-        }
     }
 
     /// Reached only once both the internal clipboard and the system pasteboard have no files on
@@ -123,6 +122,9 @@ public extension AppState {
             guard let self else { return }
             if isCut, !movedDestinations.isEmpty {
                 selection.selectedURLs = Set(movedDestinations)
+                // Clear the pending cut only now that something actually moved (full or partial
+                // success) — a 100%-failed / fully-cancelled cut-paste keeps it for retry.
+                transient.clipboard = nil
             }
             if failureCount > 0 {
                 showPartialFailure(.pastePartialFailure, failed: failureCount, total: urls.count)
@@ -325,11 +327,10 @@ public extension AppState {
 
     func createNewFileAndRename(in folder: URL? = nil, windowUIState: WindowUIState) {
         let targetFolder = folder ?? navigation.currentURL
-        let language = preferences.appearance.appLanguage
         runDetachedFileOperation(context: "Creating new file", refreshOnSuccess: false, onSuccess: { [weak self] (url: URL) in
             self?.enterRenameForNewlyCreated(at: url, inFolder: targetFolder, windowUIState: windowUIState)
         }, operation: {
-            try NewFileTemplateService.createTemplateFile(in: targetFolder, fileName: "", template: .text, language: language)
+            try NewFileTemplateService.createTextFile(in: targetFolder)
         })
     }
 

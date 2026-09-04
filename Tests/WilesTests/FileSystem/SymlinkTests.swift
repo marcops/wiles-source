@@ -12,6 +12,7 @@ public struct SymlinkTests {
         runBasicSymlinkCoverage(tempDir: tempDir, targetFile: targetFile)
         runSymlinkModeIdentifiableCoverage()
         runSameFolderSameNameRegressionCoverage()
+        runSanitizedNameCoverage()
 
         try? FileManager.default.removeItem(at: tempDir)
     }
@@ -144,6 +145,44 @@ public struct SymlinkTests {
         TestReporter.report("SymlinkService", "POS: chained symlink-to-symlink resolves back to the original file", result: chainResolves)
 
         runRelativeOutsideAndAbsoluteSymlinkCoverage(tempDir: tempDir, targetFile: targetFile, linkURL: linkURL)
+    }
+
+    /// LL-144: the typed symlink name now goes through `FilenameSanitizer` (same as inline rename),
+    /// so a `/` in the name can't act as a path separator and escape the chosen folder, and
+    /// `.`/`..`/empty falls back to the default name instead of surfacing a raw `FileManager` error.
+    private static func runSanitizedNameCoverage() {
+        // Two levels deep so `parent` is a directory only this test touches (the shared test-temp
+        // root sees constant churn from other suites and can't be snapshot-compared).
+        let parent = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        let dir = parent.appendingPathComponent("chosen")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let target = dir.appendingPathComponent("origin.txt")
+        try? "x".write(to: target, atomically: true, encoding: .utf8)
+
+        let parentBefore = Set((try? FileManager.default.contentsOfDirectory(atPath: parent.path)) ?? [])
+
+        let escapeAttempt = try? SymlinkService.createSymlink(
+            targetURL: target, destinationFolder: dir, symlinkName: "../evil", mode: .absolute)
+        let slashAttempt = try? SymlinkService.createSymlink(
+            targetURL: target, destinationFolder: dir, symlinkName: "a/b", mode: .absolute)
+
+        let parentAfter = Set((try? FileManager.default.contentsOfDirectory(atPath: parent.path)) ?? [])
+        let createdLinksAllInsideChosenFolder = [escapeAttempt, slashAttempt].compactMap { $0 }.allSatisfy {
+            $0.deletingLastPathComponent().resolvingSymlinksInPath().path
+                == dir.resolvingSymlinksInPath().path
+        }
+        TestReporter.report(
+            "SymlinkService",
+            "NEG: a symlink name with \"..\" or \"/\" never places the link outside the chosen destination folder",
+            result: parentAfter == parentBefore && createdLinksAllInsideChosenFolder)
+
+        let dotDotName = try? SymlinkService.createSymlink(
+            targetURL: target, destinationFolder: dir, symlinkName: "..", mode: .absolute)
+        TestReporter.report(
+            "SymlinkService",
+            "POS: a symlink name of \"..\" is rejected by the sanitizer and falls back to the default \"<target> link\"",
+            result: dotDotName?.lastPathComponent == target.lastPathComponent + " link")
     }
 
     private static func runRelativeOutsideAndAbsoluteSymlinkCoverage(tempDir: URL, targetFile: URL, linkURL: URL?) {

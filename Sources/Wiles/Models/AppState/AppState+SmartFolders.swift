@@ -25,17 +25,15 @@ public extension AppState {
     /// main actor before writing to AppState, matching every other Service-completion call site.
     func runSmartFolder(_ folder: SmartFolder) {
         prepareForSmartFolderRun(folder)
-        // `prepareForSmartFolderRun`'s `searchQuery` assignment above already fired a normal
-        // directory refresh via `onSearchQueryChanged` — that refresh and this Spotlight query
-        // would otherwise race to write `fileSystem.items` last. Cancel it so only the smart
-        // folder's own results land.
+        // Cancel any in-flight directory refresh from a prior navigation so it can't race this
+        // Spotlight query to write `fileSystem.items` last.
         fileSystem.refreshTask?.cancel()
         let target = navigation.currentURL
         smartFolderService.executeQuery(for: folder) { [weak self] items in
             // `SmartFolderService.runQuery` already invokes this completion from inside a
             // `Task { @MainActor }`, so assume isolation instead of nesting another one (SM-055).
             MainActor.assumeIsolated {
-                guard let self else { return }
+                guard let self, self.navigation.currentURL == target else { return }
                 self.smartFolder.lastRunTimedOut = self.smartFolderService.lastRunTimedOut
                 self.applyLoadedItems(
                     items, target: target,

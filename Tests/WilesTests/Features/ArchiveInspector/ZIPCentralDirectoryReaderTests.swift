@@ -22,6 +22,57 @@ public struct ZIPCentralDirectoryReaderTests {
         testZip64WithOutOfRangeCentralDirectoryOffsetDoesNotCrash()
         testNonUTF8EntryNameIsDecodedNotDropped()
         testEOCDIsFoundWhenTrailedByAZipComment()
+        testCentralDirectoryOffsetIsResolvedFromATailWindow()
+        testEntriesAreListedFromACentralDirectoryWindowWithNonZeroFileOffset()
+        testWindowedTailReadResolvesAZip64CentralDirectory()
+    }
+
+    /// The large-archive path reads only a tail window via `FileHandle`, then only `[cdOffset, EOF)`
+    /// — never the whole (multi-GB, possibly network-hosted) file. `centralDirectoryFileOffset`
+    /// must recover the central directory's *absolute* offset from just that tail, even when the
+    /// central directory itself starts before the window.
+    private static func testCentralDirectoryOffsetIsResolvedFromATailWindow() {
+        let names = ["big/a.bin", "big/b.bin", "big/c.bin"]
+        let cdStart = 500_000
+        let full = makeZIPBuffer(entryNames: names, centralDirectoryStartOffset: cdStart)
+        let tailStart = full.count - 64 * 1024
+        let tail = Data(full.suffix(from: full.startIndex + tailStart))
+
+        let resolved = ZIPCentralDirectoryReader.centralDirectoryFileOffset(fromTail: tail, tailStart: tailStart)
+        report(
+            "Feature/ZIPCentralDirectoryReader",
+            "POS: the central directory's absolute file offset is recovered from a tail window that doesn't contain it",
+            result: resolved == cdStart)
+    }
+
+    private static func testEntriesAreListedFromACentralDirectoryWindowWithNonZeroFileOffset() {
+        let names = ["big/a.bin", "big/b.bin", "big/c.bin"]
+        let cdStart = 500_000
+        let full = makeZIPBuffer(entryNames: names, centralDirectoryStartOffset: cdStart)
+        let window = Data(full.suffix(from: full.startIndex + cdStart))
+
+        let result = ZIPCentralDirectoryReader.readEntryNames(from: window, windowFileOffset: cdStart)
+        report(
+            "Feature/ZIPCentralDirectoryReader",
+            "POS: readEntryNames lists every entry from a [cdOffset, EOF) window when told its file offset",
+            result: result == names)
+    }
+
+    private static func testWindowedTailReadResolvesAZip64CentralDirectory() {
+        let names = ["z/a", "z/b"]
+        let cdStart = 300_000
+        let full = makeZip64Buffer(
+            entryNames: names, includeLocator: true, centralDirectoryStartOffset: cdStart)
+        let tailStart = full.count - 4096
+        let tail = Data(full.suffix(from: full.startIndex + tailStart))
+
+        let resolved = ZIPCentralDirectoryReader.centralDirectoryFileOffset(fromTail: tail, tailStart: tailStart)
+        let window = Data(full.suffix(from: full.startIndex + cdStart))
+        let listed = ZIPCentralDirectoryReader.readEntryNames(from: window, windowFileOffset: cdStart)
+        report(
+            "Feature/ZIPCentralDirectoryReader",
+            "POS: a ZIP64 central directory is resolved and listed from a windowed read with a non-zero file offset",
+            result: resolved == cdStart && listed == names)
     }
 
     /// B9-6: `findCentralDirectoryOffset` now does a `Data.range(of:options:.backwards)` scan. A ZIP
@@ -142,7 +193,7 @@ public struct ZIPCentralDirectoryReaderTests {
     /// Lays the central directory records directly at the start of the buffer (offset 0), followed
     /// immediately by the EOCD record pointing back at offset 0 - the minimal valid archive shape
     /// this reader needs (it never reads local file headers, only the central directory).
-    private static func makeZIPBuffer(entryNames: [String]) -> Data {
+    private static func makeZIPBuffer(entryNames: [String], centralDirectoryStartOffset: Int = 0) -> Data {
         var centralDirectory = Data()
         for name in entryNames {
             centralDirectory.append(makeCentralDirectoryRecord(name: name))
@@ -150,8 +201,8 @@ public struct ZIPCentralDirectoryReaderTests {
         let eocd = makeEndOfCentralDirectory(
             entryCount: UInt16(entryNames.count),
             centralDirectorySize: UInt32(centralDirectory.count),
-            centralDirectoryOffset: 0)
-        return centralDirectory + eocd
+            centralDirectoryOffset: UInt32(centralDirectoryStartOffset))
+        return Data(repeating: 0x00, count: centralDirectoryStartOffset) + centralDirectory + eocd
     }
 
     private static func writeUInt64LE(_ value: UInt64, into data: inout Data) {
@@ -165,7 +216,8 @@ public struct ZIPCentralDirectoryReaderTests {
     /// be read from the ZIP64 EOCD record found via the locator.
     private static func makeZip64Buffer(
         entryNames: [String], includeLocator: Bool,
-        locatorEOCDOffsetOverride: UInt64? = nil, cdOffsetOverride: UInt64? = nil) -> Data {
+        locatorEOCDOffsetOverride: UInt64? = nil, cdOffsetOverride: UInt64? = nil,
+        centralDirectoryStartOffset: Int = 0) -> Data {
         var centralDirectory = Data()
         for name in entryNames {
             centralDirectory.append(makeCentralDirectoryRecord(name: name))
@@ -181,9 +233,9 @@ public struct ZIPCentralDirectoryReaderTests {
         writeUInt64LE(UInt64(entryNames.count), into: &zip64EOCD) // 24: entries on this disk
         writeUInt64LE(UInt64(entryNames.count), into: &zip64EOCD) // 32: total entries
         writeUInt64LE(UInt64(centralDirectory.count), into: &zip64EOCD) // 40: central directory size
-        writeUInt64LE(cdOffsetOverride ?? 0, into: &zip64EOCD) // 48: central directory offset
+        writeUInt64LE(cdOffsetOverride ?? UInt64(centralDirectoryStartOffset), into: &zip64EOCD) // 48: central directory offset
 
-        let zip64EOCDOffset = centralDirectory.count
+        let zip64EOCDOffset = centralDirectoryStartOffset + centralDirectory.count
         var locator = Data()
         writeUInt32LE(0x0706_4B50, into: &locator) // 0: zip64 locator signature
         writeUInt32LE(0, into: &locator) // 4: disk with zip64 EOCD
@@ -195,7 +247,7 @@ public struct ZIPCentralDirectoryReaderTests {
             centralDirectorySize: 0xFFFF_FFFF,
             centralDirectoryOffset: 0xFFFF_FFFF)
 
-        var buffer = centralDirectory + zip64EOCD
+        var buffer = Data(repeating: 0x00, count: centralDirectoryStartOffset) + centralDirectory + zip64EOCD
         if includeLocator {
             buffer += locator
         }

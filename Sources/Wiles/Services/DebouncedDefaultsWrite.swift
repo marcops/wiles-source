@@ -23,17 +23,21 @@ public final class DebouncedDefaultsWrite {
     /// burst of edits serializes to storage only once.
     public func schedule(_ write: @escaping () -> Void) {
         pending?.cancel()
-        let item = DispatchWorkItem(block: write)
+        let item = DispatchWorkItem { [weak self] in
+            write()
+            self?.pending = nil // timer fired — nothing left for a later flush() to re-run
+        }
         pending = item
         DispatchQueue.main.asyncAfter(deadline: .now() + interval, execute: item)
     }
 
-    /// Runs the pending write immediately and clears the timer. `perform()` before `cancel()` — a
-    /// cancelled `DispatchWorkItem` no longer runs on `perform()`.
+    /// Runs the pending write now, if one is still pending — a no-op once the timer already fired,
+    /// so quit-time flush can't re-write the same value. `perform()` then `cancel()`.
     public func flush() {
-        pending?.perform()
-        pending?.cancel()
+        guard let item = pending else { return }
         pending = nil
+        item.perform()
+        item.cancel()
     }
 
     /// Drops the pending write without running it.

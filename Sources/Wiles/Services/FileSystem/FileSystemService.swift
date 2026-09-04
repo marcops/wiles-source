@@ -96,6 +96,11 @@ public struct FileSystemService: Sendable {
         let fileURLs = try directoryEntries(at: url, keys: keys)
 
         let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
+        // `directoryListingLimit` bounds results, not files read — cap total content-read bytes here
+        // too, like the recursive path does.
+        let contentBudget: ContentReadBudget? = (options.searchScope != .name && !parsedQuery.isEmpty)
+            ? ContentReadBudget(totalBytes: SearchFilterService.recursiveContentByteBudget)
+            : nil
         var items: [FileItem] = []
         for fileURL in fileURLs {
             if Task.isCancelled {
@@ -106,7 +111,8 @@ public struct FileSystemService: Sendable {
             }
             if !SearchFilterService.matchesSearch(
                 fileURL: fileURL, parsed: parsedQuery,
-                scope: options.searchScope, caseSensitive: options.searchCaseSensitive) {
+                scope: options.searchScope, caseSensitive: options.searchCaseSensitive,
+                contentBudget: contentBudget) {
                 continue
             }
 
@@ -114,6 +120,9 @@ public struct FileSystemService: Sendable {
             if items.count >= directoryListingLimit {
                 break
             }
+        }
+        if contentBudget?.exhausted == true {
+            reportContentBudgetExhausted(under: url)
         }
         // A cancelled load (rapid navigation / search keystroke) breaks out of the loop above with a
         // partial `items`. Bail before caching so the next visit's cache fast-path can't paint an

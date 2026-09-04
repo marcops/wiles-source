@@ -74,17 +74,18 @@ public struct AppStatePasteAndArchiveTests {
             "POS: pasteToCurrentDirectory() with a .copy clipboard duplicates the file into the current directory and preserves the source",
             result: copiedExists && sourceStillExists && appState.transient.clipboard != nil)
 
-        // NEG: cut-clipboard paste clears the clipboard synchronously (before the async move even completes).
+        // ML-138: a cut-clipboard paste does NOT clear the clipboard synchronously — it waits until
+        // at least one item has actually moved, so a 100%-failed cut-paste keeps the pending cut.
         let cutFile = makeFile(named: "cut-me.txt", in: sourceDir, content: "cut content")
         let appState2 = AppState()
         appState2.navigateTo(destDir)
         appState2.transient.clipboard = ClipboardState(urls: [cutFile], action: .cut)
         appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences))
-        let clipboardClearedImmediately = appState2.transient.clipboard == nil
+        let clipboardKeptUntilMoveCompletes = appState2.transient.clipboard != nil
         report(
             "AppState+Operations",
-            "NEG: pasteToCurrentDirectory() with a .cut clipboard clears the clipboard immediately, not waiting for the move to finish",
-            result: clipboardClearedImmediately)
+            "NEG (ML-138): pasteToCurrentDirectory() with a .cut clipboard does NOT clear it synchronously — waits for the move",
+            result: clipboardKeptUntilMoveCompletes)
 
         try? await Task.sleep(nanoseconds: 400_000_000)
         let movedExists = FileManager.default.fileExists(atPath: destDir.appendingPathComponent("cut-me.txt").path)
@@ -93,8 +94,28 @@ public struct AppStatePasteAndArchiveTests {
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a .cut clipboard eventually moves the file into the current directory",
             result: movedExists && originalGone)
+        report(
+            "AppState+Operations",
+            "POS (ML-138): a successful cut-paste clears the internal clipboard once the move has completed",
+            result: appState2.transient.clipboard == nil)
+
+        // POS (ML-138 regression): a cut-paste that fails 100% (source already gone) keeps the
+        // pending cut so the user can retry — nothing was moved, nothing to forget.
+        let missingCut = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("gone-\(UUID().uuidString).txt")
+        let appState3 = AppState()
+        appState3.navigateTo(destDir)
+        let keptClip = ClipboardState(urls: [missingCut], action: .cut)
+        appState3.transient.clipboard = keptClip
+        appState3.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState3.preferences))
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        report(
+            "AppState+Operations",
+            "POS (ML-138): a cut-paste that moves nothing keeps the pending cut clipboard for retry",
+            result: appState3.transient.clipboard != nil)
+
         await drainUndoRedoService(appState)
         await drainUndoRedoService(appState2)
+        await drainUndoRedoService(appState3)
     }
 
     private static func testUndoRedoLastAction() async {

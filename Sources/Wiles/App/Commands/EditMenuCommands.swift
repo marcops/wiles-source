@@ -39,15 +39,13 @@ struct EditMenuCommands: LocalizedCommands {
     /// True when a text field currently owns keyboard focus, so file cut/copy/paste/select-all must
     /// defer to `NSText`'s own actions. `isTextFieldEditingActive` is the per-window signal for the
     /// rename field / path bar; `isSearching` and the live first-responder check add the header
-    /// search box and any sheet text field it doesn't track (finding MM-133).
+    /// search box and any sheet text field it doesn't track. Shared with `FileMenuCommands` via
+    /// `MenuTextEditingState` so the plain-key destructive items (Space / Delete) get the same guard.
     private var isEditingText: Bool {
-        if isTextFieldEditingActive ?? false {
-            return true
-        }
-        if appState?.selection.isSearching ?? false {
-            return true
-        }
-        return NSApplication.shared.keyWindow?.firstResponder is NSText
+        MenuTextEditingState.isActive(
+            isTextFieldEditingActive: isTextFieldEditingActive,
+            isSearching: appState?.selection.isSearching ?? false,
+            liveFirstResponderIsText: NSApplication.shared.keyWindow?.firstResponder is NSText)
     }
 
     private func cutCommandButton(isRenaming: Bool) -> some View {

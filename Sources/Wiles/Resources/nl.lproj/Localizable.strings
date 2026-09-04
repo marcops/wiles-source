@@ -59,18 +59,14 @@
 "backgroundOperations" = "Background Operations";
 "backgroundTasksSuffix" = "achtergrondtaken";
 "batchRename" = "Batch Rename";
-"batchRenameTitle" = "Batch bestanden hernoemen";
 "camera" = "Camera";
 "cancel" = "Annuleer";
-"changeAllDefaultApp" = "Altijd openen met";
 "changeAllDefaultAppEllipsis" = "Altijd openen met…";
 "clearAllTags" = "Clear All Tags";
 "clearSearch" = "Zoekopdracht wis";
 "close" = "Sluit";
-"codePreview" = "Code Preview";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Gebruikt compactere rijafstand in lijst- en rasterweergaven.";
-"compressToTarGz" = "Compress to .tar.gz";
 "compressToZip" = "Compress to ZIP";
 "compressWithPassword" = "Comprimeren met wachtwoord...";
 "connect" = "Connect";
@@ -95,7 +91,6 @@
 "smartFolderHint" = "Toont bestanden die overeenkomen met de opgeslagen zoekopdracht van deze slimme map.";
 "symlinkModeAbsolute" = "Absoluut";
 "symlinkModeRelative" = "Relatief";
-"createNewFolder" = "Create New Folder";
 "createSymbolicLink" = "Symbolische Link Maken";
 "createSymlink" = "Symbolische Link Maken...";
 "created" = "Created";
@@ -111,10 +106,7 @@
 "devices" = "DEVICES";
 "dimensions" = "Dimensions";
 "directoryTree" = "DIRECTORY TREE";
-"diskUsageVisualizer" = "Folder Disk Usage Visualizer";
 "diskUsageOthersItemsFormat" = "Overige (%d items)";
-"documents" = "Documenten";
-"domainToolsTitle" = "Domain Tools & Feature Highlights";
 "done" = "Done";
 "confirm" = "Bevestigen";
 "downloadFromiCloud" = "Downloaden van iCloud";
@@ -131,10 +123,7 @@
 "enterPathPlaceholder" = "Enter path...";
 "execute" = "Uitvoeren";
 "extractArchive" = "Extract Archive";
-"extractHere" = "Extract Archive Here";
 "favorites" = "FAVORITES";
-"fetchError" = "Unable to load properties.";
-"fileNameLabel" = "File Name";
 "filterCodeFiles" = "Filter Code Files (kind:code)";
 "filterDocuments" = "Filter Documents (kind:doc)";
 "filterFolders" = "Filter Folders (kind:folder)";
@@ -147,10 +136,8 @@
 "focalLength" = "Brandpuntsafstand";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";
-"folderNamePlaceholder" = "Folder Name";
 "folderProperties" = "Folder Properties";
 "forward" = "Forward";
-"freeSpace" = "Beschikbaar";
 "freeSpaceFormat" = "%@ Beschikbaar";
 "fullDiskAccessNotice" = "Verleen volledige schijftoegang in Systeeminstellingen om toegang te krijgen tot alle mappen zonder herhaalde meldingen.";
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
@@ -180,7 +167,6 @@
 "helpPreviewTitle" = "Syntax-Highlighted Preview Sidebar";
 "helpServerDesc" = "Press Cmd+K or choose 'Connect to Server...' in the Options menu to connect to remote SMB, FTP, or SFTP shares.";
 "helpServerTitle" = "Connect to Network Server";
-"helpShortcuts" = "Help & Shortcuts";
 "helpSymlinkDesc" = "Right-click any file or folder -> 'Create Symlink...' to generate relative or absolute symbolic links.";
 "helpSymlinkTitle" = "Symbolic Link Creation";
 "helpTagsDesc" = "Enable 'Show Tags' in View/Options menu. Right-click any file > Tags to color tag it. Click sidebar color tags or search 'tag:color' to filter.";
@@ -201,7 +187,6 @@
 "helpZipTitle" = "ZIP Archive Compression & Extraction";
 "hidden" = "Hidden";
 "hidePreview" = "Hide Preview";
-"hideStatusBar" = "Hide Status Bar";
 "hideTerminal" = "Hide Terminal";
 "home" = "Thuismap";
 "iCloudDrive" = "iCloud Drive";
@@ -216,11 +201,9 @@
 "linkType" = "Link Type";
 "listView" = "List View";
 "location" = "Location";
-"mac" = "MAC";
 "macModeDesc" = "• Cmd+Down: Open folder or file\n• Enter: Rename item\n• Cmd+Up: Go up to parent folder\n• Cmd+Shift+.: Toggle hidden files";
 "macModeTitle" = "macOS Mode";
 "mergeIntoPDF" = "Samenvoegen tot één PDF";
-"modified" = "Modified";
 "moreInfo" = "More Info...";
 "moveTo" = "Move to:";
 "moveToTrash" = "Move to Trash";
@@ -229,14 +212,11 @@
 "movies" = "Films";
 "music" = "Muziek";
 "name" = "Name";
-"namingPattern" = "Naampatroon";
 "navProfilesTitle" = "Navigation Shortcut Profiles";
-"navSystemTitle" = "Navigation, System & Customization";
 "networkAndCloud" = "NETWORK & CLOUD";
 "newFileTitle" = "New File";
 "newFolder" = "Nieuwe map";
 "newName" = "New Name";
-"no" = "No";
 "noActiveOperations" = "No active operations";
 "noAutoOrgRules" = "No Auto-Organization Rules";
 "noAutoOrgRulesDesc" = "Files will stay where they are.";
@@ -253,8 +233,6 @@
 "others" = "Anderen";
 "overviewDesc" = "Wiles is een volledig native bestandsbeheerder voor macOS, helemaal opnieuw gebouwd om aan te voelen alsof hij altijd al bij je Mac hoorde. Elke actie, van het openen van een map tot het in één keer hernoemen van duizend bestanden, is ontworpen om direct aan te voelen.";
 "owner" = "Owner";
-"parentFolder" = "Parent Folder";
-"password" = "Wachtwoord";
 "paste" = "Plakken";
 "permissionDeniedNotice" = "Toegang geweigerd: Wiles kan de inhoud van deze map niet lezen.";
 "permissions" = "Sharing & Permissions";
@@ -299,9 +277,7 @@
 "selectFolderSubtitle" = "Kies een map op je Mac";
 "invalidFolderPath" = "Deze map bestaat niet";
 "selectOtherApp" = "Ander...";
-"selectTemplate" = "Select Template";
 "sequenceNumbering" = "Sequence Numbering";
-"services" = "Services";
 "shareFolderWifi" = "Share Folder over Wi-Fi";
 "sharingActive" = "Sharing Active";
 "sharingAndPermissions" = "Delen en bevoegdheden";
@@ -324,7 +300,6 @@
 "showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Toont bestanden en mappen waarvan de naam met een punt begint.";
-"showMacSection" = "Show MAC Section";
 "showNetworkAndCloud" = "Show Network & Cloud";
 "showNetworkAndCloudHint" = "Toont de sectie Netwerk & Cloud in de zijbalk.";
 "showPlaces" = "Toon Locaties";
@@ -338,11 +313,9 @@
 "showDirectoryTreeHint" = "Toont de uitklapbare mappenstructuur in de zijbalk.";
 "showSidebarSectionTitles" = "Toon Sectietitels";
 "showSidebarSectionTitlesHint" = "Toont sectietitels boven de lijsten in de zijbalk.";
-"showStatusBar" = "Show Status Bar";
 "showTags" = "Show Tags";
 "showTagsHint" = "Toont de sectie Labels in de zijbalk.";
 "showTerminal" = "Show Terminal";
-"sidebarMode" = "Sidebar";
 "sidebarMenuTitle" = "Sidebar";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
@@ -359,7 +332,6 @@
 "wifiShareStartFailed" = "Kan Server Niet Starten";
 "retry" = "Opnieuw Proberen";
 "suffix" = "Suffix";
-"symlinkName" = "Symlink Name";
 "symlinkNameLabel" = "Symlink Naam";
 "tabFeatures" = "Features & Tools";
 "tabOverview" = "Overview";
@@ -384,9 +356,7 @@
 "feedbackSubmit" = "Verzenden";
 "feedbackSubmitting" = "Bezig met verzenden...";
 "feedbackSuccessMessage" = "Bedankt! Je feedback is verzonden.";
-"feedbackConfirmMessage" = "Deze feedback verzenden?";
 "write" = "Schrijven";
-"yes" = "Yes";
 
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "Volume uitwerpen";
@@ -397,15 +367,12 @@
 "selectionCountWithSize" = "%d / %d (%@)";
 "moveToTrashPartialFailure" = "{0} van {1} items konden niet naar de Prullenmand worden verplaatst.";
 "tagOperationPartialFailure" = "{0} van {1} items konden niet worden getagd.";
-"selectedItemsCount" = "%d selected";
-"selectedItemsCountWithSize" = "%d selected (%@)";
 
 // MARK: - Settings window & menu-bar cleanup (added)
 "newWindow" = "Nieuw Venster";
 "theme" = "Thema";
 "skipDeleteConfirmation" = "Verwijderbevestiging overslaan";
 "skipDeleteConfirmationHint" = "Verplaatst items direct naar de Prullenbak, zonder om bevestiging te vragen.";
-"settingsWindowTitle" = "Wiles-instellingen";
 "settingsHeaderSubtitle" = "Pas Wiles aan naar jouw voorkeuren.";
 "settingsMenuItem" = "Instellingen…";
 "settingsGeneralTab" = "Algemeen";
@@ -513,8 +480,6 @@
 "imageConverterFinalizeFailed" = "Kon afbeeldingsbestemming niet afronden";
 "imageConverterOutputTooLarge" = "De afbeelding is te groot om te converteren (meer dan {0} megapixels)";
 "syntaxTruncatedNotice" = "\n... (afgekapt)";
-"fileTemplateMarkdownContent" = "# Titel\n\nInhoud komt hier.\n";
-"fileTemplateJSONContent" = "{\n  \"sleutel\": \"waarde\"\n}\n";
 "filterModifiedToday" = "Vandaag Gewijzigd (date:today)";
 "filterModified30Days" = "Gewijzigd in de Laatste 30 Dagen (date:30d)";
 "serverAddressPlaceholder" = "smb://server/share";
@@ -542,6 +507,7 @@
 "languageSystemDefault" = "Systeemstandaard";
 "batchRenamePartialFailure" = "{0} van {1} items hernoemd. Mislukt — {2}";
 "fileShredderPartialFailure" = "{0} van {1} items voltooid. Mislukt — {2}";
+"fileShredderCancelledPartial" = "Geannuleerd — {0} van {1} items zijn permanent verwijderd (geen prullenmand, niet ongedaan te maken).";
 "pastePartialFailure" = "{0} van {1} items konden niet worden geplakt.";
 "symlinkCannotReplaceOwnTarget" = "Kan geen symbolische koppeling maken die het eigen doel zou vervangen.";
 "share" = "Deel…";
