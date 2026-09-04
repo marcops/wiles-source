@@ -62,7 +62,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
 
     public static func extractSingleEntry(from archiveURL: URL, entryPath: String, to destinationFolder: URL) async throws -> URL {
         // `CancellableWork.detached` (not a bare `Task.detached`) so closing the sheet actually
-        // reaches `Task.isCancelled` inside `waitForExitOrCancel` and stops `ditto`/`unzip` (MM-078).
+        // reaches `Task.isCancelled` inside `waitForExitOrCancel` and stops `ditto`/`unzip`.
         try await CancellableWork.detached(priority: .userInitiated) {
             try extractSingleEntrySync(from: archiveURL, entryPath: entryPath, to: destinationFolder)
         }
@@ -73,12 +73,12 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         // would make the `ditto` fallback's `stagingDir.appendingPathComponent(entryPath)` resolve
         // OUTSIDE `stagingDir`, and the subsequent `moveItem` would then relocate an arbitrary
         // readable file (SSH keys, credentials). Same guard `ArchiveService.extractArchive` already
-        // runs on every entry (HH-234).
+        // runs on every entry.
         guard !ArchiveService.entryEscapesDestination(entryPath) else {
             throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }
         // Reclaim any `.wiles-unzip-*` staging dir a prior crashed extraction stranded here — it's a
-        // redundant copy of archive contents the user still has, so it's safe to remove (MM-078).
+        // redundant copy of archive contents the user still has, so it's safe to remove.
         sweepStaleUnzipStagingDirs(in: destinationFolder)
         let entryName = (entryPath as NSString).lastPathComponent
         var destIsDirectory: ObjCBool = false
@@ -114,7 +114,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         process.arguments = ["-x", "-k", archiveURL.path, stagingDir.path]
         try process.run()
         // Poll for cancellation — closing the Archive Inspector sheet must actually stop `ditto`,
-        // not let it unpack the whole archive in the background (MM-078). The `defer` above still
+        // not let it unpack the whole archive in the background. The `defer` above still
         // clears the staging dir on the thrown `CancellationError`.
         try ArchiveService.waitForExitOrCancel(process)
 
@@ -125,7 +125,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         let extractedURL = stagingDir.appendingPathComponent(entryPath)
         // Defense in depth on top of the `entryEscapesDestination` gate above: confirm the resolved
         // path is still inside the staging dir before touching it, so a symlink planted by the
-        // archive can't redirect the read/move either (HH-234).
+        // archive can't redirect the read/move either.
         guard extractedURL.resolvingSymlinksInPath().isDescendantOrSelf(of: stagingDir.resolvingSymlinksInPath()) else {
             throw WilesError.localized(key: .archiveExtractionFailed, arguments: [])
         }
@@ -164,7 +164,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
         }
         do {
             // Cancellable wait — a closed sheet stops `unzip -p` instead of streaming the whole
-            // entry (MM-078). Drop the partial `destURL` on cancellation before rethrowing.
+            // entry. Drop the partial `destURL` on cancellation before rethrowing.
             try ArchiveService.waitForExitOrCancel(process)
         } catch {
             try? FileManager.default.removeItem(at: destURL)
@@ -184,7 +184,7 @@ public enum ArchiveInspectionService: ArchiveInspectionServiceProtocol, Sendable
 
     /// Prefix for the hidden whole-archive staging dir `extractSingleEntrySync` uses for the `ditto`
     /// fallback path. A live extraction holds it for seconds; a `.wiles-unzip-*` dir older than
-    /// `staleUnzipStagingMaxAge` is a crash leftover (MM-078).
+    /// `staleUnzipStagingMaxAge` is a crash leftover.
     static let unzipStagingPrefix = ".wiles-unzip-"
     private static let staleUnzipStagingMaxAge: TimeInterval = 60
 

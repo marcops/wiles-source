@@ -113,7 +113,7 @@ enum ZIPCentralDirectoryReader {
 
         // `Int(exactly:)`, not `Int(_:)` — these offsets are read straight from attacker-controlled
         // archive bytes, and `Int(someUInt64 > Int.max)` is a `fatalError`. A crafted ZIP64 with
-        // `0xFFFFFFFFFFFFFFFF` here used to crash the Archive Inspector on open (finding MM-247).
+        // `0xFFFFFFFFFFFFFFFF` here used to crash the Archive Inspector on open.
         guard let recordAbsolute = Int(exactly: readUInt64(data, at: locatorPosition + 8)),
               let recordOffset = bufferIndex(forAbsolute: recordAbsolute, in: data, windowFileOffset: windowFileOffset),
               recordOffset + 56 <= data.count,

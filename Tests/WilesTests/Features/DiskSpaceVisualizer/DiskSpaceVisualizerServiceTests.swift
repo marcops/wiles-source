@@ -24,6 +24,41 @@ public struct DiskSpaceVisualizerFeatureTests {
         await testOthersBucketAggregatesItemsPastTop10()
         await testUnreadableSubdirDoesNotAbortSizeWalk()
         testComputeFolderSizeFastStopsOnTheFileCapAndTheWallClockBudget()
+        try? testDeadlineIsRecheckedBetweenSubfoldersNotOnlyInsideEach()
+    }
+
+    /// MM-156: `computeFolderSizeFast`'s own wall-clock check only trips every `wallClockCheckInterval`
+    /// files scanned — a folder with many SUBFOLDERS that each stay under that interval never trips it,
+    /// and the outer per-subfolder loop had no deadline check of its own, so the documented "6s budget
+    /// shared across the whole scan" was never actually enforced for that shape. `collectRawItems` now
+    /// re-checks the deadline before starting each subfolder's walk.
+    private static func testDeadlineIsRecheckedBetweenSubfoldersNotOnlyInsideEach() throws {
+        let tempDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // Three subfolders, each with only 2 files — far under `wallClockCheckInterval` (4096), so
+        // `computeFolderSizeFast`'s own internal check never fires for any of them individually.
+        var subfolders: [URL] = []
+        for i in 0 ..< 3 {
+            let sub = tempDir.appendingPathComponent("sub\(i)")
+            try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+            try Data(repeating: 0x41, count: 100).write(to: sub.appendingPathComponent("a.bin"))
+            try Data(repeating: 0x41, count: 100).write(to: sub.appendingPathComponent("b.bin"))
+            subfolders.append(sub)
+        }
+
+        // An already-past deadline, checked BEFORE each subfolder: with only 2 files per subfolder,
+        // `computeFolderSizeFast`'s own internal check (every 4096 files) would never fire on its
+        // own — the old code scanned every subfolder in full regardless of the deadline. With the
+        // fix, every subfolder is skipped (size 0, flagged truncated) because the deadline has
+        // already passed before any of them starts.
+        let rawItems = try DiskSpaceVisualizerService.collectRawItems(
+            in: subfolders, fm: .default, deadline: .now.advanced(by: .milliseconds(-1)))
+        report(
+            "Feature/DiskSpaceVisualizer",
+            "POS (MM-156): an already-past deadline stops scanning further subfolders instead of only checking inside each one",
+            result: rawItems.count == 3 && rawItems.allSatisfy { $0.wasTruncated && $0.size == 0 })
     }
 
     /// MM-081: the file cap is 50k (aligned with `DuplicateDetectionService`) so the chart doesn't

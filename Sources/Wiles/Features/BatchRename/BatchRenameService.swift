@@ -1,4 +1,5 @@
 import Foundation
+import GitBeacon
 
 public enum BatchRenameService {
     private static let minPaddingDigits = 1
@@ -112,7 +113,10 @@ public enum BatchRenameService {
 
     /// Throws if any target collides, so the executing loop can't fail an item mid-way with a raw
     /// `NSFileWriteFileExistsError`. Grouped by source directory since a batch may span folders.
-    private static func assertNoCollisions(in previews: [(original: FileItem, newName: String)]) throws {
+    /// `internal`, not `private`: `BatchRenameSheetView` calls this directly to pre-validate
+    /// on "Apply" and show the same collision message inline, instead of letting it surface only
+    /// after `performBatchRename` throws asynchronously post-dismissal.
+    static func assertNoCollisions(in previews: [(original: FileItem, newName: String)]) throws {
         let renames = previews.filter { isActualRename($0.original, to: $0.newName) }
         guard !renames.isEmpty else { return }
         let byDirectory = Dictionary(grouping: renames) { $0.original.url.deletingLastPathComponent() }
@@ -144,54 +148,65 @@ public enum BatchRenameService {
         try assertNoCollisions(in: previews)
 
         // De-hide any staging temps a previously crashed batch rename stranded in these folders
-        // (MM-113): the temp IS the user's file, so it's renamed to a visible name, never deleted.
+        // The temp IS the user's file, so it's renamed to a visible name, never deleted.
         await recoverStrandedStagingTemps(in: Set(items.map { $0.url.deletingLastPathComponent() }))
 
         // A permutation (swap A↔B, rotate A→B→C→A) passes `assertNoCollisions` but the sequential
         // rename below would fail every step — the target name is still occupied by another source.
         // Stage those sources through a unique temp name first so the finals are always free.
         let sourceURLByStaged = try await stagePermutationCycles(in: previews)
-        return try await renameStagedPreviews(previews, sourceURLByStaged: sourceURLByStaged)
+        return await renameStagedPreviews(previews, sourceURLByStaged: sourceURLByStaged)
     }
 
     /// The sequential temp→final rename loop. Each staged original is cleared from `unresolvedStaged`
     /// as it resolves (renamed to its final name, or restored on failure); whatever's left when the
-    /// loop exits early (cancellation) is restored so nothing is stranded under a hidden name (MM-113).
+    /// loop exits early (cancellation) is restored so nothing is stranded under a hidden name.
+    /// Cancellation stops the loop (`break`, not `throw`) and the function still returns the
+    /// `BatchRenameResult` built from whatever completed first — those renames already happened on
+    /// disk, so discarding them from the result would silently lose visible progress (R7).
     private static func renameStagedPreviews(
         _ previews: [(original: FileItem, newName: String)],
-        sourceURLByStaged: [URL: URL]) async throws -> BatchRenameResult {
+        sourceURLByStaged: [URL: URL]) async -> BatchRenameResult {
         var renamedURLs: [URL] = []
         renamedURLs.reserveCapacity(previews.count)
         var renamedPairs: [(old: URL, new: URL)] = []
         var failures: [(item: FileItem, error: any Error)] = []
         var unresolvedStaged = sourceURLByStaged
 
-        do {
-            for (item, newName) in previews {
-                try Task.checkCancellation()
-                guard isActualRename(item, to: newName) else {
-                    renamedURLs.append(item.url)
-                    continue
-                }
-                let currentURL = sourceURLByStaged[item.url] ?? item.url
-                do {
-                    let newURL = try await FileSystemService.renameItem(at: currentURL, newName: newName)
-                    renamedURLs.append(newURL)
-                    renamedPairs.append((old: item.url, new: newURL))
-                    unresolvedStaged[item.url] = nil
-                } catch {
-                    failures.append((item, error))
-                    if currentURL != item.url {
-                        _ = try? await FileSystemService.renameItem(
+        for (item, newName) in previews {
+            if Task.isCancelled {
+                break
+            }
+            guard isActualRename(item, to: newName) else {
+                renamedURLs.append(item.url)
+                continue
+            }
+            let currentURL = sourceURLByStaged[item.url] ?? item.url
+            do {
+                let newURL = try await FileSystemService.renameItem(at: currentURL, newName: newName)
+                renamedURLs.append(newURL)
+                renamedPairs.append((old: item.url, new: newURL))
+                unresolvedStaged[item.url] = nil
+            } catch {
+                failures.append((item, error))
+                if currentURL != item.url {
+                    do {
+                        _ = try await FileSystemService.renameItem(
                             at: currentURL, newName: item.name, onCollision: .keepBoth)
-                        unresolvedStaged[item.url] = nil
+                    } catch let restoreError {
+                        // The rename itself failed AND restoring the visible name also failed —
+                        // the file is stranded under its hidden temp name. Report it distinctly
+                        // instead of silently swallowing it; `recoverStrandedStagingTemps` still
+                        // finds and recovers it on this folder's next batch rename run.
+                        ErrorReporter.report(
+                            restoreError,
+                            context: "Batch rename restore failed; \(item.name) is stranded at \(currentURL.lastPathComponent)")
                     }
+                    unresolvedStaged[item.url] = nil
                 }
             }
-        } catch {
-            await restoreStaged(unresolvedStaged)
-            throw error
         }
+        await restoreStaged(unresolvedStaged)
         return BatchRenameResult(renamedURLs: renamedURLs, renamedPairs: renamedPairs, failures: failures)
     }
 
@@ -209,7 +224,7 @@ public enum BatchRenameService {
 
     /// Renames any `.wiles-batch-rename-*` leftover older than a few seconds (i.e. from a crashed
     /// prior run, not this one's in-flight staging) to a visible `Recovered …` name so the user can
-    /// find their file. Never deletes — the temp is the only copy (MM-113).
+    /// find their file. Never deletes — the temp is the only copy.
     static func recoverStrandedStagingTemps(in directories: Set<URL>) async {
         for directory in directories {
             guard let entries = try? FileManager.default.contentsOfDirectory(
@@ -224,12 +239,6 @@ public enum BatchRenameService {
         }
     }
 
-    private struct StagedRename {
-        let originalURL: URL
-        let tempURL: URL
-        let originalName: String
-    }
-
     /// For each source directory whose set of new names overlaps its set of old names (a rename
     /// cycle), renames every participant to a unique hidden temp name up front. Returns
     /// `originalURL → temp URL` for those so the main loop renames the temp to the final name.
@@ -242,7 +251,11 @@ public enum BatchRenameService {
     }
 
     /// Lower-level form working on plain `(url, newName)` pairs so `UndoRedoService.undoBatch` can
-    /// reuse it. Per directory whose targets overlap its sources, stages participants to a hidden temp.
+    /// reuse it. Per directory whose targets overlap its sources, stages participants to a hidden
+    /// temp. A directory's staging failure rolls back every group staged so far — including earlier,
+    /// already-succeeded directories in this same multi-directory batch — not just the failing
+    /// group; a partial-directory rollback would leave those earlier groups' files stranded under
+    /// hidden temp names with nothing left to resolve them (R6).
     static func stagePermutationCycles(pairs: [(url: URL, newName: String)]) async throws -> [URL: URL] {
         let renames = pairs.filter {
             !$0.newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -251,29 +264,22 @@ public enum BatchRenameService {
         let byDirectory = Dictionary(grouping: renames) { $0.url.deletingLastPathComponent() }
 
         var stagedURLByOriginal: [URL: URL] = [:]
-        for (_, group) in byDirectory {
-            let newNames = Set(group.map(\.newName))
-            let oldNames = Set(group.map(\.url.lastPathComponent))
-            guard !newNames.isDisjoint(with: oldNames) else { continue }
+        do {
+            for (_, group) in byDirectory {
+                let newNames = Set(group.map(\.newName))
+                let oldNames = Set(group.map(\.url.lastPathComponent))
+                guard !newNames.isDisjoint(with: oldNames) else { continue }
 
-            var stagedThisGroup: [StagedRename] = []
-            do {
                 for pair in group {
                     try Task.checkCancellation()
                     let tempName = "\(stagingTempPrefix)\(UUID().uuidString)"
                     let tempURL = try await FileSystemService.renameItem(at: pair.url, newName: tempName)
-                    stagedThisGroup.append(
-                        StagedRename(originalURL: pair.url, tempURL: tempURL, originalName: pair.url.lastPathComponent))
+                    stagedURLByOriginal[pair.url] = tempURL
                 }
-            } catch {
-                for entry in stagedThisGroup {
-                    _ = try? await FileSystemService.renameItem(at: entry.tempURL, newName: entry.originalName)
-                }
-                throw error
             }
-            for entry in stagedThisGroup {
-                stagedURLByOriginal[entry.originalURL] = entry.tempURL
-            }
+        } catch {
+            await restoreStaged(stagedURLByOriginal)
+            throw error
         }
         return stagedURLByOriginal
     }

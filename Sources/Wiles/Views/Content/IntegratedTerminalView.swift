@@ -93,8 +93,15 @@ struct IntegratedTerminalView: NSViewRepresentable {
             let windowUIState = windowUIState
             DispatchQueue.main.async { [restartCount = restartTimes.count] in
                 guard let appState, let view = windowUIState?.terminalViewCache.view else { return }
-                // Shell is exiting on launch — stop respawning; toggling the drawer starts fresh.
-                guard restartCount <= Self.maxRestartsInWindow else { return }
+                // Shell is exiting on launch — stop respawning. Clear the cached view too, not just
+                // give up on restarting: `makeNSView` reuses `terminalViewCache.view` unconditionally,
+                // so leaving the dead view cached would make every future drawer reopen reshow this
+                // same terminated terminal instead of starting a fresh one.
+                guard restartCount <= Self.maxRestartsInWindow else {
+                    windowUIState?.terminalViewCache.view = nil
+                    windowUIState?.terminalViewCache.shellPid = nil
+                    return
+                }
                 view.startProcess(executable: IntegratedTerminalView.loginShellPath, args: ["-l"], environment: nil, execName: nil)
                 windowUIState?.terminalViewCache.shellPid = TerminalViewCache.reflectShellPid(of: view)
                 IntegratedTerminalView.sendInitialCommands(

@@ -49,7 +49,7 @@ public final class NavigationStore {
 
         if let savedRecents = UserDefaults.standard.stringArray(forKey: DefaultsKey.recentOpenedURLs.rawValue) {
             // Map optimistically — NO per-path `fileExists` here. That was up to ~50 synchronous
-            // stat syscalls on the main thread during window construction (LP-050). Dead entries
+            // stat syscalls on the main thread during window construction. Dead entries
             // (and unreachable `/Volumes/` ones) are pruned by `validateRecentAndCurrentPaths()`
             // off the main actor right after. Direct assignment ⇒ `didSet` doesn't fire here.
             recentOpenedURLs = savedRecents.map { URL(fileURLWithPath: $0).standardizedFileURL }
@@ -67,7 +67,7 @@ public final class NavigationStore {
     private func validateRecentAndCurrentPaths() async {
         let basePaths = ([currentURL] + recentOpenedURLs).map(\.path)
         // Also check each `/Volumes/<name>` mount root so a recent on an offline volume is kept
-        // (transient), not pruned as if the folder were deleted (MH-118).
+        // (transient), not pruned as if the folder were deleted.
         let mountRoots = basePaths.compactMap(SlowVolumePathValidator.volumeMountRoot(forPath:))
         let pathsToCheck = Set(basePaths + mountRoots)
         guard !pathsToCheck.isEmpty else { return }

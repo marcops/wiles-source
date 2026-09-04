@@ -117,7 +117,7 @@ public struct FileItemInteractionsModifier: ViewModifier {
     /// keyboard navigation within `renameDelay` moves the selection (or leaves the folder) without
     /// touching `renameRequestGeneration`, so the generation check alone let a rename field open on
     /// an item no longer selected / no longer on screen, leaving `isTextFieldEditingActive` stuck
-    /// (LB-030). Also require the item to still be the sole selection and still listed.
+    /// Also require the item to still be the sole selection and still listed.
     static func shouldEnterRename(
         scheduledGeneration: Int, currentGeneration: Int,
         selectedURLs: Set<URL>, itemURL: URL, itemStillListed: Bool) -> Bool {

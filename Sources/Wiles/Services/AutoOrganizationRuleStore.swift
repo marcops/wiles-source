@@ -24,7 +24,7 @@ final class AutoOrganizationRuleStore {
     /// save covers it instead (a burst of background moves otherwise rewrote `UserDefaults` and
     /// restarted every watcher once per file).
     private var isBumpingStats = false
-    /// Debounced stats persist, auto-registered for the terminate-time flush (finding MM-171).
+    /// Debounced stats persist, auto-registered for the terminate-time flush.
     private let statsWrite = DebouncedDefaultsWrite(interval: 2)
 
     var rules: [AutoOrganizationRule] = [] {
@@ -62,7 +62,7 @@ final class AutoOrganizationRuleStore {
     /// entry instead of wiping every rule. Any survivors are re-persisted so the bad record can't
     /// re-fail on every launch, and the drop is reported via `ErrorReporter` (no window at launch
     /// to surface it in). If the top-level JSON itself is unreadable, `rules` is left untouched.
-    /// (finding ML-104)
+    ///
     func load() {
         guard let data = UserDefaults.standard.data(forKey: rulesKey) else { return }
         isLoading = true

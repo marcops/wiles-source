@@ -4,16 +4,21 @@ struct DirectoryTreeNodeView: View {
     let node: FolderNode
     let depth: Int
     var appState: AppState
-    @Binding var childrenCache: BoundedFolderNodeCache
+    let childrenCache: BoundedFolderNodeCache
     @Binding var rightClickedNodePath: String?
+    /// This node's OWN loaded children, set once `loadChildrenIfNeeded()` completes. Local `@State`
+    /// (not the shared `childrenCache`) is what SwiftUI actually observes to re-render THIS node —
+    /// `childrenCache` is a plain reference now precisely so writing to it does NOT fan out to every
+    /// other node sharing it. See `BoundedFolderNodeCache`'s doc comment for the full story.
+    @State private var loadedChildren: [FolderNode]?
 
     init(
-        node: FolderNode, depth: Int = 0, appState: AppState, childrenCache: Binding<BoundedFolderNodeCache>,
+        node: FolderNode, depth: Int = 0, appState: AppState, childrenCache: BoundedFolderNodeCache,
         rightClickedNodePath: Binding<String?>) {
         self.node = node
         self.depth = depth
         self.appState = appState
-        _childrenCache = childrenCache
+        self.childrenCache = childrenCache
         _rightClickedNodePath = rightClickedNodePath
     }
 
@@ -24,9 +29,12 @@ struct DirectoryTreeNodeView: View {
     }
 
     /// Deep folders (outside the eagerly-loaded home ancestor chain) arrive with `node.children == nil`
-    /// even though `hasSubfolders` is true; their children are fetched lazily into `childrenCache` on expand.
+    /// even though `hasSubfolders` is true; their children are fetched lazily on expand. Checks the
+    /// local `loadedChildren` first (this node's own completed load — the only source SwiftUI
+    /// actually observes here), falling back to the shared cache for a folder some earlier
+    /// mount/session already resolved.
     private var children: [FolderNode]? {
-        node.resolvedChildren(in: childrenCache)
+        node.children ?? loadedChildren ?? childrenCache[node.url]
     }
 
     private var isExpanded: Bool {
@@ -44,7 +52,7 @@ struct DirectoryTreeNodeView: View {
                 LazyVStack(alignment: .leading, spacing: 2) {
                     ForEach(children) { child in
                         Self(
-                            node: child, depth: depth + 1, appState: appState, childrenCache: $childrenCache,
+                            node: child, depth: depth + 1, appState: appState, childrenCache: childrenCache,
                             rightClickedNodePath: $rightClickedNodePath)
                     }
                 }
@@ -63,6 +71,10 @@ struct DirectoryTreeNodeView: View {
         let url = node.url
         let loaded = await FolderNode.loadChildrenOffMainActor(of: url)
         guard !Task.isCancelled else { return }
+        // Local state is what actually triggers THIS node's re-render (see `children` above and
+        // `BoundedFolderNodeCache`'s doc comment); the shared cache write below is a side-channel
+        // for reuse across remounts/other nodes and intentionally carries no observation of its own.
+        loadedChildren = loaded
         childrenCache[url] = loaded
     }
 

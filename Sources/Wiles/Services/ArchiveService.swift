@@ -210,7 +210,7 @@ public final class ArchiveService: Sendable {
         } ?? (Data(), false)
         // Poll instead of a bare `waitUntilExit()` so cancelling the operation (the ✕ in the
         // operations popover) actually SIGTERMs the `ditto`/`zip`/`tar` subprocess instead of
-        // letting it run to completion for a bar that "won't cancel" (finding MM-104). This runs in
+        // letting it run to completion for a bar that "won't cancel". This runs in
         // a `Task.detached`, so `Task.isCancelled` reflects the forwarded cancellation.
         while process.isRunning {
             if Task.isCancelled {
@@ -237,7 +237,7 @@ public final class ArchiveService: Sendable {
     /// and `terminate()`s the subprocess + throws `CancellationError` when the calling task is
     /// cancelled. For subprocess waits that don't go through `runProcess` (e.g.
     /// `ArchiveInspectionService`'s single-entry `ditto`/`unzip` extraction) so closing the sheet
-    /// actually stops the tool instead of letting it run to completion (MM-078). Must be called
+    /// actually stops the tool instead of letting it run to completion. Must be called
     /// inside a `Task.detached` — same off-main requirement as `runProcess`.
     nonisolated static func waitForExitOrCancel(_ process: Process) throws {
         while process.isRunning {
@@ -312,7 +312,7 @@ public final class ArchiveService: Sendable {
         // (`entries == nil` — a non-.zip/.tar type routed to the `ditto` fallback, or a listing
         // probe that failed / was truncated) a collision can't be ruled out, so extraction goes
         // into a fresh uniquely-named subfolder rather than letting `ditto`/`tar` overwrite whatever
-        // already exists at the destination (BA-279).
+        // already exists at the destination.
         let canExtractFlat = entries != nil && !collidesWithExisting(entries: entries, in: destinationFolder)
         let extractionFolder = canExtractFlat
             ? destinationFolder
@@ -338,7 +338,7 @@ public final class ArchiveService: Sendable {
         } catch {
             // Cancelled (or `run()` failed) mid-extraction: drop the half-written unique subfolder
             // we just created — but never `destinationFolder` itself, which was already there and
-            // may hold the user's other files (MM-104).
+            // may hold the user's other files.
             if extractionFolder != destinationFolder {
                 try? FileManager.default.removeItem(at: extractionFolder)
             }
@@ -377,7 +377,7 @@ public final class ArchiveService: Sendable {
         return listing.split(separator: "\n").map(String.init)
     }
 
-    /// Defense in depth ([L34]): `bsdtar`/`ditto` normally refuse to write outside the destination,
+    /// Defense in depth: `bsdtar`/`ditto` normally refuse to write outside the destination,
     /// but reject the whole extraction upfront if any listed entry escapes via a `..` component or
     /// an absolute path rather than trusting the tool. A non-listable archive (`nil` entries) falls
     /// through to the tool's own guard.
@@ -388,7 +388,7 @@ public final class ArchiveService: Sendable {
 
     /// `true` when an archive entry name would write outside the destination via a `..` component or
     /// an absolute path. `internal` (not `private`) so `ArchiveInspectionService.extractSingleEntry`
-    /// runs the same check on the single entry it extracts (HH-234).
+    /// runs the same check on the single entry it extracts.
     static func entryEscapesDestination(_ entry: String) -> Bool {
         let normalized = entry.replacingOccurrences(of: "\\", with: "/")
         if normalized.hasPrefix("/") {

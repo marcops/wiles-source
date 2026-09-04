@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "選択した項目のパスワード保護ZIPを作成します";
 "passwordMismatchHint" = "パスワードが一致しません。";
 "pastingItemsEllipsis" = "項目を貼り付け中…";
+"movingItemsEllipsis" = "項目を移動中…";
 "batchRenamingEllipsis" = "ファイルの名前を変更中…";
 "removeRecentServer" = "最近使った項目から削除";
 "removeSmartFolderConfirm" = "このスマートフォルダを削除してもよろしいですか？この操作は元に戻せません。";
@@ -229,7 +230,6 @@
 "open" = "開く";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "理解して開く";
-"originalName" = "Original Name";
 "others" = "その他";
 "overviewDesc" = "Wilesは完全にネイティブなmacOSファイルマネージャーで、最初からMacの一部だったかのように感じられるようゼロから作られています。フォルダを開く操作から千個のファイルを一括リネームする操作まで、すべての操作が瞬時に感じられるよう設計されています。";
 "owner" = "Owner";

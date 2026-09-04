@@ -16,7 +16,7 @@ public enum SystemTagsService {
     /// when any app is activated (Finder edits its tag list while frontmost; switching back to Wiles
     /// then picks the change up). It is NEVER read from disk inside a SwiftUI `body` — the old
     /// getter did a cross-app `UserDefaults` parse per tag per row every time its 5s TTL lapsed,
-    /// i.e. `DEV_RULES.md` #19 (finding ML-070). `nil` until the first refresh; readers fall back
+    /// i.e. `DEV_RULES.md` #19. `nil` until the first refresh; readers fall back
     /// to the seven standard colors until then.
     private static var cachedFavoriteTags: [SystemTag]?
     private static var activationObserver: (any NSObjectProtocol)?

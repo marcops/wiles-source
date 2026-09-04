@@ -16,7 +16,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
     /// True from the moment `start(...)` is called until the listener is ready or has failed. The
     /// port scan (`waitForPortRelease`'s `Thread.sleep`, socket-probe loop) now runs off the main
     /// thread, so this is the immediate signal `HttpShareSheet` shows instead of `start()` blocking
-    /// the UI for up to ~0.5s + probe time (finding ML-086).
+    /// the UI for up to ~0.5s + probe time.
     @MainActor public var isStarting: Bool = false
     /// Bumped per `start(...)`; a stale async port-scan whose `finishStarting` lands after a newer
     /// `start(...)`/`stop()` checks this and bails.
@@ -64,9 +64,14 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // Tear down any listener/connections from a previous `start()` before standing up a new one.
         // Without this the earlier `NWListener` is orphaned — still bound to its port and with no
         // reference left to cancel it — so `firstAvailablePort` then skips that (still-occupied) port
-        // and the new server lands on the next one (BB-358). `stop()` also clears `sharedFolder`/
+        // and the new server lands on the next one. `stop` also clears `sharedFolder`/
         // `requiredPassword`, which is why they're (re)assigned only *after* it, just below.
-        let previousPort: UInt16? = listener != nil ? port.rawValue : nil
+        // `listener` is queue-owned state (see its declaration) — read it through `queue.sync`
+        // like every other point-in-time access to it in this file (e.g. line ~127's `queue.sync {
+        // listener = newListener }`), not directly on @MainActor, which raced a concurrent
+        // `stop()`/`finishStarting()` mutating it on `queue`.
+        let hadListener = queue.sync { listener != nil }
+        let previousPort: UInt16? = hadListener ? port.rawValue : nil
         stop()
         startGeneration &+= 1
         let generation = startGeneration
@@ -77,7 +82,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
         // `Thread.sleep`, the bind-probe loop in `firstAvailablePort` — runs on `queue`, off the
         // main thread. `sharedFolder`/`requiredPassword` are `queue`-owned state read from
         // `processRequest` (also on `queue`), so assigning them here gives the same happens-before
-        // the old `queue.sync` did. Only the resolved port hops back to `@MainActor` (ML-086).
+        // the old `queue.sync` did. Only the resolved port hops back to `@MainActor`.
         queue.async { [weak self] in
             guard let self else { return }
             sharedFolder = folder
@@ -345,7 +350,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
 
     /// The `contentsOfDirectory` + per-entry `isDirectory` reads + template render for a huge shared
     /// subfolder can take a while — running it on the serial `queue` would stall every other
-    /// in-flight connection behind it (LM-069). Build the whole response on a detached task
+    /// in-flight connection behind it. Build the whole response on a detached task
     /// (`buildDirectoryListing`, in `+DirectoryListing.swift`), then hop back to `queue` only for
     /// `sendResponse` (which mutates `queue`-owned connection state).
     private func serveDirectoryListing(folder: URL, connection: NWConnection) {
@@ -430,7 +435,7 @@ public final class LocalHttpServerService: @unchecked Sendable {
     /// The one HTTP response-head builder: status line + one CRLF-terminated line per header +
     /// the blank line. Built from a `(name, value)` list — never a template string — so a stray
     /// edit can't drop a `\r` and desync the frame. Shared by `sendResponse` and the file-streaming
-    /// path's `streamResponseHeader` (finding LL-055).
+    /// path's `streamResponseHeader`.
     nonisolated static func httpHead(statusCode: Int, headers: [(String, String)]) -> Data {
         let statusText = HTTPURLResponse.localizedString(forStatusCode: statusCode)
         let block = "HTTP/1.1 \(statusCode) \(statusText)\r\n"

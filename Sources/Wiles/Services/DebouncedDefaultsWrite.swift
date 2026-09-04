@@ -4,7 +4,7 @@ import Foundation
 /// hand-rolled `pendingX?.cancel()` + `DispatchQueue.main.asyncAfter(...)` + per-type
 /// `flushPendingSaves` trio that was copied across `ViewPreferences`, `SidebarPreferences` and
 /// `AutoOrganizationRuleStore` — one of which (the sidebar's expanded-tree set) shipped without a
-/// flush at all (findings MM-171 / ML-259).
+/// flush at all.
 ///
 /// Every instance registers itself with `DebouncedWriteRegistry`, which `WilesApp` drains once on
 /// `applicationWillTerminate` — so a new debounced write is flushed on quit by construction, with

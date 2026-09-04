@@ -10,7 +10,7 @@ public struct FileTaggingService: Sendable {
         // One target state for the whole selection: add to all unless every item already has it,
         // then the whole selection ends up consistent (a mixed selection no longer flips per-file).
         // `uniquingKeysWith` (not `uniqueKeysWithValues`) so a caller that passes a non-deduplicated
-        // `targetURLs` can't `fatalError` on a duplicate key (ML-085).
+        // `targetURLs` can't `fatalError` on a duplicate key.
         let tagsByURL = Dictionary(
             targetURLs.map { ($0, currentTags(for: $0, in: itemsSnapshot)) },
             uniquingKeysWith: { first, _ in first })
@@ -20,7 +20,7 @@ public struct FileTaggingService: Sendable {
             // Re-read the file's tags from disk right before writing — the snapshot decides the
             // add-vs-remove direction, but writing tags derived from a stale snapshot would drop
             // any tag added out-of-band (Finder, another app, another window) since the last load
-            // (MM-219: Finder tags are user data). This runs off the main actor already.
+            // (Finder tags are user data). This runs off the main actor already.
             var newTags = (try? url.resourceValues(forKeys: [.tagNamesKey]))?.tagNames ?? []
             if shouldAdd {
                 guard !newTags.contains(tag) else { continue }

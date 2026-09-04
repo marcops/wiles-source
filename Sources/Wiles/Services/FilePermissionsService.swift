@@ -68,14 +68,14 @@ public enum FilePermissionsService: Sendable {
             includingPropertiesForKeys: [.isDirectoryKey],
             // Skip an unreadable subdirectory and keep applying to the rest — without this the walk
             // aborts at the first protected folder and silently leaves half the tree unchanged while
-            // `applied` just looks partial. R1 / BB-462.
+            // `applied` just looks partial. R1.
             errorHandler: { _, _ in true }) else {
             return (applied, errors)
         }
         // `while`/`nextObject()` rather than `for…in`: the enumerator's iterator is unavailable in
         // an async context. Deep trees can take seconds; stop as soon as the caller's task is
         // cancelled — and yield periodically so a cancellation from the sheet's `.onDisappear`
-        // (LL-025) actually lands mid-walk instead of only being seen after it finishes.
+        // actually lands mid-walk instead of only being seen after it finishes.
         var processed = 0
         while let childURL = enumerator.nextObject() as? URL {
             if Task.isCancelled {

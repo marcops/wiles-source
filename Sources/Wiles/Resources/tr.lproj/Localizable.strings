@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Seçili öğelerin şifre korumalı bir ZIP'ini oluşturur";
 "passwordMismatchHint" = "Şifreler eşleşmiyor.";
 "pastingItemsEllipsis" = "Öğeler Yapıştırılıyor…";
+"movingItemsEllipsis" = "Öğeler Taşınıyor…";
 "batchRenamingEllipsis" = "Dosyalar yeniden adlandırılıyor…";
 "removeRecentServer" = "Sonlardan Kaldır";
 "removeSmartFolderConfirm" = "Bu akıllı klasörü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.";
@@ -229,7 +230,6 @@
 "open" = "Aç";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Birlikte Aç";
-"originalName" = "Original Name";
 "others" = "Diğerleri";
 "overviewDesc" = "Wiles, Mac'inizin her zaman bir parçasıymış gibi hissettirecek şekilde sıfırdan tasarlanmış, tamamen yerel bir macOS dosya yöneticisidir. Bir klasörü açmaktan bin dosyayı aynı anda yeniden adlandırmaya kadar her etkileşim anında hissettirecek şekilde tasarlandı.";
 "owner" = "Owner";

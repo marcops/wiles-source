@@ -7,7 +7,7 @@ private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
 
     private func prefetchIfNeeded(_ items: [FileItem]) {
         // No shared mtime index any more — each image cell passes its own `FileItem.dateModified`
-        // straight into `ThumbnailService` (ML-090).
+        // straight into `ThumbnailService`.
         guard !appState.fileSystem.isStreamingBatches else { return }
         if ThumbnailService.shouldPrefetchThumbnails(forItemCount: items.count) {
             appState.thumbnailPrefetcher.prefetch(for: items, size: thumbnailIconSize)
@@ -23,7 +23,7 @@ private struct ResetPaginationAndPrefetchThumbnails: ViewModifier {
                 // While a "search everywhere" crawl is streaming, `items` is re-assigned ~8×/s and
                 // each hit here would cancel-and-restart the prefetch, so it never warms anything.
                 // `prefetchIfNeeded` no-ops during streaming; the crawl's end re-fires it once below
-                // on the complete list (LP-040).
+                // on the complete list.
                 prefetchIfNeeded(newItems)
             }
             .onChange(of: appState.fileSystem.isStreamingBatches) { _, isStreaming in

@@ -26,7 +26,7 @@ public final class AppState {
 
     /// Per-window smart-folder query runner. NOT `.shared`: its in-flight `SpotlightQuery` +
     /// staleness token are per-run session state, and a shared instance meant one window's smart
-    /// folder discarded its own results when another window ran its own query (BA-108).
+    /// folder discarded its own results when another window ran its own query.
     public let smartFolderService = SmartFolderService()
 
     /// Per-window (not `.shared`): their live session state — an mDNS browser, a bound listener —

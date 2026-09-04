@@ -9,6 +9,7 @@ extension UndoRedoTests {
     static func runBatchAndCreateFolderChecks(tempDir: URL) async {
         await testCreateFolderUndoIsNotRedoableWhenFolderGainedContents(tempDir: tempDir)
         await testUndoAndRedoOfACyclicBatchRenameRoundTripExactly(tempDir: tempDir)
+        await testFailedStagingDuringUndoRePushesRecordForRetry(tempDir: tempDir)
     }
 
     /// Finding LL-080: undoing `.createFolder` trashes the folder — but if an external process
@@ -111,6 +112,51 @@ extension UndoRedoTests {
             "UndoRedo",
             "POS (MM-070): ⌘⇧Z re-applies the rotation exactly",
             result: redoReappliedExactly)
+
+        try? FileManager.default.removeItem(at: dir)
+    }
+
+    /// HM-196: `undoRenamePermutation`'s staging call used to sit BEFORE its `do`/`catch`, so a
+    /// staging failure silently dropped `originalActions` instead of re-pushing it for retry like
+    /// every other failure path in this file does. Sabotages a rotation's undo by deleting one of the
+    /// renamed files on disk before undo runs, forcing `stagePermutationCycles` to fail partway.
+    private static func testFailedStagingDuringUndoRePushesRecordForRetry(tempDir: URL) async {
+        let dir = tempDir.appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let service = UndoRedoService()
+
+        let startNames = ["r_2", "r_3", "r_1"]
+        for name in startNames {
+            try? "content-\(name)".write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        }
+        let items = startNames.map { name in
+            FileItem.load(url: dir.appendingPathComponent(name), icon: NSWorkspace.shared.icon(forFile: dir.path))
+        }
+
+        guard let result = try? await BatchRenameService.performBatchRename(
+            items: items, mode: .sequenceNumber(prefix: "r", startNumber: 1, paddingDigits: 1)),
+            result.failures.isEmpty, result.renamedPairs.count == 3 else {
+            TestReporter.report("UndoRedo", "HM-196: setup applied a name-permuting batch rename", result: false)
+            try? FileManager.default.removeItem(at: dir)
+            return
+        }
+        service.recordActions(result.renamedPairs.map { .rename(oldURL: $0.old, newURL: $0.new) })
+
+        // Sabotage: delete one of the renamed (current) files on disk before undo runs — staging
+        // renames the CURRENT files to hidden temps first, so this makes it fail partway through.
+        try? FileManager.default.removeItem(at: dir.appendingPathComponent("r_2"))
+
+        var undoThrew = false
+        do { _ = try await service.undo() } catch { undoThrew = true }
+
+        TestReporter.report(
+            "UndoRedo",
+            "POS (HM-196): undo() of a cyclic batch rename throws when staging fails partway (missing file)",
+            result: undoThrew)
+        TestReporter.report(
+            "UndoRedo",
+            "POS (HM-196): the failed undo re-pushes the record for retry instead of dropping it silently",
+            result: service.canUndo())
 
         try? FileManager.default.removeItem(at: dir)
     }

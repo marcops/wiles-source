@@ -85,6 +85,28 @@ A batch operation validated by a preflight check MUST be executable to that vali
 
 Code review: BLOCKING.
 
+### A Fallible Staging Step Must Be Inside the Recovery Scope of the Operation It Stages For (R6)
+
+Any fallible staging step that precedes a reversible operation must be inside the operation's recovery scope. A failure during staging must preserve or restore the ability to retry/undo/redo — not just a failure in a later step of the same operation. Concretely: if a multi-step recovery block re-pushes an undo/redo record on failure, the staging call itself must be inside that same `do`/`catch`, never a bare `try` that precedes it — a failure at the very first step of the sequence must not be able to escape the recovery block that every later step is protected by. `UndoRedoService.undoRenamePermutation`/`redoRenamePermutation` calling `BatchRenameService.stagePermutationCycles` before their `do`/`catch` began was the counterexample this rule was written against — a staging failure there silently dropped the undo/redo record with no way to retry.
+
+This also covers a staging loop that iterates several independent groups (one per directory, one per batch member, etc.): a failure partway through must roll back everything staged across *every* group so far, not just the group that was in progress when it failed. Rolling back only the current group and leaving earlier, already-succeeded groups staged under hidden temp names is the same bug — those earlier groups just have their own local `do`/`catch` instead of none at all. `BatchRenameService.stagePermutationCycles` originally rolled back only the failing directory's own staged entries inside a per-group `do`/`catch`, stranding any other directory's files already staged in that same batch; the fix accumulates all staged entries in one dictionary and rolls back the whole dictionary from a single `do`/`catch` wrapping the entire multi-group loop.
+
+Code review: BLOCKING for any new staging/rollback sequence, including one with more than one staging group per call.
+
+### A Cancellable Batch Operation Must Preserve and Finalize Partial Results Already Committed Before Cancellation (R7)
+
+A cancellable batch operation must preserve and finalize partial results already committed before cancellation. Cancellation may stop future work, but must not discard accounting, undo state, or reporting for work already performed. A loop accumulating side effects (undo actions, counters, partial results) across iterations must `break` on `Task.isCancelled` — the specific mechanism matters less than the outcome — and still run its completion/recording code; it must never `return` early and drop everything accumulated so far. `DuplicateCleanerSheetView.trashSelected()` was the counterexample: cancelling mid-batch returned before `recordActions` ran, so files already moved to Trash had zero undo record even though the disk operation had genuinely happened.
+
+The same applies when the cancellation check is `try Task.checkCancellation()` and the loop is inside a `throws` function: `throw`ing out of the loop on cancellation is exactly as destructive as an early `return` — the caller's `catch` sees only an error, never the partial result, even though the loop's own accumulated arrays are sitting right there. `BatchRenameService.renameStagedPreviews` was this rule's second counterexample: cancellation threw out of the whole function, discarding every rename already completed in that batch instead of returning them in a `BatchRenameResult`. Prefer `if Task.isCancelled { break }` over `try Task.checkCancellation()` in any loop whose surrounding function must still return (not throw) a partial result.
+
+Code review: BLOCKING for any new cancellable batch loop that accumulates undo/progress state, whether cancellation is observed via `Task.isCancelled` or `Task.checkCancellation()`.
+
+### A Function Whose Completion Timing Varies by Input Needs an Explicit, Awaitable Completion Contract
+
+When a function is synchronous for some inputs and fire-and-forget/asynchronous for others — with nothing in its signature or return type signaling the difference — a caller that needs to run code dependent on its post-completion state will write code that's correct for the common (synchronous) case and silently wrong for the other. Give such a function one explicit completion contract every caller can rely on (make it genuinely `async`/awaitable for every input, or expose a completion callback/`Task` the caller can attach to) rather than leaving the sync/async distinction implicit in the shape of the input. `AppState.navigateTo` is the example this was found against — synchronous for a local path, fire-and-forget for a `/Volumes/…` path — where `AppState+SmartFolders.runSmartFolder` was written correctly only for the synchronous case and silently raced the asynchronous one.
+
+Code review checklist item when adding a new caller of `navigateTo`/`openItem`, or writing a similarly-shaped mixed-completion function elsewhere — not mechanically lint-detectable.
+
 ## Full Rule Self-Audit Before Every Commit
 
 - Before every commit, run the project's validation tooling (build/tests/lint/format — see `WILES_RULES.md` for this project's specific command) **and** perform an explicit self-audit of the diff (staged + unstaged) against the applicable rules in `DEV_RULES.md`, `SWIFT_LANG_RULES.md`, `WILES_RULES.md`, and `WILES_UI_UX_RULES.md` — scoped to the code the diff actually touches, not a full-repo re-audit every time.

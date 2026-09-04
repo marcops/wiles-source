@@ -85,7 +85,7 @@ struct SharedFileItemContextMenu: View {
 
     /// Routes the merge through `runDetachedFileOperation(taskTitle:)` so it shows a progress entry
     /// in the operations popover and its ✕ actually cancels the merge (`PDFMergeService` checks
-    /// `Task.checkCancellation()` per file) — instead of a bare `Task {}` with no UI signal (LL-070).
+    /// `Task.checkCancellation` per file) — instead of a bare `Task {}` with no UI signal.
     private func mergeSelectedIntoPDF() {
         let targets = pdfMergeTargets
         let folder = appState.navigation.currentURL

@@ -6,7 +6,7 @@ public final class SmartFolderService: SmartFolderServiceProtocol {
     /// Instantiated per `AppState` (`appState.smartFolderService`), NOT a `.shared` singleton: the
     /// per-run `activeQuery`/`currentQueryToken` staleness state used to be shared across every open
     /// window, so a smart-folder run in one window silently discarded its own results the moment
-    /// another window started its own run (`token != currentQueryToken`) — BA-108 / WILES_RULES.md
+    /// another window started its own run (`token != currentQueryToken`) — WILES_RULES.md
     /// "Singleton Services With Session State Need an Explicit Owner". The two `static` persistence
     /// helpers below hold no session state and stay static.
     public init() { }

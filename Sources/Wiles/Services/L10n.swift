@@ -128,7 +128,6 @@ public enum L10n {
         case startNumber
         case paddingDigits
         case preview
-        case originalName
         case newName
         case apply
         case quickConvertImage
@@ -321,6 +320,7 @@ public enum L10n {
         case moveCollisionKeepBoth
         case moveCollisionApplyToAll
         case pastingItemsEllipsis
+        case movingItemsEllipsis
         case batchRenamingEllipsis
         case compressingItemsEllipsis
         case convertingImageEllipsis

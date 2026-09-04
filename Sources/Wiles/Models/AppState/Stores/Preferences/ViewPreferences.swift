@@ -154,7 +154,7 @@ public final class ViewPreferences: PersistablePreferenceStore {
     private static let maxPerFolderViewModes = 500
 
     // Debounced `UserDefaults` writes, each auto-registered for the terminate-time flush via
-    // `DebouncedWriteRegistry` (finding MM-171). Replaces three hand-rolled
+    // `DebouncedWriteRegistry`. Replaces three hand-rolled
     // `pendingX?.cancel()` + `asyncAfter` + manual-flush trios.
     private let perFolderViewModesWrite = DebouncedDefaultsWrite(interval: 0.5)
     private let iconSizeWrite = DebouncedDefaultsWrite(interval: 0.3)

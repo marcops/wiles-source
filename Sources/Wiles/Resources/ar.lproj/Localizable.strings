@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "إنشاء ملف ZIP محمي بكلمة مرور للعناصر المحددة";
 "passwordMismatchHint" = "كلمتا المرور غير متطابقتين.";
 "pastingItemsEllipsis" = "جارٍ لصق العناصر…";
+"movingItemsEllipsis" = "جارٍ نقل العناصر…";
 "batchRenamingEllipsis" = "جارٍ إعادة تسمية الملفات…";
 "removeRecentServer" = "إزالة من العناصر الأخيرة";
 "removeSmartFolderConfirm" = "هل أنت متأكد أنك تريد حذف هذا المجلد الذكي؟ لا يمكن التراجع عن هذا.";
@@ -229,7 +230,6 @@
 "open" = "فتح";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "فتح بواسطة";
-"originalName" = "Original Name";
 "others" = "آخرون";
 "overviewDesc" = "‏Wiles هو مدير ملفات أصلي بالكامل لنظام macOS، صُمم من الصفر ليبدو وكأنه كان دائمًا جزءًا من جهاز Mac الخاص بك. كل تفاعل، من فتح مجلد إلى إعادة تسمية ألف ملف دفعة واحدة، صُمم ليبدو فوريًا.";
 "owner" = "Owner";

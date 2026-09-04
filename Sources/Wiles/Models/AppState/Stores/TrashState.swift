@@ -18,7 +18,7 @@ public final class TrashState {
     /// call so it never piles up multiple concurrent full-Trash walks.
     var task: Task<Void, Never>?
     /// In-flight `emptyTrash()` operation. Stored so the owning window's teardown can cancel it —
-    /// `removeTrashContents` checks `Task.isCancelled` per item (LP-012).
+    /// `removeTrashContents` checks `Task.isCancelled` per item.
     private var emptyTask: Task<Void, Never>?
     /// Timestamp of the last trash-size enumeration triggered opportunistically from
     /// `refreshCurrentDirectory()`, used to coalesce it to a coarse interval instead of firing on
@@ -66,7 +66,7 @@ public final class TrashState {
             // No `.skipsHiddenFiles`: "Empty Trash" removes hidden entries too, so the size must count them.
             guard let enumerator = FileManager.default.enumerator(
                 at: directory, includingPropertiesForKeys: keys, options: [],
-                // Skip an unreadable subitem instead of aborting the walk (→ undercounted Trash size). R1 / BA-509.
+                // Skip an unreadable subitem instead of aborting the walk (→ undercounted Trash size). R1.
                 errorHandler: { _, _ in true }) else { continue }
             while let fileURL = enumerator.nextObject() as? URL {
                 if Task.isCancelled {
@@ -103,7 +103,7 @@ public final class TrashState {
     /// off the main actor. `unreadableDirectories` counts the Trash folders that couldn't be listed
     /// at all (e.g. a permission-denied external volume) — those contribute zero URLs, so without
     /// this an empty-trash over an unlistable volume would report "0 failed" = total success even
-    /// though that volume's Trash was untouched (LP-012).
+    /// though that volume's Trash was untouched.
     private nonisolated static func allTrashedItems(using fm: FileManager) -> (items: [URL], unreadableDirectories: Int) {
         allTrashedItems(in: trashDirectories(fileManager: fm), using: fm)
     }

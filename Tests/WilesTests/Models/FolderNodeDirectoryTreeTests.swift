@@ -34,7 +34,7 @@ public struct FolderNodeDirectoryTreeTests {
         let eager = [leaf("eager", base: folderURL)]
         let cached = [leaf("cached", base: folderURL)]
 
-        var cache = BoundedFolderNodeCache()
+        let cache = BoundedFolderNodeCache()
         cache[folderURL] = cached
 
         let withEager = FolderNode(id: folderURL, name: "folder", url: folderURL, children: eager, hasSubfolders: true)
@@ -61,7 +61,7 @@ public struct FolderNodeDirectoryTreeTests {
             "NEG: needsChildLoad is false while a load for the same URL is already in flight",
             result: !unloaded.needsChildLoad(cache: BoundedFolderNodeCache(), inFlight: [folderURL]))
 
-        var cache = BoundedFolderNodeCache()
+        let cache = BoundedFolderNodeCache()
         cache[folderURL] = [leaf("x", base: folderURL)]
         report("NEG: needsChildLoad is false once the cache already holds this folder's children", result: !unloaded.needsChildLoad(cache: cache, inFlight: []))
 

@@ -3,7 +3,7 @@ import Foundation
 /// Process-wide list of every live `DebouncedDefaultsWrite`. `WilesApp` calls `flushAll()` once
 /// from `applicationWillTerminate` so every coalesced write reaches `UserDefaults` before the
 /// process dies — a value changed inside the last debounce interval before ⌘Q would otherwise be
-/// lost and restore stale next launch (findings MM-171 / ML-259).
+/// lost and restore stale next launch.
 ///
 /// Entries are held weakly: a `DebouncedDefaultsWrite` owned by a released store just drops out.
 @MainActor

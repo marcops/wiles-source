@@ -19,7 +19,7 @@ public final class AutoOrganizationService {
     /// bursts — or whose size momentarily plateaus — isn't mistaken for "done" and moved mid-write.
     private let fileStabilityWindow: Duration = .seconds(2)
     /// Extra consecutive stable windows required before a **cross-volume** auto-move (finding
-    /// LL-063). A same-volume move is an atomic rename and can't truncate a file mid-write; a
+    /// A same-volume move is an atomic rename and can't truncate a file mid-write; a
     /// cross-volume move is copy-then-delete, so a download that stalls for one 2s window and
     /// resumes right after would be copied half-written and the source deleted. Three back-to-back
     /// unchanged windows makes that far less likely.
@@ -193,7 +193,7 @@ public final class AutoOrganizationService {
                 }
                 // A cross-volume move is copy+delete, not an atomic rename — demand several more
                 // consecutive unchanged windows so a stalled-then-resumed download isn't truncated
-                // at the destination (LL-063).
+                // at the destination.
                 if !Self.sameVolume(move.file, move.destinationURL),
                    await !(Self.confirmStableAcrossExtraWindows(move.file, window: stabilityWindow)) {
                     continue
@@ -241,7 +241,7 @@ public final class AutoOrganizationService {
     }
 
     /// `true` only if `url`'s snapshot stays identical across `crossVolumeExtraStableWindows` more
-    /// back-to-back `window`s. Used before a cross-volume auto-move (LL-063).
+    /// back-to-back `window`s. Used before a cross-volume auto-move.
     nonisolated static func confirmStableAcrossExtraWindows(_ url: URL, window: Duration) async -> Bool {
         for _ in 0 ..< crossVolumeExtraStableWindows {
             let before = fileSnapshot(url)

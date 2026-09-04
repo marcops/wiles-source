@@ -36,6 +36,7 @@
 "autoOrgNoUndoNotice" = "Files moved by a rule are not added to Undo — move them back manually if needed.";
 "autoOrgRuleStatus" = "Moved %d file(s) · Last: %@";
 "pastingItemsEllipsis" = "Pasting Items…";
+"movingItemsEllipsis" = "Moving Items…";
 "batchRenamingEllipsis" = "Renaming Files…";
 "compressingItemsEllipsis" = "Compressing…";
 "extractingArchiveEllipsis" = "Extracting…";
@@ -221,7 +222,6 @@
 "open" = "Open";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Open With";
-"originalName" = "Original Name";
 "others" = "Others";
 "overviewDesc" = "Wiles is a fully native macOS file manager, built from the ground up to feel like it belongs on your Mac. Every interaction, from opening a folder to renaming a thousand files at once, is designed to feel instant.";
 "owner" = "Owner";

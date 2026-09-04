@@ -36,7 +36,10 @@ struct SidebarView: View {
     @State private var networkAndCloudItems: [SidebarItem] = []
 
     @State private var rootFolderNode: FolderNode?
-    @State private var treeChildrenCache = BoundedFolderNodeCache()
+    /// `let`, not `@State` (see `BoundedFolderNodeCache`'s doc comment): a plain reference passed
+    /// straight down the tree, deliberately outside SwiftUI's observation so one node's cache write
+    /// can't invalidate every other node sharing it.
+    private let treeChildrenCache = BoundedFolderNodeCache()
     @State private var treeBuildTimedOut = false
     @State private var treeBuildGeneration = 0
 
@@ -173,7 +176,7 @@ struct SidebarView: View {
             if appState.showsDirectoryTreeSection {
                 DirectoryTreeSectionView(
                     appState: appState, isExpanded: $appState.preferences.sidebar.isTreeExpanded,
-                    rootFolderNode: rootFolderNode, childrenCache: $treeChildrenCache,
+                    rootFolderNode: rootFolderNode, childrenCache: treeChildrenCache,
                     didTimeOut: treeBuildTimedOut, onRetry: retryTreeBuild)
             }
             if appState.showsTagsSection {

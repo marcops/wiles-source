@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Crée un ZIP protégé par mot de passe des éléments sélectionnés";
 "passwordMismatchHint" = "Les mots de passe ne correspondent pas.";
 "pastingItemsEllipsis" = "Collage des Éléments…";
+"movingItemsEllipsis" = "Déplacement des Éléments…";
 "batchRenamingEllipsis" = "Renommage des fichiers…";
 "removeRecentServer" = "Retirer des Récents";
 "removeSmartFolderConfirm" = "Voulez-vous vraiment supprimer ce dossier intelligent ? Cette action est irréversible.";
@@ -229,7 +230,6 @@
 "open" = "Ouvrir";
 "openSystemSettings" = "Ouvrir Réglages Système";
 "openWith" = "Ouvrir avec";
-"originalName" = "Nom d'origine";
 "others" = "Autres";
 "overviewDesc" = "Wiles est un gestionnaire de fichiers entièrement natif pour macOS, conçu de A à Z pour donner l'impression d'avoir toujours fait partie de votre Mac. Chaque interaction, qu'il s'agisse d'ouvrir un dossier ou de renommer mille fichiers à la fois, est pensée pour paraître instantanée.";
 "owner" = "Propriétaire";

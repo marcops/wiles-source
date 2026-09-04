@@ -96,7 +96,7 @@ struct FolderNode: Identifiable, Hashable {
             includingPropertiesForKeys: [.isDirectoryKey],
             options: options,
             // Skip an unreadable child instead of aborting on the first one and wrongly answering
-            // "no subfolders" (→ folder shown as non-expandable). R1 / BA-509.
+            // "no subfolders" (→ folder shown as non-expandable). R1.
             errorHandler: { _, _ in true })
         else {
             return false

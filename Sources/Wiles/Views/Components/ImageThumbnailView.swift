@@ -6,7 +6,7 @@ struct ImageThumbnailView: View {
     let size: CGFloat
     let fallback: NSImage
     /// The cell's own `FileItem.dateModified` — the thumbnail cache key's mtime component. Passed
-    /// in rather than looked up from shared state so a second window can't invalidate it (ML-090).
+    /// in rather than looked up from shared state so a second window can't invalidate it.
     let dateModified: Date
     @State private var thumbnail: NSImage?
 

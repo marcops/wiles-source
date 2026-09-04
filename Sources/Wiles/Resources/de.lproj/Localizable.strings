@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Erstellt ein passwortgeschütztes ZIP der ausgewählten Elemente";
 "passwordMismatchHint" = "Die Passwörter stimmen nicht überein.";
 "pastingItemsEllipsis" = "Elemente werden eingefügt…";
+"movingItemsEllipsis" = "Elemente werden verschoben…";
 "batchRenamingEllipsis" = "Dateien werden umbenannt…";
 "removeRecentServer" = "Aus Zuletzt verwendet entfernen";
 "removeSmartFolderConfirm" = "Diesen intelligenten Ordner wirklich löschen? Dies kann nicht rückgängig gemacht werden.";
@@ -229,7 +230,6 @@
 "open" = "Öffnen";
 "openSystemSettings" = "Systemeinstellungen öffnen";
 "openWith" = "Öffnen mit";
-"originalName" = "Originalname";
 "others" = "Andere";
 "overviewDesc" = "Wiles ist ein vollständig nativer Dateimanager für macOS, von Grund auf so entwickelt, dass er sich anfühlt, als hätte er schon immer zu deinem Mac gehört. Jede Interaktion, vom Öffnen eines Ordners bis zum Umbenennen von tausend Dateien auf einmal, fühlt sich sofort an.";
 "owner" = "Eigentümer";

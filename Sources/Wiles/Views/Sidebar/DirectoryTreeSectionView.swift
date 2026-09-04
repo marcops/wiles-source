@@ -4,7 +4,7 @@ struct DirectoryTreeSectionView: View {
     var appState: AppState
     @Binding var isExpanded: Bool
     let rootFolderNode: FolderNode?
-    @Binding var childrenCache: BoundedFolderNodeCache
+    let childrenCache: BoundedFolderNodeCache
     var didTimeOut: Bool = false
     var onRetry: (() -> Void)?
     @State private var rightClickedNodePath: String?
@@ -14,7 +14,7 @@ struct DirectoryTreeSectionView: View {
             appState: appState, title: appState.tr(.directoryTree), identifierKey: "DIRECTORY_TREE", isExpanded: $isExpanded) {
                 if let rootFolderNode {
                     DirectoryTreeNodeView(
-                        node: rootFolderNode, depth: 0, appState: appState, childrenCache: $childrenCache,
+                        node: rootFolderNode, depth: 0, appState: appState, childrenCache: childrenCache,
                         rightClickedNodePath: $rightClickedNodePath)
                 } else {
                     loadingState

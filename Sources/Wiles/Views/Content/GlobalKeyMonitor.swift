@@ -69,7 +69,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         }
 
         /// True when `firstResponder` is the integrated terminal's PTY view or a descendant of it.
-        /// Pulled out as a pure function so the terminal-yield rule (finding CH-321) is unit-testable
+        /// Pulled out as a pure function so the terminal-yield rule is unit-testable
         /// without an `NSWindow`/event.
         static func eventTargetsTerminal(firstResponder: NSResponder?, terminalView: NSView?) -> Bool {
             guard let terminalView, let responderView = firstResponder as? NSView else { return false }
@@ -87,7 +87,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
             // and yield every keystroke to the integrated terminal when it's focused — a custom
             // `NSView` from SwiftTerm, so the `NSTextView`/`NSTextField` check below never covers
             // it. Without this, Backspace in the terminal fires `.moveToTrash` on the list behind
-            // it (data loss), and arrows / Return / F2 leak too. See finding CH-321.
+            // it (data loss), and arrows / Return / F2 leak too.
             let terminalFocused = Self.eventTargetsTerminal(
                 firstResponder: event.window?.firstResponder, terminalView: windowUIState.terminalViewCache.view)
             if windowUIState.isTerminalFocused != terminalFocused {

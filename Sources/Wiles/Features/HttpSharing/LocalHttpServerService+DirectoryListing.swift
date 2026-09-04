@@ -4,7 +4,7 @@ import Network
 
 /// Directory-listing HTML for `LocalHttpServerService`: building the `<li>` list, resolving the
 /// root-relative link prefix, and assembling the whole page off `queue` so a huge shared subfolder
-/// doesn't stall other in-flight connections (LM-069). Split from the main file to keep it under
+/// doesn't stall other in-flight connections. Split from the main file to keep it under
 /// the line-count cap.
 extension LocalHttpServerService {
     /// The listing page is static HTML with inline styles and no scripts; lock everything else down

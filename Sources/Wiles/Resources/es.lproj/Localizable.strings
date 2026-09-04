@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Crea un ZIP protegido con contraseña de los elementos seleccionados";
 "passwordMismatchHint" = "Las contraseñas no coinciden.";
 "pastingItemsEllipsis" = "Pegando Elementos…";
+"movingItemsEllipsis" = "Moviendo Elementos…";
 "batchRenamingEllipsis" = "Renombrando archivos…";
 "removeRecentServer" = "Quitar de Recientes";
 "removeSmartFolderConfirm" = "¿Seguro que quieres eliminar esta carpeta inteligente? Esta acción no se puede deshacer.";
@@ -229,7 +230,6 @@
 "open" = "Abrir";
 "openSystemSettings" = "Abrir Ajustes del Sistema";
 "openWith" = "Abrir con";
-"originalName" = "Nombre Original";
 "others" = "Otros";
 "overviewDesc" = "Wiles es un administrador de archivos totalmente nativo para macOS, creado desde cero para sentirse parte de tu Mac. Cada interacción, desde abrir una carpeta hasta renombrar mil archivos a la vez, está diseñada para sentirse instantánea.";
 "owner" = "Propietario";

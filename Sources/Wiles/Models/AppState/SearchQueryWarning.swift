@@ -6,6 +6,6 @@ public enum SearchQueryWarning: Equatable {
     case contentQueryTooShort(minimum: Int)
     case invalidRegex
     /// A `size:`/`date:` filter token whose value can't parse (`size:>10zz`, `date:>abc`), which
-    /// makes every file fail the filter — 0 results with no visible reason (finding ML-140).
+    /// makes every file fail the filter — 0 results with no visible reason.
     case invalidFilterToken(token: String)
 }

@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "선택한 항목의 비밀번호로 보호된 ZIP을 만듭니다";
 "passwordMismatchHint" = "비밀번호가 일치하지 않습니다.";
 "pastingItemsEllipsis" = "항목 붙여넣는 중…";
+"movingItemsEllipsis" = "항목 이동 중…";
 "batchRenamingEllipsis" = "파일 이름 변경 중…";
 "removeRecentServer" = "최근 항목에서 제거";
 "removeSmartFolderConfirm" = "이 스마트 폴더를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.";
@@ -229,7 +230,6 @@
 "open" = "열기";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "다음으로 열기";
-"originalName" = "Original Name";
 "others" = "기타";
 "overviewDesc" = "Wiles는 완전히 네이티브한 macOS 파일 관리자로, 처음부터 Mac의 일부였던 것처럼 느껴지도록 만들어졌습니다. 폴더를 여는 것부터 파일 천 개를 한 번에 이름 바꾸는 것까지, 모든 동작이 즉각적으로 느껴지도록 설계되었습니다.";
 "owner" = "Owner";

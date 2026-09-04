@@ -20,7 +20,7 @@ public final class UndoRedoService {
     /// that name is taken again, so the `.keepBoth` policy landed it on a free one instead (e.g.
     /// undoing a rename of `A`→`B` after a new `A` was created restores the file as `A 2`, not `A`).
     /// The step still "succeeded" and is safe, but the state wasn't fully reverted — `AppState`
-    /// surfaces this so the user isn't misled (finding MM-091). `intendedName` is what the step
+    /// surfaces this so the user isn't misled. `intendedName` is what the step
     /// aimed to restore; `actualName` is what it got.
     public var onRestoreDiverged: ((_ intendedName: String, _ actualName: String) -> Void)?
 
@@ -44,7 +44,7 @@ public final class UndoRedoService {
     /// for exactly one, that action verbatim). This is what call sites doing bulk trash / move /
     /// paste / batch-rename must use instead of a `for` loop of `recordAction` — otherwise `⌘Z`
     /// reverts one item at a time and the `maxHistoryLimit` cap silently drops the oldest items of
-    /// a >50-item operation with no way to undo them (finding HH-089). Empty input is a no-op.
+    /// a >50-item operation with no way to undo them. Empty input is a no-op.
     public func recordActions(_ actions: [UndoActionType]) {
         guard let first = actions.first else { return }
         recordAction(actions.count == 1 ? first : .batch(actions))
@@ -161,12 +161,17 @@ public final class UndoRedoService {
     /// back to its pre-rename name. On failure, unstage and re-push the batch for retry.
     private func undoRenamePermutation(
         _ pairs: [(oldURL: URL, newURL: URL)], originalActions: [UndoActionType]) async throws -> URL? {
-        let staged = try await BatchRenameService.stagePermutationCycles(
-            pairs: pairs.map { (url: $0.newURL, newName: $0.oldURL.lastPathComponent) })
-
         var revertedForward: [UndoActionType] = []
         var firstURL: URL?
+        // Declared outside the `do` (empty until staging succeeds) so the `catch` below can still
+        // restore whatever WAS staged if a later rename fails — while also covering a failure in
+        // staging itself, which is now inside the same recovery scope (DEV_RULES.md R6): a
+        // staging failure used to escape this `do`/`catch` entirely, silently dropping
+        // `originalActions` instead of re-pushing it for retry like every other failure path here does.
+        var staged: [URL: URL] = [:]
         do {
+            staged = try await BatchRenameService.stagePermutationCycles(
+                pairs: pairs.map { (url: $0.newURL, newName: $0.oldURL.lastPathComponent) })
             for pair in pairs.reversed() {
                 let currentURL = staged[pair.newURL] ?? pair.newURL
                 let result = try await FileSystemService.renameItem(
@@ -177,6 +182,8 @@ public final class UndoRedoService {
                 firstURL = firstURL ?? result
             }
         } catch {
+            // A no-op when staging itself is what failed (`staged` is still empty — and
+            // `stagePermutationCycles` already rolled back its own partial staging internally).
             await BatchRenameService.restoreStaged(staged)
             undoStack.append(UndoRecord(actionType: wrap(originalActions)))
             throw error
@@ -200,12 +207,14 @@ public final class UndoRedoService {
     /// first — the forward-direction mirror of `undoRenamePermutation`.
     private func redoRenamePermutation(
         _ pairs: [(oldURL: URL, newURL: URL)], originalActions: [UndoActionType]) async throws -> URL? {
-        let staged = try await BatchRenameService.stagePermutationCycles(
-            pairs: pairs.map { (url: $0.oldURL, newName: $0.newURL.lastPathComponent) })
-
         var reappliedReverse: [UndoActionType] = []
         var firstURL: URL?
+        // See `undoRenamePermutation`'s matching comment (DEV_RULES.md R6): staging must be
+        // inside this recovery scope too, not before it.
+        var staged: [URL: URL] = [:]
         do {
+            staged = try await BatchRenameService.stagePermutationCycles(
+                pairs: pairs.map { (url: $0.oldURL, newName: $0.newURL.lastPathComponent) })
             for pair in pairs {
                 let currentURL = staged[pair.oldURL] ?? pair.oldURL
                 let result = try await FileSystemService.renameItem(
@@ -282,16 +291,19 @@ public final class UndoRedoService {
                 url: result, resultingAction: .move(sourceURL: result, destinationURL: destinationURL))
         case let .createFolder(url):
             // If the folder gained contents after creation, redoing it would recreate an empty shell
-            // while those contents sit in the Trash — so non-empty → no redo entry.
-            let folderWasEmpty = ((try? FileManager.default.contentsOfDirectory(
-                at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]))?.isEmpty) ?? true
+            // while those contents sit in the Trash — so non-empty → no redo entry. Off-main:
+            // `url` can be on a stalled /Volumes/ mount, and this class is @MainActor.
+            let folderWasEmpty = await Task.detached(priority: .userInitiated) {
+                ((try? FileManager.default.contentsOfDirectory(
+                    at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]))?.isEmpty) ?? true
+            }.value
             _ = try await FileSystemService.moveToTrash(url: url)
             return ActionOutcome(
                 url: url.deletingLastPathComponent(), resultingAction: action, redoable: folderWasEmpty)
         case let .createFile(url):
             _ = try await FileSystemService.moveToTrash(url: url)
             // No redo entry: a created file's content was never captured, so it can't be redone —
-            // ⌘⇧Z should quietly do nothing rather than raise `fileCreationNotRedoable` (ML-135).
+            // ⌘⇧Z should quietly do nothing rather than raise `fileCreationNotRedoable`.
             return ActionOutcome(url: url.deletingLastPathComponent(), resultingAction: action, redoable: false)
         case let .trash(originalURL, trashedURL):
             let result = try await FileSystemService.moveItem(

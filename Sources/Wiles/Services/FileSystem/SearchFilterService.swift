@@ -10,7 +10,7 @@ public struct SearchFilterService: Sendable {
     /// Largest file whose bytes are read for a content-search match — a bigger read would stall.
     static let maxContentSearchFileBytes = 2_000_000
     /// Total disk bytes a single recursive "search everywhere" is allowed to read for content
-    /// matching before it stops opening new files (finding MM-096). Cache hits don't count.
+    /// matching before it stops opening new files. Cache hits don't count.
     static let recursiveContentByteBudget = 128 * 1024 * 1024
 
     /// The one whitespace-split used everywhere the query string is broken into tokens.
@@ -175,8 +175,8 @@ public struct SearchFilterService: Sendable {
     }
 
     /// `true` when a `size:` / `date:` token's value can't parse at all, so `matchesSizeFilter` /
-    /// `matchesDateFilter` reject every file — the query looks valid but is guaranteed empty
-    /// (finding ML-140). `kind:` / `ext:` / `tag:` accept any string (they fall back to a substring
+    /// `matchesDateFilter` reject every file — the query looks valid but is guaranteed empty.
+    /// `kind:` / `ext:` / `tag:` accept any string (they fall back to a substring
     /// match), so they're never "invalid" this way.
     private static func invalidFilterTokenValue(_ lowerToken: String) -> Bool {
         if lowerToken.hasPrefix("size:") {
@@ -240,7 +240,7 @@ public struct SearchFilterService: Sendable {
     /// `scope` is the explicit Name/Content/Both menu choice — no implicit fallback. Each token is
     /// matched against its own regex, if it has one, never the whole query string.
     /// `contentBudget` (recursive "search everywhere" only) caps total bytes read from disk for
-    /// content matching across the whole crawl — see `ContentReadBudget` / finding MM-096. `nil`
+    /// content matching across the whole crawl — see `ContentReadBudget`. `nil`
     /// leaves content reads unbounded, which is fine for a single-folder listing.
     public static func matchesSearch(
         fileURL: URL, parsed: ParsedSearchQuery, scope: SearchScope, caseSensitive: Bool,
@@ -260,7 +260,7 @@ public struct SearchFilterService: Sendable {
     private struct MatchOptions {
         let scope: SearchScope
         let caseSensitive: Bool
-        /// Recursive "search everywhere" only — total disk-read cap for content matching (MM-096).
+        /// Recursive "search everywhere" only — total disk-read cap for content matching.
         let contentBudget: ContentReadBudget?
     }
 
@@ -285,9 +285,10 @@ public struct SearchFilterService: Sendable {
             return matchesDateFilter(token: String(token.dropFirst(5)), attributes: attributes)
         } else if lowerToken.hasPrefix("size:") {
             return matchesSizeFilter(token: String(token.dropFirst(5)), attributes: attributes)
-        } else if lowerToken.hasPrefix("kind:") || lowerToken.hasPrefix("ext:") {
-            let prefix = lowerToken.hasPrefix("kind:") ? 5 : 4
-            return matchesKindFilter(token: String(token.dropFirst(prefix)), attributes: attributes)
+        } else if lowerToken.hasPrefix("kind:") {
+            return matchesKindFilter(token: String(token.dropFirst(5)), attributes: attributes)
+        } else if lowerToken.hasPrefix("ext:") {
+            return matchesExtensionFilter(token: String(token.dropFirst(4)), attributes: attributes)
         } else if lowerToken.hasPrefix("tag:") {
             return matchesTagFilter(tag: String(token.dropFirst(4)), attributes: attributes)
         }
@@ -403,6 +404,13 @@ public struct SearchFilterService: Sendable {
         }
     }
 
+    /// `ext:` is a literal extension match only — unlike `kind:`, it must never fall back to a
+    /// categorical match (e.g. `ext:doc` matching PDFs/XLSX/RTF because "doc" is also a `kind:`
+    /// category keyword) or a filename-substring fallback.
+    private static func matchesExtensionFilter(token: String, attributes: PrefetchedAttributes) -> Bool {
+        attributes.url.pathExtension.lowercased() == token.lowercased()
+    }
+
     private static func extensionConforms(_ ext: String, to type: UTType) -> Bool {
         guard !ext.isEmpty, let fileType = UTType(filenameExtension: ext) else { return false }
         return fileType.conforms(to: type)
@@ -464,7 +472,7 @@ public struct SearchFilterService: Sendable {
             return hit as String
         }
         // Cache miss ⇒ this call would hit the disk. Stop once the recursive search has spent its
-        // total read budget (finding MM-096); a `nil` budget is unbounded.
+        // total read budget; a `nil` budget is unbounded.
         if let budget, !budget.canRead() {
             return nil
         }

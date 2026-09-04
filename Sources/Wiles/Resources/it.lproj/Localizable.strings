@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Crea uno ZIP protetto da password degli elementi selezionati";
 "passwordMismatchHint" = "Le password non coincidono.";
 "pastingItemsEllipsis" = "Incollando Elementi…";
+"movingItemsEllipsis" = "Spostamento Elementi…";
 "batchRenamingEllipsis" = "Ridenominazione dei file…";
 "removeRecentServer" = "Rimuovi dai Recenti";
 "removeSmartFolderConfirm" = "Sei sicuro di voler eliminare questa cartella intelligente? Non può essere annullato.";
@@ -229,7 +230,6 @@
 "open" = "Apri";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Apri con";
-"originalName" = "Original Name";
 "others" = "Altri";
 "overviewDesc" = "Wiles è un file manager completamente nativo per macOS, creato da zero per sembrare parte del tuo Mac fin dall'inizio. Ogni interazione, dall'apertura di una cartella alla rinomina di mille file in una volta, è pensata per sembrare istantanea.";
 "owner" = "Owner";

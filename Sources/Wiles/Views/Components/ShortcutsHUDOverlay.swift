@@ -222,7 +222,7 @@ struct ShortcutsHUDOverlay: View {
 
     /// Keeps `L10n.Key` (not resolved text) so `merged` can match entries by stable identity, not
     /// position. Every key label comes from `ShortcutRegistry` so the cheat sheet can't drift from
-    /// the real bindings ([M77]).
+    /// the real bindings.
     private func navigationShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
         let parentCommand: Command = mode == .macOS ? .enclosingFolder : .enclosingFolderGnome
         let openCommand: Command = mode == .macOS ? .openSelected : .openSelectedGnome

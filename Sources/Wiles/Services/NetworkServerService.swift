@@ -23,7 +23,7 @@ public struct NetworkServerService {
 
     /// Parses a `scheme://host/share…` address into a `URL`. A share name legitimately contains
     /// spaces ("smb://nas/Time Machine Backups"), which `URL(string:)` rejects outright — so a
-    /// literal-space fallback percent-encodes them rather than failing a valid target (LU-020).
+    /// literal-space fallback percent-encodes them rather than failing a valid target.
     static func serverURL(fromFullAddress fullAddress: String) -> URL? {
         if let direct = URL(string: fullAddress) {
             return direct

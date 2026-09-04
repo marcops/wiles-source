@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Skapar en lösenordsskyddad ZIP av de valda objekten";
 "passwordMismatchHint" = "Lösenorden matchar inte.";
 "pastingItemsEllipsis" = "Klistrar in Objekt…";
+"movingItemsEllipsis" = "Flyttar Objekt…";
 "batchRenamingEllipsis" = "Byter namn på filer…";
 "removeRecentServer" = "Ta Bort Från Senaste";
 "removeSmartFolderConfirm" = "Är du säker på att du vill ta bort den här smarta mappen? Detta kan inte ångras.";
@@ -229,7 +230,6 @@
 "open" = "Öppna";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Öppna med";
-"originalName" = "Original Name";
 "others" = "Andra";
 "overviewDesc" = "Wiles är en helt nativ filhanterare för macOS, byggd från grunden för att kännas som en del av din Mac från första stund. Varje interaktion, från att öppna en mapp till att döpa om tusen filer på en gång, är gjord för att kännas omedelbar.";
 "owner" = "Owner";

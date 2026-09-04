@@ -27,19 +27,21 @@ public extension AppState {
     /// per-item mover the cut/paste loop uses), aggregating failures into one alert. `.cancel` stops
     /// the batch. Records a `.move` undo per item — plus a `.trash` when a Replace displaced an
     /// existing file — so ⌘Z reverts a drag-onto-folder / breadcrumb drop just like it reverts a
-    /// cut/paste (finding HM-146).
+    /// cut/paste.
     @discardableResult
     func moveItemsResolvingCollisions(
         _ urls: [URL],
         toFolder targetFolder: URL,
-        windowUIState: WindowUIState) async -> [URL] {
+        windowUIState: WindowUIState,
+        progress: (_ completed: Int) -> Void = { _ in }) async -> [URL] {
         var undoActions: [UndoActionType] = []
         let (moved, failureCount) = await moveBatchResolvingCollisions(
             urls, into: targetFolder, windowUIState: windowUIState,
             onMoved: { source, dest, _, displacedTrashedURL in
                 undoActions.append(contentsOf: resolvedMoveUndoActions(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL))
-            })
-        // One grouped undo entry for the whole drag/breadcrumb drop, not one per item (HH-089).
+            },
+            progress: progress)
+        // One grouped undo entry for the whole drag/breadcrumb drop, not one per item.
         undoRedoService.recordActions(undoActions)
         if failureCount > 0 {
             showPartialFailure(.movePartialFailure, failed: failureCount, total: urls.count)
@@ -49,8 +51,8 @@ public extension AppState {
 
     /// The per-item undo actions for one completed collision-resolving move, shared by the cut/paste
     /// loop (`pasteAllItems`) and the drag-onto-folder / breadcrumb-drop path so the two can't
-    /// diverge (finding HM-146). Callers accumulate these across the batch and record them once via
-    /// `recordActions` (HH-089). Order per item is `[.trash(displaced)?, .move]` — a batch undo
+    /// diverge. Callers accumulate these across the batch and record them once via
+    /// `recordActions`. Order per item is `[.trash(displaced)?, .move]` — a batch undo
     /// reverses the whole list, so ⌘Z undoes the move first, then restores any Replace-displaced
     /// file, matching the pre-batch stack order.
     func resolvedMoveUndoActions(source: URL, dest: URL, displacedTrashedURL: URL?) -> [UndoActionType] {
@@ -119,7 +121,7 @@ public extension AppState {
         } catch WilesError.destinationExists {
             // No window to prompt in (e.g. it closed mid-paste). Re-throw so the batch loop counts
             // this as a failure and surfaces a partial-failure message, rather than silently
-            // dropping the item with `.skipped` (which isn't counted) — ML-048.
+            // dropping the item with `.skipped` (which isn't counted).
             guard let windowUIState else { throw WilesError.destinationExists(name: url.lastPathComponent) }
             let resolution = await resolveCollision(
                 itemName: url.lastPathComponent, moreCollisionsPossible: moreFollow,

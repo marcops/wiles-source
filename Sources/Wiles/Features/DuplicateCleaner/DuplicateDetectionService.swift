@@ -30,7 +30,7 @@ public enum DuplicateDetectionService: Sendable {
             includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
             options: [.skipsHiddenFiles],
             // Skip an unreadable subdirectory and keep walking — without this the whole walk aborts
-            // at the first protected folder and drops every later sibling (R1 / BA-509).
+            // at the first protected folder and drops every later sibling (R1).
             errorHandler: { _, _ in true }) else {
             // enumerator is nil when the folder can't be traversed (missing, not a directory, or —
             // most often for a user-chosen folder — no read access). Surface it, don't report "0 found".

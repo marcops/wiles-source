@@ -5,7 +5,7 @@ import Foundation
 /// process dies — `.onDisappear` (the only other teardown trigger) does NOT fire on ⌘Q with a
 /// window open, so without this a `/bin/zsh -l` (and whatever it's running — `vim`, `tail -f`,
 /// `ssh`, a dev server) is left orphaned, reparented to launchd, with no UI to see or kill it
-/// (finding MM-122). Same weak-registry shape as `DebouncedWriteRegistry`.
+/// Same weak-registry shape as `DebouncedWriteRegistry`.
 @MainActor
 final class TerminalProcessRegistry {
     static let shared = TerminalProcessRegistry()

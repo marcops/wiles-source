@@ -3,7 +3,7 @@ import Foundation
 /// The "build the home-directory `FolderNode` tree off the main actor, with a fallback-timeout
 /// Retry state" flow shared by `SidebarView` and `FolderPickerSheet`. They had drifted — only
 /// `FolderPickerSheet` re-checked that its target was still unset after the `await`, so `SidebarView`
-/// could clobber a Retry/newer result with a stale scan. One implementation now (LL-020).
+/// could clobber a Retry/newer result with a stale scan. One implementation now.
 @MainActor
 enum RootDirectoryTreeLoader {
     static let fallbackTimeout: TimeInterval = 6

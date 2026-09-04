@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "为所选项目创建受密码保护的 ZIP";
 "passwordMismatchHint" = "密码不匹配。";
 "pastingItemsEllipsis" = "正在粘贴项目…";
+"movingItemsEllipsis" = "正在移动项目…";
 "batchRenamingEllipsis" = "正在重命名文件…";
 "removeRecentServer" = "从最近使用中移除";
 "removeSmartFolderConfirm" = "确定要删除此智能文件夹吗？此操作无法撤销。";
@@ -229,7 +230,6 @@
 "open" = "打开";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "打开方式";
-"originalName" = "Original Name";
 "others" = "其他";
 "overviewDesc" = "Wiles 是一款完全原生的 macOS 文件管理器，从零打造，让它感觉就像 Mac 与生俱来的一部分。从打开一个文件夹到一次性重命名一千个文件，每一次操作都力求即时响应。";
 "owner" = "Owner";

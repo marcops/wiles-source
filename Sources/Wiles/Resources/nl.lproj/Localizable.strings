@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Maakt een met wachtwoord beveiligde ZIP van de geselecteerde items";
 "passwordMismatchHint" = "Wachtwoorden komen niet overeen.";
 "pastingItemsEllipsis" = "Items Plakken…";
+"movingItemsEllipsis" = "Items Verplaatsen…";
 "batchRenamingEllipsis" = "Bestanden hernoemen…";
 "removeRecentServer" = "Verwijderen uit Recent";
 "removeSmartFolderConfirm" = "Weet je zeker dat je deze slimme map wilt verwijderen? Dit kan niet ongedaan worden gemaakt.";
@@ -229,7 +230,6 @@
 "open" = "Open";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Open met";
-"originalName" = "Original Name";
 "others" = "Anderen";
 "overviewDesc" = "Wiles is een volledig native bestandsbeheerder voor macOS, helemaal opnieuw gebouwd om aan te voelen alsof hij altijd al bij je Mac hoorde. Elke actie, van het openen van een map tot het in één keer hernoemen van duizend bestanden, is ontworpen om direct aan te voelen.";
 "owner" = "Owner";

@@ -18,7 +18,7 @@ enum SlowVolumePathValidator {
     /// The `/Volumes/<name>` mount root for a `/Volumes/...` path (or the path itself when it already
     /// *is* `/Volumes/<name>`). `nil` for any non-`/Volumes/` path. Lets a validator tell "the folder
     /// was deleted" (volume mounted, target gone → safe to prune a saved entry) from "the volume is
-    /// just offline right now" (mount root gone → keep the entry, it's transient — MH-118).
+    /// just offline right now" (mount root gone → keep the entry, it's transient).
     static func volumeMountRoot(forPath path: String) -> String? {
         guard isLikelySlowVolume(path) else { return nil }
         let components = path.split(separator: "/", omittingEmptySubsequences: true)

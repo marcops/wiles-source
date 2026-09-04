@@ -133,7 +133,7 @@ public struct FileSystemService: Sendable {
         }
         // A cancelled load (rapid navigation / search keystroke) breaks out of the loop above with a
         // partial `items`. Bail before caching so the next visit's cache fast-path can't paint an
-        // incomplete listing as if it were the whole folder (LM-081).
+        // incomplete listing as if it were the whole folder.
         try Task.checkCancellation()
         let sortedItems = sortItems(items, by: options.sortOption, ascending: options.sortAscending)
         if options.searchQuery.isEmpty {
@@ -215,7 +215,7 @@ public struct FileSystemService: Sendable {
         let parsedQuery = SearchFilterService.parsedQuery(query: options.searchQuery, scope: options.searchScope, caseSensitive: options.searchCaseSensitive)
         let isOrderedBefore = sortComparator(for: options.sortOption, ascending: options.sortAscending)
         // Cap total disk reads for content matching across the whole crawl so a broad Content/Both
-        // "search everywhere" can't read gigabytes under `~` synchronously (finding MM-096).
+        // "search everywhere" can't read gigabytes under `~` synchronously.
         let contentBudget = ContentReadBudget(totalBytes: SearchFilterService.recursiveContentByteBudget)
         var items: [FileItem] = []
         // Throttle `onBatch` by wall-clock, not match count: each call hands the whole cumulative

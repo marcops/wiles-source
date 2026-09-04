@@ -100,7 +100,7 @@ public extension AppState {
             taskTitle: tr(.batchRenamingEllipsis),
             onSuccess: { [weak self] (result: BatchRenameResult) in
                 guard let self else { return }
-                // One grouped undo entry for the whole batch rename, not one per pair (HH-089).
+                // One grouped undo entry for the whole batch rename, not one per pair.
                 undoRedoService.recordActions(result.renamedPairs.map { .rename(oldURL: $0.old, newURL: $0.new) })
                 selection.selectedURLs = Set(result.renamedURLs)
                 if let failureError = result.failureError {

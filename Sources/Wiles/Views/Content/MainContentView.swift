@@ -58,7 +58,7 @@ struct MainContentView: View {
         .onDisappear {
             // Closing a window < 400ms after a divider drag would otherwise lose the final sidebar
             // width (the debounce task is cancelled without running). `.onReceive(willTerminate)`
-            // above covers ⌘Q; this covers closing one of several windows (LL-071).
+            // above covers ⌘Q; this covers closing one of several windows.
             flushPendingSidebarWidth()
             appState.fileSystem.tearDown()
             windowUIState.tearDown()

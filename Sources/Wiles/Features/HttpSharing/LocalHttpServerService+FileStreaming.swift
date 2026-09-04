@@ -75,7 +75,7 @@ extension LocalHttpServerService {
     }
 
     /// Delegates to the shared list-based `httpHead` builder so the two response paths can't drift
-    /// (finding LL-055). Keeps the historical line order: fixed headers, then range headers, then
+    /// Keeps the historical line order: fixed headers, then range headers, then
     /// `Connection: close`.
     private nonisolated static func streamResponseHeader(status: Int, contentLength: Int, extraHeaders: [(String, String)]) -> Data {
         httpHead(statusCode: status, headers: [

@@ -26,8 +26,10 @@ public struct BatchRenameFeatureTests {
         testValidateTargets()
         testSequenceNumberPaddingIsClamped(item1: item1)
         await testPerformBatchRenameAbortsUpFrontOnCollision()
+        testAssertNoCollisionsCanBeCalledDirectlyForPreValidation()
         await testPerformBatchRenameSurfacesCancellation()
         await testPermutationRenameStagesThroughTempNames()
+        await testStagePermutationCyclesRollsBackEveryGroupNotJustTheFailingOne()
         await testRecoverStrandedStagingTempsDeHidesCrashLeftovers()
         await testCancelledPermutationRenameLeavesNoHiddenStagingTemp()
     }
@@ -124,6 +126,66 @@ public struct BatchRenameFeatureTests {
             result: (result?.failures.isEmpty ?? false) && bothFinalsExist && originalGoneAndContentFollowed && noLeftoverTemp)
     }
 
+    private static func allInvariantsHold(threw: Bool, noStagedTempInGoodDir: Bool, goodDirNamesRestored: Bool) -> Bool {
+        threw && noStagedTempInGoodDir && goodDirNamesRestored
+    }
+
+    /// R6: `stagePermutationCycles` stages one rename-cycle group per source directory in the same
+    /// batch. If a later group's staging fails, every group staged so far must roll back — not just
+    /// the failing one — or an earlier, already-succeeded directory is left with its files parked
+    /// under hidden temp names with nothing left to resolve them. Directory iteration order isn't
+    /// controlled by the caller (`Dictionary(grouping:)` iterates in hash order), so this repeats
+    /// the scenario across several distinct temp-directory pairs to exercise both relative orderings.
+    private static func testStagePermutationCyclesRollsBackEveryGroupNotJustTheFailingOne() async {
+        let fm = FileManager.default
+        var allInvariantsHeld = true
+
+        for _ in 0 ..< 6 {
+            let root = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+            let goodDir = root.appendingPathComponent("good")
+            let badDir = root.appendingPathComponent("bad")
+            try? fm.createDirectory(at: goodDir, withIntermediateDirectories: true)
+            try? fm.createDirectory(at: badDir, withIntermediateDirectories: true)
+            defer { try? fm.removeItem(at: root) }
+
+            let goodA = goodDir.appendingPathComponent("a.txt")
+            let goodB = goodDir.appendingPathComponent("b.txt")
+            try? "a".write(to: goodA, atomically: true, encoding: .utf8)
+            try? "b".write(to: goodB, atomically: true, encoding: .utf8)
+
+            let badA = badDir.appendingPathComponent("a.txt")
+            let badB = badDir.appendingPathComponent("b.txt")
+            try? "a".write(to: badA, atomically: true, encoding: .utf8)
+            // badB is deliberately never created — its rename fails with "no such file", forcing
+            // badDir's group to fail mid-staging.
+
+            let pairs: [(url: URL, newName: String)] = [
+                (goodA, "b.txt"), (goodB, "a.txt"),
+                (badA, "b.txt"), (badB, "a.txt")
+            ]
+
+            var threw = false
+            do {
+                _ = try await BatchRenameService.stagePermutationCycles(pairs: pairs)
+            } catch {
+                threw = true
+            }
+
+            let goodDirEntries = (try? fm.contentsOfDirectory(atPath: goodDir.path)) ?? []
+            let noStagedTempInGoodDir = goodDirEntries.allSatisfy { !$0.hasPrefix(BatchRenameService.stagingTempPrefix) }
+            let goodDirNamesRestored = Set(goodDirEntries) == Set(["a.txt", "b.txt"])
+
+            if !allInvariantsHold(threw: threw, noStagedTempInGoodDir: noStagedTempInGoodDir, goodDirNamesRestored: goodDirNamesRestored) {
+                allInvariantsHeld = false
+            }
+        }
+
+        report(
+            "Feature/BatchRename",
+            "POS: a later group's staging failure rolls back an earlier, already-staged group too (R6)",
+            result: allInvariantsHeld)
+    }
+
     /// Lote 15 (M61): `validateTargets` is the pure pre-flight collision check.
     private static func testValidateTargets() {
         let dup = BatchRenameService.validateTargets(
@@ -196,8 +258,52 @@ public struct BatchRenameFeatureTests {
             result: FileManager.default.fileExists(atPath: urlA.path) && FileManager.default.fileExists(atPath: urlB.path))
     }
 
-    /// M60: a cancelled `performBatchRename` surfaces `CancellationError`; renames done before the
-    /// cancellation stay on disk (the loop checks `Task.checkCancellation()` per iteration).
+    /// SL-046: `assertNoCollisions` is called directly by `BatchRenameSheetView` to pre-validate on
+    /// "Apply" and show the same collision message inline, instead of only surfacing it after
+    /// `performBatchRename` throws asynchronously post-dismissal. Exercises it standalone (not via
+    /// `performBatchRename`) with both a colliding and a clean preview set.
+    private static func testAssertNoCollisionsCanBeCalledDirectlyForPreValidation() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let urlA = dir.appendingPathComponent("IMG_001.txt")
+        let urlB = dir.appendingPathComponent("IMG_002.txt")
+        try? "a".write(to: urlA, atomically: true, encoding: .utf8)
+        try? "b".write(to: urlB, atomically: true, encoding: .utf8)
+        let itemA = FileItem.load(url: urlA, icon: NSWorkspace.shared.icon(forFile: urlA.path))
+        let itemB = FileItem.load(url: urlB, icon: NSWorkspace.shared.icon(forFile: urlB.path))
+
+        let collidingPreviews: [(original: FileItem, newName: String)] = [(itemA, "IMG.txt"), (itemB, "IMG.txt")]
+        var threw = false
+        do {
+            try BatchRenameService.assertNoCollisions(in: collidingPreviews)
+        } catch {
+            threw = true
+        }
+        report(
+            "Feature/BatchRename",
+            "NEG (SL-046): assertNoCollisions throws standalone for a colliding preview, without going through performBatchRename",
+            result: threw)
+
+        let cleanPreviews: [(original: FileItem, newName: String)] = [(itemA, "Renamed_001.txt"), (itemB, "Renamed_002.txt")]
+        var cleanThrew = false
+        do {
+            try BatchRenameService.assertNoCollisions(in: cleanPreviews)
+        } catch {
+            cleanThrew = true
+        }
+        report(
+            "Feature/BatchRename",
+            "POS (SL-046): assertNoCollisions does not throw for a clean, non-colliding preview",
+            result: !cleanThrew)
+    }
+
+    /// R7: a cancelled `performBatchRename` does NOT throw `CancellationError` out of the rename
+    /// loop — it returns the `BatchRenameResult` built from whatever completed before cancellation,
+    /// so the caller's own undo/reporting code (which only runs on a normal return, not a catch)
+    /// still sees the renames that genuinely happened on disk. Renames done before the cancellation
+    /// stay on disk either way (the loop checks `Task.isCancelled` per iteration).
     private static func testPerformBatchRenameSurfacesCancellation() async {
         let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -210,22 +316,28 @@ public struct BatchRenameFeatureTests {
             items.append(FileItem.load(url: url, icon: NSWorkspace.shared.icon(forFile: url.path)))
         }
 
-        let task = Task { _ = try await BatchRenameService.performBatchRename(items: items, mode: .addPrefixSuffix(prefix: "R_", suffix: "")) }
+        let task = Task { try await BatchRenameService.performBatchRename(items: items, mode: .addPrefixSuffix(prefix: "R_", suffix: "")) }
         task.cancel()
 
-        var cancelled = false
+        var result: BatchRenameResult?
+        var threw = false
         do {
-            try await task.value
-        } catch is CancellationError {
-            cancelled = true
+            result = try await task.value
         } catch {
-            cancelled = false
+            threw = true
         }
         let renamedCount = (try? FileManager.default.contentsOfDirectory(atPath: dir.path))?.filter { $0.hasPrefix("R_") }.count ?? -1
-        report("Feature/BatchRename", "POS: a cancelled performBatchRename surfaces CancellationError", result: cancelled)
         report(
             "Feature/BatchRename",
-            "POS: renames completed before the cancellation are kept on disk (partial progress not rolled back)",
+            "POS: a cancelled performBatchRename returns a BatchRenameResult instead of throwing (R7)",
+            result: !threw && result != nil)
+        report(
+            "Feature/BatchRename",
+            "POS: the returned result's renamedURLs count matches what's actually renamed on disk",
+            result: result?.renamedURLs.filter { $0.lastPathComponent.hasPrefix("R_") }.count == renamedCount)
+        report(
+            "Feature/BatchRename",
+            "POS: cancellation before any iteration completed still leaves a well-formed (possibly empty) partial result",
             result: renamedCount >= 0 && renamedCount < items.count)
     }
 

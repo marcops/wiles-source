@@ -19,7 +19,7 @@ public enum FileMetadataTooltipService {
     public static func tooltip(for item: FileItem, language: AppLanguage) async -> String {
         // Key includes `dateModified`: without it, a file edited/replaced on disk kept showing its
         // old PDF page count / image dimensions / size in the tooltip until the 1000-entry cap
-        // eventually evicted the stale entry — and there was no live invalidation path (SL-090).
+        // eventually evicted the stale entry — and there was no live invalidation path.
         // Same fix `ThumbnailService.cacheKey` and `SearchFilterService.contentCache` already use.
         let key = "\(L10n.activeCode(language))|\(item.dateModified.timeIntervalSinceReferenceDate)|\(item.url.path)" as NSString
         if let cached = cache.object(forKey: key) {

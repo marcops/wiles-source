@@ -18,7 +18,94 @@ public struct AppStateSmartFolderTests {
         await testNormalSearchQueryEditKeepsSidebarHighlight()
         await testRunSmartFolderAppliesResultsToFileSystemItems()
         await testRunSmartFolderNavigatesToScopeAndUsesSearchEngine()
+        await testRunSmartFolderWithSlowVolumeScopeDoesNotBlockSynchronously()
+        await testRunSmartFolderWithSlowVolumeScopeDefersUntilNavigationCompletes()
+        await testRunSmartFolderDoesNotPrepareWhenNavigationIsSupersededByACompetingCall()
         testToggleTagFilter()
+    }
+
+    /// HH-409: `runSmartFolder` used to call `FileManager.default.fileExists(atPath:)` directly on
+    /// `@MainActor` for ANY `scopePath`, including a `/Volumes/…` one — which can block for seconds
+    /// on a stalled/unreachable network share. A `/Volumes/…` scope must now take the same
+    /// off-main path every other slow-volume navigation does, so `runSmartFolder` itself returns
+    /// (near-)instantly regardless of whether the path is actually reachable.
+    private static func testRunSmartFolderWithSlowVolumeScopeDoesNotBlockSynchronously() async {
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        let folder = SmartFolder(
+            name: "Remote", searchQuery: "x", scopePath: "/Volumes/NonexistentTestShare-\(UUID().uuidString)")
+
+        let start = ContinuousClock.now
+        appState.runSmartFolder(folder, windowUIState: windowUIState)
+        let elapsed = start.duration(to: .now)
+
+        report(
+            "AppState",
+            "POS (HH-409): runSmartFolder returns immediately even for a /Volumes/ scope (no synchronous fileExists on @MainActor)",
+            result: elapsed < .milliseconds(200))
+    }
+
+    /// MM-098: for a `/Volumes/…` scope, `navigateTo` alone doesn't guarantee the navigation has
+    /// landed by the time it returns (it resolves asynchronously). `runSmartFolder` must defer
+    /// preparing/running the query until `navigateToAwaitingCompletion` actually resolves, instead of
+    /// applying it synchronously and racing the navigation's own later completion (which used to
+    /// reset the state just prepared via `resetViewStateForNavigation`).
+    private static func testRunSmartFolderWithSlowVolumeScopeDefersUntilNavigationCompletes() async {
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        let folder = SmartFolder(
+            name: "Remote", searchQuery: "needle", scopePath: "/Volumes/NonexistentTestShare-\(UUID().uuidString)")
+
+        appState.runSmartFolder(folder, windowUIState: windowUIState)
+
+        report(
+            "AppState",
+            "POS (MM-098): preparing the smart folder run is deferred, not applied synchronously, for a /Volumes/ scope",
+            result: appState.smartFolder.activeFolderID == nil)
+
+        var resolved = false
+        for _ in 0 ..< 30 {
+            if appState.smartFolder.activeFolderID == folder.id {
+                resolved = true
+                break
+            }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        report(
+            "AppState",
+            "POS (MM-098): the smart folder run is eventually prepared once the async navigation resolves",
+            result: resolved)
+    }
+
+    /// MB-202 (round 2): `navigateToAwaitingCompletion` can unblock two ways — it actually landed, or
+    /// its slow-volume check was cancelled by a DIFFERENT, later navigation racing this one (HH-398).
+    /// `runSmartFolder` must not prepare/run the query in the second case, since `navigation.currentURL`
+    /// is then wherever the competing navigation left it, not this folder's scope.
+    private static func testRunSmartFolderDoesNotPrepareWhenNavigationIsSupersededByACompetingCall() async {
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        let localDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: localDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: localDir) }
+        let folder = SmartFolder(
+            name: "Remote", searchQuery: "needle", scopePath: "/Volumes/NonexistentTestShare-\(UUID().uuidString)")
+
+        appState.runSmartFolder(folder, windowUIState: windowUIState)
+        // Supersede it immediately with a fast, local navigation — this cancels the smart folder's
+        // still-pending slow-volume check (HH-398) before it ever calls completeNavigation.
+        appState.navigateTo(localDir)
+
+        // Give the (now-cancelled) smart-folder Task every chance to run its guard and bail.
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        report(
+            "AppState",
+            "NEG (MB-202): a smart folder run superseded by a competing navigation never prepares (activeFolderID stays nil)",
+            result: appState.smartFolder.activeFolderID == nil)
+        report(
+            "AppState",
+            "POS (MB-202): navigation.currentURL reflects the competing (winning) navigation, not the superseded smart folder's scope",
+            result: appState.navigation.currentURL.standardizedFileURL.path == localDir.standardizedFileURL.path)
     }
 
     /// A saved smart folder navigates to its `scopePath` and runs its query through the standard

@@ -5,7 +5,7 @@ import SwiftUI
 @main
 struct WilesApp: App {
     /// App-global lifecycle hooks (terminate-time flush, "Open With" cache invalidation) — kept
-    /// here rather than as per-window `.onReceive(...)` so they run once for the process (LL-015).
+    /// here rather than as per-window `.onReceive(...)` so they run once for the process.
     @NSApplicationDelegateAdaptor(WilesAppDelegate.self)
     private var appDelegate
     @State private var sharedPreferences = PreferencesStore()

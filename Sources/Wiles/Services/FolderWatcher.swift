@@ -15,7 +15,7 @@ final class FolderWatcher {
     private let debounceInterval: TimeInterval
     /// Bumped on every `watch(folders:)` call. A `startWatching` whose off-main `open()` finishes
     /// after a newer `watch(...)` has superseded it checks this and discards its fd instead of
-    /// wiring up a stale `DispatchSource` (finding ML-103).
+    /// wiring up a stale `DispatchSource`.
     private var watchGeneration = 0
 
     /// Invoked (debounced) on the main queue whenever a watched folder receives a `.write` event.
@@ -51,7 +51,7 @@ final class FolderWatcher {
 
     /// `open(_:O_EVTONLY)` is a synchronous syscall that blocks until the filesystem responds — for
     /// a source folder on a stalled `/Volumes` mount that's an indefinite freeze of the main thread.
-    /// Do it off the main actor, then wire up the `DispatchSource` back on `@MainActor` (ML-103).
+    /// Do it off the main actor, then wire up the `DispatchSource` back on `@MainActor`.
     private func startWatching(folder: URL) {
         let generation = watchGeneration
         let path = folder.path

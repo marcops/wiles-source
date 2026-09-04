@@ -6,6 +6,11 @@ import SwiftUI
 public extension AppState {
     /// Navigate into a folder. If `url` turns out to be a file this quietly does nothing —
     /// callers that mean "activate whatever the user clicked" should use `openItem(_:)`.
+    ///
+    /// Fire-and-forget: resolves synchronously for a local path but hops off `@MainActor` first for
+    /// a `/Volumes/…` one, with nothing in this signature distinguishing the two. A caller that needs
+    /// to run code once navigation has actually landed must use `navigateToAwaitingCompletion`
+    /// instead of assuming this returning means the navigation settled (see that method's doc).
     func navigateTo(_ url: URL, addToHistory: Bool = true) {
         resolveAndNavigate(to: url, addToHistory: addToHistory, openFileWithSystem: false)
     }
@@ -16,7 +21,43 @@ public extension AppState {
         resolveAndNavigate(to: url, addToHistory: true, openFileWithSystem: true)
     }
 
+    /// Awaitable form of `navigateTo`: resolves only once the navigation has actually completed —
+    /// either `navigation.currentURL` reflects `url` (it existed), or `completeNavigation` has shown
+    /// its "not found" error and left `currentURL` untouched — regardless of whether it took the
+    /// synchronous (local path) or asynchronous (`/Volumes/…`) branch internally. Any caller that
+    /// prepares state depending on the post-navigation folder (e.g. running a smart folder's query
+    /// against it) must go through this instead of calling `navigateTo` and assuming it already
+    /// landed — `AppState+SmartFolders.runSmartFolder` is the reference. That same caller is also
+    /// the one that has to tell "resolved, volume just doesn't exist" apart from "superseded by a
+    /// different, later navigation" — this method itself has no opinion on which outcome
+    /// `currentURL` ended up at, only that the wait is over.
+    func navigateToAwaitingCompletion(_ url: URL, addToHistory: Bool = true) async {
+        navigation.pendingSlowVolumeCheck?.cancel()
+        if url == Self.recentsVirtualURL {
+            HapticService.shared.play(.alignment)
+            navigateToRecentsVirtual(addToHistory: addToHistory)
+            return
+        }
+        guard SlowVolumePathValidator.isLikelySlowVolume(url.path) else {
+            completeLocalPathNavigation(to: url, addToHistory: addToHistory, openFileWithSystem: false)
+            return
+        }
+        fileSystem.isLoading = true
+        let checkTask = spawnSlowVolumeCheck(for: url, addToHistory: addToHistory, openFileWithSystem: false)
+        navigation.pendingSlowVolumeCheck = checkTask
+        // Awaiting here is what makes this method genuinely awaitable end-to-end: a later, unrelated
+        // `resolveAndNavigate`/`navigateToAwaitingCompletion` call still cancels `checkTask` via the
+        // guard inside it (and this `await` then unblocks quickly, since a cancelled task still runs
+        // to its early `return`), so this doesn't hang the caller forever.
+        await checkTask.value
+    }
+
     private func resolveAndNavigate(to url: URL, addToHistory: Bool, openFileWithSystem: Bool) {
+        // Cancel any in-flight slow-volume check unconditionally, before dispatching on `url`'s own
+        // shape — not just when the NEW target is itself a slow volume. Without this, a pending
+        // check for a previous `/Volumes/…` target survives a subsequent fast (local) navigation and
+        // can complete afterward, silently overwriting the user's current location.
+        navigation.pendingSlowVolumeCheck?.cancel()
         if url == Self.recentsVirtualURL {
             HapticService.shared.play(.alignment)
             navigateToRecentsVirtual(addToHistory: addToHistory)
@@ -29,20 +70,33 @@ public extension AppState {
         // case hops off @MainActor.
         if SlowVolumePathValidator.isLikelySlowVolume(url.path) {
             fileSystem.isLoading = true
-            navigation.pendingSlowVolumeCheck?.cancel()
-            navigation.pendingSlowVolumeCheck = Task { [weak self] in
-                let (exists, isDirectory) = await Task.detached(priority: .userInitiated) {
-                    var isDir: ObjCBool = false
-                    let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
-                    return (exists, exists && isDir.boolValue)
-                }.value
-                guard !Task.isCancelled else { return }
-                self?.completeNavigation(
-                    to: url, exists: exists, isDirectory: isDirectory,
-                    addToHistory: addToHistory, openFileWithSystem: openFileWithSystem)
-            }
+            navigation.pendingSlowVolumeCheck = spawnSlowVolumeCheck(
+                for: url, addToHistory: addToHistory, openFileWithSystem: openFileWithSystem)
             return
         }
+        completeLocalPathNavigation(to: url, addToHistory: addToHistory, openFileWithSystem: openFileWithSystem)
+    }
+
+    /// The off-main existence check + `completeNavigation` shared by `resolveAndNavigate`'s
+    /// fire-and-forget slow-volume branch and `navigateToAwaitingCompletion`'s awaited one.
+    private func spawnSlowVolumeCheck(for url: URL, addToHistory: Bool, openFileWithSystem: Bool) -> Task<Void, Never> {
+        Task { [weak self] in
+            let (exists, isDirectory) = await Task.detached(priority: .userInitiated) {
+                var isDir: ObjCBool = false
+                let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
+                return (exists, exists && isDir.boolValue)
+            }.value
+            guard !Task.isCancelled else { return }
+            self?.completeNavigation(
+                to: url, exists: exists, isDirectory: isDirectory,
+                addToHistory: addToHistory, openFileWithSystem: openFileWithSystem)
+        }
+    }
+
+    /// The synchronous local-path resolution shared by `resolveAndNavigate` and
+    /// `navigateToAwaitingCompletion` — a local path resolves in microseconds, so both call this
+    /// inline rather than hopping off `@MainActor`.
+    private func completeLocalPathNavigation(to url: URL, addToHistory: Bool, openFileWithSystem: Bool) {
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
         completeNavigation(
@@ -139,7 +193,7 @@ public extension AppState {
     func startDirectoryMonitoring(for url: URL) {
         fileSystem.startDirectoryMonitoring(for: url) { [weak self] in
             // Invoked from `FileSystemStore.handleMonitorEvent`, already on `@MainActor` — assume
-            // isolation instead of spawning an unstructured `Task { @MainActor }` per event (SM-055).
+            // isolation instead of spawning an unstructured `Task { @MainActor }` per event.
             MainActor.assumeIsolated {
                 self?.refreshCurrentDirectory(isUserInitiated: false)
             }

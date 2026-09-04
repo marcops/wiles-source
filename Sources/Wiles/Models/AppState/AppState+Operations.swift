@@ -3,8 +3,14 @@ import GitBeacon
 import SwiftUI
 
 public extension AppState {
+    /// Same progress-bar-plus-cancel scaffolding `executePaste` wires up for cut/paste — a drag
+    /// onto a folder row or breadcrumb drop runs the identical `moveBatchResolvingCollisions` loop,
+    /// so a large drop deserves the same visible progress and a way to stop it, not a silent,
+    /// uncancellable `Task`.
     func handleDrop(providers: [NSItemProvider], targetFolder: URL, windowUIState: WindowUIState) {
-        Task { @MainActor [weak self] in
+        let backgroundOperations = backgroundOperations
+        let taskID = backgroundOperations.addTask(title: tr(.movingItemsEllipsis), totalUnits: Int64(providers.count))
+        let dropTask = Task(priority: .userInitiated) { @MainActor [weak self] in
             guard let self else { return }
             var urls: [URL] = []
             for provider in providers {
@@ -13,12 +19,23 @@ public extension AppState {
                 }
             }
             let movable = await Self.droppableExcludingSelf(urls, targetFolder: targetFolder)
-            guard !movable.isEmpty else { return }
-            _ = await moveItemsResolvingCollisions(movable, toFolder: targetFolder, windowUIState: windowUIState)
+            guard !Task.isCancelled, !movable.isEmpty else {
+                backgroundOperations.completeTask(id: taskID)
+                return
+            }
+            _ = await moveItemsResolvingCollisions(
+                movable, toFolder: targetFolder, windowUIState: windowUIState,
+                progress: { completed in
+                    if Self.shouldReportProgress(index: completed - 1, count: movable.count) {
+                        backgroundOperations.updateProgress(id: taskID, unitsDone: Int64(completed))
+                    }
+                })
+            backgroundOperations.completeTask(id: taskID)
             // Drop onto the current folder leaves its cached listing stale — invalidate like the
             // other in-place mutation paths (paste/delete) do, not a bare refresh.
             invalidateCurrentDirectoryCacheAndRefresh()
         }
+        backgroundOperations.registerCancellation(id: taskID) { dropTask.cancel() }
     }
 
     /// Off-main: drops any URL that resolves to `targetFolder` itself. Comparing the `URL`s
@@ -154,7 +171,7 @@ public extension AppState {
                     context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(completed))
                 }
             })
-        // One grouped undo entry for the whole cut/paste, not one per item (finding HH-089).
+        // One grouped undo entry for the whole cut/paste, not one per item.
         context.owner?.undoRedoService.recordActions(undoActions)
         return (failureCount, moved)
     }
@@ -175,7 +192,7 @@ public extension AppState {
                 context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(index + 1))
             }
         }
-        // One grouped undo entry for the whole paste, not one per file (finding HH-089).
+        // One grouped undo entry for the whole paste, not one per file.
         context.undoRedoService.recordActions(undoActions)
         return (failureCount, [])
     }
@@ -216,7 +233,7 @@ public extension AppState {
 
     /// Off-main trash loop: no `self` capture, per-item progress hopped back to `@MainActor`. The
     /// whole multi-file trash is recorded as ONE grouped undo entry so a single ⌘Z restores every
-    /// item (finding HH-089).
+    /// item.
     private static func trashItems(
         urls: [URL], taskID: UUID, undoRedoService: UndoRedoService?, backgroundOperations: BackgroundOperationsService) async -> Int {
         var failureCount = 0
@@ -337,7 +354,7 @@ public extension AppState {
     /// Only enters rename UI when the item was created in the folder currently on screen. Creating
     /// in a different folder (e.g. a sidebar/tree context-menu action) must NOT set `renamingURL`
     /// for an off-screen item — that both shows a rename overlay for something not in the list and
-    /// freezes the visible directory's refresh until the rename ends (ML-072).
+    /// freezes the visible directory's refresh until the rename ends.
     private func enterRenameForNewlyCreated(at url: URL, inFolder: URL, windowUIState: WindowUIState) {
         guard inFolder.standardizedFileURL == navigation.currentURL.standardizedFileURL else {
             DirectoryCacheService.shared.invalidate(url: inFolder)
@@ -403,7 +420,7 @@ public extension AppState {
                 }
             } catch is CancellationError {
                 // The user cancelled via the operations popover ✕ — just clear the progress entry,
-                // never surface it as an error alert (MM-104).
+                // never surface it as an error alert.
                 if let taskID {
                     self?.backgroundOperations.completeTask(id: taskID)
                 }

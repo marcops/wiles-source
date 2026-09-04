@@ -23,7 +23,7 @@ struct EditMenuCommands: LocalizedCommands {
             // While ANY text field is focused (rename, path bar, the header search box, or a field
             // inside a sheet), these keep their shortcut but forward to the system's standard text
             // editing actions instead — so the field's own text gets cut/copied/pasted/selected
-            // rather than the selected files (finding MM-133).
+            // rather than the selected files.
             let isRenaming = isEditingText
             cutCommandButton(isRenaming: isRenaming)
             copyCommandButton(isRenaming: isRenaming)

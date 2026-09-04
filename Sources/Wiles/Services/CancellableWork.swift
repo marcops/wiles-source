@@ -6,7 +6,7 @@ import Foundation
 ///
 /// `try await Task.detached { … }.value` on its own does NOT do that: `Task.detached` does not
 /// inherit cancellation and its handle is discarded, so every `isCancelled` check inside such a
-/// body is dead code. Findings AM-140 / HM-235 / MM-096: crawls, merges and scans written that way
+/// body is dead code. Crawls, merges and scans written that way
 /// kept running as zombie CPU/IO work after the user navigated away or closed the view. This is the
 /// same wrapper `AppState.runFileOperation`'s `detached` branch already uses, extracted so every
 /// service call site shares one policy.

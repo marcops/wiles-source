@@ -4,7 +4,7 @@ import SwiftUI
 /// the `GlobalKeyMonitor` dispatch, the shortcuts cheat sheet (`ShortcutsHUDOverlay`), and
 /// context-menu hints all read their key combos and labels from here, so the four can't drift
 /// out of sync. Replaces the old scatter of literal `.keyboardShortcut("x", …)`, raw `KeyCode`
-/// constants in the monitor, and hand-typed `KeyLabel`/`"Cmd+X"` strings (was [A3]/[M75]/[M77]).
+/// constants in the monitor, and hand-typed `KeyLabel`/`"Cmd+X"` strings.
 enum ShortcutRegistry {
     enum Command: CaseIterable {
         // Menu-backed

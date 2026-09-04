@@ -10,6 +10,28 @@ public struct BoundedFolderNodeCacheTests {
         testSetNilOnMissingKeyIsSafeNoOp()
         testEvictionRemovesOldestEntryFirstWhenOverCapacity()
         testEvictionStopsOnceUnderCapacity()
+        testReferenceSemanticsShareMutationsAcrossHolders()
+    }
+
+    /// Sidebar-freeze fix: `BoundedFolderNodeCache` is a `final class`, not a `struct`, specifically
+    /// so it can be passed as a plain shared reference down the recursive tree views instead of a
+    /// `@Binding` that fanned every node's independent completion out to every other node (see the
+    /// type's own doc comment). This asserts the property the whole fix depends on: two holders of
+    /// the "same" cache instance actually observe each other's writes, unlike a struct copy would.
+    private static func testReferenceSemanticsShareMutationsAcrossHolders() {
+        let shared = BoundedFolderNodeCache()
+        let base = baseURL()
+        let key = base.appendingPathComponent("folder")
+
+        func writer(_ cache: BoundedFolderNodeCache) {
+            cache[key] = [node(name: "a", base: base)]
+        }
+        writer(shared)
+
+        report(
+            "Model/BoundedFolderNodeCache",
+            "POS: a write through one holder of the reference is visible through another holder of the same instance",
+            result: shared[key] != nil)
     }
 
     private static func node(name: String, base: URL) -> FolderNode {
@@ -22,7 +44,7 @@ public struct BoundedFolderNodeCacheTests {
     }
 
     private static func testGetSetRoundTrip() {
-        var cache = BoundedFolderNodeCache()
+        let cache = BoundedFolderNodeCache()
         let base = baseURL()
         let key = base.appendingPathComponent("folder")
 
@@ -38,7 +60,7 @@ public struct BoundedFolderNodeCacheTests {
     }
 
     private static func testOverwriteExistingKeyUpdatesValueAndAccounting() {
-        var cache = BoundedFolderNodeCache()
+        let cache = BoundedFolderNodeCache()
         let base = baseURL()
         let key = base.appendingPathComponent("folder")
 
@@ -53,7 +75,7 @@ public struct BoundedFolderNodeCacheTests {
     }
 
     private static func testSetNilRemovesExistingEntry() {
-        var cache = BoundedFolderNodeCache()
+        let cache = BoundedFolderNodeCache()
         let base = baseURL()
         let key = base.appendingPathComponent("folder")
 
@@ -64,7 +86,7 @@ public struct BoundedFolderNodeCacheTests {
     }
 
     private static func testSetNilOnMissingKeyIsSafeNoOp() {
-        var cache = BoundedFolderNodeCache()
+        let cache = BoundedFolderNodeCache()
         let key = baseURL().appendingPathComponent("never-inserted")
 
         // Covers the `guard let newValue else { return }` branch with no prior entry either
@@ -78,7 +100,7 @@ public struct BoundedFolderNodeCacheTests {
         let base = baseURL()
         // Cap of two entries: inserting a third evicts the oldest (first-inserted) key while the
         // second and third both survive.
-        var cache = BoundedFolderNodeCache(maxEntryCount: 2)
+        let cache = BoundedFolderNodeCache(maxEntryCount: 2)
 
         let keyA = base.appendingPathComponent("a")
         let keyB = base.appendingPathComponent("b")
@@ -96,7 +118,7 @@ public struct BoundedFolderNodeCacheTests {
         let base = baseURL()
         // Cap large enough for every insert: the eviction loop's condition is false from the first
         // insert on (loop body never runs).
-        var cache = BoundedFolderNodeCache(maxEntryCount: 50)
+        let cache = BoundedFolderNodeCache(maxEntryCount: 50)
         let keys = (0 ..< 5).map { base.appendingPathComponent("k\($0)") }
         for (index, key) in keys.enumerated() {
             cache[key] = [node(name: "k\(index)", base: base)]

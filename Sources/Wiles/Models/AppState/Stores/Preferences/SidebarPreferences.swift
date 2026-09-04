@@ -114,7 +114,7 @@ public final class SidebarPreferences: PersistablePreferenceStore {
     /// Caps `expandedTreePaths` so an unbounded set of ever-expanded folders isn't retained forever.
     private static let maxExpandedTreePaths = 500
     /// Coalesces rapid expand/collapse toggles into a single `UserDefaults` write; auto-registered
-    /// for the terminate-time flush (findings MM-171 / ML-259).
+    /// for the terminate-time flush.
     private let expandedTreePathsWrite = DebouncedDefaultsWrite(interval: 0.5)
 
     public init() {
@@ -151,7 +151,7 @@ public final class SidebarPreferences: PersistablePreferenceStore {
 
     /// Runs the pending debounced `expandedTreePaths` write immediately. Called from
     /// `applicationWillTerminate` via `DebouncedWriteRegistry.flushAll()`; kept as a named method
-    /// for direct test/caller use (finding ML-259).
+    /// for direct test/caller use.
     public func flushPendingSaves() {
         expandedTreePathsWrite.flush()
     }

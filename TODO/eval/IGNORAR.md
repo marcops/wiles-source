@@ -77,3 +77,12 @@
 - `App/Commands/HelpMenuCommands.swift`
 - `App/Commands/GoMenuCommands.swift` 
 - `App/Commands/ToolsMenuCommands.swift`
+- `App/Commands/MenuTextEditingState.swift`
+- `Views/Settings/AppearanceSettingsView.swift`
+- `Views/Modals/RecentServerRow.swift`
+- `Views/Components/TranslucentBackgroundModifier.swift`
+- `Services/NetworkShare.swift` 
+- `Services/SymlinkMode.swift`
+- `Views/Components/AsyncErrorStateView.swift` 
+- `Views/Components/HeaderFieldChromeModifier.swift`
+- `Views/Components/CopyPathMenuContent.swift`

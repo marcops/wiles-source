@@ -31,7 +31,7 @@ public final class WindowUIState {
             // newly-created-item rename session (`enterRenameForNewlyCreated`); leaving it set made
             // every *later* F2 / context-menu rename in the window also run this stale closure,
             // firing an extra `refreshCurrentDirectory()` on top of the ones commit()/cancel()
-            // already do — 2-3 back-to-back directory reloads per rename (finding ML-139).
+            // already do — 2-3 back-to-back directory reloads per rename.
             let onCleared = onRenameCleared
             onRenameCleared = nil
             onCleared?()
@@ -47,7 +47,7 @@ public final class WindowUIState {
     /// Maintained by `GlobalKeyMonitor` on every key/scroll/click event. `GlobalKeyMonitor` yields
     /// keystrokes to the terminal when this is set, and `FileMenuCommands` disables the plain-key
     /// destructive menu items (Delete → Trash, Space → Quick Look) so their menu key equivalents
-    /// can't fire from terminal input. See finding CH-321.
+    /// can't fire from terminal input.
     public var isTerminalFocused: Bool = false
     public var showEmptyTrashAlert: Bool = false
     public var showDeleteConfirmAlert: Bool = false

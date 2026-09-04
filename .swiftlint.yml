@@ -351,6 +351,23 @@ custom_rules:
     regex: '@State\b[^\n=]*=[^\n]*\bUserDefaults\b'
     message: "A @State default that reads UserDefaults runs on every reconstruction of the View struct (parent re-render), not once. Start the @State empty and load in .task/.onAppear (ARCHITECTURE_CODE_REVIEW.md B18-4)."
     severity: warning
+  no_finding_id_in_comment:
+    name: "No Review Finding ID in Production Comments"
+    # Added after the 2026-09-04 architecture & code review found 128 production comments
+    # referencing an opaque internal review-finding ID (the project's own standing rule — keep
+    # finding IDs in the review doc/tests only, not shipped source). Covers every ID shape found
+    # across past review passes: the current `[Severity][Impact]-[ROI]` scheme (`MM-078`,
+    # `LL-020`, `HH-234`), the legacy bracketed shorthand (`[A3]`, `[M77]`, `[L34]`), and the
+    # legacy single-letter/single-digit hyphenated shorthand (`B1-1`). Deliberately does NOT match
+    # a bare "R1"-"R5" (Engineering Rule references in DEV_RULES.md/SWIFT_LANG_RULES.md/
+    # WILES_RULES.md are permanent, named, cross-referenced rules — not opaque per-review IDs) or
+    # `SE-0338` (a Swift Evolution proposal number, always 4 digits — the `\b` after `[0-9]{3}`
+    # fails when a 4th digit follows, so it can never match a 4-digit suffix). Verified against
+    # the entire `Sources/Wiles` tree with zero false positives on both counts.
+    included: ".*/Sources/.*\\.swift"
+    regex: '//.*(\[[A-Z][0-9]{1,3}\]|\b[A-Z]{2}-[0-9]{3}\b|\b[A-Z][0-9]-[0-9]{1,3}\b)'
+    message: "Comment references an opaque internal review-finding ID — keep the engineering reasoning in prose, but drop the ID reference itself (it means nothing to a reader without the originating review document). Finding IDs belong in the review doc/tests only."
+    severity: warning
   no_contentshape_inside_button_label:
     name: "No .contentShape Inside a Button's Composite Label"
     # ARCHITECTURE_CODE_REVIEW.md findings B16-3 / B18-3, enforcing SWIFT_LANG_RULES.md's "Custom

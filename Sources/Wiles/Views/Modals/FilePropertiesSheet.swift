@@ -29,7 +29,7 @@ struct FilePropertiesSheet: View {
     @State private var applyPermissionsResult: String?
     /// The in-flight (possibly recursive) chmod. Held so it can be cancelled when the sheet is
     /// dismissed — `setPermissionsRecursively` checks `Task.isCancelled` per item, which was dead
-    /// while nothing ever cancelled this task (LL-025).
+    /// while nothing ever cancelled this task.
     @State private var applyPermissionsTask: Task<Void, Never>?
 
     private var hasPendingPermissionChanges: Bool {

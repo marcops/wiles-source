@@ -20,7 +20,8 @@ public enum DiskSpaceVisualizerService {
     /// Hue for the synthetic "Others" slice.
     private static let othersSliceHue = 0.0
 
-    private struct RawItem {
+    /// `internal`, not `private`: returned by `collectRawItems`, which tests call directly.
+    struct RawItem {
         let url: URL
         let name: String
         let size: Int64
@@ -63,15 +64,26 @@ public enum DiskSpaceVisualizerService {
         }
     }
 
-    private static func collectRawItems(
+    /// `internal`, not `private`: lets tests inject an already-past `deadline` the same way
+    /// `computeFolderSizeFast` does, to verify the cross-subfolder deadline check below.
+    static func collectRawItems(
         in contents: [URL], fm _: FileManager, deadline: ContinuousClock.Instant) throws -> [RawItem] {
         var rawItems: [RawItem] = []
+        var pastDeadline = false
         for itemURL in contents {
             try Task.checkCancellation()
             let isDir = (try? itemURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             let size: Int64
             var wasTruncated = false
-            if isDir {
+            // Re-check the deadline before starting the NEXT subfolder's full walk, not just inside
+            // each one's own byte-count loop — otherwise a folder with many subfolders that each stay
+            // under `wallClockCheckInterval` files never trips the per-subfolder check, and the
+            // documented 6s budget shared across the whole scan is never actually enforced.
+            if isDir, pastDeadline || ContinuousClock.now >= deadline {
+                pastDeadline = true
+                size = 0
+                wasTruncated = true
+            } else if isDir {
                 (size, wasTruncated) = try computeFolderSizeFast(folderURL: itemURL, deadline: deadline)
             } else {
                 let values = try? itemURL.resourceValues(forKeys: [.fileSizeKey])
@@ -126,7 +138,7 @@ public enum DiskSpaceVisualizerService {
             includingPropertiesForKeys: [.fileSizeKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants],
             // Skip an unreadable subdirectory instead of aborting the whole walk (→ undercounted
-            // folder size shown as exact). R1 / BA-509.
+            // folder size shown as exact). R1.
             errorHandler: { _, _ in true })
         else {
             return (0, false)

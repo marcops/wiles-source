@@ -53,7 +53,7 @@ public extension FileSystemService {
     /// Staged, not destroy-then-move: any existing file at the destination is first renamed aside to
     /// a hidden sibling; only after the incoming move actually succeeds is that staged file sent to
     /// the Trash. If the move fails, the staged file is restored to its original name and the error
-    /// is rethrown — nothing ever reaches the Trash unless the constructive half happened (HM-110).
+    /// is rethrown — nothing ever reaches the Trash unless the constructive half happened.
     @discardableResult
     static func moveItemReplacing(
         at url: URL, toFolder targetFolder: URL) async throws -> (destination: URL, displacedTrashedURL: URL?) {
@@ -88,7 +88,7 @@ public extension FileSystemService {
         }
 
         // Sweep aged `.wiles-replace-`/`.wiles-rename-` orphans a prior crashed run stranded here,
-        // so they can't linger with no cleanup path (MM-121).
+        // so they can't linger with no cleanup path.
         sweepStaleRenameTemps(in: targetFolder)
 
         let staged = try stageDisplacedFile(at: destURL, in: targetFolder, fileManager: fm)
@@ -109,7 +109,7 @@ public extension FileSystemService {
                     try fm.moveItem(at: stagedURL, to: destURL)
                 } catch let restoreError {
                     // Rollback failed too: the displaced file is stranded under the hidden sibling.
-                    // Name the exact path in the error, like `performRenameOnDisk` does (MM-121).
+                    // Name the exact path in the error, like `performRenameOnDisk` does.
                     ErrorReporter.report(
                         restoreError,
                         context: "Replace rollback failed; \(destURL.lastPathComponent) is stranded at \(stagedURL.path)")
@@ -126,7 +126,7 @@ public extension FileSystemService {
         } catch {
             // Trash is unavailable on this volume (SMB/AFP share, FAT/exFAT drive). The move already
             // succeeded; park the displaced file under a visible, non-swept name so
-            // `sweepStaleRenameTemps` can't delete it and the `.trash` undo can still restore it (CH-190).
+            // `sweepStaleRenameTemps` can't delete it and the `.trash` undo can still restore it.
             return (destURL, recoverUntrashableDisplacedFile(
                 stagedAt: stagedURL, originalName: url.lastPathComponent, in: targetFolder, fileManager: fm))
         }
@@ -195,7 +195,7 @@ public extension FileSystemService {
     /// - the most-recently-added Trash entry whose name is `<stem>`/`<stem> …<ext>` — `trashItem`
     ///   renames on a name collision inside the Trash (`note 2.txt`, `note 10-30-45.txt`), else
     /// - `trashDirectory/<name>` as a last resort (a possibly-stale path still beats reporting a
-    ///   false "couldn't move to Trash" failure and dropping the `.trash` undo — finding MM-150).
+    ///   false "couldn't move to Trash" failure and dropping the `.trash` undo).
     nonisolated static func resolveTrashedItemURL(named name: String, in trashDirectory: URL) -> URL {
         let fm = FileManager.default
         let expected = trashDirectory.appendingPathComponent(name)
@@ -288,7 +288,7 @@ public extension FileSystemService {
     static let renameTempPrefix = ".wiles-rename-"
     /// Prefix for the hidden sibling a `.replace` move parks the displaced file under between staging
     /// and Trash (see `moveItemReplacingSync`). Swept alongside `renameTempPrefix` so a crash between
-    /// those two steps can't strand the user's file under a hidden UUID name forever (MM-121).
+    /// those two steps can't strand the user's file under a hidden UUID name forever.
     static let replaceTempPrefix = ".wiles-replace-"
     /// Backstop age for a staging temp with no live owner in `StagingTempRegistry` (crash leftover).
     /// A still-registered UUID is kept regardless of age — its cross-volume move can outrun this.
@@ -324,7 +324,7 @@ public extension FileSystemService {
     /// Trash support). Rename that staged `replaceTempPrefix` file to a **visible, non-swept** unique
     /// name in `targetFolder` so `sweepStaleRenameTemps` can never delete it and the `.trash` undo
     /// can still restore it. Returns the recovered URL, or `stagedURL` unchanged if even this rename
-    /// fails — still better than a false success (CH-190).
+    /// fails — still better than a false success.
     nonisolated static func recoverUntrashableDisplacedFile(
         stagedAt stagedURL: URL, originalName: String, in targetFolder: URL, fileManager fm: FileManager = .default) -> URL {
         let isDir = (try? stagedURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false

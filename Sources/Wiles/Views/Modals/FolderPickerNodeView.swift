@@ -6,7 +6,7 @@ struct FolderPickerNodeView: View {
     var appState: AppState
     @Binding var selectedURL: URL?
     @Binding var expandedPaths: Set<URL>
-    @Binding var childrenCache: BoundedFolderNodeCache
+    let childrenCache: BoundedFolderNodeCache
     @Binding var loadingURLs: Set<URL>
 
     private var expansion: DirectoryTreeExpansion {
@@ -45,6 +45,7 @@ struct FolderPickerNodeView: View {
         }
         .padding(.leading, depth == 0 ? 0 : 12)
         .id(node.url)
+        .task(id: isExpanded, loadChildrenIfNeeded)
     }
 
     @ViewBuilder private var childrenContent: some View {
@@ -64,7 +65,7 @@ struct FolderPickerNodeView: View {
                         appState: appState,
                         selectedURL: $selectedURL,
                         expandedPaths: $expandedPaths,
-                        childrenCache: $childrenCache,
+                        childrenCache: childrenCache,
                         loadingURLs: $loadingURLs)
                 }
             }
@@ -110,24 +111,22 @@ struct FolderPickerNodeView: View {
     }
 
     private func toggleExpanded() {
-        let wasExpanded = isExpanded
         expansion.toggle(node.url)
-        if !wasExpanded {
-            loadChildrenIfNeeded()
-        }
     }
 
-    private func loadChildrenIfNeeded() {
+    /// `.task(id: isExpanded)`, not a bare `Task {}` — a bare task kept running (and could still
+    /// write into `childrenCache`) even after this row was collapsed or scrolled out of the tree and
+    /// its view torn down, since nothing was cancelling it. Tying it to `.task(id:)` makes SwiftUI
+    /// cancel it automatically on either of those (mirrors `DirectoryTreeNodeView.loadChildrenIfNeeded`).
+    private func loadChildrenIfNeeded() async {
         guard node.needsChildLoad(cache: childrenCache, inFlight: loadingURLs) else { return }
         let url = node.url
         loadingURLs.insert(url)
-        Task {
-            let loaded = await FolderNode.loadChildrenOffMainActor(of: url)
-            loadingURLs.remove(url)
-            // Only apply if the node is still expanded — collapsing before the load finishes must not
-            // resurrect a stale result.
-            guard expandedPaths.contains(url) else { return }
-            childrenCache[url] = loaded
-        }
+        let loaded = await FolderNode.loadChildrenOffMainActor(of: url)
+        loadingURLs.remove(url)
+        // Only apply if the node is still expanded and this load wasn't cancelled — collapsing
+        // before the load finishes must not resurrect a stale result.
+        guard !Task.isCancelled, expandedPaths.contains(url) else { return }
+        childrenCache[url] = loaded
     }
 }

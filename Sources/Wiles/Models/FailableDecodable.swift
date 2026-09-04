@@ -2,7 +2,7 @@ import Foundation
 
 /// Decodes `T` but never throws for a bad element: `value` is `nil` when this array slot failed to
 /// decode. Decode `[FailableDecodable<T>]` instead of `[T]` when one corrupt / forward-incompatible
-/// record must not take the whole list down with it (finding ML-104).
+/// record must not take the whole list down with it.
 public struct FailableDecodable<T: Decodable>: Decodable {
     public let value: T?
 

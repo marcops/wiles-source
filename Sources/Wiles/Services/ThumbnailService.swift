@@ -29,7 +29,7 @@ public final class ThumbnailService {
     /// regenerating. `awaiters` tracks how many `.task`s are currently waiting on it — when the last
     /// one is cancelled (its image cell scrolled off screen) the generation is cancelled too, so a
     /// fast scroll through a 2000-image folder doesn't run 2000 QuickLook generations to completion
-    /// for thumbnails nobody will see (finding MM-118).
+    /// for thumbnails nobody will see.
     private final class InFlightThumbnail: @unchecked Sendable {
         let task: Task<Void, Never>
         var awaiters = 0
@@ -107,7 +107,7 @@ public final class ThumbnailService {
     }
 
     /// Called from an image cell's `.task` — never `stat`s (`allowStatFallback: false`). The caller
-    /// passes its `FileItem.dateModified` directly (ML-090): the mtime used to come from a shared
+    /// passes its `FileItem.dateModified` directly: the mtime used to come from a shared
     /// `mtimeIndex` on this singleton that a second window's directory load would overwrite,
     /// silently breaking the first window's cache-key fast path.
     public nonisolated func cachedThumbnail(for url: URL, size _: CGFloat, dateModified: Date?) -> NSImage? {
@@ -177,7 +177,7 @@ public final class ThumbnailService {
             try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
         } onCancel: {
             // Stop the QuickLook work itself, not just the awaiting task, once every viewer of this
-            // thumbnail has scrolled away (finding MM-118).
+            // thumbnail has scrolled away.
             QLThumbnailGenerator.shared.cancel(request)
         }
         guard !Task.isCancelled, let representation else { return }
@@ -189,7 +189,7 @@ public final class ThumbnailService {
 
     /// Warms the shared cache for one image, off `@MainActor`. The prefetch *session* — which
     /// folder's images, and cancelling a previous folder's walk — is owned per-window by
-    /// `ThumbnailPrefetcher`, not by a task stored on this shared singleton (ML-102).
+    /// `ThumbnailPrefetcher`, not by a task stored on this shared singleton.
     nonisolated func warmCache(for url: URL, dateModified: Date?) async {
         _ = await thumbnail(for: url, scale: deviceScale, mtime: dateModified)
     }
@@ -200,7 +200,7 @@ public final class ThumbnailService {
     }
 
     /// Keyed by path + mtime so an externally replaced file re-renders. `mtime` is the caller's
-    /// `FileItem.dateModified` (per-window, never shared — ML-090); when it's `nil` a `stat` fills
+    /// `FileItem.dateModified` (per-window, never shared); when it's `nil` a `stat` fills
     /// it in unless `allowStatFallback` is false (render-path callers must never `stat`).
     private nonisolated func cacheKey(url: URL, mtime: Date?, allowStatFallback: Bool = true) -> NSString {
         let std = url.standardizedFileURL

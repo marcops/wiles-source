@@ -9,9 +9,12 @@ struct ArchiveInspectionSheetView: View {
     var appState: AppState
     @Environment(\.dismiss)
     private var dismiss
-    /// The in-flight single-entry extraction, so closing the sheet cancels the `ditto`/`unzip`
-    /// subprocess instead of letting it run to completion in the background (MM-078).
-    @State private var extractionTask: Task<Void, Never>?
+    /// The in-flight single-entry extractions, keyed by entry path, so closing the sheet cancels
+    /// every `ditto`/`unzip` subprocess instead of letting them run to completion in the background.
+    /// Keyed per-entry, not a single shared slot: each row's "Extract" button is its own
+    /// independent action writing to its own destination file — a single shared slot silently
+    /// cancelled one entry's in-flight extraction the moment a DIFFERENT entry's button was clicked.
+    @State private var extractionTasks: [String: Task<Void, Never>] = [:]
 
     var body: some View {
         ModalScaffoldView(
@@ -21,7 +24,7 @@ struct ArchiveInspectionSheetView: View {
             height: Self.sheetHeight,
             primaryButton: ModalFooterButton(title: appState.tr(.close)) { dismiss() },
             content: { contentArea })
-            .onDisappear { extractionTask?.cancel() }
+            .onDisappear { extractionTasks.values.forEach { $0.cancel() } }
     }
 
     private var contentArea: some View {
@@ -90,8 +93,8 @@ struct ArchiveInspectionSheetView: View {
 
     private func extractButton(for entry: ArchiveEntryItem) -> some View {
         Button(appState.tr(.extractArchive)) {
-            extractionTask?.cancel()
-            extractionTask = Task {
+            extractionTasks[entry.path]?.cancel()
+            extractionTasks[entry.path] = Task {
                 await extractEntry(entry)
             }
         }
@@ -105,7 +108,7 @@ struct ArchiveInspectionSheetView: View {
         do {
             _ = try await ArchiveInspectionService.extractSingleEntry(from: archiveURL, entryPath: entry.path, to: appState.navigation.currentURL)
         } catch is CancellationError {
-            // Sheet closed mid-extraction — the subprocess was terminated; nothing to surface (MM-078).
+            // Sheet closed mid-extraction — the subprocess was terminated; nothing to surface.
             return
         } catch {
             await MainActor.run {

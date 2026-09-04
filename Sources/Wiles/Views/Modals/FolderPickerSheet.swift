@@ -16,7 +16,10 @@ struct FolderPickerSheet: View {
     @State private var treeBuildGeneration = 0
     @State private var selectedURL: URL?
     @State private var expandedPaths: Set<URL> = []
-    @State private var childrenCache = BoundedFolderNodeCache()
+    /// `let`, not `@State` (see `BoundedFolderNodeCache`'s doc comment): a plain shared reference,
+    /// deliberately outside SwiftUI's observation. The tree's actual re-render signal already flows
+    /// through `expandedPaths`/`loadingChildrenURLs` below, not through this cache's mutation.
+    private let childrenCache = BoundedFolderNodeCache()
     @State private var loadingChildrenURLs: Set<URL> = []
     @State private var pathText: String = ""
     @State private var pathError: String?
@@ -58,7 +61,7 @@ struct FolderPickerSheet: View {
     }
 
     /// Shared with `SidebarView` via `RootDirectoryTreeLoader` — builds the home-directory tree off
-    /// `@MainActor` with a fallback-timeout Retry state (LL-020).
+    /// `@MainActor` with a fallback-timeout Retry state.
     private func buildRootNodeIfNeeded() async {
         await RootDirectoryTreeLoader.load(
             isPending: { rootNode == nil },
@@ -148,7 +151,7 @@ struct FolderPickerSheet: View {
                 appState: appState,
                 selectedURL: $selectedURL,
                 expandedPaths: $expandedPaths,
-                childrenCache: $childrenCache,
+                childrenCache: childrenCache,
                 loadingURLs: $loadingChildrenURLs)
                 .padding(.leading, 10)
                 .padding(.trailing, 10)

@@ -37,6 +37,10 @@ struct BatchRenameSheetView: View {
     /// Recomputed off `body` by the `.task(id: currentMode)` below (debounced), not synchronously on
     /// every keystroke — a large selection in `.regex` mode makes `previewNewNames` expensive.
     @State private var previews: [(original: FileItem, newName: String)] = []
+    /// Set when "Apply" is pressed but the current preview would collide — shown inline
+    /// instead of letting the sheet dismiss and the same message surface only after the async
+    /// `performBatchRename` throws post-dismissal.
+    @State private var conflictMessage: String?
 
     var body: some View {
         ModalScaffoldView(
@@ -44,13 +48,23 @@ struct BatchRenameSheetView: View {
             title: "\(appState.tr(.batchRename)) (\(items.count))",
             width: 480,
             height: 380,
-            primaryButton: ModalFooterButton(title: appState.tr(.apply)) {
-                appState.performBatchRename(items: items, mode: currentMode)
-                dismiss()
-            },
+            primaryButton: ModalFooterButton(title: appState.tr(.apply)) { applyRename() },
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             headerAccessory: { modePicker },
             content: { formContent })
+    }
+
+    private func applyRename() {
+        let mode = currentMode
+        do {
+            try BatchRenameService.assertNoCollisions(in: BatchRenameService.previewNewNames(items: items, mode: mode))
+        } catch {
+            conflictMessage = appState.errorText(for: error)
+            return
+        }
+        conflictMessage = nil
+        appState.performBatchRename(items: items, mode: mode)
+        dismiss()
     }
 
     private var formContent: some View {
@@ -59,9 +73,15 @@ struct BatchRenameSheetView: View {
             Divider()
             previewLabel
             previewList
+            if let conflictMessage {
+                Text(conflictMessage)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
         }
         .padding(20)
         .task(id: currentMode) {
+            conflictMessage = nil
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else { return }
             previews = BatchRenameService.previewNewNames(items: items, mode: currentMode)

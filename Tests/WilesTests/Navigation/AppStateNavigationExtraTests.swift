@@ -21,6 +21,38 @@ public struct AppStateNavigationExtraTests {
         testNavigateToOnAFileIsANoOpButOpenItemHandlesIt()
         testResortCurrentItemsReordersInMemoryWithoutADiskRead()
         testApplyLoadedItemsTracksTruncationFlag()
+        await testFastNavigationCancelsPendingSlowVolumeCheck()
+    }
+
+    /// HH-398: `NavigationStore.pendingSlowVolumeCheck`'s own doc comment says it's "cancelled and
+    /// replaced whenever a new navigation starts, so a slow-resolving mount can't finish after a
+    /// faster subsequent navigation and yank the user back to it" — but `resolveAndNavigate` only
+    /// cancelled it inside its own `/Volumes/` branch, never on a subsequent FAST (local) navigation.
+    private static func testFastNavigationCancelsPendingSlowVolumeCheck() async {
+        let appState = AppState()
+        let localDir = tempDir()
+        try? FileManager.default.createDirectory(at: localDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: localDir) }
+
+        // A /Volumes/ path doesn't need to actually exist — isLikelySlowVolume only checks the
+        // prefix, so this still exercises the same async-check code path as a real stalled share.
+        appState.navigateTo(URL(fileURLWithPath: "/Volumes/NonexistentTestShare-\(UUID().uuidString)"))
+        let slowTask = appState.navigation.pendingSlowVolumeCheck
+
+        appState.navigateTo(localDir)
+
+        report(
+            "Navigation/SlowVolume",
+            "POS (HH-398): navigating to a fast/local path cancels a still-pending slow-volume check",
+            result: slowTask?.isCancelled ?? false)
+
+        // Give the (now-cancelled) slow-volume task a chance to run its `guard !Task.isCancelled`
+        // and confirm it does NOT overwrite the fast navigation that happened after it.
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        report(
+            "Navigation/SlowVolume",
+            "POS (HH-398): currentURL still reflects the fast navigation, not reverted by the stale slow-volume check",
+            result: appState.navigation.currentURL.standardizedFileURL.path == localDir.standardizedFileURL.path)
     }
 
     /// B5-2 / B9-2: `applyLoadedItems` records whether the applied batch was capped, and a later

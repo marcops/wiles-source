@@ -10,6 +10,7 @@ public struct FileSystemSearchAndSortTests {
         await testWildcardRegexSearch()
         await testRPrefixRegexSearch()
         await testKindFilter()
+        await testExtensionFilterDoesNotFallBackToKindCategory()
         await testFolderKindFilter()
         await testSizeFilter()
         await testDateFilterToday()
@@ -129,6 +130,28 @@ public struct FileSystemSearchAndSortTests {
         report("POS: \"kind:archive\" matches archive types by UTType conformance", result: Set(archives.map(\.name)) == ["bundle.zip", "bundle.tar"])
         let code = await load(at: dir, query: "ext:swift")
         report("POS: \"ext:\" filters by exact extension", result: code.count == 1 && code.first?.name == "script.swift")
+    }
+
+    /// MM-119: `ext:` shared `kind:`'s categorical matcher, so `ext:doc` matched any file in the
+    /// "document" kind category (pdf, xlsx, rtf, odt, pages, txt, md), not just literal `.doc` files.
+    private static func testExtensionFilterDoesNotFallBackToKindCategory() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for name in ["report.pdf", "notes.doc", "sheet.xlsx"] {
+            try? "x".write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        }
+
+        let docExt = await load(at: dir, query: "ext:doc")
+        report(
+            "POS (MM-119): \"ext:doc\" matches only literal .doc files, not the whole \"document\" kind category",
+            result: Set(docExt.map(\.name)) == ["notes.doc"])
+
+        // `kind:doc` is intentionally still categorical — this is the behavior `ext:` must NOT share.
+        let kindDoc = await load(at: dir, query: "kind:doc")
+        report(
+            "POS: \"kind:doc\" (unchanged) still matches the whole \"document\" kind category",
+            result: Set(kindDoc.map(\.name)) == ["report.pdf", "notes.doc", "sheet.xlsx"])
     }
 
     private static func testFolderKindFilter() async {

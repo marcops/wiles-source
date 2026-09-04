@@ -29,7 +29,7 @@ final class DirectoryMonitor: @unchecked Sendable {
     /// the start-failure path), dropping that +1. Result: the monitor is guaranteed alive for as
     /// long as the stream can still call `fsEventsCallback` on the utility queue — closing the
     /// use-after-free window when an FS event lands exactly as `deinit`/`cancel()` runs on another
-    /// thread (finding ML-120). Canonical FSEvents ownership pattern.
+    /// thread. Canonical FSEvents ownership pattern.
     private static let releaseContextInfo: @convention(c) (UnsafeRawPointer?) -> Void = { info in
         guard let info else { return }
         Unmanaged<DirectoryMonitor>.fromOpaque(info).release()
@@ -47,7 +47,7 @@ final class DirectoryMonitor: @unchecked Sendable {
         let pathsToWatch = [path as NSString] as CFArray
         // `passRetained` + a `release` callback (not `passUnretained`): the stream keeps the
         // monitor alive until `FSEventStreamRelease`, so a callback already running on the utility
-        // queue can't touch a freed object mid-teardown (finding ML-120).
+        // queue can't touch a freed object mid-teardown.
         let retainedInfo = Unmanaged.passRetained(self)
         var context = FSEventStreamContext(
             version: 0,

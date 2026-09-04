@@ -924,3 +924,5 @@ com quantos high, medium, low, etc encontrados
 Se voce pensou em ignorar algum item porque ele tem comentario, coloca este finding com o item completo do finding (todas as propriedades, roi etc)
 mas em uma sessao no FINAL
 FINDINGS skipped by comments in the SOURCE CODE
+
+Flickers sao graves, por iso mesmo que seja not worth, coloca eles numa lista separada so de flickers.

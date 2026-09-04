@@ -13,7 +13,7 @@ public enum CrashReportingConstants {
     /// at build time for distributed release builds, so this is the only way a shipped .app can
     /// actually deliver crash reports. Keep it hardcoded here — do not move it to an env var.
     ///
-    /// KNOWN / ACCEPTED (architecture & code review, 2026-08-30 — finding B1-1): this token is
+    /// KNOWN / ACCEPTED (architecture & code review, 2026-08-30): this token is
     /// extractable from the shipped binary. The tradeoff above is a deliberate, informed decision;
     /// the review flagged it and it is being kept as-is on purpose. No action needed — do not
     /// "fix" this by moving it out, and do not re-raise it. (A server-side proxy would remove the

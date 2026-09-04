@@ -31,7 +31,7 @@ enum FilenameSanitizer {
         guard stemBudget > 0 else {
             // The extension alone is ≥ the byte cap (degenerate input). Hard-truncating the whole
             // name here used to cut through the middle of the extension; instead keep a `stem.ext`
-            // shape by truncating the extension itself (LL-010).
+            // shape by truncating the extension itself.
             let prefix = truncatedToByteCount(stem, limit: 1) + "."
             return prefix + truncatedToByteCount(ext, limit: maxNameByteCount - prefix.utf8.count)
         }

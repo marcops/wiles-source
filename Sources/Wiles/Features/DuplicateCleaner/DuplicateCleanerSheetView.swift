@@ -171,8 +171,12 @@ public struct DuplicateCleanerSheetView: View {
             var failureCount = 0
             var undoActions: [UndoActionType] = []
             for fileURL in urls {
+                // `break`, not `return`: cancellation must still fall through to recording
+                // undo/refreshing/reporting below for whatever was already trashed before the
+                // cancellation point — an early `return` here silently dropped the undo record for
+                // files already moved to Trash, even though the disk operation had genuinely happened.
                 if Task.isCancelled {
-                    return
+                    break
                 }
                 do {
                     let trashed = try await FileSystemService.moveToTrash(url: fileURL)
@@ -182,7 +186,7 @@ public struct DuplicateCleanerSheetView: View {
                     failureCount += 1
                 }
             }
-            // One grouped undo entry so a single ⌘Z restores every trashed duplicate (HH-089).
+            // One grouped undo entry so a single ⌘Z restores every trashed duplicate.
             await appState.undoRedoService.recordActions(undoActions)
             await MainActor.run {
                 DirectoryCacheService.shared.invalidate(url: appState.navigation.currentURL)

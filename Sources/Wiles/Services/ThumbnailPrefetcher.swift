@@ -3,7 +3,7 @@ import AppKit
 /// Per-window owner of the thumbnail *prefetch session*: the single `Task` that walks the current
 /// folder's eligible images to warm `ThumbnailService`'s shared cache, cancelling the prior folder's
 /// walk when navigation moves on. Deliberately NOT stored on `ThumbnailService.shared` — two windows
-/// in different folders would each cancel the other's prefetch, so neither ever finished (ML-102).
+/// in different folders would each cancel the other's prefetch, so neither ever finished.
 /// The cache, mtime index and in-flight dedup it drives stay shared; only this session state is
 /// per-window.
 @MainActor

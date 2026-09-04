@@ -23,7 +23,7 @@ final class TerminalViewCache {
     var shellPid: pid_t?
     init() {
         // Registered so `applicationWillTerminate` can SIGKILL this window's shell on ⌘Q, which
-        // never triggers `MainContentView.onDisappear` (finding MM-122).
+        // never triggers `MainContentView.onDisappear`.
         TerminalProcessRegistry.shared.register(self)
     }
 
@@ -53,7 +53,7 @@ final class TerminalViewCache {
     ///
     /// `process` is declared `var process: LocalProcess!` — an implicitly-unwrapped optional — so
     /// `Mirror(reflecting:)` on that child walks the `Optional` wrapper, whose only member is
-    /// `some`, and `shellPid` never resolves. Unwrap one optional layer first (MM-143). Covered by
+    /// `some`, and `shellPid` never resolves. Unwrap one optional layer first. Covered by
     /// `TerminalShellPidReflectionCanaryTests`.
     static func reflectShellPid(of view: LocalProcessTerminalView?) -> pid_t? {
         guard let view else { return nil }

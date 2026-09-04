@@ -19,7 +19,7 @@ public enum ImageConverterService {
 
         // Refuse an oversized SOURCE from its metadata, before `CGImageSourceCreateImageAtIndex`
         // inflates the whole thing to RAM (a 100 MP source ≈ 400 MB RGBA). The output-size guard
-        // below only ran *after* that decode, so a huge input still OOM-risked the app (ML-078).
+        // below only ran *after* that decode, so a huge input still OOM-risked the app.
         if let inputPixels = sourcePixelCount(of: imageSource), inputPixelCountExceedsLimit(inputPixels) {
             throw WilesError.localized(
                 key: .imageConverterOutputTooLarge, arguments: ["\(maxInputPixels / 1_000_000)"])

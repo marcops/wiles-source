@@ -48,6 +48,7 @@
 "passwordCompressSubtitle" = "Создаёт защищённый паролем ZIP-архив из выбранных элементов";
 "passwordMismatchHint" = "Пароли не совпадают.";
 "pastingItemsEllipsis" = "Вставка Элементов…";
+"movingItemsEllipsis" = "Перемещение Элементов…";
 "batchRenamingEllipsis" = "Переименование файлов…";
 "removeRecentServer" = "Удалить из недавних";
 "removeSmartFolderConfirm" = "Вы уверены, что хотите удалить эту умную папку? Отменить это будет невозможно.";
@@ -229,7 +230,6 @@
 "open" = "Открыть";
 "openSystemSettings" = "Open System Settings";
 "openWith" = "Открыть в программе";
-"originalName" = "Original Name";
 "others" = "Другие";
 "overviewDesc" = "Wiles — это полностью нативный файловый менеджер для macOS, созданный с нуля так, будто он всегда был частью вашего Mac. Каждое действие, от открытия папки до переименования тысячи файлов сразу, ощущается мгновенным.";
 "owner" = "Owner";
