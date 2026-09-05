@@ -271,6 +271,26 @@ Symptoms, in order of what was ruled out:
   establishes. This is a wedged macOS UI-automation subsystem, not the test or the app.
 - `timeout` is not installed on this machine (it's GNU coreutils) — earlier "runs" that
   produced no output had silently no-op'd on `command not found: timeout`.
+- 20:3x: the failure escalated to the hard form —
+  `Could not launch "Wiles". RunningBoard has returned error 5 … Launchd job spawn failed`,
+  `Application 'com.marco.wiles.uitest' does not have a process ID`, `current state: Not
+  Running`. RunningBoard is now **refusing to spawn the app at all**. ~15 test launches
+  across the session drove the relaunch back-off into a hard spawn ban.
+
+**STATUS: stopped running.** Each further attempt deepens the RunningBoard ban. The test
+code is finished and committed; it cannot be executed from this session again.
+
+**To run it (human):**
+1. Reboot the Mac (clears the RunningBoard spawn ban reliably; a long idle *might* also).
+2. Quit any running `/Applications/Wiles.app`.
+3. First run from **Xcode** (open `Package.swift`, ⌘U) so macOS shows the one-time
+   Accessibility prompt for `WilesUITests-Runner` — grant it. (`xcodebuild` alone can't
+   trigger that prompt.)
+4. Thereafter: `xcodebuild test -scheme Wiles
+   -only-testing:WilesUITests/WilesLaunchUITests -destination 'platform=macOS,arch=arm64'`.
+5. Expect real per-step failures on the first green launch — triage them against
+   `WilesLaunchUITests.swift`'s `feat…()` steps, fix, repeat. `continueAfterFailure = true`
+   reports them all in one run.
 
 Likely trigger: a duplicate process name — the user's installed `/Applications/Wiles.app`
 (`com.marco.wiles`, running since 18:21) and the test's `com.marco.wiles.uitest` are both
