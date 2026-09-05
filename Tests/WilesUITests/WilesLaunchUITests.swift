@@ -60,8 +60,7 @@ final class WilesLaunchUITests: XCTestCase {
 
         app = XCUIApplication()
         app.launchArguments = ["--ui-testing"]
-        app.launch()
-        app.activate()
+        app.launch() // already brings the app to the foreground; a second activate() only adds a 60 s stall if the AX bridge is slow
     }
 
     override func tearDown() async throws {

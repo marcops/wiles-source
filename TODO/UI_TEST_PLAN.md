@@ -263,6 +263,14 @@ Symptoms, in order of what was ruled out:
 - Not the app bundle: the built `.app` is complete and runs.
 - 15 min of idle did **not** clear it, so it is past a plain relaunch back-off — the
   `testmanagerd` automation session itself is stuck.
+- 20:21 (fresh `-derivedDataPath .build/ui2`, cold build, +25 min idle): now a *different*
+  failure — the trace shows `Launch com.marco.wiles.uitest` then **"Wait for accessibility
+  to load" hangs the full 60 s timeout**, then `Activate` fails with
+  `current state: Running Background`. The app process is up (and runs fine with a window
+  when launched by hand), but the AX bridge between it and `WilesUITests-Runner` never
+  establishes. This is a wedged macOS UI-automation subsystem, not the test or the app.
+- `timeout` is not installed on this machine (it's GNU coreutils) — earlier "runs" that
+  produced no output had silently no-op'd on `command not found: timeout`.
 
 Likely trigger: a duplicate process name — the user's installed `/Applications/Wiles.app`
 (`com.marco.wiles`, running since 18:21) and the test's `com.marco.wiles.uitest` are both
