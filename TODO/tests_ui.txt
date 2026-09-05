@@ -1,0 +1,19 @@
+voce deve implementar no teste de UI, passar por todas as features que o SISTEMA TEM.
+Hoje ele funciona de maneira bem simples, ou seja ele so abre e minimiza uma sessao.
+os testes de UI sao sensiveis ou seja, faz 1 teste, roda, faz outro.
+se falhar volta ao estado do anterior, e nao segue nem tenta reinventar nada.
+
+Nota que o WilesLaunchUITEST.swift funciona.
+
+Vode deve IMPLEMENTAR NELE passar por todas as features do sistema.
+
+Voce deve 1.
+enumerar todas as features, criar 1 plano de acao completo.
+implementar 1 feature.
+se ela passar vai fazer o commit.
+se ela falhar vai voltar o commit, para a versao que funcionava
+adicionar 1 linha e testar, e vai ir linha a linha ate descobrir qual linha falhou.
+
+Voce nao pode alterar o FONTE ORIGINAL, 
+VOCE DEVE IMPLEMENTAR TUDO NO WilesLaunchUITEST
+SE PRECISAR ALTERAR O FONTE ORIGINAL PORQUE FALTOU POR UMA TAG, acessibilidade DEVE ME INFORMAR ANTES.
