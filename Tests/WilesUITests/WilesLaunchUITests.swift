@@ -162,11 +162,10 @@ final class WilesLaunchUITests: XCTestCase {
         XCTAssertTrue(waitForModal(), "Save Smart Folder sheet did not open")
         dismissModal()
 
-        let searchField = app.textFields["SearchTextField"]
-        searchField.typeKey("a", modifierFlags: .command)
-        searchField.typeKey(.delete, modifierFlags: [])
-        XCTAssertTrue(fileRow(betaFile).waitForExistence(timeout: 3.0), "'\(betaFile)' did not return after clearing search")
-        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        // Close search by toggling ⌘F off (EditMenuCommands `.find` → toggleSearching). Never
+        // clear it with ⌘A+Delete: if focus isn't in the field that would trash every file.
+        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(fileRow(betaFile).waitForExistence(timeout: 3.0), "'\(betaFile)' did not return after leaving search")
     }
 
     private func featTags() {
