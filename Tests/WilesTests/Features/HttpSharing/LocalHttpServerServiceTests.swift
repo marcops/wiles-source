@@ -224,7 +224,8 @@ public struct HttpSharingFeatureTests {
         server.sharedFolder = nil
 
         var passed = false
-        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:8080/")!),
+        if let serverURL = URL(string: "http://localhost:\(server.port.rawValue)/"),
+           let (_, resp) = try? await requestSession.data(from: serverURL),
            let httpResp = resp as? HTTPURLResponse {
             passed = httpResp.statusCode == 500
         }
@@ -282,7 +283,8 @@ public struct HttpSharingFeatureTests {
         try? FileManager.default.removeItem(at: tempDir)
 
         var passed = false
-        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:8080/")!),
+        if let serverURL = URL(string: "http://localhost:\(server.port.rawValue)/"),
+           let (_, resp) = try? await requestSession.data(from: serverURL),
            let httpResp = resp as? HTTPURLResponse {
             passed = httpResp.statusCode == 500
         }
@@ -343,7 +345,8 @@ public struct HttpSharingFeatureTests {
         // empty-content guard didn't leave the server (or its `connections` bookkeeping) in a
         // broken state.
         var passed = false
-        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:8080/")!),
+        if let serverURL = URL(string: "http://localhost:\(server.port.rawValue)/"),
+           let (_, resp) = try? await requestSession.data(from: serverURL),
            let httpResp = resp as? HTTPURLResponse {
             passed = httpResp.statusCode == 200
         }
@@ -377,7 +380,8 @@ public struct HttpSharingFeatureTests {
         report("Feature/HttpSharing", "NEG: non-UTF8 request bytes close the connection without a response or a crash", result: connectionWasClosedByServer)
 
         var stillHealthy = false
-        if let (_, resp) = try? await requestSession.data(from: URL(string: "http://localhost:8080/")!),
+        if let serverURL = URL(string: "http://localhost:\(server.port.rawValue)/"),
+           let (_, resp) = try? await requestSession.data(from: serverURL),
            let httpResp = resp as? HTTPURLResponse {
             stillHealthy = httpResp.statusCode == 200
         }
