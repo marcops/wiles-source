@@ -310,6 +310,9 @@
 "sidebarDocuments" = "Documents";
 "ejectVolume" = "Eject Volume";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "Appearance";
+"appearanceDefault" = "Default";
+"appearanceDirectorView" = "Director View";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "sidebarTrash" = "Trash";
 "size" = "Size";

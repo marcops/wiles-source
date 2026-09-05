@@ -316,6 +316,9 @@
 "showTagsHint" = "Toont de sectie Labels in de zijbalk.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "Uiterlijk";
+"appearanceDefault" = "Standaard";
+"appearanceDirectorView" = "Regisseursweergave";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Naam slimme map";

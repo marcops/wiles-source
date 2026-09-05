@@ -316,6 +316,9 @@
 "showTagsHint" = "Mostra la sezione Tag nella barra laterale.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "Aspetto";
+"appearanceDefault" = "Predefinito";
+"appearanceDirectorView" = "Vista Regista";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Nome cartella intelligente";

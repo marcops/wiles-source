@@ -81,7 +81,11 @@ public struct FileItemInteractionsModifier: ViewModifier {
 
     private func handleDoubleTap() {
         renameRequestGeneration += 1
-        appState.openItem(item.url)
+        if ArchiveService.isArchive(url: item.url) {
+            windowUIState.activeModal = .inspectArchive(item.url)
+        } else {
+            appState.openItem(item.url)
+        }
     }
 
     private func handleSingleTap() {

@@ -67,12 +67,24 @@ public final class FavoritesStore: PersistablePreferenceStore {
                 await self?.validateSlowVolumeFavorites()
             }
         } else {
-            favoriteURLs = [
-                FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Desktop"),
-                FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents"),
-                FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
-            ].filter { FileManager.default.fileExists(atPath: $0.path) }
+            favoriteURLs = Self.factoryDefaultFavoriteURLs()
         }
+    }
+
+    /// Desktop, Documents, Downloads — the same first-launch favorites `init` seeds when no saved
+    /// list exists yet, filtered to whichever actually exist on this Mac.
+    static func factoryDefaultFavoriteURLs() -> [URL] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        return [
+            home.appendingPathComponent("Desktop"),
+            home.appendingPathComponent("Documents"),
+            home.appendingPathComponent("Downloads")
+        ].filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    /// Reassigns `favoriteURLs` to the factory default list — see `ViewPreferences.resetToDefaults()`.
+    func resetToDefaults() {
+        favoriteURLs = Self.factoryDefaultFavoriteURLs()
     }
 
     /// `/Volumes/` favorites are accepted optimistically above instead of a synchronous

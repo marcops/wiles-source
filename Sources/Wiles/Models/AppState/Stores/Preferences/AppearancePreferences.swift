@@ -54,4 +54,12 @@ public final class AppearancePreferences: PersistablePreferenceStore {
         loadInt(.sidebarTranslucentLevel, into: \.sidebarTranslucentLevel, from: defaults)
         loadInt(.contentTranslucentLevel, into: \.contentTranslucentLevel, from: defaults)
     }
+
+    /// Reassigns every property to its literal factory default — see `ViewPreferences.resetToDefaults()`.
+    func resetToDefaults() {
+        appAppearance = .system
+        appLanguage = .system
+        sidebarTranslucentLevel = 80
+        contentTranslucentLevel = 40
+    }
 }

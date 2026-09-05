@@ -316,6 +316,9 @@
 "showTagsHint" = "Kenar çubuğunda Etiketler bölümünü gösterir.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "Görünüm";
+"appearanceDefault" = "Varsayılan";
+"appearanceDirectorView" = "Yönetmen Görünümü";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Akıllı Klasör Adı";

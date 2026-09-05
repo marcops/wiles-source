@@ -318,6 +318,9 @@
 "sidebarDocuments" = "Documentos";
 "ejectVolume" = "Expulsar volumen";
 "sidebarMenuTitle" = "Barra Lateral";
+"appearanceMenuTitle" = "Apariencia";
+"appearanceDefault" = "Predeterminado";
+"appearanceDirectorView" = "Vista de Director";
 "sidebarTranslucentLevel" = "Transparencia Lateral";
 "sidebarTrash" = "Papelera";
 "size" = "Tamaño";

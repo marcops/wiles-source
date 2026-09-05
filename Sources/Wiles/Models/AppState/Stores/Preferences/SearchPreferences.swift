@@ -34,4 +34,11 @@ public final class SearchPreferences: PersistablePreferenceStore {
         loadBool(.searchCaseSensitive, into: \.searchCaseSensitive, from: defaults)
         loadBool(.searchEverywhere, into: \.searchEverywhere, from: defaults)
     }
+
+    /// Reassigns every property to its literal factory default — see `ViewPreferences.resetToDefaults()`.
+    func resetToDefaults() {
+        searchScope = .name
+        searchCaseSensitive = false
+        searchEverywhere = false
+    }
 }

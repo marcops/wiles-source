@@ -220,6 +220,29 @@ public final class ViewPreferences: PersistablePreferenceStore {
         }
     }
 
+    /// Reassigns every property to its literal factory default — each `didSet` above persists it
+    /// normally, so this both updates the live UI and overwrites whatever was saved on disk.
+    func resetToDefaults() {
+        viewMode = .grid
+        sortOption = .name
+        sortAscending = true
+        showHiddenFiles = false
+        navigationMode = .gnome
+        isCompactMode = false
+        sidebarWidth = Double(LayoutTokens.sidebarIdealWidth)
+        isSidebarCollapsed = false
+        middleTruncateNames = true
+        alwaysShowFullPathBar = false
+        showFooter = true
+        showTerminalDrawer = false
+        trailingInspector = .none
+        skipDeleteConfirmation = false
+        iconSize = 54.0
+        perFolderViewModeEnabled = false
+        perFolderViewModes = [:]
+        listColumnStates = ListColumnState.defaults()
+    }
+
     /// Restores `trailingInspector`, falling back to the pre-enum `wiles_showPreviewSidebar` /
     /// `wiles_showDiskUsageSidebar` bools so an upgrade doesn't lose the open inspector.
     private func loadTrailingInspector(_ defaults: UserDefaults) {

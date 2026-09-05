@@ -316,6 +316,9 @@
 "showTagsHint" = "يعرض قسم الوسوم في الشريط الجانبي.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "المظهر";
+"appearanceDefault" = "الافتراضي";
+"appearanceDirectorView" = "عرض المخرج";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "اسم المجلد الذكي";

@@ -35,6 +35,13 @@ struct DiskUsageSidebarView: View {
         }
     }
 
+    /// Re-runs the scan whenever the folder changes OR the current folder's own item count
+    /// changes (a delete, paste, or FSEvents-driven refresh) — the raw `currentURL` alone missed
+    /// every in-place content change, leaving a stale report showing a file the user just deleted.
+    private var refreshKey: String {
+        "\(appState.navigation.currentURL.path)|\(appState.fileSystem.items.count)"
+    }
+
     /// The `ScrollView` stays mounted with a stable identity across the loading -> loaded
     /// transition (only its inner content varies) — a `ScrollView` inserted into an
     /// already-visible sidebar after the fact can fail to wire into the mouse-wheel/trackpad
@@ -43,7 +50,7 @@ struct DiskUsageSidebarView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 AsyncResultView(
-                    id: appState.navigation.currentURL,
+                    id: refreshKey,
                     operation: {
                         try await DiskSpaceVisualizerService.calculateDiskUsage(
                             for: appState.navigation.currentURL,

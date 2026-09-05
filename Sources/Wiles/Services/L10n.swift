@@ -38,6 +38,9 @@ public enum L10n {
         case showSidebarSectionTitles
         case showSidebarSectionTitlesHint
         case sidebarMenuTitle
+        case appearanceMenuTitle
+        case appearanceDefault
+        case appearanceDirectorView
         case places
         case directoryTree
         case showDirectoryTree

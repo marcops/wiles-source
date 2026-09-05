@@ -29,6 +29,23 @@ When asked to act as architect / improve / design something (not just "fix X"), 
 - Never use raw magic numbers, arbitrary multipliers, or unexplained static offsets. Always define named constants/enums, or compute values dynamically from context.
 - Placement depends on sharing, not on the value's type: if a constant is used by 2+ types/files, it belongs in the shared token enum (e.g. `LayoutTokens`/`MotionTokens`); if it's only used within one type, it belongs as a `private static let` inside that type, not in the shared file. Don't default to the shared file "to be safe" — that turns it into a dumping ground of single-use values and creates false coupling between unrelated views. Promote a local constant to the shared file only when a second real caller actually appears.
 
+## No Unnecessary Comments
+
+Comments in production code are prohibited by default. A comment is allowed only when ALL of these are true:
+- The code contains a non-obvious exception, workaround, constraint, bug-related behavior, or external limitation that cannot be reasonably understood from the code itself.
+- Removing the comment would create a real risk of the same mistake being reintroduced.
+- The comment provides information that cannot be expressed more clearly by improving the code itself.
+
+Prohibited even when well-intentioned: comments that merely describe what the code obviously does; comments that restate the method/variable/condition/implementation; comments explaining standard language/framework behavior; comments added only for readability when the code could instead be made self-explanatory; TODO/FIXME-style comments when the issue should be tracked externally instead; large explanatory blocks or embedded documentation; comments describing historical context no longer relevant.
+
+When a comment is genuinely necessary, it MUST be short, specific, human-readable, immediately understandable, focused on the reason/constraint (not the implementation), and free of unnecessary technical detail. It explains *why* the unusual behavior exists, not *what* the code does.
+- Good: `// Keep this delay: SumSub can send the webhook before the IDV record is committed.`
+- Bad: `// Wait for 2 seconds before continuing.`
+
+If the explanation needs a paragraph or more, that's a sign to improve the code's structure/naming instead of writing a long comment — never pad it into a comment block.
+
+**Review test**: "If I remove this comment, is there a realistic chance a competent developer will misunderstand the code and reintroduce the same bug or violate the same constraint?" No → remove it. Yes → keep a short explanation of the reason. Default is zero comments; a comment is an exception, never a documentation mechanism.
+
 ## Minimal Scope & Minimal Diff Discipline
 
 - When modifying something (a label, a UI element, a function), change ONLY the specific thing requested. Never refactor unrelated code "while in there" unless explicitly asked.

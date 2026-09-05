@@ -316,6 +316,9 @@
 "showTagsHint" = "Показывает раздел «Метки» на боковой панели.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "Внешний вид";
+"appearanceDefault" = "По умолчанию";
+"appearanceDirectorView" = "Режим режиссёра";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Имя smart-папки";

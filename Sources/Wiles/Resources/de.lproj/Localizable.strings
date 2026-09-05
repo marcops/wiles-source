@@ -318,6 +318,9 @@
 "sidebarDocuments" = "Dokumente";
 "ejectVolume" = "Volume auswerfen";
 "sidebarMenuTitle" = "Seitenleiste";
+"appearanceMenuTitle" = "Erscheinungsbild";
+"appearanceDefault" = "Standard";
+"appearanceDirectorView" = "Regie-Ansicht";
 "sidebarTranslucentLevel" = "Seitenleisten-Transparenz";
 "sidebarTrash" = "Papierkorb";
 "size" = "Größe";

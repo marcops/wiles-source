@@ -140,6 +140,26 @@ public final class SidebarPreferences: PersistablePreferenceStore {
         }
     }
 
+    /// Reassigns every property to its literal factory default — see `ViewPreferences.resetToDefaults()`.
+    func resetToDefaults() {
+        showDirectoryTree = false
+        showFavorites = true
+        showRecents = true
+        showPlaces = true
+        showNetworkAndCloud = false
+        showSidebarSectionTitles = true
+        showTags = false
+        isFavoritesExpanded = true
+        isMacExpanded = true
+        isNetworkExpanded = true
+        isRecentsExpanded = true
+        isDevicesExpanded = true
+        isTreeExpanded = true
+        isTagsExpanded = true
+        isSmartFoldersExpanded = true
+        expandedTreePaths = []
+    }
+
     /// Coalesces repeated `expandedTreePaths` edits into one `UserDefaults` write, resetting the
     /// timer on every new toggle so a burst of expand/collapse calls only serializes the set once.
     private func scheduleExpandedTreePathsSave() {

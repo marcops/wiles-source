@@ -40,9 +40,7 @@ When a sequence of commands gets run repeatedly (e.g. build+codesign+relaunch st
 
 ## Short code comments
 
-Comments in code must be 1-2 lines maximum, human-readable, not long AI-generated explanatory blocks that nobody reads.
-
-**How to apply:** when a comment is needed (only for the WHY a reader truly can't infer — a hidden constraint, subtle invariant, non-obvious workaround), keep it to 1-2 lines. If the reasoning needs more than that, cut it down to the essential point or leave it out. Prefer a self-explanatory function/variable name over a comment explaining what a helper does — extract a small private function with a clear name instead of a comment on inline code.
+See `DEV_RULES.md`'s "No Unnecessary Comments" for the full rule (default zero comments; a short WHY-only exception when removing it would risk reintroducing a real bug/constraint). This user has flagged overly long comments repeatedly — treat 1-2 lines as a hard ceiling, not a target.
 
 ## Only read files explicitly named or pointed to
 

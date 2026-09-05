@@ -316,6 +316,9 @@
 "showTagsHint" = "사이드바에 태그 섹션을 표시합니다.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "외관";
+"appearanceDefault" = "기본값";
+"appearanceDirectorView" = "디렉터 보기";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "스마트 폴더 이름";

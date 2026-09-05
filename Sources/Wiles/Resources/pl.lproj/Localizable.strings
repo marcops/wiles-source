@@ -316,6 +316,9 @@
 "showTagsHint" = "Pokazuje sekcję Tagi na pasku bocznym.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "Wygląd";
+"appearanceDefault" = "Domyślny";
+"appearanceDirectorView" = "Widok reżysera";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Nazwa inteligentnego folderu";

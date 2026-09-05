@@ -316,6 +316,9 @@
 "showTagsHint" = "Visar avsnittet Taggar i sidofältet.";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "Utseende";
+"appearanceDefault" = "Standard";
+"appearanceDirectorView" = "Regissörsvy";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "Namn på smart mapp";

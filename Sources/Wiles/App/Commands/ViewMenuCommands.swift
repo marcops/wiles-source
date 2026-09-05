@@ -75,6 +75,10 @@ struct ViewMenuCommands: LocalizedCommands {
             Divider()
             Toggle(tr(.autoHideSidebar), isOn: $sharedPreferences.view.isSidebarCollapsed)
         }
+        Menu(tr(.appearanceMenuTitle)) {
+            Button(tr(.appearanceDefault)) { sharedPreferences.resetToDefaults() }
+            Button(tr(.appearanceDirectorView)) { sharedPreferences.applyDirectorView() }
+        }
         Divider()
         Picker(selection: viewModeBinding) {
             Text(tr(.gridView)).tag(ViewMode.grid)

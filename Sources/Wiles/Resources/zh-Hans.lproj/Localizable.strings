@@ -316,6 +316,9 @@
 "showTagsHint" = "在侧边栏中显示“标签”部分。";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "外观";
+"appearanceDefault" = "默认";
+"appearanceDirectorView" = "导演视图";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "智能文件夹名称";

@@ -316,6 +316,9 @@
 "showTagsHint" = "サイドバーに「タグ」セクションを表示します。";
 "showTerminal" = "Show Terminal";
 "sidebarMenuTitle" = "Sidebar";
+"appearanceMenuTitle" = "外観";
+"appearanceDefault" = "デフォルト";
+"appearanceDirectorView" = "ディレクタービュー";
 "sidebarTranslucentLevel" = "Sidebar Translucency";
 "size" = "Size";
 "smartFolderName" = "スマートフォルダ名";
