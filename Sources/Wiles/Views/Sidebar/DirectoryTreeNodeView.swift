@@ -66,7 +66,7 @@ struct DirectoryTreeNodeView: View {
                 }
             }
         }
-        .padding(.leading, depth == 0 ? 0 : 12)
+        .padding(.leading, depth == 0 ? 5 : 12)
         .task(id: isExpanded, loadChildrenIfNeeded)
     }
 

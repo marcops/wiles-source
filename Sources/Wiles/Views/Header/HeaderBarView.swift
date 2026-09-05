@@ -38,7 +38,19 @@ struct HeaderBarView: View {
             Group {
                 if appState.selection.isSearching {
                     ClickOutsideDetector {
-                        if appState.selection.searchQuery.isEmpty {
+                        // Editing an active smart folder's query: clicking away saves the edit back
+                        // to the folder (same persistence the sidebar's "Update Search" menu item
+                        // already uses) and collapses the field back to its name pill, rather than
+                        // leaving the raw query exposed or requiring the manual menu item.
+                        if windowUIState.isEditingSearch, let activeSmartFolder {
+                            let trimmedQuery = appState.selection.searchQuery.trimmingCharacters(in: .whitespaces)
+                            if !trimmedQuery.isEmpty {
+                                appState.updateSmartFolderQuery(activeSmartFolder, to: appState.selection.searchQuery)
+                            }
+                            withAnimation(MotionTokens.quickEase) {
+                                windowUIState.isEditingSearch = false
+                            }
+                        } else if appState.selection.searchQuery.isEmpty {
                             withAnimation(MotionTokens.quickEase) {
                                 appState.selection.isSearching = false
                             }
@@ -211,20 +223,11 @@ struct HeaderBarView: View {
             accessibilityHint: appState.tr(.saveAsSmartFolderHint),
             action: { windowUIState.activeModal = .saveSmartFolder },
             content: {
-                Image(systemName: "folder.badge.plus")
+                Image(systemName: "square.and.arrow.down")
                     .foregroundColor(.accentColor)
                     .frame(width: 20, height: 20)
             })
             .help(appState.tr(.saveAsSmartFolder))
-
-        TappableRow(
-            accessibilityLabel: appState.tr(.clearSearch),
-            accessibilityHint: appState.tr(.clearSearchHint),
-            action: { appState.selection.searchQuery = "" },
-            content: {
-                Image(systemName: "xmark.circle.fill").foregroundColor(.secondary)
-                    .frame(width: 20, height: 20)
-            })
     }
 
     private var searchFilterMenu: some View {

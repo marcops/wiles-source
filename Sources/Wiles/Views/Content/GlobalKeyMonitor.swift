@@ -37,7 +37,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             if window != nil, monitor == nil {
-                monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel, .leftMouseUp]) { [weak self] event in
+                monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel, .leftMouseUp, .leftMouseDown, .rightMouseDown]) { [weak self] event in
                     self?.processLocalEvent(event)
                 }
             }
@@ -94,6 +94,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 windowUIState.isTerminalFocused = terminalFocused
             }
             if terminalFocused {
+                yieldTerminalFocusIfClickedOutside(event, windowUIState: windowUIState)
                 return event
             }
             if event.type == .leftMouseUp {
@@ -112,6 +113,19 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 return handleKeyDownEvent(event, appState: appState, windowUIState: windowUIState)
             }
             return event
+        }
+
+        /// A click landing outside the terminal while it still holds first responder must yield
+        /// explicitly: AppKit only reassigns first responder to whatever the click hits when that
+        /// view itself accepts first responder, which plain SwiftUI content (rows, sidebar, empty
+        /// space — all `.onTapGesture`-driven) never does. Without this, clicking anywhere outside
+        /// the terminal leaves it as first responder and it keeps eating every keystroke.
+        private func yieldTerminalFocusIfClickedOutside(_ event: NSEvent, windowUIState: WindowUIState) {
+            guard event.type == .leftMouseDown || event.type == .rightMouseDown else { return }
+            let hitView = event.window?.contentView?.hitTest(event.locationInWindow)
+            guard !Self.eventTargetsTerminal(firstResponder: hitView, terminalView: windowUIState.terminalViewCache.view) else { return }
+            event.window?.makeFirstResponder(nil)
+            windowUIState.isTerminalFocused = false
         }
 
         private func handleScrollEvent(_ event: NSEvent, appState: AppState) -> NSEvent? {
