@@ -264,4 +264,30 @@ sign-off. Batch the ask per feature, mirroring the existing pattern
 | --- | --- | --- | --- |
 | 2026-09-05 | plan created | 3480c56 | — |
 | 2026-09-05 | DIRECTORY TREE section assertion | 04252e6 | green |
-| 2026-09-05 | full walkthrough drafted (17 blocks) | WIP | verified so far: launch shell, FAVORITES, Status Bar, DIRECTORY TREE + PLACES headers, tree collapse. Blocked mid-bisection by relaunch throttle. Real bugs fixed: TAGS/SMART_FOLDERS not default-visible; tree re-expand needed longer wait. |
+| 2026-09-05 | full walkthrough drafted (17 blocks) | 40b563a | verified: launch shell, FAVORITES, Status Bar, DIRECTORY TREE + PLACES headers, tree collapse. Real bugs fixed: TAGS/SMART_FOLDERS not default-visible; tree re-expand needed longer wait. |
+| 2026-09-05 | rewrite: all 20 FEATURES.md features, one method → 22 feat…() steps | 6a2d6e9 | compiles; swiftlint --strict + swiftformat clean. `continueAfterFailure = true`. Behaviour unverified — waiting out the relaunch back-off before the next run. |
+
+### Feature coverage (from wiles-public/FEATURES.md)
+
+`[x]` = step written & at least once green · `[~]` = step written, unverified · `[ ]` = not written
+
+- [x] Grid & List Views      · `[~]` re-verify after rewrite
+- [x] Directory Tree
+- [~] Favorites & Places     (Places row → navigate)
+- [~] Smart Folders          (save-search sheet opens; UI-present only)
+- [~] Tags                   (enable via Settings ▸ Sidebar, section appears)
+- [~] Search
+- [~] Batch Rename           (multi-select → Rename → sheet)
+- [~] Image Converter        (context menu on seeded PNG → sheet)
+- [~] Compress to ZIP        (context menu → .zip appears on disk)
+- [~] Archive Inspector      (context menu on seeded zip → sheet)
+- [~] Duplicate Finder       (Tools menu → sheet)
+- [~] Disk Usage Visualizer  (⌘⇧D → View-menu label flips)
+- [~] Integrated Terminal    (View-menu toggle label flips)
+- [~] HTTP Sharing           (folder context menu → sheet; UI-present only)
+- [~] Auto-Organization Rules (Tools menu → sheet)
+- [~] Connect to Server      (⌘K → sheet; UI-present only)
+- [~] Symbolic Links         (context menu → sheet)
+- [~] File Properties & Permissions (⌘I → sheet)
+- [~] Undo/Redo              (trash → ⌘Z → ⇧⌘Z → ⌘Z, on-disk each step)
+- [~] Appearance Settings    (theme → Dark → persists across reopen → restore)
