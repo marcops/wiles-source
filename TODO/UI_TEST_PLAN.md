@@ -248,8 +248,20 @@ sign-off. Batch the ask per feature, mirroring the existing pattern
 | 12 | Terminal container | `Views/Content/IntegratedTerminalView.swift` | `IntegratedTerminal` |
 | 13 | Preview pane / Disk-usage pane containers | `Views/Sidebar/PreviewSidebarView.swift`, `Features/DiskSpaceVisualizer/DiskUsageSidebarView.swift` | `PreviewPane` / `DiskUsagePane` |
 
+## 6. Throttle vs. real test error — how to tell them apart
+
+- **macOS relaunch throttle** (`runningboardd` back-off after several close-spaced runs):
+  failure is at the *first* `ensureMainWindow()` wait; run duration ≈ the timeout; the
+  automation trace shows `Launch com.marco.wiles.uitest` but no window ever resolves; the
+  identical code passed that line minutes earlier. Not fixable in code — space runs out
+  (~15 min idle), and never relaunch inside the test (it feeds the back-off).
+- **Real test error**: the window appears, the walkthrough runs, and the failure is a later
+  assertion naming a specific element (e.g. `Section_TAGS not found`). These get fixed.
+
 ## 5. Progress log
 
 | date | feature | commit | result |
 | --- | --- | --- | --- |
-| 2026-09-05 | plan created | — | — |
+| 2026-09-05 | plan created | 3480c56 | — |
+| 2026-09-05 | DIRECTORY TREE section assertion | 04252e6 | green |
+| 2026-09-05 | full walkthrough drafted (17 blocks) | WIP | verified so far: launch shell, FAVORITES, Status Bar, DIRECTORY TREE + PLACES headers, tree collapse. Blocked mid-bisection by relaunch throttle. Real bugs fixed: TAGS/SMART_FOLDERS not default-visible; tree re-expand needed longer wait. |
