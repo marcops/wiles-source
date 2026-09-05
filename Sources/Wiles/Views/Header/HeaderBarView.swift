@@ -81,11 +81,12 @@ struct HeaderBarView: View {
             searchField
         case let .tagPill(tag):
             // No click-to-edit for a tag pill: a tag filter is refined only from the sidebar.
+            let tagColor = SystemTagsService.color(forTagNamed: tag)
             searchContextPill {
                 Circle()
-                    .fill(SystemTagsService.color(forTagNamed: tag)?.displayColor ?? .secondary)
+                    .fill(tagColor?.displayColor ?? .secondary)
                     .frame(width: 10, height: 10)
-                Text(tag).font(.system(size: 12, weight: .medium))
+                Text(tagColor.map { appState.tr($0.l10nKey) } ?? tag).font(.system(size: 12, weight: .medium))
             }
         case let .smartFolderPill(name):
             searchContextPill {
@@ -198,6 +199,7 @@ struct HeaderBarView: View {
             .textFieldStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
             .focused($isSearchFocused)
+            .accessibilityIdentifier("SearchTextField")
             .task {
                 guard !appState.smartFolder.suppressNextSearchFocus else {
                     appState.smartFolder.suppressNextSearchFocus = false

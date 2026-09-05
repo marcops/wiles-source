@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "Dubbele bestanden zoeken...";
+"tagColorRed" = "Rood";
+"tagColorOrange" = "Oranje";
+"tagColorYellow" = "Geel";
+"tagColorGreen" = "Groen";
+"tagColorBlue" = "Blauw";
+"tagColorPurple" = "Paars";
+"tagColorGray" = "Grijs";
 "focalLength" = "Brandpuntsafstand";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

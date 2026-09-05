@@ -125,6 +125,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "Find Duplicate Files...";
+"tagColorRed" = "Red";
+"tagColorOrange" = "Orange";
+"tagColorYellow" = "Yellow";
+"tagColorGreen" = "Green";
+"tagColorBlue" = "Blue";
+"tagColorPurple" = "Purple";
+"tagColorGray" = "Gray";
 "focalLength" = "Focal Length";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

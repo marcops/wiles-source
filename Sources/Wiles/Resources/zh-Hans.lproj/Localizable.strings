@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "查找重复文件...";
+"tagColorRed" = "红色";
+"tagColorOrange" = "橙色";
+"tagColorYellow" = "黄色";
+"tagColorGreen" = "绿色";
+"tagColorBlue" = "蓝色";
+"tagColorPurple" = "紫色";
+"tagColorGray" = "灰色";
 "focalLength" = "焦距";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

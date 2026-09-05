@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "البحث عن الملفات المكررة...";
+"tagColorRed" = "أحمر";
+"tagColorOrange" = "برتقالي";
+"tagColorYellow" = "أصفر";
+"tagColorGreen" = "أخضر";
+"tagColorBlue" = "أزرق";
+"tagColorPurple" = "بنفسجي";
+"tagColorGray" = "رمادي";
 "focalLength" = "البعد البؤري";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

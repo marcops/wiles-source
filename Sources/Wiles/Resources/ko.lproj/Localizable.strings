@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "중복 파일 찾기...";
+"tagColorRed" = "빨강";
+"tagColorOrange" = "주황";
+"tagColorYellow" = "노랑";
+"tagColorGreen" = "초록";
+"tagColorBlue" = "파랑";
+"tagColorPurple" = "보라";
+"tagColorGray" = "회색";
 "focalLength" = "초점 거리";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

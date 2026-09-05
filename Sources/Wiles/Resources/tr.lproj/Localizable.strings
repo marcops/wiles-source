@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "Çift Dosyaları Bul...";
+"tagColorRed" = "Kırmızı";
+"tagColorOrange" = "Turuncu";
+"tagColorYellow" = "Sarı";
+"tagColorGreen" = "Yeşil";
+"tagColorBlue" = "Mavi";
+"tagColorPurple" = "Mor";
+"tagColorGray" = "Gri";
 "focalLength" = "Odak Uzaklığı";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

@@ -360,6 +360,13 @@ public enum L10n {
         case grantFullDiskAccess
         case fullDiskAccessNotice
         case findDuplicates
+        case tagColorRed
+        case tagColorOrange
+        case tagColorYellow
+        case tagColorGreen
+        case tagColorBlue
+        case tagColorPurple
+        case tagColorGray
         case duplicateCleanerTitle
         case duplicateCleanerSubtitle
         case reclaimableSpace

@@ -27,7 +27,7 @@ struct TagsSectionView: View {
         let isSel = currentTag?.lowercased() == tag.lowercased()
         return HStack(spacing: 10) {
             Circle().fill(systemTag.color?.displayColor ?? .secondary).frame(width: 10, height: 10).padding(5)
-            Text(tag)
+            Text(systemTag.displayName(language: appState.preferences.appearance.appLanguage))
                 .font(.system(size: 13, weight: isSel ? .semibold : .regular))
                 .foregroundColor(.primary)
             Spacer()

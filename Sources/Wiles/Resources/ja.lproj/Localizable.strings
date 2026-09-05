@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "重複ファイルを検索...";
+"tagColorRed" = "赤";
+"tagColorOrange" = "オレンジ";
+"tagColorYellow" = "黄色";
+"tagColorGreen" = "緑";
+"tagColorBlue" = "青";
+"tagColorPurple" = "紫";
+"tagColorGray" = "グレー";
 "focalLength" = "焦点距離";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "Найти дубликаты файлов...";
+"tagColorRed" = "Красный";
+"tagColorOrange" = "Оранжевый";
+"tagColorYellow" = "Жёлтый";
+"tagColorGreen" = "Зелёный";
+"tagColorBlue" = "Синий";
+"tagColorPurple" = "Фиолетовый";
+"tagColorGray" = "Серый";
 "focalLength" = "Фокусное расстояние";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";

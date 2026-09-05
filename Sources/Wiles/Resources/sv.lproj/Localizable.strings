@@ -133,6 +133,13 @@
 "filterPDFs" = "Filter PDFs (ext:pdf)";
 "find" = "Find";
 "findDuplicates" = "Hitta dubblerade filer...";
+"tagColorRed" = "Röd";
+"tagColorOrange" = "Orange";
+"tagColorYellow" = "Gul";
+"tagColorGreen" = "Grön";
+"tagColorBlue" = "Blå";
+"tagColorPurple" = "Lila";
+"tagColorGray" = "Grå";
 "focalLength" = "Brännvidd";
 "folder" = "Folder";
 "folderIsEmpty" = "Folder is Empty";
