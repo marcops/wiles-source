@@ -5,7 +5,7 @@ import AppKit
 /// live scroll view's `scrollerStyle` to `.legacy` on a real mouse wheel event, under "Show scroll
 /// bars: Automatically based on mouse or trackpad", and never flips it back on its own. Confirmed
 /// live via a debug build that logged `NSScrollView`/`NSScroller` state through the scroll — the
-/// scroller stayed `isHidden == false` throughout, it was simply painted behind this app's
+/// scroller's `isHidden` never flipped true throughout, it was simply painted behind this app's
 /// always-full-width content once in `.legacy` style. This doesn't simulate the real mouse-wheel
 /// HID trigger (not reliably simulatable in XCTest) — it tests the fix's own logic directly: given
 /// the style has already drifted to `.legacy`, does `keepOverlayStyle()` force it back?
@@ -20,10 +20,16 @@ public struct ScrollerAutoHideSetterTests {
         TestReporter.report(category, name, result: result)
     }
 
+    private struct ScrollSetup {
+        let window: NSWindow
+        let scrollView: NSScrollView
+        let applier: ScrollerAutoHideSetter.ApplierView
+    }
+
     /// Builds a scroll view + sibling `ApplierView` inside a shared container, matching
     /// `.background()`'s real on-screen layout (both occupy the same frame) even though SwiftUI
     /// wraps the representable in its own isolated hosting view in the real app.
-    private static func makeSidebarLikeScrollSetup(overflowing: Bool) -> (window: NSWindow, scrollView: NSScrollView, applier: ScrollerAutoHideSetter.ApplierView) {
+    private static func makeSidebarLikeScrollSetup(overflowing: Bool) -> ScrollSetup {
         let frame = NSRect(x: 0, y: 0, width: 200, height: 400)
         let container = NSView(frame: frame)
 
@@ -38,11 +44,13 @@ public struct ScrollerAutoHideSetterTests {
 
         let window = NSWindow(contentRect: frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = container
-        return (window, scrollView, applier)
+        return ScrollSetup(window: window, scrollView: scrollView, applier: applier)
     }
 
     private static func testKeepOverlayStyleRevertsLegacyStyleBackToOverlay() {
-        let (_, scrollView, applier) = makeSidebarLikeScrollSetup(overflowing: true)
+        let setup = makeSidebarLikeScrollSetup(overflowing: true)
+        let scrollView = setup.scrollView
+        let applier = setup.applier
         // Simulates what AppKit does on a real mouse wheel event — see this file's header comment.
         scrollView.scrollerStyle = .legacy
 
@@ -59,7 +67,10 @@ public struct ScrollerAutoHideSetterTests {
     /// whole window and match by position — confirm it still finds the RIGHT one when the window
     /// (like the real app's, sidebar + main content) has more than one scroll view.
     private static func testKeepOverlayStyleFindsScrollViewAmongMultipleInTheSameWindow() {
-        let (window, sidebarScrollView, applier) = makeSidebarLikeScrollSetup(overflowing: true)
+        let setup = makeSidebarLikeScrollSetup(overflowing: true)
+        let window = setup.window
+        let sidebarScrollView = setup.scrollView
+        let applier = setup.applier
         let unrelatedScrollView = NSScrollView(frame: NSRect(x: 300, y: 0, width: 200, height: 400))
         unrelatedScrollView.documentView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 800))
         unrelatedScrollView.hasVerticalScroller = true

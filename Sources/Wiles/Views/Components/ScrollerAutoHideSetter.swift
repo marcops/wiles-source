@@ -20,9 +20,18 @@ struct ScrollerAutoHideSetter: NSViewRepresentable {
 
     class ApplierView: NSView {
         private var hasObservedScrollView = false
+        /// The scroll view currently being observed via target-action (not closures): `self` as
+        /// observer lets `deinit` remove everything in one `removeObserver(self)` call, sidestepping
+        /// the `NSObjectProtocol` token-array Sendable/isolation issues a closure-based
+        /// `addObserver(forName:...)` would need to solve for a nonisolated `deinit`.
+        private weak var observedScrollView: NSScrollView?
 
         override func hitTest(_: NSPoint) -> NSView? {
             nil
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
         }
 
         override func viewDidMoveToWindow() {
@@ -50,21 +59,21 @@ struct ScrollerAutoHideSetter: NSViewRepresentable {
         private func observeLiveScrollIfNeeded(on scrollView: NSScrollView) {
             guard !hasObservedScrollView else { return }
             hasObservedScrollView = true
+            observedScrollView = scrollView
             scrollView.autohidesScrollers = true
             let center = NotificationCenter.default
             for name in [
                 NSScrollView.willStartLiveScrollNotification, NSScrollView.didLiveScrollNotification,
                 NSScrollView.didEndLiveScrollNotification
             ] {
-                center.addObserver(forName: name, object: scrollView, queue: .main) { [weak scrollView] _ in
-                    // `queue: .main` guarantees this always runs on the main thread already —
-                    // `assumeIsolated` makes that a compiler-checked fact instead of an unchecked one.
-                    MainActor.assumeIsolated {
-                        guard let scrollView, scrollView.scrollerStyle != .overlay else { return }
-                        scrollView.scrollerStyle = .overlay
-                    }
-                }
+                center.addObserver(self, selector: #selector(handleScrollLifecycleNotification), name: name, object: scrollView)
             }
+        }
+
+        @objc
+        private func handleScrollLifecycleNotification(_: Notification) {
+            guard let scrollView = observedScrollView, scrollView.scrollerStyle != .overlay else { return }
+            scrollView.scrollerStyle = .overlay
         }
 
         /// `.background()` does NOT place this view as a sibling of the real `NSScrollView` in the

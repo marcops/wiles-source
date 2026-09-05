@@ -7,7 +7,7 @@ import XCTest
 // used to leave it with NO visible scroll indicator at all (mouse wheel still scrolled the
 // content, but nothing on screen showed there was more to scroll). Root-caused to a `LazyVStack`
 // nested recursively — once per expanded tree node — inside the sidebar's single ancestor
-// `ScrollView`; that pattern is documented as a red flag in `TODO/eval/eval_render.md`.
+// `ScrollView`; that pattern is documented as a red flag in the render-focused eval doc.
 //
 // Run via (NOT `swift test` — see `WilesLaunchUITests.swift`'s header):
 //   xcodebuild test -scheme Wiles -destination 'platform=macOS' \
