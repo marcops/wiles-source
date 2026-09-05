@@ -248,6 +248,36 @@ sign-off. Batch the ask per feature, mirroring the existing pattern
 | 12 | Terminal container | `Views/Content/IntegratedTerminalView.swift` | `IntegratedTerminal` |
 | 13 | Preview pane / Disk-usage pane containers | `Views/Sidebar/PreviewSidebarView.swift`, `Features/DiskSpaceVisualizer/DiskUsageSidebarView.swift` | `PreviewPane` / `DiskUsagePane` |
 
+## 7. ENVIRONMENT BLOCKER (2026-09-05 ~19:55) — XCUITest automation session wedged
+
+Symptoms, in order of what was ruled out:
+- The app launches fine and **does create its window** — verified independently with
+  `CGWindowListCopyWindowInfo` (`owner=Wiles name='Wiles' bounds 900×482`), launched via
+  `open -na .build/ui/Build/Products/Debug/Wiles.app --args --ui-testing`.
+- Under `xcodebuild test`, `XCUIApplication().windows` finds **nothing**; a run that used to
+  take ~8 s now takes **517 s** before failing. The pristine committed smoke test
+  (`04252e6`, green at 18:49) fails the same way now.
+- Not resource pressure: 72 % memory free, load ~1.8, disk fine.
+- Not stale app defaults: deleting `NSWindow Frame …` / `wiles_lastOpenedFolder` from
+  `com.marco.wiles.uitest` didn't help.
+- Not the app bundle: the built `.app` is complete and runs.
+- 15 min of idle did **not** clear it, so it is past a plain relaunch back-off — the
+  `testmanagerd` automation session itself is stuck.
+
+Likely trigger: a duplicate process name — the user's installed `/Applications/Wiles.app`
+(`com.marco.wiles`, running since 18:21) and the test's `com.marco.wiles.uitest` are both
+named "Wiles", which can wedge XCUITest's accessibility snapshotting.
+
+**To unblock (needs a human / permissions this session doesn't have):** any one of —
+- quit the running `/Applications/Wiles.app`, then re-run;
+- `sudo killall -9 testmanagerd Wiles`;
+- log out / reboot.
+Then: `xcodebuild test -scheme Wiles -only-testing:WilesUITests/WilesLaunchUITests
+-destination 'platform=macOS,arch=arm64'`.
+
+The test code itself (`6a2d6e9`) compiles, passes `swiftlint --strict` + `swiftformat`,
+and is written from source analysis; it just can't be executed until the harness recovers.
+
 ## 6. Throttle vs. real test error — how to tell them apart
 
 - **macOS relaunch throttle** (`runningboardd` back-off after several close-spaced runs):
