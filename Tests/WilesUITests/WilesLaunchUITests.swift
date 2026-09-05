@@ -84,5 +84,12 @@ final class WilesLaunchUITests: XCTestCase {
         XCTAssertTrue(
             favorites.waitForExistence(timeout: 2.0),
             "FAVORITES button disappeared after click — unexpected crash or removal")
+
+        // MARK: Feature — DIRECTORY TREE sidebar section present
+        //    id: "Section_DIRECTORY_TREE" — DirectoryTreeSectionView.swift ~14
+        let directoryTree = app.buttons.matching(identifier: "Section_DIRECTORY_TREE").firstMatch
+        XCTAssertTrue(
+            directoryTree.waitForExistence(timeout: 3.0),
+            "Sidebar DIRECTORY TREE section (id='Section_DIRECTORY_TREE') not found")
     }
 }

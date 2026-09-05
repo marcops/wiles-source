@@ -7,8 +7,15 @@ explicit approval — see §4).
 
 ## 0. Working loop (per feature)
 
+**One single test method.** `WilesLaunchUITests` keeps exactly ONE `func test…()` that
+does ONE app launch and walks every feature in sequence. Never add a second test method —
+each method re-runs `setUp` (relaunch) + `tearDown` (terminate), which is both flaky and
+hammers the app with launches. Never edit `setUp`/`tearDown`.
+
 1. Pick the next unchecked feature from §2, in order.
-2. Add **one** new `func test…()` for it to `WilesLaunchUITests.swift` only.
+2. Append **one** small `// MARK:`-delimited assertion block for it to the end of the
+   existing test method in `WilesLaunchUITests.swift` only. Keep it tiny — a couple of
+   assertions, not a scenario.
 3. Run just that file:
    ```
    xcodebuild test -scheme Wiles \
@@ -18,11 +25,13 @@ explicit approval — see §4).
    ```
 4. **Pass** → self-audit the diff against §3, then `git commit` (Conventional Commits,
    English: `test(ui): …`).
-5. **Fail** → `git reset --hard` back to the last green commit. Re-add the test body
+5. **Fail** → `git checkout` the test file back to the last green commit. Re-add the block
    **one line at a time**, re-running after each added line, until the exact failing line
    is identified. Fix that line (test-side only) or, if it needs a missing accessibility
    id, stop and ask (see §4). Never "reinvent" the feature or press on past a red bar.
 6. Check the box here, note the commit sha, move to the next feature.
+
+Space the `xcodebuild` runs out — one at a time, not back-to-back.
 
 Rules: no `if element.exists { … }` without an assertion; never `XCTAssertNotNil` an
 `XCUIElement`; every check is `element.exists` / `element.waitForExistence(timeout:)`.
