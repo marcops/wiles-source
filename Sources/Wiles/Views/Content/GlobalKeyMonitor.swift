@@ -37,7 +37,13 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             if window != nil, monitor == nil {
-                monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .scrollWheel, .leftMouseUp, .leftMouseDown, .rightMouseDown]) { [weak self] event in
+                monitor = NSEvent.addLocalMonitorForEvents(matching: [
+                    .keyDown,
+                    .scrollWheel,
+                    .leftMouseUp,
+                    .leftMouseDown,
+                    .rightMouseDown
+                ]) { [weak self] event in
                     self?.processLocalEvent(event)
                 }
             }

@@ -354,7 +354,6 @@ public enum L10n {
         case inspectArchive
         case permissionDeniedNotice
         case emptyFolder
-        case clearSearch
         case grantFullDiskAccess
         case fullDiskAccessNotice
         case findDuplicates
@@ -521,7 +520,6 @@ public enum L10n {
 
         case operationsButtonHint
         case saveAsSmartFolderHint
-        case clearSearchHint
         case searchFiltersMenuHint
         case expandFolder
         case collapseFolder

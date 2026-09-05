@@ -64,7 +64,6 @@
 "cancel" = "Annuleer";
 "changeAllDefaultAppEllipsis" = "Altijd openen met…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "Zoekopdracht wis";
 "close" = "Sluit";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Gebruikt compactere rijafstand in lijst- en rasterweergaven.";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "Netwerk";
 "operationsButtonHint" = "Toont de lijst met actieve achtergrondbewerkingen.";
 "saveAsSmartFolderHint" = "Slaat de huidige zoekopdracht op als een slimme map.";
-"clearSearchHint" = "Wist de huidige zoekopdracht.";
 "searchFiltersMenuHint" = "Opent een menu om zoekresultaten te filteren op datum, type of grootte.";
 "expandFolder" = "Uitvouwen";
 "collapseFolder" = "Invouwen";

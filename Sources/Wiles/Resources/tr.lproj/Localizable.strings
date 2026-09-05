@@ -64,7 +64,6 @@
 "cancel" = "Vazgeç";
 "changeAllDefaultAppEllipsis" = "Her Zaman Birlikte Aç…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "Aramayı Temizle";
 "close" = "Kapat";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Liste ve ızgara görünümlerinde satırlar arasında daha dar boşluk kullanır.";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "Ağ";
 "operationsButtonHint" = "Etkin arka plan işlemlerinin listesini gösterir.";
 "saveAsSmartFolderHint" = "Geçerli aramayı Akıllı Klasör olarak kaydeder.";
-"clearSearchHint" = "Geçerli arama sorgusunu temizler.";
 "searchFiltersMenuHint" = "Arama sonuçlarını tarihe, türe veya boyuta göre filtrelemek için bir menü açar.";
 "expandFolder" = "Genişlet";
 "collapseFolder" = "Daralt";

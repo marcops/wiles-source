@@ -59,7 +59,6 @@
 "cancel" = "Cancel";
 "changeAllDefaultAppEllipsis" = "Always Open With…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "Clear Search";
 "close" = "Close";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Use tighter spacing between rows in list and grid views.";
@@ -481,7 +480,6 @@
 "networkVolumeName" = "Network";
 "operationsButtonHint" = "Shows the list of active background file operations.";
 "saveAsSmartFolderHint" = "Saves the current search as a Smart Folder.";
-"clearSearchHint" = "Clears the current search query.";
 "searchFiltersMenuHint" = "Opens a menu to filter search results by date, kind, or size.";
 "expandFolder" = "Expand";
 "collapseFolder" = "Collapse";

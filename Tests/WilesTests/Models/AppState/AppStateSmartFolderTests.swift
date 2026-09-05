@@ -442,8 +442,12 @@ public struct AppStateSmartFolderTests {
         appState.runSmartFolder(folder, windowUIState: windowUIState)
         report("AppState", "POS: runSmartFolder sets the search query to the folder's query", result: appState.selection.searchQuery == folder.searchQuery)
 
+        // Real disk search against the actual home directory — under heavy parallel load (e.g. the
+        // full validate.sh run building/testing concurrently) this can take longer than a couple of
+        // seconds, so this budget is generous (8s) rather than tight, to avoid an environment-load
+        // flake on an otherwise-correct result.
         var attempts = 0
-        while appState.fileSystem.items.contains(where: { $0.url == stale }), attempts < 20 {
+        while appState.fileSystem.items.contains(where: { $0.url == stale }), attempts < 80 {
             try? await Task.sleep(nanoseconds: 100_000_000)
             attempts += 1
         }

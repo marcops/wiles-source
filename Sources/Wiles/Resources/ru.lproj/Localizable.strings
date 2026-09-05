@@ -64,7 +64,6 @@
 "cancel" = "Отмена";
 "changeAllDefaultAppEllipsis" = "Всегда открывать в…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "Очистить поиск";
 "close" = "Закрыть";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Использует более плотный интервал между строками в представлениях списка и сетки.";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "Сеть";
 "operationsButtonHint" = "Показывает список активных фоновых операций.";
 "saveAsSmartFolderHint" = "Сохраняет текущий поиск как умную папку.";
-"clearSearchHint" = "Очищает текущий поисковый запрос.";
 "searchFiltersMenuHint" = "Открывает меню для фильтрации результатов поиска по дате, типу или размеру.";
 "expandFolder" = "Развернуть";
 "collapseFolder" = "Свернуть";

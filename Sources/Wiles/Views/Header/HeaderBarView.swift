@@ -217,7 +217,7 @@ struct HeaderBarView: View {
             }
     }
 
-    @ViewBuilder private var searchQueryActionButtons: some View {
+    private var searchQueryActionButtons: some View {
         TappableRow(
             accessibilityLabel: appState.tr(.saveAsSmartFolder),
             accessibilityHint: appState.tr(.saveAsSmartFolderHint),

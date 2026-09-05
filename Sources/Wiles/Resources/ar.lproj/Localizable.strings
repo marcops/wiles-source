@@ -64,7 +64,6 @@
 "cancel" = "إلغاء";
 "changeAllDefaultAppEllipsis" = "الفتح دائماً بواسطة…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "مسح البحث";
 "close" = "إغلاق";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "يستخدم تباعدًا أضيق بين الصفوف في عروض القائمة والشبكة.";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "الشبكة";
 "operationsButtonHint" = "يعرض قائمة العمليات النشطة في الخلفية.";
 "saveAsSmartFolderHint" = "يحفظ البحث الحالي كمجلد ذكي.";
-"clearSearchHint" = "يمسح استعلام البحث الحالي.";
 "searchFiltersMenuHint" = "يفتح قائمة لتصفية نتائج البحث حسب التاريخ أو النوع أو الحجم.";
 "expandFolder" = "توسيع";
 "collapseFolder" = "طي";

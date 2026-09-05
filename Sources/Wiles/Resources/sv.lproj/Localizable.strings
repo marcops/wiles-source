@@ -64,7 +64,6 @@
 "cancel" = "Avbryt";
 "changeAllDefaultAppEllipsis" = "Öppna alltid med…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "Rensa sökning";
 "close" = "Stäng";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "Använder tätare radavstånd i list- och rutnätsvyer.";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "Nätverk";
 "operationsButtonHint" = "Visar listan över aktiva bakgrundsåtgärder.";
 "saveAsSmartFolderHint" = "Sparar den aktuella sökningen som en smart mapp.";
-"clearSearchHint" = "Rensar den aktuella söktermen.";
 "searchFiltersMenuHint" = "Öppnar en meny för att filtrera sökresultat efter datum, typ eller storlek.";
 "expandFolder" = "Expandera";
 "collapseFolder" = "Fäll ihop";

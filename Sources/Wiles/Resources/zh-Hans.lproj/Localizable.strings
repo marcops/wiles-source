@@ -64,7 +64,6 @@
 "cancel" = "取消";
 "changeAllDefaultAppEllipsis" = "始终使用此应用打开…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "清除搜索";
 "close" = "关闭";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "在列表和网格视图中使用更紧凑的行间距。";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "网络";
 "operationsButtonHint" = "显示活动后台操作的列表。";
 "saveAsSmartFolderHint" = "将当前搜索保存为智能文件夹。";
-"clearSearchHint" = "清除当前搜索查询。";
 "searchFiltersMenuHint" = "打开菜单以按日期、类型或大小筛选搜索结果。";
 "expandFolder" = "展开";
 "collapseFolder" = "折叠";

@@ -64,7 +64,6 @@
 "cancel" = "キャンセル";
 "changeAllDefaultAppEllipsis" = "常にこのアプリで開く…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "検索を消去";
 "close" = "閉じる";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "リスト表示とグリッド表示で行間をより詰めて表示します。";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "ネットワーク";
 "operationsButtonHint" = "実行中のバックグラウンド操作の一覧を表示します。";
 "saveAsSmartFolderHint" = "現在の検索をスマートフォルダとして保存します。";
-"clearSearchHint" = "現在の検索クエリを消去します。";
 "searchFiltersMenuHint" = "日付、種類、サイズで検索結果を絞り込むメニューを開きます。";
 "expandFolder" = "展開";
 "collapseFolder" = "折りたたむ";

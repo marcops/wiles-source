@@ -64,7 +64,6 @@
 "cancel" = "취소";
 "changeAllDefaultAppEllipsis" = "항상 이 앱으로 열기…";
 "clearAllTags" = "Clear All Tags";
-"clearSearch" = "검색 지우기";
 "close" = "닫기";
 "compactDensity" = "Compact Density Layout";
 "compactDensityHint" = "목록 및 그리드 보기에서 행 간격을 더 좁게 사용합니다.";
@@ -493,7 +492,6 @@
 "networkVolumeName" = "네트워크";
 "operationsButtonHint" = "활성 백그라운드 작업 목록을 표시합니다.";
 "saveAsSmartFolderHint" = "현재 검색을 스마트 폴더로 저장합니다.";
-"clearSearchHint" = "현재 검색어를 지웁니다.";
 "searchFiltersMenuHint" = "날짜, 종류 또는 크기로 검색 결과를 필터링하는 메뉴를 엽니다.";
 "expandFolder" = "펼치기";
 "collapseFolder" = "접기";

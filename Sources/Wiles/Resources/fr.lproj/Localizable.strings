@@ -64,7 +64,6 @@
 "cancel" = "Annuler";
 "changeAllDefaultAppEllipsis" = "Toujours ouvrir avec…";
 "clearAllTags" = "Effacer toutes les étiquettes";
-"clearSearch" = "Effacer la recherche";
 "close" = "Fermer";
 "compactDensity" = "Disposition à densité compacte";
 "compactDensityHint" = "Utilise un espacement plus compact entre les lignes dans les vues en liste et en grille.";
@@ -492,7 +491,6 @@
 "networkVolumeName" = "Réseau";
 "operationsButtonHint" = "Affiche la liste des opérations en arrière-plan actives.";
 "saveAsSmartFolderHint" = "Enregistre la recherche actuelle en tant que dossier intelligent.";
-"clearSearchHint" = "Efface la requête de recherche actuelle.";
 "searchFiltersMenuHint" = "Ouvre un menu pour filtrer les résultats de recherche par date, type ou taille.";
 "expandFolder" = "Développer";
 "collapseFolder" = "Réduire";
