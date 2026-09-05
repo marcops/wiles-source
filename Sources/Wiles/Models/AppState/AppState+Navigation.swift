@@ -195,7 +195,10 @@ public extension AppState {
             // Invoked from `FileSystemStore.handleMonitorEvent`, already on `@MainActor` — assume
             // isolation instead of spawning an unstructured `Task { @MainActor }` per event.
             MainActor.assumeIsolated {
-                self?.refreshCurrentDirectory(isUserInitiated: false)
+                // Drop this event if a refresh is already running: cancelling it here restarts the
+                // load, and a folder with continuous external writes could otherwise never finish.
+                guard let self, !self.fileSystem.isRefreshing else { return }
+                self.refreshCurrentDirectory(isUserInitiated: false)
             }
         }
     }
@@ -269,8 +272,10 @@ public extension AppState {
         // Cancel any load already in flight — every keystroke of a search or rapid navigation used to
         // spawn an unstructured Task with no cancellation, letting a stale result race a fresher one.
         fileSystem.refreshTask?.cancel()
+        fileSystem.isRefreshing = true
         fileSystem.refreshTask = Task {
             await performRefresh(snapshot)
+            fileSystem.isRefreshing = false
         }
     }
 

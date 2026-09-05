@@ -13,6 +13,7 @@ public struct AppStateDirectoryRefreshTests {
         await testApplyLoadedItemsSkipsWhileRenaming()
         testNavigatingAwayClearsStuckRenamingURL()
         await testRefreshTrashSizeIfNeededWhenNavigatingIntoTrash()
+        await testDirectoryListingCompletesUnderContinuousExternalWritePressure()
     }
 
     private static func tempDir() -> URL {
@@ -152,5 +153,46 @@ public struct AppStateDirectoryRefreshTests {
             "Navigation/Refresh",
             "POS: navigating into Trash triggers updateTrashSize() even when not yet due for the coarse periodic check (the `isTrash ||` branch)",
             result: updated)
+    }
+
+    /// A monitor-triggered refresh used to unconditionally cancel-and-restart the in-flight load
+    /// (`AppState.startDirectoryMonitoring`'s callback); a folder large enough that one full listing
+    /// takes longer than the monitor's own debounce floor never got a chance to finish while
+    /// external writes kept arriving. Timing-based by nature (this bug IS a race) — reproduces it
+    /// with a real folder and real continuous writes rather than a mock.
+    private static func testDirectoryListingCompletesUnderContinuousExternalWritePressure() async {
+        let dir = tempDir()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        for i in 0 ..< 4000 {
+            FileManager.default.createFile(atPath: dir.appendingPathComponent("f\(i).txt").path, contents: nil)
+        }
+
+        let appState = AppState()
+        appState.navigateTo(dir)
+
+        let churnTask = Task.detached {
+            let decoy = dir.appendingPathComponent("churn.txt")
+            while !Task.isCancelled {
+                try? "x".write(to: decoy, atomically: true, encoding: .utf8)
+                try? await Task.sleep(nanoseconds: 50_000_000)
+            }
+        }
+        defer { churnTask.cancel() }
+
+        // Checks the observable outcome (items populated), not the internal `isRefreshing` flag —
+        // this assertion has to hold whether or not that flag exists, to actually prove the bug.
+        var settled = false
+        for _ in 0 ..< 60 {
+            if !appState.fileSystem.items.isEmpty {
+                settled = true
+                break
+            }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        report(
+            "Navigation/Refresh",
+            "POS: a folder's listing eventually completes even under continuous external write pressure, instead of restarting forever",
+            result: settled)
     }
 }

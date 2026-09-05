@@ -284,6 +284,7 @@ final class WilesAutomatedTests: XCTestCase {
     func testAppStateNavigationExtraTests() async {
         await AppStateNavigationExtraTests.run()
         await AppStateDirectoryRefreshTests.run()
+        ScrollerAutoHideSetterTests.run()
     }
 
     @MainActor

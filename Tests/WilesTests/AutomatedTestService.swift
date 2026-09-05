@@ -80,6 +80,7 @@ public final class AutomatedTestService {
         await AppStateCoreTests.run()
         await AppStateNavigationExtraTests.run()
         await AppStateDirectoryRefreshTests.run()
+        ScrollerAutoHideSetterTests.run()
         await AppStateNavigateToVolumesTests.run()
         await AppStateOperationsExtraTests.run()
         await AppStatePasteAndArchiveTests.run()

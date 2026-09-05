@@ -61,6 +61,11 @@ struct SidebarView: View {
                 .padding(.bottom, 12)
             }
             .background(ScrollerAutoHideSetter())
+            // The tree's recursive `LazyVStack` (see `DirectoryTreeNodeView`) used to break this
+            // `NSScrollView`'s content-size tracking outright; that's fixed at the source there.
+            // `ScrollerAutoHideSetter` still nudges the scroller to recompute on every layout —
+            // expanding a node whose whole ancestor chain is already loaded grows the document view
+            // by a lot in one pass, which AppKit doesn't always pick up on its own.
         }
         .frame(minWidth: LayoutTokens.sidebarMinWidth, idealWidth: LayoutTokens.sidebarIdealWidth, maxHeight: .infinity)
         .onHover(perform: handleSidebarHover)

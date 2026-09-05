@@ -49,7 +49,15 @@ struct DirectoryTreeNodeView: View {
         VStack(alignment: .leading, spacing: 2) {
             rowContent
             if node.hasSubfolders, isExpanded, let children {
-                LazyVStack(alignment: .leading, spacing: 2) {
+                // Plain `VStack`, not `LazyVStack`: this nests recursively (once per expanded
+                // node), all sharing the sidebar's single outer `ScrollView`. `LazyVStack` expects
+                // to sit close to its `ScrollView` to participate correctly in scroll geometry —
+                // stacking it recursively, combined with children arriving asynchronously well
+                // after initial layout (`loadChildrenIfNeeded`), left the outer `NSScrollView`'s
+                // content-size tracking stuck, so its scroller stopped updating/showing once the
+                // tree was expanded. Each node's own children list is just its immediate
+                // subfolders — small enough that losing view virtualization here costs nothing.
+                VStack(alignment: .leading, spacing: 2) {
                     ForEach(children) { child in
                         Self(
                             node: child, depth: depth + 1, appState: appState, childrenCache: childrenCache,

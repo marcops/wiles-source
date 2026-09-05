@@ -69,6 +69,10 @@ public final class FileSystemStore {
     /// `statusText` surfaces it so a capped list isn't read as the complete set of matches.
     public internal(set) var resultsTruncated: Bool = false
     public var isLoading: Bool = false
+    /// True for the whole life of `refreshTask`, unlike `isLoading` (which only covers the
+    /// first-load spinner case) — lets a monitor-triggered refresh check "is one already running"
+    /// without racing a `Task` reference that isn't cleared on completion.
+    var isRefreshing: Bool = false
     /// Suppresses `items` refreshes while set — see `AppState.enterRenameForNewlyCreated`.
     public var renamingURL: URL?
     var refreshTask: Task<Void, Never>?
