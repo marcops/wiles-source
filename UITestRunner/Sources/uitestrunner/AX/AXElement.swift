@@ -20,7 +20,7 @@ final class AXElement {
 
     init(_ ref: AXUIElement) {
         self.ref = ref
-        AXUIElementSetMessagingTimeout(ref, 10)
+        AXUIElementSetMessagingTimeout(ref, 4)
     }
 
     static func application(pid: pid_t) -> AXElement {

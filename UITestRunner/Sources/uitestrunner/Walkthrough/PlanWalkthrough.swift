@@ -42,7 +42,15 @@ struct PlanWalkthrough {
         ]
         for step in steps {
             driver.recover()
+            let started = Date()
             step()
+            if Date().timeIntervalSince(started) > 45 {
+                print("  ↻ relaunching after a slow step")
+                try? driver.process.relaunch()
+                driver.rebindToRelaunchedApp()
+                _ = try? driver.mainWindow()
+                driver.navigateToWorkspace()
+            }
         }
     }
 }
