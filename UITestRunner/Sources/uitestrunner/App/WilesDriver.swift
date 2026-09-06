@@ -29,9 +29,8 @@ final class WilesDriver {
 
     // Clean slate between steps / suites: no relaunch, just dismiss anything stuck and go home.
     func recover() {
-        key(Keyboard.escape)
-        for _ in 0 ..< 3 where sheet() != nil { dismissSheet() }
         closeAnyMenu()
+        for _ in 0 ..< 3 where sheet() != nil { dismissSheet() }
         deactivateSearch()
         cachedWindow = nil
         process.activate()
@@ -336,6 +335,11 @@ final class WilesDriver {
     }
 
     func closeAnyMenu() {
+        // Only send Escape if something is actually open — a stray Escape on the focused file list
+        // can drop the selection / collapse the view and make rows momentarily unfindable.
+        guard app.firstDescendant(where: AXMatch(role: "AXMenu"), maxDepth: 6) != nil
+            || app.firstDescendant(where: AXMatch(role: "AXMenuItem"), maxDepth: 6) != nil
+            || sheet() != nil else { return }
         key(Keyboard.escape)
         Timing.pause(Timing.brief)
     }
