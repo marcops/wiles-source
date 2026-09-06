@@ -338,10 +338,11 @@ final class WilesLaunchUITests: XCTestCase {
 
     private func ensureMainWindow() -> XCUIElement {
         let window = app.windows.firstMatch
+        // Wiles either shows its window near-instantly or not at all: a 10 s ceiling fails fast
+        // instead of burning ~45 s per run when the launch silently produced no window.
         XCTAssertTrue(
-            window.waitForExistence(timeout: 45.0),
-            "Wiles main window did not appear within 45 s — app relaunch back-off if this follows " +
-                "several close-spaced launches; not a code bug")
+            window.waitForExistence(timeout: 10.0),
+            "Wiles main window did not appear within 10 s of launch")
         return window
     }
 
