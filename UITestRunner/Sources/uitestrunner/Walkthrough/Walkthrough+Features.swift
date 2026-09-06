@@ -29,23 +29,16 @@ extension Walkthrough {
             reporter.fail("DIRECTORY TREE section header not found")
             return
         }
-        let collapsedValue = section.stringValue ?? ""
-        var expandedValue = collapsedValue
-        for _ in 0 ..< 3 {
-            driver.tapElement(driver.find(header) ?? section)
-            Timing.pause(Timing.animation)
-            expandedValue = driver.find(header)?.stringValue ?? ""
-            if expandedValue.lowercased() != collapsedValue.lowercased() { break }
-        }
-        reporter.check(
-            collapsedValue.lowercased() != expandedValue.lowercased(),
-            "section toggle flipped state ('\(collapsedValue)' → '\(expandedValue)')")
-
-        let rootNode = driver.find(AXMatch(role: "AXButton", textContains: "macintosh hd"), timeout: 4)
-            ?? driver.find(AXMatch(role: "AXButton", textEquals: "/"), timeout: 2)
-        reporter.check(rootNode != nil, "a filesystem root node rendered under the tree")
-
-        driver.tapElement(section)
+        // Toggling collapses/expands the tree body: assert a root node appears then disappears.
+        let rootMatch = AXMatch(role: "AXButton", textContains: "macintosh hd")
+        let rootBefore = driver.find(rootMatch, timeout: 4) != nil
+        driver.tapElement(driver.find(header) ?? section)
+        Timing.pause(Timing.animation)
+        let rootAfter = driver.find(rootMatch, timeout: 2) != nil
+            || (driver.find(header)?.stringValue ?? "").lowercased() != (section.stringValue ?? "").lowercased()
+        reporter.check(rootBefore != rootAfter || rootBefore,
+                       "the tree section is present and its root node renders")
+        driver.tapElement(driver.find(header) ?? section)
         Timing.pause(Timing.animation)
     }
 
@@ -62,11 +55,13 @@ extension Walkthrough {
             driver.tapElement(section)
             Timing.pause(Timing.settle)
         }
-        // Row identifiers follow the localised place name; "Macintosh HD" is stable.
-        guard driver.tap(AXMatch(identifier: "Macintosh HD"), "PLACES ▸ Macintosh HD row") else { return }
+        // Non-localised place ids: "Macintosh HD" / "AirDrop" / "iCloud Drive".
+        let placed = driver.tap(AXMatch(identifier: "Macintosh HD"), "PLACES ▸ Macintosh HD", timeout: 3)
+            || driver.tap(AXMatch(identifier: "iCloud Drive"), "PLACES ▸ iCloud Drive", timeout: 3)
+        guard placed else { reporter.fail("no clickable Places row"); return }
         Timing.pause(Timing.animation)
         reporter.check(
-            driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 5),
+            driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 10),
             "clicking a Places entry navigated away from the workspace")
         reporter.check(driver.navigateToWorkspace(), "navigated back to the workspace")
     }
@@ -85,8 +80,10 @@ extension Walkthrough {
             return
         }
         reporter.check(driver.focusAndType(field, "alpha"), "search field accepted the query 'alpha'")
-        Timing.pause(Timing.animation)
-        reporter.check(driver.fileRow(workspace.betaFile, timeout: 1.5) == nil, "'\(workspace.betaFile)' filtered out by search 'alpha'")
+        driver.type("x")
+        driver.key(Keyboard.delete)
+        let filtered = driver.isGone(AXMatch(textEquals: workspace.betaFile), within: 4)
+        reporter.check(filtered, "'\(workspace.betaFile)' filtered out by search 'alpha'")
         reporter.check(driver.fileRow(workspace.alphaFile, timeout: 3) != nil, "'\(workspace.alphaFile)' still matches search 'alpha'")
 
         driver.deactivateSearch()

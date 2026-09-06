@@ -107,15 +107,15 @@ extension PlanWalkthrough {
             return
         }
         if let toggle = wholeMacToggle(), toggle.isSelected { driver.tapElement(toggle); Timing.pause(Timing.brief) }
-        guard driver.focusAndType(field, "kind:image") else {
+        _ = field
+        guard driver.searchFor("kind:image") != nil else {
             reporter.fail("featSearchKindFilterToken: could not type the 'kind:image' token into the field")
-            clearSearch(field)
+            driver.deactivateSearch()
             driver.navigateToWorkspace()
             return
         }
-        Timing.pause(Timing.animation)
         reporter.check(driver.fileRow(workspace.imageFile, timeout: 4) != nil, "the image row survives the kind:image token")
-        reporter.check(driver.isGone(AXMatch(textEquals: workspace.alphaFile)), "the text file is filtered out")
+        reporter.check(driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 4), "the text file is filtered out")
         clearSearch(field)
         driver.navigateToWorkspace()
     }
@@ -134,10 +134,11 @@ extension PlanWalkthrough {
             return
         }
         Timing.pause(Timing.settle)
-        driver.focusAndType(field, "a")
-        Timing.pause(Timing.animation)
+        _ = field
+        driver.searchFor("a")
         let warned = driver.find(AXMatch(textContains: "at least 3 characters"), timeout: 3) != nil
             || driver.find(AXMatch(textContains: "search inside files"), timeout: 1) != nil
+            || driver.find(AXMatch(textContains: "type at least"), timeout: 1) != nil
         reporter.check(warned, "a 1-character content term shows the 'type at least 3 characters' notice")
         _ = pickSearchFilter("file name")
         clearSearch(field)

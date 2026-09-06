@@ -154,17 +154,18 @@ extension PlanWalkthrough {
             Set(seededFileNames.filter { driver.fileRow($0, timeout: 1)?.isSelected == true })
         }
 
-        // Edit ▸ Select All / ⌘A only reach the file list once it holds key focus; a single
-        // clickRow doesn't always land it, so click + try both, a few times.
+        driver.process.activate()
+        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
+        Timing.pause(Timing.settle)
         var selectedAll = Set<String>()
-        for _ in 0 ..< 3 {
+        for attempt in 0 ..< 3 {
             _ = driver.clickRow(workspace.alphaFile)
             Timing.pause(Timing.brief)
-            driver.menuPick("Edit", itemContains: "Select All", "Edit ▸ Select All")
-            Timing.pause(Timing.settle)
-            selectedAll = selectedSeededNames()
-            if selectedAll.count >= seededFileNames.count - 1 { break }
-            driver.chord("a", .command)
+            switch attempt {
+            case 0: driver.chord("a", .command)
+            case 1: driver.menuPick("Edit", itemContains: "Select All", "Edit ▸ Select All")
+            default: for _ in 0 ..< 9 { driver.key(Keyboard.downArrow, .shift); Timing.pause(Timing.keyStroke) }
+            }
             Timing.pause(Timing.settle)
             selectedAll = selectedSeededNames()
             if selectedAll.count >= seededFileNames.count - 1 { break }
@@ -490,21 +491,19 @@ extension PlanWalkthrough {
 
     func featSettingsTabs() {
         reporter.beginFeature("Settings — every tab switches")
-        let tabProbe: [(String, String)] = [
-            ("General", "Language"),
-            ("Appearance", "Theme"),
-            ("Sidebar", "Show Tags"),
-            ("Advanced", ""),
+        let tabProbe: [(String, [String])] = [
+            ("General", ["language"]),
+            ("Appearance", ["theme", "translucency", "light", "dark"]),
+            ("Sidebar", ["show tags", "show recents", "show favorites", "sidebar"]),
+            ("Advanced", ["compact", "view"]),
         ]
         for (index, probe) in tabProbe.enumerated() {
             guard driver.openSettings(tab: probe.0) else { continue }
-            if probe.1.isEmpty {
-                reporter.check(driver.sheet() != nil, "Settings ▸ \(probe.0) tab selected")
-            } else {
-                reporter.check(
-                    driver.sheet()?.firstDescendant(where: AXMatch(textContains: probe.1.lowercased())) != nil,
-                    "Settings ▸ \(probe.0) shows its content ('\(probe.1)')")
+            Timing.pause(Timing.settle)
+            let hit = probe.1.contains { frag in
+                driver.sheet()?.firstDescendant(where: AXMatch(textContains: frag), maxDepth: 26) != nil
             }
+            reporter.check(hit, "Settings ▸ \(probe.0) shows its own content")
             if index == tabProbe.count - 1 { driver.dismissSheet() }
         }
     }

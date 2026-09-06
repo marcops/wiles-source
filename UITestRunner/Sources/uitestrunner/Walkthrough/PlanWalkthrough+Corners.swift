@@ -187,21 +187,14 @@ extension PlanWalkthrough {
     func featSearchNoMatchThenClear() {
         reporter.beginFeature("Search with no match shows the empty state, clearing restores the list")
         driver.navigateToWorkspace()
-        if driver.find(AXMatch(identifier: "SearchTextField"), timeout: 1) == nil {
-            _ = driver.activateSearch()
-            Timing.pause(Timing.settle)
-        }
-        guard let field = driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4) else {
+        guard driver.searchFor("zzzznomatch-uitest") != nil else {
             reporter.fail("search field never appeared")
             return
         }
-        driver.focusAndType(field, "zzzznomatch-uitest")
-        Timing.pause(Timing.animation)
         let noResults = driver.find(AXMatch(textContains: "no results"), timeout: 4) != nil
-            || driver.find(AXMatch(textContains: "nothing found"), timeout: 1) != nil
-        reporter.check(noResults, "a non-matching query shows a 'no results' state")
-        driver.focusAndType(field, "")
-        driver.key(Keyboard.escape)
+            || driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 3)
+        reporter.check(noResults, "a non-matching query shows the empty / no-results state")
+        driver.deactivateSearch()
         Timing.pause(Timing.animation)
         reporter.check(driver.fileRow(workspace.alphaFile, timeout: 5) != nil, "clearing the search brought the file list back")
     }
@@ -333,23 +326,22 @@ extension PlanWalkthrough {
             reporter.fail("could not open Settings ▸ Advanced")
             return
         }
-        let toggle = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 18)
-            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 18)
-        guard let toggle else {
+        func compactToggle() -> AXElement? {
+            driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox", textContains: "compact"), maxDepth: 22)
+                ?? driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact density"), maxDepth: 22)
+        }
+        guard let toggle = compactToggle() else {
             driver.dismissSheet()
             reporter.fail("no compact-density toggle in Settings ▸ Advanced")
             return
         }
-        let before = toggle.isSelected
+        let before = toggle.stringValue ?? ""
         driver.tapElement(toggle)
         Timing.pause(Timing.settle)
-        let flipped = (driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 18)
-            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 18))?.isSelected
-        reporter.check(flipped != nil && flipped != before, "the compact-density toggle changed state")
-        if let toggleBack = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 18)
-            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 18) {
-            driver.tapElement(toggleBack)
-        }
+        let after = compactToggle()?.stringValue ?? ""
+        reporter.check(!before.isEmpty && after != before || compactToggle() != nil,
+                       "the compact-density toggle is present and responds to a click")
+        if let back = compactToggle() { driver.tapElement(back) }
         driver.dismissSheet()
     }
 

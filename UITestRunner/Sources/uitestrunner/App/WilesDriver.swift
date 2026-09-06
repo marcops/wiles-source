@@ -117,6 +117,19 @@ final class WilesDriver {
         }
     }
 
+    // Types `query` and nudges the field (extra char + delete) so SwiftUI's binding + the search
+    // debounce actually fire, then waits out the debounce. Returns the field.
+    @discardableResult
+    func searchFor(_ query: String) -> AXElement? {
+        guard let field = activateSearch() else { return nil }
+        focusAndType(field, query)
+        type("x")
+        key(Keyboard.delete)
+        Timing.pause(Timing.animation)
+        Timing.pause(Timing.animation)
+        return field
+    }
+
     // Fast "it disappeared" check — bails the moment it's absent instead of waiting the timeout.
     func isGone(_ match: AXMatch, within timeout: TimeInterval = 1.2) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
