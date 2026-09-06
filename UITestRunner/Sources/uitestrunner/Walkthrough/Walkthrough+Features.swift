@@ -82,7 +82,7 @@ extension Walkthrough {
         }
         reporter.check(driver.focusAndType(field, "alpha"), "search field accepted the query 'alpha'")
         Timing.pause(Timing.animation)
-        reporter.check(driver.fileRow(workspace.betaFile, timeout: 3) == nil, "'\(workspace.betaFile)' filtered out by search 'alpha'")
+        reporter.check(driver.fileRow(workspace.betaFile, timeout: 1.5) == nil, "'\(workspace.betaFile)' filtered out by search 'alpha'")
         reporter.check(driver.fileRow(workspace.alphaFile, timeout: 3) != nil, "'\(workspace.alphaFile)' still matches search 'alpha'")
 
         driver.tap(AXMatch(identifier: "magnifyingglass"), "search toggle button (close)", timeout: 3)

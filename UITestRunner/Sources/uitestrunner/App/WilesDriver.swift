@@ -61,7 +61,7 @@ final class WilesDriver {
 
     // MARK: - Find
 
-    func find(_ match: AXMatch, timeout: TimeInterval = 5) -> AXElement? {
+    func find(_ match: AXMatch, timeout: TimeInterval = 3) -> AXElement? {
         window.waitForDescendant(where: match, timeout: timeout)
     }
 
@@ -399,7 +399,7 @@ final class WilesDriver {
     /// defaults domain seeds `wiles_lastOpenedFolder`).
     @discardableResult
     func navigateToWorkspace() -> Bool {
-        if fileRow(workspace.alphaFile, timeout: 3) != nil { return true }
+        if fileRow(workspace.alphaFile, timeout: 2) != nil { return true }
         return navigateToPath(workspace.root.path, expectRow: workspace.alphaFile)
     }
 
