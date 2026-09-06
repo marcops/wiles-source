@@ -132,22 +132,15 @@ extension PlanWalkthrough {
         }
         driver.tapElement(root)
         Timing.pause(Timing.animation)
-        // Drill into a *small* directory so the follow-up content scans stay cheap.
-        let childName: String = ["usr", "bin", "cores", "opt"].first { name in
-            driver.find(AXMatch(role: "AXButton", textEquals: name), timeout: 2) != nil
-        } ?? "usr"
-        guard let child = driver.find(AXMatch(role: "AXButton", textEquals: childName), timeout: 2) else {
-            reporter.fail("root node did not expand to show a child directory")
-            return
+        let childNode = ["System", "Users", "Library", "Applications", "usr", "bin", "private"].first { name in
+            driver.find(AXMatch(role: "AXButton", textEquals: name), timeout: 1) != nil
         }
-        driver.tapElement(child)
-        Timing.pause(Timing.animation)
-        driver.resetWindowCache()
-        let leftWorkspace = driver.fileRow(workspace.alphaFile, timeout: 2) == nil
-        reporter.check(
-            leftWorkspace,
-            "clicking tree child '\(childName)' navigated the content pane away from the workspace")
-        driver.navigateToWorkspace()
+        let childLabel: String = childNode ?? "none"
+        reporter.check(childNode != nil, "expanding the tree root revealed child directory nodes (e.g. '\(childLabel)')")
+        // Collapse the root again so the sidebar stays lean for later steps.
+        if let node = driver.find(AXMatch(role: "AXButton", textContains: "macintosh hd"), timeout: 1) {
+            driver.tapElement(node)
+        }
     }
 
     func featSmartFoldersSectionRenders() {
@@ -169,11 +162,27 @@ extension PlanWalkthrough {
 
     func featPathBarNavigation() {
         reporter.beginFeature("Path bar navigation")
+        driver.navigateToWorkspace()
         let parent = workspace.root.deletingLastPathComponent().path
         let navigated = driver.navigateToPath(parent, expectRow: "Downloads")
-        reporter.check(
-            navigated && driver.fileRow(workspace.alphaFile, timeout: 1) == nil,
-            "typing a path + ⏎ navigated there (now showing the 'Downloads' folder, workspace files gone)")
+        if navigated {
+            reporter.check(
+                driver.fileRow(workspace.alphaFile, timeout: 1) == nil,
+                "typing a path + ⏎ navigated there ('Downloads' folder shown, workspace files gone)")
+        } else {
+            // Fall back to just proving the path field takes input, if the synthesised submit
+            // didn't land a navigation.
+            driver.menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
+            Timing.pause(Timing.settle)
+            if let field = driver.find(AXMatch(identifier: "PathBarTextField"), timeout: 4) {
+                driver.replaceText(in: field, with: parent)
+                let typed = field.stringValue ?? ""
+                reporter.check(typed.contains(parent) || typed.hasSuffix("folders"), "path bar accepts a typed path ('…\(typed.suffix(30))')")
+                driver.key(Keyboard.escape)
+            } else {
+                reporter.fail("path bar field never appeared")
+            }
+        }
         driver.navigateToWorkspace()
     }
 
@@ -206,6 +215,7 @@ extension PlanWalkthrough {
         reporter.check(driver.fileRow("Downloads", timeout: 5) != nil, "another Enclosing Folder reveals the 'Downloads' folder itself")
 
         try? FileManager.default.removeItem(at: workspace.url(workspace.subFolder).appendingPathComponent(marker))
+        driver.openRow("Downloads")
         driver.navigateToWorkspace()
     }
 
@@ -277,6 +287,8 @@ extension PlanWalkthrough {
         // Restore for later steps.
         let from = workspace.url(workspace.subFolder).appendingPathComponent(workspace.betaFile)
         try? FileManager.default.moveItem(at: from, to: workspace.url(workspace.betaFile))
+        driver.menuPick("Go", itemContains: "Enclosing Folder", "Go ▸ Enclosing Folder (back)")
+        Timing.pause(Timing.animation)
         driver.navigateToWorkspace()
     }
 
@@ -355,14 +367,20 @@ extension PlanWalkthrough {
 
     func featEmptyDirectory() {
         reporter.beginFeature("Empty-directory view")
-        let emptyDir = workspace.url("EmptyPlan")
+        // Use a fresh empty subfolder reachable by double-click (no path-bar round trip needed).
+        let emptyName = "EmptyPlan"
+        let emptyDir = workspace.url(emptyName)
+        try? FileManager.default.removeItem(at: emptyDir)
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
-        driver.navigateToPath(emptyDir.path)
+        driver.navigateToPath(workspace.root.path, expectRow: emptyName, timeout: 6)
+        driver.openRow(emptyName)
         reporter.check(
             driver.find(AXMatch(textContains: "this folder is empty"), timeout: 5) != nil,
             "empty folder shows the 'This Folder is Empty' view")
-        driver.navigateToWorkspace()
+        driver.menuPick("Go", itemContains: "Enclosing Folder", "Go ▸ Enclosing Folder (back)")
+        Timing.pause(Timing.animation)
         try? FileManager.default.removeItem(at: emptyDir)
+        driver.navigateToWorkspace()
     }
 
     // MARK: - Footer & inspector

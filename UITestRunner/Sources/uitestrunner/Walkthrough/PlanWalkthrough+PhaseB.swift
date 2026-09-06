@@ -229,6 +229,8 @@ extension PlanWalkthrough {
             driver.fileRow(marker, timeout: 5) != nil,
             "Enter opened the folder in GNOME mode")
         try? FileManager.default.removeItem(at: workspace.url(workspace.subFolder).appendingPathComponent(marker))
+        driver.menuPick("Go", itemContains: "Enclosing Folder", "Go ▸ Enclosing Folder (back)")
+        Timing.pause(Timing.animation)
 
         // Restore macOS mode.
         if driver.openSettings(tab: "General") {
