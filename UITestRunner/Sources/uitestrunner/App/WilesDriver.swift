@@ -11,6 +11,7 @@ final class WilesDriver {
 
     let app: AXElement
     private var cachedWindow: AXElement?
+    private var cachedContentArea: AXElement?
 
     var pid: pid_t { process.pid }
 
@@ -51,6 +52,7 @@ final class WilesDriver {
     /// `mainWindow()` re-resolves.
     func resetWindowCache() {
         cachedWindow = nil
+        cachedContentArea = nil
     }
 
     var standardWindowCount: Int {
@@ -365,8 +367,28 @@ final class WilesDriver {
         return navigateToPath(workspace.root.path, expectRow: workspace.alphaFile)
     }
 
+    /// The main file-list scroll area (right of the sidebar), cached — its element ref survives
+    /// navigations even though its contents change. Scoping row lookups here keeps a search over a
+    /// large directory from also walking the sidebar, header and footer every time.
+    func contentArea() -> AXElement? {
+        if let cachedContentArea, cachedContentArea.frame.width > 200 { return cachedContentArea }
+        guard let window = try? mainWindow() else { return nil }
+        let resolved = window.allDescendants(where: AXMatch(role: "AXScrollArea"), maxDepth: 12)
+            .filter { $0.frame.width > 240 && $0.frame.height > 120 }
+            .max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
+        cachedContentArea = resolved
+        return resolved
+    }
+
     func fileRow(_ name: String, timeout: TimeInterval = 5) -> AXElement? {
-        find(AXMatch(textEquals: name), timeout: timeout)
+        let match = AXMatch(textEquals: name)
+        let deadline = Date().addingTimeInterval(timeout)
+        while true {
+            let scope = contentArea() ?? window
+            if let row = scope.firstDescendant(where: match, maxDepth: 14) { return row }
+            if Date() >= deadline { return nil }
+            Timing.pause(Timing.poll)
+        }
     }
 
     /// Double-clicks a file/folder row to open it.

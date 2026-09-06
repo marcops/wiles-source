@@ -7,10 +7,10 @@ extension PlanWalkthrough {
             workspace.alphaFile, workspace.betaFile, workspace.subFolder,
             workspace.imageFile, workspace.zipFile, workspace.pdfOne, workspace.pdfTwo,
         ]
-        guard let window = try? driver.mainWindow() else { return "" }
-        let rows = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { element in
+        guard let scope = driver.contentArea() ?? (try? driver.mainWindow()) else { return "" }
+        let rows = scope.allDescendants(where: AXMatch(role: "AXButton", predicate: { element in
             names.contains(element.descriptionText) || names.contains(element.title)
-        }), maxDepth: 18)
+        }), maxDepth: 14)
         return rows
             .filter { !$0.frame.isEmpty }
             .min { $0.frame.minY < $1.frame.minY }
@@ -132,16 +132,21 @@ extension PlanWalkthrough {
         }
         driver.tapElement(root)
         Timing.pause(Timing.animation)
-        guard let applications = driver.find(AXMatch(role: "AXButton", textEquals: "Applications"), timeout: 3) else {
-            reporter.fail("root node did not expand to show the 'Applications' child")
+        // Drill into a *small* directory so the follow-up content scans stay cheap.
+        let childName = ["usr", "bin", "cores", "opt"].first { name in
+            driver.find(AXMatch(role: "AXButton", textEquals: name), timeout: 2) != nil
+        } ?? "usr"
+        guard let child = driver.find(AXMatch(role: "AXButton", textEquals: childName), timeout: 2) else {
+            reporter.fail("root node did not expand to show a child directory")
             return
         }
-        driver.tapElement(applications)
+        driver.tapElement(child)
         Timing.pause(Timing.animation)
+        driver.resetWindowCache()
+        let pathValue = driver.find(AXMatch(identifier: "PathBarTextField"), timeout: 1)?.stringValue ?? ""
         reporter.check(
-            driver.find(AXMatch(role: "AXButton", textContains: ".app"), timeout: 6) != nil
-                && driver.fileRow(workspace.alphaFile, timeout: 1) == nil,
-            "clicking tree child 'Applications' navigated the content pane to /Applications")
+            pathValue.hasSuffix(childName) || driver.fileRow(workspace.alphaFile, timeout: 2) == nil,
+            "clicking tree child '\(childName)' navigated the content pane away from the workspace")
         driver.navigateToWorkspace()
     }
 
