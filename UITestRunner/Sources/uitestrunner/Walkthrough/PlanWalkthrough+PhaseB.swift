@@ -12,19 +12,15 @@ extension PlanWalkthrough {
             reporter.fail("Properties sheet did not open")
             return
         }
-        // Expand every disclosure group in the sheet so the Permissions section is open.
-        for disclosure in driver.sheet()?.allDescendants(where: AXMatch(role: "AXDisclosureTriangle"), maxDepth: 16) ?? [] {
-            if disclosure.bool("AXValue") == false { driver.tapElement(disclosure) }
-        }
+        let hasPermissions = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) != nil
+        reporter.check(hasPermissions, "Properties sheet has a Permissions section")
         if let byText = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) {
             driver.tapElement(byText)
+            Timing.pause(Timing.settle)
         }
-        Timing.pause(Timing.settle)
-        let sheet = driver.sheet()
-        let hasEditor = ["read", "write", "execute", "644", "755", "rw-"].contains { token in
-            sheet?.firstDescendant(where: AXMatch(textContains: token)) != nil
-        }
-        reporter.check(hasEditor, "Properties sheet exposes an editable permissions section")
+        let hasControls = (driver.sheet()?.allDescendants(where: AXMatch(role: "AXCheckBox"), maxDepth: 16).count ?? 0) >= 3
+            || driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "apply")) != nil
+        reporter.check(hasControls, "Permissions section exposes editable controls")
         driver.dismissSheet()
     }
 
@@ -107,13 +103,20 @@ extension PlanWalkthrough {
             driver.closeAnyMenu()
             return
         }
-        Timing.pause(Timing.settle)
-        guard driver.pickContextItem(containing: "Absolute Path", "Copy Path ▸ Absolute Path") else {
+        // The submenu needs a beat to populate after its parent is pressed; retry the leaf pick.
+        var pasteboard = "__sentinel__"
+        for _ in 0 ..< 3 {
+            Timing.pause(Timing.settle)
+            if driver.pickContextItem(containing: "Absolute Path", "Copy Path ▸ Absolute Path") {
+                Timing.pause(Timing.settle)
+                pasteboard = readPasteboardString()
+                if pasteboard.hasPrefix("/") { break }
+            }
             driver.closeAnyMenu()
-            return
+            _ = driver.rightClick(AXMatch(textEquals: workspace.alphaFile), "row (retry)")
+            Timing.pause(Timing.settle)
+            _ = driver.pickContextItem(containing: "copy path", "Copy Path (retry)")
         }
-        Timing.pause(Timing.settle)
-        let pasteboard = readPasteboardString()
         reporter.check(
             pasteboard.hasSuffix(workspace.alphaFile) && pasteboard.hasPrefix("/"),
             "'Absolute Path' put the file's POSIX path on the pasteboard ('…\(pasteboard.suffix(40))')")

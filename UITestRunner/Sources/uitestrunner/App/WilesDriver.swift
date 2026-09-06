@@ -281,9 +281,19 @@ final class WilesDriver {
     /// Right-clicks a file row and picks the context-menu item whose text contains `fragment`.
     @discardableResult
     func openContextItem(onFileRow name: String, containing fragment: String, _ label: String) -> Bool {
-        guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
-        Timing.pause(Timing.settle)
-        return pickContextItem(containing: fragment, label)
+        for attempt in 0 ..< 2 {
+            closeAnyMenu()
+            guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
+            Timing.pause(Timing.settle)
+            if app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 12) != nil {
+                return pickContextItem(containing: fragment, label)
+            }
+            if attempt == 1 {
+                closeAnyMenu()
+                reporter.fail("\(label): context item '\(fragment)' not in the menu for '\(name)'")
+            }
+        }
+        return false
     }
 
     @discardableResult
