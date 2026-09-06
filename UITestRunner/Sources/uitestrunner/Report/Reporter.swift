@@ -14,6 +14,7 @@ final class Reporter {
     private var currentFeature = "—"
     private var featureStart = Date()
     private var slowest: [(String, TimeInterval)] = []
+    private let lock = NSLock()
 
     var hasFailures: Bool { entries.contains { !$0.passed } }
 
@@ -29,12 +30,12 @@ final class Reporter {
     }
 
     func pass(_ detail: String) {
-        entries.append(Entry(feature: currentFeature, detail: detail, passed: true))
+        lock.lock(); entries.append(Entry(feature: currentFeature, detail: detail, passed: true)); lock.unlock()
         print("  ✓ \(detail)")
     }
 
     func fail(_ detail: String) {
-        entries.append(Entry(feature: currentFeature, detail: detail, passed: false))
+        lock.lock(); entries.append(Entry(feature: currentFeature, detail: detail, passed: false)); lock.unlock()
         print("  ✗ \(detail)")
     }
 
