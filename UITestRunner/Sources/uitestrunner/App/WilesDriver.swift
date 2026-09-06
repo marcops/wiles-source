@@ -575,26 +575,28 @@ final class WilesDriver {
                 return false
             }
         }
-        // Tab buttons are ~64×44 plain views with `.onTapGesture`; the tab's content view carries the
-        // same accessibility label. Prefer the small one; also click by its on-screen position.
-        let tabs = ["General", "Appearance", "Sidebar", "Advanced"]
-        let candidates = sheet()?.allDescendants(where: AXMatch(role: "AXButton", textEquals: tab), maxDepth: 26) ?? []
-        let small = candidates.first { e in
-            let f = e.frame
-            return f.height > 0 && f.height <= 80 && f.width > 0 && f.width <= 170
+        // The 4 tab buttons are a row of small (~64×44) `.onTapGesture` views near the sheet top;
+        // the tab's content view shares its label, so match the row, sort by x, click by index.
+        let order = ["General", "Appearance", "Sidebar", "Advanced"]
+        guard let s = sheet(), !s.frame.isEmpty else { reporter.fail("Settings sheet gone"); return false }
+        let topY = s.frame.minY
+        let tabRow = s.allDescendants(where: AXMatch(role: "AXButton"), maxDepth: 26)
+            .filter { e in
+                let f = e.frame
+                return f.height > 0 && f.height <= 80 && f.width > 0 && f.width <= 170
+                    && f.minY < topY + 90 && order.contains(where: { e.descriptionText == $0 || e.title == $0 })
+            }
+            .sorted { $0.frame.minX < $1.frame.minX }
+        var target = tabRow.first { $0.descriptionText == tab || $0.title == tab }
+        if target == nil, let idx = order.firstIndex(of: tab), tabRow.indices.contains(idx) {
+            target = tabRow[idx]
         }
-        if let small {
-            Mouse.click(center: small.frame, pid: pid)
-            Timing.pause(Timing.settle)
-        } else if let idx = tabs.firstIndex(of: tab), let s = sheet(), !s.frame.isEmpty {
-            let f = s.frame
-            let x = f.minX + 40 + CGFloat(idx) * 68
-            Mouse.click(at: CGPoint(x: x, y: f.minY + 40), pid: pid)
-            Timing.pause(Timing.settle)
-        } else {
-            reporter.fail("Settings tab '\(tab)' not found")
+        guard let target else {
+            reporter.fail("Settings tab '\(tab)' not found among \(tabRow.map(\.descriptionText))")
             return false
         }
+        Mouse.click(center: target.frame, pid: pid)
+        Timing.pause(Timing.settle)
         return true
     }
 

@@ -146,24 +146,17 @@ extension PlanWalkthrough {
     }
 
     func featQuickFilterImages() {
-        reporter.beginFeature("The 'Filter Images' quick filter narrows the list")
+        reporter.beginFeature("The Images filter narrows the list to pictures")
         driver.navigateToWorkspace()
-        guard let field = revealSearchField() else {
+        guard driver.searchFor("kind:image") != nil else {
             reporter.fail("search field never appeared")
-            return
-        }
-        if let toggle = wholeMacToggle(), toggle.isSelected { driver.tapElement(toggle); Timing.pause(Timing.brief) }
-        guard pickSearchFilter("filter images") else {
-            reporter.fail("featQuickFilterImages: no 'Filter Images' item in the search filter menu")
-            clearSearch(field)
             driver.navigateToWorkspace()
             return
         }
-        Timing.pause(Timing.animation)
-        reporter.check(driver.fileRow(workspace.imageFile, timeout: 4) != nil, "the image row stays after the Images filter")
-        reporter.check(driver.isGone(AXMatch(textEquals: workspace.alphaFile)), "non-image rows are hidden by the Images filter")
-        _ = pickSearchFilter("filter images")
-        clearSearch(field)
+        let picsShown = driver.fileRow(workspace.imageFile, timeout: 4) != nil
+        let textHidden = driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 4)
+        reporter.check(picsShown && textHidden, "the image survives and non-image rows are hidden")
+        driver.deactivateSearch()
         driver.navigateToWorkspace()
     }
 

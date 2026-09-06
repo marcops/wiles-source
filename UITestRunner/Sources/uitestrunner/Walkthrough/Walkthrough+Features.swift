@@ -56,18 +56,21 @@ extension Walkthrough {
             Timing.pause(Timing.settle)
         }
         // Click any Places/Favorites row that isn't our workspace ("Downloads").
-        guard let window = try? driver.mainWindow(),
-              let row = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { el in
-                  ["desktop", "documents", "macintosh hd", "icloud drive", "applications", "home"]
-                      .contains((el.descriptionText.isEmpty ? el.identifier : el.descriptionText).lowercased())
-              }), maxDepth: 22).first(where: { !$0.frame.isEmpty }) else {
+        let prefer = ["documents", "desktop", "home", "applications", "macintosh hd"]
+        guard let window = try? driver.mainWindow() else { reporter.fail("no window"); return }
+        let rows = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { el in
+            prefer.contains((el.descriptionText.isEmpty ? el.identifier : el.descriptionText).lowercased())
+        }), maxDepth: 22).filter { !$0.frame.isEmpty }
+        guard let row = prefer.lazy.compactMap({ name in
+            rows.first { ($0.descriptionText.isEmpty ? $0.identifier : $0.descriptionText).lowercased() == name }
+        }).first else {
             reporter.fail("no clickable Places row"); return
         }
         let label = row.descriptionText.isEmpty ? row.identifier : row.descriptionText
         driver.tapElement(row)
         Timing.pause(Timing.animation)
         reporter.check(
-            driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 10),
+            driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 8),
             "clicking '\(label)' navigated away from the workspace")
         reporter.check(driver.navigateToWorkspace(), "navigated back to the workspace")
     }
