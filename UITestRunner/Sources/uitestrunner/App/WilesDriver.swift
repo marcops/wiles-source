@@ -154,6 +154,29 @@ final class WilesDriver {
         Timing.pause(Timing.brief)
     }
 
+    /// Focuses `field` (activate app + real click + AX focus) and types `text`, verifying it
+    /// landed by reading the value back — retrying up to 3× (synthetic keys can be dropped if the
+    /// app isn't key, or if the operator is using the keyboard). Returns whether it stuck.
+    @discardableResult
+    func focusAndType(_ field: AXElement, _ text: String, clearFirst: Bool = true) -> Bool {
+        for _ in 0 ..< 3 {
+            process.activate()
+            Timing.pause(Timing.brief)
+            clickCentre(field)
+            field.focus()
+            Timing.pause(Timing.brief)
+            if clearFirst {
+                chord("a", .command)
+                key(Keyboard.delete)
+                Timing.pause(Timing.brief)
+            }
+            type(text)
+            Timing.pause(Timing.settle)
+            if (field.stringValue ?? "").localizedCaseInsensitiveContains(text) { return true }
+        }
+        return (field.stringValue ?? "").localizedCaseInsensitiveContains(text)
+    }
+
     /// Commits a field edit — tries ⏎, the AX confirm action, and a literal carriage return.
     func commitField(_ field: AXElement) {
         key(Keyboard.returnKey)

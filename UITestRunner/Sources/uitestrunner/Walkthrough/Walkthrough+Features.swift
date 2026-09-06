@@ -80,9 +80,7 @@ extension Walkthrough {
             reporter.fail("SearchTextField not found after activating search")
             return
         }
-        driver.tapElement(field)
-        Timing.pause(Timing.settle)
-        driver.type("alpha")
+        reporter.check(driver.focusAndType(field, "alpha"), "search field accepted the query 'alpha'")
         Timing.pause(Timing.animation)
         reporter.check(driver.fileRow(workspace.betaFile, timeout: 3) == nil, "'\(workspace.betaFile)' filtered out by search 'alpha'")
         reporter.check(driver.fileRow(workspace.alphaFile, timeout: 3) != nil, "'\(workspace.alphaFile)' still matches search 'alpha'")
@@ -98,9 +96,10 @@ extension Walkthrough {
     func featFileProperties() {
         reporter.beginFeature("File Properties & Permissions")
         driver.navigateToWorkspace()
-        guard driver.clickRow(workspace.alphaFile) else { return }
-        Timing.pause(Timing.brief)
-        guard driver.menuPick("File", itemContains: "Properties", "File ▸ Properties") else { return }
+        // Context menu (not File ▸ Properties): the right-click guarantees the row is selected,
+        // which the menu item needs.
+        guard driver.openContextItem(onFileRow: workspace.alphaFile, containing: "properties", "context ▸ Properties")
+        else { return }
         reporter.check(driver.waitForSheet(), "Properties sheet opened")
         reporter.check(
             driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) != nil

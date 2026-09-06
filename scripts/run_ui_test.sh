@@ -91,8 +91,15 @@ else
   echo "==> run walkthrough"
 fi
 echo "------------------------------------------------------------"
-"$RUNNER_BIN" --app "$APP_BUNDLE" ${MODE_ARGS[@]+"${MODE_ARGS[@]}"}
+# Hard overall cap so a wedged interaction can't hang forever (macOS has no `timeout`).
+CAP_SECONDS=1800
+"$RUNNER_BIN" --app "$APP_BUNDLE" ${MODE_ARGS[@]+"${MODE_ARGS[@]}"} &
+RUNNER_PID=$!
+( sleep "$CAP_SECONDS"; kill -9 "$RUNNER_PID" 2>/dev/null && echo "    (killed: exceeded ${CAP_SECONDS}s cap)" ) &
+WATCHDOG_PID=$!
+wait "$RUNNER_PID"
 STATUS=$?
+kill "$WATCHDOG_PID" 2>/dev/null || true
 echo "------------------------------------------------------------"
 echo "exit: $STATUS"
 exit $STATUS
