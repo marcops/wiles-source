@@ -90,6 +90,9 @@ rm -rf "$HOME/Library/Saved Application State/${UITEST_BUNDLE_ID}.savedState" 2>
 # The first walkthrough step still exercises Settings ▸ General ▸ Language (and F1's live re-localize).
 defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_skipDeleteConfirmation -bool YES 2>/dev/null || true
+# Show the sidebar sections the walkthrough exercises — both default to hidden.
+defaults write "$UITEST_BUNDLE_ID" wiles_showDirectoryTree -bool YES 2>/dev/null || true
+defaults write "$UITEST_BUNDLE_ID" wiles_showNetworkAndCloud -bool YES 2>/dev/null || true
 
 if [[ ${#MODE_ARGS[@]} -gt 0 ]]; then
   echo "==> run: ${MODE_ARGS[*]}"

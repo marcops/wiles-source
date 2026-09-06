@@ -144,11 +144,7 @@ extension PlanWalkthrough {
         driver.navigateToWorkspace()
 
         func selectedSeededNames() -> Set<String> {
-            guard let window = try? driver.mainWindow() else { return [] }
-            let rows = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { element in
-                self.seededFileNames.contains(element.descriptionText) || self.seededFileNames.contains(element.title)
-            }), maxDepth: 18)
-            return Set(rows.filter { $0.isSelected }.map { $0.descriptionText.isEmpty ? $0.title : $0.descriptionText })
+            Set(seededFileNames.filter { driver.fileRow($0, timeout: 1)?.isSelected == true })
         }
 
         // Edit ▸ Select All / ⌘A only reach the file list once it holds key focus; a single

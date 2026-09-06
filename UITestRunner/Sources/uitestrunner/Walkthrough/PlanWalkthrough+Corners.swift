@@ -8,13 +8,10 @@ extension PlanWalkthrough {
          workspace.zipFile, workspace.pdfOne, workspace.pdfTwo]
     }
 
-    /// Count of distinct seeded content rows currently reporting the AX "selected" trait.
+    /// Count of seeded content rows currently reporting the AX "selected" trait. Uses the same
+    /// per-name `fileRow` lookup the (passing) keyboard-selection step relies on.
     func selectedRowCount() -> Int {
-        guard let window = try? driver.mainWindow() else { return 0 }
-        let rows = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { element in
-            self.cornerSeeded.contains(element.descriptionText) || self.cornerSeeded.contains(element.title)
-        }), maxDepth: 18)
-        return Set(rows.filter { $0.isSelected }.map { $0.descriptionText.isEmpty ? $0.title : $0.descriptionText }).count
+        cornerSeeded.filter { driver.fileRow($0, timeout: 1)?.isSelected == true }.count
     }
 
     // MARK: - Selection edges
@@ -99,10 +96,12 @@ extension PlanWalkthrough {
         guard driver.openContextItem(onFileRow: workspace.betaFile, containing: "rename", "context ▸ Rename") else { return }
         _ = driver.commitInlineRename(to: "beta/slash-uitest.txt")
         Timing.pause(Timing.animation)
-        // "/" → ":" like the Finder, or the rename declines — never a crash.
+        // "/" → ":" like the Finder, or the rename declines — never a crash, never data loss.
         let renamedWithColon = workspace.exists("beta:slash-uitest.txt")
         let leftAlone = workspace.exists(workspace.betaFile)
-        reporter.check(renamedWithColon || leftAlone, "the slash was sanitised or the rename declined — no crash")
+        let dirNow = (try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path))?.sorted() ?? []
+        reporter.check(renamedWithColon || leftAlone,
+                       "the slash was sanitised or the rename declined — no data loss (dir: \(dirNow))")
         reporter.check((try? driver.mainWindow()) != nil, "window still alive")
         // Restore.
         if renamedWithColon { try? FileManager.default.moveItem(at: workspace.url("beta:slash-uitest.txt"), to: workspace.url(workspace.betaFile)) }
@@ -243,19 +242,7 @@ extension PlanWalkthrough {
     func featPathBarRejectsBadPath() {
         reporter.beginFeature("A nonexistent path in Go to Folder is refused")
         driver.navigateToWorkspace()
-        driver.menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
-        Timing.pause(Timing.settle)
-        guard let field = driver.find(AXMatch(identifier: "PathBarTextField"), timeout: 3) else {
-            reporter.fail("PathBarTextField not found")
-            return
-        }
-        driver.clickCentre(field)
-        field.focus()
-        driver.chord("a", .command)
-        driver.key(Keyboard.delete)
-        driver.type("/no/such/place-uitest-\(UUID().uuidString.prefix(6))")
-        _ = field.perform(AXAction.confirm)
-        driver.key(Keyboard.returnKey)
+        _ = driver.navigateToPath("/no/such/place-uitest-\(UUID().uuidString.prefix(6))", expectRow: "", timeout: 3)
         Timing.pause(Timing.animation)
         driver.key(Keyboard.escape)
         reporter.check(
@@ -266,7 +253,11 @@ extension PlanWalkthrough {
     func featKeyboardHistoryNav() {
         reporter.beginFeature("⌘[ / ⌘] / ⌘↑ walk history and go up")
         driver.navigateToWorkspace()
-        guard driver.openRow(workspace.subFolder, expectRow: "") else { return }
+        guard driver.navigateToPath(workspace.url(workspace.subFolder).path, expectRow: "", timeout: 5) else {
+            reporter.fail("could not navigate into the subfolder")
+            return
+        }
+        Timing.pause(Timing.animation)
         driver.chord("[", .command)
         Timing.pause(Timing.animation)
         reporter.check(driver.fileRow(workspace.alphaFile, timeout: 4) != nil, "⌘[ went Back to the workspace")
@@ -351,21 +342,36 @@ extension PlanWalkthrough {
     }
 
     func featCompactModeToggle() {
-        reporter.beginFeature("Compact mode toggles row density")
+        reporter.beginFeature("Compact-density toggle flips and changes row height")
         driver.navigateToWorkspace()
         driver.menuPick("View", path: ["View Mode", "List"], "View ▸ View Mode ▸ List")
         Timing.pause(Timing.settle)
         let rowHeight = { self.driver.fileRow(self.workspace.alphaFile)?.frame.height ?? 0 }
         let before = rowHeight()
-        guard driver.menuPick("View", itemContains: "Compact", "View ▸ Compact") else {
-            reporter.fail("no Compact toggle in the View menu")
+        guard driver.openSettings(tab: "Advanced") else {
+            reporter.fail("could not open Settings ▸ Advanced")
             return
         }
+        guard let toggle = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 16)
+            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 16) else {
+            driver.dismissSheet()
+            reporter.fail("no compact-density toggle in Settings ▸ Advanced")
+            return
+        }
+        driver.tapElement(toggle)
+        Timing.pause(Timing.brief)
+        driver.dismissSheet()
         Timing.pause(Timing.animation)
         let after = rowHeight()
         reporter.check(before > 0 && after > 0 && abs(after - before) >= 1,
-                       "compact mode changed the row height (\(Int(before)) → \(Int(after)))")
-        driver.menuPick("View", itemContains: "Compact", "View ▸ Compact (restore)")
+                       "toggling compact density changed the list row height (\(Int(before)) → \(Int(after)))")
+        // Restore.
+        if driver.openSettings(tab: "Advanced"),
+           let toggleBack = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 16)
+           ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 16) {
+            driver.tapElement(toggleBack)
+        }
+        driver.dismissSheet()
     }
 
     func featAutoHideSidebarToggle() {
