@@ -94,8 +94,9 @@ final class WilesDriver {
     func activateSearch() -> AXElement? {
         let fieldMatch = AXMatch(identifier: "SearchTextField")
         if let field = find(fieldMatch, timeout: 1) { return field }
+        process.activate()
         let attempts: [() -> Void] = [
-            { self.tap(AXMatch(role: "AXButton", textContains: "search in directory"), "search button", timeout: 3) },
+            { _ = self.tap(AXMatch(identifier: "magnifyingglass"), "search button", timeout: 3) },
             { self.menuPick("Edit", itemContains: "Find", "Edit ▸ Find") },
             { self.chord("f", .command) },
         ]
@@ -561,9 +562,15 @@ final class WilesDriver {
                 return false
             }
         }
-        // The tab buttons are plain views with `.onTapGesture` + `.isButton` trait — AXPress reports
-        // success without firing the gesture, so a real click at the button centre is required.
-        guard let tabElement = sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textEquals: tab))
+        // Tab buttons are ~64×44 plain views with `.onTapGesture`; the tab's content view carries the
+        // same accessibility label, so pick the small one and real-click it (AXPress no-ops here).
+        let candidates = sheet()?.allDescendants(where: AXMatch(role: "AXButton", textEquals: tab), maxDepth: 24) ?? []
+        let looksLikeTab = { (e: AXElement) in
+            let f = e.frame
+            return f.height > 0 && f.height <= 80 && f.width > 0 && f.width <= 160
+        }
+        guard let tabElement = candidates.first(where: looksLikeTab)
+            ?? candidates.first(where: { !$0.frame.isEmpty })
             ?? sheet()?.firstDescendant(where: AXMatch(textEquals: tab)) else {
             reporter.fail("Settings tab '\(tab)' not found")
             return false

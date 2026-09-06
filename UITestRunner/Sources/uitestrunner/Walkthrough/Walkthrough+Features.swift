@@ -30,9 +30,13 @@ extension Walkthrough {
             return
         }
         let collapsedValue = section.stringValue ?? ""
-        driver.tapElement(section)
-        Timing.pause(Timing.animation)
-        let expandedValue = driver.find(header)?.stringValue ?? ""
+        var expandedValue = collapsedValue
+        for _ in 0 ..< 3 {
+            driver.tapElement(driver.find(header) ?? section)
+            Timing.pause(Timing.animation)
+            expandedValue = driver.find(header)?.stringValue ?? ""
+            if expandedValue.lowercased() != collapsedValue.lowercased() { break }
+        }
         reporter.check(
             collapsedValue.lowercased() != expandedValue.lowercased(),
             "section toggle flipped state ('\(collapsedValue)' → '\(expandedValue)')")
@@ -58,14 +62,12 @@ extension Walkthrough {
             driver.tapElement(section)
             Timing.pause(Timing.settle)
         }
-        guard driver.tap(AXMatch(identifier: "Applications"), "PLACES ▸ Applications row") else { return }
+        // Row identifiers follow the localised place name; "Macintosh HD" is stable.
+        guard driver.tap(AXMatch(identifier: "Macintosh HD"), "PLACES ▸ Macintosh HD row") else { return }
         Timing.pause(Timing.animation)
         reporter.check(
             driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 5),
             "clicking a Places entry navigated away from the workspace")
-
-        driver.menuPick("Go", itemContains: "Enclosing Folder", "Go ▸ up") // cheap way out of a big dir
-        Timing.pause(Timing.animation)
         reporter.check(driver.navigateToWorkspace(), "navigated back to the workspace")
     }
 

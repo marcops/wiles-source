@@ -35,7 +35,11 @@ struct Walkthrough {
         ]
         let selected = only.isEmpty ? steps
             : steps.filter { name, _ in name == "featSwitchToEnglish" || only.contains { name.localizedCaseInsensitiveContains($0) } }
-        for (_, step) in selected { step() }
+        for (_, step) in selected {
+            driver.process.activate()
+            driver.navigateToWorkspace()
+            step()
+        }
     }
 
     // MARK: - Force English through the Settings UI
