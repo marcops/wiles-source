@@ -42,8 +42,8 @@ private final class NodeBudget {
 }
 
 extension AXElement {
-    static let defaultSearchDepth = 22
-    static let defaultNodeBudget = 20000
+    static let defaultSearchDepth = 40
+    static let defaultNodeBudget = 40000
 
     func firstDescendant(where match: AXMatch, maxDepth: Int = AXElement.defaultSearchDepth) -> AXElement? {
         firstDescendant(where: match, maxDepth: maxDepth, budget: NodeBudget(Self.defaultNodeBudget))
