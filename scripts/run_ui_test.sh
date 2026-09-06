@@ -26,6 +26,10 @@ for arg in "$@"; do
     --no-build) NO_BUILD=1 ;;
     --screenshots) MODE_ARGS+=(--screenshots) ;;
     --plan) MODE_ARGS+=(--plan) ;;
+    --fast) MODE_ARGS+=(--fast) ;;
+    --slow) MODE_ARGS+=(--slow) ;;
+    --scale) MODE_ARGS+=(--scale) ;;
+    [0-9]*) MODE_ARGS+=("$arg") ;;
   esac
 done
 
