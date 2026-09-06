@@ -98,7 +98,7 @@ extension Walkthrough {
     func featFileProperties() {
         reporter.beginFeature("File Properties & Permissions")
         driver.navigateToWorkspace()
-        guard driver.tap(AXMatch(textEquals: workspace.alphaFile), "'\(workspace.alphaFile)' row") else { return }
+        guard driver.clickRow(workspace.alphaFile) else { return }
         Timing.pause(Timing.brief)
         guard driver.menuPick("File", itemContains: "Properties", "File ▸ Properties") else { return }
         reporter.check(driver.waitForSheet(), "Properties sheet opened")

@@ -39,6 +39,9 @@ struct FooterBarView: View {
         .task(id: appState.navigation.currentURL) {
             freeSpaceText = await appState.loadFreeSpaceText()
         }
+        .onChange(of: appState.preferences.appearance.appLanguage) { _, _ in
+            Task { freeSpaceText = await appState.loadFreeSpaceText() }
+        }
     }
 
     /// Status text (item counts, total/selection sizes, free disk space)

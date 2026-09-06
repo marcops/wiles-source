@@ -1,40 +1,31 @@
 # UI-test findings — app bugs / oddities surfaced by the AXUIElement walkthrough
 
 Recorded while building `UITestRunner/`'s FEATURES.md + UI_TEST_PLAN.md coverage.
-Each entry: what's wrong, how it showed up, rough fix, ROI.
 
 ---
 
-## F1 — Footer free-space string doesn't re-localize on a live language change
+## F1 — Footer free-space string didn't re-localize on a live language change  ✅ FIXED
 
-- **Where:** `Sources/Wiles/Views/Footer/FooterBarView.swift` — `freeSpaceText` is loaded once
-  in `.task { freeSpaceText = await appState.loadFreeSpaceText() }` and never recomputed when
-  `appState.preferences.appearance.appLanguage` changes.
-- **Symptom:** switch language at runtime (Settings ▸ General ▸ Language) and the status bar
-  still reads e.g. `339,6 GB livre` (old locale's `freeSpaceFormat`) until the folder is
-  re-listed. The `en` key exists (`"freeSpaceFormat" = "%@ free"`), so it's a refresh bug, not
-  a missing translation. (Worked around in `--screenshots` mode by launching already-English.)
-- **Fix:** add `.onChange(of: appState.preferences.appearance.appLanguage) { … reload free-space }`
-  (mirrors `PathBarView` / `SidebarView`, which already do this for their derived strings).
-- **ROI:** high — one-line-ish, matches an existing pattern, user-visible. Worth fixing.
+- **Where:** `Sources/Wiles/Views/Footer/FooterBarView.swift`.
+- **Was:** `freeSpaceText` loaded once in `.task(id: currentURL)` and never recomputed when
+  `appLanguage` changed, so the status bar kept the old locale's `freeSpaceFormat`
+  (`339,6 GB livre` after switching to English — the `en` key exists, it was a refresh bug).
+- **Fix:** added `.onChange(of: appLanguage) { Task { freeSpaceText = await loadFreeSpaceText() } }`
+  — same pattern `SidebarView` / `PathBarView` already use for their derived strings.
 
 ---
 
-## F2 — (unconfirmed) a couple of accessibility labels stay in the old locale
+## F2 — a couple of static accessibility labels stay in the old locale (open, cosmetic)
 
-- **Symptom:** even with the app forced English, the AX tree showed `AXImage #folder desc="Mover"`
-  and `AXImage #photo desc="Foto"` in the header/footer. Same class as F1 — an `accessibilityLabel`
-  string captured before a language switch and not refreshed. Cosmetic (VoiceOver only), low ROU.
-- **Status:** not chased down to a specific view. Re-verify after F1 is fixed — likely the same
-  root cause.
+- **Symptom:** with the app forced English the AX tree still showed `AXImage #folder desc="Mover"`
+  and `AXImage #photo desc="Foto"` (empty-state / footer icons). Same root cause as F1 — an
+  `accessibilityLabel` captured before a language switch. VoiceOver-only, low ROI. Not chased to a
+  specific view; likely fixed by the same `.onChange(of: appLanguage)` treatment where those
+  images live.
 
 ---
 
-## Environment note — RunningBoard launch throttling
+## Runner note — if a run wedges
 
-Not an app bug. Building the suite involved many `xcodebuild`-free `open`/kill cycles of
-`Wiles.app`; after ~20+ the machine's UI-automation subsystem degrades — synthetic keystrokes
-stop reliably reaching a focused SwiftUI `TextField`, sheets take many seconds to appear, AX
-tree walks slow to a crawl. `scripts/run_ui_test.sh` already kills stragglers before each run,
-but the fix for a wedged session is a reboot (or a long idle). Re-run the suites on a fresh
-boot for the definitive pass.
+If the app or the automation subsystem gets stuck, the script's pre-run `pkill` clears leftovers;
+otherwise wait ~5 min (15 at most) and re-run — it frees on its own.

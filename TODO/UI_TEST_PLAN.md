@@ -14,7 +14,7 @@
 >     `wiles-public/docs/screenshots/features/`.
 >   - `--scale <n>` / `--fast` : global timing multiplier.
 > - First run needs Accessibility permission for the terminal/IDE it runs from
->   (System Settings ▸ Privacy & Security ▸ Accessibility). A wedged run → reboot (see
+>   (System Settings ▸ Privacy & Security ▸ Accessibility). A wedged run → wait 5-15 min (see
 >   `UI_TEST_FINDINGS.md`).
 >
 > The prose below is the original XCUITest plan, kept for the feature checklist in §2.
@@ -265,74 +265,6 @@ sign-off. Batch the ask per feature, mirroring the existing pattern
 | 11 | Settings tab buttons | `Views/Settings/SettingsView.swift` | `SettingsTab_<name>` |
 | 12 | Terminal container | `Views/Content/IntegratedTerminalView.swift` | `IntegratedTerminal` |
 | 13 | Preview pane / Disk-usage pane containers | `Views/Sidebar/PreviewSidebarView.swift`, `Features/DiskSpaceVisualizer/DiskUsageSidebarView.swift` | `PreviewPane` / `DiskUsagePane` |
-
-## 7. ENVIRONMENT BLOCKER (2026-09-05 ~19:55) — XCUITest automation session wedged
-
-Symptoms, in order of what was ruled out:
-- The app launches fine and **does create its window** — verified independently with
-  `CGWindowListCopyWindowInfo` (`owner=Wiles name='Wiles' bounds 900×482`), launched via
-  `open -na .build/ui/Build/Products/Debug/Wiles.app --args --ui-testing`.
-- Under `xcodebuild test`, `XCUIApplication().windows` finds **nothing**; a run that used to
-  take ~8 s now takes **517 s** before failing. The pristine committed smoke test
-  (`04252e6`, green at 18:49) fails the same way now.
-- Not resource pressure: 72 % memory free, load ~1.8, disk fine.
-- Not stale app defaults: deleting `NSWindow Frame …` / `wiles_lastOpenedFolder` from
-  `com.marco.wiles.uitest` didn't help.
-- Not the app bundle: the built `.app` is complete and runs.
-- 15 min of idle did **not** clear it, so it is past a plain relaunch back-off — the
-  `testmanagerd` automation session itself is stuck.
-- 20:21 (fresh `-derivedDataPath .build/ui2`, cold build, +25 min idle): now a *different*
-  failure — the trace shows `Launch com.marco.wiles.uitest` then **"Wait for accessibility
-  to load" hangs the full 60 s timeout**, then `Activate` fails with
-  `current state: Running Background`. The app process is up (and runs fine with a window
-  when launched by hand), but the AX bridge between it and `WilesUITests-Runner` never
-  establishes. This is a wedged macOS UI-automation subsystem, not the test or the app.
-- `timeout` is not installed on this machine (it's GNU coreutils) — earlier "runs" that
-  produced no output had silently no-op'd on `command not found: timeout`.
-- 20:3x: the failure escalated to the hard form —
-  `Could not launch "Wiles". RunningBoard has returned error 5 … Launchd job spawn failed`,
-  `Application 'com.marco.wiles.uitest' does not have a process ID`, `current state: Not
-  Running`. RunningBoard is now **refusing to spawn the app at all**. ~15 test launches
-  across the session drove the relaunch back-off into a hard spawn ban.
-
-**STATUS: stopped running.** Each further attempt deepens the RunningBoard ban. The test
-code is finished and committed; it cannot be executed from this session again.
-
-**To run it (human):**
-1. Reboot the Mac (clears the RunningBoard spawn ban reliably; a long idle *might* also).
-2. Quit any running `/Applications/Wiles.app`.
-3. First run from **Xcode** (open `Package.swift`, ⌘U) so macOS shows the one-time
-   Accessibility prompt for `WilesUITests-Runner` — grant it. (`xcodebuild` alone can't
-   trigger that prompt.)
-4. Thereafter: `xcodebuild test -scheme Wiles
-   -only-testing:WilesUITests/WilesLaunchUITests -destination 'platform=macOS,arch=arm64'`.
-5. Expect real per-step failures on the first green launch — triage them against
-   `WilesLaunchUITests.swift`'s `feat…()` steps, fix, repeat. `continueAfterFailure = true`
-   reports them all in one run.
-
-Likely trigger: a duplicate process name — the user's installed `/Applications/Wiles.app`
-(`com.marco.wiles`, running since 18:21) and the test's `com.marco.wiles.uitest` are both
-named "Wiles", which can wedge XCUITest's accessibility snapshotting.
-
-**To unblock (needs a human / permissions this session doesn't have):** any one of —
-- quit the running `/Applications/Wiles.app`, then re-run;
-- `sudo killall -9 testmanagerd Wiles`;
-- log out / reboot.
-Then: `xcodebuild test -scheme Wiles -only-testing:WilesUITests/WilesLaunchUITests
--destination 'platform=macOS,arch=arm64'`.
-
-The test code itself (`6a2d6e9`) compiles, passes `swiftlint --strict` + `swiftformat`,
-and is written from source analysis; it just can't be executed until the harness recovers.
-
-## 6. Throttle vs. real test error — how to tell them apart
-
-- **macOS relaunch throttle** (`runningboardd` back-off after several close-spaced runs):
-  failure is at the *first* `ensureMainWindow()` wait; run duration ≈ the timeout; the
-  automation trace shows `Launch com.marco.wiles.uitest` but no window ever resolves; the
-  identical code passed that line minutes earlier. Not fixable in code — space runs out
-  (~15 min idle), and never relaunch inside the test (it feeds the back-off).
-- **Real test error**: the window appears, the walkthrough runs, and the failure is a later
-  assertion naming a specific element (e.g. `Section_TAGS not found`). These get fixed.
 
 ## 5. Progress log
 
