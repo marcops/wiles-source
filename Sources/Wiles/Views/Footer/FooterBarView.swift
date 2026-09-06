@@ -99,6 +99,7 @@ struct FooterBarView: View {
             Image(systemName: "photo")
                 .font(.system(size: 11, weight: .regular))
                 .foregroundColor(.secondary)
+                .accessibilityHidden(true)
 
             if isIconSizeControlExpanded {
                 Slider(value: $appState.preferences.view.iconSize, in: IconSizeToken.minSize ... IconSizeToken.maxSize)
@@ -110,6 +111,7 @@ struct FooterBarView: View {
                     .font(.system(size: 15, weight: .regular))
                     .foregroundColor(.secondary)
                     .transition(.opacity)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.horizontal, isIconSizeControlExpanded ? 6 : 4)

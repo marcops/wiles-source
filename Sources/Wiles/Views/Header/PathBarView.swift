@@ -71,7 +71,7 @@ struct PathBarView: View {
     private var textFieldMode: some View {
         @Bindable var appState = appState
         return HStack(spacing: 6) {
-            Image(systemName: "folder").foregroundColor(.secondary)
+            Image(systemName: "folder").foregroundColor(.secondary).accessibilityHidden(true)
             TextField(appState.tr(.enterPathPlaceholder), text: $appState.navigation.pathText)
                 .textFieldStyle(.plain)
                 .focused($isFocused)

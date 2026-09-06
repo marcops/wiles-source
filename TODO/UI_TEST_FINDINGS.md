@@ -15,13 +15,15 @@ Recorded while building `UITestRunner/`'s FEATURES.md + UI_TEST_PLAN.md coverage
 
 ---
 
-## F2 — a couple of static accessibility labels stay in the old locale (open, cosmetic)
+## F2 — decorative icons exposed a system-localized accessibility label  ✅ FIXED
 
 - **Symptom:** with the app forced English the AX tree still showed `AXImage #folder desc="Mover"`
-  and `AXImage #photo desc="Foto"` (empty-state / footer icons). Same root cause as F1 — an
-  `accessibilityLabel` captured before a language switch. VoiceOver-only, low ROI. Not chased to a
-  specific view; likely fixed by the same `.onChange(of: appLanguage)` treatment where those
-  images live.
+  / `AXImage #photo desc="Foto"`. These `Image(systemName:)` icons had no explicit label, so
+  VoiceOver read SF Symbols' built-in label, which follows the *system* language, not the app's.
+- **Where:** `FooterBarView.iconSizeControl` (`photo` ×2), `EmptyDirectoryView` (`folder`,
+  `doc.text.magnifyingglass`, `lock.fill`), `PathBarView` (`folder`).
+- **Fix:** `.accessibilityHidden(true)` on all of them — they're purely decorative next to real
+  text labels. No visible/interaction change.
 
 ---
 

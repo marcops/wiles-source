@@ -63,6 +63,7 @@ public struct EmptyDirectoryView: View {
         Image(systemName: "doc.text.magnifyingglass")
             .font(.system(size: Self.iconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
+            .accessibilityHidden(true)
 
         Text(appState.tr(.noResultsFound))
             .font(.system(size: Self.titleFontSize, weight: .semibold))
@@ -89,6 +90,7 @@ public struct EmptyDirectoryView: View {
         Image(systemName: "lock.fill")
             .font(.system(size: Self.iconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
+            .accessibilityHidden(true)
 
         Text(appState.tr(.permissionDeniedNotice))
             .font(.system(size: Self.titleFontSize, weight: .semibold))
@@ -116,6 +118,7 @@ public struct EmptyDirectoryView: View {
         Image(systemName: "folder")
             .font(.system(size: Self.iconFontSize))
             .foregroundColor(.secondary.opacity(0.6))
+            .accessibilityHidden(true)
 
         Text(appState.tr(.emptyFolder))
             .font(.system(size: Self.titleFontSize, weight: .semibold))
