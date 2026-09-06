@@ -126,41 +126,56 @@ extension PlanWalkthrough {
 
     func featPDFMerge() {
         reporter.beginFeature("Merge multiple PDFs")
-        driver.navigateToWorkspace()
-        // Sort by name so one-/two-uitest.pdf are adjacent, click the first, then Shift+↓ to
-        // extend the selection to the second (arrow-key extension is more reliable than
-        // modifier-clicks through synthetic events).
-        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
-        Timing.pause(Timing.settle)
-        driver.clickRow(workspace.pdfOne)
-        Timing.pause(Timing.brief)
-        driver.key(Keyboard.downArrow, .shift)
-        Timing.pause(Timing.settle)
+        // Isolate the two PDFs in their own folder so the selection can only ever be PDFs.
+        // Distinct names so navigateToPath's expectRow check can't false-pass against the
+        // identically-named PDFs still sitting in the workspace root.
+        let mergeA = "merge-a-uitest.pdf"
+        let mergeB = "merge-b-uitest.pdf"
+        let pdfDir = workspace.url("pdfs-uitest")
+        try? FileManager.default.removeItem(at: pdfDir)
+        try? FileManager.default.createDirectory(at: pdfDir, withIntermediateDirectories: true)
+        try? FileManager.default.copyItem(at: workspace.url(workspace.pdfOne), to: pdfDir.appendingPathComponent(mergeA))
+        try? FileManager.default.copyItem(at: workspace.url(workspace.pdfTwo), to: pdfDir.appendingPathComponent(mergeB))
+        guard driver.navigateToPath(pdfDir.path, expectRow: mergeA) else {
+            reporter.fail("could not open the isolated PDF folder")
+            try? FileManager.default.removeItem(at: pdfDir)
+            return
+        }
+        // Land a 2-row selection then right-click. Synthetic ⌘-click is the reliable extender here;
+        // Edit ▸ Select All only reaches the list once it has key focus, so keep a couple of
+        // fallbacks and stop as soon as the context menu offers "Merge into Single PDF".
         var haveMergeItem = false
-        for _ in 0 ..< 3 {
-            driver.rightClick(AXMatch(textEquals: workspace.pdfTwo), "'\(workspace.pdfTwo)' row (context)")
+        for attempt in 0 ..< 3 {
+            driver.closeAnyMenu()
+            driver.clickRow(mergeA)
+            Timing.pause(Timing.brief)
+            switch attempt {
+            case 0:
+                driver.clickRow(mergeB, modifiers: .command)
+            case 1:
+                driver.key(Keyboard.downArrow, .shift)
+            default:
+                driver.menuPick("Edit", itemContains: "Select All", "Edit ▸ Select All")
+            }
+            Timing.pause(Timing.settle)
+            driver.rightClick(AXMatch(textEquals: mergeB), "'\(mergeB)' row (context)")
             Timing.pause(Timing.settle)
             if driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "merge"), maxDepth: 12) != nil {
                 haveMergeItem = true
                 break
             }
-            driver.closeAnyMenu()
-            driver.clickRow(workspace.pdfTwo, modifiers: .command)
-            Timing.pause(Timing.settle)
         }
         guard haveMergeItem, driver.pickContextItem(containing: "merge", "context ▸ Merge into Single PDF") else {
             driver.closeAnyMenu()
             reporter.fail("could not get a 2-PDF selection with a 'Merge into Single PDF' item")
+            try? FileManager.default.removeItem(at: pdfDir)
             return
         }
         Timing.pause(Timing.animation)
-        let mergedAppeared = (try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path))?
-            .contains { $0.lowercased().hasSuffix(".pdf") && $0 != workspace.pdfOne && $0 != workspace.pdfTwo } ?? false
+        let mergedAppeared = (try? FileManager.default.contentsOfDirectory(atPath: pdfDir.path))?
+            .contains { $0.lowercased().hasSuffix(".pdf") && $0 != mergeA && $0 != mergeB } ?? false
         reporter.check(mergedAppeared, "a merged .pdf was written to the folder")
-        if let merged = (try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path))?
-            .first(where: { $0.lowercased().hasSuffix(".pdf") && $0 != workspace.pdfOne && $0 != workspace.pdfTwo }) {
-            try? FileManager.default.removeItem(at: workspace.url(merged))
-        }
+        try? FileManager.default.removeItem(at: pdfDir)
     }
 
     // MARK: - Smart folder round trip

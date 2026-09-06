@@ -169,15 +169,28 @@ extension Walkthrough {
     func featBatchRename() {
         reporter.beginFeature("Batch Rename")
         driver.navigateToWorkspace()
-        guard driver.clickRow(workspace.alphaFile) else { return }
-        driver.clickRow(workspace.betaFile, modifiers: .command)
-        Timing.pause(Timing.brief)
-        guard driver.openContextItem(onFileRow: workspace.betaFile, containing: "rename", "context ▸ Rename (multi-select)")
-        else {
+        // A single-file selection makes "Rename" an inline edit, not the batch sheet — so land a
+        // real 2-row selection, then right-click WITHOUT an intervening Escape (Escape clears the
+        // selection, collapsing "Rename" back to the inline case). Retry with Shift+↓ as a fallback.
+        var sheetOpened = false
+        for attempt in 0 ..< 3 {
             driver.closeAnyMenu()
-            return
+            guard driver.clickRow(workspace.alphaFile) else { return }
+            Timing.pause(Timing.brief)
+            if attempt == 1 {
+                driver.key(Keyboard.downArrow, .shift)
+            } else {
+                driver.clickRow(workspace.betaFile, modifiers: .command)
+            }
+            Timing.pause(Timing.brief)
+            guard driver.rightClick(AXMatch(textEquals: workspace.betaFile), "'\(workspace.betaFile)' row (context)")
+            else { continue }
+            Timing.pause(Timing.settle)
+            guard driver.pickContextItem(containing: "rename", "context ▸ Rename (multi-select)") else { continue }
+            if driver.waitForSheet() { sheetOpened = true; break }
+            driver.dismissSheet()
         }
-        reporter.check(driver.waitForSheet(), "Batch Rename sheet opened for a multi-file selection")
+        reporter.check(sheetOpened, "Batch Rename sheet opened for a multi-file selection")
         reporter.check(
             driver.sheet()?.firstDescendant(where: AXMatch(textContains: "replace")) != nil
                 || driver.sheet()?.firstDescendant(where: AXMatch(textContains: "prefix")) != nil

@@ -249,12 +249,15 @@ final class WilesDriver {
     }
 
     private func pressMenuItem(_ item: AXElement) -> Bool {
-        if item.perform(AXAction.pick) { return true }
-        if item.press() { return true }
+        // A real click on the visibly-open menu item is the only thing that reliably fires
+        // SwiftUI `.contextMenu` Button actions — AXPick/AXPress return success without invoking them.
         let rect = item.frame
-        guard !rect.isEmpty else { return false }
-        Mouse.click(center: rect, pid: pid)
-        return true
+        if !rect.isEmpty {
+            Mouse.click(center: rect, pid: pid)
+            return true
+        }
+        if item.perform(AXAction.pick) { return true }
+        return item.press()
     }
 
     func closeAnyMenu() {
