@@ -1,9 +1,11 @@
 import CoreGraphics
 import Foundation
 
-/// Synthesises keystrokes with `CGEvent`, posted straight to the target pid so they never leak to
-/// whatever else is frontmost. Chords (⌘F, ⇧⌘N, …) go by virtual keycode because AppKit resolves
-/// menu equivalents by keycode, not character; free text goes through the unicode-string path.
+/// Synthesises keystrokes with `CGEvent` and delivers them with `postToPid` — straight to the
+/// Wiles process, regardless of what window has focus. This means the machine can be used
+/// normally while the suite runs (session-tap posting would interleave with the operator's own
+/// typing). Chords (⌘F, ⇧⌘N, …) go by virtual keycode with explicit modifier flagsChanged
+/// transitions because AppKit resolves menu equivalents by keycode + real modifier state.
 enum Keyboard {
     struct Key {
         let code: CGKeyCode
@@ -58,17 +60,15 @@ enum Keyboard {
         press(key, modifiers: modifiers, pid: pid)
     }
 
-    /// Types free text into whatever is focused in the target app. Each character goes out as a
-    /// real virtual-keycode press when one is known (SwiftUI `TextField` on macOS drops synthetic
-    /// `virtualKey: 0` unicode events), falling back to the unicode-string path otherwise.
+    /// Types free text into whatever is focused in the target app.
     static func type(_ text: String, pid: pid_t) {
-        let source = CGEventSource(stateID: .combinedSessionState)
+        let source = CGEventSource(stateID: .privateState)
         for character in text {
             if let (code, needsShift) = keyStroke(for: character) {
-                emit(source: source, keyCode: code, keyDown: true, flags: needsShift ? .maskShift : [])
-                emit(source: source, keyCode: code, keyDown: false, flags: needsShift ? .maskShift : [])
+                emit(source: source, keyCode: code, keyDown: true, flags: needsShift ? .maskShift : [], pid: pid)
+                emit(source: source, keyCode: code, keyDown: false, flags: needsShift ? .maskShift : [], pid: pid)
             } else {
-                typeUnicode(character, source: source)
+                typeUnicode(character, source: source, pid: pid)
             }
             Timing.pause(Timing.keyStroke)
         }
@@ -88,41 +88,38 @@ enum Keyboard {
         "$": 21, "#": 20, "@": 19, "!": 18, "+": 24, "~": 50, "|": 42, "{": 33, "}": 30,
     ]
 
-    private static func typeUnicode(_ character: Character, source: CGEventSource?) {
+    private static func typeUnicode(_ character: Character, source: CGEventSource?, pid: pid_t) {
         var units = Array(String(character).utf16)
         for isDown in [true, false] {
             guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: isDown) else { continue }
             event.keyboardSetUnicodeString(stringLength: units.count, unicodeString: &units)
-            event.post(tap: .cgSessionEventTap)
+            event.postToPid(pid)
         }
     }
 
-    /// AppKit resolves ⌘-chord menu equivalents only when the modifiers arrive as real
-    /// `flagsChanged` transitions around the key event — a bare `event.flags = …` isn't enough for
-    /// a background AX client, so the modifier keys are pressed and released explicitly.
     private static func post(keyCode: CGKeyCode, modifiers: Modifiers, pid: pid_t) {
-        let source = CGEventSource(stateID: .combinedSessionState)
+        let source = CGEventSource(stateID: .privateState)
         let modifierKeys = modifiers.keyCodes
         var accumulated: CGEventFlags = []
 
         for (code, flag) in modifierKeys {
             accumulated.insert(flag)
-            emit(source: source, keyCode: code, keyDown: true, flags: accumulated)
+            emit(source: source, keyCode: code, keyDown: true, flags: accumulated, pid: pid)
         }
-        emit(source: source, keyCode: keyCode, keyDown: true, flags: accumulated)
+        emit(source: source, keyCode: keyCode, keyDown: true, flags: accumulated, pid: pid)
         Timing.pause(Timing.brief)
-        emit(source: source, keyCode: keyCode, keyDown: false, flags: accumulated)
+        emit(source: source, keyCode: keyCode, keyDown: false, flags: accumulated, pid: pid)
         for (code, flag) in modifierKeys.reversed() {
             accumulated.remove(flag)
-            emit(source: source, keyCode: code, keyDown: false, flags: accumulated)
+            emit(source: source, keyCode: code, keyDown: false, flags: accumulated, pid: pid)
         }
         Timing.pause(Timing.brief)
     }
 
-    private static func emit(source: CGEventSource?, keyCode: CGKeyCode, keyDown: Bool, flags: CGEventFlags) {
+    private static func emit(source: CGEventSource?, keyCode: CGKeyCode, keyDown: Bool, flags: CGEventFlags, pid: pid_t) {
         guard let event = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: keyDown) else { return }
         event.flags = flags
-        event.post(tap: .cgSessionEventTap)
+        event.postToPid(pid)
         Timing.pause(Timing.keyStroke)
     }
 }

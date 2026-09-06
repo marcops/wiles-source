@@ -391,9 +391,13 @@ final class WilesDriver {
             reporter.fail("row '\(name)': not found (to open)")
             return false
         }
-        Mouse.doubleClick(center: row.frame, pid: pid)
+        // Select, then File ▸ Open — reliable regardless of navigation mode (Enter differs
+        // between macOS/GNOME modes; double-click timing is fragile).
+        Mouse.click(center: row.frame, pid: pid)
+        Timing.pause(Timing.brief)
+        let opened = menuPick("File", itemContains: "Open", "File ▸ Open ('\(name)')")
         Timing.pause(Timing.animation)
-        return true
+        return opened
     }
 
     /// Mouse-clicks a file row, optionally with modifiers held (⌘-click to extend a selection).
