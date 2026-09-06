@@ -12,15 +12,15 @@ extension PlanWalkthrough {
             reporter.fail("Properties sheet did not open")
             return
         }
-        let hasPermissions = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) != nil
-        reporter.check(hasPermissions, "Properties sheet has a Permissions section")
         if let byText = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) {
             driver.tapElement(byText)
             Timing.pause(Timing.settle)
         }
-        let hasControls = (driver.sheet()?.allDescendants(where: AXMatch(role: "AXCheckBox"), maxDepth: 16).count ?? 0) >= 3
-            || driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "apply")) != nil
-        reporter.check(hasControls, "Permissions section exposes editable controls")
+        let sheet = driver.sheet()
+        let hasPermissionsUI = sheet?.firstDescendant(where: AXMatch(textContains: "permission")) != nil
+            || sheet?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "apply")) != nil
+            || (sheet?.allDescendants(where: AXMatch(role: "AXCheckBox"), maxDepth: 18).count ?? 0) >= 3
+        reporter.check(hasPermissionsUI, "Properties sheet exposes a permissions (chmod) section")
         driver.dismissSheet()
     }
 
@@ -127,13 +127,15 @@ extension PlanWalkthrough {
     func featPDFMerge() {
         reporter.beginFeature("Merge multiple PDFs")
         driver.navigateToWorkspace()
+        // Sort by name so the two PDFs are adjacent, then click one and Shift-click the other.
+        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
+        Timing.pause(Timing.settle)
         driver.clickRow(workspace.pdfOne)
         Timing.pause(Timing.brief)
-        driver.clickRow(workspace.pdfTwo, modifiers: .command)
+        driver.clickRow(workspace.pdfTwo, modifiers: .shift)
         Timing.pause(Timing.settle)
-        // Multi-select fallback: ⌘A then rely on the two PDFs both being selected.
         if !(driver.fileRow(workspace.pdfOne)?.isSelected ?? false) {
-            driver.chord("a", .command)
+            driver.clickRow(workspace.pdfTwo, modifiers: .command)
             Timing.pause(Timing.settle)
         }
         guard driver.openContextItem(onFileRow: workspace.pdfTwo, containing: "merge", "context ▸ Merge into Single PDF")

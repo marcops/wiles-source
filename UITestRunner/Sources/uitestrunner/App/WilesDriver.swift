@@ -326,6 +326,18 @@ final class WilesDriver {
         return false
     }
 
+    /// Right-clicks an empty spot in the content pane (below the last row) to raise the
+    /// folder-background context menu (New Folder / Paste / …).
+    @discardableResult
+    func rightClickContentArea() -> Bool {
+        guard let window = try? mainWindow() else { return false }
+        let frame = window.frame
+        let point = CGPoint(x: frame.midX + frame.width * 0.15, y: frame.maxY - 60)
+        Mouse.click(at: point, rightButton: true, pid: pid)
+        Timing.pause(Timing.settle)
+        return true
+    }
+
     // MARK: - Sheets
 
     func sheet() -> AXElement? {

@@ -299,12 +299,16 @@ extension PlanWalkthrough {
     func featCutPaste() {
         reporter.beginFeature("Cut / Paste into a subfolder")
         driver.navigateToWorkspace()
-        driver.openContextItem(onFileRow: workspace.betaFile, containing: "cut", "context ▸ Cut")
+        guard driver.openContextItem(onFileRow: workspace.betaFile, containing: "cut", "context ▸ Cut") else { return }
         Timing.pause(Timing.brief)
         driver.openRow(workspace.subFolder, expectRow: "")
-        driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
-        Timing.pause(Timing.animation)
-        let moved = FileManager.default.fileExists(atPath: workspace.url(workspace.subFolder).appendingPathComponent(workspace.betaFile).path)
+        driver.rightClickContentArea()
+        _ = driver.pickContextItem(containing: "paste", "content-area context ▸ Paste")
+            || driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
+        let deadline = Date().addingTimeInterval(8)
+        let dst = workspace.url(workspace.subFolder).appendingPathComponent(workspace.betaFile)
+        while !FileManager.default.fileExists(atPath: dst.path), Date() < deadline { Timing.pause(Timing.settle) }
+        let moved = FileManager.default.fileExists(atPath: dst.path)
         reporter.check(moved && !workspace.exists(workspace.betaFile), "Cut+Paste moved the file into '\(workspace.subFolder)'")
 
         // Restore for later steps.
@@ -323,10 +327,12 @@ extension PlanWalkthrough {
             ((try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path)) ?? [])
                 .first { $0 != workspace.alphaFile && $0.hasPrefix(base) && $0.hasSuffix(".txt") }
         }
-        driver.openContextItem(onFileRow: workspace.alphaFile, containing: "copy", "context ▸ Copy")
+        guard driver.openContextItem(onFileRow: workspace.alphaFile, containing: "copy", "context ▸ Copy") else { return }
         Timing.pause(Timing.brief)
-        driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
-        let deadline = Date().addingTimeInterval(6)
+        driver.rightClickContentArea()
+        _ = driver.pickContextItem(containing: "paste", "content-area context ▸ Paste")
+            || driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
+        let deadline = Date().addingTimeInterval(8)
         while duplicateOnDisk() == nil, Date() < deadline { Timing.pause(Timing.settle) }
         let duplicate = duplicateOnDisk()
         reporter.check(duplicate != nil, "Copy+Paste created a duplicate ('\(duplicate ?? "none")')")
