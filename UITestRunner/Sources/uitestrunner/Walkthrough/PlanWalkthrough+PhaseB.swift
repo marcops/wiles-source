@@ -6,9 +6,8 @@ extension PlanWalkthrough {
     func featChmodInProperties() {
         reporter.beginFeature("File Properties — permissions editor")
         driver.navigateToWorkspace()
-        guard driver.clickRow(workspace.alphaFile) else { return }
-        Timing.pause(Timing.brief)
-        guard driver.menuPick("File", itemContains: "Properties", "File ▸ Properties") else { return }
+        guard driver.openContextItem(onFileRow: workspace.alphaFile, containing: "properties", "context ▸ Properties")
+        else { return }
         guard driver.waitForSheet() else {
             reporter.fail("Properties sheet did not open")
             return
@@ -140,7 +139,7 @@ extension PlanWalkthrough {
             Timing.pause(Timing.settle)
         }
         if let field = driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4) {
-            driver.replaceText(in: field, with: "alpha")
+            driver.focusAndType(field, "alpha")
             Timing.pause(Timing.animation)
         }
         guard driver.tap(AXMatch(textContains: "save as smart folder"), "Save as Smart Folder", timeout: 4) else {
@@ -152,7 +151,7 @@ extension PlanWalkthrough {
             return
         }
         if let nameField = driver.sheet()?.firstDescendant(where: AXMatch(role: "AXTextField")) {
-            driver.replaceText(in: nameField, with: "PlanSmart")
+            driver.focusAndType(nameField, "PlanSmart")
         }
         let saved = driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "save"))
             ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "create"))
