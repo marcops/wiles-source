@@ -81,7 +81,7 @@ if [[ "$NO_BUILD" -eq 0 ]]; then
   cp -R "$RES_BUNDLE" "$APP_BUNDLE/Contents/Resources/"
   [[ -f Wiles.app/Contents/Resources/AppIcon.icns ]] && \
     cp Wiles.app/Contents/Resources/AppIcon.icns "$APP_BUNDLE/Contents/Resources/"
-  codesign -f -s - --identifier com.marco.wiles "$APP_BUNDLE" >/dev/null 2>&1 || true
+  codesign -f -s - --identifier com.marco.wiles.uitest "$APP_BUNDLE" >/dev/null 2>&1 || true
 
   echo "==> build runner"
   swift build --package-path UITestRunner 2>&1 | grep -E 'error:|warning:|Compiling|Build complete' | tail -5 || true
