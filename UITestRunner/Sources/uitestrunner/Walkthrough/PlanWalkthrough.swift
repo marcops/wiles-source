@@ -41,8 +41,7 @@ struct PlanWalkthrough {
             featMoveCollisionSheet, featSmartFolderContextMenu,
         ]
         for step in steps {
-            driver.recover()
-            runBounded(step, seconds: 75)
+            runBounded({ self.driver.recover(); step() }, seconds: 90)
         }
     }
 

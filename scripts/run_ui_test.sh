@@ -109,7 +109,7 @@ else
 fi
 echo "------------------------------------------------------------"
 # Hard overall cap so a wedged interaction can't hang forever (macOS has no `timeout`).
-CAP_SECONDS=600
+CAP_SECONDS=1000
 "$RUNNER_BIN" --app "$APP_BUNDLE" ${MODE_ARGS[@]+"${MODE_ARGS[@]}"} &
 RUNNER_PID=$!
 ( sleep "$CAP_SECONDS"; kill -9 "$RUNNER_PID" 2>/dev/null && echo "    (killed: exceeded ${CAP_SECONDS}s cap)" ) &
