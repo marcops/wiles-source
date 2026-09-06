@@ -47,6 +47,16 @@ final class WilesDriver {
         return size.width >= Self.minReadyWindowSize.width && size.height >= Self.minReadyWindowSize.height
     }
 
+    /// Forget the cached main window — call after a relaunch, or after ⌘N/⌘W, so the next
+    /// `mainWindow()` re-resolves.
+    func resetWindowCache() {
+        cachedWindow = nil
+    }
+
+    var standardWindowCount: Int {
+        app.windows.filter { $0.subrole == "AXStandardWindow" }.count
+    }
+
     private var window: AXElement { (try? mainWindow()) ?? app }
 
     // MARK: - Find
@@ -130,6 +140,19 @@ final class WilesDriver {
         Timing.pause(Timing.brief)
         type(text)
         Timing.pause(Timing.brief)
+    }
+
+    /// Waits for the inline rename field, replaces its text with `name`, and commits with ⏎.
+    @discardableResult
+    func commitInlineRename(to name: String) -> Bool {
+        guard let field = find(AXMatch(identifier: "InlineRenameField"), timeout: 4) else {
+            reporter.fail("InlineRenameField did not appear")
+            return false
+        }
+        replaceText(in: field, with: name)
+        key(Keyboard.returnKey)
+        Timing.pause(Timing.settle)
+        return true
     }
 
     // MARK: - Menu bar
@@ -346,6 +369,32 @@ final class WilesDriver {
         tapElement(tabElement)
         Timing.pause(Timing.settle)
         return true
+    }
+
+    /// Drives Settings ▸ General ▸ Language → English through the real UI. Language endonyms
+    /// ("English", "Português", …) render identically in every locale, so it works whatever
+    /// language the app launched in. Returns whether the menus ended up English.
+    @discardableResult
+    func switchToEnglishViaSettings() -> Bool {
+        chord(",", .command)
+        guard waitForSheet() else { return menuBarTitles().contains("Go") }
+        if let picker = sheet()?.firstDescendant(where: AXMatch(role: "AXPopUpButton")) {
+            tapElement(picker)
+            Timing.pause(Timing.settle)
+            if let english = app.waitForDescendant(
+                where: AXMatch(role: "AXMenuItem", textEquals: "English"), timeout: 3) {
+                _ = english.perform(AXAction.pick) || english.press()
+            } else {
+                closeAnyMenu()
+            }
+        }
+        Timing.pause(Timing.animation)
+        dismissSheet()
+        // A language switch rebuilds the whole SwiftUI tree — let it settle and re-focus.
+        Timing.pause(Timing.launch)
+        process.activate()
+        Timing.pause(Timing.settle)
+        return menuBarTitles().contains("Go")
     }
 
     /// Sets the Appearance-tab Theme control to `option`, coping with either rendering SwiftUI's

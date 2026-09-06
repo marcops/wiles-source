@@ -1,5 +1,16 @@
 import Foundation
 
+// Line-buffer stdout so a piped/backgrounded run shows progress instead of one dump at exit.
+setvbuf(stdout, nil, _IOLBF, 0)
+
+if let index = CommandLine.arguments.firstIndex(of: "--scale"), index + 1 < CommandLine.arguments.count,
+   let scale = Double(CommandLine.arguments[index + 1]) {
+    Timing.scale = scale
+}
+if CommandLine.arguments.contains("--fast") {
+    Timing.scale = 0.55
+}
+
 func parseArgument(_ name: String, default fallback: String) -> String {
     let arguments = CommandLine.arguments
     if let index = arguments.firstIndex(of: name), index + 1 < arguments.count {
@@ -90,7 +101,11 @@ if CommandLine.arguments.contains("--screenshots") {
     exit(0)
 }
 
-Walkthrough(driver: driver).run()
+if CommandLine.arguments.contains("--plan") {
+    PlanWalkthrough(driver: driver).run()
+} else {
+    Walkthrough(driver: driver).run()
+}
 
 process.terminate()
 workspace.cleanup()

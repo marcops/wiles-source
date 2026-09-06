@@ -14,6 +14,26 @@ final class TempWorkspace {
     let subFolder = "sub-uitest"
     let imageFile = "pic-uitest.png"
     let zipFile = "archive-uitest.zip"
+    let pdfOne = "one-uitest.pdf"
+    let pdfTwo = "two-uitest.pdf"
+
+    /// Minimal one-page PDF.
+    private let minimalPDF = """
+    %PDF-1.1
+    1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+    2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+    3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj
+    xref
+    0 4
+    0000000000 65535 f
+    0000000009 00000 n
+    0000000052 00000 n
+    0000000101 00000 n
+    trailer<</Size 4/Root 1 0 R>>
+    startxref
+    164
+    %%EOF
+    """
 
     /// 1×1 transparent PNG.
     private let onePixelPNGBase64 =
@@ -34,6 +54,8 @@ final class TempWorkspace {
         if let png = Data(base64Encoded: onePixelPNGBase64) {
             try png.write(to: url(imageFile))
         }
+        try minimalPDF.write(to: url(pdfOne), atomically: true, encoding: .ascii)
+        try minimalPDF.write(to: url(pdfTwo), atomically: true, encoding: .ascii)
         makeSeedZip()
     }
 

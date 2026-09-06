@@ -23,6 +23,7 @@ for arg in "$@"; do
   case "$arg" in
     --no-build) NO_BUILD=1 ;;
     --screenshots) MODE_ARGS+=(--screenshots) ;;
+    --plan) MODE_ARGS+=(--plan) ;;
   esac
 done
 
