@@ -47,7 +47,7 @@ struct BatchRenameSheetView: View {
             icon: .symbol("textformat.123"),
             title: "\(appState.tr(.batchRename)) (\(items.count))",
             width: 480,
-            height: 380,
+            height: 480,
             primaryButton: ModalFooterButton(title: appState.tr(.apply)) { applyRename() },
             secondaryButton: ModalFooterButton(title: appState.tr(.cancel)) { dismiss() },
             headerAccessory: { modePicker },
@@ -114,7 +114,7 @@ struct BatchRenameSheetView: View {
                 }
             }
         }
-        .frame(height: 140)
+        .frame(minHeight: 140, maxHeight: .infinity)
     }
 
     private func previewRow(_ pair: (original: FileItem, newName: String)) -> some View {
