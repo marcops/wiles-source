@@ -70,5 +70,25 @@ struct PlanWalkthrough {
         featSearchNoMatchThenClear()
         featPropertiesShortcut()
         featTrashShortcutThenUndo()
+        featPathBarRejectsBadPath()
+        featKeyboardHistoryNav()
+        featPlacesEntryNavigates()
+        featTypeaheadJumpsToRow()
+        featListColumnHeaderClickSorts()
+        featCompactModeToggle()
+        featAutoHideSidebarToggle()
+
+        // Phase D — search / sidebar / modal / footer corners
+        featSearchScopeToggle()
+        featSearchKindFilterToken()
+        featSearchShortContentTermWarning()
+        featQuickFilterImages()
+        featAddRemoveFavorite()
+        featTagFilterNavigates()
+        featSmartFolderContextMenu()
+        featSymlinkModalReopen()
+        featMoveCollisionSheet()
+        featStatusBarCountReflectsSelection()
+        featPreviewPaneFollowsSelection()
     }
 }

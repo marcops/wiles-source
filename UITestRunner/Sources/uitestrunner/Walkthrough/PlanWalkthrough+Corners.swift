@@ -237,4 +237,153 @@ extension PlanWalkthrough {
             workspace.waitForExistence(workspace.midFile, shouldExist: true, timeout: 6),
             "⌘Z (Undo) restored it")
     }
+
+    // MARK: - Navigation edges
+
+    func featPathBarRejectsBadPath() {
+        reporter.beginFeature("A nonexistent path in Go to Folder is refused")
+        driver.navigateToWorkspace()
+        driver.menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
+        Timing.pause(Timing.settle)
+        guard let field = driver.find(AXMatch(identifier: "PathBarTextField"), timeout: 3) else {
+            reporter.fail("PathBarTextField not found")
+            return
+        }
+        driver.clickCentre(field)
+        field.focus()
+        driver.chord("a", .command)
+        driver.key(Keyboard.delete)
+        driver.type("/no/such/place-uitest-\(UUID().uuidString.prefix(6))")
+        _ = field.perform(AXAction.confirm)
+        driver.key(Keyboard.returnKey)
+        Timing.pause(Timing.animation)
+        driver.key(Keyboard.escape)
+        reporter.check(
+            driver.fileRow(workspace.alphaFile, timeout: 4) != nil,
+            "a bad path left us where we were (seeded file still listed)")
+    }
+
+    func featKeyboardHistoryNav() {
+        reporter.beginFeature("⌘[ / ⌘] / ⌘↑ walk history and go up")
+        driver.navigateToWorkspace()
+        guard driver.openRow(workspace.subFolder, expectRow: "") else { return }
+        driver.chord("[", .command)
+        Timing.pause(Timing.animation)
+        reporter.check(driver.fileRow(workspace.alphaFile, timeout: 4) != nil, "⌘[ went Back to the workspace")
+        driver.chord("]", .command)
+        Timing.pause(Timing.animation)
+        let forwardOK = driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 3)
+            || driver.find(AXMatch(textContains: "empty"), timeout: 2) != nil
+        reporter.check(forwardOK, "⌘] went Forward into the subfolder")
+        driver.key(Keyboard.upArrow, .command)
+        Timing.pause(Timing.animation)
+        reporter.check(driver.fileRow(workspace.alphaFile, timeout: 4) != nil, "⌘↑ went up to the enclosing folder")
+    }
+
+    func featPlacesEntryNavigates() {
+        reporter.beginFeature("Clicking a Places entry navigates there")
+        driver.navigateToWorkspace()
+        guard let places = driver.find(AXMatch(identifier: "Section_PLACES"), timeout: 3) else {
+            reporter.fail("Section_PLACES not found")
+            return
+        }
+        if (places.stringValue ?? "").lowercased().contains("expand") {
+            driver.tapElement(places)
+            Timing.pause(Timing.animation)
+        }
+        // A Places row that isn't "Downloads" (our workspace is named that) or the header.
+        guard let window = try? driver.mainWindow(),
+              let entry = window.firstDescendant(where: AXMatch(role: "AXButton", predicate: { el in
+                  let t = (el.descriptionText.isEmpty ? el.title : el.descriptionText).lowercased()
+                  return ["desktop", "documents", "home", "applications"].contains { t == $0 }
+              }), maxDepth: 20) else {
+            reporter.fail("no recognisable Places row to click")
+            return
+        }
+        let label = entry.descriptionText.isEmpty ? entry.title : entry.descriptionText
+        driver.tapElement(entry)
+        Timing.pause(Timing.animation)
+        reporter.check(
+            driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 4),
+            "clicking '\(label)' navigated away from the workspace")
+        driver.navigateToWorkspace()
+    }
+
+    func featTypeaheadJumpsToRow() {
+        reporter.beginFeature("Type-ahead jumps the selection to a matching row")
+        driver.navigateToWorkspace()
+        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
+        Timing.pause(Timing.settle)
+        guard driver.clickRow(workspace.alphaFile) else { return }
+        Timing.pause(Timing.brief)
+        driver.type("mango")
+        Timing.pause(Timing.settle)
+        let jumped = driver.app.firstDescendant(where: AXMatch(predicate: { el in
+            el.isSelected && (el.descriptionText == workspace.midFile || el.title == workspace.midFile)
+        }), maxDepth: 18) != nil
+        reporter.check(jumped, "typing 'mango' selected '\(workspace.midFile)'")
+        driver.key(Keyboard.escape)
+    }
+
+    // MARK: - View edges
+
+    func featListColumnHeaderClickSorts() {
+        reporter.beginFeature("Clicking a List-view column header changes the sort")
+        driver.navigateToWorkspace()
+        driver.menuPick("View", path: ["View Mode", "List"], "View ▸ View Mode ▸ List")
+        Timing.pause(Timing.settle)
+        let before = contentFileOrder()
+        guard let window = try? driver.mainWindow(),
+              let header = window.firstDescendant(where: AXMatch(role: "AXButton", textContains: "size"), maxDepth: 22)
+              ?? window.firstDescendant(where: AXMatch(textEquals: "Size"), maxDepth: 22) else {
+            reporter.fail("no 'Size' column header found")
+            return
+        }
+        driver.tapElement(header)
+        Timing.pause(Timing.settle)
+        let afterSize = contentFileOrder()
+        driver.tapElement(header)
+        Timing.pause(Timing.settle)
+        let afterToggle = contentFileOrder()
+        reporter.check(!before.isEmpty && (afterSize != before || afterToggle != afterSize),
+                       "the header click reordered the list")
+        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name (restore)")
+    }
+
+    func featCompactModeToggle() {
+        reporter.beginFeature("Compact mode toggles row density")
+        driver.navigateToWorkspace()
+        driver.menuPick("View", path: ["View Mode", "List"], "View ▸ View Mode ▸ List")
+        Timing.pause(Timing.settle)
+        let rowHeight = { self.driver.fileRow(self.workspace.alphaFile)?.frame.height ?? 0 }
+        let before = rowHeight()
+        guard driver.menuPick("View", itemContains: "Compact", "View ▸ Compact") else {
+            reporter.fail("no Compact toggle in the View menu")
+            return
+        }
+        Timing.pause(Timing.animation)
+        let after = rowHeight()
+        reporter.check(before > 0 && after > 0 && abs(after - before) >= 1,
+                       "compact mode changed the row height (\(Int(before)) → \(Int(after)))")
+        driver.menuPick("View", itemContains: "Compact", "View ▸ Compact (restore)")
+    }
+
+    func featAutoHideSidebarToggle() {
+        reporter.beginFeature("Auto-hide sidebar toggles the sidebar away")
+        driver.navigateToWorkspace()
+        guard driver.find(AXMatch(identifier: "Section_FAVORITES"), timeout: 3) != nil else {
+            reporter.fail("sidebar not visible to start")
+            return
+        }
+        guard driver.menuPick("View", itemContains: "Auto-Hide", "View ▸ Auto-Hide Sidebar") else {
+            reporter.fail("no Auto-Hide Sidebar item in the View menu")
+            return
+        }
+        Timing.pause(Timing.animation)
+        let hidden = driver.isGone(AXMatch(identifier: "Section_FAVORITES"), within: 2)
+        reporter.check(hidden, "the sidebar collapsed away")
+        driver.menuPick("View", itemContains: "Auto-Hide", "View ▸ Auto-Hide Sidebar (restore)")
+        Timing.pause(Timing.animation)
+        reporter.check(driver.find(AXMatch(identifier: "Section_FAVORITES"), timeout: 4) != nil, "and came back")
+    }
 }

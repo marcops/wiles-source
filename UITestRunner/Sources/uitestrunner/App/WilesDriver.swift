@@ -70,6 +70,18 @@ final class WilesDriver {
         app.waitForDescendant(where: match, timeout: timeout)
     }
 
+    /// True once `match` is absent. For "it disappeared" / "it's not offered" assertions — a plain
+    /// `find(..) == nil` waits the whole timeout every time (absence is the expected result), so
+    /// this polls briefly and bails the moment it's gone.
+    func isGone(_ match: AXMatch, within timeout: TimeInterval = 1.2) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if window.firstDescendant(where: match) == nil { return true }
+            Timing.pause(Timing.poll)
+        } while Date() < deadline
+        return window.firstDescendant(where: match) == nil
+    }
+
     // MARK: - Click
 
     @discardableResult
@@ -286,7 +298,7 @@ final class WilesDriver {
     func openContextItem(onFileRow name: String, containing fragment: String, _ label: String) -> Bool {
         for attempt in 0 ..< 2 {
             closeAnyMenu()
-            guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
+            guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 3) else { return false }
             Timing.pause(Timing.settle)
             if app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 12) != nil {
                 return pickContextItem(containing: fragment, label)
@@ -358,7 +370,7 @@ final class WilesDriver {
         app.firstDescendant(where: AXMatch(role: "AXSheet"))
     }
 
-    func waitForSheet(timeout: TimeInterval = 5) -> Bool {
+    func waitForSheet(timeout: TimeInterval = 3) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if sheet() != nil { return true }

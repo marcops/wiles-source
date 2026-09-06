@@ -12,11 +12,19 @@ final class Reporter {
 
     private(set) var entries: [Entry] = []
     private var currentFeature = "—"
+    private var featureStart = Date()
+    private var slowest: [(String, TimeInterval)] = []
 
     var hasFailures: Bool { entries.contains { !$0.passed } }
 
     func beginFeature(_ name: String) {
+        let elapsed = Date().timeIntervalSince(featureStart)
+        if currentFeature != "—" {
+            slowest.append((currentFeature, elapsed))
+            if elapsed >= 4 { print("  ⏱ \(currentFeature): \(String(format: "%.1f", elapsed))s") }
+        }
         currentFeature = name
+        featureStart = Date()
         print("\n▶ \(name)")
     }
 
@@ -38,6 +46,7 @@ final class Reporter {
     }
 
     func printSummary() {
+        slowest.append((currentFeature, Date().timeIntervalSince(featureStart)))
         let failed = entries.filter { !$0.passed }
         print("\n" + String(repeating: "─", count: 60))
         print("\(entries.count) checks · \(entries.count - failed.count) passed · \(failed.count) failed")
@@ -47,6 +56,9 @@ final class Reporter {
                 print("  ✗ [\(entry.feature)] \(entry.detail)")
             }
         }
+        let top = slowest.sorted { $0.1 > $1.1 }.prefix(8)
+        print("\nSlowest steps:")
+        for (name, secs) in top { print("  \(String(format: "%5.1f", secs))s  \(name)") }
         print(String(repeating: "─", count: 60))
     }
 }
