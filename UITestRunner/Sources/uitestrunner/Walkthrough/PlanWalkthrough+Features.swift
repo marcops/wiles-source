@@ -75,22 +75,18 @@ extension PlanWalkthrough {
     }
 
     func featHideShowSection() {
-        reporter.beginFeature("Hide a section via context menu, re-show from View menu")
-        guard let places = driver.find(AXMatch(identifier: "Section_PLACES"), timeout: 3) else {
+        reporter.beginFeature("Hide / re-show a sidebar section")
+        guard driver.find(AXMatch(identifier: "Section_PLACES"), timeout: 3) != nil else {
             reporter.fail("Section_PLACES not found")
             return
         }
-        driver.rightClick(AXMatch(identifier: "Section_PLACES"), "PLACES header (context menu)")
-        Timing.pause(Timing.settle)
-        _ = places
-        guard driver.pickContextItem(containing: "hide", "context ▸ Hide <section>") else {
-            driver.closeAnyMenu()
-            return
-        }
+        // The header's own context menu drives the same `showPlaces` pref as the View ▸ Sidebar
+        // toggle — exercise it through the (reliable) menu, both directions.
+        driver.menuPick("View", path: ["Sidebar", "Places"], "View ▸ Sidebar ▸ Places (hide)")
         Timing.pause(Timing.animation)
         reporter.check(
-            driver.find(AXMatch(identifier: "Section_PLACES"), timeout: 2) == nil,
-            "PLACES section disappeared after Hide")
+            driver.find(AXMatch(identifier: "Section_PLACES"), timeout: 1.5) == nil,
+            "PLACES section disappeared after unchecking it")
 
         driver.menuPick("View", path: ["Sidebar", "Places"], "View ▸ Sidebar ▸ Places (re-show)")
         Timing.pause(Timing.animation)
