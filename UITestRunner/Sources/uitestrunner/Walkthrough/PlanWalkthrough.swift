@@ -13,81 +13,36 @@ struct PlanWalkthrough {
         reporter.check(
             driver.menuBarTitles().contains("Go") || driver.setLanguage(to: "English", expectMenu: "Go"),
             "app is in English")
-        driver.navigateToWorkspace()
 
-        featNewAndCloseWindow()
-        featSidebarSectionHeaders()
-        featSectionCollapsePersists()
-        featHideShowSection()
-        featDirectoryTreeDrillIn()
-        featSmartFoldersSectionRenders()
-        featPathBarNavigation()
-        featBackForwardEnclosing()
-        featNewFolderInlineRename()
-        featNewFileInlineRename()
-        featRenameUndoRedo()
-        featCutPaste()
-        featCopyPaste()
-        featKeyboardSelectionNav()
-        featSelectAllThenClear()
-        featSortOrder()
-        featIconZoom()
-        featQuickLook()
-        featEmptyDirectory()
-        featFooterTerminalButton()
-        featTogglePreview()
-        featSettingsTabs()
-        featHelpSheet()
-        featShortcutsHUD()
-        featAboutSheet()
-        featFeedbackSheet()
-
-        // Phase B — deeper behaviour
-        featChmodInProperties()
-        featArchiveExtract()
-        featFileShredder()
-        featTagAssign()
-        featCopyPath()
-        featPDFMerge()
-        featDuplicateFinderScan()
-        featCompressWithPassword()
-        featSmartFolderRoundTrip()
-        featHTTPServerRoundTrip()
-        featNavigationModeGnome()
-        featPreferencePersistenceSweep()
-
-        // Phase C — corner cases
-        featShiftClickRange()
-        featCmdClickDeselectsOne()
-        featClickEmptyAreaDeselects()
-        featArrowPastLastRowStays()
-        featRenameToExistingNameHandled()
-        featRenameWithSlashSanitised()
-        featNewFolderNameAutoIncrements()
-        featSortByEachKeyReorders()
-        featIconZoomClampsAtMinimum()
-        featShowHiddenFilesToggle()
-        featSearchNoMatchThenClear()
-        featPropertiesShortcut()
-        featTrashShortcutThenUndo()
-        featPathBarRejectsBadPath()
-        featKeyboardHistoryNav()
-        featPlacesEntryNavigates()
-        featListColumnHeaderClickSorts()
-        featCompactDensityToggle()
-        featAutoHideSidebarToggle()
-
-        // Phase D — search / sidebar / modal / footer corners
-        featSearchScopeToggle()
-        featSearchKindFilterToken()
-        featSearchShortContentTermWarning()
-        featQuickFilterImages()
-        featAddRemoveFavorite()
-        featTagFilterNavigates()
-        featSmartFolderContextMenu()
-        featSymlinkModalReopen()
-        featMoveCollisionSheet()
-        featStatusBarCountReflectsSelection()
-        featPreviewPaneFollowsSelection()
+        let steps: [() -> Void] = [
+            featNewAndCloseWindow, featSidebarSectionHeaders, featSectionCollapsePersists,
+            featHideShowSection, featDirectoryTreeDrillIn, featSmartFoldersSectionRenders,
+            featPathBarNavigation, featBackForwardEnclosing, featNewFolderInlineRename,
+            featNewFileInlineRename, featRenameUndoRedo, featCutPaste, featCopyPaste,
+            featKeyboardSelectionNav, featSelectAllThenClear, featSortOrder, featIconZoom,
+            featQuickLook, featEmptyDirectory, featFooterTerminalButton, featTogglePreview,
+            featSettingsTabs, featHelpSheet, featShortcutsHUD, featAboutSheet, featFeedbackSheet,
+            // Phase B
+            featChmodInProperties, featArchiveExtract, featFileShredder, featTagAssign, featCopyPath,
+            featPDFMerge, featDuplicateFinderScan, featCompressWithPassword, featSmartFolderRoundTrip,
+            featHTTPServerRoundTrip, featNavigationModeGnome, featPreferencePersistenceSweep,
+            // Phase C
+            featShiftClickRange, featCmdClickDeselectsOne, featClickEmptyAreaDeselects,
+            featArrowPastLastRowStays, featRenameToExistingNameHandled, featRenameWithSlashSanitised,
+            featNewFolderNameAutoIncrements, featSortByEachKeyReorders, featIconZoomClampsAtMinimum,
+            featShowHiddenFilesToggle, featSearchNoMatchThenClear, featPropertiesShortcut,
+            featTrashShortcutThenUndo, featPathBarRejectsBadPath, featKeyboardHistoryNav,
+            featPlacesEntryNavigates, featListColumnHeaderClickSorts, featCompactDensityToggle,
+            featAutoHideSidebarToggle,
+            // Phase D
+            featSearchScopeToggle, featSearchKindFilterToken, featSearchShortContentTermWarning,
+            featQuickFilterImages, featStatusBarCountReflectsSelection, featPreviewPaneFollowsSelection,
+            featSymlinkModalReopen, featAddRemoveFavorite, featTagFilterNavigates,
+            featMoveCollisionSheet, featSmartFolderContextMenu,
+        ]
+        for step in steps {
+            driver.recover()
+            step()
+        }
     }
 }

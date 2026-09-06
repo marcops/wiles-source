@@ -27,15 +27,19 @@ final class WilesDriver {
         cachedWindow = nil
     }
 
-    // Between the two suites of a --all run: no relaunch, just a clean slate.
-    func resetForNextSuite() {
-        dismissSheet()
+    // Clean slate between steps / suites: no relaunch, just dismiss anything stuck and go home.
+    func recover() {
+        key(Keyboard.escape)
+        for _ in 0 ..< 3 where sheet() != nil { dismissSheet() }
         closeAnyMenu()
+        deactivateSearch()
         cachedWindow = nil
         process.activate()
-        Timing.pause(Timing.settle)
+        Timing.pause(Timing.brief)
         navigateToWorkspace()
     }
+
+    func resetForNextSuite() { recover() }
 
     // MARK: - Window
 
