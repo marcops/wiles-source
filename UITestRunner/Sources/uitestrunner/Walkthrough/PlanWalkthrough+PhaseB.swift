@@ -127,19 +127,32 @@ extension PlanWalkthrough {
     func featPDFMerge() {
         reporter.beginFeature("Merge multiple PDFs")
         driver.navigateToWorkspace()
-        // Sort by name so the two PDFs are adjacent, then click one and Shift-click the other.
+        // Sort by name so one-/two-uitest.pdf are adjacent, click the first, then Shift+↓ to
+        // extend the selection to the second (arrow-key extension is more reliable than
+        // modifier-clicks through synthetic events).
         driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
         Timing.pause(Timing.settle)
         driver.clickRow(workspace.pdfOne)
         Timing.pause(Timing.brief)
-        driver.clickRow(workspace.pdfTwo, modifiers: .shift)
+        driver.key(Keyboard.downArrow, .shift)
         Timing.pause(Timing.settle)
-        if !(driver.fileRow(workspace.pdfOne)?.isSelected ?? false) {
+        var haveMergeItem = false
+        for _ in 0 ..< 3 {
+            driver.rightClick(AXMatch(textEquals: workspace.pdfTwo), "'\(workspace.pdfTwo)' row (context)")
+            Timing.pause(Timing.settle)
+            if driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "merge"), maxDepth: 12) != nil {
+                haveMergeItem = true
+                break
+            }
+            driver.closeAnyMenu()
             driver.clickRow(workspace.pdfTwo, modifiers: .command)
             Timing.pause(Timing.settle)
         }
-        guard driver.openContextItem(onFileRow: workspace.pdfTwo, containing: "merge", "context ▸ Merge into Single PDF")
-        else { return }
+        guard haveMergeItem, driver.pickContextItem(containing: "merge", "context ▸ Merge into Single PDF") else {
+            driver.closeAnyMenu()
+            reporter.fail("could not get a 2-PDF selection with a 'Merge into Single PDF' item")
+            return
+        }
         Timing.pause(Timing.animation)
         let mergedAppeared = (try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path))?
             .contains { $0.lowercased().hasSuffix(".pdf") && $0 != workspace.pdfOne && $0 != workspace.pdfTwo } ?? false

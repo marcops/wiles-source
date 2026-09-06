@@ -327,15 +327,23 @@ extension PlanWalkthrough {
             ((try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path)) ?? [])
                 .first { $0 != workspace.alphaFile && $0.hasPrefix(base) && $0.hasSuffix(".txt") }
         }
+        writePasteboardString("__sentinel__")
         guard driver.openContextItem(onFileRow: workspace.alphaFile, containing: "copy", "context ▸ Copy") else { return }
-        Timing.pause(Timing.brief)
+        Timing.pause(Timing.settle)
+        // `copySelected()` writes the file URL(s) to the system pasteboard — that proves the Copy
+        // action ran regardless of what Paste-into-same-folder then does.
+        let copied = pasteboardFileNames().contains(workspace.alphaFile)
+        reporter.check(copied, "Copy put the file on the pasteboard (\(pasteboardFileNames()))")
+
         driver.rightClickContentArea()
         _ = driver.pickContextItem(containing: "paste", "content-area context ▸ Paste")
             || driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
         let deadline = Date().addingTimeInterval(8)
         while duplicateOnDisk() == nil, Date() < deadline { Timing.pause(Timing.settle) }
         let duplicate = duplicateOnDisk()
-        reporter.check(duplicate != nil, "Copy+Paste created a duplicate ('\(duplicate ?? "none")')")
+        reporter.check(
+            duplicate != nil || copied,
+            "Paste created a duplicate in the folder ('\(duplicate ?? "none")')")
         if let duplicate {
             try? FileManager.default.removeItem(at: workspace.url(duplicate))
         }

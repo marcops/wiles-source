@@ -15,6 +15,12 @@ extension PlanWalkthrough {
         NSPasteboard.general.setString(value, forType: .string)
     }
 
+    /// Last path components of any file URLs currently on the general pasteboard.
+    func pasteboardFileNames() -> [String] {
+        let urls = NSPasteboard.general.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] ?? []
+        return urls.map { $0.lastPathComponent }
+    }
+
     func firstPort(in text: String) -> Int? {
         guard let match = text.range(of: #"(?<![\d.])\d{4,5}(?![\d.])"#, options: .regularExpression) else {
             return nil
