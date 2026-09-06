@@ -58,32 +58,83 @@ enum Keyboard {
         press(key, modifiers: modifiers, pid: pid)
     }
 
-    /// Types free text into whatever is focused in the target app.
+    /// Types free text into whatever is focused in the target app. Each character goes out as a
+    /// real virtual-keycode press when one is known (SwiftUI `TextField` on macOS drops synthetic
+    /// `virtualKey: 0` unicode events), falling back to the unicode-string path otherwise.
     static func type(_ text: String, pid: pid_t) {
-        let source = CGEventSource(stateID: .privateState)
-        for scalar in text.unicodeScalars {
-            var units = [UniChar(scalar.value & 0xFFFF)]
-            for isDown in [true, false] {
-                guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: isDown) else { continue }
-                event.keyboardSetUnicodeString(stringLength: 1, unicodeString: &units)
-                event.postToPid(pid)
+        let source = CGEventSource(stateID: .combinedSessionState)
+        for character in text {
+            if let (code, needsShift) = keyStroke(for: character) {
+                emit(source: source, keyCode: code, keyDown: true, flags: needsShift ? .maskShift : [])
+                emit(source: source, keyCode: code, keyDown: false, flags: needsShift ? .maskShift : [])
+            } else {
+                typeUnicode(character, source: source)
             }
-            Thread.sleep(forTimeInterval: 0.012)
+            Timing.pause(Timing.keyStroke)
+        }
+        Timing.pause(Timing.brief)
+    }
+
+    private static func keyStroke(for character: Character) -> (CGKeyCode, Bool)? {
+        if let code = keyCodes[character] { return (code, false) }
+        if let lower = character.lowercased().first, let code = keyCodes[lower], character.isUppercase {
+            return (code, true)
+        }
+        return shiftedSymbols[character].map { ($0, true) }
+    }
+
+    private static let shiftedSymbols: [Character: CGKeyCode] = [
+        "_": 27, ":": 41, "?": 44, "(": 25, ")": 29, "*": 28, "&": 26, "^": 22, "%": 23,
+        "$": 21, "#": 20, "@": 19, "!": 18, "+": 24, "~": 50, "|": 42, "{": 33, "}": 30,
+    ]
+
+    private static func typeUnicode(_ character: Character, source: CGEventSource?) {
+        var units = Array(String(character).utf16)
+        for isDown in [true, false] {
+            guard let event = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: isDown) else { continue }
+            event.keyboardSetUnicodeString(stringLength: units.count, unicodeString: &units)
+            event.post(tap: .cgSessionEventTap)
         }
     }
 
+    /// AppKit resolves ⌘-chord menu equivalents only when the modifiers arrive as real
+    /// `flagsChanged` transitions around the key event — a bare `event.flags = …` isn't enough for
+    /// a background AX client, so the modifier keys are pressed and released explicitly.
     private static func post(keyCode: CGKeyCode, modifiers: Modifiers, pid: pid_t) {
-        let source = CGEventSource(stateID: .privateState)
-        let flags = modifiers.flags
-        guard
-            let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
-            let up = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
-        else { return }
-        down.flags = flags
-        up.flags = flags
-        down.postToPid(pid)
-        Thread.sleep(forTimeInterval: 0.03)
-        up.postToPid(pid)
-        Thread.sleep(forTimeInterval: 0.05)
+        let source = CGEventSource(stateID: .combinedSessionState)
+        let modifierKeys = modifiers.keyCodes
+        var accumulated: CGEventFlags = []
+
+        for (code, flag) in modifierKeys {
+            accumulated.insert(flag)
+            emit(source: source, keyCode: code, keyDown: true, flags: accumulated)
+        }
+        emit(source: source, keyCode: keyCode, keyDown: true, flags: accumulated)
+        Timing.pause(Timing.brief)
+        emit(source: source, keyCode: keyCode, keyDown: false, flags: accumulated)
+        for (code, flag) in modifierKeys.reversed() {
+            accumulated.remove(flag)
+            emit(source: source, keyCode: code, keyDown: false, flags: accumulated)
+        }
+        Timing.pause(Timing.brief)
+    }
+
+    private static func emit(source: CGEventSource?, keyCode: CGKeyCode, keyDown: Bool, flags: CGEventFlags) {
+        guard let event = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: keyDown) else { return }
+        event.flags = flags
+        event.post(tap: .cgSessionEventTap)
+        Timing.pause(Timing.keyStroke)
+    }
+}
+
+extension Keyboard.Modifiers {
+    /// Virtual keycodes + matching event flag for each held modifier, in a stable press order.
+    var keyCodes: [(CGKeyCode, CGEventFlags)] {
+        var result: [(CGKeyCode, CGEventFlags)] = []
+        if contains(.command) { result.append((55, .maskCommand)) }
+        if contains(.shift) { result.append((56, .maskShift)) }
+        if contains(.option) { result.append((58, .maskAlternate)) }
+        if contains(.control) { result.append((59, .maskControl)) }
+        return result
     }
 }

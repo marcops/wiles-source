@@ -45,7 +45,7 @@ final class TempWorkspace {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if exists(name) == shouldExist { return true }
-            Thread.sleep(forTimeInterval: 0.2)
+            Timing.pause(Timing.brief)
         } while Date() < deadline
         return exists(name) == shouldExist
     }

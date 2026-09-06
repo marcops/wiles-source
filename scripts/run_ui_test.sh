@@ -17,6 +17,8 @@ cd "$ROOT_DIR"
 
 APP_BUNDLE="$ROOT_DIR/.build/uitest/Wiles.app"
 RUNNER_BIN="$ROOT_DIR/UITestRunner/.build/debug/uitestrunner"
+# Isolated bundle id → the run uses its own UserDefaults domain, never the user's real Wiles prefs.
+UITEST_BUNDLE_ID="com.marco.wiles.uitest"
 
 echo "==> ensure nothing from a previous run is alive"
 pkill -9 -f 'uitestrunner'                          2>/dev/null || true
@@ -44,7 +46,9 @@ if [[ "${1:-}" != "--no-build" ]]; then
   echo "==> assemble $APP_BUNDLE"
   rm -rf "$APP_BUNDLE"
   mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
-  sed 's/__VERSION__/0.0.0-uitest/g' Info.plist > "$APP_BUNDLE/Contents/Info.plist"
+  sed -e 's/__VERSION__/0.0.0-uitest/g' \
+      -e "s#<string>com.marco.wiles</string>#<string>${UITEST_BUNDLE_ID}</string>#" \
+      Info.plist > "$APP_BUNDLE/Contents/Info.plist"
   cp "$BIN" "$APP_BUNDLE/Contents/MacOS/Wiles"
   cp -R "$RES_BUNDLE" "$APP_BUNDLE/Contents/Resources/"
   [[ -f Wiles.app/Contents/Resources/AppIcon.icns ]] && \
@@ -56,6 +60,14 @@ if [[ "${1:-}" != "--no-build" ]]; then
 fi
 
 if [[ ! -x "$RUNNER_BIN" ]]; then echo "==> runner binary missing ($RUNNER_BIN)"; exit 1; fi
+
+echo "==> deterministic run state ($UITEST_BUNDLE_ID domain)"
+defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
+defaults delete "$UITEST_BUNDLE_ID" wiles_lastOpenedFolder 2>/dev/null || true
+for i in 1 2 3 4 5; do
+  defaults delete "$UITEST_BUNDLE_ID" "NSWindow Frame main-AppWindow-$i" 2>/dev/null || true
+  defaults delete "$UITEST_BUNDLE_ID" "NSWindow Frame WilesMainWindow-$i" 2>/dev/null || true
+done
 
 echo "==> run walkthrough"
 echo "------------------------------------------------------------"

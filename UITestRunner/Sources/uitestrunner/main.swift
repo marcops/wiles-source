@@ -33,6 +33,7 @@ do {
 }
 
 let process = WilesProcess(bundleURL: bundleURL)
+process.setInitialFolder(workspace.root)
 do {
     try process.launch()
 } catch {
@@ -41,7 +42,7 @@ do {
 }
 
 print("Wiles launched (pid \(process.pid)) — bundle: \(appPath)")
-Thread.sleep(forTimeInterval: 2.0)
+Timing.pause(Timing.launch)
 
 let reporter = Reporter()
 let driver = WilesDriver(process: process, workspace: workspace, reporter: reporter)
@@ -52,6 +53,28 @@ do {
     process.terminate()
     workspace.cleanup()
     fail("\(error)")
+}
+process.activate()
+
+if CommandLine.arguments.contains("--dump") {
+    driver.navigateToWorkspace()
+    Timing.pause(Timing.launch)
+    if let window = try? driver.mainWindow() {
+        AXDump.tree(window)
+    }
+    print("\n===== MENU BAR =====")
+    if let menuBar = driver.app.menuBar {
+        for barItem in menuBar.children where !barItem.title.isEmpty {
+            barItem.press()
+            Timing.pause(Timing.settle)
+            AXDump.tree(barItem, maxDepth: 4)
+            Keyboard.press(Keyboard.escape, pid: process.pid)
+            Timing.pause(Timing.brief)
+        }
+    }
+    process.terminate()
+    workspace.cleanup()
+    exit(0)
 }
 
 Walkthrough(driver: driver).run()

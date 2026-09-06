@@ -23,18 +23,28 @@ final class WilesDriver {
 
     // MARK: - Window
 
+    /// A window this small is Wiles mid-construction — the SwiftUI hierarchy isn't laid out yet, so
+    /// every sidebar/footer query against it would spuriously miss.
+    private static let minReadyWindowSize = CGSize(width: 400, height: 200)
+
     @discardableResult
-    func mainWindow(timeout: TimeInterval = 15) throws -> AXElement {
-        if let cachedWindow, !cachedWindow.frame.isEmpty { return cachedWindow }
+    func mainWindow(timeout: TimeInterval = 20) throws -> AXElement {
+        if let cachedWindow, isReady(cachedWindow) { return cachedWindow }
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
-            if let window = app.windows.first(where: { $0.subrole == "AXStandardWindow" || !$0.frame.isEmpty }) {
+            if let window = app.windows.first(where: { $0.subrole == "AXStandardWindow" }) {
                 cachedWindow = window
-                return window
+                if isReady(window) { return window }
             }
-            Thread.sleep(forTimeInterval: 0.3)
+            Timing.pause(Timing.settle)
         } while Date() < deadline
+        if let cachedWindow { return cachedWindow }
         throw RunnerError.mainWindowNeverAppeared
+    }
+
+    private func isReady(_ window: AXElement) -> Bool {
+        let size = window.frame.size
+        return size.width >= Self.minReadyWindowSize.width && size.height >= Self.minReadyWindowSize.height
     }
 
     private var window: AXElement { (try? mainWindow()) ?? app }
@@ -81,7 +91,7 @@ final class WilesDriver {
             return false
         }
         if element.actionNames.contains(AXAction.showMenu), element.perform(AXAction.showMenu) {
-            Thread.sleep(forTimeInterval: 0.4)
+            Timing.pause(Timing.settle)
             return true
         }
         let rect = element.frame
@@ -90,7 +100,7 @@ final class WilesDriver {
             return false
         }
         Mouse.click(center: rect, rightButton: true, pid: pid)
-        Thread.sleep(forTimeInterval: 0.4)
+        Timing.pause(Timing.settle)
         return true
     }
 
@@ -108,6 +118,20 @@ final class WilesDriver {
         Keyboard.type(text, pid: pid)
     }
 
+    /// Replaces a text field's contents: AX-focus + click for focus, ⌘A to select any existing
+    /// text, then synthesised keystrokes (SwiftUI `TextField` ignores a bare AX value set).
+    func replaceText(in field: AXElement, with text: String) {
+        field.focus()
+        tapElement(field)
+        Timing.pause(Timing.brief)
+        chord("a", .command)
+        Timing.pause(Timing.brief)
+        key(Keyboard.delete)
+        Timing.pause(Timing.brief)
+        type(text)
+        Timing.pause(Timing.brief)
+    }
+
     // MARK: - Menu bar
 
     @discardableResult
@@ -121,7 +145,7 @@ final class WilesDriver {
             return false
         }
         barItem.press()
-        Thread.sleep(forTimeInterval: 0.35)
+        Timing.pause(Timing.settle)
         let itemMatch = AXMatch(role: "AXMenuItem", textContains: fragment)
         guard let item = barItem.waitForDescendant(where: itemMatch, timeout: 3) else {
             key(Keyboard.escape)
@@ -129,7 +153,7 @@ final class WilesDriver {
             return false
         }
         let pressed = item.perform(AXAction.pick) || item.press()
-        Thread.sleep(forTimeInterval: 0.3)
+        Timing.pause(Timing.settle)
         return pressed
     }
 
@@ -141,10 +165,10 @@ final class WilesDriver {
             let barItem = menuBar.children.first(where: { $0.title == menuTitle })
         else { return false }
         barItem.press()
-        Thread.sleep(forTimeInterval: 0.35)
+        Timing.pause(Timing.settle)
         let found = barItem.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment)) != nil
         key(Keyboard.escape)
-        Thread.sleep(forTimeInterval: 0.15)
+        Timing.pause(Timing.brief)
         return found
     }
 
@@ -159,7 +183,7 @@ final class WilesDriver {
             return false
         }
         let pressed = item.perform(AXAction.pick) || item.press()
-        Thread.sleep(forTimeInterval: 0.3)
+        Timing.pause(Timing.settle)
         return pressed
     }
 
@@ -173,7 +197,7 @@ final class WilesDriver {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if sheet() != nil { return true }
-            Thread.sleep(forTimeInterval: 0.2)
+            Timing.pause(Timing.brief)
         } while Date() < deadline
         return sheet() != nil
     }
@@ -181,26 +205,26 @@ final class WilesDriver {
     func dismissSheet() {
         for _ in 0 ..< 3 where sheet() != nil {
             key(Keyboard.escape)
-            Thread.sleep(forTimeInterval: 0.5)
+            Timing.pause(Timing.settle)
         }
     }
 
     // MARK: - Navigation
 
-    /// Points Wiles at the seeded temp directory via the ⌘L "Go to Folder" path field.
-    func navigateToWorkspace() {
-        chord("l", .command)
-        Thread.sleep(forTimeInterval: 0.4)
+    /// Ensures Wiles is showing the seeded temp directory. It normally already is (the launch
+    /// defaults domain was seeded with `wiles_lastOpenedFolder`); this is the ⌘L fallback.
+    @discardableResult
+    func navigateToWorkspace() -> Bool {
+        if fileRow(workspace.alphaFile, timeout: 3) != nil { return true }
+        menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
+        Timing.pause(Timing.settle)
         guard let field = find(AXMatch(identifier: "PathBarTextField"), timeout: 4) else {
-            reporter.fail("navigate: PathBarTextField not found after ⌘L")
-            return
+            reporter.fail("navigate: PathBarTextField not found after Go to Folder")
+            return false
         }
-        tapElement(field)
-        Thread.sleep(forTimeInterval: 0.2)
-        chord("a", .command)
-        type(workspace.root.path)
+        replaceText(in: field, with: workspace.root.path)
         key(Keyboard.returnKey)
-        _ = fileRow(workspace.alphaFile, timeout: 8)
+        return fileRow(workspace.alphaFile, timeout: 6) != nil
     }
 
     func fileRow(_ name: String, timeout: TimeInterval = 5) -> AXElement? {

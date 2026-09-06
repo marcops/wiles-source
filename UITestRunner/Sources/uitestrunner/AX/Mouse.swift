@@ -9,32 +9,26 @@ enum Mouse {
         let button: CGMouseButton = rightButton ? .right : .left
         let downType: CGEventType = rightButton ? .rightMouseDown : .leftMouseDown
         let upType: CGEventType = rightButton ? .rightMouseUp : .leftMouseUp
-        let source = CGEventSource(stateID: .privateState)
+        let source = CGEventSource(stateID: .combinedSessionState)
 
-        move(to: point, source: source, pid: pid)
-        Thread.sleep(forTimeInterval: 0.05)
-        emit(downType, at: point, button: button, source: source, pid: pid)
-        Thread.sleep(forTimeInterval: 0.05)
-        emit(upType, at: point, button: button, source: source, pid: pid)
-        Thread.sleep(forTimeInterval: 0.08)
+        emit(.mouseMoved, at: point, button: .left, source: source)
+        Timing.pause(Timing.brief)
+        emit(downType, at: point, button: button, source: source)
+        Timing.pause(Timing.brief)
+        emit(upType, at: point, button: button, source: source)
+        Timing.pause(Timing.brief)
     }
 
     static func click(center rect: CGRect, rightButton: Bool = false, pid: pid_t) {
         click(at: CGPoint(x: rect.midX, y: rect.midY), rightButton: rightButton, pid: pid)
     }
 
-    private static func move(to point: CGPoint, source: CGEventSource?, pid: pid_t) {
-        CGEvent(mouseEventSource: source, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left)?
-            .postToPid(pid)
-    }
-
     private static func emit(
         _ type: CGEventType,
         at point: CGPoint,
         button: CGMouseButton,
-        source: CGEventSource?,
-        pid: pid_t) {
+        source: CGEventSource?) {
         CGEvent(mouseEventSource: source, mouseType: type, mouseCursorPosition: point, mouseButton: button)?
-            .postToPid(pid)
+            .post(tap: .cgSessionEventTap)
     }
 }

@@ -106,6 +106,11 @@ final class AXElement {
         AXUIElementSetAttributeValue(ref, kAXValueAttribute as CFString, value as CFTypeRef) == .success
     }
 
+    @discardableResult
+    func focus() -> Bool {
+        AXUIElementSetAttributeValue(ref, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success
+    }
+
     var actionNames: [String] {
         var names: CFArray?
         guard AXUIElementCopyActionNames(ref, &names) == .success else { return [] }

@@ -7,7 +7,8 @@ struct AXMatch {
     var identifier: String?
     /// Case-insensitive substring tested against every label in `searchableText`.
     var textContains: String?
-    /// Case-insensitive exact match against title or identifier.
+    /// Case-insensitive exact match against title, identifier or accessibility description
+    /// (SwiftUI renders `.accessibilityLabel` as `AXDescription` on a `Button`).
     var textEquals: String?
     var predicate: ((AXElement) -> Bool)?
 
@@ -16,8 +17,8 @@ struct AXMatch {
         if let identifier, element.identifier != identifier { return false }
         if let textEquals {
             let wanted = textEquals.lowercased()
-            let hit = element.title.lowercased() == wanted || element.identifier.lowercased() == wanted
-            if !hit { return false }
+            let candidates = [element.title, element.identifier, element.descriptionText].map { $0.lowercased() }
+            if !candidates.contains(wanted) { return false }
         }
         if let textContains, !element.searchableText.contains(where: { $0.contains(textContains.lowercased()) }) {
             return false
@@ -53,7 +54,7 @@ extension AXElement {
     func waitForDescendant(
         where match: AXMatch,
         timeout: TimeInterval,
-        pollInterval: TimeInterval = 0.25) -> AXElement? {
+        pollInterval: TimeInterval = Timing.poll) -> AXElement? {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if let found = firstDescendant(where: match) { return found }
@@ -62,7 +63,7 @@ extension AXElement {
         return firstDescendant(where: match)
     }
 
-    func waitUntilGone(where match: AXMatch, timeout: TimeInterval, pollInterval: TimeInterval = 0.25) -> Bool {
+    func waitUntilGone(where match: AXMatch, timeout: TimeInterval, pollInterval: TimeInterval = Timing.poll) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if firstDescendant(where: match) == nil { return true }
