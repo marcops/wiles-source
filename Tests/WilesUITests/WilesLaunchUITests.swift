@@ -60,9 +60,31 @@ final class WilesLaunchUITests: XCTestCase {
         }
         makeSeedZip(at: tempDir.appendingPathComponent(zipFile))
 
+        clearStaleWindowState()
+
         app = XCUIApplication()
         app.launchArguments = ["--ui-testing"]
         app.launch() // launch() already foregrounds; a second activate() only stalls when the AX bridge is slow
+    }
+
+    /// A saved off-screen `NSWindow Frame` autosave (or a stale restored path) makes the app
+    /// launch as a running process with **no composited window** — every UI query then fails
+    /// against nothing. Wipe just those keys before each launch so the run starts deterministic;
+    /// favorites / sidebar-visibility prefs are left intact so those sections still render.
+    private func clearStaleWindowState() {
+        var keys = ["wiles_lastOpenedFolder"]
+        for index in 1 ... 5 {
+            keys.append("NSWindow Frame main-AppWindow-\(index)")
+        }
+        for key in keys {
+            let defaults = Process()
+            defaults.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
+            defaults.arguments = ["delete", "com.marco.wiles.uitest", key]
+            defaults.standardOutput = FileHandle.nullDevice
+            defaults.standardError = FileHandle.nullDevice
+            try? defaults.run()
+            defaults.waitUntilExit()
+        }
     }
 
     override func tearDown() async throws {
