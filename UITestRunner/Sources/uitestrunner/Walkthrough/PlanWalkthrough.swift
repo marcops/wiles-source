@@ -55,5 +55,20 @@ struct PlanWalkthrough {
         featHTTPServerRoundTrip()
         featNavigationModeGnome()
         featPreferencePersistenceSweep()
+
+        // Phase C — corner cases
+        featShiftClickRange()
+        featCmdClickDeselectsOne()
+        featClickEmptyAreaDeselects()
+        featArrowPastLastRowStays()
+        featRenameToExistingNameHandled()
+        featRenameWithSlashSanitised()
+        featNewFolderNameAutoIncrements()
+        featSortByEachKeyReorders()
+        featIconZoomClampsAtMinimum()
+        featShowHiddenFilesToggle()
+        featSearchNoMatchThenClear()
+        featPropertiesShortcut()
+        featTrashShortcutThenUndo()
     }
 }

@@ -2,8 +2,8 @@ import Foundation
 
 extension PlanWalkthrough {
     private var seededFileNames: [String] {
-        [workspace.alphaFile, workspace.betaFile, workspace.imageFile, workspace.zipFile,
-         workspace.pdfOne, workspace.pdfTwo]
+        [workspace.alphaFile, workspace.betaFile, workspace.midFile, workspace.imageFile,
+         workspace.zipFile, workspace.pdfOne, workspace.pdfTwo]
     }
 
     /// The seeded files (not the folder) in on-screen order, top-to-bottom then left-to-right.

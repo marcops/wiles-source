@@ -17,6 +17,8 @@ final class TempWorkspace {
     let zipFile = "archive-uitest.zip"
     let pdfOne = "one-uitest.pdf"
     let pdfTwo = "two-uitest.pdf"
+    let hiddenFile = ".hidden-uitest"
+    let midFile = "mango-uitest.txt"
 
     /// 1×1 transparent PNG.
     private let onePixelPNGBase64 =
@@ -33,6 +35,9 @@ final class TempWorkspace {
         try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
         try "alpha contents".write(to: url(alphaFile), atomically: true, encoding: .utf8)
         try "beta contents".write(to: url(betaFile), atomically: true, encoding: .utf8)
+        // A mid-alphabet row for range/sort checks; a dotfile for the hidden-files toggle.
+        try "mango contents".write(to: url(midFile), atomically: true, encoding: .utf8)
+        try "hidden contents".write(to: url(hiddenFile), atomically: true, encoding: .utf8)
         try fileManager.createDirectory(at: url(subFolder), withIntermediateDirectories: true)
         if let png = Data(base64Encoded: onePixelPNGBase64) {
             try png.write(to: url(imageFile))

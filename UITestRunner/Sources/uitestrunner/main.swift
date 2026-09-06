@@ -8,7 +8,10 @@ if let index = CommandLine.arguments.firstIndex(of: "--scale"), index + 1 < Comm
     Timing.scale = scale
 }
 if CommandLine.arguments.contains("--fast") {
-    Timing.scale = 0.55
+    Timing.scale = 0.3
+}
+if CommandLine.arguments.contains("--slow") {
+    Timing.scale = 1.0
 }
 
 func parseArgument(_ name: String, default fallback: String) -> String {

@@ -333,10 +333,21 @@ final class WilesDriver {
     /// folder-background context menu (New Folder / Paste / …).
     @discardableResult
     func rightClickContentArea() -> Bool {
+        contentAreaClick(rightButton: true)
+    }
+
+    /// Left-clicks the same empty spot — deselects everything / dismisses an inline edit.
+    @discardableResult
+    func clickContentArea() -> Bool {
+        contentAreaClick(rightButton: false)
+    }
+
+    @discardableResult
+    private func contentAreaClick(rightButton: Bool) -> Bool {
         guard let window = try? mainWindow() else { return false }
         let frame = window.frame
         let point = CGPoint(x: frame.midX + frame.width * 0.15, y: frame.maxY - 60)
-        Mouse.click(at: point, rightButton: true, pid: pid)
+        Mouse.click(at: point, rightButton: rightButton, pid: pid)
         Timing.pause(Timing.settle)
         return true
     }
