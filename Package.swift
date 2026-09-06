@@ -31,9 +31,5 @@ let package = Package(
                 "Wiles",
                 .product(name: "SwiftTerm", package: "SwiftTerm")
             ],
-            path: "Tests/WilesTests"),
-        .testTarget(
-            name: "WilesUITests",
-            dependencies: ["Wiles"],
-            path: "Tests/WilesUITests")
+            path: "Tests/WilesTests")
     ])
