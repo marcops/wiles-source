@@ -17,11 +17,11 @@ enum Mouse {
         let flags = modifiers.flags
 
         emit(.mouseMoved, at: point, button: .left, source: source, flags: [])
-        Timing.pause(Timing.brief)
+        Timing.pause(Timing.tap)
         emit(downType, at: point, button: button, source: source, flags: flags)
-        Timing.pause(Timing.brief)
+        Timing.pause(Timing.tap)
         emit(upType, at: point, button: button, source: source, flags: flags)
-        Timing.pause(Timing.brief)
+        Timing.pause(Timing.tap)
     }
 
     static func click(
@@ -34,6 +34,20 @@ enum Mouse {
             rightButton: rightButton,
             modifiers: modifiers,
             pid: pid)
+    }
+
+    static func doubleClick(center rect: CGRect, pid: pid_t) {
+        let point = CGPoint(x: rect.midX, y: rect.midY)
+        click(at: point, pid: pid)
+        Timing.pause(Timing.tap)
+        let source = CGEventSource(stateID: .combinedSessionState)
+        for type in [CGEventType.leftMouseDown, .leftMouseUp] {
+            guard let event = CGEvent(
+                mouseEventSource: source, mouseType: type, mouseCursorPosition: point, mouseButton: .left) else { continue }
+            event.setIntegerValueField(.mouseEventClickState, value: 2)
+            event.post(tap: .cgSessionEventTap)
+        }
+        Timing.pause(Timing.tap)
     }
 
     private static func emit(

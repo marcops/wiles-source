@@ -128,17 +128,36 @@ final class WilesDriver {
         Keyboard.type(text, pid: pid)
     }
 
-    /// Replaces a text field's contents: AX-focus + click for focus, ⌘A to select any existing
-    /// text, then synthesised keystrokes (SwiftUI `TextField` ignores a bare AX value set).
+    /// Always a real pointer click at the element centre (never `AXPress`) — the reliable way to
+    /// make a text field the first responder so keystrokes and `.onSubmit` reach it.
+    @discardableResult
+    func clickCentre(_ element: AXElement) -> Bool {
+        let rect = element.frame
+        guard !rect.isEmpty else { return false }
+        Mouse.click(center: rect, pid: pid)
+        Timing.pause(Timing.brief)
+        return true
+    }
+
+    /// Replaces a text field's contents: real click for first-responder, AX-focus, ⌘A + delete,
+    /// then synthesised keystrokes (SwiftUI `TextField` ignores a bare AX value set).
     func replaceText(in field: AXElement, with text: String) {
+        clickCentre(field)
         field.focus()
-        tapElement(field)
         Timing.pause(Timing.brief)
         chord("a", .command)
         Timing.pause(Timing.brief)
         key(Keyboard.delete)
         Timing.pause(Timing.brief)
         type(text)
+        Timing.pause(Timing.brief)
+    }
+
+    /// Commits a field edit — tries ⏎, the AX confirm action, and a literal carriage return.
+    func commitField(_ field: AXElement) {
+        key(Keyboard.returnKey)
+        Timing.pause(Timing.brief)
+        _ = field.perform(AXAction.confirm)
         Timing.pause(Timing.brief)
     }
 
@@ -150,7 +169,7 @@ final class WilesDriver {
             return false
         }
         replaceText(in: field, with: name)
-        key(Keyboard.returnKey)
+        commitField(field)
         Timing.pause(Timing.settle)
         return true
     }
@@ -183,6 +202,9 @@ final class WilesDriver {
     /// Opens `menuTitle` then each nested submenu named by `path`, returning the innermost open
     /// menu container (or `nil` on failure, with the menu dismissed).
     private func openMenu(_ menuTitle: String, path: [String], _ label: String) -> AXElement? {
+        // Clear any menu/popover left open by a previous step so a stale tree can't wedge the walk.
+        key(Keyboard.escape)
+        Timing.pause(Timing.brief)
         guard let barItem = app.menuBar?.children.first(where: { $0.title == menuTitle }) else {
             reporter.fail("\(label): menu '\(menuTitle)' not in menu bar")
             return nil
@@ -313,24 +335,52 @@ final class WilesDriver {
 
     // MARK: - Navigation
 
-    /// Ensures Wiles is showing the seeded temp directory. It normally already is (the launch
-    /// defaults domain was seeded with `wiles_lastOpenedFolder`); this is the ⌘L fallback.
+    /// Points Wiles at `path` via the Go ▸ Go to Folder text field.
+    /// Enters `path` in the Go ▸ Go to Folder field. When `expectRow` is non-empty, returns true
+    /// only once that row is listed (with one retry); when empty, just performs the navigation.
+    @discardableResult
+    func navigateToPath(_ path: String, expectRow: String = "", timeout: TimeInterval = 8) -> Bool {
+        for attempt in 0 ..< 2 {
+            closeAnyMenu()
+            menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
+            Timing.pause(Timing.settle)
+            guard let field = find(AXMatch(identifier: "PathBarTextField"), timeout: 4) else {
+                if attempt == 1 { reporter.fail("PathBarTextField not found after Go to Folder") }
+                continue
+            }
+            replaceText(in: field, with: path)
+            commitField(field)
+            if expectRow.isEmpty {
+                Timing.pause(Timing.animation)
+                return true
+            }
+            if fileRow(expectRow, timeout: timeout) != nil { return true }
+        }
+        return false
+    }
+
+    /// Ensures Wiles is showing the seeded temp directory (normally already true — the launch
+    /// defaults domain seeds `wiles_lastOpenedFolder`).
     @discardableResult
     func navigateToWorkspace() -> Bool {
         if fileRow(workspace.alphaFile, timeout: 3) != nil { return true }
-        menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
-        Timing.pause(Timing.settle)
-        guard let field = find(AXMatch(identifier: "PathBarTextField"), timeout: 4) else {
-            reporter.fail("navigate: PathBarTextField not found after Go to Folder")
-            return false
-        }
-        replaceText(in: field, with: workspace.root.path)
-        key(Keyboard.returnKey)
-        return fileRow(workspace.alphaFile, timeout: 6) != nil
+        return navigateToPath(workspace.root.path, expectRow: workspace.alphaFile)
     }
 
     func fileRow(_ name: String, timeout: TimeInterval = 5) -> AXElement? {
         find(AXMatch(textEquals: name), timeout: timeout)
+    }
+
+    /// Double-clicks a file/folder row to open it.
+    @discardableResult
+    func openRow(_ name: String, timeout: TimeInterval = 5) -> Bool {
+        guard let row = fileRow(name, timeout: timeout), !row.frame.isEmpty else {
+            reporter.fail("row '\(name)': not found (to open)")
+            return false
+        }
+        Mouse.doubleClick(center: row.frame, pid: pid)
+        Timing.pause(Timing.animation)
+        return true
     }
 
     /// Mouse-clicks a file row, optionally with modifiers held (⌘-click to extend a selection).
@@ -397,19 +447,25 @@ final class WilesDriver {
         return menuBarTitles().contains("Go")
     }
 
-    /// Sets the Appearance-tab Theme control to `option`, coping with either rendering SwiftUI's
-    /// `Picker` can take here — a pop-up menu button or an inline set of radio buttons.
+    /// Selects `option` on a SwiftUI `Picker` inside the current sheet — coping with either shape
+    /// it can render as here (pop-up menu button, or an inline segmented / radio group).
+    /// `popupIndex` picks which pop-up when the sheet has several (0 = first).
     @discardableResult
-    func selectThemeOption(_ option: String) -> Bool {
+    func selectPickerOption(_ option: String, popupIndex: Int = 0) -> Bool {
         guard let sheet = sheet() else { return false }
 
-        if let radio = sheet.firstDescendant(where: AXMatch(role: "AXRadioButton", textContains: option)) {
-            return tapElement(radio)
+        let segmented = sheet.firstDescendant(where: AXMatch(role: "AXRadioButton", textContains: option))
+            ?? sheet.firstDescendant(where: AXMatch(role: "AXButton", predicate: { element in
+                element.subrole == "AXToggle" && element.title.localizedCaseInsensitiveContains(option)
+            }))
+        if let segmented {
+            return tapElement(segmented)
         }
-        guard let popup = sheet.firstDescendant(where: AXMatch(role: "AXPopUpButton")) else { return false }
-        let rect = popup.frame
-        if !rect.isEmpty {
-            Mouse.click(center: rect, pid: pid)
+        let popups = sheet.allDescendants(where: AXMatch(role: "AXPopUpButton"), maxDepth: 16)
+        guard popupIndex < popups.count else { return false }
+        let popup = popups[popupIndex]
+        if !popup.frame.isEmpty {
+            Mouse.click(center: popup.frame, pid: pid)
         } else {
             popup.press()
         }
@@ -419,5 +475,10 @@ final class WilesDriver {
         }
         closeAnyMenu()
         return false
+    }
+
+    @discardableResult
+    func selectThemeOption(_ option: String) -> Bool {
+        selectPickerOption(option)
     }
 }

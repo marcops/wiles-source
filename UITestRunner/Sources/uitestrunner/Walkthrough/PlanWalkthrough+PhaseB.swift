@@ -29,12 +29,18 @@ extension PlanWalkthrough {
         reporter.beginFeature("Archive — extract a .zip")
         driver.navigateToWorkspace()
         let extractedDir = (workspace.zipFile as NSString).deletingPathExtension
+        let before = Set((try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path)) ?? [])
         try? FileManager.default.removeItem(at: workspace.url(extractedDir))
         guard driver.openContextItem(onFileRow: workspace.zipFile, containing: "extract archive", "context ▸ Extract Archive")
         else { return }
-        let created = workspace.waitForExistence(extractedDir, shouldExist: true, timeout: 15)
-            || workspace.exists(workspace.alphaFile)
-        reporter.check(created, "extracting '\(workspace.zipFile)' produced output on disk")
+        var appeared = false
+        let deadline = Date().addingTimeInterval(15)
+        repeat {
+            let now = Set((try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path)) ?? [])
+            if !now.subtracting(before).isEmpty { appeared = true; break }
+            Timing.pause(Timing.settle)
+        } while Date() < deadline
+        reporter.check(appeared, "extracting '\(workspace.zipFile)' created new output in the folder")
         try? FileManager.default.removeItem(at: workspace.url(extractedDir))
     }
 
@@ -45,7 +51,7 @@ extension PlanWalkthrough {
         driver.navigateToWorkspace()
         let victim = "shred-uitest.txt"
         try? "shred me".write(to: workspace.url(victim), atomically: true, encoding: .utf8)
-        driver.navigateToWorkspace()
+        driver.navigateToPath(workspace.root.path, expectRow: victim, timeout: 6)
         guard driver.openContextItem(onFileRow: victim, containing: "delete immediately", "context ▸ Delete Immediately")
         else {
             try? FileManager.default.removeItem(at: workspace.url(victim))
@@ -203,29 +209,30 @@ extension PlanWalkthrough {
     func featNavigationModeGnome() {
         reporter.beginFeature("Navigation mode — GNOME Enter-to-open")
         guard driver.openSettings(tab: "General") else { return }
-        if let modePopup = driver.sheet()?.allDescendants(where: AXMatch(role: "AXPopUpButton"), maxDepth: 12).dropFirst().first {
-            driver.tapElement(modePopup)
-            Timing.pause(Timing.settle)
-            _ = driver.pickContextItem(containing: "GNOME", "shortcut mode ▸ GNOME")
-                || driver.pickContextItem(containing: "Linux", "shortcut mode ▸ Linux")
-        }
+        let switched = driver.selectPickerOption("GNOME", popupIndex: 1)
+            || driver.selectPickerOption("Linux", popupIndex: 1)
         driver.dismissSheet()
         Timing.pause(Timing.settle)
+        guard switched else {
+            reporter.fail("could not set shortcut mode to GNOME/Linux")
+            return
+        }
 
         driver.navigateToWorkspace()
+        let marker = "gnome-open-marker.txt"
+        try? "x".write(to: workspace.url(workspace.subFolder).appendingPathComponent(marker), atomically: true, encoding: .utf8)
         driver.clickRow(workspace.subFolder)
+        Timing.pause(Timing.brief)
         driver.key(Keyboard.returnKey)
         Timing.pause(Timing.animation)
-        let path = driver.find(AXMatch(identifier: "PathBarTextField"))?.stringValue ?? ""
-        reporter.check(path.hasSuffix(workspace.subFolder), "Enter opened the folder in GNOME mode (path '\(path)')")
+        reporter.check(
+            driver.fileRow(marker, timeout: 5) != nil,
+            "Enter opened the folder in GNOME mode")
+        try? FileManager.default.removeItem(at: workspace.url(workspace.subFolder).appendingPathComponent(marker))
 
         // Restore macOS mode.
         if driver.openSettings(tab: "General") {
-            if let modePopup = driver.sheet()?.allDescendants(where: AXMatch(role: "AXPopUpButton"), maxDepth: 12).dropFirst().first {
-                driver.tapElement(modePopup)
-                Timing.pause(Timing.settle)
-                _ = driver.pickContextItem(containing: "macOS", "shortcut mode ▸ macOS")
-            }
+            driver.selectPickerOption("macOS", popupIndex: 1)
             driver.dismissSheet()
         }
         driver.navigateToWorkspace()

@@ -31,7 +31,7 @@ struct AXMatch {
 extension AXElement {
     /// Depth-first search of this element's subtree. `maxDepth` guards against the odd cyclic /
     /// pathologically deep AX tree some AppKit views expose.
-    func firstDescendant(where match: AXMatch, maxDepth: Int = 40) -> AXElement? {
+    func firstDescendant(where match: AXMatch, maxDepth: Int = 24) -> AXElement? {
         if maxDepth <= 0 { return nil }
         for child in children {
             if match.matches(child) { return child }
@@ -40,7 +40,7 @@ extension AXElement {
         return nil
     }
 
-    func allDescendants(where match: AXMatch, maxDepth: Int = 40) -> [AXElement] {
+    func allDescendants(where match: AXMatch, maxDepth: Int = 24) -> [AXElement] {
         guard maxDepth > 0 else { return [] }
         var result: [AXElement] = []
         for child in children {
