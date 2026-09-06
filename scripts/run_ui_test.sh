@@ -38,10 +38,24 @@ RUNNER_BIN="$ROOT_DIR/UITestRunner/.build/debug/uitestrunner"
 # Isolated bundle id → the run uses its own UserDefaults domain, never the user's real Wiles prefs.
 UITEST_BUNDLE_ID="com.marco.wiles.uitest"
 
+# Kill the test runner, the isolated test app, and anything the app spun up (Preview for a
+# double-clicked PDF, the Quick Look UI). Never touches the user's real Wiles or Preview windows
+# that predate the run — only the com.marco.wiles.uitest instance and QL/Preview helpers.
+teardown() {
+  pkill -9 -f 'uitestrunner'                                    2>/dev/null || true
+  pkill -9 -f '\.build/uitest/Wiles\.app/Contents/MacOS/Wiles'  2>/dev/null || true
+  pkill -9 -f 'Wiles\.app/Contents/MacOS/Wiles .*--ui-testing'  2>/dev/null || true
+  pkill -9 -x 'QuickLookUIService'                              2>/dev/null || true
+  pkill -9 -f 'qlmanage'                                        2>/dev/null || true
+  # Preview only if it's showing a file from our throwaway workspace.
+  if pgrep -qx Preview && lsof -p "$(pgrep -x Preview)" 2>/dev/null | grep -q 'WilesAXUITest-'; then
+    pkill -9 -x Preview 2>/dev/null || true
+  fi
+}
+trap teardown EXIT
+
 echo "==> ensure nothing from a previous run is alive"
-pkill -9 -f 'uitestrunner'                          2>/dev/null || true
-pkill -9 -f '\.build/uitest/Wiles\.app/Contents/MacOS/Wiles' 2>/dev/null || true
-pkill -9 -f 'Wiles\.app/Contents/MacOS/Wiles .*--ui-testing' 2>/dev/null || true
+teardown
 sleep 2
 LEFT="$(pgrep -lf 'uitestrunner|\.build/uitest/Wiles\.app/Contents/MacOS/Wiles' | grep -v run_ui_test || true)"
 if [[ -n "$LEFT" ]]; then
