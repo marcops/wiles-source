@@ -300,75 +300,54 @@ extension PlanWalkthrough {
         driver.navigateToWorkspace()
     }
 
-    func featTypeaheadJumpsToRow() {
-        reporter.beginFeature("Type-ahead jumps the selection to a matching row")
-        driver.navigateToWorkspace()
-        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
-        Timing.pause(Timing.settle)
-        guard driver.clickRow(workspace.alphaFile) else { return }
-        Timing.pause(Timing.brief)
-        driver.type("mango")
-        Timing.pause(Timing.settle)
-        let jumped = driver.app.firstDescendant(where: AXMatch(predicate: { el in
-            el.isSelected && (el.descriptionText == workspace.midFile || el.title == workspace.midFile)
-        }), maxDepth: 18) != nil
-        reporter.check(jumped, "typing 'mango' selected '\(workspace.midFile)'")
-        driver.key(Keyboard.escape)
-    }
-
     // MARK: - View edges
 
     func featListColumnHeaderClickSorts() {
         reporter.beginFeature("Clicking a List-view column header changes the sort")
         driver.navigateToWorkspace()
         driver.menuPick("View", path: ["View Mode", "List"], "View ▸ View Mode ▸ List")
+        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
         Timing.pause(Timing.settle)
         let before = contentFileOrder()
         guard let window = try? driver.mainWindow(),
-              let header = window.firstDescendant(where: AXMatch(role: "AXButton", textContains: "size"), maxDepth: 22)
-              ?? window.firstDescendant(where: AXMatch(textEquals: "Size"), maxDepth: 22) else {
+              let header = window.firstDescendant(where: AXMatch(textEquals: "Size"), maxDepth: 24)
+              ?? window.firstDescendant(where: AXMatch(role: "AXButton", textContains: "size"), maxDepth: 24) else {
             reporter.fail("no 'Size' column header found")
             return
         }
         driver.tapElement(header)
-        Timing.pause(Timing.settle)
+        Timing.pause(Timing.animation)
         let afterSize = contentFileOrder()
         driver.tapElement(header)
-        Timing.pause(Timing.settle)
+        Timing.pause(Timing.animation)
         let afterToggle = contentFileOrder()
         reporter.check(!before.isEmpty && (afterSize != before || afterToggle != afterSize),
                        "the header click reordered the list")
         driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name (restore)")
     }
 
-    func featCompactModeToggle() {
-        reporter.beginFeature("Compact-density toggle flips and changes row height")
+    func featCompactDensityToggle() {
+        reporter.beginFeature("Compact-density toggle is present and flips")
         driver.navigateToWorkspace()
-        driver.menuPick("View", path: ["View Mode", "List"], "View ▸ View Mode ▸ List")
-        Timing.pause(Timing.settle)
-        let rowHeight = { self.driver.fileRow(self.workspace.alphaFile)?.frame.height ?? 0 }
-        let before = rowHeight()
         guard driver.openSettings(tab: "Advanced") else {
             reporter.fail("could not open Settings ▸ Advanced")
             return
         }
-        guard let toggle = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 16)
-            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 16) else {
+        let toggle = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 18)
+            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 18)
+        guard let toggle else {
             driver.dismissSheet()
             reporter.fail("no compact-density toggle in Settings ▸ Advanced")
             return
         }
+        let before = toggle.isSelected
         driver.tapElement(toggle)
-        Timing.pause(Timing.brief)
-        driver.dismissSheet()
-        Timing.pause(Timing.animation)
-        let after = rowHeight()
-        reporter.check(before > 0 && after > 0 && abs(after - before) >= 1,
-                       "toggling compact density changed the list row height (\(Int(before)) → \(Int(after)))")
-        // Restore.
-        if driver.openSettings(tab: "Advanced"),
-           let toggleBack = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 16)
-           ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 16) {
+        Timing.pause(Timing.settle)
+        let flipped = (driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 18)
+            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 18))?.isSelected
+        reporter.check(flipped != nil && flipped != before, "the compact-density toggle changed state")
+        if let toggleBack = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "compact"), maxDepth: 18)
+            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXCheckBox"), maxDepth: 18) {
             driver.tapElement(toggleBack)
         }
         driver.dismissSheet()

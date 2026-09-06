@@ -6,6 +6,13 @@ extension PlanWalkthrough {
          workspace.zipFile, workspace.pdfOne, workspace.pdfTwo]
     }
 
+    func removeUntitled(prefixes: [String]) {
+        for name in (try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path)) ?? []
+        where prefixes.contains(where: { name.hasPrefix($0) }) {
+            try? FileManager.default.removeItem(at: workspace.url(name))
+        }
+    }
+
     /// The seeded files (not the folder) in on-screen order, top-to-bottom then left-to-right.
     /// SwiftUI's AX tree lists each row more than once, so de-duplicate keeping first occurrence.
     func contentFileOrder() -> [String] {
@@ -282,25 +289,25 @@ extension PlanWalkthrough {
     func featNewFolderInlineRename() {
         reporter.beginFeature("New Folder (⇧⌘N) + inline rename")
         driver.navigateToWorkspace()
+        defer { removeUntitled(prefixes: ["PlanFolder", "New Folder", "untitled folder"]) }
         driver.menuPick("File", itemContains: "New Folder", "File ▸ New Folder")
-        Timing.pause(Timing.settle)
+        Timing.pause(Timing.animation)
         guard driver.commitInlineRename(to: "PlanFolder") else { return }
         reporter.check(
             workspace.waitForExistence("PlanFolder", shouldExist: true, timeout: 5),
             "new folder committed to disk as 'PlanFolder'")
-        try? FileManager.default.removeItem(at: workspace.url("PlanFolder"))
     }
 
     func featNewFileInlineRename() {
         reporter.beginFeature("New File (⌘⌥N) + inline rename")
         driver.navigateToWorkspace()
+        defer { removeUntitled(prefixes: ["PlanFile", "untitled file", "New File"]) }
         driver.menuPick("File", itemContains: "New File", "File ▸ New File")
-        Timing.pause(Timing.settle)
+        Timing.pause(Timing.animation)
         guard driver.commitInlineRename(to: "PlanFile.txt") else { return }
         reporter.check(
             workspace.waitForExistence("PlanFile.txt", shouldExist: true, timeout: 5),
             "new file committed to disk as 'PlanFile.txt'")
-        try? FileManager.default.removeItem(at: workspace.url("PlanFile.txt"))
     }
 
     func featRenameUndoRedo() {

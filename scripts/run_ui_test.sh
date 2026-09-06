@@ -96,9 +96,10 @@ rm -rf "$HOME/Library/Saved Application State/${UITEST_BUNDLE_ID}.savedState" 2>
 # Seed English so the app paints English from the start; step 1 still exercises the language switch.
 defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_skipDeleteConfirmation -bool YES 2>/dev/null || true
-# Show the sidebar sections the walkthrough exercises — both default to hidden.
+# Sections the walkthrough exercises that default to hidden.
 defaults write "$UITEST_BUNDLE_ID" wiles_showDirectoryTree -bool YES 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_showNetworkAndCloud -bool YES 2>/dev/null || true
+defaults write "$UITEST_BUNDLE_ID" wiles_showTags -bool YES 2>/dev/null || true
 
 if [[ ${#MODE_ARGS[@]} -gt 0 ]]; then
   echo "==> run: ${MODE_ARGS[*]}"

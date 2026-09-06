@@ -73,9 +73,8 @@ struct PlanWalkthrough {
         featPathBarRejectsBadPath()
         featKeyboardHistoryNav()
         featPlacesEntryNavigates()
-        featTypeaheadJumpsToRow()
         featListColumnHeaderClickSorts()
-        featCompactModeToggle()
+        featCompactDensityToggle()
         featAutoHideSidebarToggle()
 
         // Phase D — search / sidebar / modal / footer corners

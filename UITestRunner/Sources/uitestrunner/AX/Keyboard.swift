@@ -47,7 +47,8 @@ enum Keyboard {
     static let upArrow = Key(code: 126)
 
     static func key(for character: Character) -> Key? {
-        keyCodes[Character(character.lowercased())].map(Key.init)
+        if let entry = KeyboardLayout.entry(for: character) { return Key(code: entry.code) }
+        return keyCodes[Character(character.lowercased())].map(Key.init)
     }
 
     static func press(_ key: Key, modifiers: Modifiers = [], pid: pid_t) {
@@ -60,11 +61,10 @@ enum Keyboard {
         press(key, modifiers: modifiers, pid: pid)
     }
 
-    // Symbols go via typeUnicode: the keycode map is US-ANSI, non-US layouts move "/" ";" ":".
     static func type(_ text: String, pid: pid_t) {
         let source = CGEventSource(stateID: .privateState)
         for character in text {
-            if isLayoutStable(character), let (code, needsShift) = keyStroke(for: character) {
+            if let (code, needsShift) = keyStroke(for: character) {
                 emit(source: source, keyCode: code, keyDown: true, flags: needsShift ? .maskShift : [], pid: pid)
                 emit(source: source, keyCode: code, keyDown: false, flags: needsShift ? .maskShift : [], pid: pid)
             } else {
@@ -75,11 +75,8 @@ enum Keyboard {
         Timing.pause(Timing.brief)
     }
 
-    private static func isLayoutStable(_ character: Character) -> Bool {
-        character == " " || (character.isASCII && (character.isLetter || character.isNumber))
-    }
-
     private static func keyStroke(for character: Character) -> (CGKeyCode, Bool)? {
+        if let entry = KeyboardLayout.entry(for: character) { return (entry.code, entry.shift) }
         if let code = keyCodes[character] { return (code, false) }
         if let lower = character.lowercased().first, let code = keyCodes[lower], character.isUppercase {
             return (code, true)

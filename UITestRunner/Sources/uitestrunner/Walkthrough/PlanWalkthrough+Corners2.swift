@@ -29,18 +29,38 @@ extension PlanWalkthrough {
         corner2Seeded.filter { driver.find(AXMatch(textEquals: $0), timeout: 1) != nil }.count
     }
 
-    /// A scope / "search contents" / "everywhere" control near the search field, if the app surfaces one.
-    private func searchScopeControl() -> AXElement? {
-        guard let window = try? driver.mainWindow() else { return nil }
-        return window.firstDescendant(where: AXMatch(role: "AXButton", predicate: { element in
-            let text = (element.title + " " + element.descriptionText + " " + element.identifier).lowercased()
-            return text.contains("everywhere") || text.contains("search contents")
-                || text.contains("this folder") || text.contains("scope")
-        }), maxDepth: 30)
+    /// The "Whole Mac" search toggle — flips search between this folder and a recursive home crawl.
+    private func wholeMacToggle() -> AXElement? {
+        (try? driver.mainWindow())?
+            .firstDescendant(where: AXMatch(role: "AXButton", textContains: "whole mac"), maxDepth: 30)
     }
 
-    /// Joined text of the few lowest on-screen static-text elements — the footer / status bar region.
+    /// Opens the search filter menu and clicks the first item whose text contains `fragment`.
+    @discardableResult
+    private func pickSearchFilter(_ fragment: String) -> Bool {
+        guard let button = driver.find(AXMatch(textContains: "search filters"), timeout: 3) else { return false }
+        driver.tapElement(button)
+        Timing.pause(Timing.settle)
+        if driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 16) == nil {
+            _ = tapMenuItem(containing: "scope")
+        }
+        let picked = tapMenuItem(containing: fragment)
+        driver.closeAnyMenu()
+        return picked
+    }
+
+    private func tapMenuItem(containing fragment: String) -> Bool {
+        guard let item = driver.app.waitForDescendant(
+            where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3, maxDepth: 16) else { return false }
+        return driver.tapElement(item)
+    }
+
+    /// The footer status string, read off its "Status Bar" element (bottom static-text scrape fallback).
     private func footerStatusText() -> String {
+        if let element = driver.find(AXMatch(identifier: "Status Bar"), timeout: 2),
+           let value = element.stringValue ?? (element.title.isEmpty ? nil : element.title) {
+            return value
+        }
         guard let window = try? driver.mainWindow() else { return "" }
         return window.allDescendants(where: AXMatch(role: "AXStaticText"), maxDepth: 30)
             .filter { !$0.frame.isEmpty }
@@ -53,7 +73,7 @@ extension PlanWalkthrough {
     // MARK: - Search
 
     func featSearchScopeToggle() {
-        reporter.beginFeature("Search scope control toggles the result set")
+        reporter.beginFeature("The Whole Mac toggle changes the search scope")
         driver.navigateToWorkspace()
         guard let field = revealSearchField() else {
             reporter.fail("search field never appeared")
@@ -62,18 +82,19 @@ extension PlanWalkthrough {
         driver.focusAndType(field, "uitest")
         Timing.pause(Timing.animation)
         let before = visibleSeededCount()
-        guard let scope = searchScopeControl() else {
-            reporter.fail("featSearchScopeToggle: no search scope control found in the AX tree")
+        guard let toggle = wholeMacToggle() else {
+            reporter.fail("featSearchScopeToggle: no 'Whole Mac' search-scope toggle in the AX tree")
             clearSearch(field)
             driver.navigateToWorkspace()
             return
         }
-        let tapped = driver.tapElement(scope)
+        let wasSelected = toggle.isSelected
+        let tapped = driver.tapElement(toggle)
         Timing.pause(Timing.animation)
         let after = visibleSeededCount()
-        reporter.check(tapped && (after != before || searchScopeControl() != nil),
-                       "scope control present and clickable (visible matches \(before) → \(after))")
-        if let scopeBack = searchScopeControl() { driver.tapElement(scopeBack) }
+        let flipped = (wholeMacToggle()?.isSelected ?? wasSelected) != wasSelected
+        reporter.check(tapped && flipped, "the Whole Mac toggle flipped its state (visible seeded matches \(before) → \(after))")
+        if let restore = wholeMacToggle(), restore.isSelected != wasSelected { driver.tapElement(restore) }
         clearSearch(field)
         driver.navigateToWorkspace()
     }
@@ -85,7 +106,13 @@ extension PlanWalkthrough {
             reporter.fail("search field never appeared")
             return
         }
-        driver.focusAndType(field, "kind:image")
+        if let toggle = wholeMacToggle(), toggle.isSelected { driver.tapElement(toggle); Timing.pause(Timing.brief) }
+        guard driver.focusAndType(field, "kind:image") else {
+            reporter.fail("featSearchKindFilterToken: could not type the 'kind:image' token into the field")
+            clearSearch(field)
+            driver.navigateToWorkspace()
+            return
+        }
         Timing.pause(Timing.animation)
         reporter.check(driver.fileRow(workspace.imageFile, timeout: 4) != nil, "the image row survives the kind:image token")
         reporter.check(driver.isGone(AXMatch(textEquals: workspace.alphaFile)), "the text file is filtered out")
@@ -94,48 +121,47 @@ extension PlanWalkthrough {
     }
 
     func featSearchShortContentTermWarning() {
-        reporter.beginFeature("A 1-character content search is handled gracefully")
+        reporter.beginFeature("A too-short content search explains itself")
         driver.navigateToWorkspace()
         guard let field = revealSearchField() else {
             reporter.fail("search field never appeared")
             return
         }
-        let scope = searchScopeControl()
-        if let scope { driver.tapElement(scope); Timing.pause(Timing.settle) }
+        guard pickSearchFilter("file content") else {
+            reporter.fail("featSearchShortContentTermWarning: could not switch the search scope to File Content")
+            clearSearch(field)
+            driver.navigateToWorkspace()
+            return
+        }
+        Timing.pause(Timing.settle)
         driver.focusAndType(field, "a")
         Timing.pause(Timing.animation)
-        let warned = driver.find(AXMatch(textContains: "too short"), timeout: 3) != nil
-            || driver.find(AXMatch(textContains: "at least"), timeout: 1) != nil
-            || driver.find(AXMatch(textContains: "type more"), timeout: 1) != nil
-        if warned {
-            reporter.check(true, "a 1-character content term shows an explanatory message")
-        } else {
-            reporter.check((try? driver.mainWindow()) != nil, "short term handled without error (no warning surfaced, results just shown)")
-        }
-        if let scopeBack = searchScopeControl(), scope != nil { driver.tapElement(scopeBack) }
+        let warned = driver.find(AXMatch(textContains: "at least 3 characters"), timeout: 3) != nil
+            || driver.find(AXMatch(textContains: "search inside files"), timeout: 1) != nil
+        reporter.check(warned, "a 1-character content term shows the 'type at least 3 characters' notice")
+        _ = pickSearchFilter("file name")
         clearSearch(field)
         driver.navigateToWorkspace()
     }
 
     func featQuickFilterImages() {
-        reporter.beginFeature("An 'Images' quick filter narrows the list")
+        reporter.beginFeature("The 'Filter Images' quick filter narrows the list")
         driver.navigateToWorkspace()
-        let field = revealSearchField()
-        guard let window = try? driver.mainWindow() else {
-            reporter.fail("no main window")
-            clearSearch(field)
+        guard let field = revealSearchField() else {
+            reporter.fail("search field never appeared")
             return
         }
-        guard let imagesButton = window.firstDescendant(where: AXMatch(role: "AXButton", textContains: "image"), maxDepth: 24) else {
-            reporter.fail("no Images quick filter surfaced")
+        if let toggle = wholeMacToggle(), toggle.isSelected { driver.tapElement(toggle); Timing.pause(Timing.brief) }
+        guard pickSearchFilter("filter images") else {
+            reporter.fail("featQuickFilterImages: no 'Filter Images' item in the search filter menu")
             clearSearch(field)
             driver.navigateToWorkspace()
             return
         }
-        driver.tapElement(imagesButton)
         Timing.pause(Timing.animation)
         reporter.check(driver.fileRow(workspace.imageFile, timeout: 4) != nil, "the image row stays after the Images filter")
         reporter.check(driver.isGone(AXMatch(textEquals: workspace.alphaFile)), "non-image rows are hidden by the Images filter")
+        _ = pickSearchFilter("filter images")
         clearSearch(field)
         driver.navigateToWorkspace()
     }
@@ -146,29 +172,29 @@ extension PlanWalkthrough {
         reporter.beginFeature("Add a folder to Favorites, then remove it")
         driver.navigateToWorkspace()
         let favName = workspace.subFolder
-        func favMatches() -> Int {
+        // Only sidebar rows carry an accessibility identifier equal to the item name.
+        func favRowCount() -> Int {
             (try? driver.mainWindow())?
-                .allDescendants(where: AXMatch(role: "AXButton", textEquals: favName), maxDepth: 30).count ?? 0
+                .allDescendants(where: AXMatch(role: "AXButton", identifier: favName), maxDepth: 40).count ?? 0
         }
-        let before = favMatches()
-        var added = driver.openContextItem(onFileRow: favName, containing: "favorite", "context ▸ Add to Favorites")
-        if !added { added = driver.menuPick("File", itemContains: "favorite", "File ▸ Add to Favorites") }
-        guard added else {
-            reporter.fail("featAddRemoveFavorite: no 'Add to Favorites' affordance found in the AX tree")
+        let before = favRowCount()
+        guard driver.openContextItem(onFileRow: favName, containing: "add to favorites", "context ▸ Add to Favorites") else {
+            reporter.fail("featAddRemoveFavorite: no 'Add to Favorites' item on the folder's context menu")
+            driver.closeAnyMenu()
+            driver.navigateToWorkspace()
             return
         }
         Timing.pause(Timing.animation)
-        let afterAdd = favMatches()
-        reporter.check(afterAdd > before, "a Favorites row appeared for '\(favName)' (\(before) → \(afterAdd) matches)")
+        let afterAdd = favRowCount()
+        reporter.check(afterAdd > before, "a sidebar Favorites row appeared for '\(favName)' (\(before) → \(afterAdd))")
 
-        var removed = driver.openContextItem(onFileRow: favName, containing: "remove from favorites", "context ▸ Remove from Favorites")
-        if !removed { removed = driver.openContextItem(onFileRow: favName, containing: "favorite", "context ▸ Favorites toggle") }
-        if !removed { removed = driver.menuPick("File", itemContains: "favorite", "File ▸ Remove from Favorites") }
+        let removed = driver.openContextItem(onFileRow: favName, containing: "remove from favorites", "context ▸ Remove from Favorites")
         Timing.pause(Timing.animation)
-        let afterRemove = favMatches()
-        reporter.check(removed && afterRemove < afterAdd, "removing the favorite dropped the row again (\(afterAdd) → \(afterRemove) matches)")
-        if favMatches() > before {
-            _ = driver.openContextItem(onFileRow: favName, containing: "favorite", "context ▸ Favorites toggle (cleanup)")
+        let afterRemove = favRowCount()
+        reporter.check(removed && afterRemove < afterAdd, "removing the favorite dropped the sidebar row (\(afterAdd) → \(afterRemove))")
+
+        if favRowCount() > before {
+            _ = driver.openContextItem(onFileRow: favName, containing: "remove from favorites", "context ▸ Remove from Favorites (cleanup)")
         }
         driver.closeAnyMenu()
         driver.navigateToWorkspace()
@@ -177,23 +203,37 @@ extension PlanWalkthrough {
     func featTagFilterNavigates() {
         reporter.beginFeature("Clicking a sidebar tag filters the list to tagged files")
         driver.navigateToWorkspace()
+        // The Tags sidebar section (and the row context-menu Tags submenu) is off by default.
+        let tagsEnabled = driver.menuPick("View", path: ["Sidebar", "Tags"], "View ▸ Sidebar ▸ Tags (show)")
+        Timing.pause(Timing.animation)
+
+        func restoreTagsPref() {
+            if tagsEnabled { driver.menuPick("View", path: ["Sidebar", "Tags"], "View ▸ Sidebar ▸ Tags (restore)") }
+        }
+
         guard driver.openContextItem(onFileRow: workspace.alphaFile, containing: "tags", "context ▸ Tags") else {
             reporter.fail("featTagFilterNavigates: no Tags submenu on the row context menu")
+            restoreTagsPref()
             return
         }
         guard driver.pickContextItem(containing: "red", "Tags ▸ Red") else {
             driver.closeAnyMenu()
             reporter.fail("featTagFilterNavigates: no 'Red' item in the Tags submenu")
+            restoreTagsPref()
             return
         }
         Timing.pause(Timing.animation)
-        guard let window = try? driver.mainWindow(),
-              let tagRow = window.firstDescendant(where: AXMatch(role: "AXButton", textContains: "red"), maxDepth: 24) else {
-            reporter.fail("featTagFilterNavigates: no Red tag row in the sidebar")
+
+        let tagRow = driver.find(AXMatch(role: "AXButton", identifier: "Tag_Red"), timeout: 4)
+            ?? driver.find(AXMatch(identifier: "Tag_Red"), timeout: 1)
+        guard let tagRow else {
+            reporter.fail("featTagFilterNavigates: no Red tag row (Tag_Red) in the sidebar")
             driver.navigateToWorkspace()
-            _ = driver.openContextItem(onFileRow: workspace.alphaFile, containing: "tags", "cleanup Tags")
-            _ = driver.pickContextItem(containing: "red", "cleanup Tags ▸ Red")
+            if driver.openContextItem(onFileRow: workspace.alphaFile, containing: "tags", "cleanup Tags") {
+                _ = driver.pickContextItem(containing: "red", "cleanup Tags ▸ Red")
+            }
             driver.closeAnyMenu()
+            restoreTagsPref()
             driver.navigateToWorkspace()
             return
         }
@@ -209,6 +249,7 @@ extension PlanWalkthrough {
             _ = driver.pickContextItem(containing: "red", "cleanup Tags ▸ Red (toggle off)")
         }
         driver.closeAnyMenu()
+        restoreTagsPref()
         driver.navigateToWorkspace()
     }
 
@@ -221,34 +262,36 @@ extension PlanWalkthrough {
         }
         driver.focusAndType(field, "alpha")
         Timing.pause(Timing.animation)
-        let smartButton = (try? driver.mainWindow())?
-            .firstDescendant(where: AXMatch(role: "AXButton", textContains: "smart"), maxDepth: 24)
-            ?? driver.find(AXMatch(identifier: "SaveSmartFolder"), timeout: 2)
-        guard let smartButton else {
-            reporter.fail("featSmartFolderContextMenu: no 'Save as Smart Folder' affordance found in the AX tree")
+        guard driver.tap(AXMatch(textContains: "save as smart folder"), "Save as Smart Folder", timeout: 4) else {
             clearSearch(field)
             driver.navigateToWorkspace()
             return
         }
-        driver.tapElement(smartButton)
-        if driver.waitForSheet(timeout: 3) {
-            if let nameField = driver.sheet()?.firstDescendant(where: AXMatch(role: "AXTextField"), maxDepth: 16) {
-                driver.focusAndType(nameField, "CornerSmart")
-            }
-            driver.key(Keyboard.returnKey)
-            Timing.pause(Timing.animation)
-            driver.dismissSheet()
+        guard driver.waitForSheet() else {
+            reporter.fail("featSmartFolderContextMenu: Save Smart Folder sheet did not open")
+            clearSearch(field)
+            driver.navigateToWorkspace()
+            return
         }
+        if let nameField = driver.sheet()?.firstDescendant(where: AXMatch(role: "AXTextField"), maxDepth: 16) {
+            driver.focusAndType(nameField, "CornerSmart")
+        }
+        let saveButton = driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "save search"), maxDepth: 16)
+            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "save"), maxDepth: 16)
+        if let saveButton { driver.tapElement(saveButton) } else { driver.key(Keyboard.returnKey) }
+        Timing.pause(Timing.animation)
+        driver.dismissSheet()
         clearSearch(field)
+
         let row = driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart"), timeout: 4)
         reporter.check(row != nil, "the saved smart folder 'CornerSmart' shows in the sidebar")
         if row != nil {
             driver.rightClick(AXMatch(role: "AXButton", textEquals: "CornerSmart"), "CornerSmart (context)")
             Timing.pause(Timing.settle)
-            let offersEdit = driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "delete"), maxDepth: 14) != nil
+            let offersEdit = driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "delete smart folder"), maxDepth: 14) != nil
                 || driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "rename"), maxDepth: 14) != nil
             reporter.check(offersEdit, "its context menu offers rename or delete")
-            _ = driver.pickContextItem(containing: "delete", "CornerSmart context ▸ Delete")
+            _ = driver.pickContextItem(containing: "delete smart folder", "CornerSmart context ▸ Delete Smart Folder")
             _ = driver.confirmDialog(pressing: "delete") || driver.confirmDialog(pressing: "ok")
             Timing.pause(Timing.animation)
             reporter.check(driver.isGone(AXMatch(role: "AXButton", textEquals: "CornerSmart"), within: 3),
@@ -256,7 +299,7 @@ extension PlanWalkthrough {
         }
         if driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart"), timeout: 1) != nil {
             driver.rightClick(AXMatch(role: "AXButton", textEquals: "CornerSmart"), "CornerSmart (cleanup)")
-            _ = driver.pickContextItem(containing: "delete", "CornerSmart context ▸ Delete (cleanup)")
+            _ = driver.pickContextItem(containing: "delete smart folder", "CornerSmart context ▸ Delete (cleanup)")
             _ = driver.confirmDialog(pressing: "delete") || driver.confirmDialog(pressing: "ok")
         }
         driver.closeAnyMenu()
@@ -302,17 +345,26 @@ extension PlanWalkthrough {
             return
         }
         Timing.pause(Timing.brief)
-        driver.openRow(workspace.subFolder, expectRow: "")
+        guard driver.openRow(workspace.subFolder, expectRow: workspace.alphaFile),
+              driver.isGone(AXMatch(textEquals: workspace.subFolder), within: 2) else {
+            reporter.fail("featMoveCollisionSheet: could not open the 'sub-uitest' folder")
+            try? FileManager.default.removeItem(at: planted)
+            driver.navigateToWorkspace()
+            return
+        }
         driver.rightClickContentArea()
         _ = driver.pickContextItem(containing: "paste", "content-area context ▸ Paste")
             || driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
-        let sheetShown = driver.waitForSheet(timeout: 5)
+        let sheetShown = driver.waitForSheet(timeout: 6)
         let sheet = driver.sheet()
-        let offersChoice = sheet?.firstDescendant(where: AXMatch(textContains: "keep both"), maxDepth: 18) != nil
-            || sheet?.firstDescendant(where: AXMatch(textContains: "replace"), maxDepth: 18) != nil
-            || sheet?.firstDescendant(where: AXMatch(textContains: "already exists"), maxDepth: 18) != nil
-        reporter.check(sheetShown && offersChoice, "a name-collision sheet offered replace / keep both / cancel")
-        if let cancel = sheet?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "cancel"), maxDepth: 18) {
+        let sheetText = (sheet?.allDescendants(where: AXMatch(role: "AXStaticText"), maxDepth: 24) ?? [])
+            .compactMap { $0.stringValue ?? ($0.title.isEmpty ? nil : $0.title) }
+            .joined(separator: " ").lowercased()
+        let offersChoice = sheetText.contains("already exists") || sheetText.contains("keep both")
+            || sheet?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "keep both"), maxDepth: 24) != nil
+            || sheet?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "replace"), maxDepth: 24) != nil
+        reporter.check(sheetShown && offersChoice, "a name-collision sheet offered Replace / Keep Both / Cancel")
+        if let cancel = sheet?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "cancel"), maxDepth: 24) {
             driver.tapElement(cancel)
         } else {
             driver.key(Keyboard.escape)
@@ -340,8 +392,8 @@ extension PlanWalkthrough {
         driver.clickRow(workspace.betaFile, modifiers: .command)
         Timing.pause(Timing.settle)
         let twoSelected = footerStatusText()
-        let changed = oneSelected != twoSelected || twoSelected.contains("2")
-        reporter.check(changed, "selecting a second row changed the footer text ('\(oneSelected)' → '\(twoSelected)')")
+        reporter.check(!oneSelected.isEmpty && oneSelected != twoSelected && twoSelected.contains("2 / "),
+                       "selecting a second row updated the footer count ('\(oneSelected)' → '\(twoSelected)')")
         driver.key(Keyboard.escape)
         Timing.pause(Timing.brief)
         driver.navigateToWorkspace()
@@ -350,21 +402,26 @@ extension PlanWalkthrough {
     func featPreviewPaneFollowsSelection() {
         reporter.beginFeature("The preview pane updates as the selection changes")
         driver.navigateToWorkspace()
-        guard driver.menuPick("View", itemContains: "Show Preview", "View ▸ Show Preview") else {
-            reporter.fail("featPreviewPaneFollowsSelection: no 'Show Preview' item in the View menu")
+        _ = driver.menuPick("View", itemContains: "Show Preview", "View ▸ Show Preview")
+        Timing.pause(Timing.animation)
+        guard driver.menuHasItem("View", containing: "Hide Preview") else {
+            reporter.fail("featPreviewPaneFollowsSelection: the preview pane never opened")
             return
         }
-        Timing.pause(Timing.animation)
+        func mentions(_ fragment: String) -> Int {
+            (try? driver.mainWindow())?
+                .allDescendants(where: AXMatch(textContains: fragment), maxDepth: 30).count ?? 0
+        }
         driver.clickRow(workspace.alphaFile)
         Timing.pause(Timing.settle)
-        let alphaMentions = (try? driver.mainWindow())?
-            .allDescendants(where: AXMatch(textContains: "alpha-uitest"), maxDepth: 30).count ?? 0
-        reporter.check(alphaMentions >= 2, "the selected file's name shows outside its row (\(alphaMentions) mentions)")
+        let alphaWhileSelected = mentions("alpha-uitest")
         driver.clickRow(workspace.betaFile)
         Timing.pause(Timing.settle)
-        let betaShown = (try? driver.mainWindow())?
-            .firstDescendant(where: AXMatch(textContains: "beta-uitest"), maxDepth: 30) != nil
-        reporter.check(betaShown, "selecting beta updated the preview")
+        let betaWhileSelected = mentions("beta-uitest")
+        let alphaAfterSwitch = mentions("alpha-uitest")
+        reporter.check(
+            alphaWhileSelected >= 2 && betaWhileSelected >= 2 && betaWhileSelected > alphaAfterSwitch,
+            "the pane shows the selected file's name and follows the selection (alpha \(alphaWhileSelected)→\(alphaAfterSwitch), beta \(betaWhileSelected))")
         driver.menuPick("View", itemContains: "Hide Preview", "View ▸ Hide Preview (restore)")
         Timing.pause(Timing.animation)
         driver.navigateToWorkspace()
