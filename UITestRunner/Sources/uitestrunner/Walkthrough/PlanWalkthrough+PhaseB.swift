@@ -184,7 +184,7 @@ extension PlanWalkthrough {
         reporter.beginFeature("Smart Folder — save a query and open it")
         driver.navigateToWorkspace()
         if driver.find(AXMatch(identifier: "SearchTextField"), timeout: 1) == nil {
-            driver.tap(AXMatch(identifier: "magnifyingglass"), "search", timeout: 3)
+            _ = driver.activateSearch()
             Timing.pause(Timing.settle)
         }
         if let field = driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4) {
@@ -192,7 +192,7 @@ extension PlanWalkthrough {
             Timing.pause(Timing.animation)
         }
         guard driver.tap(AXMatch(textContains: "save as smart folder"), "Save as Smart Folder", timeout: 4) else {
-            driver.tap(AXMatch(identifier: "magnifyingglass"), "search close", timeout: 3)
+            driver.deactivateSearch()
             return
         }
         guard driver.waitForSheet() else {
@@ -208,7 +208,7 @@ extension PlanWalkthrough {
         Timing.pause(Timing.animation)
         driver.dismissSheet()
 
-        driver.tap(AXMatch(identifier: "magnifyingglass"), "search close", timeout: 3)
+        driver.deactivateSearch()
         Timing.pause(Timing.settle)
         let row = driver.find(AXMatch(role: "AXButton", textEquals: "PlanSmart"), timeout: 4)
         reporter.check(row != nil, "the saved smart folder 'PlanSmart' shows in the sidebar")

@@ -188,7 +188,7 @@ extension PlanWalkthrough {
         reporter.beginFeature("Search with no match shows the empty state, clearing restores the list")
         driver.navigateToWorkspace()
         if driver.find(AXMatch(identifier: "SearchTextField"), timeout: 1) == nil {
-            driver.tap(AXMatch(identifier: "magnifyingglass"), "search", timeout: 3)
+            _ = driver.activateSearch()
             Timing.pause(Timing.settle)
         }
         guard let field = driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4) else {

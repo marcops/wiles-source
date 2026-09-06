@@ -86,6 +86,23 @@ final class WilesDriver {
         app.waitForDescendant(where: match, timeout: timeout)
     }
 
+    // The search button carries no AX identifier — reach the field via ⌘F / Edit ▸ Find instead.
+    @discardableResult
+    func activateSearch() -> AXElement? {
+        if let field = find(AXMatch(identifier: "SearchTextField"), timeout: 1) { return field }
+        chord("f", .command)
+        Timing.pause(Timing.settle)
+        if let field = find(AXMatch(identifier: "SearchTextField"), timeout: 3) { return field }
+        menuPick("Edit", itemContains: "Find", "Edit ▸ Find")
+        return find(AXMatch(identifier: "SearchTextField"), timeout: 4)
+    }
+
+    func deactivateSearch() {
+        guard find(AXMatch(identifier: "SearchTextField"), timeout: 1) != nil else { return }
+        key(Keyboard.escape)
+        Timing.pause(Timing.brief)
+    }
+
     // Fast "it disappeared" check — bails the moment it's absent instead of waiting the timeout.
     func isGone(_ match: AXMatch, within timeout: TimeInterval = 1.2) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)

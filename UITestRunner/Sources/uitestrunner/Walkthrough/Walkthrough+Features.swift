@@ -73,7 +73,7 @@ extension Walkthrough {
         reporter.beginFeature("Search")
         driver.navigateToWorkspace()
         if driver.find(AXMatch(identifier: "SearchTextField"), timeout: 1) == nil {
-            driver.tap(AXMatch(identifier: "magnifyingglass"), "search activate button", timeout: 3)
+            _ = driver.activateSearch()
             Timing.pause(Timing.settle)
         }
         guard let field = driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4) else {
@@ -85,7 +85,7 @@ extension Walkthrough {
         reporter.check(driver.fileRow(workspace.betaFile, timeout: 1.5) == nil, "'\(workspace.betaFile)' filtered out by search 'alpha'")
         reporter.check(driver.fileRow(workspace.alphaFile, timeout: 3) != nil, "'\(workspace.alphaFile)' still matches search 'alpha'")
 
-        driver.tap(AXMatch(identifier: "magnifyingglass"), "search toggle button (close)", timeout: 3)
+        driver.deactivateSearch()
         Timing.pause(Timing.animation)
         driver.navigateToWorkspace()
         reporter.check(driver.fileRow(workspace.betaFile, timeout: 4) != nil, "'\(workspace.betaFile)' returns after leaving search")
@@ -324,7 +324,7 @@ extension Walkthrough {
         reporter.beginFeature("Smart Folders")
         driver.navigateToWorkspace()
         if driver.find(AXMatch(identifier: "SearchTextField"), timeout: 1) == nil {
-            driver.tap(AXMatch(identifier: "magnifyingglass"), "search activate button", timeout: 3)
+            _ = driver.activateSearch()
             Timing.pause(Timing.settle)
         }
         if let field = driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4) {
@@ -334,12 +334,12 @@ extension Walkthrough {
             Timing.pause(Timing.animation)
         }
         guard driver.tap(AXMatch(textContains: "save as smart folder"), "'Save as Smart Folder' control", timeout: 4) else {
-            driver.tap(AXMatch(identifier: "magnifyingglass"), "search close", timeout: 3)
+            driver.deactivateSearch()
             return
         }
         reporter.check(driver.waitForSheet(), "Save Smart Folder sheet opened")
         reporter.check(driver.dismissSheet(), "Save Smart Folder sheet dismissed")
-        driver.tap(AXMatch(identifier: "magnifyingglass"), "search close", timeout: 3)
+        driver.deactivateSearch()
         Timing.pause(Timing.settle)
         driver.navigateToWorkspace()
     }

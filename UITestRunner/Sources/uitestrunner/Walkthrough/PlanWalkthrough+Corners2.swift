@@ -11,7 +11,7 @@ extension PlanWalkthrough {
     /// Reveals the search field (toggling the magnifier if needed) and returns it.
     private func revealSearchField() -> AXElement? {
         if driver.find(AXMatch(identifier: "SearchTextField"), timeout: 1) == nil {
-            driver.tap(AXMatch(identifier: "magnifyingglass"), "reveal search", timeout: 3)
+            _ = driver.activateSearch()
             Timing.pause(Timing.settle)
         }
         return driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4)
