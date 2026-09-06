@@ -27,6 +27,16 @@ final class WilesDriver {
         cachedWindow = nil
     }
 
+    // Between the two suites of a --all run: no relaunch, just a clean slate.
+    func resetForNextSuite() {
+        dismissSheet()
+        closeAnyMenu()
+        cachedWindow = nil
+        process.activate()
+        Timing.pause(Timing.settle)
+        navigateToWorkspace()
+    }
+
     // MARK: - Window
 
     /// A window this small is Wiles mid-construction — the SwiftUI hierarchy isn't laid out yet, so
@@ -302,8 +312,10 @@ final class WilesDriver {
     func openContextItem(onFileRow name: String, containing fragment: String, _ label: String) -> Bool {
         for attempt in 0 ..< 2 {
             closeAnyMenu()
-            _ = clickRow(name, timeout: 5)
-            Timing.pause(Timing.brief)
+            if let row = find(AXMatch(textEquals: name), timeout: 5), !row.frame.isEmpty {
+                Mouse.click(center: row.frame, pid: pid)
+                Timing.pause(Timing.brief)
+            }
             guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
             Timing.pause(Timing.settle)
             if app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 12) != nil {

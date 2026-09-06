@@ -105,7 +105,11 @@ if CommandLine.arguments.contains("--screenshots") {
     exit(0)
 }
 
-if CommandLine.arguments.contains("--plan") {
+if CommandLine.arguments.contains("--all") {
+    Walkthrough(driver: driver).run()
+    driver.resetForNextSuite()
+    PlanWalkthrough(driver: driver).run()
+} else if CommandLine.arguments.contains("--plan") {
     PlanWalkthrough(driver: driver).run()
 } else {
     Walkthrough(driver: driver).run()

@@ -26,6 +26,7 @@ for arg in "$@"; do
     --no-build) NO_BUILD=1 ;;
     --screenshots) MODE_ARGS+=(--screenshots) ;;
     --plan) MODE_ARGS+=(--plan) ;;
+    --all) MODE_ARGS+=(--all) ;;
     --fast) MODE_ARGS+=(--fast) ;;
     --slow) MODE_ARGS+=(--slow) ;;
     --scale|--only|--out) MODE_ARGS+=("$arg") ;;
