@@ -132,11 +132,13 @@ extension PlanWalkthrough {
         }
         driver.tapElement(root)
         Timing.pause(Timing.animation)
-        let childNode = ["System", "Users", "Library", "Applications", "usr", "bin", "private"].first { name in
-            driver.find(AXMatch(role: "AXButton", textEquals: name), timeout: 1) != nil
+        var childLabel = "none"
+        for name in ["System", "Users", "Library", "Applications", "usr", "bin", "private"]
+            where driver.find(AXMatch(role: "AXButton", textEquals: name), timeout: 1) != nil {
+            childLabel = name
+            break
         }
-        let childLabel: String = childNode ?? "none"
-        reporter.check(childNode != nil, "expanding the tree root revealed child directory nodes (e.g. '\(childLabel)')")
+        reporter.check(childLabel != "none", "expanding the tree root revealed child directory nodes (e.g. '\(childLabel)')")
         // Collapse the root again so the sidebar stays lean for later steps.
         if let node = driver.find(AXMatch(role: "AXButton", textContains: "macintosh hd"), timeout: 1) {
             driver.tapElement(node)
