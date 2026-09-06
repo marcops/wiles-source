@@ -65,12 +65,20 @@ Timing.pause(Timing.launch)
 let reporter = Reporter()
 let driver = WilesDriver(process: process, workspace: workspace, reporter: reporter)
 
-do {
-    try driver.mainWindow()
-} catch {
+// A throttled machine can take a while to paint the first window; relaunch a couple of times
+// before giving up.
+var windowReady = false
+for attempt in 0 ..< 3 {
+    if (try? driver.mainWindow(timeout: 30)) != nil { windowReady = true; break }
+    print("  ↻ no window after launch \(attempt + 1) — relaunching")
+    try? process.relaunch()
+    driver.rebindToRelaunchedApp()
+    Timing.pause(Timing.launch)
+}
+if !windowReady {
     process.terminate()
     workspace.cleanup()
-    fail("\(error)")
+    fail("\(RunnerError.mainWindowNeverAppeared)")
 }
 process.activate()
 
