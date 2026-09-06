@@ -86,6 +86,8 @@ struct PlanWalkthrough {
         reporter.check(
             driver.menuBarTitles().contains("Go") || driver.setLanguage(to: "English", expectMenu: "Go"),
             "app is in English")
+        driver.dismissSheet()
+        driver.navigateToWorkspace()
 
         for (_, step) in selected {
             runBounded({ self.driver.recover(); step() }, seconds: 90)

@@ -197,13 +197,12 @@ extension PlanWalkthrough {
     func featTagFilterNavigates() {
         reporter.beginFeature("Clicking a sidebar tag filters the list to tagged files")
         driver.navigateToWorkspace()
-        // The Tags sidebar section (and the row context-menu Tags submenu) is off by default.
-        let tagsEnabled = driver.menuPick("View", path: ["Sidebar", "Tags"], "View ▸ Sidebar ▸ Tags (show)")
-        Timing.pause(Timing.animation)
-
-        func restoreTagsPref() {
-            if tagsEnabled { driver.menuPick("View", path: ["Sidebar", "Tags"], "View ▸ Sidebar ▸ Tags (restore)") }
+        // wiles_showTags is seeded on by the run script; make sure the section is visible.
+        if driver.find(AXMatch(identifier: "Section_TAGS"), timeout: 2) == nil {
+            driver.menuPick("View", path: ["Sidebar", "Tags"], "View ▸ Sidebar ▸ Tags (show)")
+            Timing.pause(Timing.animation)
         }
+        func restoreTagsPref() {}
 
         guard driver.openContextItem(onFileRow: workspace.alphaFile, containing: "tags", "context ▸ Tags") else {
             reporter.fail("featTagFilterNavigates: no Tags submenu on the row context menu")

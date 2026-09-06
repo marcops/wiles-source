@@ -479,8 +479,13 @@ final class WilesDriver {
     func navigateToPath(_ path: String, expectRow: String = "", timeout: TimeInterval = 8) -> Bool {
         for attempt in 0 ..< 3 {
             closeAnyMenu()
-            menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
+            process.activate()
+            chord("l", .command) // Go ▸ Go to Folder
             Timing.pause(Timing.settle)
+            if find(AXMatch(identifier: "PathBarTextField"), timeout: 1) == nil {
+                menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
+                Timing.pause(Timing.settle)
+            }
             guard let field = find(AXMatch(identifier: "PathBarTextField"), timeout: 4) else {
                 if attempt == 2 { reporter.fail("PathBarTextField not found after Go to Folder") }
                 continue
