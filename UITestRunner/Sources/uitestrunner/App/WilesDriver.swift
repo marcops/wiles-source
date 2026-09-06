@@ -9,7 +9,7 @@ final class WilesDriver {
     let workspace: TempWorkspace
     let reporter: Reporter
 
-    let app: AXElement
+    private(set) var app: AXElement
     private var cachedWindow: AXElement?
 
     var pid: pid_t { process.pid }
@@ -19,6 +19,12 @@ final class WilesDriver {
         self.workspace = workspace
         self.reporter = reporter
         app = AXElement.application(pid: process.pid)
+    }
+
+    /// Re-bind to the current process pid after a relaunch, and drop the stale window cache.
+    func rebindToRelaunchedApp() {
+        app = AXElement.application(pid: process.pid)
+        cachedWindow = nil
     }
 
     // MARK: - Window

@@ -44,10 +44,7 @@ extension Screenshots {
             }),
 
             Shot(slug: "batch-rename", stage: {
-                driver.clickRow(workspaceAlpha)
-                driver.clickRow(workspaceBeta, modifiers: .command)
-                Timing.pause(Timing.brief)
-                driver.openContextItem(onFileRow: workspaceBeta, containing: "rename", "rename")
+                stageBatchRename()
             }, cleanup: { driver.dismissSheet() }),
 
             Shot(slug: "image-converter", stage: {
@@ -150,5 +147,26 @@ extension Screenshots {
     private func deactivateSearch() {
         driver.tap(AXMatch(identifier: "magnifyingglass"), "search close", timeout: 3)
         Timing.pause(Timing.settle)
+    }
+
+    /// Land a real 2-row selection then right-click it directly — `openContextItem`'s internal
+    /// Escape clears the selection, collapsing "Rename" to the single-file inline case.
+    private func stageBatchRename() {
+        for attempt in 0 ..< 3 {
+            driver.closeAnyMenu()
+            driver.clickRow(workspaceAlpha)
+            Timing.pause(Timing.brief)
+            if attempt == 1 {
+                driver.key(Keyboard.downArrow, .shift)
+            } else {
+                driver.clickRow(workspaceBeta, modifiers: .command)
+            }
+            Timing.pause(Timing.brief)
+            driver.rightClick(AXMatch(textEquals: workspaceBeta), "beta row (context)")
+            Timing.pause(Timing.settle)
+            _ = driver.pickContextItem(containing: "rename", "rename")
+            if driver.waitForSheet(timeout: 2) { return }
+            driver.dismissSheet()
+        }
     }
 }

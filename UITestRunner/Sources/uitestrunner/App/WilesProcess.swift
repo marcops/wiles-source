@@ -29,6 +29,23 @@ final class WilesProcess {
         defaults.waitUntilExit()
     }
 
+    /// Writes a key into the isolated defaults domain before (re)launch — used to force appearance
+    /// for the screenshot passes without driving the Settings sheet.
+    func writeDefault(_ key: String, _ value: String) {
+        let defaults = Process()
+        defaults.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
+        defaults.arguments = ["write", Self.bundleID, key, value]
+        defaults.standardOutput = FileHandle.nullDevice
+        defaults.standardError = FileHandle.nullDevice
+        try? defaults.run()
+        defaults.waitUntilExit()
+    }
+
+    func relaunch() throws {
+        terminate()
+        try launch()
+    }
+
     /// Reads a key back from the isolated defaults domain — ground truth for "did this preference
     /// actually persist", without depending on an AX value read.
     func readDefault(_ key: String) -> String? {

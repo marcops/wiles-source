@@ -21,21 +21,23 @@ struct Screenshots {
     }
 
     func run() {
-        _ = try? driver.mainWindow()
-        driver.process.activate()
-        Timing.pause(Timing.settle)
-        driver.navigateToWorkspace()
-
         let selected = onlySlug.map { slug in shots().filter { $0.slug == slug } } ?? shots()
         for mode in ["light", "dark"] {
             print("\n=== \(mode.uppercased()) pass ===")
-            setAppearance(mode == "dark" ? "Dark" : "Light")
+            // Force appearance by seeding the pref and relaunching — the Settings-sheet route is
+            // too flaky when the app is being throttled.
+            driver.process.writeDefault("wiles_appAppearance", mode == "dark" ? "Dark" : "Light")
+            try? driver.process.relaunch()
+            driver.rebindToRelaunchedApp()
+            _ = try? driver.mainWindow()
+            driver.process.activate()
+            Timing.pause(Timing.settle)
+            driver.navigateToWorkspace()
             resizeWindow()
             for shot in selected {
                 capture(shot, mode: mode)
             }
         }
-        setAppearance("System")
         print("\nScreenshots written to \(outputDir.path)")
     }
 
@@ -63,15 +65,7 @@ struct Screenshots {
         Timing.pause(Timing.brief)
     }
 
-    // MARK: - Appearance / window
-
-    private func setAppearance(_ option: String) {
-        guard driver.openSettings(tab: "Appearance") else { return }
-        driver.selectThemeOption(option)
-        Timing.pause(Timing.animation)
-        driver.dismissSheet()
-        Timing.pause(Timing.animation)
-    }
+    // MARK: - Window
 
     private func resizeWindow() {
         if let window = try? driver.mainWindow() {
