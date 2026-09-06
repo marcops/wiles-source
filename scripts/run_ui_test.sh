@@ -28,8 +28,8 @@ for arg in "$@"; do
     --plan) MODE_ARGS+=(--plan) ;;
     --fast) MODE_ARGS+=(--fast) ;;
     --slow) MODE_ARGS+=(--slow) ;;
-    --scale) MODE_ARGS+=(--scale) ;;
-    [0-9]*) MODE_ARGS+=("$arg") ;;
+    --scale|--only|--out) MODE_ARGS+=("$arg") ;;
+    *) [[ ${#MODE_ARGS[@]} -gt 0 ]] && MODE_ARGS+=("$arg") ;;
   esac
 done
 

@@ -8,6 +8,8 @@ import Foundation
 struct Screenshots {
     let driver: WilesDriver
     let outputDir: URL
+    /// When set, only the shot with this slug is captured — for refreshing one feature's pair.
+    var onlySlug: String?
 
     var workspace: TempWorkspace { driver.workspace }
     private static let windowFrame = CGRect(x: 90, y: 70, width: 1180, height: 720)
@@ -24,11 +26,12 @@ struct Screenshots {
         Timing.pause(Timing.settle)
         driver.navigateToWorkspace()
 
+        let selected = onlySlug.map { slug in shots().filter { $0.slug == slug } } ?? shots()
         for mode in ["light", "dark"] {
             print("\n=== \(mode.uppercased()) pass ===")
             setAppearance(mode == "dark" ? "Dark" : "Light")
             resizeWindow()
-            for shot in shots() {
+            for shot in selected {
                 capture(shot, mode: mode)
             }
         }

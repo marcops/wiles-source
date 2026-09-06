@@ -98,7 +98,8 @@ if CommandLine.arguments.contains("--dump") {
 if CommandLine.arguments.contains("--screenshots") {
     let defaultOut = "\(NSHomeDirectory())/source/wiles-public/docs/screenshots/features"
     let outDir = URL(fileURLWithPath: parseArgument("--out", default: defaultOut))
-    Screenshots(driver: driver, outputDir: outDir).run()
+    let onlySlug = parseArgument("--only", default: "")
+    Screenshots(driver: driver, outputDir: outDir, onlySlug: onlySlug.isEmpty ? nil : onlySlug).run()
     process.terminate()
     workspace.cleanup()
     exit(0)
