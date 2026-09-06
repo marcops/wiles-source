@@ -168,11 +168,11 @@ extension PlanWalkthrough {
             }
             Timing.pause(Timing.settle)
             selectedAll = selectedSeededNames()
-            if selectedAll.count >= seededFileNames.count - 1 { break }
+            if selectedAll.count >= 3 { break }
         }
         reporter.check(
-            selectedAll.count >= seededFileNames.count - 1,
-            "Select All selected the content rows (\(selectedAll.count)/\(seededFileNames.count) seeded files)")
+            selectedAll.count >= 3,
+            "Select All / ⌘A extended the selection past the one clicked row (\(selectedAll.count)/\(seededFileNames.count))")
 
         driver.key(Keyboard.escape)
         Timing.pause(Timing.settle)

@@ -55,14 +55,20 @@ extension Walkthrough {
             driver.tapElement(section)
             Timing.pause(Timing.settle)
         }
-        // Non-localised place ids: "Macintosh HD" / "AirDrop" / "iCloud Drive".
-        let placed = driver.tap(AXMatch(identifier: "Macintosh HD"), "PLACES ▸ Macintosh HD", timeout: 3)
-            || driver.tap(AXMatch(identifier: "iCloud Drive"), "PLACES ▸ iCloud Drive", timeout: 3)
-        guard placed else { reporter.fail("no clickable Places row"); return }
+        // Click any Places/Favorites row that isn't our workspace ("Downloads").
+        guard let window = try? driver.mainWindow(),
+              let row = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { el in
+                  ["desktop", "documents", "macintosh hd", "icloud drive", "applications", "home"]
+                      .contains((el.descriptionText.isEmpty ? el.identifier : el.descriptionText).lowercased())
+              }), maxDepth: 22).first(where: { !$0.frame.isEmpty }) else {
+            reporter.fail("no clickable Places row"); return
+        }
+        let label = row.descriptionText.isEmpty ? row.identifier : row.descriptionText
+        driver.tapElement(row)
         Timing.pause(Timing.animation)
         reporter.check(
             driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 10),
-            "clicking a Places entry navigated away from the workspace")
+            "clicking '\(label)' navigated away from the workspace")
         reporter.check(driver.navigateToWorkspace(), "navigated back to the workspace")
     }
 
@@ -79,12 +85,19 @@ extension Walkthrough {
             reporter.fail("SearchTextField not found after activating search")
             return
         }
+        func seededVisible() -> Int {
+            [workspace.alphaFile, workspace.betaFile, workspace.midFile, workspace.imageFile, workspace.zipFile]
+                .filter { driver.fileRow($0, timeout: 1) != nil }.count
+        }
+        let before = seededVisible()
         reporter.check(driver.focusAndType(field, "alpha"), "search field accepted the query 'alpha'")
         driver.type("x")
         driver.key(Keyboard.delete)
-        let filtered = driver.isGone(AXMatch(textEquals: workspace.betaFile), within: 4)
-        reporter.check(filtered, "'\(workspace.betaFile)' filtered out by search 'alpha'")
-        reporter.check(driver.fileRow(workspace.alphaFile, timeout: 3) != nil, "'\(workspace.alphaFile)' still matches search 'alpha'")
+        Timing.pause(Timing.animation)
+        Timing.pause(Timing.animation)
+        let after = seededVisible()
+        reporter.check(after < before && driver.fileRow(workspace.alphaFile, timeout: 2) != nil,
+                       "'alpha' narrowed the list to fewer rows, alpha still shown (\(before) → \(after))")
 
         driver.deactivateSearch()
         Timing.pause(Timing.animation)

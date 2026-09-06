@@ -576,22 +576,25 @@ final class WilesDriver {
             }
         }
         // Tab buttons are ~64×44 plain views with `.onTapGesture`; the tab's content view carries the
-        // same accessibility label, so pick the small one and real-click it (AXPress no-ops here).
-        let candidates = sheet()?.allDescendants(where: AXMatch(role: "AXButton", textEquals: tab), maxDepth: 24) ?? []
-        let looksLikeTab = { (e: AXElement) in
+        // same accessibility label. Prefer the small one; also click by its on-screen position.
+        let tabs = ["General", "Appearance", "Sidebar", "Advanced"]
+        let candidates = sheet()?.allDescendants(where: AXMatch(role: "AXButton", textEquals: tab), maxDepth: 26) ?? []
+        let small = candidates.first { e in
             let f = e.frame
-            return f.height > 0 && f.height <= 80 && f.width > 0 && f.width <= 160
+            return f.height > 0 && f.height <= 80 && f.width > 0 && f.width <= 170
         }
-        guard let tabElement = candidates.first(where: looksLikeTab)
-            ?? candidates.first(where: { !$0.frame.isEmpty })
-            ?? sheet()?.firstDescendant(where: AXMatch(textEquals: tab)) else {
+        if let small {
+            Mouse.click(center: small.frame, pid: pid)
+            Timing.pause(Timing.settle)
+        } else if let idx = tabs.firstIndex(of: tab), let s = sheet(), !s.frame.isEmpty {
+            let f = s.frame
+            let x = f.minX + 40 + CGFloat(idx) * 68
+            Mouse.click(at: CGPoint(x: x, y: f.minY + 40), pid: pid)
+            Timing.pause(Timing.settle)
+        } else {
             reporter.fail("Settings tab '\(tab)' not found")
             return false
         }
-        clickCentre(tabElement)
-        Timing.pause(Timing.settle)
-        clickCentre(tabElement)
-        Timing.pause(Timing.settle)
         return true
     }
 
