@@ -90,28 +90,8 @@ struct PlanWalkthrough {
         driver.navigateToWorkspace()
 
         for (_, step) in selected {
-            runBounded({ self.driver.recover(); step() }, seconds: 90)
-        }
-    }
-
-    private final class Job: @unchecked Sendable {
-        let body: () -> Void
-        init(_ body: @escaping () -> Void) { self.body = body }
-    }
-
-    // Run a step on a worker thread; if it overruns, relaunch the app and move on. A wedged
-    // interaction (hung modal, unreachable list) otherwise burns the whole run to the watchdog cap.
-    private func runBounded(_ step: @escaping () -> Void, seconds: TimeInterval) {
-        let done = DispatchSemaphore(value: 0)
-        let job = Job { step(); done.signal() }
-        Thread.detachNewThread { job.body() }
-        if done.wait(timeout: .now() + seconds) == .timedOut {
-            print("  ↻ step overran \(Int(seconds))s — relaunching")
-            reporter.fail("step overran \(Int(seconds))s and was abandoned")
-            try? driver.process.relaunch()
-            driver.rebindToRelaunchedApp()
-            _ = try? driver.mainWindow()
-            driver.navigateToWorkspace()
+            driver.recover()
+            step()
         }
     }
 }
