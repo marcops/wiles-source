@@ -243,7 +243,8 @@ final class WilesDriver {
             reporter.fail("\(label): '\(leafFragment)' not found under \(menuTitle) ▸ \(path.joined(separator: " ▸ "))")
             return false
         }
-        let pressed = pressMenuItem(item)
+        // Real NSMenuItems in the menu bar respond to AXPress; a mouse click on an open dropdown is racy.
+        let pressed = item.perform(AXAction.press) || pressMenuItem(item)
         Timing.pause(Timing.settle)
         return pressed
     }
@@ -318,7 +319,7 @@ final class WilesDriver {
             }
             guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
             Timing.pause(Timing.settle)
-            if app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 12) != nil {
+            if app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3, maxDepth: 14) != nil {
                 return pickContextItem(containing: fragment, label)
             }
             if attempt == 1 {
@@ -332,7 +333,7 @@ final class WilesDriver {
     @discardableResult
     func pickContextItem(containing fragment: String, _ label: String) -> Bool {
         let match = AXMatch(role: "AXMenuItem", textContains: fragment)
-        guard let item = app.waitForDescendant(where: match, timeout: 3, maxDepth: 12) else {
+        guard let item = app.waitForDescendant(where: match, timeout: 5, maxDepth: 14) else {
             key(Keyboard.escape)
             reporter.fail("\(label): context item '\(fragment)' not found")
             return false
