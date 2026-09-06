@@ -88,9 +88,17 @@ struct PlanWalkthrough {
         driver.dismissSheet()
         driver.navigateToWorkspace()
 
-        for (_, step) in selected {
+        // The app degrades over a long single-launch run (rows unfindable, menus/sheets stop
+        // opening); relaunch every dozen steps to keep it responsive.
+        for (index, entry) in selected.enumerated() {
+            if index > 0, index % 12 == 0 {
+                try? driver.process.relaunch()
+                driver.rebindToRelaunchedApp()
+                _ = try? driver.mainWindow()
+                driver.navigateToWorkspace()
+            }
             driver.recover()
-            step()
+            entry.1()
         }
     }
 }

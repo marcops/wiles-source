@@ -118,7 +118,9 @@ let onlyList = parseArgument("--only", default: "")
 
 if CommandLine.arguments.contains("--all") {
     Walkthrough(driver: driver).run(only: onlyList)
-    driver.resetForNextSuite()
+    try? process.relaunch()
+    driver.rebindToRelaunchedApp()
+    _ = try? driver.mainWindow()
     PlanWalkthrough(driver: driver).run(only: onlyList)
 } else if CommandLine.arguments.contains("--plan") {
     PlanWalkthrough(driver: driver).run(only: onlyList)

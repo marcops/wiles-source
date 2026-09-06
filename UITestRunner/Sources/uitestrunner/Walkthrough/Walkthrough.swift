@@ -35,10 +35,15 @@ struct Walkthrough {
         ]
         let selected = only.isEmpty ? steps
             : steps.filter { name, _ in name == "featSwitchToEnglish" || only.contains { name.localizedCaseInsensitiveContains($0) } }
-        for (_, step) in selected {
+        for (index, entry) in selected.enumerated() {
+            if index > 0, index % 12 == 0 {
+                try? driver.process.relaunch()
+                driver.rebindToRelaunchedApp()
+                _ = try? driver.mainWindow()
+            }
             driver.process.activate()
             driver.navigateToWorkspace()
-            step()
+            entry.1()
         }
     }
 
