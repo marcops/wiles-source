@@ -276,29 +276,28 @@ extension PlanWalkthrough {
         driver.dismissSheet()
         clearSearch(field)
 
-        let row = driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart"), timeout: 4)
-        reporter.check(row != nil, "the saved smart folder 'CornerSmart' shows in the sidebar")
-        if row != nil {
-            var offersEdit = false
-            for _ in 0 ..< 3 where !offersEdit {
-                driver.rightClick(AXMatch(role: "AXButton", textEquals: "CornerSmart"), "CornerSmart (context)")
-                Timing.pause(Timing.animation)
-                offersEdit = driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "delete smart folder"), maxDepth: 20) != nil
-                    || driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "rename"), maxDepth: 20) != nil
-                    || driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "update search"), maxDepth: 20) != nil
-                if !offersEdit { driver.closeAnyMenu() }
-            }
-            reporter.check(offersEdit, "its context menu offers rename / update / delete")
+        guard let smartRow = driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart"), timeout: 4) else {
+            reporter.fail("the saved smart folder 'CornerSmart' did not show in the sidebar")
+            driver.navigateToWorkspace()
+            return
+        }
+        reporter.check(true, "the saved smart folder 'CornerSmart' shows in the sidebar")
+
+        var opened = false
+        for _ in 0 ..< 3 where !opened {
+            driver.showContextMenu(for: driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart")) ?? smartRow)
+            Timing.pause(Timing.animation)
+            opened = driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "delete smart folder"), maxDepth: 22) != nil
+                || driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "update search"), maxDepth: 22) != nil
+            if !opened { driver.closeAnyMenu() }
+        }
+        reporter.check(opened, "its context menu offers rename / update / delete")
+        if opened {
             _ = driver.pickContextItem(containing: "delete smart folder", "CornerSmart context ▸ Delete Smart Folder")
             _ = driver.confirmDialog(pressing: "delete") || driver.confirmDialog(pressing: "ok")
             Timing.pause(Timing.animation)
             reporter.check(driver.isGone(AXMatch(role: "AXButton", textEquals: "CornerSmart"), within: 3),
                            "deleting removed the smart folder from the sidebar")
-        }
-        if driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart"), timeout: 1) != nil {
-            driver.rightClick(AXMatch(role: "AXButton", textEquals: "CornerSmart"), "CornerSmart (cleanup)")
-            _ = driver.pickContextItem(containing: "delete smart folder", "CornerSmart context ▸ Delete (cleanup)")
-            _ = driver.confirmDialog(pressing: "delete") || driver.confirmDialog(pressing: "ok")
         }
         driver.closeAnyMenu()
         driver.navigateToWorkspace()
@@ -334,17 +333,19 @@ extension PlanWalkthrough {
     func featMoveCollisionSheet() {
         reporter.beginFeature("Pasting onto a same-named file raises a collision sheet")
         let planted = workspace.url(workspace.subFolder).appendingPathComponent(workspace.alphaFile)
+        let marker = "collision-marker-uitest.txt"
         try? Data("collision fixture payload".utf8).write(to: planted)
+        try? Data("m".utf8).write(to: workspace.url(workspace.subFolder).appendingPathComponent(marker))
         driver.navigateToWorkspace()
         guard driver.openContextItem(onFileRow: workspace.alphaFile, containing: "cut", "context ▸ Cut") else {
             reporter.fail("featMoveCollisionSheet: no Cut item on the row context menu")
             try? FileManager.default.removeItem(at: planted)
+            try? FileManager.default.removeItem(at: workspace.url(workspace.subFolder).appendingPathComponent(marker))
             driver.navigateToWorkspace()
             return
         }
         Timing.pause(Timing.brief)
-        guard driver.navigateToPath(workspace.url(workspace.subFolder).path, expectRow: workspace.alphaFile, timeout: 5),
-              driver.isGone(AXMatch(textEquals: workspace.subFolder), within: 3) else {
+        guard driver.navigateToPath(workspace.url(workspace.subFolder).path, expectRow: marker, timeout: 5) else {
             reporter.fail("featMoveCollisionSheet: could not open the 'sub-uitest' folder")
             try? FileManager.default.removeItem(at: planted)
             driver.navigateToWorkspace()
@@ -371,11 +372,10 @@ extension PlanWalkthrough {
         driver.dismissSheet()
 
         try? FileManager.default.removeItem(at: planted)
+        try? FileManager.default.removeItem(at: workspace.url(workspace.subFolder).appendingPathComponent(marker))
         if !workspace.exists(workspace.alphaFile) {
             try? Data("alpha contents".utf8).write(to: workspace.url(workspace.alphaFile))
         }
-        driver.menuPick("Go", itemContains: "Enclosing Folder", "Go ▸ Enclosing Folder (back)")
-        Timing.pause(Timing.animation)
         driver.navigateToWorkspace()
     }
 

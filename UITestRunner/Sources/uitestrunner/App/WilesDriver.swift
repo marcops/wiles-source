@@ -358,6 +358,19 @@ final class WilesDriver {
         return found
     }
 
+    // Try both ways to raise an element's context menu.
+    func showContextMenu(for element: AXElement) {
+        _ = element.perform(AXAction.showMenu)
+        Timing.pause(Timing.brief)
+        let f = element.frame
+        if !f.isEmpty {
+            Mouse.click(center: f, pid: pid)
+            Timing.pause(Timing.brief)
+            Mouse.click(center: f, rightButton: true, pid: pid)
+        }
+        Timing.pause(Timing.settle)
+    }
+
     func allRows(textEquals name: String) -> [AXElement] {
         (try? mainWindow())?.allDescendants(where: AXMatch(textEquals: name), maxDepth: 20) ?? []
     }
@@ -607,24 +620,21 @@ final class WilesDriver {
                 return false
             }
         }
-        // The 4 tab buttons are a row of small (~64×44) `.onTapGesture` views near the sheet top;
-        // the tab's content view shares its label, so match the row, sort by x, click by index.
+        // The 4 tab buttons are a horizontal row of small `.onTapGesture` views at the sheet top.
+        // Take every small button in that band, sort by x, and click the one at the tab's index.
         let order = ["General", "Appearance", "Sidebar", "Advanced"]
         guard let s = sheet(), !s.frame.isEmpty else { reporter.fail("Settings sheet gone"); return false }
         let topY = s.frame.minY
-        let tabRow = s.allDescendants(where: AXMatch(role: "AXButton"), maxDepth: 26)
+        let band = s.allDescendants(where: AXMatch(role: "AXButton"), maxDepth: 26)
             .filter { e in
                 let f = e.frame
-                return f.height > 0 && f.height <= 80 && f.width > 0 && f.width <= 170
-                    && f.minY < topY + 90 && order.contains(where: { e.descriptionText == $0 || e.title == $0 })
+                return f.height > 8 && f.height <= 90 && f.width > 20 && f.width <= 180 && f.minY < topY + 100
             }
             .sorted { $0.frame.minX < $1.frame.minX }
-        var target = tabRow.first { $0.descriptionText == tab || $0.title == tab }
-        if target == nil, let idx = order.firstIndex(of: tab), tabRow.indices.contains(idx) {
-            target = tabRow[idx]
-        }
-        guard let target else {
-            reporter.fail("Settings tab '\(tab)' not found among \(tabRow.map(\.descriptionText))")
+        let named = band.first { $0.descriptionText == tab || $0.title == tab }
+        let byIndex = order.firstIndex(of: tab).flatMap { band.indices.contains($0) ? band[$0] : nil }
+        guard let target = named ?? byIndex else {
+            reporter.fail("Settings tab '\(tab)' not found (\(band.count) tab buttons)")
             return false
         }
         Mouse.click(center: target.frame, pid: pid)
