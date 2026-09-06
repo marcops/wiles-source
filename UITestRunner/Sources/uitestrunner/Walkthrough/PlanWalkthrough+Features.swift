@@ -139,6 +139,43 @@ extension PlanWalkthrough {
         reporter.check(movedOff && somethingElseSelected, "↓ moved the selection to another row")
     }
 
+    func featSelectAllThenClear() {
+        reporter.beginFeature("Select All / clear selection")
+        driver.navigateToWorkspace()
+
+        func selectedSeededNames() -> Set<String> {
+            guard let window = try? driver.mainWindow() else { return [] }
+            let rows = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { element in
+                self.seededFileNames.contains(element.descriptionText) || self.seededFileNames.contains(element.title)
+            }), maxDepth: 18)
+            return Set(rows.filter { $0.isSelected }.map { $0.descriptionText.isEmpty ? $0.title : $0.descriptionText })
+        }
+
+        // Edit ▸ Select All / ⌘A only reach the file list once it holds key focus; a single
+        // clickRow doesn't always land it, so click + try both, a few times.
+        var selectedAll = Set<String>()
+        for _ in 0 ..< 3 {
+            _ = driver.clickRow(workspace.alphaFile)
+            Timing.pause(Timing.brief)
+            driver.menuPick("Edit", itemContains: "Select All", "Edit ▸ Select All")
+            Timing.pause(Timing.settle)
+            selectedAll = selectedSeededNames()
+            if selectedAll.count >= seededFileNames.count - 1 { break }
+            driver.chord("a", .command)
+            Timing.pause(Timing.settle)
+            selectedAll = selectedSeededNames()
+            if selectedAll.count >= seededFileNames.count - 1 { break }
+        }
+        reporter.check(
+            selectedAll.count >= seededFileNames.count - 1,
+            "Select All selected the content rows (\(selectedAll.count)/\(seededFileNames.count) seeded files)")
+
+        driver.key(Keyboard.escape)
+        Timing.pause(Timing.settle)
+        reporter.check(selectedSeededNames().isEmpty, "Escape cleared the selection")
+        driver.navigateToWorkspace()
+    }
+
     func featDirectoryTreeDrillIn() {
         reporter.beginFeature("Directory Tree — drill into a child node")
         guard let section = driver.find(AXMatch(identifier: "Section_DIRECTORY_TREE"), timeout: 3) else {

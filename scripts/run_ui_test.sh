@@ -74,16 +74,15 @@ fi
 if [[ ! -x "$RUNNER_BIN" ]]; then echo "==> runner binary missing ($RUNNER_BIN)"; exit 1; fi
 
 echo "==> deterministic run state ($UITEST_BUNDLE_ID domain)"
+# Wipe the whole isolated domain first — a previous run leaves it dirty (a collapsed sidebar
+# section, a non-default theme/view-mode, a stale window frame), and that state then skews the
+# next run's assertions. Start from nothing, then seed only what every run needs.
+defaults delete "$UITEST_BUNDLE_ID" 2>/dev/null || true
 # Seed English so the app is English from first paint. Every step past the first assumes English
 # menu/label text — a flaky Settings interaction on step 1 must not cascade into 40 false failures.
 # The first walkthrough step still exercises Settings ▸ General ▸ Language (and F1's live re-localize).
 defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_skipDeleteConfirmation -bool YES 2>/dev/null || true
-defaults delete "$UITEST_BUNDLE_ID" wiles_lastOpenedFolder 2>/dev/null || true
-for i in 1 2 3 4 5; do
-  defaults delete "$UITEST_BUNDLE_ID" "NSWindow Frame main-AppWindow-$i" 2>/dev/null || true
-  defaults delete "$UITEST_BUNDLE_ID" "NSWindow Frame WilesMainWindow-$i" 2>/dev/null || true
-done
 
 if [[ ${#MODE_ARGS[@]} -gt 0 ]]; then
   echo "==> run: ${MODE_ARGS[*]}"

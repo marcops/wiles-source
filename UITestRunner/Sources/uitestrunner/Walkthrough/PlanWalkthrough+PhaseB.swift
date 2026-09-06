@@ -312,4 +312,61 @@ extension PlanWalkthrough {
         driver.menuPick("View", itemContains: "Hide Terminal", "View ▸ Hide Terminal (restore)")
         driver.menuPick("View", path: ["View Mode", "List"], "View ▸ View Mode ▸ List (restore)")
     }
+
+    // MARK: - Duplicate Finder — real scan
+
+    func featDuplicateFinderScan() {
+        reporter.beginFeature("Duplicate Finder — scan surfaces an identical pair")
+        // Two byte-identical files so the detector has a real group to report.
+        let dupA = "dup-a-uitest.txt"
+        let dupB = "dup-b-uitest.txt"
+        let payload = Data("wiles duplicate finder fixture payload\n".utf8)
+        try? payload.write(to: workspace.url(dupA))
+        try? payload.write(to: workspace.url(dupB))
+        defer {
+            try? FileManager.default.removeItem(at: workspace.url(dupA))
+            try? FileManager.default.removeItem(at: workspace.url(dupB))
+        }
+        driver.navigateToWorkspace()
+        guard driver.menuPick("Tools", itemContains: "Find Duplicate Files", "Tools ▸ Find Duplicate Files") else { return }
+        guard driver.waitForSheet() else {
+            reporter.fail("Find Duplicate Files sheet never opened")
+            return
+        }
+        // The scan runs on open; give it a beat, then confirm it found the pair rather than
+        // landing on the empty state.
+        var foundResults = false
+        let deadline = Date().addingTimeInterval(15)
+        repeat {
+            if driver.sheet()?.firstDescendant(where: AXMatch(textContains: "reclaimable"), maxDepth: 14) != nil
+                || driver.sheet()?.firstDescendant(where: AXMatch(textContains: dupB), maxDepth: 16) != nil {
+                foundResults = true
+                break
+            }
+            Timing.pause(Timing.settle)
+        } while Date() < deadline
+        let emptyState = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "no duplicate files"), maxDepth: 14) != nil
+        reporter.check(foundResults && !emptyState, "the scan reported the identical pair (results view, not the empty state)")
+        reporter.check(driver.dismissSheet(), "Duplicate Finder sheet dismissed")
+    }
+
+    // MARK: - Compress with Password
+
+    func featCompressWithPassword() {
+        reporter.beginFeature("Compress with Password — secure-field sheet")
+        driver.navigateToWorkspace()
+        guard driver.openContextItem(
+            onFileRow: workspace.alphaFile,
+            containing: "compress with password",
+            "context ▸ Compress with Password") else { return }
+        guard driver.waitForSheet() else {
+            reporter.fail("Compress with Password sheet never opened")
+            return
+        }
+        reporter.check(
+            driver.sheet()?.firstDescendant(where: AXMatch(role: "AXTextField"), maxDepth: 16) != nil
+                || driver.sheet()?.firstDescendant(where: AXMatch(textContains: "password"), maxDepth: 16) != nil,
+            "the sheet exposes a password field")
+        reporter.check(driver.dismissSheet(), "Compress with Password sheet dismissed")
+    }
 }
