@@ -60,11 +60,11 @@ enum Keyboard {
         press(key, modifiers: modifiers, pid: pid)
     }
 
-    /// Types free text into whatever is focused in the target app.
+    // Symbols go via typeUnicode: the keycode map is US-ANSI, non-US layouts move "/" ";" ":".
     static func type(_ text: String, pid: pid_t) {
         let source = CGEventSource(stateID: .privateState)
         for character in text {
-            if let (code, needsShift) = keyStroke(for: character) {
+            if isLayoutStable(character), let (code, needsShift) = keyStroke(for: character) {
                 emit(source: source, keyCode: code, keyDown: true, flags: needsShift ? .maskShift : [], pid: pid)
                 emit(source: source, keyCode: code, keyDown: false, flags: needsShift ? .maskShift : [], pid: pid)
             } else {
@@ -73,6 +73,10 @@ enum Keyboard {
             Timing.pause(Timing.keyStroke)
         }
         Timing.pause(Timing.brief)
+    }
+
+    private static func isLayoutStable(_ character: Character) -> Bool {
+        character == " " || (character.isASCII && (character.isLetter || character.isNumber))
     }
 
     private static func keyStroke(for character: Character) -> (CGKeyCode, Bool)? {

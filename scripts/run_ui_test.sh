@@ -38,9 +38,7 @@ RUNNER_BIN="$ROOT_DIR/UITestRunner/.build/debug/uitestrunner"
 # Isolated bundle id → the run uses its own UserDefaults domain, never the user's real Wiles prefs.
 UITEST_BUNDLE_ID="com.marco.wiles.uitest"
 
-# Kill the test runner, the isolated test app, and anything the app spun up (Preview for a
-# double-clicked PDF, the Quick Look UI). Never touches the user's real Wiles or Preview windows
-# that predate the run — only the com.marco.wiles.uitest instance and QL/Preview helpers.
+# Kill the test runner, the isolated test app, and Quick Look / Preview it spawned.
 teardown() {
   pkill -9 -f 'uitestrunner'                                    2>/dev/null || true
   pkill -9 -f '\.build/uitest/Wiles\.app/Contents/MacOS/Wiles'  2>/dev/null || true
@@ -92,16 +90,10 @@ fi
 if [[ ! -x "$RUNNER_BIN" ]]; then echo "==> runner binary missing ($RUNNER_BIN)"; exit 1; fi
 
 echo "==> deterministic run state ($UITEST_BUNDLE_ID domain)"
-# Start every run from zero: drop the whole isolated defaults domain and its saved window
-# state, then seed only what every run needs. (The temp workspace is already a fresh UUID
-# dir per launch.) Deliberately NOT touching cfprefsd or ~/Library/Caches — killing the
-# prefs daemon out from under a launching app leaves it reading empty defaults and rendering
-# in a broken half-state.
+# Every run starts from zero. Don't touch cfprefsd — killing it mid-launch breaks the app's defaults.
 defaults delete "$UITEST_BUNDLE_ID" 2>/dev/null || true
 rm -rf "$HOME/Library/Saved Application State/${UITEST_BUNDLE_ID}.savedState" 2>/dev/null || true
-# Seed English so the app is English from first paint. Every step past the first assumes English
-# menu/label text — a flaky Settings interaction on step 1 must not cascade into 40 false failures.
-# The first walkthrough step still exercises Settings ▸ General ▸ Language (and F1's live re-localize).
+# Seed English so the app paints English from the start; step 1 still exercises the language switch.
 defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_skipDeleteConfirmation -bool YES 2>/dev/null || true
 # Show the sidebar sections the walkthrough exercises — both default to hidden.

@@ -76,9 +76,7 @@ final class WilesDriver {
         app.waitForDescendant(where: match, timeout: timeout)
     }
 
-    /// True once `match` is absent. For "it disappeared" / "it's not offered" assertions — a plain
-    /// `find(..) == nil` waits the whole timeout every time (absence is the expected result), so
-    /// this polls briefly and bails the moment it's gone.
+    // Fast "it disappeared" check — bails the moment it's absent instead of waiting the timeout.
     func isGone(_ match: AXMatch, within timeout: TimeInterval = 1.2) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
@@ -299,11 +297,13 @@ final class WilesDriver {
 
     // MARK: - Context menu
 
-    /// Right-clicks a file row and picks the context-menu item whose text contains `fragment`.
+    // Left-click first: AXShowMenu opens the menu without selecting the row, so the action runs on an empty selection.
     @discardableResult
     func openContextItem(onFileRow name: String, containing fragment: String, _ label: String) -> Bool {
         for attempt in 0 ..< 2 {
             closeAnyMenu()
+            _ = clickRow(name, timeout: 5)
+            Timing.pause(Timing.brief)
             guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
             Timing.pause(Timing.settle)
             if app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 12) != nil {
