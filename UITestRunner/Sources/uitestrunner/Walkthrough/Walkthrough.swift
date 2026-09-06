@@ -8,29 +8,34 @@ struct Walkthrough {
     var reporter: Reporter { driver.reporter }
     var workspace: TempWorkspace { driver.workspace }
 
-    func run() {
-        featSwitchToEnglish()
-        featLaunchShell()
-        featGridAndListViews()
-        featDirectoryTree()
-        featFavoritesAndPlaces()
-        featSearch()
-        featFileProperties()
-        featSymbolicLinks()
-        featCompressToZip()
-        featUndoRedo()
-        featBatchRename()
-        featImageConverter()
-        featArchiveInspector()
-        featDuplicateFinder()
-        featIntegratedTerminal()
-        featDiskUsageVisualizer()
-        featConnectToServer()
-        featAutoOrganization()
-        featHTTPSharing()
-        featTags()
-        featSmartFolders()
-        featAppearanceSettings()
+    func run(only: [String] = []) {
+        let steps: [(String, () -> Void)] = [
+            ("featSwitchToEnglish", featSwitchToEnglish),
+            ("featLaunchShell", featLaunchShell),
+            ("featGridAndListViews", featGridAndListViews),
+            ("featDirectoryTree", featDirectoryTree),
+            ("featFavoritesAndPlaces", featFavoritesAndPlaces),
+            ("featSearch", featSearch),
+            ("featFileProperties", featFileProperties),
+            ("featSymbolicLinks", featSymbolicLinks),
+            ("featCompressToZip", featCompressToZip),
+            ("featUndoRedo", featUndoRedo),
+            ("featBatchRename", featBatchRename),
+            ("featImageConverter", featImageConverter),
+            ("featArchiveInspector", featArchiveInspector),
+            ("featDuplicateFinder", featDuplicateFinder),
+            ("featIntegratedTerminal", featIntegratedTerminal),
+            ("featDiskUsageVisualizer", featDiskUsageVisualizer),
+            ("featConnectToServer", featConnectToServer),
+            ("featAutoOrganization", featAutoOrganization),
+            ("featHTTPSharing", featHTTPSharing),
+            ("featTags", featTags),
+            ("featSmartFolders", featSmartFolders),
+            ("featAppearanceSettings", featAppearanceSettings),
+        ]
+        let selected = only.isEmpty ? steps
+            : steps.filter { name, _ in name == "featSwitchToEnglish" || only.contains { name.localizedCaseInsensitiveContains($0) } }
+        for (_, step) in selected { step() }
     }
 
     // MARK: - Force English through the Settings UI

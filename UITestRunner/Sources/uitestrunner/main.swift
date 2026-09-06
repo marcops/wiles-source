@@ -105,14 +105,17 @@ if CommandLine.arguments.contains("--screenshots") {
     exit(0)
 }
 
+let onlyList = parseArgument("--only", default: "")
+    .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+
 if CommandLine.arguments.contains("--all") {
-    Walkthrough(driver: driver).run()
+    Walkthrough(driver: driver).run(only: onlyList)
     driver.resetForNextSuite()
-    PlanWalkthrough(driver: driver).run()
+    PlanWalkthrough(driver: driver).run(only: onlyList)
 } else if CommandLine.arguments.contains("--plan") {
-    PlanWalkthrough(driver: driver).run()
+    PlanWalkthrough(driver: driver).run(only: onlyList)
 } else {
-    Walkthrough(driver: driver).run()
+    Walkthrough(driver: driver).run(only: onlyList)
 }
 
 process.terminate()
