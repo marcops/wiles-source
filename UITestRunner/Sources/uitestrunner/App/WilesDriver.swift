@@ -322,7 +322,7 @@ final class WilesDriver {
         app.firstDescendant(where: AXMatch(role: "AXSheet"))
     }
 
-    func waitForSheet(timeout: TimeInterval = 9) -> Bool {
+    func waitForSheet(timeout: TimeInterval = 5) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if sheet() != nil { return true }

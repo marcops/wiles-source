@@ -59,7 +59,7 @@ extension Walkthrough {
             Timing.pause(Timing.settle)
         }
         guard driver.tap(AXMatch(identifier: "Applications"), "PLACES ▸ Applications row") else { return }
-        let appBundle = driver.find(AXMatch(role: "AXButton", textContains: ".app"), timeout: 10)
+        let appBundle = driver.find(AXMatch(role: "AXButton", textContains: ".app"), timeout: 6)
         reporter.check(appBundle != nil, "clicking Applications listed a .app bundle")
 
         driver.tap(AXMatch(identifier: "chevron.left"), "Back button", timeout: 3)
@@ -133,7 +133,7 @@ extension Walkthrough {
             containing: "compress to zip",
             "context ▸ Compress to ZIP") else { return }
         reporter.check(
-            workspace.waitForExistence(producedZip, shouldExist: true, timeout: 15),
+            workspace.waitForExistence(producedZip, shouldExist: true, timeout: 10),
             "compressing '\(workspace.alphaFile)' produced '\(producedZip)' on disk")
     }
 
