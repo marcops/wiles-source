@@ -1,9 +1,10 @@
 import CoreGraphics
 import Foundation
 
-/// Pointer input via `CGEvent` + `postToPid` — delivered to the Wiles process, not the session
-/// tap, so it never fights the operator's own mouse. Coordinates are global top-left screen
-/// points — the same space `AXElement.frame` reports.
+/// Pointer input via `CGEvent` posted to the session tap. Unlike keystrokes (which go straight to
+/// the Wiles pid), synthetic mouse events need the window server's hit-testing, so they can't be
+/// pid-targeted — during the brief moments the runner clicks, leave the physical mouse alone.
+/// Coordinates are global top-left screen points — the same space `AXElement.frame` reports.
 enum Mouse {
     static func click(
         at point: CGPoint,
@@ -13,14 +14,14 @@ enum Mouse {
         let button: CGMouseButton = rightButton ? .right : .left
         let downType: CGEventType = rightButton ? .rightMouseDown : .leftMouseDown
         let upType: CGEventType = rightButton ? .rightMouseUp : .leftMouseUp
-        let source = CGEventSource(stateID: .privateState)
+        let source = CGEventSource(stateID: .combinedSessionState)
         let flags = modifiers.flags
 
-        emit(.mouseMoved, at: point, button: .left, source: source, flags: [], clickState: 0, pid: pid)
+        emit(.mouseMoved, at: point, button: .left, source: source, flags: [], clickState: 0)
         Timing.pause(Timing.brief)
-        emit(downType, at: point, button: button, source: source, flags: flags, clickState: 1, pid: pid)
+        emit(downType, at: point, button: button, source: source, flags: flags, clickState: 1)
         Timing.pause(Timing.brief)
-        emit(upType, at: point, button: button, source: source, flags: flags, clickState: 1, pid: pid)
+        emit(upType, at: point, button: button, source: source, flags: flags, clickState: 1)
         Timing.pause(Timing.brief)
     }
 
@@ -36,17 +37,17 @@ enum Mouse {
             pid: pid)
     }
 
-    /// Two click pairs fired back-to-back (no long pause between) with `clickState` 1 then 2 —
-    /// the sequence AppKit recognises as a double-click.
+    /// Two click pairs fired back-to-back with `clickState` 1 then 2 — the sequence AppKit
+    /// recognises as a double-click.
     static func doubleClick(center rect: CGRect, pid: pid_t) {
         let point = CGPoint(x: rect.midX, y: rect.midY)
-        let source = CGEventSource(stateID: .privateState)
-        emit(.mouseMoved, at: point, button: .left, source: source, flags: [], clickState: 0, pid: pid)
+        let source = CGEventSource(stateID: .combinedSessionState)
+        emit(.mouseMoved, at: point, button: .left, source: source, flags: [], clickState: 0)
         Timing.pause(Timing.brief)
-        emit(.leftMouseDown, at: point, button: .left, source: source, flags: [], clickState: 1, pid: pid)
-        emit(.leftMouseUp, at: point, button: .left, source: source, flags: [], clickState: 1, pid: pid)
-        emit(.leftMouseDown, at: point, button: .left, source: source, flags: [], clickState: 2, pid: pid)
-        emit(.leftMouseUp, at: point, button: .left, source: source, flags: [], clickState: 2, pid: pid)
+        emit(.leftMouseDown, at: point, button: .left, source: source, flags: [], clickState: 1)
+        emit(.leftMouseUp, at: point, button: .left, source: source, flags: [], clickState: 1)
+        emit(.leftMouseDown, at: point, button: .left, source: source, flags: [], clickState: 2)
+        emit(.leftMouseUp, at: point, button: .left, source: source, flags: [], clickState: 2)
         Timing.pause(Timing.brief)
     }
 
@@ -56,8 +57,7 @@ enum Mouse {
         button: CGMouseButton,
         source: CGEventSource?,
         flags: CGEventFlags,
-        clickState: Int64,
-        pid: pid_t) {
+        clickState: Int64) {
         guard let event = CGEvent(
             mouseEventSource: source,
             mouseType: type,
@@ -67,6 +67,6 @@ enum Mouse {
         if clickState > 0 {
             event.setIntegerValueField(.mouseEventClickState, value: clickState)
         }
-        event.postToPid(pid)
+        event.post(tap: .cgSessionEventTap)
     }
 }
