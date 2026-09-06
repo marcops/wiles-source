@@ -125,7 +125,11 @@ final class WilesLaunchUITests: XCTestCase {
 
     private func featDirectoryTree() {
         let tree = sidebarSection("Section_DIRECTORY_TREE")
+        guard exists(tree, "DIRECTORY TREE section header") else { return }
         let treeRoot = app.buttons.matching(identifier: "Root (/)").firstMatch
+        if !treeRoot.waitForExistence(timeout: 3.0) {
+            tap(tree, "DIRECTORY TREE section header (to expand)") // the section is collapsed on a fresh profile
+        }
         guard exists(treeRoot, "DIRECTORY TREE root row", timeout: 10.0) else { return }
         guard tap(tree, "DIRECTORY TREE section header") else { return }
         XCTAssertTrue(treeRoot.waitForNonExistence(timeout: 5.0), "DIRECTORY TREE still showed its root after collapsing")
@@ -432,7 +436,7 @@ final class WilesLaunchUITests: XCTestCase {
             app.typeKey(",", modifierFlags: .command)
             _ = waitForModal()
         }
-        return tap(app.buttons.matching(NSPredicate(format: "label == %@", tabLabel)).firstMatch, "Settings '\(tabLabel)' tab")
+        return tap(firstByLabel(tabLabel), "Settings '\(tabLabel)' tab")
     }
 
     private func makeSeedZip(at url: URL) {
