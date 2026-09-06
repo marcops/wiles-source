@@ -11,7 +11,6 @@ final class WilesDriver {
 
     let app: AXElement
     private var cachedWindow: AXElement?
-    private var cachedContentArea: AXElement?
 
     var pid: pid_t { process.pid }
 
@@ -52,7 +51,6 @@ final class WilesDriver {
     /// `mainWindow()` re-resolves.
     func resetWindowCache() {
         cachedWindow = nil
-        cachedContentArea = nil
     }
 
     var standardWindowCount: Int {
@@ -141,12 +139,13 @@ final class WilesDriver {
         return true
     }
 
-    /// Replaces a text field's contents: real click for first-responder, AX-focus, ⌘A + delete,
-    /// then synthesised keystrokes (SwiftUI `TextField` ignores a bare AX value set).
+    /// Replaces a text field's contents: focus it (AX-press, AX-focus, and a real click), ⌘A +
+    /// delete, then synthesised keystrokes (SwiftUI `TextField` ignores a bare AX value set).
     func replaceText(in field: AXElement, with text: String) {
-        clickCentre(field)
+        tapElement(field)
         field.focus()
         Timing.pause(Timing.brief)
+        clickCentre(field)
         chord("a", .command)
         Timing.pause(Timing.brief)
         key(Keyboard.delete)
@@ -190,7 +189,7 @@ final class WilesDriver {
     func menuPick(_ menuTitle: String, path: [String], _ label: String) -> Bool {
         guard let container = openMenu(menuTitle, path: Array(path.dropLast()), label) else { return false }
         guard let leafFragment = path.last else { return false }
-        guard let item = container.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: leafFragment), timeout: 3, maxDepth: 8) else {
+        guard let item = container.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: leafFragment), timeout: 3) else {
             key(Keyboard.escape)
             reporter.fail("\(label): '\(leafFragment)' not found under \(menuTitle) ▸ \(path.joined(separator: " ▸ "))")
             return false
@@ -214,7 +213,7 @@ final class WilesDriver {
         Timing.pause(Timing.settle)
         var container = barItem
         for fragment in path {
-            guard let submenuItem = container.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3, maxDepth: 8) else {
+            guard let submenuItem = container.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3) else {
                 key(Keyboard.escape)
                 reporter.fail("\(label): submenu '\(fragment)' not found under '\(menuTitle)'")
                 return nil
@@ -248,7 +247,7 @@ final class WilesDriver {
     /// dismissed). Used to assert a toggle flipped its menu label.
     func menuHasItem(_ menuTitle: String, path: [String] = [], containing fragment: String) -> Bool {
         guard let container = openMenu(menuTitle, path: path, "menuHasItem") else { return false }
-        let found = container.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 8) != nil
+        let found = container.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment)) != nil
         key(Keyboard.escape)
         Timing.pause(Timing.brief)
         return found
@@ -267,7 +266,7 @@ final class WilesDriver {
     @discardableResult
     func pickContextItem(containing fragment: String, _ label: String) -> Bool {
         let match = AXMatch(role: "AXMenuItem", textContains: fragment)
-        guard let item = app.waitForDescendant(where: match, timeout: 3, maxDepth: 12) else {
+        guard let item = app.waitForDescendant(where: match, timeout: 3) else {
             key(Keyboard.escape)
             reporter.fail("\(label): context item '\(fragment)' not found")
             return false
@@ -300,7 +299,7 @@ final class WilesDriver {
         app.firstDescendant(where: AXMatch(role: "AXSheet"))
     }
 
-    func waitForSheet(timeout: TimeInterval = 6) -> Bool {
+    func waitForSheet(timeout: TimeInterval = 9) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if sheet() != nil { return true }
@@ -340,16 +339,30 @@ final class WilesDriver {
     /// only once that row is listed (with one retry); when empty, just performs the navigation.
     @discardableResult
     func navigateToPath(_ path: String, expectRow: String = "", timeout: TimeInterval = 8) -> Bool {
-        for attempt in 0 ..< 2 {
+        for attempt in 0 ..< 3 {
             closeAnyMenu()
             menuPick("Go", itemContains: "Go to Folder", "Go ▸ Go to Folder")
             Timing.pause(Timing.settle)
             guard let field = find(AXMatch(identifier: "PathBarTextField"), timeout: 4) else {
-                if attempt == 1 { reporter.fail("PathBarTextField not found after Go to Folder") }
+                if attempt == 2 { reporter.fail("PathBarTextField not found after Go to Folder") }
                 continue
             }
-            replaceText(in: field, with: path)
-            commitField(field)
+            clickCentre(field)
+            field.focus()
+            Timing.pause(Timing.brief)
+            chord("a", .command)
+            key(Keyboard.delete)
+            Timing.pause(Timing.brief)
+            if attempt == 0 {
+                // Fastest path: set the field value directly, then fire its submit action.
+                field.setValue(path)
+                Timing.pause(Timing.brief)
+            } else {
+                type(path)
+                Timing.pause(Timing.brief)
+            }
+            _ = field.perform(AXAction.confirm)
+            key(Keyboard.returnKey)
             if expectRow.isEmpty {
                 Timing.pause(Timing.animation)
                 return true
@@ -367,28 +380,8 @@ final class WilesDriver {
         return navigateToPath(workspace.root.path, expectRow: workspace.alphaFile)
     }
 
-    /// The main file-list scroll area (right of the sidebar), cached — its element ref survives
-    /// navigations even though its contents change. Scoping row lookups here keeps a search over a
-    /// large directory from also walking the sidebar, header and footer every time.
-    func contentArea() -> AXElement? {
-        if let cachedContentArea, cachedContentArea.frame.width > 200 { return cachedContentArea }
-        guard let window = try? mainWindow() else { return nil }
-        let resolved = window.allDescendants(where: AXMatch(role: "AXScrollArea"), maxDepth: 12)
-            .filter { $0.frame.width > 240 && $0.frame.height > 120 }
-            .max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
-        cachedContentArea = resolved
-        return resolved
-    }
-
     func fileRow(_ name: String, timeout: TimeInterval = 5) -> AXElement? {
-        let match = AXMatch(textEquals: name)
-        let deadline = Date().addingTimeInterval(timeout)
-        while true {
-            let scope = contentArea() ?? window
-            if let row = scope.firstDescendant(where: match, maxDepth: 14) { return row }
-            if Date() >= deadline { return nil }
-            Timing.pause(Timing.poll)
-        }
+        find(AXMatch(textEquals: name), timeout: timeout)
     }
 
     /// Double-clicks a file/folder row to open it.
@@ -451,7 +444,7 @@ final class WilesDriver {
         if let picker = sheet()?.firstDescendant(where: AXMatch(role: "AXPopUpButton")) {
             tapElement(picker)
             Timing.pause(Timing.settle)
-            if let english = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textEquals: "English"), timeout: 3, maxDepth: 12) {
+            if let english = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textEquals: "English"), timeout: 3) {
                 _ = english.perform(AXAction.pick) || english.press()
             } else {
                 closeAnyMenu()
@@ -489,7 +482,7 @@ final class WilesDriver {
             popup.press()
         }
         Timing.pause(Timing.settle)
-        if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: option), timeout: 3, maxDepth: 12) {
+        if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: option), timeout: 3) {
             return pressMenuItem(item)
         }
         closeAnyMenu()

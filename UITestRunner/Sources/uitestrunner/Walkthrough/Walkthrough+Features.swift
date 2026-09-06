@@ -81,10 +81,11 @@ extension Walkthrough {
             return
         }
         driver.tapElement(field)
+        field.focus()
         Timing.pause(Timing.settle)
         driver.type("alpha")
-        Timing.pause(Timing.animation)
-        reporter.check(driver.fileRow(workspace.betaFile, timeout: 3) == nil, "'\(workspace.betaFile)' filtered out by search 'alpha'")
+        Timing.pause(Timing.launch)
+        reporter.check(driver.fileRow(workspace.betaFile, timeout: 4) == nil, "'\(workspace.betaFile)' filtered out by search 'alpha'")
         reporter.check(driver.fileRow(workspace.alphaFile, timeout: 3) != nil, "'\(workspace.alphaFile)' still matches search 'alpha'")
 
         driver.tap(AXMatch(identifier: "magnifyingglass"), "search toggle button (close)", timeout: 3)

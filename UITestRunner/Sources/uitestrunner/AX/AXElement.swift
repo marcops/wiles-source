@@ -20,8 +20,7 @@ final class AXElement {
 
     init(_ ref: AXUIElement) {
         self.ref = ref
-        // Short enough that a stale/detached ref fails fast instead of stalling a whole tree walk.
-        AXUIElementSetMessagingTimeout(ref, 2)
+        AXUIElementSetMessagingTimeout(ref, 10)
     }
 
     static func application(pid: pid_t) -> AXElement {

@@ -7,10 +7,10 @@ extension PlanWalkthrough {
             workspace.alphaFile, workspace.betaFile, workspace.subFolder,
             workspace.imageFile, workspace.zipFile, workspace.pdfOne, workspace.pdfTwo,
         ]
-        guard let scope = driver.contentArea() ?? (try? driver.mainWindow()) else { return "" }
+        guard let scope = try? driver.mainWindow() else { return "" }
         let rows = scope.allDescendants(where: AXMatch(role: "AXButton", predicate: { element in
             names.contains(element.descriptionText) || names.contains(element.title)
-        }), maxDepth: 14)
+        }), maxDepth: 16)
         return rows
             .filter { !$0.frame.isEmpty }
             .min { $0.frame.minY < $1.frame.minY }
