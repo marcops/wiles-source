@@ -51,7 +51,8 @@ extension PlanWalkthrough {
         driver.navigateToWorkspace()
         let victim = "shred-uitest.txt"
         try? "shred me".write(to: workspace.url(victim), atomically: true, encoding: .utf8)
-        driver.navigateToPath(workspace.root.path, expectRow: victim, timeout: 6)
+        // The folder watcher should surface the new file; give it a moment.
+        _ = driver.fileRow(victim, timeout: 6)
         guard driver.openContextItem(onFileRow: victim, containing: "delete immediately", "context ▸ Delete Immediately")
         else {
             try? FileManager.default.removeItem(at: workspace.url(victim))
