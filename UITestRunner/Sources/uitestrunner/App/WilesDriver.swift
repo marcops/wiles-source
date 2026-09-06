@@ -169,19 +169,19 @@ final class WilesDriver {
 
     @discardableResult
     func rightClick(_ match: AXMatch, _ label: String, timeout: TimeInterval = 5) -> Bool {
-        guard let element = find(match, timeout: timeout) else {
+        _ = find(match, timeout: timeout) // wait for it to exist
+        let all = (try? mainWindow())?.allDescendants(where: match, maxDepth: 22) ?? []
+        guard let element = all.first(where: { !$0.frame.isEmpty }) ?? all.first else {
             reporter.fail("\(label): not found (for context menu)")
             return false
-        }
-        if element.actionNames.contains(AXAction.showMenu), element.perform(AXAction.showMenu) {
-            Timing.pause(Timing.settle)
-            return true
         }
         let rect = element.frame
         guard !rect.isEmpty else {
             reporter.fail("\(label): no frame for right-click")
             return false
         }
+        Mouse.click(center: rect, pid: pid)
+        Timing.pause(Timing.brief)
         Mouse.click(center: rect, rightButton: true, pid: pid)
         Timing.pause(Timing.settle)
         return true
@@ -544,7 +544,14 @@ final class WilesDriver {
     }
 
     func fileRow(_ name: String, timeout: TimeInterval = 5) -> AXElement? {
-        find(AXMatch(textEquals: name), timeout: timeout)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            let rows = allRows(textEquals: name)
+            if let sane = rows.first(where: { rowFrameIsSane($0.frame) }) { return sane }
+            if let any = rows.first(where: { !$0.frame.isEmpty }) ?? rows.first { return any }
+            Timing.pause(Timing.poll)
+        } while Date() < deadline
+        return find(AXMatch(textEquals: name), timeout: 0.1)
     }
 
     /// Opens a folder/file row and confirms we navigated by `expectRow` appearing (or, when it's
