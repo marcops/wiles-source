@@ -358,6 +358,15 @@ final class WilesDriver {
         return found
     }
 
+    func allRows(textEquals name: String) -> [AXElement] {
+        (try? mainWindow())?.allDescendants(where: AXMatch(textEquals: name), maxDepth: 20) ?? []
+    }
+
+    // A real content row: on screen, plausibly-sized, in the content area (not the sidebar, not 0,0).
+    func rowFrameIsSane(_ f: CGRect) -> Bool {
+        f.width > 40 && f.height > 8 && f.height < 400 && f.minX > 200 && f.minY > 40
+    }
+
     // MARK: - Context menu
 
     // Left-click first: AXShowMenu opens the menu without selecting the row, so the action runs on an empty selection.
@@ -365,11 +374,18 @@ final class WilesDriver {
     func openContextItem(onFileRow name: String, containing fragment: String, _ label: String) -> Bool {
         for attempt in 0 ..< 2 {
             closeAnyMenu()
-            if let row = find(AXMatch(textEquals: name), timeout: 5), !row.frame.isEmpty {
-                Mouse.click(center: row.frame, pid: pid)
-                Timing.pause(Timing.brief)
+            var row = allRows(textEquals: name).first { rowFrameIsSane($0.frame) }
+            if row == nil {
+                Timing.pause(Timing.settle)
+                row = allRows(textEquals: name).first { rowFrameIsSane($0.frame) }
             }
-            guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
+            guard let row else {
+                if attempt == 1 { reporter.fail("'\(name)' row (for context menu): not found (for context menu)") }
+                continue
+            }
+            Mouse.click(center: row.frame, pid: pid)
+            Timing.pause(Timing.brief)
+            Mouse.click(center: row.frame, rightButton: true, pid: pid)
             Timing.pause(Timing.settle)
             if app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3, maxDepth: 14) != nil {
                 return pickContextItem(containing: fragment, label)
