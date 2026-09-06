@@ -14,6 +14,22 @@ struct Walkthrough {
         featDirectoryTree()
         featFavoritesAndPlaces()
         featSearch()
+        featFileProperties()
+        featSymbolicLinks()
+        featCompressToZip()
+        featUndoRedo()
+        featBatchRename()
+        featImageConverter()
+        featArchiveInspector()
+        featDuplicateFinder()
+        featIntegratedTerminal()
+        featDiskUsageVisualizer()
+        featConnectToServer()
+        featAutoOrganization()
+        featHTTPSharing()
+        featTags()
+        featSmartFolders()
+        featAppearanceSettings()
     }
 
     // MARK: - Launch & core shell

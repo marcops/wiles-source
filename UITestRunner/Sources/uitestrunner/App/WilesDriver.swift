@@ -136,43 +136,84 @@ final class WilesDriver {
 
     @discardableResult
     func menuPick(_ menuTitle: String, itemContains fragment: String, _ label: String) -> Bool {
-        guard let menuBar = app.menuBar else {
-            reporter.fail("\(label): app has no menu bar")
-            return false
-        }
-        guard let barItem = menuBar.children.first(where: { $0.title == menuTitle }) else {
-            reporter.fail("\(label): menu '\(menuTitle)' not in menu bar")
-            return false
-        }
-        barItem.press()
-        Timing.pause(Timing.settle)
-        let itemMatch = AXMatch(role: "AXMenuItem", textContains: fragment)
-        guard let item = barItem.waitForDescendant(where: itemMatch, timeout: 3) else {
+        menuPick(menuTitle, path: [fragment], label)
+    }
+
+    /// Walks a menu-bar path, opening each submenu before looking inside it (AX doesn't populate a
+    /// submenu's items until it is actually opened). Every `path` entry is a case-insensitive
+    /// substring of the item's title.
+    @discardableResult
+    func menuPick(_ menuTitle: String, path: [String], _ label: String) -> Bool {
+        guard let container = openMenu(menuTitle, path: Array(path.dropLast()), label) else { return false }
+        guard let leafFragment = path.last else { return false }
+        guard let item = container.waitForDescendant(
+            where: AXMatch(role: "AXMenuItem", textContains: leafFragment), timeout: 3) else {
             key(Keyboard.escape)
-            reporter.fail("\(label): item containing '\(fragment)' not under '\(menuTitle)'")
+            reporter.fail("\(label): '\(leafFragment)' not found under \(menuTitle) ▸ \(path.joined(separator: " ▸ "))")
             return false
         }
-        let pressed = item.perform(AXAction.pick) || item.press()
+        let pressed = pressMenuItem(item)
         Timing.pause(Timing.settle)
         return pressed
     }
 
-    /// Whether `menuTitle` currently contains an item whose text has `fragment` (menu is opened
-    /// then dismissed). Used to assert a toggle flipped its menu label.
-    func menuHasItem(_ menuTitle: String, containing fragment: String) -> Bool {
-        guard
-            let menuBar = app.menuBar,
-            let barItem = menuBar.children.first(where: { $0.title == menuTitle })
-        else { return false }
+    /// Opens `menuTitle` then each nested submenu named by `path`, returning the innermost open
+    /// menu container (or `nil` on failure, with the menu dismissed).
+    private func openMenu(_ menuTitle: String, path: [String], _ label: String) -> AXElement? {
+        guard let barItem = app.menuBar?.children.first(where: { $0.title == menuTitle }) else {
+            reporter.fail("\(label): menu '\(menuTitle)' not in menu bar")
+            return nil
+        }
         barItem.press()
         Timing.pause(Timing.settle)
-        let found = barItem.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment)) != nil
+        var container = barItem
+        for fragment in path {
+            guard let submenuItem = container.waitForDescendant(
+                where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3) else {
+                key(Keyboard.escape)
+                reporter.fail("\(label): submenu '\(fragment)' not found under '\(menuTitle)'")
+                return nil
+            }
+            submenuItem.press()
+            Timing.pause(Timing.settle)
+            container = submenuItem
+        }
+        return container
+    }
+
+    private func pressMenuItem(_ item: AXElement) -> Bool {
+        if item.perform(AXAction.pick) { return true }
+        if item.press() { return true }
+        let rect = item.frame
+        guard !rect.isEmpty else { return false }
+        Mouse.click(center: rect, pid: pid)
+        return true
+    }
+
+    func closeAnyMenu() {
+        key(Keyboard.escape)
+        Timing.pause(Timing.brief)
+    }
+
+    /// Whether `menuTitle ▸ path` currently contains an item with `fragment` (menu opened, then
+    /// dismissed). Used to assert a toggle flipped its menu label.
+    func menuHasItem(_ menuTitle: String, path: [String] = [], containing fragment: String) -> Bool {
+        guard let container = openMenu(menuTitle, path: path, "menuHasItem") else { return false }
+        let found = container.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment)) != nil
         key(Keyboard.escape)
         Timing.pause(Timing.brief)
         return found
     }
 
     // MARK: - Context menu
+
+    /// Right-clicks a file row and picks the context-menu item whose text contains `fragment`.
+    @discardableResult
+    func openContextItem(onFileRow name: String, containing fragment: String, _ label: String) -> Bool {
+        guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
+        Timing.pause(Timing.settle)
+        return pickContextItem(containing: fragment, label)
+    }
 
     @discardableResult
     func pickContextItem(containing fragment: String, _ label: String) -> Bool {
@@ -182,9 +223,26 @@ final class WilesDriver {
             reporter.fail("\(label): context item '\(fragment)' not found")
             return false
         }
-        let pressed = item.perform(AXAction.pick) || item.press()
+        let pressed = pressMenuItem(item)
         Timing.pause(Timing.settle)
         return pressed
+    }
+
+    /// Presses the button whose text contains `fragment` in a confirmation alert, if one is up.
+    @discardableResult
+    func confirmDialog(pressing fragment: String, timeout: TimeInterval = 3) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if let dialog = app.firstDescendant(where: AXMatch(role: "AXSheet"))
+                ?? app.firstDescendant(where: AXMatch(role: "AXDialog")),
+                let button = dialog.firstDescendant(where: AXMatch(role: "AXButton", textContains: fragment)) {
+                tapElement(button)
+                Timing.pause(Timing.animation)
+                return true
+            }
+            Timing.pause(Timing.poll)
+        } while Date() < deadline
+        return false
     }
 
     // MARK: - Sheets
@@ -202,11 +260,28 @@ final class WilesDriver {
         return sheet() != nil
     }
 
-    func dismissSheet() {
-        for _ in 0 ..< 3 where sheet() != nil {
-            key(Keyboard.escape)
-            Timing.pause(Timing.settle)
+    private static let dismissButtonLabels = ["cancel", "close", "done", "ok"]
+
+    @discardableResult
+    func dismissSheet() -> Bool {
+        for attempt in 0 ..< 4 {
+            guard let sheet = sheet() else { return true }
+            if attempt < 2 {
+                key(Keyboard.escape)
+            } else if let button = dismissButton(in: sheet) {
+                tapElement(button)
+            } else {
+                key(Keyboard.escape)
+            }
+            Timing.pause(Timing.animation)
         }
+        return sheet() == nil
+    }
+
+    private func dismissButton(in sheet: AXElement) -> AXElement? {
+        sheet.firstDescendant(where: AXMatch(role: "AXButton", predicate: { element in
+            Self.dismissButtonLabels.contains { element.title.lowercased() == $0 || element.descriptionText.lowercased() == $0 }
+        }))
     }
 
     // MARK: - Navigation
@@ -229,5 +304,67 @@ final class WilesDriver {
 
     func fileRow(_ name: String, timeout: TimeInterval = 5) -> AXElement? {
         find(AXMatch(textEquals: name), timeout: timeout)
+    }
+
+    /// Mouse-clicks a file row, optionally with modifiers held (⌘-click to extend a selection).
+    @discardableResult
+    func clickRow(_ name: String, modifiers: Keyboard.Modifiers = [], timeout: TimeInterval = 5) -> Bool {
+        guard let row = fileRow(name, timeout: timeout) else {
+            reporter.fail("row '\(name)': not found")
+            return false
+        }
+        let rect = row.frame
+        guard !rect.isEmpty else {
+            reporter.fail("row '\(name)': no frame")
+            return false
+        }
+        Mouse.click(center: rect, modifiers: modifiers, pid: pid)
+        Timing.pause(Timing.brief)
+        return true
+    }
+
+    // MARK: - Settings
+
+    /// Opens the Settings sheet (if not already open) and selects `tab` by its localized label.
+    @discardableResult
+    func openSettings(tab: String) -> Bool {
+        if sheet() == nil {
+            guard menuPick("Wiles", itemContains: "Settings", "Wiles ▸ Settings") else { return false }
+            guard waitForSheet() else {
+                reporter.fail("Settings sheet did not open")
+                return false
+            }
+        }
+        guard let tabElement = sheet()?.firstDescendant(where: AXMatch(textEquals: tab)) else {
+            reporter.fail("Settings tab '\(tab)' not found")
+            return false
+        }
+        tapElement(tabElement)
+        Timing.pause(Timing.settle)
+        return true
+    }
+
+    /// Sets the Appearance-tab Theme control to `option`, coping with either rendering SwiftUI's
+    /// `Picker` can take here — a pop-up menu button or an inline set of radio buttons.
+    @discardableResult
+    func selectThemeOption(_ option: String) -> Bool {
+        guard let sheet = sheet() else { return false }
+
+        if let radio = sheet.firstDescendant(where: AXMatch(role: "AXRadioButton", textContains: option)) {
+            return tapElement(radio)
+        }
+        guard let popup = sheet.firstDescendant(where: AXMatch(role: "AXPopUpButton")) else { return false }
+        let rect = popup.frame
+        if !rect.isEmpty {
+            Mouse.click(center: rect, pid: pid)
+        } else {
+            popup.press()
+        }
+        Timing.pause(Timing.settle)
+        if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: option), timeout: 3) {
+            return pressMenuItem(item)
+        }
+        closeAnyMenu()
+        return false
     }
 }

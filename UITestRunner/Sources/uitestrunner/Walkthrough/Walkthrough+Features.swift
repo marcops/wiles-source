@@ -92,4 +92,278 @@ extension Walkthrough {
         driver.navigateToWorkspace()
         reporter.check(driver.fileRow(workspace.betaFile, timeout: 4) != nil, "'\(workspace.betaFile)' returns after leaving search")
     }
+
+    // MARK: - File Properties & Permissions
+
+    func featFileProperties() {
+        reporter.beginFeature("File Properties & Permissions")
+        driver.navigateToWorkspace()
+        guard driver.tap(AXMatch(textEquals: workspace.alphaFile), "'\(workspace.alphaFile)' row") else { return }
+        Timing.pause(Timing.brief)
+        guard driver.menuPick("File", itemContains: "Properties", "File ▸ Properties") else { return }
+        reporter.check(driver.waitForSheet(), "Properties sheet opened")
+        reporter.check(
+            driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) != nil
+                || driver.sheet()?.firstDescendant(where: AXMatch(textContains: "read")) != nil,
+            "Properties sheet shows a permissions section")
+        reporter.check(driver.dismissSheet(), "Properties sheet dismissed")
+    }
+
+    // MARK: - Symbolic Links
+
+    func featSymbolicLinks() {
+        reporter.beginFeature("Symbolic Links")
+        driver.navigateToWorkspace()
+        guard driver.openContextItem(
+            onFileRow: workspace.alphaFile,
+            containing: "create symlink",
+            "context ▸ Create Symlink") else { return }
+        reporter.check(driver.waitForSheet(), "Create Symlink sheet opened")
+        reporter.check(driver.dismissSheet(), "Create Symlink sheet dismissed")
+    }
+
+    // MARK: - Compress to ZIP
+
+    func featCompressToZip() {
+        reporter.beginFeature("Compress to ZIP")
+        driver.navigateToWorkspace()
+        let producedZip = (workspace.alphaFile as NSString).deletingPathExtension + ".zip"
+        try? FileManager.default.removeItem(at: workspace.url(producedZip))
+        guard driver.openContextItem(
+            onFileRow: workspace.alphaFile,
+            containing: "compress to zip",
+            "context ▸ Compress to ZIP") else { return }
+        reporter.check(
+            workspace.waitForExistence(producedZip, shouldExist: true, timeout: 15),
+            "compressing '\(workspace.alphaFile)' produced '\(producedZip)' on disk")
+    }
+
+    // MARK: - Undo/Redo
+
+    func featUndoRedo() {
+        reporter.beginFeature("Undo/Redo")
+        driver.navigateToWorkspace()
+        guard driver.tap(AXMatch(textEquals: workspace.betaFile), "'\(workspace.betaFile)' row") else { return }
+        Timing.pause(Timing.brief)
+
+        driver.openContextItem(onFileRow: workspace.betaFile, containing: "move to trash", "context ▸ Move to Trash")
+        reporter.check(
+            workspace.waitForExistence(workspace.betaFile, shouldExist: false, timeout: 6),
+            "Move to Trash removed '\(workspace.betaFile)' from the folder")
+
+        driver.menuPick("Edit", itemContains: "Undo", "Edit ▸ Undo")
+        reporter.check(
+            workspace.waitForExistence(workspace.betaFile, shouldExist: true, timeout: 6),
+            "Undo restored '\(workspace.betaFile)'")
+
+        driver.menuPick("Edit", itemContains: "Redo", "Edit ▸ Redo")
+        reporter.check(
+            workspace.waitForExistence(workspace.betaFile, shouldExist: false, timeout: 6),
+            "Redo re-trashed '\(workspace.betaFile)'")
+
+        driver.menuPick("Edit", itemContains: "Undo", "Edit ▸ Undo (restore for later steps)")
+        _ = workspace.waitForExistence(workspace.betaFile, shouldExist: true, timeout: 6)
+    }
+
+    // MARK: - Batch Rename
+
+    func featBatchRename() {
+        reporter.beginFeature("Batch Rename")
+        driver.navigateToWorkspace()
+        guard driver.clickRow(workspace.alphaFile) else { return }
+        driver.clickRow(workspace.betaFile, modifiers: .command)
+        Timing.pause(Timing.brief)
+        guard driver.openContextItem(onFileRow: workspace.betaFile, containing: "rename", "context ▸ Rename (multi-select)")
+        else {
+            driver.closeAnyMenu()
+            return
+        }
+        reporter.check(driver.waitForSheet(), "Batch Rename sheet opened for a multi-file selection")
+        reporter.check(
+            driver.sheet()?.firstDescendant(where: AXMatch(textContains: "replace")) != nil
+                || driver.sheet()?.firstDescendant(where: AXMatch(textContains: "prefix")) != nil
+                || driver.sheet()?.firstDescendant(where: AXMatch(textContains: "regex")) != nil,
+            "Batch Rename sheet shows its rename-mode controls")
+        reporter.check(driver.dismissSheet(), "Batch Rename sheet dismissed")
+    }
+
+    // MARK: - Image Converter
+
+    func featImageConverter() {
+        reporter.beginFeature("Image Converter")
+        driver.navigateToWorkspace()
+        guard driver.openContextItem(
+            onFileRow: workspace.imageFile,
+            containing: "quick convert",
+            "context ▸ Quick Convert & Resize") else { return }
+        reporter.check(driver.waitForSheet(), "Image Converter sheet opened")
+        reporter.check(driver.dismissSheet(), "Image Converter sheet dismissed")
+    }
+
+    // MARK: - Archive Inspector
+
+    func featArchiveInspector() {
+        reporter.beginFeature("Archive Inspector")
+        driver.navigateToWorkspace()
+        guard driver.openContextItem(
+            onFileRow: workspace.zipFile,
+            containing: "inspect archive",
+            "context ▸ Inspect Archive") else { return }
+        reporter.check(driver.waitForSheet(), "Archive Inspector sheet opened")
+        let entryName = (workspace.alphaFile as NSString).deletingPathExtension
+        reporter.check(
+            driver.sheet()?.firstDescendant(where: AXMatch(textContains: entryName)) != nil,
+            "Archive Inspector lists the archive's entry ('\(entryName)…')")
+        reporter.check(driver.dismissSheet(), "Archive Inspector sheet dismissed")
+    }
+
+    // MARK: - Duplicate Finder
+
+    func featDuplicateFinder() {
+        reporter.beginFeature("Duplicate Finder")
+        driver.navigateToWorkspace()
+        guard driver.menuPick("Tools", itemContains: "Find Duplicate Files", "Tools ▸ Find Duplicate Files") else { return }
+        reporter.check(driver.waitForSheet(), "Find Duplicate Files sheet opened")
+        reporter.check(driver.dismissSheet(), "Find Duplicate Files sheet dismissed")
+    }
+
+    // MARK: - Integrated Terminal
+
+    func featIntegratedTerminal() {
+        reporter.beginFeature("Integrated Terminal")
+        driver.navigateToWorkspace()
+        guard driver.menuPick("View", itemContains: "Show Terminal", "View ▸ Show Terminal") else { return }
+        reporter.check(
+            driver.menuHasItem("View", containing: "Hide Terminal"),
+            "View menu flipped to 'Hide Terminal' — the terminal drawer is showing")
+        driver.menuPick("View", itemContains: "Hide Terminal", "View ▸ Hide Terminal (restore)")
+    }
+
+    // MARK: - Disk Usage Visualizer
+
+    func featDiskUsageVisualizer() {
+        reporter.beginFeature("Disk Usage Visualizer")
+        driver.navigateToWorkspace()
+        driver.chord("d", [.command, .shift])
+        Timing.pause(Timing.animation)
+        let flipped = driver.menuHasItem("View", containing: "Hide Disk Usage")
+        if !flipped {
+            driver.menuPick("View", itemContains: "Show Disk Usage", "View ▸ Show Disk Usage")
+        }
+        reporter.check(
+            flipped || driver.menuHasItem("View", containing: "Hide Disk Usage"),
+            "Disk Usage pane is showing (View menu offers 'Hide Disk Usage')")
+        driver.menuPick("View", itemContains: "Hide Disk Usage", "View ▸ Hide Disk Usage (restore)")
+    }
+
+    // MARK: - Connect to Server
+
+    func featConnectToServer() {
+        reporter.beginFeature("Connect to Server")
+        driver.navigateToWorkspace()
+        guard driver.menuPick("Go", itemContains: "Connect to Server", "Go ▸ Connect to Server") else { return }
+        reporter.check(driver.waitForSheet(), "Connect to Server sheet opened")
+        reporter.check(driver.dismissSheet(), "Connect to Server sheet dismissed")
+    }
+
+    // MARK: - Auto-Organization Rules
+
+    func featAutoOrganization() {
+        reporter.beginFeature("Auto-Organization Rules")
+        driver.navigateToWorkspace()
+        guard driver.menuPick("Tools", itemContains: "Auto-Organization", "Tools ▸ Auto-Organization") else { return }
+        reporter.check(driver.waitForSheet(), "Auto-Organization sheet opened")
+        reporter.check(driver.dismissSheet(), "Auto-Organization sheet dismissed")
+    }
+
+    // MARK: - HTTP Sharing
+
+    func featHTTPSharing() {
+        reporter.beginFeature("HTTP Sharing")
+        driver.navigateToWorkspace()
+        guard driver.openContextItem(
+            onFileRow: workspace.subFolder,
+            containing: "share folder over wi-fi",
+            "context ▸ Share Folder over Wi-Fi") else { return }
+        reporter.check(driver.waitForSheet(), "HTTP Sharing sheet opened")
+        reporter.check(driver.dismissSheet(), "HTTP Sharing sheet dismissed")
+    }
+
+    // MARK: - Tags
+
+    func featTags() {
+        reporter.beginFeature("Tags")
+        driver.navigateToWorkspace()
+        let tagsVisible = driver.find(AXMatch(identifier: "Section_TAGS"), timeout: 2) != nil
+        if tagsVisible {
+            reporter.pass("TAGS sidebar section already visible")
+        } else {
+            guard driver.menuPick("View", path: ["Sidebar", "Show Tags"], "View ▸ Sidebar ▸ Show Tags") else { return }
+            reporter.check(
+                driver.find(AXMatch(identifier: "Section_TAGS"), timeout: 4) != nil,
+                "TAGS sidebar section appeared after enabling 'Show Tags'")
+            driver.menuPick("View", path: ["Sidebar", "Show Tags"], "View ▸ Sidebar ▸ Show Tags (restore)")
+        }
+    }
+
+    // MARK: - Smart Folders
+
+    func featSmartFolders() {
+        reporter.beginFeature("Smart Folders")
+        driver.navigateToWorkspace()
+        if driver.find(AXMatch(identifier: "SearchTextField"), timeout: 1) == nil {
+            driver.tap(AXMatch(identifier: "magnifyingglass"), "search activate button", timeout: 3)
+            Timing.pause(Timing.settle)
+        }
+        if let field = driver.find(AXMatch(identifier: "SearchTextField"), timeout: 4) {
+            driver.tapElement(field)
+            Timing.pause(Timing.brief)
+            driver.type("uitest")
+            Timing.pause(Timing.animation)
+        }
+        guard driver.tap(AXMatch(textContains: "save as smart folder"), "'Save as Smart Folder' control", timeout: 4) else {
+            driver.tap(AXMatch(identifier: "magnifyingglass"), "search close", timeout: 3)
+            return
+        }
+        reporter.check(driver.waitForSheet(), "Save Smart Folder sheet opened")
+        reporter.check(driver.dismissSheet(), "Save Smart Folder sheet dismissed")
+        driver.tap(AXMatch(identifier: "magnifyingglass"), "search close", timeout: 3)
+        Timing.pause(Timing.settle)
+        driver.navigateToWorkspace()
+    }
+
+    // MARK: - Appearance Settings
+
+    func featAppearanceSettings() {
+        reporter.beginFeature("Appearance Settings")
+        driver.navigateToWorkspace()
+        guard driver.openSettings(tab: "Appearance") else { return }
+
+        let hasAllThemeOptions = ["System", "Light", "Dark"].allSatisfy { option in
+            driver.sheet()?.firstDescendant(where: AXMatch(textContains: option)) != nil
+        }
+        reporter.check(hasAllThemeOptions, "Appearance tab offers Light / Dark / System theme options")
+
+        let switched = driver.selectThemeOption("Dark")
+        reporter.check(switched, "selected the 'Dark' theme option")
+        Timing.pause(Timing.animation)
+        reporter.check(driver.dismissSheet(), "Settings dismissed after choosing Dark")
+
+        Timing.pause(Timing.settle)
+        let persisted = driver.process.readDefault("wiles_appAppearance") ?? ""
+        reporter.check(
+            persisted.contains("Dark"),
+            "'Dark' theme persisted to preferences (wiles_appAppearance = '\(persisted)')")
+
+        guard driver.openSettings(tab: "Appearance") else { return }
+        driver.selectThemeOption("System")
+        driver.dismissSheet()
+
+        reporter.check(
+            driver.menuHasItem("View", path: ["Appearance"], containing: "Director View"),
+            "View ▸ Appearance ▸ Director View reset is available")
+        reporter.check(
+            driver.menuHasItem("View", path: ["Appearance"], containing: "Default"),
+            "View ▸ Appearance ▸ Default reset is available")
+    }
 }

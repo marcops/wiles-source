@@ -29,6 +29,22 @@ final class WilesProcess {
         defaults.waitUntilExit()
     }
 
+    /// Reads a key back from the isolated defaults domain — ground truth for "did this preference
+    /// actually persist", without depending on an AX value read.
+    func readDefault(_ key: String) -> String? {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
+        task.arguments = ["read", Self.bundleID, key]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = FileHandle.nullDevice
+        try? task.run()
+        task.waitUntilExit()
+        guard task.terminationStatus == 0 else { return nil }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func launch() throws {
         for stale in NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID) {
             stale.forceTerminate()
