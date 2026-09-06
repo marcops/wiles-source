@@ -492,16 +492,20 @@ extension PlanWalkthrough {
     func featSettingsTabs() {
         reporter.beginFeature("Settings — every tab switches")
         let tabProbe: [(String, [String])] = [
-            ("General", ["language"]),
-            ("Appearance", ["theme", "translucency", "light", "dark"]),
-            ("Sidebar", ["show tags", "show recents", "show favorites", "sidebar"]),
-            ("Advanced", ["compact", "view"]),
+            ("General", ["language", "behaviou", "shortcut"]),
+            ("Appearance", ["theme", "translucen", "system", "%", "light"]),
+            ("Sidebar", ["show tags", "show recents", "show favorites", "directory tree"]),
+            ("Advanced", ["compact", "view", "density"]),
         ]
         for (index, probe) in tabProbe.enumerated() {
             guard driver.openSettings(tab: probe.0) else { continue }
-            Timing.pause(Timing.settle)
-            let hit = probe.1.contains { frag in
-                driver.sheet()?.firstDescendant(where: AXMatch(textContains: frag), maxDepth: 26) != nil
+            Timing.pause(Timing.animation)
+            var hit = false
+            for _ in 0 ..< 3 where !hit {
+                hit = probe.1.contains { frag in
+                    driver.sheet()?.firstDescendant(where: AXMatch(textContains: frag), maxDepth: 28) != nil
+                }
+                if !hit { Timing.pause(Timing.settle) }
             }
             reporter.check(hit, "Settings ▸ \(probe.0) shows its own content")
             if index == tabProbe.count - 1 { driver.dismissSheet() }

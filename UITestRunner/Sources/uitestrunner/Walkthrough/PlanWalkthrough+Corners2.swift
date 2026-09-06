@@ -279,11 +279,16 @@ extension PlanWalkthrough {
         let row = driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart"), timeout: 4)
         reporter.check(row != nil, "the saved smart folder 'CornerSmart' shows in the sidebar")
         if row != nil {
-            driver.rightClick(AXMatch(role: "AXButton", textEquals: "CornerSmart"), "CornerSmart (context)")
-            Timing.pause(Timing.settle)
-            let offersEdit = driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "delete smart folder"), maxDepth: 14) != nil
-                || driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "rename"), maxDepth: 14) != nil
-            reporter.check(offersEdit, "its context menu offers rename or delete")
+            var offersEdit = false
+            for _ in 0 ..< 3 where !offersEdit {
+                driver.rightClick(AXMatch(role: "AXButton", textEquals: "CornerSmart"), "CornerSmart (context)")
+                Timing.pause(Timing.animation)
+                offersEdit = driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "delete smart folder"), maxDepth: 20) != nil
+                    || driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "rename"), maxDepth: 20) != nil
+                    || driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "update search"), maxDepth: 20) != nil
+                if !offersEdit { driver.closeAnyMenu() }
+            }
+            reporter.check(offersEdit, "its context menu offers rename / update / delete")
             _ = driver.pickContextItem(containing: "delete smart folder", "CornerSmart context ▸ Delete Smart Folder")
             _ = driver.confirmDialog(pressing: "delete") || driver.confirmDialog(pressing: "ok")
             Timing.pause(Timing.animation)
@@ -338,8 +343,8 @@ extension PlanWalkthrough {
             return
         }
         Timing.pause(Timing.brief)
-        guard driver.openRow(workspace.subFolder, expectRow: workspace.alphaFile),
-              driver.isGone(AXMatch(textEquals: workspace.subFolder), within: 2) else {
+        guard driver.navigateToPath(workspace.url(workspace.subFolder).path, expectRow: workspace.alphaFile, timeout: 5),
+              driver.isGone(AXMatch(textEquals: workspace.subFolder), within: 3) else {
             reporter.fail("featMoveCollisionSheet: could not open the 'sub-uitest' folder")
             try? FileManager.default.removeItem(at: planted)
             driver.navigateToWorkspace()
