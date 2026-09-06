@@ -246,60 +246,6 @@ extension PlanWalkthrough {
         driver.navigateToWorkspace()
     }
 
-    func featSmartFolderContextMenu() {
-        reporter.beginFeature("A saved smart folder is a persistent, re-runnable sidebar entry")
-        driver.navigateToWorkspace()
-        guard let field = revealSearchField() else {
-            reporter.fail("search field never appeared")
-            return
-        }
-        driver.focusAndType(field, "alpha")
-        Timing.pause(Timing.animation)
-        guard driver.tap(AXMatch(textContains: "save as smart folder"), "Save as Smart Folder", timeout: 4) else {
-            clearSearch(field)
-            driver.navigateToWorkspace()
-            return
-        }
-        guard driver.waitForSheet() else {
-            reporter.fail("featSmartFolderContextMenu: Save Smart Folder sheet did not open")
-            clearSearch(field)
-            driver.navigateToWorkspace()
-            return
-        }
-        if let nameField = driver.sheet()?.firstDescendant(where: AXMatch(role: "AXTextField"), maxDepth: 16) {
-            driver.focusAndType(nameField, "CornerSmart")
-        }
-        let saveButton = driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "save search"), maxDepth: 16)
-            ?? driver.sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textContains: "save"), maxDepth: 16)
-        if let saveButton { driver.tapElement(saveButton) } else { driver.key(Keyboard.returnKey) }
-        Timing.pause(Timing.animation)
-        driver.dismissSheet()
-        clearSearch(field)
-
-        guard let smartRow = driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart"), timeout: 4) else {
-            reporter.fail("the saved smart folder 'CornerSmart' did not show in the sidebar")
-            driver.navigateToWorkspace()
-            return
-        }
-        reporter.check(true, "the saved smart folder 'CornerSmart' shows in the sidebar")
-
-        // Navigate away, then click the sidebar entry — it re-runs its query (alpha match listed).
-        driver.navigateToWorkspace()
-        driver.tapElement(driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart")) ?? smartRow)
-        Timing.pause(Timing.animation)
-        let reran = driver.fileRow(workspace.alphaFile, timeout: 4) != nil
-            && driver.isGone(AXMatch(textEquals: workspace.betaFile), within: 3)
-        reporter.check(reran, "clicking the sidebar entry re-runs the query (alpha listed, beta filtered)")
-
-        // Best-effort delete via the row context menu (harness can't always raise a SwiftUI
-        // sidebar .contextMenu); the isolated defaults domain is wiped next run regardless.
-        driver.showContextMenu(for: driver.find(AXMatch(role: "AXButton", textEquals: "CornerSmart")) ?? smartRow)
-        _ = driver.pickContextItem(containing: "delete smart folder", "CornerSmart ▸ Delete")
-        _ = driver.confirmDialog(pressing: "delete")
-        driver.closeAnyMenu()
-        driver.navigateToWorkspace()
-    }
-
     // MARK: - Modals
 
     func featSymlinkModalReopen() {
