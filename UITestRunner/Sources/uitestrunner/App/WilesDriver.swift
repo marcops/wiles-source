@@ -188,8 +188,7 @@ final class WilesDriver {
     func menuPick(_ menuTitle: String, path: [String], _ label: String) -> Bool {
         guard let container = openMenu(menuTitle, path: Array(path.dropLast()), label) else { return false }
         guard let leafFragment = path.last else { return false }
-        guard let item = container.waitForDescendant(
-            where: AXMatch(role: "AXMenuItem", textContains: leafFragment), timeout: 3) else {
+        guard let item = container.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: leafFragment), timeout: 3, maxDepth: 8) else {
             key(Keyboard.escape)
             reporter.fail("\(label): '\(leafFragment)' not found under \(menuTitle) ▸ \(path.joined(separator: " ▸ "))")
             return false
@@ -213,8 +212,7 @@ final class WilesDriver {
         Timing.pause(Timing.settle)
         var container = barItem
         for fragment in path {
-            guard let submenuItem = container.waitForDescendant(
-                where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3) else {
+            guard let submenuItem = container.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), timeout: 3, maxDepth: 8) else {
                 key(Keyboard.escape)
                 reporter.fail("\(label): submenu '\(fragment)' not found under '\(menuTitle)'")
                 return nil
@@ -248,7 +246,7 @@ final class WilesDriver {
     /// dismissed). Used to assert a toggle flipped its menu label.
     func menuHasItem(_ menuTitle: String, path: [String] = [], containing fragment: String) -> Bool {
         guard let container = openMenu(menuTitle, path: path, "menuHasItem") else { return false }
-        let found = container.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment)) != nil
+        let found = container.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 8) != nil
         key(Keyboard.escape)
         Timing.pause(Timing.brief)
         return found
@@ -267,7 +265,7 @@ final class WilesDriver {
     @discardableResult
     func pickContextItem(containing fragment: String, _ label: String) -> Bool {
         let match = AXMatch(role: "AXMenuItem", textContains: fragment)
-        guard let item = app.waitForDescendant(where: match, timeout: 3) else {
+        guard let item = app.waitForDescendant(where: match, timeout: 3, maxDepth: 12) else {
             key(Keyboard.escape)
             reporter.fail("\(label): context item '\(fragment)' not found")
             return false
@@ -431,8 +429,7 @@ final class WilesDriver {
         if let picker = sheet()?.firstDescendant(where: AXMatch(role: "AXPopUpButton")) {
             tapElement(picker)
             Timing.pause(Timing.settle)
-            if let english = app.waitForDescendant(
-                where: AXMatch(role: "AXMenuItem", textEquals: "English"), timeout: 3) {
+            if let english = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textEquals: "English"), timeout: 3, maxDepth: 12) {
                 _ = english.perform(AXAction.pick) || english.press()
             } else {
                 closeAnyMenu()
@@ -470,7 +467,7 @@ final class WilesDriver {
             popup.press()
         }
         Timing.pause(Timing.settle)
-        if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: option), timeout: 3) {
+        if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textContains: option), timeout: 3, maxDepth: 12) {
             return pressMenuItem(item)
         }
         closeAnyMenu()
