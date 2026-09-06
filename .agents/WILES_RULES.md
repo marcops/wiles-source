@@ -61,7 +61,7 @@ For fixes/features in Wiles, don't write/run the actual unit test file immediate
 
 ## Unit Test Coverage Target: 100% of Non-SwiftUI-View Code
 
-Every non-SwiftUI-view unit — `Models/`, `Services/`, `Features/*/*.swift` service/model files (not `*SheetView.swift`), `AppState`/`AppState+*`/`Stores/*` — is pursued to 100% unit test coverage, including branch coverage (every `if`/`guard`/`switch` case exercised, not just line coverage). Pure SwiftUI `View` bodies (`*SheetView.swift`, anything in `Views/`, `App/Commands/*.swift`) are explicitly excluded from this target for now — they're covered later by `WilesUITests`, not `WilesTests` unit tests.
+Every non-SwiftUI-view unit — `Models/`, `Services/`, `Features/*/*.swift` service/model files (not `*SheetView.swift`), `AppState`/`AppState+*`/`Stores/*` — is pursued to 100% unit test coverage, including branch coverage (every `if`/`guard`/`switch` case exercised, not just line coverage). Pure SwiftUI `View` bodies (`*SheetView.swift`, anything in `Views/`, `App/Commands/*.swift`) are explicitly excluded from this target for now — they're covered by the `UITestRunner/` AX walkthrough, not `WilesTests` unit tests.
 
 - 100% is the target, not an absolute floor: skip a specific branch/line only when the cost of covering it is clearly disproportionate to its risk (e.g. an unreachable `fatalError` guard, a platform branch that can't run in CI) — and say so explicitly (a short comment or in the report), don't just quietly leave it uncovered.
 - Follow the existing test harness pattern exactly: a logic file (`Tests/WilesTests/.../<Name>Tests.swift`, `public struct <Name>Tests { public static func run() [async] { ... } }` asserting via `TestReporter.report(category, name, result:, detail:)`) plus a standalone `<Name>TestsCase.swift` (`final class <Name>TestsCase: XCTestCase` calling `.run()`) — see `ListColumnSettingsTestsCase.swift` for the preferred standalone-file precedent. Don't edit the shared `WilesAutomatedXCTestCase.swift` for new suites unless there's no other established pattern to follow.
@@ -73,8 +73,8 @@ When writing a test against existing production code and the test reveals the co
 ## Available Scripts
 
 - `scripts/push_and_relaunch.sh "<msg>" [--skip-commit]` — build+sign+relaunch, then commit+push. Default to `--skip-commit` until told to commit.
-- `scripts/validate.sh` — build+test+lint+format, exit 0 = clean.
-- `scripts/build_debug_app.sh` — builds a real `Wiles.app` bundle in debug mode so `WilesUITests` has something `XCUIApplication` can launch (`swift build` alone only produces a bare executable). Invoked as a Run Script build phase by the Xcode UI-test target; not usually run by hand.
+- `scripts/validate.sh` — build+test+lint+format+UI walkthrough, exit 0 = clean.
+- `scripts/run_ui_test.sh [--plan] [--screenshots] [--no-build]` — builds a debug `Wiles.app`, then drives it from the outside via the macOS Accessibility API (`UITestRunner/`). Default = the FEATURES.md feature tour; `--plan` = the deeper UI_TEST_PLAN.md suite. No lint step. Needs Accessibility trust for the controlling terminal.
 - `scripts/test_timing.sh` — slowest 10 tests.
 - `scripts/setup_test_ramdisk.sh` — mounts RAM disk for tests.
 - Release (build → package → publish to GitHub Releases → update Homebrew Cask → push) is fully automated in `.github/workflows/release.yml` — no local script; push a `v*` tag or trigger it manually from the Actions tab.
@@ -144,9 +144,10 @@ When writing a test against existing production code and the test reveals the co
 
 ## Strict UI Test Verification Standards
 
-- Never hide interaction checks behind unasserted `if element.exists { element.click() }` — always assert/verify presence explicitly.
-- `XCUIElement` queries always return non-nil query proxies — never `XCTAssertNotNil(element)` to check visibility; always evaluate `element.exists` or `element.waitForExistence(timeout:)`.
-- All UI test files in `Tests/WilesUITests/` MUST be registered in `Package.swift` and run in automated test runs.
+- Never hide interaction checks behind an unasserted "click it if it's there" — always assert presence explicitly through `reporter.check(...)`.
+- A found `AXElement` is not proof of visibility — verify it has a non-empty `frame` (or assert on the state change the interaction should cause) before trusting it.
+- Every walkthrough step records its own checks and returns even on failure (continue-on-failure), so one run reports every broken feature at once; the script exits non-zero if any check failed.
+- Only touch `Sources/Wiles/` from a UI test to add a missing accessibility identifier, and only after asking first.
 
 ## Window-Scoped UI State in This App
 

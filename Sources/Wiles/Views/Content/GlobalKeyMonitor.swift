@@ -26,7 +26,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
     /// other monitor and the normal responder chain — so once leaked, every future keyDown/
     /// scrollWheel anywhere in the app was silently eaten forever, until relaunch. Fixed by
     /// removing the monitor on teardown, mirroring the sibling `ClickOutsideDetector.ClickView`,
-    /// which already did this correctly. See `GlobalKeyMonitorUITests` for the regression test.
+    /// which already did this correctly.
     class KeyMonitorNSView: NSView {
         var appState: AppState?
         var windowUIState: WindowUIState?

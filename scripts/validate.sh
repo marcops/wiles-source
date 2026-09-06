@@ -133,8 +133,8 @@ else
   echo "swift test OK"
 fi
 # Compute coverage regardless of pass/fail — profdata is written even when some tests fail.
-# Only WilesTests (unit tests) feed this profile; the xcodebuild UI test run below is a separate
-# harness with its own coverage format and isn't merged in here. Printed at the end, not here.
+# Only WilesTests (unit tests) feed this profile; the AXUIElement UI walkthrough below is a
+# separate process (it launches the real app) and isn't merged in here. Printed at the end.
 BIN=".build/debug/WilesPackageTests.xctest/Contents/MacOS/WilesPackageTests"
 PROFDATA=".build/debug/codecov/default.profdata"
 if [[ -f "$BIN" && -f "$PROFDATA" ]]; then
@@ -143,18 +143,21 @@ if [[ -f "$BIN" && -f "$PROFDATA" ]]; then
 fi
 scripts/test_timing.sh "$TEST_LOG"
 
-section "xcodebuild UI tests (WilesUITests — launches Wiles.app and controls the screen)"
-if ! xcodebuild test \
-    -scheme Wiles \
-    -only-testing:WilesUITests/WilesLaunchUITests \
-    -only-testing:WilesUITests/GlobalKeyMonitorUITests \
-    -skip-testing:WilesTests \
-    -destination 'platform=macOS,arch=arm64' \
-    2>&1 | tee /tmp/wiles_uitest.log | grep -E 'Test Case|passed|failed|error:'; then
-  echo "FAIL: UI tests did not pass"
+section "UI walkthrough (UITestRunner — drives the real Wiles.app via the Accessibility API)"
+# Two passes against one build: the FEATURES.md feature tour, then the deeper UI_TEST_PLAN.md
+# suite. Each is continue-on-failure and prints its own 'N checks · N passed · N failed' line;
+# the script exits non-zero if any check failed. Needs Accessibility trust for the controlling
+# terminal (the runner prints how to grant it) and a real login session — local gate only, not CI.
+UITEST_OK=1
+scripts/run_ui_test.sh 2>&1 | tee /tmp/wiles_uitest_features.log | grep -E 'checks ·|✗|▶' || true
+[[ "${PIPESTATUS[0]}" -eq 0 ]] || UITEST_OK=0
+scripts/run_ui_test.sh --no-build --plan 2>&1 | tee /tmp/wiles_uitest_plan.log | grep -E 'checks ·|✗|▶' || true
+[[ "${PIPESTATUS[0]}" -eq 0 ]] || UITEST_OK=0
+if [[ "$UITEST_OK" -eq 0 ]]; then
+  echo "FAIL: UI walkthrough had failing checks — see /tmp/wiles_uitest_features.log and /tmp/wiles_uitest_plan.log"
   FAILED=1
 else
-  echo "xcodebuild UI tests OK"
+  echo "UI walkthrough OK"
 fi
 
 section "L10n key references (R-LINT-2 — no orphan L10n.Key cases / dead translations)"

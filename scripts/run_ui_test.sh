@@ -9,9 +9,11 @@
 #   4. runs it (the runner self-checks Accessibility trust and prints how to grant it).
 # UI tests carry no lint step.
 #
-# Usage: scripts/run_ui_test.sh [--no-build] [--screenshots]
+# Usage: scripts/run_ui_test.sh [--no-build] [--plan] [--screenshots]
+#   --plan         run the deeper UI_TEST_PLAN.md suite instead of the FEATURES.md feature tour.
 #   --screenshots  stage every FEATURES.md feature and capture <slug>-{light,dark}.png into
 #                  wiles-public/docs/screenshots/features/ instead of running the assert walkthrough.
+#   --no-build     skip the Wiles + runner rebuild and reuse the last one (for a second-pass mode).
 
 set -uo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -34,8 +36,6 @@ UITEST_BUNDLE_ID="com.marco.wiles.uitest"
 
 echo "==> ensure nothing from a previous run is alive"
 pkill -9 -f 'uitestrunner'                          2>/dev/null || true
-pkill -9 -f 'xcodebuild.*(test|WilesUITests)'       2>/dev/null || true
-pkill -9 -f 'XCTRunner|WilesUITests-Runner'         2>/dev/null || true
 pkill -9 -f '\.build/uitest/Wiles\.app/Contents/MacOS/Wiles' 2>/dev/null || true
 pkill -9 -f 'Wiles\.app/Contents/MacOS/Wiles .*--ui-testing' 2>/dev/null || true
 sleep 2

@@ -11,8 +11,8 @@ Motivo de existir um documento separado, não apenas mais uma seção em
 certa?". Revisão de renderização lê o código e pergunta uma coisa
 fundamentalmente diferente — "quando ESTE valor muda, o que EXATAMENTE
 recalcula a tela, e QUANDO?" — e boa parte dos findings aqui só podem ser
-CONFIRMADOS rodando o app de verdade (`xcodebuild test` com um `WilesUITests`
-real), não só lendo texto. As duas óticas exigem checklist e metodologia
+CONFIRMADOS rodando o app de verdade (`scripts/run_ui_test.sh`, que dirige o
+app pela Accessibility API), não só lendo texto. As duas óticas exigem checklist e metodologia
 diferentes; misturá-las faz a de renderização virar um item esquecido no meio
 de uma lista de 900 linhas sobre outra coisa.
 
@@ -174,13 +174,11 @@ tratá-los como suspeitos automáticos, não como prova de bug:
 2. **Confirmação em runtime** — TODO candidato que descreve um efeito
    visual (aparece/some, anima errado, não recalcula tamanho) precisa de
    uma confirmação real, não apenas leitura de código:
-   - Escreva um teste em `Tests/WilesUITests/` usando `XCUIApplication`
+   - Adicione um passo à walkthrough em `UITestRunner/Sources/uitestrunner/Walkthrough/`
      que reproduza o cenário (ex.: expandir a árvore até haver overflow,
-     depois `app.scrollBars.firstMatch.waitForExistence(timeout:)`).
-   - Rode com:
-     `xcodebuild test -scheme Wiles -destination 'platform=macOS' -only-testing:WilesUITests/<Suite>`
-     (NÃO `swift test` — SPM não produz bundle de UI testing; `validate.sh`
-     roda isso separadamente, ver `WilesLaunchUITests.swift`'s cabeçalho).
+     depois checar via AX que a scrollbar aparece).
+   - Rode com `scripts/run_ui_test.sh` (ou `--plan`); `validate.sh` roda os
+     dois passes. Não usa `xcodebuild` nem `swift test`.
    - Confirme que o teste FALHA no código atual (prova que o bug é real e
      que o teste de fato o detecta) antes de aplicar a correção, depois
      confirme que PASSA depois da correção.

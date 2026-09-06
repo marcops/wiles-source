@@ -4,8 +4,8 @@ public extension Bundle {
     /// `Bundle.module` alone is unsafe here: its generated accessor only checks
     /// `Bundle.main.bundleURL/Wiles_Wiles.bundle` (top level) and a hardcoded absolute `.build`
     /// path, then `fatalError`s if neither resolves — it has no notion of `Contents/Resources/`,
-    /// which is where `scripts/build_debug_app.sh`/`push_and_relaunch.sh` and the release workflow
-    /// actually place `Wiles_Wiles.bundle` in the .app. Check the real packaging layout first (graceful,
+    /// which is where `scripts/push_and_relaunch.sh` and the release workflow actually place
+    /// `Wiles_Wiles.bundle` in the .app. Check the real packaging layout first (graceful,
     /// no crash on miss), and only fall back to `Bundle.module` for `swift test`/`swift build`
     /// runs outside any .app wrapper, where those candidates correctly don't apply.
     static let wilesResources: Bundle = {
