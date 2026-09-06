@@ -407,20 +407,28 @@ final class WilesDriver {
         find(AXMatch(textEquals: name), timeout: timeout)
     }
 
-    /// Double-clicks a file/folder row to open it.
+    /// Opens a folder/file row and confirms we navigated by `expectRow` appearing (or, when it's
+    /// empty, just that the row we double-clicked is gone). Double-click, then AXPress on the row,
+    /// then File ▸ Open — whichever lands first.
     @discardableResult
-    func openRow(_ name: String, timeout: TimeInterval = 5) -> Bool {
+    func openRow(_ name: String, expectRow: String = "", timeout: TimeInterval = 5) -> Bool {
         guard let row = fileRow(name, timeout: timeout), !row.frame.isEmpty else {
             reporter.fail("row '\(name)': not found (to open)")
             return false
         }
-        // Select, then File ▸ Open — reliable regardless of navigation mode (Enter differs
-        // between macOS/GNOME modes; double-click timing is fragile).
-        Mouse.click(center: row.frame, pid: pid)
-        Timing.pause(Timing.brief)
-        let opened = menuPick("File", itemContains: "Open", "File ▸ Open ('\(name)')")
+        func landed() -> Bool {
+            if !expectRow.isEmpty { return fileRow(expectRow, timeout: 3) != nil }
+            return fileRow(name, timeout: 1) == nil
+        }
+        Mouse.doubleClick(center: row.frame, pid: pid)
         Timing.pause(Timing.animation)
-        return opened
+        if landed() { return true }
+
+        row.press()
+        Timing.pause(Timing.brief)
+        _ = menuPick("File", itemContains: "Open", "File ▸ Open ('\(name)')")
+        Timing.pause(Timing.animation)
+        return landed()
     }
 
     /// Mouse-clicks a file row, optionally with modifiers held (⌘-click to extend a selection).

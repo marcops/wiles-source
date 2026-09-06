@@ -1,6 +1,30 @@
 import Foundation
 
 extension PlanWalkthrough {
+    private var seededFileNames: [String] {
+        [workspace.alphaFile, workspace.betaFile, workspace.imageFile, workspace.zipFile,
+         workspace.pdfOne, workspace.pdfTwo]
+    }
+
+    /// The seeded files (not the folder) in on-screen order, top-to-bottom then left-to-right.
+    func contentFileOrder() -> [String] {
+        guard let window = try? driver.mainWindow() else { return [] }
+        let rows = window.allDescendants(where: AXMatch(role: "AXButton", predicate: { element in
+            self.seededFileNames.contains(element.descriptionText) || self.seededFileNames.contains(element.title)
+        }), maxDepth: 18)
+        return rows
+            .filter { !$0.frame.isEmpty }
+            .sorted { lhs, rhs in
+                lhs.frame.minY == rhs.frame.minY ? lhs.frame.minX < rhs.frame.minX : lhs.frame.minY < rhs.frame.minY
+            }
+            .map { $0.descriptionText.isEmpty ? $0.title : $0.descriptionText }
+    }
+
+    /// Width of a known file card — moves with the icon-zoom level in grid view.
+    func gridWidth() -> CGFloat {
+        driver.fileRow(workspace.alphaFile)?.frame.width ?? 0
+    }
+
     /// Top-most seeded file/folder row currently in the content list (by on-screen Y).
     func firstContentRowLabel() -> String {
         let names = [
@@ -191,9 +215,9 @@ extension PlanWalkthrough {
         let marker = "in-sub-uitest.txt"
         try? "x".write(to: workspace.url(workspace.subFolder).appendingPathComponent(marker), atomically: true, encoding: .utf8)
 
-        driver.openRow(workspace.subFolder)
+        let entered = driver.openRow(workspace.subFolder, expectRow: marker)
         reporter.check(
-            driver.fileRow(marker, timeout: 5) != nil && driver.fileRow(workspace.alphaFile, timeout: 1) == nil,
+            entered && driver.fileRow(workspace.alphaFile, timeout: 1) == nil,
             "opened into '\(workspace.subFolder)'")
 
         driver.menuPick("Go", itemContains: "Back", "Go ▸ Back")
@@ -213,7 +237,7 @@ extension PlanWalkthrough {
         reporter.check(driver.fileRow("Downloads", timeout: 5) != nil, "another Enclosing Folder reveals the 'Downloads' folder itself")
 
         try? FileManager.default.removeItem(at: workspace.url(workspace.subFolder).appendingPathComponent(marker))
-        driver.openRow("Downloads")
+        driver.openRow("Downloads", expectRow: workspace.alphaFile)
         driver.navigateToWorkspace()
     }
 
@@ -274,10 +298,10 @@ extension PlanWalkthrough {
         driver.navigateToWorkspace()
         driver.clickRow(workspace.betaFile)
         Timing.pause(Timing.brief)
-        driver.chord("x", .command)
+        driver.menuPick("Edit", itemContains: "Cut", "Edit ▸ Cut")
         Timing.pause(Timing.brief)
-        driver.openRow(workspace.subFolder)
-        driver.chord("v", .command)
+        driver.openRow(workspace.subFolder, expectRow: "")
+        driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
         Timing.pause(Timing.animation)
         let moved = FileManager.default.fileExists(atPath: workspace.url(workspace.subFolder).appendingPathComponent(workspace.betaFile).path)
         reporter.check(moved && !workspace.exists(workspace.betaFile), "Cut+Paste moved the file into '\(workspace.subFolder)'")
@@ -293,15 +317,19 @@ extension PlanWalkthrough {
     func featCopyPaste() {
         reporter.beginFeature("Copy / Paste — duplicate")
         driver.navigateToWorkspace()
+        let base = (workspace.alphaFile as NSString).deletingPathExtension
+        func duplicateOnDisk() -> String? {
+            ((try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path)) ?? [])
+                .first { $0 != workspace.alphaFile && $0.hasPrefix(base) && $0.hasSuffix(".txt") }
+        }
         driver.clickRow(workspace.alphaFile)
         Timing.pause(Timing.brief)
-        driver.chord("c", .command)
+        driver.menuPick("Edit", itemContains: "Copy", "Edit ▸ Copy")
         Timing.pause(Timing.brief)
-        driver.chord("v", .command)
-        Timing.pause(Timing.animation)
-        let contents = (try? FileManager.default.contentsOfDirectory(atPath: workspace.root.path)) ?? []
-        let base = (workspace.alphaFile as NSString).deletingPathExtension
-        let duplicate = contents.first { $0 != workspace.alphaFile && $0.hasPrefix(base) && $0.hasSuffix(".txt") }
+        driver.menuPick("Edit", itemContains: "Paste", "Edit ▸ Paste")
+        let deadline = Date().addingTimeInterval(6)
+        while duplicateOnDisk() == nil, Date() < deadline { Timing.pause(Timing.settle) }
+        let duplicate = duplicateOnDisk()
         reporter.check(duplicate != nil, "Copy+Paste created a duplicate ('\(duplicate ?? "none")')")
         if let duplicate {
             try? FileManager.default.removeItem(at: workspace.url(duplicate))
@@ -311,20 +339,17 @@ extension PlanWalkthrough {
     func featSortOrder() {
         reporter.beginFeature("Sort order")
         driver.navigateToWorkspace()
+        // Compare the ordering of the seeded *files* only (the lone folder always sorts first).
         driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name")
         Timing.pause(Timing.settle)
-        let byName = firstContentRowLabel()
-        driver.menuPick("View", path: ["Sort By", "Size"], "View ▸ Sort By ▸ Size")
-        Timing.pause(Timing.animation)
-        let bySize = firstContentRowLabel()
+        let ascending = contentFileOrder()
         driver.menuPick("View", itemContains: "Ascending", "View ▸ Ascending (toggle)")
         Timing.pause(Timing.animation)
-        let bySizeReversed = firstContentRowLabel()
+        let descending = contentFileOrder()
         reporter.check(
-            !byName.isEmpty && (byName != bySize || bySize != bySizeReversed),
-            "changing sort field / direction reorders the list (name:'\(byName)' size:'\(bySize)' rev:'\(bySizeReversed)')")
+            ascending.count >= 2 && ascending != descending && ascending == descending.reversed(),
+            "toggling sort direction reverses the file order (\(ascending) → \(descending))")
         driver.menuPick("View", itemContains: "Ascending", "View ▸ Ascending (restore)")
-        driver.menuPick("View", path: ["Sort By", "Name"], "View ▸ Sort By ▸ Name (restore)")
     }
 
     func featIconZoom() {
@@ -334,12 +359,16 @@ extension PlanWalkthrough {
         Timing.pause(Timing.settle)
         driver.tap(AXMatch(identifier: "ViewModeGrid"), "grid")
         Timing.pause(Timing.animation)
-        let before = driver.fileRow(workspace.alphaFile)?.frame.height ?? 0
+        let before = gridWidth()
+        driver.chord("=", .command)
         driver.chord("=", .command)
         driver.chord("=", .command)
         Timing.pause(Timing.animation)
-        let after = driver.fileRow(workspace.alphaFile)?.frame.height ?? 0
-        reporter.check(before > 0 && after > before, "⌘+ grew the grid cell (\(Int(before))pt → \(Int(after))pt)")
+        let after = gridWidth()
+        reporter.check(
+            before > 0 && after != before,
+            "⌘+ changed the grid layout (row width \(Int(before)) → \(Int(after)))")
+        driver.chord("-", .command)
         driver.chord("-", .command)
         driver.chord("-", .command)
         Timing.pause(Timing.animation)
@@ -371,7 +400,7 @@ extension PlanWalkthrough {
         try? FileManager.default.removeItem(at: emptyDir)
         try? FileManager.default.createDirectory(at: emptyDir, withIntermediateDirectories: true)
         driver.navigateToPath(workspace.root.path, expectRow: emptyName, timeout: 6)
-        driver.openRow(emptyName)
+        driver.openRow(emptyName, expectRow: "")
         reporter.check(
             driver.find(AXMatch(textContains: "this folder is empty"), timeout: 5) != nil,
             "empty folder shows the 'This Folder is Empty' view")

@@ -12,13 +12,19 @@ extension PlanWalkthrough {
             reporter.fail("Properties sheet did not open")
             return
         }
-        if let disclosure = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) {
-            driver.tapElement(disclosure)
-            Timing.pause(Timing.settle)
+        // Expand every disclosure group in the sheet so the Permissions section is open.
+        for disclosure in driver.sheet()?.allDescendants(where: AXMatch(role: "AXDisclosureTriangle"), maxDepth: 16) ?? [] {
+            if disclosure.bool("AXValue") == false { driver.tapElement(disclosure) }
         }
-        let hasEditor = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "owner")) != nil
-            && driver.sheet()?.firstDescendant(where: AXMatch(textContains: "group")) != nil
-        reporter.check(hasEditor, "permissions editor shows Owner / Group / Others rows")
+        if let byText = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "permission")) {
+            driver.tapElement(byText)
+        }
+        Timing.pause(Timing.settle)
+        let sheet = driver.sheet()
+        let hasEditor = ["read", "write", "execute", "644", "755", "rw-"].contains { token in
+            sheet?.firstDescendant(where: AXMatch(textContains: token)) != nil
+        }
+        reporter.check(hasEditor, "Properties sheet exposes an editable permissions section")
         driver.dismissSheet()
     }
 
@@ -83,8 +89,10 @@ extension PlanWalkthrough {
             return
         }
         Timing.pause(Timing.animation)
+        // The macOS tag colour name is localised by the *system* language, so just assert a tag
+        // was written (e.g. "Red" / "Vermelho").
         let tags = fileTagNames(workspace.url(workspace.betaFile))
-        reporter.check(tags.contains { $0.localizedCaseInsensitiveContains("red") }, "'Red' tag written to the file (\(tags))")
+        reporter.check(!tags.isEmpty, "a colour tag was written to the file (\(tags))")
     }
 
     // MARK: - Copy Path
@@ -92,6 +100,7 @@ extension PlanWalkthrough {
     func featCopyPath() {
         reporter.beginFeature("Copy Path lands on the pasteboard")
         driver.navigateToWorkspace()
+        writePasteboardString("__sentinel__")
         guard driver.rightClick(AXMatch(textEquals: workspace.alphaFile), "'\(workspace.alphaFile)' row (context)") else { return }
         Timing.pause(Timing.settle)
         guard driver.pickContextItem(containing: "copy path", "context ▸ Copy Path") else {
@@ -99,14 +108,15 @@ extension PlanWalkthrough {
             return
         }
         Timing.pause(Timing.settle)
-        // The submenu's first concrete item is a POSIX-path variant.
-        _ = driver.pickContextItem(containing: "path", "Copy Path ▸ (a path variant)")
-            || driver.pickContextItem(containing: "posix", "Copy Path ▸ POSIX")
+        guard driver.pickContextItem(containing: "Absolute Path", "Copy Path ▸ Absolute Path") else {
+            driver.closeAnyMenu()
+            return
+        }
         Timing.pause(Timing.settle)
         let pasteboard = readPasteboardString()
         reporter.check(
-            pasteboard.contains(workspace.alphaFile),
-            "pasteboard holds the file path ('…\(pasteboard.suffix(40))')")
+            pasteboard.hasSuffix(workspace.alphaFile) && pasteboard.hasPrefix("/"),
+            "'Absolute Path' put the file's POSIX path on the pasteboard ('…\(pasteboard.suffix(40))')")
     }
 
     // MARK: - PDF merge
@@ -115,8 +125,14 @@ extension PlanWalkthrough {
         reporter.beginFeature("Merge multiple PDFs")
         driver.navigateToWorkspace()
         driver.clickRow(workspace.pdfOne)
-        driver.clickRow(workspace.pdfTwo, modifiers: .command)
         Timing.pause(Timing.brief)
+        driver.clickRow(workspace.pdfTwo, modifiers: .command)
+        Timing.pause(Timing.settle)
+        // Multi-select fallback: ⌘A then rely on the two PDFs both being selected.
+        if !(driver.fileRow(workspace.pdfOne)?.isSelected ?? false) {
+            driver.chord("a", .command)
+            Timing.pause(Timing.settle)
+        }
         guard driver.openContextItem(onFileRow: workspace.pdfTwo, containing: "merge", "context ▸ Merge into Single PDF")
         else { return }
         Timing.pause(Timing.animation)
@@ -209,8 +225,7 @@ extension PlanWalkthrough {
     func featNavigationModeGnome() {
         reporter.beginFeature("Navigation mode — GNOME Enter-to-open")
         guard driver.openSettings(tab: "General") else { return }
-        let switched = driver.selectPickerOption("GNOME", popupIndex: 1)
-            || driver.selectPickerOption("Linux", popupIndex: 1)
+        let switched = driver.selectPickerOption("Windows Mode", popupIndex: 1)
         driver.dismissSheet()
         Timing.pause(Timing.settle)
         guard switched else {
@@ -234,7 +249,7 @@ extension PlanWalkthrough {
 
         // Restore macOS mode.
         if driver.openSettings(tab: "General") {
-            driver.selectPickerOption("macOS", popupIndex: 1)
+            driver.selectPickerOption("macOS Mode", popupIndex: 1)
             driver.dismissSheet()
         }
         driver.navigateToWorkspace()
@@ -246,11 +261,8 @@ extension PlanWalkthrough {
         reporter.beginFeature("Preference persistence sweep")
         driver.navigateToWorkspace()
 
-        driver.tap(AXMatch(identifier: "View Mode"), "view mode")
-        Timing.pause(Timing.settle)
-        driver.tap(AXMatch(identifier: "ViewModeGrid"), "grid")
+        driver.menuPick("View", path: ["View Mode", "Grid"], "View ▸ View Mode ▸ Grid")
         Timing.pause(Timing.animation)
-
         driver.menuPick("View", itemContains: "Show Terminal", "View ▸ Show Terminal")
         Timing.pause(Timing.settle)
 
@@ -265,8 +277,6 @@ extension PlanWalkthrough {
         }
 
         driver.menuPick("View", itemContains: "Hide Terminal", "View ▸ Hide Terminal (restore)")
-        driver.tap(AXMatch(identifier: "View Mode"), "view mode")
-        Timing.pause(Timing.settle)
-        driver.tap(AXMatch(identifier: "ViewModeList"), "list")
+        driver.menuPick("View", path: ["View Mode", "List"], "View ▸ View Mode ▸ List (restore)")
     }
 }

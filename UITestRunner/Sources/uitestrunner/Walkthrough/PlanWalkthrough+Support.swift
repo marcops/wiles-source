@@ -10,6 +10,11 @@ extension PlanWalkthrough {
         NSPasteboard.general.string(forType: .string) ?? ""
     }
 
+    func writePasteboardString(_ value: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(value, forType: .string)
+    }
+
     func firstPort(in text: String) -> Int? {
         guard let match = text.range(of: #"(?<![\d.])\d{4,5}(?![\d.])"#, options: .regularExpression) else {
             return nil
