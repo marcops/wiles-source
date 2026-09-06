@@ -74,14 +74,10 @@ fi
 if [[ ! -x "$RUNNER_BIN" ]]; then echo "==> runner binary missing ($RUNNER_BIN)"; exit 1; fi
 
 echo "==> deterministic run state ($UITEST_BUNDLE_ID domain)"
-if [[ ${#MODE_ARGS[@]} -gt 0 && " ${MODE_ARGS[*]} " == *" --screenshots "* ]]; then
-  # Screenshots want a cleanly English app from first paint (a live language switch leaves the
-  # footer free-space string stale — see the runner README). The walkthrough still exercises the
-  # real Settings language switch as its first step.
-  defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
-else
-  defaults delete "$UITEST_BUNDLE_ID" wiles_appLanguage 2>/dev/null || true
-fi
+# Seed English so the app is English from first paint. Every step past the first assumes English
+# menu/label text — a flaky Settings interaction on step 1 must not cascade into 40 false failures.
+# The first walkthrough step still exercises Settings ▸ General ▸ Language (and F1's live re-localize).
+defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_skipDeleteConfirmation -bool YES 2>/dev/null || true
 defaults delete "$UITEST_BUNDLE_ID" wiles_lastOpenedFolder 2>/dev/null || true
 for i in 1 2 3 4 5; do

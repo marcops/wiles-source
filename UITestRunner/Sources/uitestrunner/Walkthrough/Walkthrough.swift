@@ -40,20 +40,27 @@ struct Walkthrough {
     /// key). Language endonyms ("English", "Português", …) render identically in every locale, so
     /// this works no matter what language the app launched in.
     private func featSwitchToEnglish() {
-        reporter.beginFeature("Switch language to English (Settings)")
+        reporter.beginFeature("Language switch (Settings ▸ General ▸ Language)")
         guard (try? driver.mainWindow()) != nil else {
             reporter.fail("main window never appeared")
             return
         }
-        let before = driver.menuBarTitles()
-        let nowEnglish = driver.switchToEnglishViaSettings()
-        reporter.check(
-            nowEnglish,
-            "app menus are English after Settings ▸ General ▸ Language → English (before: [\(before.joined(separator: ","))])")
-        let persisted = driver.process.readDefault("wiles_appLanguage") ?? ""
-        reporter.check(
-            persisted.contains("en") || nowEnglish,
-            "English is the active language (wiles_appLanguage = '\(persisted.isEmpty ? "system-default" : persisted)')")
+        // App is seeded English. Round-trip through Português and back so the switcher is really
+        // exercised — and check F1 (the footer free-space string re-localizes live).
+        let toPT = driver.setLanguage(to: "Português", expectMenu: "Ir")
+        reporter.check(toPT, "switching to Português flips the app menus (Ir / Ferramentas)")
+        if toPT {
+            let footerPT = driver.find(AXMatch(textContains: "livre"), timeout: 3) != nil
+            reporter.check(footerPT, "F1: footer free-space string re-localized to Português ('… livre')")
+        }
+        let toEN = driver.setLanguage(to: "English", expectMenu: "Go")
+        reporter.check(toEN, "switching back to English flips the menus back (Go / Tools)")
+        let footerEN = driver.find(AXMatch(textContains: "free"), timeout: 3) != nil
+        reporter.check(footerEN, "F1: footer free-space string re-localized back to English ('… free')")
+        if !toEN {
+            // Downstream steps need English — make one more attempt so a flake here doesn't cascade.
+            driver.setLanguage(to: "English", expectMenu: "Go")
+        }
     }
 
     // MARK: - Launch & core shell

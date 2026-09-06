@@ -438,29 +438,39 @@ final class WilesDriver {
         return true
     }
 
-    /// Drives Settings ▸ General ▸ Language → English through the real UI. Language endonyms
-    /// ("English", "Português", …) render identically in every locale, so it works whatever
-    /// language the app launched in. Returns whether the menus ended up English.
+    /// Opens Settings (⌘, then the Wiles-menu item as fallback) on the General tab and sets the
+    /// Language picker to `endonym` ("English", "Português", …) — endonyms render identically in
+    /// every locale. Returns whether the app-menu titles then reflect the target language.
     @discardableResult
-    func switchToEnglishViaSettings() -> Bool {
-        chord(",", .command)
-        guard waitForSheet() else { return menuBarTitles().contains("Go") }
-        if let picker = sheet()?.firstDescendant(where: AXMatch(role: "AXPopUpButton")) {
-            tapElement(picker)
-            Timing.pause(Timing.settle)
-            if let english = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textEquals: "English"), timeout: 3) {
-                _ = english.perform(AXAction.pick) || english.press()
-            } else {
-                closeAnyMenu()
+    func setLanguage(to endonym: String, expectMenu: String) -> Bool {
+        for attempt in 0 ..< 2 {
+            if sheet() == nil {
+                chord(",", .command)
+                if !waitForSheet(timeout: 4) {
+                    _ = menuPick("Wiles", itemContains: "Settings", "Wiles ▸ Settings")
+                        || menuPick("Wiles", itemContains: "Ajustes", "Wiles ▸ Ajustes")
+                    _ = waitForSheet(timeout: 4)
+                }
             }
+            if let picker = sheet()?.firstDescendant(where: AXMatch(role: "AXPopUpButton")) {
+                tapElement(picker)
+                Timing.pause(Timing.settle)
+                if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textEquals: endonym), timeout: 3) {
+                    _ = item.perform(AXAction.pick) || item.press()
+                } else {
+                    closeAnyMenu()
+                }
+            }
+            Timing.pause(Timing.animation)
+            dismissSheet()
+            // A language switch rebuilds the whole SwiftUI tree — let it settle and re-focus.
+            Timing.pause(Timing.launch)
+            process.activate()
+            Timing.pause(Timing.settle)
+            if menuBarTitles().contains(expectMenu) { return true }
+            if attempt == 0 { Timing.pause(Timing.settle) }
         }
-        Timing.pause(Timing.animation)
-        dismissSheet()
-        // A language switch rebuilds the whole SwiftUI tree — let it settle and re-focus.
-        Timing.pause(Timing.launch)
-        process.activate()
-        Timing.pause(Timing.settle)
-        return menuBarTitles().contains("Go")
+        return menuBarTitles().contains(expectMenu)
     }
 
     /// Selects `option` on a SwiftUI `Picker` inside the current sheet — coping with either shape

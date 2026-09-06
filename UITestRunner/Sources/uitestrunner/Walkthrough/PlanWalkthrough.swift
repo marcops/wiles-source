@@ -10,7 +10,9 @@ struct PlanWalkthrough {
 
     func run() {
         reporter.beginFeature("Language → English")
-        reporter.check(driver.switchToEnglishViaSettings(), "app switched to English via Settings")
+        reporter.check(
+            driver.menuBarTitles().contains("Go") || driver.setLanguage(to: "English", expectMenu: "Go"),
+            "app is in English")
         driver.navigateToWorkspace()
 
         featNewAndCloseWindow()
