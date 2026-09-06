@@ -78,16 +78,13 @@ fi
 if [[ ! -x "$RUNNER_BIN" ]]; then echo "==> runner binary missing ($RUNNER_BIN)"; exit 1; fi
 
 echo "==> deterministic run state ($UITEST_BUNDLE_ID domain)"
-# Wipe every trace of a previous run — the isolated defaults domain (collapsed sections,
-# non-default theme/view-mode, stale window frames), its saved-state bundle, and any cached
-# prefs — so a run always starts from a clean app. Then seed only what every run needs.
+# Start every run from zero: drop the whole isolated defaults domain and its saved window
+# state, then seed only what every run needs. (The temp workspace is already a fresh UUID
+# dir per launch.) Deliberately NOT touching cfprefsd or ~/Library/Caches — killing the
+# prefs daemon out from under a launching app leaves it reading empty defaults and rendering
+# in a broken half-state.
 defaults delete "$UITEST_BUNDLE_ID" 2>/dev/null || true
 rm -rf "$HOME/Library/Saved Application State/${UITEST_BUNDLE_ID}.savedState" 2>/dev/null || true
-rm -rf "$HOME/Library/Caches/${UITEST_BUNDLE_ID}" 2>/dev/null || true
-rm -f  "$HOME/Library/Preferences/${UITEST_BUNDLE_ID}.plist" 2>/dev/null || true
-# cfprefsd can hold the old values in memory — force it to drop them for this domain.
-/usr/bin/killall -u "$USER" cfprefsd 2>/dev/null || true
-defaults read "$UITEST_BUNDLE_ID" >/dev/null 2>&1 && defaults delete "$UITEST_BUNDLE_ID" 2>/dev/null || true
 # Seed English so the app is English from first paint. Every step past the first assumes English
 # menu/label text — a flaky Settings interaction on step 1 must not cascade into 40 false failures.
 # The first walkthrough step still exercises Settings ▸ General ▸ Language (and F1's live re-localize).

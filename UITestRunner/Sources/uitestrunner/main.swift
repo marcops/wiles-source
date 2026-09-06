@@ -8,7 +8,7 @@ if let index = CommandLine.arguments.firstIndex(of: "--scale"), index + 1 < Comm
     Timing.scale = scale
 }
 if CommandLine.arguments.contains("--fast") {
-    Timing.scale = 0.3
+    Timing.scale = 0.45
 }
 if CommandLine.arguments.contains("--slow") {
     Timing.scale = 1.0
