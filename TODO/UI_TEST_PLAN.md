@@ -1,7 +1,25 @@
-# WilesLaunchUITests — Full-Feature UI Test Plan
+# Full-Feature UI Test Plan
 
-Goal: grow `Tests/WilesUITests/WilesLaunchUITests.swift` from the current launch+minimise
-smoke test into a suite that exercises **every feature the app ships**, one feature at a
+> **STATUS (superseded runner).** XCUITest (`Tests/WilesUITests/`) is gone — it never ran
+> reliably here. It's replaced by a standalone AXUIElement runner:
+>
+> - **`UITestRunner/`** — a separate SwiftPM executable that drives `Wiles.app` from the
+>   outside via the macOS Accessibility API (no XCUITest, no `xcodebuild test`).
+> - **`scripts/run_ui_test.sh`** — kills stragglers, builds app + runner, runs it. No lint.
+>   - default: the FEATURES.md walkthrough — one launch, every one of the 20 documented
+>     features, ~53 assertions (verified green).
+>   - `--plan` : this checklist's broader items (windows, nav, content ops, footer/inspector,
+>     the remaining modals, Phase B behaviour).
+>   - `--screenshots` : stage every feature and capture `<slug>-{light,dark}.png` into
+>     `wiles-public/docs/screenshots/features/`.
+>   - `--scale <n>` / `--fast` : global timing multiplier.
+> - First run needs Accessibility permission for the terminal/IDE it runs from
+>   (System Settings ▸ Privacy & Security ▸ Accessibility). A wedged run → reboot (see
+>   `UI_TEST_FINDINGS.md`).
+>
+> The prose below is the original XCUITest plan, kept for the feature checklist in §2.
+
+Goal: a suite that exercises **every feature the app ships**, one feature at a
 time, without ever touching production source (except adding an accessibility id after
 explicit approval — see §4).
 
