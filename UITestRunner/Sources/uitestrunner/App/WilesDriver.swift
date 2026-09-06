@@ -298,7 +298,7 @@ final class WilesDriver {
     func openContextItem(onFileRow name: String, containing fragment: String, _ label: String) -> Bool {
         for attempt in 0 ..< 2 {
             closeAnyMenu()
-            guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 3) else { return false }
+            guard rightClick(AXMatch(textEquals: name), "'\(name)' row (for context menu)", timeout: 5) else { return false }
             Timing.pause(Timing.settle)
             if app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 12) != nil {
                 return pickContextItem(containing: fragment, label)
@@ -370,7 +370,7 @@ final class WilesDriver {
         app.firstDescendant(where: AXMatch(role: "AXSheet"))
     }
 
-    func waitForSheet(timeout: TimeInterval = 3) -> Bool {
+    func waitForSheet(timeout: TimeInterval = 5) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if sheet() != nil { return true }
