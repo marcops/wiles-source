@@ -90,21 +90,30 @@ final class WilesDriver {
         app.waitForDescendant(where: match, timeout: timeout)
     }
 
-    // The search button carries no AX identifier — reach the field via ⌘F / Edit ▸ Find instead.
     @discardableResult
     func activateSearch() -> AXElement? {
-        if let field = find(AXMatch(identifier: "SearchTextField"), timeout: 1) { return field }
-        chord("f", .command)
-        Timing.pause(Timing.settle)
-        if let field = find(AXMatch(identifier: "SearchTextField"), timeout: 3) { return field }
-        menuPick("Edit", itemContains: "Find", "Edit ▸ Find")
-        return find(AXMatch(identifier: "SearchTextField"), timeout: 4)
+        let fieldMatch = AXMatch(identifier: "SearchTextField")
+        if let field = find(fieldMatch, timeout: 1) { return field }
+        let attempts: [() -> Void] = [
+            { self.tap(AXMatch(role: "AXButton", textContains: "search in directory"), "search button", timeout: 3) },
+            { self.menuPick("Edit", itemContains: "Find", "Edit ▸ Find") },
+            { self.chord("f", .command) },
+        ]
+        for attempt in attempts {
+            attempt()
+            Timing.pause(Timing.animation)
+            if let field = find(fieldMatch, timeout: 3) { return field }
+        }
+        return find(fieldMatch, timeout: 3)
     }
 
     func deactivateSearch() {
-        guard find(AXMatch(identifier: "SearchTextField"), timeout: 1) != nil else { return }
-        key(Keyboard.escape)
-        Timing.pause(Timing.brief)
+        var tries = 0
+        while find(AXMatch(identifier: "SearchTextField"), timeout: 1) != nil, tries < 3 {
+            key(Keyboard.escape)
+            Timing.pause(Timing.brief)
+            tries += 1
+        }
     }
 
     // Fast "it disappeared" check — bails the moment it's absent instead of waiting the timeout.
@@ -120,12 +129,16 @@ final class WilesDriver {
     // MARK: - Click
 
     @discardableResult
+    // Mouse-click first: much of Wiles' UI is a plain view + `.onTapGesture` (+ `.isButton` trait),
+    // and AXPress reports success on those without firing the gesture. AXPress is only the fallback
+    // for an element with no usable frame.
     func tapElement(_ element: AXElement) -> Bool {
-        if element.actionNames.contains(AXAction.press), element.press() { return true }
         let rect = element.frame
-        guard !rect.isEmpty else { return false }
-        Mouse.click(center: rect, pid: pid)
-        return true
+        if !rect.isEmpty {
+            Mouse.click(center: rect, pid: pid)
+            return true
+        }
+        return element.actionNames.contains(AXAction.press) && element.press()
     }
 
     @discardableResult
@@ -548,11 +561,16 @@ final class WilesDriver {
                 return false
             }
         }
-        guard let tabElement = sheet()?.firstDescendant(where: AXMatch(textEquals: tab)) else {
+        // The tab buttons are plain views with `.onTapGesture` + `.isButton` trait — AXPress reports
+        // success without firing the gesture, so a real click at the button centre is required.
+        guard let tabElement = sheet()?.firstDescendant(where: AXMatch(role: "AXButton", textEquals: tab))
+            ?? sheet()?.firstDescendant(where: AXMatch(textEquals: tab)) else {
             reporter.fail("Settings tab '\(tab)' not found")
             return false
         }
-        tapElement(tabElement)
+        clickCentre(tabElement)
+        Timing.pause(Timing.settle)
+        clickCentre(tabElement)
         Timing.pause(Timing.settle)
         return true
     }

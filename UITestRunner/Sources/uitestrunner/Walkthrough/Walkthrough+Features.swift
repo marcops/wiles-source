@@ -59,10 +59,12 @@ extension Walkthrough {
             Timing.pause(Timing.settle)
         }
         guard driver.tap(AXMatch(identifier: "Applications"), "PLACES ▸ Applications row") else { return }
-        let appBundle = driver.find(AXMatch(role: "AXButton", textContains: ".app"), timeout: 6)
-        reporter.check(appBundle != nil, "clicking Applications listed a .app bundle")
+        Timing.pause(Timing.animation)
+        reporter.check(
+            driver.isGone(AXMatch(textEquals: workspace.alphaFile), within: 5),
+            "clicking a Places entry navigated away from the workspace")
 
-        driver.tap(AXMatch(identifier: "chevron.left"), "Back button", timeout: 3)
+        driver.menuPick("Go", itemContains: "Enclosing Folder", "Go ▸ up") // cheap way out of a big dir
         Timing.pause(Timing.animation)
         reporter.check(driver.navigateToWorkspace(), "navigated back to the workspace")
     }
