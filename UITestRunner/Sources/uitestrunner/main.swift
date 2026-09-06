@@ -1,11 +1,15 @@
 import Foundation
 
-func parseAppPath() -> String {
+func parseArgument(_ name: String, default fallback: String) -> String {
     let arguments = CommandLine.arguments
-    if let index = arguments.firstIndex(of: "--app"), index + 1 < arguments.count {
+    if let index = arguments.firstIndex(of: name), index + 1 < arguments.count {
         return arguments[index + 1]
     }
-    return ".build/uitest/Wiles.app"
+    return fallback
+}
+
+func parseAppPath() -> String {
+    parseArgument("--app", default: ".build/uitest/Wiles.app")
 }
 
 func fail(_ message: String) -> Never {
@@ -72,6 +76,15 @@ if CommandLine.arguments.contains("--dump") {
             Timing.pause(Timing.brief)
         }
     }
+    process.terminate()
+    workspace.cleanup()
+    exit(0)
+}
+
+if CommandLine.arguments.contains("--screenshots") {
+    let defaultOut = "\(NSHomeDirectory())/source/wiles-public/docs/screenshots/features"
+    let outDir = URL(fileURLWithPath: parseArgument("--out", default: defaultOut))
+    Screenshots(driver: driver, outputDir: outDir).run()
     process.terminate()
     workspace.cleanup()
     exit(0)

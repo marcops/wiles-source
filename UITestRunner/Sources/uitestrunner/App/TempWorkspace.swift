@@ -4,7 +4,10 @@ import Foundation
 /// feature steps act on. Everything the run creates or mutates stays inside it; `cleanup()`
 /// removes the whole tree.
 final class TempWorkspace {
+    /// The folder Wiles is pointed at. Named "Downloads" (not a raw UUID) so the path bar / title
+    /// reads cleanly in screenshots; the UUID lives one level up, in `container`.
     let root: URL
+    private let container: URL
 
     let alphaFile = "alpha-uitest.txt"
     let betaFile = "beta-uitest.txt"
@@ -17,8 +20,9 @@ final class TempWorkspace {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 
     init() {
-        root = FileManager.default.temporaryDirectory
+        container = FileManager.default.temporaryDirectory
             .appendingPathComponent("WilesAXUITest-\(UUID().uuidString)", isDirectory: true)
+        root = container.appendingPathComponent("Downloads", isDirectory: true)
     }
 
     func prepare() throws {
@@ -51,7 +55,7 @@ final class TempWorkspace {
     }
 
     func cleanup() {
-        try? FileManager.default.removeItem(at: root)
+        try? FileManager.default.removeItem(at: container)
     }
 
     private func makeSeedZip() {

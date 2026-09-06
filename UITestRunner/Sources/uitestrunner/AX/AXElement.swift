@@ -111,6 +111,19 @@ final class AXElement {
         AXUIElementSetAttributeValue(ref, kAXFocusedAttribute as CFString, kCFBooleanTrue) == .success
     }
 
+    @discardableResult
+    func setFrame(_ rect: CGRect) -> Bool {
+        var origin = rect.origin
+        var size = rect.size
+        guard
+            let positionValue = AXValueCreate(.cgPoint, &origin),
+            let sizeValue = AXValueCreate(.cgSize, &size)
+        else { return false }
+        let positionOK = AXUIElementSetAttributeValue(ref, kAXPositionAttribute as CFString, positionValue) == .success
+        let sizeOK = AXUIElementSetAttributeValue(ref, kAXSizeAttribute as CFString, sizeValue) == .success
+        return positionOK && sizeOK
+    }
+
     var actionNames: [String] {
         var names: CFArray?
         guard AXUIElementCopyActionNames(ref, &names) == .success else { return [] }

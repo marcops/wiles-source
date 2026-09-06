@@ -9,11 +9,22 @@
 #   4. runs it (the runner self-checks Accessibility trust and prints how to grant it).
 # UI tests carry no lint step.
 #
-# Usage: scripts/run_ui_test.sh [--no-build]
+# Usage: scripts/run_ui_test.sh [--no-build] [--screenshots]
+#   --screenshots  stage every FEATURES.md feature and capture <slug>-{light,dark}.png into
+#                  wiles-public/docs/screenshots/features/ instead of running the assert walkthrough.
 
 set -uo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
+
+MODE_ARGS=()
+NO_BUILD=0
+for arg in "$@"; do
+  case "$arg" in
+    --no-build) NO_BUILD=1 ;;
+    --screenshots) MODE_ARGS+=(--screenshots) ;;
+  esac
+done
 
 APP_BUNDLE="$ROOT_DIR/.build/uitest/Wiles.app"
 RUNNER_BIN="$ROOT_DIR/UITestRunner/.build/debug/uitestrunner"
@@ -34,7 +45,7 @@ else
   echo "    clean"
 fi
 
-if [[ "${1:-}" != "--no-build" ]]; then
+if [[ "$NO_BUILD" -eq 0 ]]; then
   echo "==> build debug Wiles binary"
   swift build 2>&1 | grep -E 'error:|warning:|Compiling|Build complete' | tail -5 || true
 
@@ -62,9 +73,14 @@ fi
 if [[ ! -x "$RUNNER_BIN" ]]; then echo "==> runner binary missing ($RUNNER_BIN)"; exit 1; fi
 
 echo "==> deterministic run state ($UITEST_BUNDLE_ID domain)"
-# Language is NOT forced here — the first walkthrough step switches it to English through the
-# Settings UI, so the run starts from whatever the system default is.
-defaults delete "$UITEST_BUNDLE_ID" wiles_appLanguage 2>/dev/null || true
+if [[ ${#MODE_ARGS[@]} -gt 0 && " ${MODE_ARGS[*]} " == *" --screenshots "* ]]; then
+  # Screenshots want a cleanly English app from first paint (a live language switch leaves the
+  # footer free-space string stale — see the runner README). The walkthrough still exercises the
+  # real Settings language switch as its first step.
+  defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
+else
+  defaults delete "$UITEST_BUNDLE_ID" wiles_appLanguage 2>/dev/null || true
+fi
 defaults write "$UITEST_BUNDLE_ID" wiles_skipDeleteConfirmation -bool YES 2>/dev/null || true
 defaults delete "$UITEST_BUNDLE_ID" wiles_lastOpenedFolder 2>/dev/null || true
 for i in 1 2 3 4 5; do
@@ -72,9 +88,13 @@ for i in 1 2 3 4 5; do
   defaults delete "$UITEST_BUNDLE_ID" "NSWindow Frame WilesMainWindow-$i" 2>/dev/null || true
 done
 
-echo "==> run walkthrough"
+if [[ ${#MODE_ARGS[@]} -gt 0 ]]; then
+  echo "==> run: ${MODE_ARGS[*]}"
+else
+  echo "==> run walkthrough"
+fi
 echo "------------------------------------------------------------"
-"$RUNNER_BIN" --app "$APP_BUNDLE"
+"$RUNNER_BIN" --app "$APP_BUNDLE" ${MODE_ARGS[@]+"${MODE_ARGS[@]}"}
 STATUS=$?
 echo "------------------------------------------------------------"
 echo "exit: $STATUS"
