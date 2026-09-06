@@ -62,7 +62,9 @@ fi
 if [[ ! -x "$RUNNER_BIN" ]]; then echo "==> runner binary missing ($RUNNER_BIN)"; exit 1; fi
 
 echo "==> deterministic run state ($UITEST_BUNDLE_ID domain)"
-defaults write "$UITEST_BUNDLE_ID" wiles_appLanguage en 2>/dev/null || true
+# Language is NOT forced here — the first walkthrough step switches it to English through the
+# Settings UI, so the run starts from whatever the system default is.
+defaults delete "$UITEST_BUNDLE_ID" wiles_appLanguage 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_skipDeleteConfirmation -bool YES 2>/dev/null || true
 defaults delete "$UITEST_BUNDLE_ID" wiles_lastOpenedFolder 2>/dev/null || true
 for i in 1 2 3 4 5; do

@@ -195,6 +195,10 @@ final class WilesDriver {
         Timing.pause(Timing.brief)
     }
 
+    func menuBarTitles() -> [String] {
+        (app.menuBar?.children ?? []).map(\.title).filter { !$0.isEmpty }
+    }
+
     /// Whether `menuTitle ▸ path` currently contains an item with `fragment` (menu opened, then
     /// dismissed). Used to assert a toggle flipped its menu label.
     func menuHasItem(_ menuTitle: String, path: [String] = [], containing fragment: String) -> Bool {
