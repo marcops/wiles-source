@@ -133,7 +133,7 @@ extension PlanWalkthrough {
         driver.tapElement(root)
         Timing.pause(Timing.animation)
         // Drill into a *small* directory so the follow-up content scans stay cheap.
-        let childName = ["usr", "bin", "cores", "opt"].first { name in
+        let childName: String = ["usr", "bin", "cores", "opt"].first { name in
             driver.find(AXMatch(role: "AXButton", textEquals: name), timeout: 2) != nil
         } ?? "usr"
         guard let child = driver.find(AXMatch(role: "AXButton", textEquals: childName), timeout: 2) else {
@@ -143,9 +143,9 @@ extension PlanWalkthrough {
         driver.tapElement(child)
         Timing.pause(Timing.animation)
         driver.resetWindowCache()
-        let pathValue = driver.find(AXMatch(identifier: "PathBarTextField"), timeout: 1)?.stringValue ?? ""
+        let leftWorkspace = driver.fileRow(workspace.alphaFile, timeout: 2) == nil
         reporter.check(
-            pathValue.hasSuffix(childName) || driver.fileRow(workspace.alphaFile, timeout: 2) == nil,
+            leftWorkspace,
             "clicking tree child '\(childName)' navigated the content pane away from the workspace")
         driver.navigateToWorkspace()
     }
