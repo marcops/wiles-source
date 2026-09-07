@@ -159,7 +159,13 @@ extension Walkthrough {
     func featUndoRedo() {
         reporter.beginFeature("Undo/Redo")
         driver.navigateToWorkspace()
-        guard driver.tap(AXMatch(textEquals: workspace.betaFile), "'\(workspace.betaFile)' row") else { return }
+        // Guarantee beta is back for later steps even if a synthetic Undo doesn't land.
+        defer {
+            if !workspace.exists(workspace.betaFile) {
+                try? "beta contents".write(to: workspace.url(workspace.betaFile), atomically: true, encoding: .utf8)
+            }
+        }
+        guard driver.clickRow(workspace.betaFile) else { return }
         Timing.pause(Timing.brief)
 
         driver.openContextItem(onFileRow: workspace.betaFile, containing: "move to trash", "context ▸ Move to Trash")

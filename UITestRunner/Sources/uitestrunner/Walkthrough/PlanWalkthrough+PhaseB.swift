@@ -219,6 +219,10 @@ extension PlanWalkthrough {
                 driver.fileRow(workspace.alphaFile, timeout: 4) != nil,
                 "opening the smart folder re-runs the query (alpha match listed)")
         }
+        // The smart-folder view only lists 'alpha' matches, so navigateToWorkspace's cheap
+        // alpha-is-here check would false-pass; force a real nav that expects a non-match row.
+        driver.deactivateSearch()
+        _ = driver.navigateToPath(workspace.root.path, expectRow: workspace.subFolder, timeout: 6)
         driver.navigateToWorkspace()
     }
 
@@ -298,6 +302,11 @@ extension PlanWalkthrough {
         Timing.pause(Timing.animation)
         driver.menuPick("View", itemContains: "Show Terminal", "View ▸ Show Terminal")
         Timing.pause(Timing.settle)
+        // Toggle the FAVORITES section twice so wiles_isFavoritesExpanded is actually written.
+        if let fav = driver.find(AXMatch(identifier: "Section_FAVORITES"), timeout: 3) {
+            driver.tapElement(fav); Timing.pause(Timing.animation)
+            driver.tapElement(driver.find(AXMatch(identifier: "Section_FAVORITES")) ?? fav); Timing.pause(Timing.animation)
+        }
 
         let checks: [(String, (String) -> Bool)] = [
             ("wiles_viewMode", { $0.contains("Grid") }),
