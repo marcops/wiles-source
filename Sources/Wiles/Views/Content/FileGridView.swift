@@ -106,8 +106,10 @@ struct FileGridView: View {
     }
 
     /// Fully-revealed name, same clipped-cell reason and positioning as `renameFieldOverlay`.
+    /// Never shown for the item being renamed — it would stack on top of that item's rename field.
     @ViewBuilder private var revealFieldOverlay: some View {
         if let revealURL = appState.selection.revealingFullNameURL,
+           windowUIState.renameItem?.url != revealURL,
            let item = appState.fileSystem.itemsByURL[revealURL],
            let cellFrame = appState.selection.gridCellFrames[revealURL] {
             let fontSize = LayoutTokens.gridCardLabelFontSize(forIconSize: iconSize)

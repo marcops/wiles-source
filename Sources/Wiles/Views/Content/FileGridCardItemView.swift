@@ -14,9 +14,21 @@ struct FileGridCardItemView: View {
     private var windowUIState
     @State private var isDropTargeted = false
 
+    private var isRenamingThisItem: Bool {
+        windowUIState.renameItem?.url == item.url
+    }
+
+    /// The full-name reveal pill must never be scheduled or shown for an item currently being
+    /// renamed — it would stack on top of that item's own inline rename field. Pure function since
+    /// the decision otherwise only lives in a `.task` condition a unit test can't drive.
+    static func shouldRevealFullName(isSelected: Bool, isRenaming: Bool) -> Bool {
+        isSelected && !isRenaming
+    }
+
     var body: some View {
         let isSel = appState.selection.selectedURLs.contains(item.url)
         let isCut = appState.transient.clipboard?.isCut(url: item.url) ?? false
+        let shouldRevealFullName = Self.shouldRevealFullName(isSelected: isSel, isRenaming: isRenamingThisItem)
 
         return mainContent(isSel: isSel, isCut: isCut)
             .fileItemInteractions(
@@ -27,8 +39,8 @@ struct FileGridCardItemView: View {
                     withAnimation(MotionTokens.quickEase) { isDropTargeted = targeted }
                 })
             // Drives the grid-level reveal overlay — see FileGridView.revealFieldOverlay.
-            .task(id: isSel) {
-                guard isSel else {
+            .task(id: shouldRevealFullName) {
+                guard shouldRevealFullName else {
                     if appState.selection.revealingFullNameURL == item.url {
                         appState.selection.revealingFullNameURL = nil
                     }
@@ -43,7 +55,7 @@ struct FileGridCardItemView: View {
     private func mainContent(isSel: Bool, isCut: Bool) -> some View {
         let borderStroke = isDropTargeted ? Color.accentColor : (isSel ? Color.accentColor : Color.clear)
         let strokeWidth: CGFloat = isDropTargeted ? 3 : 2
-        let isRenaming = windowUIState.renameItem?.url == item.url
+        let isRenaming = isRenamingThisItem
 
         return cardVStack(isSel: isSel)
             .frame(width: cardWidth, height: cardHeight, alignment: .top)

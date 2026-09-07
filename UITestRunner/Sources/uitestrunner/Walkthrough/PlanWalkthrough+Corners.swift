@@ -110,6 +110,57 @@ extension PlanWalkthrough {
         }
     }
 
+    /// Finder-style click-to-rename in grid view: click a selected folder's name and the inline
+    /// field opens over the card. ~3s later the card's name-reveal timer
+    /// (`AsyncDelayTokens.nameRevealDelay`) fires `revealingFullNameURL`, and `FileGridView`'s
+    /// `revealFieldOverlay` — which has no guard against an active rename — draws the full-name
+    /// pill on top of the rename field, hiding it. The edit still commits blind, but the user can't
+    /// see what they're typing. List view has no such overlay. Asserts no reveal pill is drawn
+    /// while a grid rename is open.
+    func featGridRenameNotCoveredByNameReveal() {
+        reporter.beginFeature("Grid rename field isn't hidden by the 3s name-reveal pill")
+        driver.navigateToWorkspace()
+        defer {
+            driver.key(Keyboard.escape)
+            driver.tap(AXMatch(identifier: "View Mode"), "view mode (restore)")
+            Timing.pause(Timing.settle)
+            driver.tap(AXMatch(identifier: "ViewModeList"), "list view (restore)")
+        }
+
+        driver.tap(AXMatch(identifier: "View Mode"), "view mode")
+        Timing.pause(Timing.settle)
+        guard driver.tap(AXMatch(identifier: "ViewModeGrid"), "switch to grid view") else { return }
+        Timing.pause(Timing.animation)
+
+        // Finder-style click-to-rename: click the folder card (selects), then click again once it's
+        // the sole selection to open the inline field ~400ms later.
+        guard driver.clickRow(workspace.subFolder) else { return }
+        Timing.pause(0.8)
+        driver.clickRow(workspace.subFolder)
+
+        guard driver.find(AXMatch(identifier: "InlineRenameField"), timeout: 3) != nil else {
+            reporter.fail("click-to-rename never opened the inline field in grid view")
+            return
+        }
+        reporter.pass("click-to-rename opened the inline field in grid view")
+
+        // Wait past the 3s name-reveal timer, touching nothing.
+        Timing.pause(4.5)
+
+        // The reveal pill renders the folder name as plain static text on an accent background,
+        // stacked over the rename field. While renaming, it must not exist.
+        let window = try? driver.mainWindow()
+        let revealPill = window?
+            .allDescendants(where: AXMatch(role: "AXStaticText", textContains: workspace.subFolder), maxDepth: 22)
+            .first { !$0.frame.isEmpty }
+        reporter.check(
+            revealPill == nil,
+            "no full-name reveal pill is drawn over the open grid rename field (found: \(revealPill?.stringValue ?? "none"))")
+        reporter.check(
+            driver.find(AXMatch(identifier: "InlineRenameField"), timeout: 1) != nil,
+            "rename field is still open 4.5s after entering it")
+    }
+
     func featNewFolderNameAutoIncrements() {
         reporter.beginFeature("A second New Folder gets a distinct auto-name")
         driver.navigateToWorkspace()

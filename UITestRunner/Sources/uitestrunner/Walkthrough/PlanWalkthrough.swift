@@ -54,6 +54,7 @@ struct PlanWalkthrough {
             ("featArrowPastLastRowStays", featArrowPastLastRowStays),
             ("featRenameToExistingNameHandled", featRenameToExistingNameHandled),
             ("featRenameWithSlashSanitised", featRenameWithSlashSanitised),
+            ("featGridRenameNotCoveredByNameReveal", featGridRenameNotCoveredByNameReveal),
             ("featNewFolderNameAutoIncrements", featNewFolderNameAutoIncrements),
             ("featSortByEachKeyReorders", featSortByEachKeyReorders),
             ("featIconZoomClampsAtMinimum", featIconZoomClampsAtMinimum),

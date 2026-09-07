@@ -61,6 +61,7 @@ final class WilesAutomatedTests: XCTestCase {
         DoubleClickZoomDetectorTests.run()
         EmptyDirectoryViewTests.run()
         FileContextMenuModifierTests.run()
+        FileGridCardItemViewTests.run()
         FileItemIconViewTests.run()
         FooterBarViewTests.run()
         HeaderBarViewTests.run()
