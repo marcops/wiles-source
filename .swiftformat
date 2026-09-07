@@ -1,5 +1,5 @@
 --swiftversion 6.0
---exclude .build,.swiftpm,dist,releases,Wiles.app
+--exclude .build,.swiftpm,dist,releases,Wiles.app,UITestRunner
 
 --indent 4
 --maxwidth 160

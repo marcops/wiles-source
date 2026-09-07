@@ -5,6 +5,10 @@ excluded:
   - releases
   - Wiles.app
   - .claude
+  # Out-of-process AX UI-test runner: a CLI tool, not shipped app code. The app-specific
+  # custom rules (no_print_in_production on its stdout reporter, one_type_per_file on tiny
+  # AX helper structs, …) don't apply to it.
+  - UITestRunner
 
 disabled_rules:
   - superfluous_disable_command
