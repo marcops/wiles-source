@@ -27,6 +27,7 @@ for arg in "$@"; do
     --screenshots) MODE_ARGS+=(--screenshots) ;;
     --plan) MODE_ARGS+=(--plan) ;;
     --all) MODE_ARGS+=(--all) ;;
+    --chunked) MODE_ARGS+=(--chunked) ;;
     --fast) MODE_ARGS+=(--fast) ;;
     --slow) MODE_ARGS+=(--slow) ;;
     --scale|--only|--out) MODE_ARGS+=("$arg") ;;
@@ -102,21 +103,48 @@ defaults write "$UITEST_BUNDLE_ID" wiles_showDirectoryTree -bool YES 2>/dev/null
 defaults write "$UITEST_BUNDLE_ID" wiles_showNetworkAndCloud -bool YES 2>/dev/null || true
 defaults write "$UITEST_BUNDLE_ID" wiles_showTags -bool YES 2>/dev/null || true
 
-if [[ ${#MODE_ARGS[@]} -gt 0 ]]; then
-  echo "==> run: ${MODE_ARGS[*]}"
-else
-  echo "==> run walkthrough"
+# One runner invocation with a hard cap (macOS has no `timeout`). Each call is a fresh app launch.
+run_once() {
+  echo "------------------------------------------------------------"
+  echo "==> run: $*"
+  teardown; sleep 1
+  local cap=420 pid wd
+  "$RUNNER_BIN" --app "$APP_BUNDLE" "$@" & pid=$!
+  ( sleep "$cap"; kill -9 "$pid" 2>/dev/null && echo "    (killed: exceeded ${cap}s cap)" ) & wd=$!
+  wait "$pid"; local st=$?
+  kill "$wd" 2>/dev/null || true
+  return $st
+}
+
+# --chunked: run the whole suite as several short, fresh-launch passes — the only way it survives
+# on a machine where a long single launch gets throttled into uselessness.
+if [[ " ${MODE_ARGS[*]} " == *" --chunked "* ]]; then
+  FEAT_A="featSwitchToEnglish,featLaunchShell,featGridAndListViews,featDirectoryTree,featFavoritesAndPlaces,featSearch,featFileProperties,featSymbolicLinks,featCompressToZip,featUndoRedo,featBatchRename"
+  FEAT_B="featImageConverter,featArchiveInspector,featDuplicateFinder,featIntegratedTerminal,featDiskUsageVisualizer,featConnectToServer,featAutoOrganization,featHTTPSharing,featTags,featSmartFolders,featAppearanceSettings"
+  PLAN_A="featNewAndCloseWindow,featSidebarSectionHeaders,featSectionCollapsePersists,featHideShowSection,featDirectoryTreeDrillIn,featSmartFoldersSectionRenders,featPathBarNavigation,featBackForwardEnclosing,featNewFolderInlineRename,featNewFileInlineRename,featRenameUndoRedo,featCutPaste,featCopyPaste,featKeyboardSelectionNav,featSelectAllThenClear,featSortOrder"
+  PLAN_B="featIconZoom,featQuickLook,featEmptyDirectory,featFooterTerminalButton,featTogglePreview,featSettingsTabs,featHelpSheet,featShortcutsHUD,featAboutSheet,featFeedbackSheet,featChmodInProperties,featArchiveExtract,featFileShredder,featTagAssign,featCopyPath,featPDFMerge"
+  PLAN_C="featDuplicateFinderScan,featCompressWithPassword,featSmartFolderRoundTrip,featHTTPServerRoundTrip,featNavigationModeGnome,featPreferencePersistenceSweep,featShiftClickRange,featCmdClickDeselectsOne,featClickEmptyAreaDeselects,featArrowPastLastRowStays,featRenameToExistingNameHandled,featRenameWithSlashSanitised,featNewFolderNameAutoIncrements,featSortByEachKeyReorders,featIconZoomClampsAtMinimum,featShowHiddenFilesToggle"
+  PLAN_D="featSearchNoMatchThenClear,featPropertiesShortcut,featTrashShortcutThenUndo,featPathBarRejectsBadPath,featKeyboardHistoryNav,featPlacesEntryNavigates,featListColumnHeaderClickSorts,featCompactDensityToggle,featAutoHideSidebarToggle,featSearchScopeToggle,featSearchKindFilterToken,featSearchShortContentTermWarning,featQuickFilterImages,featStatusBarCountReflectsSelection,featPreviewPaneFollowsSelection,featSymlinkModalReopen,featAddRemoveFavorite,featTagFilterNavigates,featMoveCollisionSheet"
+  AGG=/tmp/wiles_chunked.log; : > "$AGG"
+  for spec in "-|$FEAT_A" "-|$FEAT_B" "--plan|$PLAN_A" "--plan|$PLAN_B" "--plan|$PLAN_C" "--plan|$PLAN_D"; do
+    mode="${spec%%|*}"; only="${spec#*|}"
+    if [[ "$mode" == "-" ]]; then run_once --only "$only" | tee -a "$AGG"
+    else run_once --plan --only "$only" | tee -a "$AGG"; fi
+  done
+  echo "============================================================"
+  awk '
+    /^[0-9]+ checks · [0-9]+ passed · [0-9]+ failed/ { c+=$1; p+=$4; f+=$7 }
+    /^  ✗ \[/ { fails[++n]=$0 }
+    END {
+      print c " checks · " p " passed · " f " failed  (chunked)"
+      if (n) { print "\nFailures:"; for (i=1;i<=n;i++) print fails[i] }
+    }' "$AGG"
+  echo "============================================================"
+  grep -q '^  ✗ \[' "$AGG" && exit 1 || exit 0
 fi
-echo "------------------------------------------------------------"
-# Hard overall cap so a wedged interaction can't hang forever (macOS has no `timeout`).
-CAP_SECONDS=1000
-"$RUNNER_BIN" --app "$APP_BUNDLE" ${MODE_ARGS[@]+"${MODE_ARGS[@]}"} &
-RUNNER_PID=$!
-( sleep "$CAP_SECONDS"; kill -9 "$RUNNER_PID" 2>/dev/null && echo "    (killed: exceeded ${CAP_SECONDS}s cap)" ) &
-WATCHDOG_PID=$!
-wait "$RUNNER_PID"
-STATUS=$?
-kill "$WATCHDOG_PID" 2>/dev/null || true
+
+STATUS=0
+run_once ${MODE_ARGS[@]+"${MODE_ARGS[@]}"} || STATUS=$?
 echo "------------------------------------------------------------"
 echo "exit: $STATUS"
 exit $STATUS
