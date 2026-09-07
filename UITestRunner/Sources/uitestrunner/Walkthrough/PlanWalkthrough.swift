@@ -88,17 +88,20 @@ struct PlanWalkthrough {
         driver.dismissSheet()
         driver.navigateToWorkspace()
 
-        // The app degrades over a long single-launch run (rows unfindable, menus/sheets stop
-        // opening); relaunch every dozen steps to keep it responsive.
-        for (index, entry) in selected.enumerated() {
-            if index > 0, index % 12 == 0 {
+        // The app degrades over a long single-launch run; relaunch after two failing steps running.
+        var strike = 0
+        for (_, step) in selected {
+            if strike >= 2 {
+                strike = 0
                 try? driver.process.relaunch()
                 driver.rebindToRelaunchedApp()
                 _ = try? driver.mainWindow()
                 driver.navigateToWorkspace()
             }
+            let failsBefore = reporter.failCount
             driver.recover()
-            entry.1()
+            step()
+            strike = reporter.failCount > failsBefore ? strike + 1 : 0
         }
     }
 }

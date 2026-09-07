@@ -35,15 +35,19 @@ struct Walkthrough {
         ]
         let selected = only.isEmpty ? steps
             : steps.filter { name, _ in name == "featSwitchToEnglish" || only.contains { name.localizedCaseInsensitiveContains($0) } }
-        for (index, entry) in selected.enumerated() {
-            if index > 0, index % 12 == 0 {
+        var strike = 0
+        for (_, step) in selected {
+            if strike >= 2 {
+                strike = 0
                 try? driver.process.relaunch()
                 driver.rebindToRelaunchedApp()
                 _ = try? driver.mainWindow()
             }
+            let failsBefore = driver.reporter.failCount
             driver.process.activate()
             driver.navigateToWorkspace()
-            entry.1()
+            step()
+            strike = driver.reporter.failCount > failsBefore ? strike + 1 : 0
         }
     }
 

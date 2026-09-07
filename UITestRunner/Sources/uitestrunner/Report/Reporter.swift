@@ -17,6 +17,7 @@ final class Reporter {
     private let lock = NSLock()
 
     var hasFailures: Bool { entries.contains { !$0.passed } }
+    var failCount: Int { entries.lazy.filter { !$0.passed }.count }
 
     func beginFeature(_ name: String) {
         let elapsed = Date().timeIntervalSince(featureStart)
