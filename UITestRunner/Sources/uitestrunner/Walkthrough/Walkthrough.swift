@@ -37,7 +37,7 @@ struct Walkthrough {
             : steps.filter { name, _ in name == "featSwitchToEnglish" || only.contains { name.localizedCaseInsensitiveContains($0) } }
         var strike = 0
         for (_, step) in selected {
-            if strike >= 2 {
+            if strike >= 2, Timing.allowRelaunch {
                 strike = 0
                 try? driver.process.relaunch()
                 driver.rebindToRelaunchedApp()

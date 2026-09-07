@@ -3,9 +3,11 @@ import Foundation
 /// Every wait routes through here; `scale` is the one speed knob multiplying every delay.
 enum Timing {
     /// Speed knob multiplying every delay. `--scale <n>` / `--fast` / `--slow` override it.
-    /// Held at 1.0 until a green baseline is re-established; the per-step ⏱ data then guides
-    /// dropping it (target ~0.5).
     nonisolated(unsafe) static var scale: Double = 1.0
+
+    /// Whether a suite may relaunch the app mid-run to recover from degradation. Off when each
+    /// pass is already a fresh launch (`--no-relaunch`, e.g. chunked mode).
+    nonisolated(unsafe) static var allowRelaunch = true
 
     /// Between synthesised key-up/down events.
     static var keyStroke: TimeInterval { 0.006 * scale }

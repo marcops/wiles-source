@@ -91,7 +91,7 @@ struct PlanWalkthrough {
         // The app degrades over a long single-launch run; relaunch after two failing steps running.
         var strike = 0
         for (_, step) in selected {
-            if strike >= 2 {
+            if strike >= 2, Timing.allowRelaunch {
                 strike = 0
                 try? driver.process.relaunch()
                 driver.rebindToRelaunchedApp()

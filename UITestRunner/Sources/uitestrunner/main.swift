@@ -10,6 +10,9 @@ if let index = CommandLine.arguments.firstIndex(of: "--scale"), index + 1 < Comm
 if CommandLine.arguments.contains("--fast") {
     Timing.scale = 0.45
 }
+if CommandLine.arguments.contains("--no-relaunch") {
+    Timing.allowRelaunch = false
+}
 if CommandLine.arguments.contains("--slow") {
     Timing.scale = 1.0
 }
