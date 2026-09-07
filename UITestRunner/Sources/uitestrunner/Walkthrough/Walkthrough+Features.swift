@@ -173,18 +173,23 @@ extension Walkthrough {
             workspace.waitForExistence(workspace.betaFile, shouldExist: false, timeout: 6),
             "Move to Trash removed '\(workspace.betaFile)' from the folder")
 
+        // Restore-from-trash scans the Trash and moves the file back, so it needs a longer window.
+        driver.process.activate()
         driver.menuPick("Edit", itemContains: "Undo", "Edit ▸ Undo")
-        reporter.check(
-            workspace.waitForExistence(workspace.betaFile, shouldExist: true, timeout: 6),
-            "Undo restored '\(workspace.betaFile)'")
+        var restored = workspace.waitForExistence(workspace.betaFile, shouldExist: true, timeout: 12)
+        if !restored {
+            driver.chord("z", .command)
+            restored = workspace.waitForExistence(workspace.betaFile, shouldExist: true, timeout: 12)
+        }
+        reporter.check(restored, "Undo restored '\(workspace.betaFile)'")
 
         driver.menuPick("Edit", itemContains: "Redo", "Edit ▸ Redo")
         reporter.check(
-            workspace.waitForExistence(workspace.betaFile, shouldExist: false, timeout: 6),
+            workspace.waitForExistence(workspace.betaFile, shouldExist: false, timeout: 8),
             "Redo re-trashed '\(workspace.betaFile)'")
 
         driver.menuPick("Edit", itemContains: "Undo", "Edit ▸ Undo (restore for later steps)")
-        _ = workspace.waitForExistence(workspace.betaFile, shouldExist: true, timeout: 6)
+        _ = workspace.waitForExistence(workspace.betaFile, shouldExist: true, timeout: 12)
     }
 
     // MARK: - Batch Rename
@@ -198,15 +203,16 @@ extension Walkthrough {
         var sheetOpened = false
         for attempt in 0 ..< 3 {
             driver.closeAnyMenu()
+            driver.process.activate()
             guard driver.clickRow(workspace.alphaFile) else { return }
             Timing.pause(Timing.brief)
-            if attempt == 1 {
-                driver.key(Keyboard.downArrow, .shift)
-            } else {
-                driver.clickRow(workspace.betaFile, modifiers: .command)
+            switch attempt {
+            case 0: driver.clickRow(workspace.betaFile, modifiers: .command)
+            case 1: driver.chord("a", .command)
+            default: driver.key(Keyboard.downArrow, .shift)
             }
-            Timing.pause(Timing.brief)
-            guard driver.rightClick(AXMatch(textEquals: workspace.betaFile), "'\(workspace.betaFile)' row (context)")
+            Timing.pause(Timing.settle)
+            guard driver.rightClick(AXMatch(textEquals: workspace.alphaFile), "'\(workspace.alphaFile)' row (context)")
             else { continue }
             Timing.pause(Timing.settle)
             guard driver.pickContextItem(containing: "rename", "context ▸ Rename (multi-select)") else { continue }

@@ -60,18 +60,20 @@ chmod in Properties, archive extract, file shredder, tag assign, copy path, PDF 
 duplicate-finder scan (real pair), compress-with-password sheet, smart-folder round trip,
 HTTP server start/fetch/stop, GNOME Enter-to-open mode, preference-persistence sweep.
 
-**Phase C — corner cases (`+Corners.swift`, 20 steps)**
+**Phase C — corner cases (`+Corners.swift`, 19 steps)**
 shift-click range, ⌘-click deselect one, click-empty deselect, arrow past last row,
 rename-onto-existing (no clobber), rename with "/", New Folder auto-increment, every Sort
 By key reorders, icon-zoom clamp, ⇧⌘. hidden-files toggle, no-match search + clear, ⌘I
 properties, ⌘⌫ + undo, bad path refused, ⌘[/]/↑ history nav, Places entry navigates,
-type-ahead jump, List column-header sort, compact-mode toggle, auto-hide sidebar.
+List column-header sort, compact-mode toggle, auto-hide sidebar.
+(type-ahead jump dropped — Wiles has no type-ahead row jump.)
 
-**Phase D — search / sidebar / modal / footer corners (`+Corners2.swift`, 11 steps)**
+**Phase D — search / sidebar / modal / footer corners (`+Corners2.swift`, 10 steps)**
 search scope toggle, `kind:` filter token, short content-term warning, Images quick filter,
-add/remove Favorite, tag-filter navigates, smart-folder context menu (rename/delete),
-symlink modal reopen, move-collision sheet, status-bar count reflects selection, preview
-pane follows selection.
+add/remove Favorite, tag-filter navigates, symlink modal reopen, move-collision sheet,
+status-bar count reflects selection, preview pane follows selection.
+(smart-folder context menu dropped — a SwiftUI sidebar `.contextMenu` can't be raised by
+synthetic input; the round-trip is covered by `featSmartFolderRoundTrip` in Phase B.)
 
 ## Not automated (the ~13%)
 
