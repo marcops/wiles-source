@@ -4,7 +4,8 @@ import UniformTypeIdentifiers
 
 struct FileGridView: View {
     private static let gridIconScaleMultiplier: CGFloat = 1.25
-    private static let cardWidthOffset: CGFloat = 20.0
+    // Padding around the icon inside the card; also the room the centered name line/rename field get.
+    private static let cardWidthOffset: CGFloat = 30.0
     private static let gridSpacing: CGFloat = 20.0
 
     var appState: AppState
