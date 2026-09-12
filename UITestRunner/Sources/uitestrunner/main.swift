@@ -84,6 +84,11 @@ if !windowReady {
     fail("\(RunnerError.mainWindowNeverAppeared)")
 }
 process.activate()
+// The window can paint before the menu bar/commands have fully registered — give it a moment
+// before the very first interaction (always the language switch) fires, or that one and anything
+// riding on its outcome (Appearance Settings runs in the same pass right after it) can start from
+// an app that isn't fully ready yet.
+Timing.pause(Timing.launch)
 
 if CommandLine.arguments.contains("--dump") {
     driver.navigateToWorkspace()

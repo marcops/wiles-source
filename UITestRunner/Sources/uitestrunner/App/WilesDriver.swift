@@ -184,6 +184,28 @@ final class WilesDriver {
         return true
     }
 
+    /// Hovers `hoverMatch` to reveal `tapMatch` and taps it, retrying the *whole* sequence — moving
+    /// the pointer fully away first each time — if a single pass doesn't land it. A one-shot
+    /// hover+tap can miss under real system load (a slow SwiftUI re-render leaves the target not
+    /// yet at its settled position/frame when the tap fires); retrying from a clean "not hovering"
+    /// state is far more robust than just waiting longer within one attempt.
+    @discardableResult
+    func hoverThenTap(hoverMatch: AXMatch, tapMatch: AXMatch, label: String, attempts: Int = 4) -> Bool {
+        for attempt in 0 ..< attempts {
+            if let window = try? mainWindow() {
+                Mouse.move(to: CGPoint(x: window.frame.midX, y: window.frame.midY))
+                Timing.pause(Timing.settle)
+            }
+            guard hover(hoverMatch, "\(label) (hover, attempt \(attempt))") else { continue }
+            Timing.pause(Timing.settle)
+            if let element = find(tapMatch, timeout: 3), tapElement(element) {
+                return true
+            }
+        }
+        reporter.fail("\(label): not found after \(attempts) hover+tap attempts")
+        return false
+    }
+
     /// `preClick` left-clicks the row before right-clicking it, so its context menu applies to a
     /// known single-item selection — set it `false` when the caller has already built a multi-item
     /// selection it wants the right-click to act on instead (that left-click would otherwise
@@ -471,17 +493,25 @@ final class WilesDriver {
         contentAreaClick(rightButton: true)
     }
 
-    /// Left-clicks the same empty spot — deselects everything / dismisses an inline edit.
+    /// Left-clicks an empty spot — deselects everything / dismisses an inline edit. `variant`
+    /// picks a different candidate point (not just a repeat of the same one) — useful for a caller
+    /// retrying after a first click seemingly missed empty space, since a systematically-occupied
+    /// point won't become empty just by clicking it again.
     @discardableResult
-    func clickContentArea() -> Bool {
-        contentAreaClick(rightButton: false)
+    func clickContentArea(variant: Int = 0) -> Bool {
+        contentAreaClick(rightButton: false, variant: variant)
     }
 
     @discardableResult
-    private func contentAreaClick(rightButton: Bool) -> Bool {
+    private func contentAreaClick(rightButton: Bool, variant: Int = 0) -> Bool {
         guard let window = try? mainWindow() else { return false }
         let frame = window.frame
-        let point = CGPoint(x: frame.midX + frame.width * 0.15, y: frame.maxY - 60)
+        let candidates = [
+            CGPoint(x: frame.midX + frame.width * 0.15, y: frame.maxY - 60),
+            CGPoint(x: frame.maxX - 40, y: frame.maxY - 40),
+            CGPoint(x: frame.midX, y: frame.minY + 60),
+        ]
+        let point = candidates[variant % candidates.count]
         Mouse.click(at: point, rightButton: rightButton, pid: pid)
         Timing.pause(Timing.settle)
         return true
@@ -670,19 +700,23 @@ final class WilesDriver {
     /// every locale. Returns whether the app-menu titles then reflect the target language.
     @discardableResult
     func setLanguage(to endonym: String, expectMenu: String) -> Bool {
-        for attempt in 0 ..< 2 {
+        // This gates everything that runs after it — under system load a SwiftUI full-tree
+        // rebuild (which a language switch triggers) can take much longer than usual, so this
+        // polls for the expected menu title rather than trusting a fixed number of fixed-length
+        // pauses to have been enough.
+        for _ in 0 ..< 4 {
             if sheet() == nil {
                 chord(",", .command)
-                if !waitForSheet(timeout: 4) {
+                if !waitForSheet(timeout: 6) {
                     _ = menuPick("Wiles", itemContains: "Settings", "Wiles ▸ Settings")
                         || menuPick("Wiles", itemContains: "Ajustes", "Wiles ▸ Ajustes")
-                    _ = waitForSheet(timeout: 4)
+                    _ = waitForSheet(timeout: 6)
                 }
             }
             if let picker = sheet()?.firstDescendant(where: AXMatch(role: "AXPopUpButton")) {
                 tapElement(picker)
                 Timing.pause(Timing.settle)
-                if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textEquals: endonym), timeout: 3, maxDepth: 12) {
+                if let item = app.waitForDescendant(where: AXMatch(role: "AXMenuItem", textEquals: endonym), timeout: 5, maxDepth: 12) {
                     _ = item.perform(AXAction.pick) || item.press()
                 } else {
                     closeAnyMenu()
@@ -690,12 +724,14 @@ final class WilesDriver {
             }
             Timing.pause(Timing.animation)
             dismissSheet()
-            // A language switch rebuilds the whole SwiftUI tree — let it settle and re-focus.
-            Timing.pause(Timing.launch)
+            // A language switch rebuilds the whole SwiftUI tree — poll for it to settle and
+            // re-focus instead of a single fixed pause.
             process.activate()
-            Timing.pause(Timing.settle)
-            if menuBarTitles().contains(expectMenu) { return true }
-            if attempt == 0 { Timing.pause(Timing.settle) }
+            let deadline = Date().addingTimeInterval(Timing.launch * 3)
+            repeat {
+                if menuBarTitles().contains(expectMenu) { return true }
+                Timing.pause(Timing.poll)
+            } while Date() < deadline
         }
         return menuBarTitles().contains(expectMenu)
     }
@@ -705,12 +741,20 @@ final class WilesDriver {
     /// `popupIndex` picks which pop-up when the sheet has several (0 = first).
     @discardableResult
     func selectPickerOption(_ option: String, popupIndex: Int = 0) -> Bool {
-        guard let sheet = sheet() else { return false }
-
-        let segmented = sheet.firstDescendant(where: AXMatch(role: "AXRadioButton", textContains: option))
-            ?? sheet.firstDescendant(where: AXMatch(role: "AXButton", predicate: { element in
-                element.subrole == "AXToggle" && element.title.localizedCaseInsensitiveContains(option)
-            }))
+        // A tab's content can still be settling in right after it's switched to — poll for the
+        // control instead of a single immediate check.
+        var sheet: AXElement?
+        var segmented: AXElement?
+        let deadline = Date().addingTimeInterval(4)
+        repeat {
+            sheet = self.sheet()
+            segmented = sheet?.firstDescendant(where: AXMatch(role: "AXRadioButton", textContains: option))
+                ?? sheet?.firstDescendant(where: AXMatch(role: "AXButton", predicate: { element in
+                    element.subrole == "AXToggle" && element.title.localizedCaseInsensitiveContains(option)
+                }))
+            if sheet == nil || segmented == nil { Timing.pause(Timing.poll) }
+        } while sheet != nil && segmented == nil && Date() < deadline
+        guard let sheet else { return false }
         if let segmented {
             return tapElement(segmented)
         }

@@ -79,6 +79,11 @@ struct Walkthrough {
             // Downstream steps need English — make one more attempt so a flake here doesn't cascade.
             driver.setLanguage(to: "English", expectMenu: "Go")
         }
+        // The menu bar's title updates immediately, but other language-dependent UI (e.g. the
+        // sidebar's cached `placeItems`, rebuilt only on its own `.onChange`) can lag a render
+        // pass behind — `setLanguage`'s menu-text check can report success before that settles,
+        // so downstream steps that match hardcoded English strings can still see Portuguese.
+        Timing.pause(Timing.settle)
     }
 
     // MARK: - Launch & core shell

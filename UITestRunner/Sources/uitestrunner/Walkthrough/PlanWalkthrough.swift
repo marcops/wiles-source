@@ -39,7 +39,10 @@ struct PlanWalkthrough {
             ("featChmodInProperties", featChmodInProperties),
             ("featArchiveExtract", featArchiveExtract),
             ("featFileShredder", featFileShredder),
+            ("featCopyContent", featCopyContent),
+            ("featOpenWithSubmenu", featOpenWithSubmenu),
             ("featTagAssign", featTagAssign),
+            ("featClearAllTags", featClearAllTags),
             ("featCopyPath", featCopyPath),
             ("featPDFMerge", featPDFMerge),
             ("featDuplicateFinderScan", featDuplicateFinderScan),
@@ -75,12 +78,14 @@ struct PlanWalkthrough {
             ("featStatusBarCountReflectsSelection", featStatusBarCountReflectsSelection),
             ("featPreviewPaneFollowsSelection", featPreviewPaneFollowsSelection),
             ("featSymlinkModalReopen", featSymlinkModalReopen),
+            ("featFolderPropertiesFromBackground", featFolderPropertiesFromBackground),
             ("featAddRemoveFavorite", featAddRemoveFavorite),
             ("featTagFilterNavigates", featTagFilterNavigates),
             ("featMoveCollisionSheet", featMoveCollisionSheet),
             ("featViewModeSwitcherExpandsOnHover", featViewModeSwitcherExpandsOnHover),
             ("featTypeAheadRowSelection", featTypeAheadRowSelection),
             ("featRenameMenuItem", featRenameMenuItem),
+            ("featBatchRenameAppliesFindReplace", featBatchRenameAppliesFindReplace),
         ]
         let selected = only.isEmpty ? steps
             : steps.filter { name, _ in only.contains { name.localizedCaseInsensitiveContains($0) } }

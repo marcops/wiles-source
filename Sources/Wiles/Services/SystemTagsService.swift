@@ -28,8 +28,14 @@ public enum SystemTagsService {
     /// The user's Finder favorite tags in Finder's own order, from the cache only. Falls back to the
     /// seven standard colors (English names) until `startObserving()`/`refresh()` has run or when
     /// Finder's prefs aren't readable.
+    ///
+    /// Under `--ui-testing`, always the standard English fallback — Finder's real favorite-tag
+    /// names are stored in the *system* language (independent of Wiles' own language setting), so
+    /// a UI test asserting a specific tag name would otherwise pass or fail depending on what
+    /// language this particular machine's Finder happens to be configured in.
     public static var favoriteTags: [SystemTag] {
-        cachedFavoriteTags ?? standardFallback
+        guard !CommandLine.arguments.contains("--ui-testing") else { return standardFallback }
+        return cachedFavoriteTags ?? standardFallback
     }
 
     /// Seeds the cache and keeps it current off the render path. Call once from app launch;
