@@ -37,6 +37,14 @@ enum Mouse {
             pid: pid)
     }
 
+    /// Moves the pointer to `point` without clicking — the plain `.mouseMoved` `CGEvent` that
+    /// SwiftUI's `.onHover` listens for, with no accompanying mouse-down/up.
+    static func move(to point: CGPoint) {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        emit(.mouseMoved, at: point, button: .left, source: source, flags: [], clickState: 0)
+        Timing.pause(Timing.brief)
+    }
+
     /// Two click pairs fired back-to-back with `clickState` 1 then 2 — the sequence AppKit
     /// recognises as a double-click.
     static func doubleClick(center rect: CGRect, pid: pid_t) {

@@ -1,7 +1,8 @@
 ## Low priority / undecided
 - hoje ele pula os testes no ci tem que arrumar
-- create the director view and traditional view?
 - permitir o usuário configurar seus proprios atalhos
+- tem windows e gnome name no sistema.
+
 
 - zip feature
 Double-clicking a `.zip` file should open it in-place the same way a real folder does (reusing whichever view mode is active — Grid/List Column) and let the user navigate inside it normally. Double-clicking a file *inside* that zip should extract it to a temporary location and open it (like macOS does when peeking inside a `.app` bundle).
@@ -15,3 +16,14 @@ colocar no build do validate, release (gh), push and relaunch (ordem por ganho v
 
 2. MemberImportVisibility       🚫 bloqueado — SwiftTerm (dependência) precisa de `import AppKit` em vários arquivos internos; código vendored, não dá pra corrigir sem fork
 7. InternalImportsByDefault      🚫 bloqueado — GitBeacon corrigido e confirmado v0.0.4 (revalidado, zero erros de lá); único bloqueio restante é o SwiftTerm (mesma causa raiz do item 2)
+
+
+## Search Filters menu is hidden
+The "Search Filters" control (scope: file name / file content, `kind:` tokens) only appears
+once the search field is open and is easy to overlook. A small always-visible affordance, or
+surfacing the scope toggle next to the field, would help people find content search.
+
+## Restore-from-Trash feedback
+Undo of "Move to Trash" restores the file but gives no progress indication while it scans the
+Trash, which can take a couple of seconds for a large item — a brief "Restoring…" state (as
+other long operations already show) would reassure the user it's working.y \

@@ -33,6 +33,7 @@ struct GlobalKeyMonitor: NSViewRepresentable {
         private nonisolated(unsafe) var monitor: Any?
         private var zoomController = KeyboardZoomController()
         private let selectionNavigator = KeyboardSelectionNavigator()
+        private var typeAheadController = TypeAheadSelectionController()
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -155,6 +156,11 @@ struct GlobalKeyMonitor: NSViewRepresentable {
                 return nil
             }
             if selectionNavigator.handleNavigationKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState) {
+                return nil
+            }
+            let isOption = event.modifierFlags.contains(.option)
+            if !isCmd, !isCtrl, !isOption,
+               typeAheadController.handleCharacterKeyDown(characters: event.charactersIgnoringModifiers, appState: appState) {
                 return nil
             }
             return event

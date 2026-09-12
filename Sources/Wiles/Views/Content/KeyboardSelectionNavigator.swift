@@ -132,7 +132,7 @@ struct KeyboardSelectionNavigator {
     private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
         if ShortcutRegistry.physicalKeyCodes(.renameGnome).contains(code) {
             if !appState.selection.selectedURLs.isEmpty {
-                triggerRenameForSelected(appState: appState, windowUIState: windowUIState)
+                appState.triggerRenameForSelected(windowUIState: windowUIState)
                 return true
             }
         } else if ShortcutRegistry.physicalKeyCodes(.moveToTrash).contains(code) {
@@ -173,13 +173,5 @@ struct KeyboardSelectionNavigator {
         guard appState.preferences.view.navigationMode == .macOS else { return nil }
         guard let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first else { return nil }
         return appState.fileSystem.itemsByURL[anchor]
-    }
-
-    private func triggerRenameForSelected(appState: AppState, windowUIState: WindowUIState) {
-        if appState.selection.selectedURLs.count > 1 {
-            windowUIState.activeModal = .batchRename
-        } else if let first = appState.selection.selectedURLs.first, let item = appState.fileSystem.itemsByURL[first] {
-            windowUIState.renameItem = item
-        }
     }
 }

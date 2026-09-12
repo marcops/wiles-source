@@ -306,8 +306,7 @@ public final class UndoRedoService {
             // ⌘⇧Z should quietly do nothing rather than raise `fileCreationNotRedoable`.
             return ActionOutcome(url: url.deletingLastPathComponent(), resultingAction: action, redoable: false)
         case let .trash(originalURL, trashedURL):
-            let result = try await FileSystemService.moveItem(
-                at: trashedURL, toFolder: originalURL.deletingLastPathComponent(), onCollision: .keepBoth)
+            let result = try await FileSystemService.restoreFromTrash(trashedURL: trashedURL, to: originalURL)
             onFileRelocated?(trashedURL, result)
             noteRestoreDivergence(intendedName: originalURL.lastPathComponent, result: result)
             return ActionOutcome(

@@ -6,11 +6,11 @@ extension Screenshots {
     func shots() -> [Shot] {
         [
             Shot(slug: "grid-list", stage: {
-                driver.tap(AXMatch(identifier: "View Mode"), "view mode")
+                driver.hover(AXMatch(identifier: "View Mode"), "view mode")
                 Timing.pause(Timing.settle)
                 driver.tap(AXMatch(identifier: "ViewModeGrid"), "grid")
             }, cleanup: {
-                driver.tap(AXMatch(identifier: "View Mode"), "view mode")
+                driver.hover(AXMatch(identifier: "View Mode"), "view mode")
                 Timing.pause(Timing.settle)
                 driver.tap(AXMatch(identifier: "ViewModeList"), "list")
             }),

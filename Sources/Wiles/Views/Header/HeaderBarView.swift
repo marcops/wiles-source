@@ -379,12 +379,15 @@ struct HeaderBarView: View {
             }
         }
         .padding(2)
-        .animation(MotionTokens.expandSpring, value: viewSwitcherExpanded)
+        .animation(MotionTokens.gentleSpring, value: viewSwitcherExpanded)
         .background(Group {
             if viewSwitcherExpanded {
                 ClickOutsideDetector { viewSwitcherExpanded = false }
             }
         })
+        .onHover { hovering in
+            viewSwitcherExpanded = hovering
+        }
     }
 
     private var expandedViewModeButtons: some View {

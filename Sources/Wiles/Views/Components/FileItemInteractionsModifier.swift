@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -89,6 +90,13 @@ public struct FileItemInteractionsModifier: ViewModifier {
     }
 
     private func handleSingleTap() {
+        // `.simultaneousGesture(TapGesture())` fires on a right-click too (SwiftUI's plain
+        // `TapGesture` doesn't filter by mouse button on macOS), which would collapse an existing
+        // multi-selection to just this row before `RightClickDetector`'s own context menu opens —
+        // breaking every multi-select + right-click bulk action (Batch Rename, Merge into PDF, …).
+        if let event = NSApp.currentEvent, event.type == .rightMouseDown || event.type == .rightMouseUp {
+            return
+        }
         let wasAlreadySelected = appState.selection.selectedURLs.count == 1 && appState.selection.selectedURLs.contains(item.url)
         if let onSelect {
             onSelect()

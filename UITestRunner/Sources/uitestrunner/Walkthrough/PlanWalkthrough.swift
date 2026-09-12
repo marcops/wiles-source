@@ -78,6 +78,9 @@ struct PlanWalkthrough {
             ("featAddRemoveFavorite", featAddRemoveFavorite),
             ("featTagFilterNavigates", featTagFilterNavigates),
             ("featMoveCollisionSheet", featMoveCollisionSheet),
+            ("featViewModeSwitcherExpandsOnHover", featViewModeSwitcherExpandsOnHover),
+            ("featTypeAheadRowSelection", featTypeAheadRowSelection),
+            ("featRenameMenuItem", featRenameMenuItem),
         ]
         let selected = only.isEmpty ? steps
             : steps.filter { name, _ in only.contains { name.localizedCaseInsensitiveContains($0) } }

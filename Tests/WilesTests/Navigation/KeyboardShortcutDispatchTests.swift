@@ -189,7 +189,7 @@ public struct KeyboardShortcutDispatchTests {
     private static func testRegistryMenuCommandsAreCompleteAndUnique() {
         let menuCommands: [ShortcutRegistry.Command] = [
             .settings, .undo, .redo, .cut, .copy, .paste, .selectAll, .find, .newWindow, .closeWindow,
-            .newFolder, .newFile, .open, .properties, .quickLook, .moveToTrash, .goBack, .goForward,
+            .newFolder, .newFile, .open, .properties, .quickLook, .moveToTrash, .rename, .goBack, .goForward,
             .goToFolder, .connectToServer, .help, .shortcutsHUD, .toggleTerminal, .togglePreview, .toggleDiskUsage
         ]
         let allHaveKeyAndLabel = menuCommands.allSatisfy {

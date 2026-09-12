@@ -59,6 +59,9 @@ struct FileMenuCommands: LocalizedCommands {
             Button(tr(.quickLook)) { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
                 .keyboardShortcut(.quickLook)
                 .disabled(isQuickLookDisabled)
+            Button(tr(.rename)) { appState.triggerRenameForSelected(windowUIState: windowUIState) }
+                .keyboardShortcut(.rename)
+                .disabled(appState.selection.selectedURLs.isEmpty)
             Divider()
             // `.disabled` while the terminal is focused so the plain Space / Delete menu key
             // equivalents can't fire from terminal input, and while any text field owns focus

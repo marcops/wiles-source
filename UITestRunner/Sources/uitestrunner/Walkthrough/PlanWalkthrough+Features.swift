@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 extension PlanWalkthrough {
@@ -409,10 +410,12 @@ extension PlanWalkthrough {
     func featIconZoom() {
         reporter.beginFeature("Icon-size zoom (⌘+ / ⌘−)")
         driver.navigateToWorkspace()
-        driver.tap(AXMatch(identifier: "View Mode"), "view mode")
+        driver.hover(AXMatch(identifier: "View Mode"), "view mode")
         Timing.pause(Timing.settle)
         driver.tap(AXMatch(identifier: "ViewModeGrid"), "grid")
-        Timing.pause(Timing.animation)
+        // See featGridAndListViews: the switcher's collapse-on-select spring is slower than the
+        // generic `Timing.animation` wait, so give it longer to settle before interacting again.
+        Timing.pause(Timing.animation * 3)
         let before = gridWidth()
         driver.chord("=", .command)
         driver.chord("=", .command)
@@ -426,7 +429,7 @@ extension PlanWalkthrough {
         driver.chord("-", .command)
         driver.chord("-", .command)
         Timing.pause(Timing.animation)
-        driver.tap(AXMatch(identifier: "View Mode"), "view mode")
+        driver.hover(AXMatch(identifier: "View Mode"), "view mode")
         Timing.pause(Timing.settle)
         driver.tap(AXMatch(identifier: "ViewModeList"), "list")
     }
@@ -542,5 +545,83 @@ extension PlanWalkthrough {
         guard driver.menuPick("Help", itemContains: "Send Feedback", "Help ▸ Send Feedback") else { return }
         reporter.check(driver.waitForSheet(), "Feedback sheet opened")
         reporter.check(driver.dismissSheet(), "Feedback sheet dismissed")
+    }
+
+    /// Keystrokes typed within this many seconds of each other are still treated as one search
+    /// buffer by `TypeAheadSelectionController` — the pause between the two sub-tests below must
+    /// clear it so the second keystroke starts a fresh, single-character search.
+    private static let typeAheadBufferResetPause: TimeInterval = 1.2
+
+    func featViewModeSwitcherExpandsOnHover() {
+        reporter.beginFeature("View-mode switcher expands on hover (no click required)")
+        driver.navigateToWorkspace()
+        driver.key(Keyboard.escape)
+        Timing.pause(Timing.brief)
+        guard let window = try? driver.mainWindow() else {
+            reporter.fail("main window not available")
+            return
+        }
+        reporter.check(driver.find(AXMatch(identifier: "View Mode"), timeout: 3) != nil, "collapsed 'View Mode' button is present before hovering")
+
+        guard driver.hover(AXMatch(identifier: "View Mode"), "View Mode switcher (hover only, no click)") else { return }
+        Timing.pause(Timing.animation)
+        reporter.check(
+            driver.find(AXMatch(identifier: "ViewModeGrid"), timeout: 2) != nil
+                && driver.find(AXMatch(identifier: "ViewModeList"), timeout: 2) != nil,
+            "hovering (no click) reveals both the Grid and List mode buttons")
+
+        Mouse.move(to: CGPoint(x: window.frame.midX, y: window.frame.midY))
+        Timing.pause(Timing.animation)
+        reporter.check(
+            driver.isGone(AXMatch(identifier: "ViewModeGrid"), within: 2),
+            "moving the pointer away collapses the switcher back, with no click needed either way")
+    }
+
+    func featTypeAheadRowSelection() {
+        reporter.beginFeature("Type-ahead row selection (find-as-you-type)")
+        driver.navigateToWorkspace()
+        guard driver.clickRow(workspace.alphaFile) else { return }
+        Timing.pause(Timing.brief)
+        reporter.check(driver.fileRow(workspace.alphaFile)?.isSelected ?? false, "'\(workspace.alphaFile)' is selected before typing")
+
+        driver.chord("b", [])
+        Timing.pause(Timing.settle)
+        reporter.check(
+            (driver.fileRow(workspace.betaFile)?.isSelected ?? false) && !(driver.fileRow(workspace.alphaFile)?.isSelected ?? false),
+            "typing 'b' jumps the selection to '\(workspace.betaFile)'")
+
+        Timing.pause(Self.typeAheadBufferResetPause)
+        driver.chord("m", [])
+        Timing.pause(Timing.settle)
+        reporter.check(
+            driver.fileRow(workspace.midFile)?.isSelected ?? false,
+            "typing 'm' after a pause starts a fresh search and jumps to '\(workspace.midFile)'")
+    }
+
+    func featRenameMenuItem() {
+        reporter.beginFeature("File ▸ Rename… menu item")
+        driver.navigateToWorkspace()
+        // Checked before selecting anything: `menuHasItem`/`menuPick` open the menu via a leading
+        // Escape (to dismiss any stale menu first), which is also this app's "clear selection"
+        // shortcut — sending it after selecting a row would wipe the very selection being tested.
+        // ⌘R below exercises the same File ▸ Rename… action without that side effect.
+        reporter.check(driver.menuHasItem("File", containing: "Rename"), "File menu lists a Rename item")
+
+        guard driver.clickRow(workspace.alphaFile) else { return }
+        Timing.pause(Timing.brief)
+        driver.chord("r", .command)
+        reporter.check(
+            driver.find(AXMatch(identifier: "InlineRenameField"), timeout: 3) != nil,
+            "⌘R (File ▸ Rename…) on a single selection opens the inline rename field")
+        driver.key(Keyboard.escape)
+        Timing.pause(Timing.settle)
+
+        guard driver.clickRow(workspace.alphaFile) else { return }
+        Timing.pause(Timing.brief)
+        guard driver.clickRow(workspace.betaFile, modifiers: .command) else { return }
+        Timing.pause(Timing.settle)
+        driver.chord("r", .command)
+        reporter.check(driver.waitForSheet(), "⌘R (File ▸ Rename…) on a 2+ selection opens the Batch Rename sheet")
+        reporter.check(driver.dismissSheet(), "Batch Rename sheet dismissed")
     }
 }

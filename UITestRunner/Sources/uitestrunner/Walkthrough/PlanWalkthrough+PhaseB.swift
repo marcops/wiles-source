@@ -158,7 +158,7 @@ extension PlanWalkthrough {
                 driver.menuPick("Edit", itemContains: "Select All", "Edit ▸ Select All")
             }
             Timing.pause(Timing.settle)
-            driver.rightClick(AXMatch(textEquals: mergeB), "'\(mergeB)' row (context)")
+            driver.rightClick(AXMatch(textEquals: mergeB), "'\(mergeB)' row (context)", preClick: false)
             Timing.pause(Timing.settle)
             if driver.app.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: "merge"), maxDepth: 12) != nil {
                 haveMergeItem = true

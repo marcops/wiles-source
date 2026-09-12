@@ -9,7 +9,7 @@ enum ShortcutRegistry {
     enum Command: CaseIterable {
         // Menu-backed
         case settings, undo, redo, cut, copy, paste, selectAll, find
-        case newWindow, closeWindow, newFolder, newFile, open, properties, quickLook, moveToTrash
+        case newWindow, closeWindow, newFolder, newFile, open, properties, quickLook, moveToTrash, rename
         case goBack, goForward, goToFolder, connectToServer, enclosingFolder
         case help, shortcutsHUD, toggleTerminal, togglePreview, toggleDiskUsage
         // Monitor / hidden-button only (no menu item)
@@ -63,6 +63,7 @@ enum ShortcutRegistry {
         .open: Shortcut(key: "o", modifiers: .command, label: "⌘ O"),
         .properties: Shortcut(key: "i", modifiers: .command, label: "⌘ I"),
         .quickLook: Shortcut(key: " ", modifiers: [], label: "Space"),
+        .rename: Shortcut(key: "r", modifiers: .command, label: "⌘ R"),
         .moveToTrash: Shortcut(
             key: .delete, modifiers: [], physicalKeyCodes: [KeyCode.backspace, KeyCode.forwardDelete], label: "Delete"),
         .goBack: Shortcut(key: "[", modifiers: .command, label: "⌘ ["),

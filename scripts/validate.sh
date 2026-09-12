@@ -149,9 +149,13 @@ section "UI walkthrough (UITestRunner — drives the real Wiles.app via the Acce
 # the script exits non-zero if any check failed. Needs Accessibility trust for the controlling
 # terminal (the runner prints how to grant it) and a real login session — local gate only, not CI.
 UITEST_OK=1
-scripts/run_ui_test.sh 2>&1 | tee /tmp/wiles_uitest_features.log | grep -E 'checks ·|✗|▶' || true
+# No `|| true` after these pipelines: with `set -o pipefail`, a failing pipeline's `PIPESTATUS[0]`
+# must be read on the very next line — appending `|| true` runs `true` as its own command first,
+# which overwrites `PIPESTATUS` with its own (0) exit code, so the check below always reads 0 and
+# silently defeats this entire gate (`-e` isn't set, so the bare pipeline can't abort the script).
+scripts/run_ui_test.sh 2>&1 | tee /tmp/wiles_uitest_features.log | grep -E 'checks ·|✗|▶'
 [[ "${PIPESTATUS[0]}" -eq 0 ]] || UITEST_OK=0
-scripts/run_ui_test.sh --no-build --plan 2>&1 | tee /tmp/wiles_uitest_plan.log | grep -E 'checks ·|✗|▶' || true
+scripts/run_ui_test.sh --no-build --plan 2>&1 | tee /tmp/wiles_uitest_plan.log | grep -E 'checks ·|✗|▶'
 [[ "${PIPESTATUS[0]}" -eq 0 ]] || UITEST_OK=0
 if [[ "$UITEST_OK" -eq 0 ]]; then
   echo "FAIL: UI walkthrough had failing checks — see /tmp/wiles_uitest_features.log and /tmp/wiles_uitest_plan.log"

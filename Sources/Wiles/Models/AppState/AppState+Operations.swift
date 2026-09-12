@@ -327,7 +327,23 @@ public extension AppState {
         }
     }
 
+    /// Single shared entry point for triggering rename on the current selection — opens the
+    /// inline rename field for one item, or the Batch Rename sheet for 2+. Shared by the
+    /// context menu, the F2/Return keyboard shortcuts, and the File menu's Rename item.
+    func triggerRenameForSelected(windowUIState: WindowUIState) {
+        guard !selection.selectedURLs.isEmpty else { return }
+        if selection.selectedURLs.count > 1 {
+            windowUIState.activeModal = .batchRename
+        } else if let first = primarySelectedURL, let item = fileSystem.itemsByURL[first] {
+            windowUIState.renameItem = item
+        }
+    }
+
     func startEditingPath(windowUIState: WindowUIState) {
+        // `HeaderCenterMode.resolve` only ever shows the editable path bar when `isSearching` is
+        // false — while a search or Smart Folder is active, setting `isEditingPath` alone has no
+        // visible effect, since the header keeps showing the search field / smart-folder pill.
+        selection.isSearching = false
         navigation.pathText = navigation.currentURL.path
         windowUIState.isEditingPath = true
     }

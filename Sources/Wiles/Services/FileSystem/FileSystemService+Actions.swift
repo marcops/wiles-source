@@ -46,6 +46,29 @@ public extension FileSystemService {
         }.value
     }
 
+    /// Moves a trashed item back to its pre-trash location, restoring its original name — unlike
+    /// `moveItem`, which always keeps `url`'s own filename. The Trash renames on its own internal
+    /// collisions (`beta.txt` → `beta.txt 14-58-57-912.txt`), so `trashedURL`'s name is frequently
+    /// not `originalURL`'s; without this, restore silently keeps the mangled Trash name even when
+    /// `originalURL` itself is free. Falls back to `.keepBoth` only when `originalURL` really is
+    /// occupied again (e.g. a new file was created under that name after the trash).
+    @discardableResult
+    static func restoreFromTrash(trashedURL: URL, to originalURL: URL) async throws -> URL {
+        try await Task.detached(priority: .userInitiated) {
+            if !FileManager.default.fileExists(atPath: originalURL.path) {
+                do {
+                    try FileManager.default.moveItem(at: trashedURL, to: originalURL)
+                    return originalURL
+                } catch let error as CocoaError where error.code == .fileWriteFileExists {
+                    // Lost a TOCTOU race — fall through to keepBoth below.
+                }
+            }
+            let freeURL = uniqueDestination(for: originalURL.lastPathComponent, in: originalURL.deletingLastPathComponent())
+            try FileManager.default.moveItem(at: trashedURL, to: freeURL)
+            return freeURL
+        }.value
+    }
+
     /// A `.replace` move that also reports where the displaced file landed in the Trash, so the
     /// caller can register a `.trash` undo step for it. `displacedTrashedURL` is `nil` when nothing
     /// was actually at the destination.

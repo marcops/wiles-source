@@ -108,23 +108,34 @@ run_once() {
   echo "------------------------------------------------------------"
   echo "==> run: $*"
   teardown; sleep 1
-  local cap=420 pid wd
+  local cap=420 pid waited=0
   "$RUNNER_BIN" --app "$APP_BUNDLE" "$@" & pid=$!
-  ( sleep "$cap"; kill -9 "$pid" 2>/dev/null && echo "    (killed: exceeded ${cap}s cap)" ) & wd=$!
-  wait "$pid"; local st=$?
-  kill "$wd" 2>/dev/null || true
+  # Poll instead of a backgrounded `sleep $cap` watchdog: killing that subshell only kills the
+  # subshell wrapper, not the `sleep` running inside it — the sleep survives as an orphan holding
+  # the pipe fd it inherited from `| tee` (--chunked mode), so tee never sees EOF and the whole
+  # per-chunk pipeline stalls for up to $cap seconds even after the real run already finished.
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep 1
+    waited=$((waited + 1))
+    if [[ "$waited" -ge "$cap" ]]; then
+      kill -9 "$pid" 2>/dev/null
+      echo "    (killed: exceeded ${cap}s cap)"
+      break
+    fi
+  done
+  wait "$pid" 2>/dev/null; local st=$?
   return $st
 }
 
 # --chunked: run the whole suite as several short, fresh-launch passes — the only way it survives
 # on a machine where a long single launch gets throttled into uselessness.
-if [[ " ${MODE_ARGS[*]} " == *" --chunked "* ]]; then
+if [[ " ${MODE_ARGS[*]+${MODE_ARGS[*]}} " == *" --chunked "* ]]; then
   FEAT_A="featSwitchToEnglish,featLaunchShell,featGridAndListViews,featDirectoryTree,featFavoritesAndPlaces,featSearch,featFileProperties,featSymbolicLinks,featCompressToZip,featUndoRedo,featBatchRename"
   FEAT_B="featImageConverter,featArchiveInspector,featDuplicateFinder,featIntegratedTerminal,featDiskUsageVisualizer,featConnectToServer,featAutoOrganization,featHTTPSharing,featTags,featSmartFolders,featAppearanceSettings"
   PLAN_A="featNewAndCloseWindow,featSidebarSectionHeaders,featSectionCollapsePersists,featHideShowSection,featDirectoryTreeDrillIn,featSmartFoldersSectionRenders,featPathBarNavigation,featBackForwardEnclosing,featNewFolderInlineRename,featNewFileInlineRename,featRenameUndoRedo,featCutPaste,featCopyPaste,featKeyboardSelectionNav,featSelectAllThenClear,featSortOrder"
   PLAN_B="featIconZoom,featQuickLook,featEmptyDirectory,featFooterTerminalButton,featTogglePreview,featSettingsTabs,featHelpSheet,featShortcutsHUD,featAboutSheet,featFeedbackSheet,featChmodInProperties,featArchiveExtract,featFileShredder,featTagAssign,featCopyPath,featPDFMerge"
   PLAN_C="featDuplicateFinderScan,featCompressWithPassword,featSmartFolderRoundTrip,featHTTPServerRoundTrip,featNavigationModeGnome,featPreferencePersistenceSweep,featShiftClickRange,featCmdClickDeselectsOne,featClickEmptyAreaDeselects,featArrowPastLastRowStays,featRenameToExistingNameHandled,featRenameWithSlashSanitised,featNewFolderNameAutoIncrements,featSortByEachKeyReorders,featIconZoomClampsAtMinimum,featShowHiddenFilesToggle"
-  PLAN_D="featSearchNoMatchThenClear,featPropertiesShortcut,featTrashShortcutThenUndo,featPathBarRejectsBadPath,featKeyboardHistoryNav,featPlacesEntryNavigates,featListColumnHeaderClickSorts,featCompactDensityToggle,featAutoHideSidebarToggle,featSearchScopeToggle,featSearchKindFilterToken,featSearchShortContentTermWarning,featQuickFilterImages,featStatusBarCountReflectsSelection,featPreviewPaneFollowsSelection,featSymlinkModalReopen,featAddRemoveFavorite,featTagFilterNavigates,featMoveCollisionSheet"
+  PLAN_D="featSearchNoMatchThenClear,featPropertiesShortcut,featTrashShortcutThenUndo,featPathBarRejectsBadPath,featKeyboardHistoryNav,featPlacesEntryNavigates,featListColumnHeaderClickSorts,featCompactDensityToggle,featAutoHideSidebarToggle,featSearchScopeToggle,featSearchKindFilterToken,featSearchShortContentTermWarning,featQuickFilterImages,featStatusBarCountReflectsSelection,featPreviewPaneFollowsSelection,featSymlinkModalReopen,featAddRemoveFavorite,featTagFilterNavigates,featMoveCollisionSheet,featViewModeSwitcherExpandsOnHover,featTypeAheadRowSelection,featRenameMenuItem"
   AGG=/tmp/wiles_chunked.log; : > "$AGG"
   for spec in "-|$FEAT_A" "-|$FEAT_B" "--plan|$PLAN_A" "--plan|$PLAN_B" "--plan|$PLAN_C" "--plan|$PLAN_D"; do
     mode="${spec%%|*}"; only="${spec#*|}"

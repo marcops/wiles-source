@@ -138,11 +138,7 @@ struct SharedFileItemContextMenu: View {
     @ViewBuilder private var destructiveActionsSection: some View {
         Divider()
         Button(appState.trWithShortcutHint(.rename, shortcut: renameKeyboardHint)) {
-            if appState.selection.selectedURLs.count > 1 {
-                windowUIState.activeModal = .batchRename
-            } else {
-                windowUIState.renameItem = item
-            }
+            appState.triggerRenameForSelected(windowUIState: windowUIState)
         }
         Button(appState.trWithShortcutHint(.moveToTrash, shortcut: ShortcutRegistry.label(.moveToTrash)), role: .destructive) {
             appState.deleteSelected(windowUIState: windowUIState)

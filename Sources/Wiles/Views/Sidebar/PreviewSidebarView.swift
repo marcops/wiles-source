@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 
 struct PreviewSidebarView: View {
@@ -51,8 +50,6 @@ struct PreviewSidebarView: View {
 
                 propertyRows(for: item)
 
-                nativePreview(for: item)
-
                 Spacer()
 
                 Button(appState.tr(.moreInfo)) {
@@ -80,22 +77,6 @@ struct PreviewSidebarView: View {
             propertyRow(label: appState.tr(.dateModified), value: item.formattedDate(language: appState.preferences.appearance.appLanguage))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    @ViewBuilder
-    private func nativePreview(for item: FileItem) -> some View {
-        if !item.isDirectory {
-            Divider()
-            VStack(alignment: .leading, spacing: 4) {
-                Text(appState.tr(.preview))
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary)
-                QLPreviewInlineView(url: item.url, appState: appState)
-                    .frame(height: 220)
-                    .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
-                    .cornerRadius(6)
-            }
-        }
     }
 
     private func propertyRow(label: String, value: String) -> some View {

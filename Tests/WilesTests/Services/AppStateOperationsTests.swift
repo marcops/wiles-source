@@ -11,6 +11,7 @@ public struct AppStateOperationsTests {
         testOpenSelectedItemNavigatesIn()
         testTriggerQuickLookForSelected()
         testOpenPropertiesForSelected()
+        testTriggerRenameForSelected()
         testStartEditingPath()
         testToggleSearching()
         // createNewFileAndRename()'s tests live in AppStateOperationsCreateFolderTests.swift (async
@@ -127,6 +128,40 @@ public struct AppStateOperationsTests {
             "AppState+Operations",
             "NEG: openPropertiesForSelected() stays nil when the selected URL matches no listed item",
             result: windowUIState2.activeModal == nil)
+    }
+
+    private static func testTriggerRenameForSelected() {
+        let dir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let appState = AppState()
+        let windowUIState = WindowUIState(preferences: appState.preferences)
+        appState.selection.selectedURLs = []
+        appState.triggerRenameForSelected(windowUIState: windowUIState)
+        report(
+            "AppState+Operations",
+            "NEG: triggerRenameForSelected() with no selection leaves renameItem and activeModal nil",
+            result: windowUIState.renameItem == nil && windowUIState.activeModal == nil)
+
+        let single = makeItem(named: "single.txt", in: dir)
+        appState.fileSystem.items = [single]
+        appState.selection.selectedURLs = [single.url]
+        appState.triggerRenameForSelected(windowUIState: windowUIState)
+        report(
+            "AppState+Operations",
+            "POS: triggerRenameForSelected() with one item selected sets renameItem for inline rename",
+            result: windowUIState.renameItem?.url == single.url && windowUIState.activeModal == nil)
+
+        windowUIState.renameItem = nil
+        let second = makeItem(named: "second.txt", in: dir)
+        appState.fileSystem.items = [single, second]
+        appState.selection.selectedURLs = [single.url, second.url]
+        appState.triggerRenameForSelected(windowUIState: windowUIState)
+        report(
+            "AppState+Operations",
+            "POS: triggerRenameForSelected() with 2+ items selected opens the Batch Rename sheet instead",
+            result: windowUIState.activeModal == .batchRename && windowUIState.renameItem == nil)
     }
 
     private static func testStartEditingPath() {

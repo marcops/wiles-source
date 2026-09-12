@@ -122,12 +122,12 @@ extension PlanWalkthrough {
         driver.navigateToWorkspace()
         defer {
             driver.key(Keyboard.escape)
-            driver.tap(AXMatch(identifier: "View Mode"), "view mode (restore)")
+            driver.hover(AXMatch(identifier: "View Mode"), "view mode (restore)")
             Timing.pause(Timing.settle)
             driver.tap(AXMatch(identifier: "ViewModeList"), "list view (restore)")
         }
 
-        driver.tap(AXMatch(identifier: "View Mode"), "view mode")
+        driver.hover(AXMatch(identifier: "View Mode"), "view mode")
         Timing.pause(Timing.settle)
         guard driver.tap(AXMatch(identifier: "ViewModeGrid"), "switch to grid view") else { return }
         Timing.pause(Timing.animation)

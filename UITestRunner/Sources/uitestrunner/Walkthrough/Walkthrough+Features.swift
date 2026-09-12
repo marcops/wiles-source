@@ -7,13 +7,16 @@ extension Walkthrough {
         reporter.beginFeature("Grid & List Views")
         driver.navigateToWorkspace()
 
-        guard driver.tap(AXMatch(identifier: "View Mode"), "View Mode switcher") else { return }
+        guard driver.hover(AXMatch(identifier: "View Mode"), "View Mode switcher") else { return }
         Timing.pause(Timing.settle)
         guard driver.tap(AXMatch(identifier: "ViewModeGrid"), "Grid mode button") else { return }
-        Timing.pause(Timing.animation)
+        // The switcher's own collapse-on-select spring is slower than the generic `Timing.animation`
+        // wait — give it time to fully settle before hovering it again, or the re-expand below can
+        // land mid-collapse-transition and miss the "ViewModeList" button.
+        Timing.pause(Timing.animation * 3)
         reporter.check(driver.fileRow(workspace.alphaFile) != nil, "'\(workspace.alphaFile)' still listed in Grid view")
 
-        guard driver.tap(AXMatch(identifier: "View Mode"), "View Mode switcher (re-expand)") else { return }
+        guard driver.hover(AXMatch(identifier: "View Mode"), "View Mode switcher (re-expand)") else { return }
         Timing.pause(Timing.settle)
         guard driver.tap(AXMatch(identifier: "ViewModeList"), "List mode button") else { return }
         Timing.pause(Timing.animation)
@@ -212,7 +215,7 @@ extension Walkthrough {
             default: driver.key(Keyboard.downArrow, .shift)
             }
             Timing.pause(Timing.settle)
-            guard driver.rightClick(AXMatch(textEquals: workspace.alphaFile), "'\(workspace.alphaFile)' row (context)")
+            guard driver.rightClick(AXMatch(textEquals: workspace.alphaFile), "'\(workspace.alphaFile)' row (context)", preClick: false)
             else { continue }
             Timing.pause(Timing.settle)
             guard driver.pickContextItem(containing: "rename", "context ▸ Rename (multi-select)") else { continue }

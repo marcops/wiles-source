@@ -167,8 +167,29 @@ final class WilesDriver {
         return true
     }
 
+    /// Moves the pointer over `match` without clicking — for controls driven by `.onHover` with
+    /// no click equivalent (the footer icon-size slider, the header view-mode switcher).
     @discardableResult
-    func rightClick(_ match: AXMatch, _ label: String, timeout: TimeInterval = 5) -> Bool {
+    func hover(_ match: AXMatch, _ label: String, timeout: TimeInterval = 5) -> Bool {
+        guard let element = find(match, timeout: timeout) else {
+            reporter.fail("\(label): not found for hover")
+            return false
+        }
+        let rect = element.frame
+        guard !rect.isEmpty else {
+            reporter.fail("\(label): no frame for hover")
+            return false
+        }
+        Mouse.move(to: CGPoint(x: rect.midX, y: rect.midY))
+        return true
+    }
+
+    /// `preClick` left-clicks the row before right-clicking it, so its context menu applies to a
+    /// known single-item selection — set it `false` when the caller has already built a multi-item
+    /// selection it wants the right-click to act on instead (that left-click would otherwise
+    /// silently collapse it back to just this one row before the menu ever opens).
+    @discardableResult
+    func rightClick(_ match: AXMatch, _ label: String, timeout: TimeInterval = 5, preClick: Bool = true) -> Bool {
         _ = find(match, timeout: timeout) // wait for it to exist
         let all = (try? mainWindow())?.allDescendants(where: match, maxDepth: 22) ?? []
         guard let element = all.first(where: { !$0.frame.isEmpty }) ?? all.first else {
@@ -180,8 +201,10 @@ final class WilesDriver {
             reporter.fail("\(label): no frame for right-click")
             return false
         }
-        Mouse.click(center: rect, pid: pid)
-        Timing.pause(Timing.brief)
+        if preClick {
+            Mouse.click(center: rect, pid: pid)
+            Timing.pause(Timing.brief)
+        }
         Mouse.click(center: rect, rightButton: true, pid: pid)
         Timing.pause(Timing.settle)
         return true
