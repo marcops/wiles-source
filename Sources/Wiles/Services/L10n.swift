@@ -330,6 +330,7 @@ public enum L10n {
         case deletingPermanentlyEllipsis
         case undoingEllipsis
         case redoingEllipsis
+        case restoringEllipsis
         case extractingArchiveEllipsis
         case showInFinder
         case hideSectionMenuItem

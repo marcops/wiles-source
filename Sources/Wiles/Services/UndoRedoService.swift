@@ -54,6 +54,19 @@ public final class UndoRedoService {
         !undoStack.isEmpty
     }
 
+    /// Whether the next `undo()` call would restore a trashed item — lets a caller show a more
+    /// specific "Restoring…" progress title instead of the generic "Undoing…" for this one case.
+    /// A `.batch` counts if its first action does, since a multi-file "Move to Trash" records one
+    /// `.batch` of per-item `.trash` entries.
+    public var nextUndoIsTrashRestore: Bool {
+        guard var action = undoStack.last?.actionType else { return false }
+        while case let .batch(actions) = action, let first = actions.first {
+            action = first
+        }
+        if case .trash = action { return true }
+        return false
+    }
+
     public func canRedo() -> Bool {
         !redoStack.isEmpty
     }

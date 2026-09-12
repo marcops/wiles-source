@@ -533,3 +533,4 @@
 "deletingPermanentlyEllipsis" = "Wird endgültig gelöscht…";
 "undoingEllipsis" = "Wird rückgängig gemacht…";
 "redoingEllipsis" = "Wird wiederhergestellt…";
+"restoringEllipsis" = "Wird wiederhergestellt…";

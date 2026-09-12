@@ -289,7 +289,10 @@ public extension AppState {
 
     func undoLastAction() {
         let service = undoRedoService
-        runDetachedFileOperation(context: "Undoing last action", taskTitle: tr(.undoingEllipsis), detached: false, onSuccess: { [weak self] (target: URL?) in
+        // "Restoring…" specifically for a trash undo — that one can take a couple of seconds for a
+        // large item, and the generic "Undoing…" gave no hint anything was happening at all.
+        let title = service.nextUndoIsTrashRestore ? tr(.restoringEllipsis) : tr(.undoingEllipsis)
+        runDetachedFileOperation(context: "Undoing last action", taskTitle: title, detached: false, onSuccess: { [weak self] (target: URL?) in
             if let target {
                 self?.selection.selectedURLs = [target]
             }
