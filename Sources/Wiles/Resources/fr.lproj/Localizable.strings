@@ -150,8 +150,8 @@
 "fullDiskAccessPromptMessage" = "Wiles a besoin d'un accès complet au disque pour parcourir tous vos dossiers sans demandes d'autorisation répétées. Accordez-le une fois dans Réglages Système.";
 "fullDiskAccessPromptTitle" = "Accès complet au disque";
 "general" = "Général";
-"gnomeModeDesc" = "• Entrée: Ouvrir le dossier\n• F2: Renommer\n• Retour arrière: Dossier parent\n• Ctrl+H: Fichiers masqués";
-"gnomeModeTitle" = "Mode Windows";
+"windowsModeDesc" = "• Entrée: Ouvrir le dossier\n• F2: Renommer\n• Retour arrière: Dossier parent\n• Ctrl+H: Fichiers masqués";
+"windowsModeTitle" = "Mode Windows";
 "goMenuTitle" = "Aller";
 "goToFolder" = "Aller au dossier...";
 "grantFullDiskAccess" = "Accorder un accès complet au disque (Tous les dossiers)...";
@@ -303,7 +303,7 @@
 "showFavorites" = "Afficher les favoris";
 "showFavoritesHint" = "Affiche la section Favoris dans la barre latérale.";
 "showHiddenFiles" = "Afficher les fichiers masqués";
-"showHiddenFilesGnome" = "Afficher les fichiers masqués (Ctrl+H)";
+"showHiddenFilesWindows" = "Afficher les fichiers masqués (Ctrl+H)";
 "showHiddenFilesMac" = "Afficher les fichiers masqués (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Affiche les fichiers et dossiers dont le nom commence par un point.";
 "showNetworkAndCloud" = "Afficher réseau et cloud";

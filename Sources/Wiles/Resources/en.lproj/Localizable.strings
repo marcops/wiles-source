@@ -142,8 +142,8 @@
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";
 "general" = "General";
-"gnomeModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
-"gnomeModeTitle" = "Windows Mode";
+"windowsModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
+"windowsModeTitle" = "Windows Mode";
 "goMenuTitle" = "Go";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "Grant Full Disk Access (All Folders)...";
@@ -295,7 +295,7 @@
 "showFavorites" = "Show Favorites";
 "showFavoritesHint" = "Show the Favorites section in the sidebar.";
 "showHiddenFiles" = "Show Hidden Files";
-"showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
+"showHiddenFilesWindows" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Show files and folders whose name starts with a dot.";
 "showNetworkAndCloud" = "Show Network & Cloud";

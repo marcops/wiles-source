@@ -150,8 +150,8 @@
 "fullDiskAccessPromptMessage" = "Wiles necesita Acceso Total al Disco para explorar todas tus carpetas sin solicitudes de permiso repetidas. Concédelo una vez en Ajustes del Sistema.";
 "fullDiskAccessPromptTitle" = "Acceso Total al Disco";
 "general" = "General";
-"gnomeModeDesc" = "• Enter: Abrir carpeta\n• F2: Renombrar\n• Backspace: Carpeta superior\n• Ctrl+H: Archivos ocultos";
-"gnomeModeTitle" = "Modo Windows";
+"windowsModeDesc" = "• Enter: Abrir carpeta\n• F2: Renombrar\n• Backspace: Carpeta superior\n• Ctrl+H: Archivos ocultos";
+"windowsModeTitle" = "Modo Windows";
 "goMenuTitle" = "Ir";
 "goToFolder" = "Ir a la Carpeta...";
 "grantFullDiskAccess" = "Conceder acceso total al disco (Todas las carpetas)...";
@@ -303,7 +303,7 @@
 "showFavorites" = "Mostrar Favoritos";
 "showFavoritesHint" = "Muestra la sección Favoritos en la barra lateral.";
 "showHiddenFiles" = "Mostrar Archivos Ocultos";
-"showHiddenFilesGnome" = "Mostrar Arquivos Ocultos (Ctrl+H)";
+"showHiddenFilesWindows" = "Mostrar Arquivos Ocultos (Ctrl+H)";
 "showHiddenFilesMac" = "Mostrar Arquivos Ocultos (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Muestra archivos y carpetas cuyo nombre empieza con un punto.";
 "showNetworkAndCloud" = "Mostrar Red y Nube";

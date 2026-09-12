@@ -98,19 +98,19 @@ extension PlanWalkthrough {
 
     // MARK: - Navigation mode
 
-    func featNavigationModeGnome() {
-        reporter.beginFeature("Navigation mode — GNOME Enter-to-open")
+    func featNavigationModeWindows() {
+        reporter.beginFeature("Navigation mode — Windows Enter-to-open")
         guard driver.openSettings(tab: "General") else { return }
         let switched = driver.selectPickerOption("Windows Mode", popupIndex: 1)
         driver.dismissSheet()
         Timing.pause(Timing.settle)
         guard switched else {
-            reporter.fail("could not set shortcut mode to GNOME/Linux")
+            reporter.fail("could not set shortcut mode to Windows")
             return
         }
 
         driver.navigateToWorkspace()
-        let marker = "gnome-open-marker.txt"
+        let marker = "windows-open-marker.txt"
         try? "x".write(to: workspace.url(workspace.subFolder).appendingPathComponent(marker), atomically: true, encoding: .utf8)
         driver.clickRow(workspace.subFolder)
         Timing.pause(Timing.brief)
@@ -118,7 +118,7 @@ extension PlanWalkthrough {
         Timing.pause(Timing.animation)
         reporter.check(
             driver.fileRow(marker, timeout: 5) != nil,
-            "Enter opened the folder in GNOME mode")
+            "Enter opened the folder in Windows mode")
         try? FileManager.default.removeItem(at: workspace.url(workspace.subFolder).appendingPathComponent(marker))
         driver.menuPick("Go", itemContains: "Enclosing Folder", "Go ▸ Enclosing Folder (back)")
         Timing.pause(Timing.animation)

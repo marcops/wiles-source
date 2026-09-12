@@ -157,7 +157,7 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var renameKeyboardHint: String {
-        ShortcutRegistry.label(appState.preferences.view.navigationMode == .gnome ? .renameGnome : .renameMacOS)
+        ShortcutRegistry.label(appState.preferences.view.navigationMode == .windows ? .renameWindows : .renameMacOS)
     }
 
     @ViewBuilder private var shareTagsPropertiesSection: some View {

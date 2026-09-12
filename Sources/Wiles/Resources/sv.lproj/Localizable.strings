@@ -150,8 +150,8 @@
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";
 "general" = "General";
-"gnomeModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
-"gnomeModeTitle" = "Windows Mode";
+"windowsModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
+"windowsModeTitle" = "Windows Mode";
 "goMenuTitle" = "Gå till";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "Bevilja full skivtillgång (Alla mappar)...";
@@ -303,7 +303,7 @@
 "showFavorites" = "Show Favorites";
 "showFavoritesHint" = "Visar avsnittet Favoriter i sidofältet.";
 "showHiddenFiles" = "Show Hidden Files";
-"showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
+"showHiddenFilesWindows" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Visar filer och mappar vars namn börjar med en punkt.";
 "showNetworkAndCloud" = "Show Network & Cloud";

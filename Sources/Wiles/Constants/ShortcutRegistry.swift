@@ -15,8 +15,8 @@ enum ShortcutRegistry {
         // Monitor / hidden-button only (no menu item)
         case toggleHiddenFiles, clearSelection, openSelected
         case zoomIn, zoomOut, zoomReset
-        case renameMacOS, renameGnome
-        case openSelectedGnome, enclosingFolderGnome
+        case renameMacOS, renameWindows
+        case openSelectedWindows, enclosingFolderWindows
         case arrowNavigation, favoriteReorder
     }
 
@@ -89,10 +89,10 @@ enum ShortcutRegistry {
         .zoomOut: Shortcut(key: "-", modifiers: .command, physicalKeyCodes: [KeyCode.minus, KeyCode.keypadMinus], label: "⌘ -"),
         .zoomReset: Shortcut(key: "0", modifiers: .command, physicalKeyCodes: [KeyCode.zero], label: "⌘ 0"),
         .renameMacOS: Shortcut(key: nil, physicalKeyCodes: [KeyCode.returnKey], label: "Return"),
-        .renameGnome: Shortcut(key: nil, physicalKeyCodes: [KeyCode.f2], label: "F2"),
-        // gnome-mode navigation: Return opens, Backspace goes up a level (no selection).
-        .openSelectedGnome: Shortcut(key: nil, physicalKeyCodes: [KeyCode.returnKey], label: "Enter"),
-        .enclosingFolderGnome: Shortcut(key: nil, physicalKeyCodes: [KeyCode.backspace], label: "Backspace"),
+        .renameWindows: Shortcut(key: nil, physicalKeyCodes: [KeyCode.f2], label: "F2"),
+        // Windows-mode navigation: Return opens, Backspace goes up a level (no selection).
+        .openSelectedWindows: Shortcut(key: nil, physicalKeyCodes: [KeyCode.returnKey], label: "Enter"),
+        .enclosingFolderWindows: Shortcut(key: nil, physicalKeyCodes: [KeyCode.backspace], label: "Backspace"),
         .arrowNavigation: Shortcut(
             key: nil,
             physicalKeyCodes: [KeyCode.arrowUp, KeyCode.arrowDown, KeyCode.arrowLeft, KeyCode.arrowRight],

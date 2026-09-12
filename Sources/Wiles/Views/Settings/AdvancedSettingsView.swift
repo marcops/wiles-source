@@ -61,9 +61,9 @@ struct AdvancedSettingsView: View {
         }
     }
 
-    /// GNOME mode toggles hidden files with Ctrl+H, macOS mode with Cmd+Shift+. — the label
+    /// Windows mode toggles hidden files with Ctrl+H, macOS mode with Cmd+Shift+. — the label
     /// communicates the currently-active shortcut for the currently-active navigation mode.
     private var showHiddenFilesKey: L10n.Key {
-        appState.preferences.view.navigationMode == .gnome ? .showHiddenFilesGnome : .showHiddenFilesMac
+        appState.preferences.view.navigationMode == .windows ? .showHiddenFilesWindows : .showHiddenFilesMac
     }
 }

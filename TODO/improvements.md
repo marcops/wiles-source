@@ -1,7 +1,6 @@
 ## Low priority / undecided
 - hoje ele pula os testes no ci tem que arrumar
 - permitir o usuário configurar seus proprios atalhos
-- tem windows e gnome name no sistema.
 
 
 - zip feature

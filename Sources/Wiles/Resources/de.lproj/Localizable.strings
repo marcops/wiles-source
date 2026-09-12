@@ -150,8 +150,8 @@
 "fullDiskAccessPromptMessage" = "Wiles benötigt vollen Festplattenzugriff, um alle Ordner ohne wiederholte Berechtigungsanfragen zu durchsuchen. Erteile ihn einmal in den Systemeinstellungen.";
 "fullDiskAccessPromptTitle" = "Voller Festplattenzugriff";
 "general" = "Allgemein";
-"gnomeModeDesc" = "• Eingabe: Ordner öffnen\n• F2: Umbenennen\n• Rückschritt: Übergeordneter Ordner\n• Strg+H: Ausgeblendete Dateien";
-"gnomeModeTitle" = "Windows-Modus";
+"windowsModeDesc" = "• Eingabe: Ordner öffnen\n• F2: Umbenennen\n• Rückschritt: Übergeordneter Ordner\n• Strg+H: Ausgeblendete Dateien";
+"windowsModeTitle" = "Windows-Modus";
 "goMenuTitle" = "Gehe zu";
 "goToFolder" = "Gehe zum Ordner...";
 "grantFullDiskAccess" = "Vollzugriff auf die Festplatte gewähren (Alle Ordner)...";
@@ -303,7 +303,7 @@
 "showFavorites" = "Favoriten anzeigen";
 "showFavoritesHint" = "Zeigt den Bereich Favoriten in der Seitenleiste.";
 "showHiddenFiles" = "Ausgeblendete Dateien anzeigen";
-"showHiddenFilesGnome" = "Ausgeblendete Dateien anzeigen (Ctrl+H)";
+"showHiddenFilesWindows" = "Ausgeblendete Dateien anzeigen (Ctrl+H)";
 "showHiddenFilesMac" = "Ausgeblendete Dateien anzeigen (Cmd+Shift+.)";
 "showHiddenFilesHint" = "Zeigt Dateien und Ordner an, deren Name mit einem Punkt beginnt.";
 "showNetworkAndCloud" = "Netzwerk & Cloud anzeigen";

@@ -194,11 +194,11 @@ struct ShortcutsHUDOverlay: View {
         ScrollView {
             VStack(spacing: Self.columnsOuterSpacing) {
                 if selectedFilter == .all {
-                    shortcutGroup(title: appState.tr(.shortcutsNav), items: merged(navigationShortcuts(for: .macOS), navigationShortcuts(for: .gnome)))
+                    shortcutGroup(title: appState.tr(.shortcutsNav), items: merged(navigationShortcuts(for: .macOS), navigationShortcuts(for: .windows)))
                     shortcutGroup(
                         title: appState.tr(.shortcutsFileActions),
-                        items: merged(fileActionsShortcuts(for: .macOS), fileActionsShortcuts(for: .gnome)))
-                    shortcutGroup(title: appState.tr(.shortcutsSystem), items: merged(systemShortcuts(for: .macOS), systemShortcuts(for: .gnome)))
+                        items: merged(fileActionsShortcuts(for: .macOS), fileActionsShortcuts(for: .windows)))
+                    shortcutGroup(title: appState.tr(.shortcutsSystem), items: merged(systemShortcuts(for: .macOS), systemShortcuts(for: .windows)))
                     shortcutGroup(title: appState.tr(.shortcutsGeneral), items: generalShortcuts)
                 } else {
                     let mode = selectedFilter.navigationMode ?? appState.preferences.view.navigationMode
@@ -224,8 +224,8 @@ struct ShortcutsHUDOverlay: View {
     /// position. Every key label comes from `ShortcutRegistry` so the cheat sheet can't drift from
     /// the real bindings.
     private func navigationShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
-        let parentCommand: Command = mode == .macOS ? .enclosingFolder : .enclosingFolderGnome
-        let openCommand: Command = mode == .macOS ? .openSelected : .openSelectedGnome
+        let parentCommand: Command = mode == .macOS ? .enclosingFolder : .enclosingFolderWindows
+        let openCommand: Command = mode == .macOS ? .openSelected : .openSelectedWindows
         return [
             (.actNavBackForward, backForwardLabel),
             (.actParentFolder, ShortcutRegistry.label(parentCommand)),
@@ -234,7 +234,7 @@ struct ShortcutsHUDOverlay: View {
     }
 
     private func fileActionsShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
-        let renameCommand: Command = mode == .gnome ? .renameGnome : .renameMacOS
+        let renameCommand: Command = mode == .windows ? .renameWindows : .renameMacOS
         return [
             (.actCopyShortcut, ShortcutRegistry.label(.copy)),
             (.actCutShortcut, ShortcutRegistry.label(.cut)),

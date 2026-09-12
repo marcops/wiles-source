@@ -9,7 +9,7 @@ public struct NavigationModeTests {
     }
 
     private static func testAllCasesAndIdentifiable() {
-        report("Model/NavigationMode", "POS: NavigationMode has exactly the gnome and macOS cases", result: NavigationMode.allCases == [.gnome, .macOS])
+        report("Model/NavigationMode", "POS: NavigationMode has exactly the windows and macOS cases", result: NavigationMode.allCases == [.windows, .macOS])
         report(
             "Model/NavigationMode",
             "POS: id mirrors rawValue for every case",
@@ -17,7 +17,7 @@ public struct NavigationModeTests {
     }
 
     private static func testL10nKey() {
-        report("Model/NavigationMode", "POS: gnome mode's l10nKey is gnomeModeTitle", result: NavigationMode.gnome.l10nKey == .gnomeModeTitle)
+        report("Model/NavigationMode", "POS: Windows mode's l10nKey is windowsModeTitle", result: NavigationMode.windows.l10nKey == .windowsModeTitle)
         report("Model/NavigationMode", "POS: macOS mode's l10nKey is macModeTitle", result: NavigationMode.macOS.l10nKey == .macModeTitle)
     }
 

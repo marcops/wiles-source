@@ -23,7 +23,7 @@ public struct PreferencesPersistenceRoundTripTests {
     ]
 
     /// Keys with a `didSet` write but deliberately no restore path. Empty — the one real gap this
-    /// test surfaced (`navigationMode`, which reset Shortcut Mode to `.gnome` every launch) is now
+    /// test surfaced (`navigationMode`, which reset Shortcut Mode to `.windows` every launch) is now
     /// paired via `loadEnum(.navigationMode, …)` in `loadViewPreferences`.
     private static let knownMissingRestore: Set<String> = []
 

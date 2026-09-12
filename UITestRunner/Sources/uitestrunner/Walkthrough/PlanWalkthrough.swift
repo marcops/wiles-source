@@ -49,7 +49,7 @@ struct PlanWalkthrough {
             ("featCompressWithPassword", featCompressWithPassword),
             ("featSmartFolderRoundTrip", featSmartFolderRoundTrip),
             ("featHTTPServerRoundTrip", featHTTPServerRoundTrip),
-            ("featNavigationModeGnome", featNavigationModeGnome),
+            ("featNavigationModeWindows", featNavigationModeWindows),
             ("featPreferencePersistenceSweep", featPreferencePersistenceSweep),
             ("featShiftClickRange", featShiftClickRange),
             ("featCmdClickDeselectsOne", featCmdClickDeselectsOne),

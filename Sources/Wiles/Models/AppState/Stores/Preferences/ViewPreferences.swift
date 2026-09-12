@@ -34,7 +34,7 @@ public final class ViewPreferences: PersistablePreferenceStore {
         }
     }
 
-    public var navigationMode: NavigationMode = .gnome {
+    public var navigationMode: NavigationMode = .windows {
         didSet { guard !isRestoringDefaults else { return }
             persist(navigationMode, .navigationMode)
         }
@@ -227,7 +227,7 @@ public final class ViewPreferences: PersistablePreferenceStore {
         sortOption = .name
         sortAscending = true
         showHiddenFiles = false
-        navigationMode = .gnome
+        navigationMode = .windows
         isCompactMode = false
         sidebarWidth = Double(LayoutTokens.sidebarIdealWidth)
         isSidebarCollapsed = false

@@ -26,7 +26,7 @@ public enum L10n {
         case gridView
         case listView
         case showHiddenFiles
-        case showHiddenFilesGnome
+        case showHiddenFilesWindows
         case showHiddenFilesMac
         case showHiddenFilesHint
         case showFavorites
@@ -215,8 +215,8 @@ public enum L10n {
         case helpTranslucentTitle
         case helpTranslucentDesc
         case navProfilesTitle
-        case gnomeModeTitle
-        case gnomeModeDesc
+        case windowsModeTitle
+        case windowsModeDesc
         case macModeTitle
         case macModeDesc
         case shortcutsCheatsheetTitle

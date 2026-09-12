@@ -137,7 +137,7 @@ struct HelpSheet: View {
 
     private var navigationModeCards: some View {
         HStack(alignment: .top, spacing: 12) {
-            navModeCard(title: appState.tr(.gnomeModeTitle), desc: appState.tr(.gnomeModeDesc))
+            navModeCard(title: appState.tr(.windowsModeTitle), desc: appState.tr(.windowsModeDesc))
             navModeCard(title: appState.tr(.macModeTitle), desc: appState.tr(.macModeDesc))
         }
     }

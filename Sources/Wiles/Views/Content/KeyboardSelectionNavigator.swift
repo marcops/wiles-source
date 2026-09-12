@@ -42,7 +42,7 @@ struct KeyboardSelectionNavigator {
     }
 
     /// Cmd+↑ = enclosing folder (Finder-standard); Cmd+↓ = open the selected item in macOS mode.
-    /// Returns `nil` to let a plain selection-move fall through (Cmd+←/→, or Cmd+↓ in gnome).
+    /// Returns `nil` to let a plain selection-move fall through (Cmd+←/→, or Cmd+↓ in Windows mode).
     private func handleCommandArrow(_ key: ArrowKey, appState: AppState) -> Bool? {
         switch key {
         case .up:
@@ -130,7 +130,7 @@ struct KeyboardSelectionNavigator {
     }
 
     private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
-        if ShortcutRegistry.physicalKeyCodes(.renameGnome).contains(code) {
+        if ShortcutRegistry.physicalKeyCodes(.renameWindows).contains(code) {
             if !appState.selection.selectedURLs.isEmpty {
                 appState.triggerRenameForSelected(windowUIState: windowUIState)
                 return true
@@ -139,7 +139,7 @@ struct KeyboardSelectionNavigator {
             if !appState.selection.selectedURLs.isEmpty {
                 appState.deleteSelected(windowUIState: windowUIState)
                 return true
-            } else if appState.preferences.view.navigationMode == .gnome, !isCmd {
+            } else if appState.preferences.view.navigationMode == .windows, !isCmd {
                 appState.goUp()
                 return true
             }
@@ -154,7 +154,7 @@ struct KeyboardSelectionNavigator {
             appState.deleteSelected(windowUIState: windowUIState)
             return true
         } else if !isCmd {
-            if appState.preferences.view.navigationMode == .gnome,
+            if appState.preferences.view.navigationMode == .windows,
                let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first {
                 appState.openItem(anchor)
                 return true

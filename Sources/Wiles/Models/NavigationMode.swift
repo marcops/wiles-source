@@ -1,14 +1,15 @@
 import Foundation
 
 public enum NavigationMode: String, CaseIterable, Identifiable, Sendable {
-    case gnome
+    case windows
     case macOS
 
-    /// Accepts the old English-sentence raw values (persisted verbatim by earlier app versions)
-    /// alongside the stable slugs, so an existing saved preference isn't silently reset.
+    /// Accepts the old English-sentence raw values and the pre-rename "gnome" slug (persisted
+    /// verbatim by earlier app versions) alongside the current one, so an existing saved
+    /// preference isn't silently reset.
     public init?(rawValue: String) {
         switch rawValue {
-        case "gnome", "GNOME Mode (Enter to Open, F2 to Rename)": self = .gnome
+        case "windows", "gnome", "GNOME Mode (Enter to Open, F2 to Rename)": self = .windows
         case "macOS", "macOS Mode (Cmd+Down to Open, Enter to Rename)": self = .macOS
         default: return nil
         }
@@ -22,7 +23,7 @@ public enum NavigationMode: String, CaseIterable, Identifiable, Sendable {
     /// since they're persisted verbatim to `UserDefaults` via `DefaultsKey.navigationMode`).
     public var l10nKey: L10n.Key {
         switch self {
-        case .gnome: .gnomeModeTitle
+        case .windows: .windowsModeTitle
         case .macOS: .macModeTitle
         }
     }

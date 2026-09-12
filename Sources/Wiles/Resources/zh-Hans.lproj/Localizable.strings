@@ -150,8 +150,8 @@
 "fullDiskAccessPromptMessage" = "Wiles needs Full Disk Access to browse all your folders without repeated permission prompts. Grant it once in System Settings.";
 "fullDiskAccessPromptTitle" = "Full Disk Access";
 "general" = "General";
-"gnomeModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
-"gnomeModeTitle" = "Windows Mode";
+"windowsModeDesc" = "• Enter: Open folder or file\n• F2: Rename item\n• Backspace: Go up to parent folder\n• Ctrl+H: Toggle hidden files";
+"windowsModeTitle" = "Windows Mode";
 "goMenuTitle" = "前往";
 "goToFolder" = "Go to Folder...";
 "grantFullDiskAccess" = "授予完全磁盘访问权限（所有文件夹）...";
@@ -303,7 +303,7 @@
 "showFavorites" = "Show Favorites";
 "showFavoritesHint" = "在侧边栏中显示“收藏夹”部分。";
 "showHiddenFiles" = "Show Hidden Files";
-"showHiddenFilesGnome" = "Show Hidden Files (Ctrl+H)";
+"showHiddenFilesWindows" = "Show Hidden Files (Ctrl+H)";
 "showHiddenFilesMac" = "Show Hidden Files (Cmd+Shift+.)";
 "showHiddenFilesHint" = "显示名称以点开头的文件和文件夹。";
 "showNetworkAndCloud" = "Show Network & Cloud";

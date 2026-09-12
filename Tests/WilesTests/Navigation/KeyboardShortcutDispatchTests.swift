@@ -17,7 +17,7 @@ public struct KeyboardShortcutDispatchTests {
         testCommandDownOpensSelectedInMacOS()
         testF2TriggersRename()
         testDeleteKeyTrashesSelection()
-        testBackspaceWithoutSelectionGoesUpInGnome()
+        testBackspaceWithoutSelectionGoesUpInWindows()
         testReturnKeyByNavigationMode()
         testCmdReturnTrashesSelection()
         testZoomKeys()
@@ -93,7 +93,7 @@ public struct KeyboardShortcutDispatchTests {
 
     private static func testF2TriggersRename() {
         let items = makeItems(["file"])
-        let (appState, windowUIState) = context(mode: .gnome, items: items)
+        let (appState, windowUIState) = context(mode: .windows, items: items)
         appState.selection.selectedURLs = [items[0].url]
         let handled = nav.handleNavigationKeyDown(code: KeyCode.f2, isCmd: false, appState: appState, windowUIState: windowUIState)
         report(
@@ -112,17 +112,17 @@ public struct KeyboardShortcutDispatchTests {
             result: handled && windowUIState.showDeleteConfirmAlert)
     }
 
-    private static func testBackspaceWithoutSelectionGoesUpInGnome() {
+    private static func testBackspaceWithoutSelectionGoesUpInWindows() {
         let parent = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         let child = parent.appendingPathComponent("child")
         try? FileManager.default.createDirectory(at: child, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: parent) }
-        let (appState, windowUIState) = context(mode: .gnome)
+        let (appState, windowUIState) = context(mode: .windows)
         appState.navigateTo(child)
         appState.selection.selectedURLs = []
         let handled = nav.handleNavigationKeyDown(code: KeyCode.backspace, isCmd: false, appState: appState, windowUIState: windowUIState)
         report(
-            "Keyboard/Dispatch", "POS: Backspace with no selection in gnome mode navigates to the parent folder",
+            "Keyboard/Dispatch", "POS: Backspace with no selection in Windows mode navigates to the parent folder",
             result: handled && appState.navigation.currentURL.standardizedFileURL.path == parent.standardizedFileURL.path)
     }
 
@@ -141,14 +141,14 @@ public struct KeyboardShortcutDispatchTests {
         try? FileManager.default.createDirectory(at: realChild, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let childItem = FileItem.load(url: realChild, icon: NSImage())
-        let (gnomeState, gnomeWindow) = context(mode: .gnome, items: [childItem])
-        gnomeState.selection.selectedURLs = [childItem.url]
-        gnomeState.selection.keyboardSelectionAnchorURL = childItem.url
-        let gnomeHandled = nav.handleNavigationKeyDown(
-            code: KeyCode.returnKey, isCmd: false, appState: gnomeState, windowUIState: gnomeWindow)
+        let (windowsModeState, windowsModeWindow) = context(mode: .windows, items: [childItem])
+        windowsModeState.selection.selectedURLs = [childItem.url]
+        windowsModeState.selection.keyboardSelectionAnchorURL = childItem.url
+        let windowsModeHandled = nav.handleNavigationKeyDown(
+            code: KeyCode.returnKey, isCmd: false, appState: windowsModeState, windowUIState: windowsModeWindow)
         report(
-            "Keyboard/Dispatch", "POS: Return in gnome mode is handled as open (navigates into the folder)",
-            result: gnomeHandled && gnomeState.navigation.currentURL.standardizedFileURL == realChild.standardizedFileURL)
+            "Keyboard/Dispatch", "POS: Return in Windows mode is handled as open (navigates into the folder)",
+            result: windowsModeHandled && windowsModeState.navigation.currentURL.standardizedFileURL == realChild.standardizedFileURL)
     }
 
     private static func testCmdReturnTrashesSelection() {

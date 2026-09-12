@@ -14,7 +14,7 @@ enum ShortcutsFilter: CaseIterable, Identifiable {
 
     var navigationMode: NavigationMode? {
         switch self {
-        case .windows: .gnome
+        case .windows: .windows
         case .macOS: .macOS
         case .all: nil
         }
@@ -22,7 +22,7 @@ enum ShortcutsFilter: CaseIterable, Identifiable {
 
     var l10nKey: L10n.Key {
         switch self {
-        case .windows: .gnomeModeTitle
+        case .windows: .windowsModeTitle
         case .macOS: .macModeTitle
         case .all: .shortcutsAllTab
         }
