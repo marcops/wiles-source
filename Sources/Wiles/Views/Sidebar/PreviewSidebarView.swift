@@ -27,6 +27,7 @@ struct PreviewSidebarView: View {
         .frame(minWidth: Self.minWidth, idealWidth: Self.idealWidth, maxWidth: Self.maxWidth, maxHeight: .infinity)
         .padding()
         .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.sidebarOverlayOpacity)
+        .accessibilityIdentifier("PreviewPane")
         .task(id: appState.selection.selectedURLs) {
             detailedProps = nil
             resolvedItem = nil

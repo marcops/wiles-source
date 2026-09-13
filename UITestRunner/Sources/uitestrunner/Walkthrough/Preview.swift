@@ -36,9 +36,15 @@ extension PlanWalkthrough {
             reporter.fail("featPreviewPaneFollowsSelection: the preview pane never opened")
             return
         }
+        // Scoped to the preview pane itself, not the whole window: the shared workspace
+        // accumulates same-named files across many prior features (renames, copies), so counting
+        // matches anywhere in the window also picks up unrelated file-list rows and made this
+        // check depend on exactly how many leftover "alpha"/"beta"-named files existed by this
+        // point in the suite.
         func mentions(_ fragment: String) -> Int {
-            (try? driver.mainWindow())?
-                .allDescendants(where: AXMatch(textContains: fragment), maxDepth: 30).count ?? 0
+            guard let window = try? driver.mainWindow(),
+                let pane = window.firstDescendant(where: AXMatch(identifier: "PreviewPane")) else { return 0 }
+            return pane.allDescendants(where: AXMatch(textContains: fragment), maxDepth: 30).count
         }
         driver.clickRow(workspace.alphaFile)
         Timing.pause(Timing.settle)
@@ -48,7 +54,7 @@ extension PlanWalkthrough {
         let betaWhileSelected = mentions("beta-uitest")
         let alphaAfterSwitch = mentions("alpha-uitest")
         reporter.check(
-            alphaWhileSelected >= 2 && betaWhileSelected >= 2 && betaWhileSelected > alphaAfterSwitch,
+            alphaWhileSelected >= 1 && betaWhileSelected >= 1 && alphaAfterSwitch == 0,
             "the pane shows the selected file's name and follows the selection (alpha \(alphaWhileSelected)→\(alphaAfterSwitch), beta \(betaWhileSelected))")
         driver.menuPick("View", itemContains: "Hide Preview", "View ▸ Hide Preview (restore)")
         Timing.pause(Timing.animation)
