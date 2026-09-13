@@ -44,8 +44,12 @@ struct Walkthrough {
                 _ = try? driver.mainWindow()
             }
             let failsBefore = driver.reporter.failCount
-            driver.process.activate()
-            driver.navigateToWorkspace()
+            // Dismiss any sheet/menu a previous step left open before judging the next one by it —
+            // PlanWalkthrough's loop already does this; Walkthrough's plain activate+navigate left
+            // a leftover sheet from one step free to make the next step misread it as its own
+            // (e.g. featAppearanceSettings finding openSettings()'s `sheet() != nil` fast path
+            // pointing at someone else's still-open sheet instead of actually opening Settings).
+            driver.recover()
             step()
             strike = driver.reporter.failCount > failsBefore ? strike + 1 : 0
         }

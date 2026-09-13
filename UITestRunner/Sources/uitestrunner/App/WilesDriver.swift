@@ -403,6 +403,28 @@ final class WilesDriver {
         return found
     }
 
+    /// Polls (re-opening and closing the menu each try) until `fragment`'s AXMenuItem reports
+    /// enabled, or `timeout` elapses. Some Go-menu items (`Back`/`Forward`) are `.disabled(...)`
+    /// on a history array that a just-completed nav action updates — AppKit only re-evaluates a
+    /// SwiftUI Commands button's disabled state when the menu is next opened, so pressing it
+    /// immediately after the previous action's own (already-passing) content check can still hit
+    /// a menu that hasn't caught up yet. Used before a `menuPick` that depends on that state.
+    @discardableResult
+    func waitForMenuItemEnabled(_ menuTitle: String, itemContains fragment: String, timeout: TimeInterval = 4) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if let container = openMenu(menuTitle, path: [], "waitForMenuItemEnabled"),
+                let item = container.firstDescendant(where: AXMatch(role: "AXMenuItem", textContains: fragment), maxDepth: 10) {
+                let enabled = item.isEnabled
+                key(Keyboard.escape)
+                Timing.pause(Timing.brief)
+                if enabled { return true }
+            }
+            Timing.pause(Timing.poll)
+        } while Date() < deadline
+        return false
+    }
+
     // Try both ways to raise an element's context menu.
     func showContextMenu(for element: AXElement) {
         _ = element.perform(AXAction.showMenu)
