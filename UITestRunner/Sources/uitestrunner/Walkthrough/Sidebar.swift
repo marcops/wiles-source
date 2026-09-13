@@ -5,7 +5,7 @@ extension PlanWalkthrough {
 
     func featSidebarSectionHeaders() {
         reporter.beginFeature("Sidebar section headers")
-        for identifier in ["Section_FAVORITES", "Section_PLACES", "Section_DIRECTORY_TREE"] {
+        for identifier in ["Section_FAVORITES", "Section_PLACES", "Section_DIRECTORY_TREE", "Section_NETWORK"] {
             let header = driver.find(AXMatch(identifier: identifier), timeout: 3)
             reporter.check(header != nil && !(header?.frame.isEmpty ?? true), "\(identifier) present and on screen")
         }

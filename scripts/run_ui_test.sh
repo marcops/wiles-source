@@ -104,11 +104,16 @@ defaults write "$UITEST_BUNDLE_ID" wiles_showNetworkAndCloud -bool YES 2>/dev/nu
 defaults write "$UITEST_BUNDLE_ID" wiles_showTags -bool YES 2>/dev/null || true
 
 # One runner invocation with a hard cap (macOS has no `timeout`). Each call is a fresh app launch.
+# --all bundles the FEATURES.md tour + the full UI_TEST_PLAN.md suite into one process (with an
+# internal app relaunch in between) instead of two separately-capped invocations, so it needs
+# enough headroom for both combined — historically ~600s together on this machine.
 run_once() {
   echo "------------------------------------------------------------"
   echo "==> run: $*"
   teardown; sleep 1
-  local cap=420 pid waited=0
+  local cap=420
+  [[ " $* " == *" --all "* ]] && cap=900
+  local pid waited=0
   "$RUNNER_BIN" --app "$APP_BUNDLE" "$@" & pid=$!
   # Poll instead of a backgrounded `sleep $cap` watchdog: killing that subshell only kills the
   # subshell wrapper, not the `sleep` running inside it — the sleep survives as an orphan holding
