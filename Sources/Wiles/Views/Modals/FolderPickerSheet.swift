@@ -248,25 +248,36 @@ struct FolderPickerSheet: View {
         let loadedChildren: [URL: [FolderNode]]
     }
 
+    /// Whether ancestor expansion for `path` must be dispatched off `@MainActor`. `internal` (not
+    /// `private`) so WilesTests can guard this directly — see FolderPickerAncestorExpansionTests.
+    /// Always `true`: `computeAncestorExpansion` calls `FolderNode.loadChildren(of:)` — a real
+    /// `FileManager` hit — once per ancestor level, and a local disk can be just as slow as a
+    /// `/Volumes/` mount under load or for a folder with many entries. This used to special-case
+    /// only `/Volumes/` paths (via `SlowVolumePathValidator.isLikelySlowVolume`), leaving a plain
+    /// local path's scan to run synchronously on the main actor.
+    static func mustExpandAncestorsOffMain(forPath _: String) -> Bool {
+        true
+    }
+
     /// Ensures every folder between the tree root and `url` is expanded and has its children loaded.
-    /// The walk itself stays synchronous for local paths; under `/Volumes/` it runs off `@MainActor`
-    /// since it calls `FolderNode.loadChildren(of:)` — a `FileManager` hit — once per ancestor level.
+    /// Always runs the actual scan off `@MainActor` (see `mustExpandAncestorsOffMain`) since it calls
+    /// `FolderNode.loadChildren(of:)` — a `FileManager` hit — once per ancestor level.
     private func expandAncestors(of url: URL) {
         guard let home = rootNode?.url else { return }
         guard Self.isWithinOrEqual(url, home) else {
             return
         }
         let alreadyCached = childrenCache.cachedURLs
-        if SlowVolumePathValidator.isLikelySlowVolume(url.path) {
-            Task {
-                let expansion = await Task.detached(priority: .userInitiated) {
-                    Self.computeAncestorExpansion(of: url, home: home, alreadyCached: alreadyCached)
-                }.value
-                applyAncestorExpansion(expansion)
-            }
+        guard Self.mustExpandAncestorsOffMain(forPath: url.path) else {
+            applyAncestorExpansion(Self.computeAncestorExpansion(of: url, home: home, alreadyCached: alreadyCached))
             return
         }
-        applyAncestorExpansion(Self.computeAncestorExpansion(of: url, home: home, alreadyCached: alreadyCached))
+        Task {
+            let expansion = await Task.detached(priority: .userInitiated) {
+                Self.computeAncestorExpansion(of: url, home: home, alreadyCached: alreadyCached)
+            }.value
+            applyAncestorExpansion(expansion)
+        }
     }
 
     private nonisolated static func computeAncestorExpansion(of url: URL, home: URL, alreadyCached: Set<URL>) -> AncestorExpansion {
