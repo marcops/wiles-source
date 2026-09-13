@@ -63,7 +63,9 @@ public final class UndoRedoService {
         while case let .batch(actions) = action, let first = actions.first {
             action = first
         }
-        if case .trash = action { return true }
+        if case .trash = action {
+            return true
+        }
         return false
     }
 

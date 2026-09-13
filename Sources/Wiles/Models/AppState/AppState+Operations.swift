@@ -289,8 +289,7 @@ public extension AppState {
 
     func undoLastAction() {
         let service = undoRedoService
-        // "Restoring…" specifically for a trash undo — that one can take a couple of seconds for a
-        // large item, and the generic "Undoing…" gave no hint anything was happening at all.
+        // A trash undo can take a couple of seconds for a large item, so it gets its own title.
         let title = service.nextUndoIsTrashRestore ? tr(.restoringEllipsis) : tr(.undoingEllipsis)
         runDetachedFileOperation(context: "Undoing last action", taskTitle: title, detached: false, onSuccess: { [weak self] (target: URL?) in
             if let target {

@@ -21,8 +21,3 @@ colocar no build do validate, release (gh), push and relaunch (ordem por ganho v
 The "Search Filters" control (scope: file name / file content, `kind:` tokens) only appears
 once the search field is open and is easy to overlook. A small always-visible affordance, or
 surfacing the scope toggle next to the field, would help people find content search.
-
-## Restore-from-Trash feedback
-Undo of "Move to Trash" restores the file but gives no progress indication while it scans the
-Trash, which can take a couple of seconds for a large item — a brief "Restoring…" state (as
-other long operations already show) would reassure the user it's working.y \
