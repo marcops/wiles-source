@@ -29,7 +29,9 @@ public final class OpenWithService: Sendable {
             return cached
         }
         let results = await Task.detached(priority: .userInitiated) {
-            computeAvailableApplications(for: url)
+            await LaunchServicesGate.shared.run {
+                computeAvailableApplications(for: url)
+            }
         }.value
         if !ext.isEmpty {
             if applicationsByExtension.count >= maxCachedExtensions {

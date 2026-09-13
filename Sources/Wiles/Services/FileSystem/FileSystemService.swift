@@ -54,7 +54,9 @@ public struct FileSystemService: Sendable {
 
     private static func loadRealDirectoryContents(at url: URL, options: DirectoryLoadOptions) async throws -> [FileItem] {
         try await CancellableWork.detached(priority: .userInitiated) {
-            try loadRealDirectoryContentsSync(at: url, options: options)
+            try await LaunchServicesGate.shared.run {
+                try loadRealDirectoryContentsSync(at: url, options: options)
+            }
         }
     }
 
