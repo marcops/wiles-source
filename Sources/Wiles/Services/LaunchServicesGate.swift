@@ -33,9 +33,21 @@ actor LaunchServicesGate {
         }
     }
 
-    func run<T: Sendable>(_ body: @Sendable () throws -> T) async rethrows -> T {
+    /// `nonisolated`: the body must run outside this actor's isolation so up to `limit` of them
+    /// can genuinely overlap. If this method were actor-isolated (as it originally was), calling
+    /// the (synchronous) body directly from within an isolated call holds the actor's one serial
+    /// executor for the body's whole duration — no other caller's `acquire()` can even be
+    /// scheduled until this one returns, silently collapsing any `limit > 1` to fully serial
+    /// execution no matter what `limit` says.
+    nonisolated func run<T: Sendable>(_ body: @Sendable () throws -> T) async rethrows -> T {
         await acquire()
-        defer { release() }
-        return try body()
+        do {
+            let result = try body()
+            await release()
+            return result
+        } catch {
+            await release()
+            throw error
+        }
     }
 }
