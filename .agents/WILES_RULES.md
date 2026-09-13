@@ -109,7 +109,7 @@ When writing a test against existing production code and the test reveals the co
 
 1. In `wiles-source`: bump `appVersion` in `Sources/Wiles/Constants/AppConstants.swift`.
 2. Run `scripts/validate.sh` (build/tests/lint/format) — must exit 0 before committing.
-3. In `wiles-public`: add a `## Version X.Y.Z` entry to `RELEASE_NOTES.md` (top of file) — required by the release workflow's guard rail. Enforce the 5-full-version cap (see "Public RELEASE_NOTES.md" below): if this entry pushes the full-detail count past 5, fold the oldest full entry into `## Earlier Highlights` in the same edit.
+3. In `wiles-public`: add entries to `RELEASE_NOTES.md` (top of file) under `## Upcoming (X.Y.Z)` as work lands, *before* the version is actually tagged — this keeps notes accurate for work still in flight without implying a release that hasn't shipped. Only when actually cutting the release, rename that heading to the exact `## Version X.Y.Z` the workflow's guard rail requires (`grep -q "^## Version ${VERSION}$"` in `release.yml`). Enforce the 5-full-version cap (see "Public RELEASE_NOTES.md" below): if this entry pushes the full-detail count past 5, drop the oldest full entry in the same edit — its content already lives in `FEATURES.md`.
 4. Commit both repos separately (`wiles-source`, `wiles-public`).
 5. Push both `main` branches. `git pull --rebase origin main` first if either remote has moved (the previous release's `cask(wiles): update to vX.Y.Z` commit often lands on `wiles-public/main` after you last synced).
 6. Tag `wiles-source` `vX.Y.Z` and push the tag — triggers `.github/workflows/release.yml` (build → package → publish to GitHub Releases → update Homebrew Cask), fully automated from there. No local packaging/signing steps needed (the manual SHA256 checklist above is legacy/fallback only).
@@ -120,13 +120,13 @@ When writing a test against existing production code and the test reveals the co
 
 - The public `README.md` must remain completely generic across versions. Never hardcode version numbers in download links, titles, or release notes links — use "Latest Release" and point to `releases/latest` or `RELEASE_NOTES.md`.
 
-## Public `RELEASE_NOTES.md` — Hard Cap of 5 Full Versions, Then Consolidate
+## Public `RELEASE_NOTES.md` — Hard Cap of 5 Full Versions, No Consolidated Section
 
-- Applies to `marcops/wiles` (public repo) `RELEASE_NOTES.md`. At most the 5 most recent version entries stay in full detail. This is a hard cap checked every time a version is added — the moment adding a new version would exceed 5, the oldest previously-full version gets folded into the trailing consolidated section in that same edit.
-- **Consolidated section** (`## Earlier Highlights`, at the bottom): one short line per version, major shipped features only — no bug fixes, security fixes, perf notes, or refinements. A version with no user-facing "New Features" section gets no line at all. Never drop a real feature line for being old — only "not a feature" is a reason to cut it.
+- Applies to `marcops/wiles` (public repo) `RELEASE_NOTES.md`. At most the 5 most recent version entries stay in the file, in full detail. This is a hard cap checked every time a version is added — the moment adding a new version would exceed 5, the oldest version entry is dropped entirely in that same edit.
+- **No "Earlier Highlights" or other consolidated section** — do not summarize or carry forward anything about a dropped version. `FEATURES.md` is the permanent, evergreen record of what Wiles does; a version older than the cap is reachable there, not in `RELEASE_NOTES.md`. Point to it once, right above the footer: `👉 For everything shipped before this, see [Features](FEATURES.md).`
 - **Language**: plain, human language everywhere — see `WILES_UI_UX_RULES.md`'s "No Dev Jargon in User-Facing Copy". No internal/CI-only fixes with zero user-visible effect (drop those entirely), no naming competitors (Finder, GNOME/Nautilus) — describe Wiles' own behavior.
-- **Trailing footer, always last**: the file always ends with a `## 💬 Feedback, Feature Requests & Bug Reports` section, after `## Earlier Highlights`, never before it.
-- Why: this is public-facing marketing history, not a changelog archive — recent detail is useful to evaluate what just shipped, but a growing wall of old bug-fix bullets buries it.
+- **Trailing footer, always last**: the file always ends with a `## 💬 Feedback, Feature Requests & Bug Reports` section, after the `FEATURES.md` pointer, never before it.
+- Why: this is public-facing marketing history, not a changelog archive — recent detail is useful to evaluate what just shipped, and older detail already lives in `FEATURES.md`, so keeping it twice just gives it a chance to drift out of sync.
 
 ## Zero Hardcoded Paths in Tests
 
