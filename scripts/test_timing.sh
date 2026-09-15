@@ -21,18 +21,20 @@ if [[ -z "$LOG_FILE" ]]; then
   swift test 2>&1 | tee "$LOG_FILE" >/dev/null
 fi
 
-echo
-echo "==> Top 20 slowest test cases"
-echo
-
 # Matches lines from any XCTestCase class, not just the WilesAutomatedTests aggregator, e.g.:
 #   Test Case '-[WilesTests.WilesAutomatedTests testFoo]' passed (1.234 seconds).
 #   Test Case '-[WilesTests.FinderStyleTruncationServiceTests testBar]' passed (0.001 seconds).
-grep -E "Test Case '.*' (passed|failed) \([0-9.]+ seconds\)\.$" "$LOG_FILE" \
+OVER_1S="$(grep -E "^Test Case '-\[WilesTests\.[A-Za-z0-9_]+ test[A-Za-z0-9_]+\]' (passed|failed) \([0-9.]+ seconds\)\.$" "$LOG_FILE" \
   | sed -E "s/Test Case '-\[WilesTests\.([A-Za-z0-9_]+) (test[A-Za-z0-9_]+)\]' (passed|failed) \(([0-9.]+) seconds\)\./\4 \3 \1.\2/" \
-  | sort -rn \
-  | head -20 \
-  | awk '{printf "  %7.3fs  %-7s %s\n", $1, $2, $3}'
+  | awk 'NF == 3 && $1 ~ /^[0-9]+(\.[0-9]+)?$/ && $1 + 0 >= 1.0' \
+  | sort -rn)"
+TOTAL_OVER_1S="$(printf '%s\n' "$OVER_1S" | grep -c . || true)"
+
+echo
+echo "==> Top 20 slowest test cases (>1s): $TOTAL_OVER_1S total"
+echo
+
+printf '%s\n' "$OVER_1S" | head -20 | awk '{printf "  %7.3fs  %-7s %s\n", $1, $2, $3}'
 
 echo
 echo "(Anything above ~5s is worth a look — see scripts/test_timing.sh header.)"

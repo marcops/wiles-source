@@ -58,8 +58,10 @@ final class Reporter {
                 print("  ✗ [\(entry.feature)] \(entry.detail)")
             }
         }
-        let top = slowest.sorted { $0.1 > $1.1 }.prefix(8)
-        print("\nSlowest steps:")
+        // Same standard as scripts/test_timing.sh's unit-test report: top 20, floored at 1s.
+        let overOneSecond = slowest.filter { $0.1 >= 1.0 }.sorted { $0.1 > $1.1 }
+        let top = overOneSecond.prefix(20)
+        print("\nSlowest steps (>1s): \(overOneSecond.count) total")
         for (name, secs) in top { print("  \(String(format: "%5.1f", secs))s  \(name)") }
         print(String(repeating: "─", count: 60))
     }

@@ -10,9 +10,6 @@ if let index = CommandLine.arguments.firstIndex(of: "--scale"), index + 1 < Comm
 if CommandLine.arguments.contains("--fast") {
     Timing.scale = 0.45
 }
-if CommandLine.arguments.contains("--no-relaunch") {
-    Timing.allowRelaunch = false
-}
 if CommandLine.arguments.contains("--slow") {
     Timing.scale = 1.0
 }
@@ -125,10 +122,10 @@ let onlyList = parseArgument("--only", default: "")
     .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
 
 if CommandLine.arguments.contains("--all") {
+    // One continuous session end to end — no relaunch between phases. Each phase's own
+    // "strike >= 2" logic (Walkthrough.swift / PlanWalkthrough.swift) is the only relaunch left,
+    // and only fires as a genuine failure-recovery safety net, not on every --all run.
     Walkthrough(driver: driver).run(only: onlyList)
-    try? process.relaunch()
-    driver.rebindToRelaunchedApp()
-    _ = try? driver.mainWindow()
     PlanWalkthrough(driver: driver).run(only: onlyList)
 } else if CommandLine.arguments.contains("--plan") {
     PlanWalkthrough(driver: driver).run(only: onlyList)

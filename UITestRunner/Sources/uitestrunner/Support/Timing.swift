@@ -5,10 +5,6 @@ enum Timing {
     /// Speed knob multiplying every delay. `--scale <n>` / `--fast` / `--slow` override it.
     nonisolated(unsafe) static var scale: Double = 1.0
 
-    /// Whether a suite may relaunch the app mid-run to recover from degradation. Off when each
-    /// pass is already a fresh launch (`--no-relaunch`, e.g. chunked mode).
-    nonisolated(unsafe) static var allowRelaunch = true
-
     /// Between synthesised key-up/down events.
     static var keyStroke: TimeInterval { 0.006 * scale }
     /// Between the down/up phases of a synthesised mouse click.

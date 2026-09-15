@@ -97,20 +97,10 @@ struct PlanWalkthrough {
         driver.dismissSheet()
         driver.navigateToWorkspace()
 
-        // The app degrades over a long single-launch run; relaunch after two failing steps running.
-        var strike = 0
+        // One continuous session end to end — no mid-run relaunch.
         for (_, step) in selected {
-            if strike >= 2, Timing.allowRelaunch {
-                strike = 0
-                try? driver.process.relaunch()
-                driver.rebindToRelaunchedApp()
-                _ = try? driver.mainWindow()
-                driver.navigateToWorkspace()
-            }
-            let failsBefore = reporter.failCount
             driver.recover()
             step()
-            strike = reporter.failCount > failsBefore ? strike + 1 : 0
         }
     }
 }

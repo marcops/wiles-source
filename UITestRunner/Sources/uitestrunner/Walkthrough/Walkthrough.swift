@@ -35,15 +35,10 @@ struct Walkthrough {
         ]
         let selected = only.isEmpty ? steps
             : steps.filter { name, _ in name == "featSwitchToEnglish" || only.contains { name.localizedCaseInsensitiveContains($0) } }
-        var strike = 0
+        // One continuous session end to end — no mid-run relaunch. Wiles opens exactly once for
+        // the whole suite (`featNewAndCloseWindow` opening/closing its own second *window* is a
+        // feature test, not this).
         for (_, step) in selected {
-            if strike >= 2, Timing.allowRelaunch {
-                strike = 0
-                try? driver.process.relaunch()
-                driver.rebindToRelaunchedApp()
-                _ = try? driver.mainWindow()
-            }
-            let failsBefore = driver.reporter.failCount
             // Dismiss any sheet/menu a previous step left open before judging the next one by it —
             // PlanWalkthrough's loop already does this; Walkthrough's plain activate+navigate left
             // a leftover sheet from one step free to make the next step misread it as its own
@@ -51,7 +46,6 @@ struct Walkthrough {
             // pointing at someone else's still-open sheet instead of actually opening Settings).
             driver.recover()
             step()
-            strike = driver.reporter.failCount > failsBefore ? strike + 1 : 0
         }
     }
 
