@@ -58,7 +58,8 @@ public extension AppState {
         }
     }
 
-    func downloadFromiCloud(url: URL) {
+    @discardableResult
+    func downloadFromiCloud(url: URL) -> Task<Void, Never> {
         runDetachedFileOperation(context: "Downloading item from iCloud") {
             try FileManager.default.startDownloadingUbiquitousItem(at: url)
         }
@@ -76,138 +77,20 @@ public extension AppState {
         PasteboardService.writeToPasteboard(urls: urls)
     }
 
-    func pasteToCurrentDirectory(windowUIState: WindowUIState) {
-        HapticService.shared.play(.generic)
-        guard let clip = transient.clipboard, !clip.urls.isEmpty else {
-            if let urls = PasteboardService.readFromPasteboard(), !urls.isEmpty {
-                executePaste(urls: urls, isCut: false, windowUIState: windowUIState)
-            } else {
-                pasteClipboardContentAsFile()
-            }
-            return
-        }
-        // `transient.clipboard` is NOT cleared here — a 100%-failed cut-paste would lose the pending
-        // cut with nothing moved. `executePaste` clears it once at least one item has actually moved.
-        executePaste(urls: clip.urls, isCut: clip.action == .cut, windowUIState: windowUIState)
-    }
-
-    /// Reached only once both the internal clipboard and the system pasteboard have no files on
-    /// them — the last remaining case is pasteboard content with no file behind it at all (a
-    /// copied screenshot, a copied text selection), which `createFileFromPasteboardContent`
-    /// materializes as a new file instead of silently doing nothing.
-    private func pasteClipboardContentAsFile() {
-        let folder = navigation.currentURL
-        runDetachedFileOperation(
-            context: "Creating file from pasteboard content",
-            refreshOnSuccess: false,
-            onSuccess: { [weak self] (createdURL: URL?) in
-                guard let self, let createdURL else { return }
-                undoRedoService.recordAction(.createFile(url: createdURL))
-                invalidateCurrentDirectoryCacheAndRefresh()
-                selection.selectedURLs = [createdURL]
-            },
-            operation: { try PasteboardService.createFileFromPasteboardContent(in: folder) })
-    }
-
-    /// Bundles `pasteAllItems`'s fixed-per-call context so the function itself stays under the
-    /// 5-parameter lint limit — only `urls` (what varies per loop iteration) is passed alongside it.
-    private struct PasteContext {
-        let targetFolder: URL
-        let isCut: Bool
-        let undoRedoService: UndoRedoService
-        let taskID: UUID
-        let backgroundOperations: BackgroundOperationsService
-        weak var owner: AppState?
-        weak var windowUIState: WindowUIState?
-    }
-
-    /// Runs on `@MainActor` — the orchestration loop itself is light. The heavy, potentially
-    /// slow-mount disk work is delegated to `FileSystemService.moveItem`/`copyItem`, each of which
-    /// detaches its own copy/delete off the main actor.
-    private func executePaste(urls: [URL], isCut: Bool, windowUIState: WindowUIState) {
-        let targetFolder = navigation.currentURL
-        let undoRedoService = undoRedoService
-        let titleKey = tr(.pastingItemsEllipsis)
-        let backgroundOperations = backgroundOperations
-        let taskID = backgroundOperations.addTask(title: titleKey, totalUnits: Int64(urls.count))
-        let pasteTask = Task(priority: .userInitiated) { @MainActor [weak self] in
-            let context = PasteContext(
-                targetFolder: targetFolder, isCut: isCut, undoRedoService: undoRedoService,
-                taskID: taskID, backgroundOperations: backgroundOperations, owner: self, windowUIState: windowUIState)
-            let (failureCount, movedDestinations) = await Self.pasteAllItems(urls: urls, context: context)
-            backgroundOperations.completeTask(id: taskID)
-            guard let self else { return }
-            if isCut, !movedDestinations.isEmpty {
-                selection.selectedURLs = Set(movedDestinations)
-                // Clear the pending cut only now that something actually moved (full or partial
-                // success) — a 100%-failed / fully-cancelled cut-paste keeps it for retry.
-                transient.clipboard = nil
-            }
-            if failureCount > 0 {
-                showPartialFailure(.pastePartialFailure, failed: failureCount, total: urls.count)
-            }
-            invalidateCurrentDirectoryCacheAndRefresh()
-        }
-        backgroundOperations.registerCancellation(id: taskID) { pasteTask.cancel() }
-    }
-
-    /// Extracted out of `executePaste` so that closure stays short. A cut paste reuses
-    /// `moveBatchResolvingCollisions` — the exact same collision-resolving loop the drag-onto-folder
-    /// path uses — recording a `.move` undo per item; a copy paste finds a free name per item and
-    /// records `.createFile`. Heavy I/O is detached inside `FileSystemService`.
-    private static func pasteAllItems(urls: [URL], context: PasteContext) async -> (failureCount: Int, movedDestinations: [URL]) {
-        guard context.isCut else { return await copyAllItems(urls: urls, context: context) }
-        guard let owner = context.owner else { return (0, []) }
-        var undoActions: [UndoActionType] = []
-        let (moved, failureCount) = await owner.moveBatchResolvingCollisions(
-            urls, into: context.targetFolder, windowUIState: context.windowUIState,
-            onMoved: { source, dest, _, displacedTrashedURL in
-                if let owner = context.owner {
-                    undoActions.append(contentsOf: owner.resolvedMoveUndoActions(source: source, dest: dest, displacedTrashedURL: displacedTrashedURL))
-                }
-            },
-            progress: { completed in
-                if shouldReportProgress(index: completed - 1, count: urls.count) {
-                    context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(completed))
-                }
-            })
-        // One grouped undo entry for the whole cut/paste, not one per item.
-        context.owner?.undoRedoService.recordActions(undoActions)
-        return (failureCount, moved)
-    }
-
-    private static func copyAllItems(urls: [URL], context: PasteContext) async -> (failureCount: Int, movedDestinations: [URL]) {
-        var failureCount = 0
-        var undoActions: [UndoActionType] = []
-        for (index, url) in urls.enumerated() {
-            guard !Task.isCancelled else { break }
-            do {
-                let destURL = try await FileSystemService.copyItem(at: url, toFolder: context.targetFolder)
-                undoActions.append(.createFile(url: destURL))
-            } catch {
-                ErrorReporter.report(error, context: "Pasting items to current directory")
-                failureCount += 1
-            }
-            if shouldReportProgress(index: index, count: urls.count) {
-                context.backgroundOperations.updateProgress(id: context.taskID, unitsDone: Int64(index + 1))
-            }
-        }
-        // One grouped undo entry for the whole paste, not one per file.
-        context.undoRedoService.recordActions(undoActions)
-        return (failureCount, [])
-    }
-
-    func deleteSelected(windowUIState: WindowUIState) {
-        guard !selection.selectedURLs.isEmpty else { return }
+    /// `nil` when nothing's selected, or when this just opens the confirmation alert.
+    @discardableResult
+    func deleteSelected(windowUIState: WindowUIState) -> Task<Void, Never>? {
+        guard !selection.selectedURLs.isEmpty else { return nil }
         if preferences.view.skipDeleteConfirmation {
-            performDeleteSelected()
-        } else {
-            windowUIState.showDeleteConfirmAlert = true
+            return performDeleteSelected()
         }
+        windowUIState.showDeleteConfirmAlert = true
+        return nil
     }
 
-    func performDeleteSelected() {
-        guard !selection.selectedURLs.isEmpty else { return }
+    @discardableResult
+    func performDeleteSelected() -> Task<Void, Never>? {
+        guard !selection.selectedURLs.isEmpty else { return nil }
         HapticService.shared.play(.levelChange)
         let urls = Array(selection.selectedURLs)
         let titleKey = tr(.movingToTrashEllipsis)
@@ -225,11 +108,12 @@ public extension AppState {
             invalidateCurrentDirectoryCacheAndRefresh()
         }
         backgroundOperations.registerCancellation(id: taskID) { deleteTask.cancel() }
+        return deleteTask
     }
 
     /// Progress is hopped to `@MainActor` at most every `progressReportStride` items (plus a final
     /// update) rather than once per item — trashing 20k files shouldn't mean 20k actor hops.
-    private static let progressReportStride = 64
+    static let progressReportStride = 64
 
     /// Off-main trash loop: no `self` capture, per-item progress hopped back to `@MainActor`. The
     /// whole multi-file trash is recorded as ONE grouped undo entry so a single ⌘Z restores every
@@ -255,7 +139,7 @@ public extension AppState {
         return failureCount
     }
 
-    private static func shouldReportProgress(index: Int, count: Int) -> Bool {
+    static func shouldReportProgress(index: Int, count: Int) -> Bool {
         (index + 1) % progressReportStride == 0 || index == count - 1
     }
 
@@ -280,31 +164,39 @@ public extension AppState {
         })
     }
 
-    func copyContentOfSelected() {
-        guard let firstURL = primarySelectedURL else { return }
-        runDetachedFileOperation(context: "Copying file content to clipboard", refreshOnSuccess: false) {
+    @discardableResult
+    func copyContentOfSelected() -> Task<Void, Never>? {
+        guard let firstURL = primarySelectedURL else { return nil }
+        return runDetachedFileOperation(context: "Copying file content to clipboard", refreshOnSuccess: false) {
             try await PasteboardService.copyFileContentToClipboard(url: firstURL)
         }
     }
 
-    func undoLastAction() {
+    @discardableResult
+    func undoLastAction() -> Task<Void, Never> {
         let service = undoRedoService
         // A trash undo can take a couple of seconds for a large item, so it gets its own title.
         let title = service.nextUndoIsTrashRestore ? tr(.restoringEllipsis) : tr(.undoingEllipsis)
-        runDetachedFileOperation(context: "Undoing last action", taskTitle: title, detached: false, onSuccess: { [weak self] (target: URL?) in
+        return runDetachedFileOperation(context: "Undoing last action", taskTitle: title, detached: false, onSuccess: { [weak self] (target: URL?) in
             if let target {
                 self?.selection.selectedURLs = [target]
             }
         }, operation: { try await service.undo() })
     }
 
-    func redoLastAction() {
+    @discardableResult
+    func redoLastAction() -> Task<Void, Never> {
         let service = undoRedoService
-        runDetachedFileOperation(context: "Redoing last action", taskTitle: tr(.redoingEllipsis), detached: false, onSuccess: { [weak self] (target: URL?) in
-            if let target {
-                self?.selection.selectedURLs = [target]
-            }
-        }, operation: { try await service.redo() })
+        return runDetachedFileOperation(
+            context: "Redoing last action",
+            taskTitle: tr(.redoingEllipsis),
+            detached: false,
+            onSuccess: { [weak self] (target: URL?) in
+                if let target {
+                    self?.selection.selectedURLs = [target]
+                }
+            },
+            operation: { try await service.redo() })
     }
 
     func selectAllItems() {
@@ -415,6 +307,9 @@ public extension AppState {
     /// move `@MainActor`-isolated work off-main (SE-0338 / R3). A caller whose `operation` is
     /// `@MainActor`-isolated (undo/redo pass `service.undo()` on a `@MainActor` service) must pass
     /// `detached: false` — the detach buys nothing structurally there and only adds a Task.
+    /// Returns the `Task` (`@discardableResult`, real callers keep ignoring it) so a test can
+    /// `await` it instead of polling for the operation's side effect.
+    @discardableResult
     func runDetachedFileOperation<T: Sendable>(
         context: String,
         priority: TaskPriority = .userInitiated,
@@ -423,7 +318,7 @@ public extension AppState {
         reportError: Bool = true,
         detached: Bool = true,
         onSuccess: @escaping @MainActor (T) -> Void = { _ in },
-        operation: @escaping @Sendable () async throws -> T) {
+        operation: @escaping @Sendable () async throws -> T) -> Task<Void, Never> {
         let taskID: UUID? = taskTitle.map { backgroundOperations.addTask(title: $0, totalUnits: 1) }
         let opTask = Task(priority: priority) { @MainActor [weak self] in
             do {
@@ -453,6 +348,7 @@ public extension AppState {
         if let taskID {
             backgroundOperations.registerCancellation(id: taskID) { opTask.cancel() }
         }
+        return opTask
     }
 
     /// `detached`: run `operation` in a real `Task.detached` (structural off-main guarantee) and

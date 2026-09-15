@@ -148,16 +148,10 @@ public struct AppStateOperationsExtraTests {
 
         let fileURL = makeFile(named: "content.txt", in: dir, content: "hello from wiles")
         appState.selection.selectedURLs = [fileURL]
-        appState.copyContentOfSelected()
-        var copied = false
-        for _ in 0 ..< 20 {
-            copied = pb.string(forType: .string) == "hello from wiles"
-            if copied {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 200_000_000)
-        }
-        report("AppState+Operations", "POS: copyContentOfSelected() writes the first selected file's text content onto the pasteboard", result: copied)
+        await appState.copyContentOfSelected()?.value
+        report(
+            "AppState+Operations", "POS: copyContentOfSelected() writes the first selected file's text content onto the pasteboard",
+            result: pb.string(forType: .string) == "hello from wiles")
     }
 
     /// M15: `copyContentOfSelected()` passes `refreshOnSuccess: false` to `runDetachedFileOperation`,
@@ -178,9 +172,7 @@ public struct AppStateOperationsExtraTests {
         appState.fileSystem.items = []
         appState.selection.selectedURLs = [fileURL]
 
-        appState.copyContentOfSelected()
-        _ = await pollUntilTrue { pb.string(forType: .string) == "payload body" }
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        await appState.copyContentOfSelected()?.value
         report(
             "AppState+Operations",
             "NEG: copyContentOfSelected() with refreshOnSuccess:false does not reload fileSystem.items from the current directory",
@@ -198,8 +190,7 @@ public struct AppStateOperationsExtraTests {
         let appState = AppState()
         appState.navigation.currentURL = dir
         appState.selection.selectedURLs = [sentinel]
-        appState.undoLastAction()
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        await appState.undoLastAction().value
         report(
             "AppState+Operations",
             "NEG: undoLastAction() with an empty undo stack leaves the current selection untouched",
@@ -230,19 +221,11 @@ public struct AppStateOperationsExtraTests {
             "AppState+Operations", "POS: deleteSelected() raises the confirmation alert without deleting yet",
             result: windowUIState.showDeleteConfirmAlert && FileManager.default.fileExists(atPath: fileURL.path))
 
-        appState.performDeleteSelected()
-        var stillExists = true
-        for _ in 0 ..< 20 {
-            stillExists = FileManager.default.fileExists(atPath: fileURL.path)
-            if !stillExists {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 200_000_000)
-        }
+        await appState.performDeleteSelected()?.value
         report(
             "AppState+Operations",
             "POS: performDeleteSelected() moves the file to Trash and clears the selection",
-            result: !stillExists && appState.selection.selectedURLs.isEmpty)
+            result: !FileManager.default.fileExists(atPath: fileURL.path) && appState.selection.selectedURLs.isEmpty)
         await drainUndoRedoService(appState)
 
         await testDeleteSelectedSkipConfirmation(dir: dir)
@@ -257,19 +240,11 @@ public struct AppStateOperationsExtraTests {
         bypassAppState.navigation.currentURL = dir
         bypassAppState.preferences.view.skipDeleteConfirmation = true
         bypassAppState.selection.selectedURLs = [bypassFile]
-        bypassAppState.deleteSelected(windowUIState: bypassWindowUIState)
-        var bypassFileStillExists = true
-        for _ in 0 ..< 20 {
-            bypassFileStillExists = FileManager.default.fileExists(atPath: bypassFile.path)
-            if !bypassFileStillExists {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 200_000_000)
-        }
+        await bypassAppState.deleteSelected(windowUIState: bypassWindowUIState)?.value
         report(
             "AppState+Operations",
             "POS: deleteSelected() with skipDeleteConfirmation=true deletes directly without raising the confirm alert",
-            result: !bypassFileStillExists && !bypassWindowUIState.showDeleteConfirmAlert)
+            result: !FileManager.default.fileExists(atPath: bypassFile.path) && !bypassWindowUIState.showDeleteConfirmAlert)
         await drainUndoRedoService(bypassAppState)
 
         let keepFile = makeFile(named: "keep.txt", in: dir)

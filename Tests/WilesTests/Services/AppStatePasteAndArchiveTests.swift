@@ -65,8 +65,7 @@ public struct AppStatePasteAndArchiveTests {
         let appState = AppState()
         appState.navigateTo(destDir)
         appState.transient.clipboard = ClipboardState(urls: [sourceFile], action: .copy)
-        appState.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState.preferences))
-        try? await Task.sleep(nanoseconds: 400_000_000)
+        await appState.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState.preferences)).value
         let destFile = destDir.appendingPathComponent("paste-me.txt")
         let copiedExists = FileManager.default.fileExists(atPath: destFile.path)
         let sourceStillExists = FileManager.default.fileExists(atPath: sourceFile.path)
@@ -92,14 +91,14 @@ public struct AppStatePasteAndArchiveTests {
         let appState2 = AppState()
         appState2.navigateTo(destDir)
         appState2.transient.clipboard = ClipboardState(urls: [cutFile], action: .cut)
-        appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences))
+        let cutPasteTask = appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences))
         let clipboardKeptUntilMoveCompletes = appState2.transient.clipboard != nil
         report(
             "AppState+Operations",
             "NEG (ML-138): pasteToCurrentDirectory() with a .cut clipboard does NOT clear it synchronously — waits for the move",
             result: clipboardKeptUntilMoveCompletes)
 
-        try? await Task.sleep(nanoseconds: 400_000_000)
+        await cutPasteTask.value
         let movedExists = FileManager.default.fileExists(atPath: destDir.appendingPathComponent("cut-me.txt").path)
         let originalGone = !FileManager.default.fileExists(atPath: cutFile.path)
         report(
@@ -118,8 +117,7 @@ public struct AppStatePasteAndArchiveTests {
         appState3.navigateTo(destDir)
         let keptClip = ClipboardState(urls: [missingCut], action: .cut)
         appState3.transient.clipboard = keptClip
-        appState3.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState3.preferences))
-        try? await Task.sleep(nanoseconds: 400_000_000)
+        await appState3.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState3.preferences)).value
         report(
             "AppState+Operations",
             "POS (ML-138): a cut-paste that moves nothing keeps the pending cut clipboard for retry",
@@ -140,8 +138,7 @@ public struct AppStatePasteAndArchiveTests {
         let appState = AppState()
         appState.undoRedoService.recordAction(.createFolder(url: createdDirURL))
         appState.selection.selectedURLs = []
-        appState.undoLastAction()
-        try? await Task.sleep(nanoseconds: 400_000_000)
+        await appState.undoLastAction().value
         let trashedAway = !FileManager.default.fileExists(atPath: createdDirURL.path)
         let selectionAfterUndo = appState.selection.selectedURLs.first?.path == dir.standardizedFileURL.path
         report(
@@ -149,8 +146,7 @@ public struct AppStatePasteAndArchiveTests {
             "POS: undoLastAction() reverses the recorded action and selects the resulting URL",
             result: trashedAway && selectionAfterUndo)
 
-        appState.redoLastAction()
-        try? await Task.sleep(nanoseconds: 400_000_000)
+        await appState.redoLastAction().value
         let recreated = FileManager.default.fileExists(atPath: createdDirURL.path)
         let selectionAfterRedo = appState.selection.selectedURLs.first?.path == createdDirURL.standardizedFileURL.path
         report(
@@ -168,8 +164,7 @@ public struct AppStatePasteAndArchiveTests {
         let appState2 = AppState()
         let sentinel = dir.appendingPathComponent("sentinel-selection.txt")
         appState2.selection.selectedURLs = [sentinel]
-        appState2.redoLastAction()
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        await appState2.redoLastAction().value
         report(
             "AppState+Operations",
             "NEG: redoLastAction() with an empty redo stack leaves the current selection untouched",
@@ -200,11 +195,13 @@ public struct AppStatePasteAndArchiveTests {
         let windowUIState = WindowUIState(preferences: appState.preferences)
         appState.navigateTo(destDir)
         appState.transient.clipboard = ClipboardState(urls: [cutFile], action: .cut)
-        appState.pasteToCurrentDirectory(windowUIState: windowUIState)
+        let pasteTask = appState.pasteToCurrentDirectory(windowUIState: windowUIState)
 
+        // Genuinely mid-flight: the task is blocked awaiting the user's collision choice, so this
+        // wait can't be replaced by awaiting the task — that's exactly what it hasn't reached yet.
         _ = await pollUntilTrue { windowUIState.moveCollisionPrompt != nil }
         windowUIState.moveCollisionPrompt?.resolve(MoveCollisionChoice(action: answer, applyToAll: false))
-        _ = await pollUntilTrue { !FileManager.default.fileExists(atPath: cutFile.path) }
+        await pasteTask.value
 
         var undoSteps = 0
         while appState.undoRedoService.canUndo(), undoSteps < 5 {
@@ -222,8 +219,7 @@ public struct AppStatePasteAndArchiveTests {
         let missingURL = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("does-not-exist-\(UUID().uuidString).icloud")
         let appState = AppState()
         appState.modal.errorMessage = nil
-        appState.downloadFromiCloud(url: missingURL)
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        await appState.downloadFromiCloud(url: missingURL).value
         report(
             "AppState+Operations",
             "NEG: downloadFromiCloud() with a URL that isn't a ubiquitous item reports an error instead of crashing",
@@ -243,28 +239,19 @@ public struct AppStatePasteAndArchiveTests {
         let appState = AppState()
         appState.navigation.currentURL = dir
 
-        appState.compressSelectedToZIPWithPassword("hunter2", urls: [fileURL])
+        await appState.compressSelectedToZIPWithPassword("hunter2", urls: [fileURL])?.value
 
         let zipURL = dir.appendingPathComponent("secret.zip")
-        var zipCreated = false
-        for _ in 0 ..< 20 {
-            zipCreated = FileManager.default.fileExists(atPath: zipURL.path)
-            if zipCreated {
-                break
-            }
-            try? await Task.sleep(nanoseconds: 200_000_000)
-        }
         report(
             "AppState+Operations", "POS: compressSelectedToZIPWithPassword() creates the encrypted archive without the caller blocking",
-            result: zipCreated)
+            result: FileManager.default.fileExists(atPath: zipURL.path))
 
         // NEG: no source URLs set — should be a safe no-op, no crash, nothing created.
         let emptyDir = makeTempDir()
         defer { try? FileManager.default.removeItem(at: emptyDir) }
         let emptyAppState = AppState()
         emptyAppState.navigation.currentURL = emptyDir
-        emptyAppState.compressSelectedToZIPWithPassword("irrelevant", urls: [])
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        await emptyAppState.compressSelectedToZIPWithPassword("irrelevant", urls: [])?.value
         let emptyDirContents = (try? FileManager.default.contentsOfDirectory(atPath: emptyDir.path)) ?? ["unexpected-error"]
         report(
             "AppState+Operations", "NEG: compressSelectedToZIPWithPassword() with no passwordCompressURLs set is a safe no-op",
@@ -287,13 +274,12 @@ public struct AppStatePasteAndArchiveTests {
         let appState = AppState()
         appState.navigateTo(destDir)
         appState.transient.clipboard = nil
-        appState.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState.preferences))
+        await appState.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState.preferences)).value
         let destFile = destDir.appendingPathComponent("fallback-paste.txt")
-        let copied = await pollUntilTrue { FileManager.default.fileExists(atPath: destFile.path) }
         report(
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with a nil clipboard falls back to copying URLs found on the system pasteboard",
-            result: copied)
+            result: FileManager.default.fileExists(atPath: destFile.path))
         await drainUndoRedoService(appState)
 
         let missingFile = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent("missing-cut-\(UUID().uuidString).txt")
@@ -301,8 +287,8 @@ public struct AppStatePasteAndArchiveTests {
         appState2.modal.errorMessage = nil
         appState2.navigateTo(destDir)
         appState2.transient.clipboard = ClipboardState(urls: [missingFile], action: .cut)
-        appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences))
-        let errorShown = await pollUntilTrue { appState2.modal.errorMessage != nil }
+        await appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences)).value
+        let errorShown = appState2.modal.errorMessage != nil
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() reports an error when the clipboard's cut source no longer exists on disk",
@@ -327,16 +313,13 @@ public struct AppStatePasteAndArchiveTests {
         appState.navigation.currentURL = dir
         appState.transient.clipboard = nil
         appState.selection.selectedURLs = []
-        appState.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState.preferences))
+        await appState.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState.preferences)).value
         let createdFile = dir.appendingPathComponent("Pasted Text.txt")
-        let materialized = await pollUntilTrue {
-            FileManager.default.fileExists(atPath: createdFile.path)
-                && appState.selection.selectedURLs == Set([createdFile])
-        }
         report(
             "AppState+Operations",
             "POS: pasteToCurrentDirectory() with no clipboard/pasteboard URLs materializes pasteboard text content as a new file",
-            result: materialized)
+            result: FileManager.default.fileExists(atPath: createdFile.path)
+                && appState.selection.selectedURLs == Set([createdFile]))
 
         // NEG: nothing pasteable at all (empty pasteboard, no text/image) -> safe no-op.
         pb.clearContents()
@@ -344,8 +327,7 @@ public struct AppStatePasteAndArchiveTests {
         appState2.navigation.currentURL = dir
         appState2.transient.clipboard = nil
         appState2.selection.selectedURLs = []
-        appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences))
-        try? await Task.sleep(nanoseconds: 300_000_000)
+        await appState2.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState2.preferences)).value
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() with nothing on the clipboard or pasteboard is a safe no-op",
@@ -365,8 +347,8 @@ public struct AppStatePasteAndArchiveTests {
         appState3.modal.errorMessage = nil
         appState3.navigation.currentURL = readOnlyDir
         appState3.transient.clipboard = nil
-        appState3.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState3.preferences))
-        let errorShown = await pollUntilTrue { appState3.modal.errorMessage != nil }
+        await appState3.pasteToCurrentDirectory(windowUIState: WindowUIState(preferences: appState3.preferences)).value
+        let errorShown = appState3.modal.errorMessage != nil
         report(
             "AppState+Operations",
             "NEG: pasteToCurrentDirectory() reports an error when materializing pasteboard content fails (read-only current directory)",
