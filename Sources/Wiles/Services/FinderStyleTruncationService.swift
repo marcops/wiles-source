@@ -6,12 +6,12 @@ import AppKit
 public enum FinderStyleTruncationService {
     /// Slack so a line landing right at the boundary doesn't get double-truncated by `Text`'s own
     /// `.lineLimit` when it measures a hair wider than TextKit did.
-    private static let measurementSafetyMargin: CGFloat = 2.0
+    private static let measurementSafetyMargin: CGFloat = 1.0
 
     /// Available width is quantised to this many points before measuring, so dragging the icon-size
     /// slider (which changes the width by 1px/frame) does one TextKit relayout per bucket instead of
     /// per pixel × every visible cell. Truncation here is already deliberately approximate.
-    private static let widthQuantum: CGFloat = 8
+    private static let widthQuantum: CGFloat = 4
 
     private static func quantisedWidth(_ width: CGFloat) -> CGFloat {
         guard width > 0 else { return width }

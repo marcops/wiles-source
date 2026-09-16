@@ -17,7 +17,6 @@ public enum LayoutTokens {
     // Grid Cards (shared between FileGridView and FileGridCardItemView)
     public static let gridCardPadding: CGFloat = 6.0
     public static let gridCardVStackSpacing: CGFloat = 6.0
-    /// `cardWidth` minus the card's horizontal padding (`gridCardPadding`) on both sides.
     public static let gridCardLabelHorizontalInset: CGFloat = gridCardPadding * 2
     public static let gridCardLabelMinFontSize: Double = 8.0
     public static let gridCardLabelMaxFontSize: Double = 12.0
