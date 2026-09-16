@@ -4,6 +4,8 @@ import SwiftUI
 struct SidebarView: View {
     private static let trafficLightInset: CGFloat = 12.0
     private static let doubleClickZoneHeight: CGFloat = trafficLightInset
+    private static let trafficLightZoneHeight: CGFloat = 25.0
+    private static let topFadeHeight: CGFloat = 25.0
     private static let peekCollapseDelayMs: Int = 250
 
     var appState: AppState
@@ -67,6 +69,9 @@ struct SidebarView: View {
         .task(id: treeBuildGeneration, buildDirectoryTree)
         .translucentBackground(material: .sidebar, opacity: appState.preferences.appearance.sidebarOverlayOpacity, ignoresSafeArea: true)
         .overlay(alignment: .top) {
+            trafficLightFrostStrip.ignoresSafeArea(.all, edges: .top)
+        }
+        .overlay(alignment: .top) {
             Color.clear
                 .frame(maxWidth: .infinity)
                 .frame(height: Self.doubleClickZoneHeight)
@@ -75,6 +80,24 @@ struct SidebarView: View {
                     NSApp.keyWindow?.zoom(nil)
                 }
         }
+    }
+
+    /// A translucent frosted backdrop for the traffic-light buttons: solid over the button zone,
+    /// then fading out.
+    private var trafficLightFrostStrip: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            .frame(height: Self.trafficLightZoneHeight + Self.topFadeHeight)
+            .mask(alignment: .top) {
+                VStack(spacing: 0) {
+                    Color.black.opacity(0.92).frame(height: Self.trafficLightZoneHeight)
+                    LinearGradient(
+                        colors: [.black.opacity(0.92), .black.opacity(0)],
+                        startPoint: .top, endPoint: .bottom)
+                        .frame(height: Self.topFadeHeight)
+                }
+            }
+            .allowsHitTesting(false)
     }
 
     private func handleSidebarHover(_ hovering: Bool) {
