@@ -36,6 +36,9 @@ public struct HttpSharingFeatureTests {
         // C2 (stored XSS) + M11 (fragmented/oversized request head) regressions — see
         // LocalHttpServerServiceSecurityTests.swift (split out to keep this file under the length cap).
         await runSecurityAndRobustnessChecks()
+        // sharingFolderURL/isPasswordProtected checks live in
+        // LocalHttpServerServiceSessionStateTests.swift (split out to keep this file under the length cap).
+        await runSessionStateChecks()
         testFirstAvailablePortSkipsAnOccupiedPort()
         await testServerURLReflectsTheScannedPort(server)
         await testRestartWithoutStopReusesTheSamePort()

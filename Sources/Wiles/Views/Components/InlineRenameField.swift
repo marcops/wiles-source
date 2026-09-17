@@ -20,8 +20,13 @@ struct InlineRenameField: View {
 
     private var explicitHeight: CGFloat? {
         guard let measurement = lineHeightMeasurement else { return nil }
-        let lineCount = max(1, FinderStyleTruncationService.wrappedLines(text, font: measurement.nsFont, maxWidth: measurement.availableWidth).count)
-        let singleLineHeight = measurement.nsFont.ascender - measurement.nsFont.descender + measurement.nsFont.leading
+        return Self.computeHeight(text: text, nsFont: measurement.nsFont, availableWidth: measurement.availableWidth)
+    }
+
+    /// Pure line-count-to-height math, extracted so a unit test can drive it directly.
+    static func computeHeight(text: String, nsFont: NSFont, availableWidth: CGFloat) -> CGFloat {
+        let lineCount = max(1, FinderStyleTruncationService.wrappedLines(text, font: nsFont, maxWidth: availableWidth).count)
+        let singleLineHeight = nsFont.ascender - nsFont.descender + nsFont.leading
         return singleLineHeight * CGFloat(lineCount) + LayoutTokens.gridCardLabelVerticalPadding
     }
 
