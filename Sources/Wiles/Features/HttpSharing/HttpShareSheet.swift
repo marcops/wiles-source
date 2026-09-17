@@ -3,7 +3,6 @@ import SwiftUI
 
 struct HttpShareSheet: View {
     private static let sheetWidth: CGFloat = 400.0
-    private static let sheetHeight: CGFloat = 320.0
 
     @Environment(\.dismiss)
     private var dismiss
@@ -14,22 +13,40 @@ struct HttpShareSheet: View {
         appState.httpServerService
     }
 
-    @State private var isConfiguring = true
+    @State private var isConfiguring: Bool
     @State private var requireAuth = false
     @State private var password = ""
+    /// Lets `onDisappear` skip stopping the server for a minimize dismissal only.
+    @State private var isMinimizing = false
+
+    init(appState: AppState, folderURL: URL) {
+        self.appState = appState
+        self.folderURL = folderURL
+        // Reopened from the footer indicator onto an already-running session: skip setup.
+        _isConfiguring = State(initialValue: !appState.httpServerService.isRunning && !appState.httpServerService.isStarting)
+    }
+
+    private var isSessionActive: Bool {
+        serverService.isRunning || serverService.isStarting
+    }
 
     var body: some View {
         ModalScaffoldView(
             icon: .symbol("wifi"),
             title: appState.tr(.shareFolderWifi),
             width: Self.sheetWidth,
-            height: Self.sheetHeight,
-            primaryButton: ModalFooterButton(title: appState.tr(.close)) {
-                serverService.stop()
+            primaryButton: ModalFooterButton(title: appState.tr(isSessionActive ? .wifiShareStopAndClose : .close)) {
                 dismiss()
             },
+            secondaryButton: isSessionActive
+                ? ModalFooterButton(title: appState.tr(.wifiShareMinimize)) {
+                    isMinimizing = true
+                    dismiss()
+                }
+                : nil,
             content: { mainContent })
             .onDisappear {
+                guard !isMinimizing else { return }
                 serverService.stop()
             }
     }
@@ -53,6 +70,11 @@ struct HttpShareSheet: View {
             if requireAuth {
                 SecureField(appState.tr(.enterPassword), text: $password)
                     .textFieldStyle(.roundedBorder)
+
+                Text(appState.tr(.wifiShareUsernameHint))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
             }
 
             Button(appState.tr(.startSharing)) {
@@ -83,15 +105,11 @@ struct HttpShareSheet: View {
                 .font(.headline)
                 .foregroundColor(.green)
 
-            Text(folderURL.lastPathComponent)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-
             if let urlString = serverService.serverURL {
                 shareLinkRow(urlString)
             }
 
-            Text(appState.tr(requireAuth ? .wifiSharePasswordProtectedNotice : .wifiShareNotice))
+            Text(appState.tr(serverService.isPasswordProtected ? .wifiSharePasswordProtectedNotice : .wifiShareNotice))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

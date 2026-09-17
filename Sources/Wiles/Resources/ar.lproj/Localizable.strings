@@ -428,6 +428,11 @@
 "requirePassword" = "طلب كلمة المرور";
 "startSharing" = "بدء المشاركة";
 "wifiSharePasswordProtectedNotice" = "يتطلب الوصول إلى هذا المجلد كلمة مرور. وهو غير مشفّر — يمكن لأي شخص آخر على نفس الشبكة اعتراضه.";
+"wifiShareUsernameHint" = "أي اسم مستخدم يعمل — يتم التحقق من كلمة المرور فقط.";
+"wifiShareMinimize" = "تصغير";
+"wifiShareStopAndClose" = "إيقاف وإغلاق";
+"wifiShareIndicatorAccessibilityLabel" = "مشاركة عبر Wi-Fi";
+"wifiShareIndicatorAccessibilityHint" = "يعيد فتح نافذة مشاركة Wi-Fi";
 "diskUsageItemNavigateHint" = "انقر نقرًا مزدوجًا لفتح هذا المجلد";
 "cancelTaskAccessibilityHint" = "يلغي هذه المهمة في الخلفية";
 "feedbackKindSelectionHint" = "يحدد فئة الملاحظات هذه";

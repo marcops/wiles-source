@@ -443,6 +443,11 @@ public enum L10n {
         case requirePassword
         case startSharing
         case wifiSharePasswordProtectedNotice
+        case wifiShareUsernameHint
+        case wifiShareMinimize
+        case wifiShareStopAndClose
+        case wifiShareIndicatorAccessibilityLabel
+        case wifiShareIndicatorAccessibilityHint
 
         // MARK: - Accessibility labels/hints audit (task: missing VoiceOver coverage pass)
 

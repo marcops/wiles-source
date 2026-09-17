@@ -427,6 +427,11 @@
 "requirePassword" = "Passwort Erforderlich";
 "startSharing" = "Freigabe Starten";
 "wifiSharePasswordProtectedNotice" = "Für den Zugriff auf diesen Ordner ist ein Passwort erforderlich. Er ist nicht verschlüsselt — jeder andere im selben Netzwerk könnte ihn potenziell abfangen.";
+"wifiShareUsernameHint" = "Ein beliebiger Benutzername funktioniert — nur das Passwort wird überprüft.";
+"wifiShareMinimize" = "Minimieren";
+"wifiShareStopAndClose" = "Stoppen und Schließen";
+"wifiShareIndicatorAccessibilityLabel" = "WLAN-Freigabe";
+"wifiShareIndicatorAccessibilityHint" = "Öffnet das WLAN-Freigabefenster erneut";
 "diskUsageItemNavigateHint" = "Doppelklicken, um diesen Ordner zu öffnen";
 "cancelTaskAccessibilityHint" = "Bricht diese Hintergrundaufgabe ab";
 "feedbackKindSelectionHint" = "Wählt diese Feedback-Kategorie aus";

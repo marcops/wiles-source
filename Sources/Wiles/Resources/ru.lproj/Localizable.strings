@@ -428,6 +428,11 @@
 "requirePassword" = "Требовать Пароль";
 "startSharing" = "Начать Общий Доступ";
 "wifiSharePasswordProtectedNotice" = "Для доступа к этой папке требуется пароль. Она не зашифрована — любой другой пользователь той же сети потенциально может перехватить трафик.";
+"wifiShareUsernameHint" = "Подойдёт любое имя пользователя — проверяется только пароль.";
+"wifiShareMinimize" = "Свернуть";
+"wifiShareStopAndClose" = "Остановить и Закрыть";
+"wifiShareIndicatorAccessibilityLabel" = "Общий доступ по Wi-Fi";
+"wifiShareIndicatorAccessibilityHint" = "Снова открывает окно общего доступа по Wi-Fi";
 "diskUsageItemNavigateHint" = "Дважды щёлкните, чтобы открыть эту папку";
 "cancelTaskAccessibilityHint" = "Отменяет эту фоновую задачу";
 "feedbackKindSelectionHint" = "Выбирает эту категорию отзыва";

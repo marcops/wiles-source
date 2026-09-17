@@ -428,6 +428,11 @@
 "requirePassword" = "Şifre Gerektir";
 "startSharing" = "Paylaşımı Başlat";
 "wifiSharePasswordProtectedNotice" = "Bu klasöre erişmek için bir şifre gerekir. Şifrelenmemiştir — aynı ağdaki başka biri bunu ele geçirebilir.";
+"wifiShareUsernameHint" = "Herhangi bir kullanıcı adı işe yarar — yalnızca şifre kontrol edilir.";
+"wifiShareMinimize" = "Simge Durumuna Küçült";
+"wifiShareStopAndClose" = "Durdur ve Kapat";
+"wifiShareIndicatorAccessibilityLabel" = "Wi-Fi Paylaşımı";
+"wifiShareIndicatorAccessibilityHint" = "Wi-Fi paylaşım penceresini yeniden açar";
 "diskUsageItemNavigateHint" = "Bu klasörü açmak için çift tıklayın";
 "cancelTaskAccessibilityHint" = "Bu arka plan görevini iptal eder";
 "feedbackKindSelectionHint" = "Bu geri bildirim kategorisini seçer";

@@ -428,6 +428,11 @@
 "requirePassword" = "需要密码";
 "startSharing" = "开始共享";
 "wifiSharePasswordProtectedNotice" = "访问此文件夹需要密码。该连接未加密——同一网络上的其他人可能会截获它。";
+"wifiShareUsernameHint" = "任意用户名均可——系统只验证密码。";
+"wifiShareMinimize" = "最小化";
+"wifiShareStopAndClose" = "停止并关闭";
+"wifiShareIndicatorAccessibilityLabel" = "Wi-Fi 共享";
+"wifiShareIndicatorAccessibilityHint" = "重新打开 Wi-Fi 共享窗口";
 "diskUsageItemNavigateHint" = "双击以打开此文件夹";
 "cancelTaskAccessibilityHint" = "取消此后台任务";
 "feedbackKindSelectionHint" = "选择此反馈类别";

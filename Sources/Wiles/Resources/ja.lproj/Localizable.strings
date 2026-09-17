@@ -428,6 +428,11 @@
 "requirePassword" = "パスワードを要求";
 "startSharing" = "共有を開始";
 "wifiSharePasswordProtectedNotice" = "このフォルダにアクセスするにはパスワードが必要です。暗号化されていないため、同じネットワーク上の他の人に傍受される可能性があります。";
+"wifiShareUsernameHint" = "ユーザー名は何でも構いません。確認されるのはパスワードのみです。";
+"wifiShareMinimize" = "最小化";
+"wifiShareStopAndClose" = "停止して閉じる";
+"wifiShareIndicatorAccessibilityLabel" = "Wi-Fi共有";
+"wifiShareIndicatorAccessibilityHint" = "Wi-Fi共有ウィンドウを再度開きます";
 "diskUsageItemNavigateHint" = "ダブルクリックしてこのフォルダを開く";
 "cancelTaskAccessibilityHint" = "このバックグラウンドタスクをキャンセルします";
 "feedbackKindSelectionHint" = "このフィードバックの種類を選択します";

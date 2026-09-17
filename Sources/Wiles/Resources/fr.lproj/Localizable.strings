@@ -427,6 +427,11 @@
 "requirePassword" = "Exiger un Mot de Passe";
 "startSharing" = "Démarrer le Partage";
 "wifiSharePasswordProtectedNotice" = "Ce dossier nécessite un mot de passe pour y accéder. Il n'est pas chiffré — toute autre personne sur le même réseau pourrait potentiellement l'intercepter.";
+"wifiShareUsernameHint" = "N'importe quel nom d'utilisateur fonctionne — seul le mot de passe est vérifié.";
+"wifiShareMinimize" = "Réduire";
+"wifiShareStopAndClose" = "Arrêter et Fermer";
+"wifiShareIndicatorAccessibilityLabel" = "Partage Wi-Fi";
+"wifiShareIndicatorAccessibilityHint" = "Rouvre la fenêtre de partage Wi-Fi";
 "diskUsageItemNavigateHint" = "Double-cliquez pour ouvrir ce dossier";
 "cancelTaskAccessibilityHint" = "Annule cette tâche en arrière-plan";
 "feedbackKindSelectionHint" = "Sélectionne cette catégorie de commentaire";

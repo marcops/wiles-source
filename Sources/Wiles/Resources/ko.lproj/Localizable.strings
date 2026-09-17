@@ -428,6 +428,11 @@
 "requirePassword" = "비밀번호 필요";
 "startSharing" = "공유 시작";
 "wifiSharePasswordProtectedNotice" = "이 폴더에 접근하려면 비밀번호가 필요합니다. 암호화되어 있지 않으므로 같은 네트워크의 다른 사람이 가로챌 수 있습니다.";
+"wifiShareUsernameHint" = "사용자 이름은 무엇이든 상관없습니다 — 비밀번호만 확인됩니다.";
+"wifiShareMinimize" = "최소화";
+"wifiShareStopAndClose" = "중지 및 닫기";
+"wifiShareIndicatorAccessibilityLabel" = "Wi-Fi 공유";
+"wifiShareIndicatorAccessibilityHint" = "Wi-Fi 공유 창을 다시 엽니다";
 "diskUsageItemNavigateHint" = "더블 클릭하여 이 폴더 열기";
 "cancelTaskAccessibilityHint" = "이 백그라운드 작업을 취소합니다";
 "feedbackKindSelectionHint" = "이 피드백 카테고리를 선택합니다";

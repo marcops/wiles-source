@@ -10,6 +10,9 @@ public final class LocalHttpServerService: @unchecked Sendable {
     // `@ObservationIgnored` so a background mutation never touches the ObservationRegistrar.
     @MainActor public var isRunning: Bool = false
     @MainActor public var serverURL: String?
+    /// Lets a dismissed `HttpShareSheet` be reopened onto the same running session.
+    @MainActor public var sharingFolderURL: URL?
+    @MainActor public var isPasswordProtected: Bool = false
     /// Set when `start(sharing:password:)` fails to stand up the listener, so `HttpShareSheet`
     /// (stuck otherwise on "Starting server…") has something to show and retry from.
     @MainActor public var startError: String?
@@ -77,6 +80,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
         let generation = startGeneration
         isStarting = true
         startError = nil
+        sharingFolderURL = folder
+        isPasswordProtected = !(password?.isEmpty ?? true)
 
         // Everything that can block — draining `stop()`'s async teardown, `waitForPortRelease`'s
         // `Thread.sleep`, the bind-probe loop in `firstAvailablePort` — runs on `queue`, off the
@@ -148,6 +153,8 @@ public final class LocalHttpServerService: @unchecked Sendable {
         isRunning = false
         isStarting = false
         serverURL = nil
+        sharingFolderURL = nil
+        isPasswordProtected = false
         queue.async { [self] in
             listener?.cancel()
             listener = nil

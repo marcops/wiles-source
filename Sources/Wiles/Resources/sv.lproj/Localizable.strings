@@ -428,6 +428,11 @@
 "requirePassword" = "Kräv Lösenord";
 "startSharing" = "Starta Delning";
 "wifiSharePasswordProtectedNotice" = "Den här mappen kräver ett lösenord för åtkomst. Den är inte krypterad — vem som helst på samma nätverk skulle kunna avlyssna den.";
+"wifiShareUsernameHint" = "Vilket användarnamn som helst fungerar — endast lösenordet kontrolleras.";
+"wifiShareMinimize" = "Minimera";
+"wifiShareStopAndClose" = "Stoppa och Stäng";
+"wifiShareIndicatorAccessibilityLabel" = "Wi-Fi-delning";
+"wifiShareIndicatorAccessibilityHint" = "Öppnar Wi-Fi-delningsfönstret igen";
 "diskUsageItemNavigateHint" = "Dubbelklicka för att öppna den här mappen";
 "cancelTaskAccessibilityHint" = "Avbryter denna bakgrundsuppgift";
 "feedbackKindSelectionHint" = "Väljer denna feedbackkategori";

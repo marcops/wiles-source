@@ -428,6 +428,11 @@
 "requirePassword" = "Wymagaj Hasła";
 "startSharing" = "Rozpocznij Udostępnianie";
 "wifiSharePasswordProtectedNotice" = "Dostęp do tego folderu wymaga hasła. Nie jest szyfrowany — każdy inny użytkownik tej samej sieci może go potencjalnie przechwycić.";
+"wifiShareUsernameHint" = "Dowolna nazwa użytkownika zadziała — sprawdzane jest tylko hasło.";
+"wifiShareMinimize" = "Minimalizuj";
+"wifiShareStopAndClose" = "Zatrzymaj i Zamknij";
+"wifiShareIndicatorAccessibilityLabel" = "Udostępnianie Wi-Fi";
+"wifiShareIndicatorAccessibilityHint" = "Ponownie otwiera okno udostępniania Wi-Fi";
 "diskUsageItemNavigateHint" = "Kliknij dwukrotnie, aby otworzyć ten folder";
 "cancelTaskAccessibilityHint" = "Anuluje to zadanie w tle";
 "feedbackKindSelectionHint" = "Wybiera tę kategorię opinii";

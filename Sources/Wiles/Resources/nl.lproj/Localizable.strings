@@ -428,6 +428,11 @@
 "requirePassword" = "Wachtwoord Vereisen";
 "startSharing" = "Delen Starten";
 "wifiSharePasswordProtectedNotice" = "Voor toegang tot deze map is een wachtwoord vereist. Ze is niet versleuteld — iedereen op hetzelfde netwerk zou deze mogelijk kunnen onderscheppen.";
+"wifiShareUsernameHint" = "Elke gebruikersnaam werkt — alleen het wachtwoord wordt gecontroleerd.";
+"wifiShareMinimize" = "Minimaliseren";
+"wifiShareStopAndClose" = "Stoppen en Sluiten";
+"wifiShareIndicatorAccessibilityLabel" = "Wi-Fi-delen";
+"wifiShareIndicatorAccessibilityHint" = "Opent het Wi-Fi-deelvenster opnieuw";
 "diskUsageItemNavigateHint" = "Dubbelklik om deze map te openen";
 "cancelTaskAccessibilityHint" = "Annuleert deze achtergrondtaak";
 "feedbackKindSelectionHint" = "Selecteert deze feedbackcategorie";

@@ -427,6 +427,11 @@
 "requirePassword" = "Requerir Contraseña";
 "startSharing" = "Iniciar Compartición";
 "wifiSharePasswordProtectedNotice" = "Esta carpeta requiere una contraseña para acceder a ella. No está cifrada: cualquier persona en la misma red podría interceptarla.";
+"wifiShareUsernameHint" = "Cualquier nombre de usuario funciona — solo se verifica la contraseña.";
+"wifiShareMinimize" = "Minimizar";
+"wifiShareStopAndClose" = "Detener y Cerrar";
+"wifiShareIndicatorAccessibilityLabel" = "Compartir por Wi-Fi";
+"wifiShareIndicatorAccessibilityHint" = "Vuelve a abrir la ventana de compartir por Wi-Fi";
 "diskUsageItemNavigateHint" = "Haz doble clic para abrir esta carpeta";
 "cancelTaskAccessibilityHint" = "Cancela esta tarea en segundo plano";
 "feedbackKindSelectionHint" = "Selecciona esta categoría de comentarios";

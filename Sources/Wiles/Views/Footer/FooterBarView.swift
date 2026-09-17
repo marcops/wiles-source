@@ -32,6 +32,10 @@ struct FooterBarView: View {
             Divider().frame(height: 12)
 
             terminalToggleButton
+
+            if appState.httpServerService.isRunning {
+                httpShareIndicatorButton
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 4)
@@ -76,6 +80,22 @@ struct FooterBarView: View {
         .padding(.vertical, 2)
         .background(Color.primary.opacity(0.05))
         .cornerRadius(4)
+    }
+
+    private var httpShareIndicatorButton: some View {
+        Button {
+            if let url = appState.httpServerService.sharingFolderURL {
+                windowUIState.activeModal = .httpShare(url)
+            }
+        } label: {
+            Image(systemName: "globe")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.accentColor)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(appState.tr(.wifiShareIndicatorAccessibilityLabel))
+        .accessibilityHint(appState.tr(.wifiShareIndicatorAccessibilityHint))
+        .help(appState.tr(.wifiShareIndicatorAccessibilityLabel))
     }
 
     private var terminalToggleButton: some View {
