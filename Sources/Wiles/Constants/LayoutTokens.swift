@@ -23,6 +23,9 @@ public enum LayoutTokens {
     public static let gridCardLabelFontScaleMultiplier: Double = 0.22
     /// The label pill's own top+bottom padding (`.padding(.vertical, 2)` applied once, so 2 edges).
     public static let gridCardLabelVerticalPadding: CGFloat = 4.0
+    /// The label pill's own left+right padding, shared with `InlineRenameField`'s grid usage so the
+    /// editable field wraps text at the same width as the display pill.
+    public static let gridCardLabelHorizontalPadding: CGFloat = 6.0
 
     /// Shared by `FileGridCardItemView` and `FileGridView` so they can't drift apart.
     public static func gridCardLabelFontSize(forIconSize iconSize: CGFloat) -> CGFloat {

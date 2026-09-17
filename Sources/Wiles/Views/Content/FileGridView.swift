@@ -92,14 +92,21 @@ struct FileGridView: View {
             let isSel = appState.selection.selectedURLs.contains(item.url)
             // card padding + icon + VStack spacing, matching FileGridCardItemView
             let topInset: CGFloat = LayoutTokens.gridCardPadding + iconSize + LayoutTokens.gridCardVStackSpacing
-            let fieldWidth = appState.selection.gridLabelWidths[renameItem.url] ?? (cardWidth - LayoutTokens.gridCardLabelHorizontalInset)
+            // LabelWidthKey always misses here — the renamed card's own label stops rendering.
+            let textAvailableWidth = cardWidth - LayoutTokens.gridCardLabelHorizontalInset
+            let fallbackFieldWidth = textAvailableWidth + 2 * LayoutTokens.gridCardLabelHorizontalPadding
+            let fieldWidth = appState.selection.gridLabelWidths[renameItem.url] ?? fallbackFieldWidth
 
             InlineRenameField(
                 item: item,
                 appState: appState,
                 windowUIState: windowUIState,
                 font: .system(size: fontSize, weight: isSel ? .semibold : .regular),
-                alignment: .center)
+                alignment: .center,
+                horizontalPadding: LayoutTokens.gridCardLabelHorizontalPadding,
+                lineHeightMeasurement: (
+                    nsFont: NSFont.systemFont(ofSize: fontSize, weight: .semibold),
+                    availableWidth: textAvailableWidth))
                 .frame(width: fieldWidth, alignment: .top)
                 .offset(x: cellFrame.midX - fieldWidth / 2, y: cellFrame.minY + topInset)
                 .zIndex(10)

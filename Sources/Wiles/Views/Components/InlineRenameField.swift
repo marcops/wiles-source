@@ -10,9 +10,20 @@ struct InlineRenameField: View {
     var windowUIState: WindowUIState
     var font: Font
     var alignment: TextAlignment = .leading
+    var horizontalPadding: CGFloat = 4
+    /// Grid only: measured against `text` to compute an explicit height, since `TextField`'s own
+    /// `axis: .vertical` sizing reserves one line more than the text actually wraps to.
+    var lineHeightMeasurement: (nsFont: NSFont, availableWidth: CGFloat)?
 
     @State private var text: String = ""
     @FocusState private var isFocused: Bool
+
+    private var explicitHeight: CGFloat? {
+        guard let measurement = lineHeightMeasurement else { return nil }
+        let lineCount = max(1, FinderStyleTruncationService.wrappedLines(text, font: measurement.nsFont, maxWidth: measurement.availableWidth).count)
+        let singleLineHeight = measurement.nsFont.ascender - measurement.nsFont.descender + measurement.nsFont.leading
+        return singleLineHeight * CGFloat(lineCount) + LayoutTokens.gridCardLabelVerticalPadding
+    }
 
     var body: some View {
         TextField("", text: $text, axis: .vertical)
@@ -20,8 +31,9 @@ struct InlineRenameField: View {
             .font(font)
             .multilineTextAlignment(alignment)
             .focused($isFocused)
-            .padding(.horizontal, 4)
+            .padding(.horizontal, horizontalPadding)
             .padding(.vertical, 2)
+            .frame(height: explicitHeight)
             .background(
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color(NSColor.textBackgroundColor)))

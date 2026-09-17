@@ -125,7 +125,7 @@ struct FileGridCardItemView: View {
                 tags: appState.preferences.sidebar.showTags ? item.tags : [],
                 revealsOnSelect: false)
                 .frame(width: textAvailableWidth)
-                .padding(.horizontal, 6)
+                .padding(.horizontal, LayoutTokens.gridCardLabelHorizontalPadding)
                 .padding(.vertical, 2)
                 .background(isSel ? Color.accentColor : Color.clear)
                 .cornerRadius(4)
