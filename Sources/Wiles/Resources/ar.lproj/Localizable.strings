@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "الاختصارات";
+"customModeTitle" = "مخصص";
+"settingsShortcutModeSection" = "وضع الاختصارات";
+"settingsCustomShortcutsSection" = "اختصارات مخصصة";
+"shortcutConflictMessageFormat" = "هذا المفتاح مستخدم بالفعل بواسطة %@. هل تريد المتابعة ومسحه من هناك؟";
+"shortcutConflictContinueButton" = "متابعة";
+"shortcutCaptureHint" = "اضغط مجموعة مفاتيح…";
+"shortcutsSelectAll" = "تحديد الكل";
+"shortcutsNewFile" = "ملف جديد";
+"shortcutsClearSelection" = "إلغاء التحديد";
+"shortcutsZoomIn" = "تكبير";
+"shortcutsZoomOut" = "تصغير";
+"shortcutsZoomReset" = "إعادة ضبط التكبير";
+"shortcutsBackspaceGoUp" = "الانتقال للأعلى (بدون تحديد)";

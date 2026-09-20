@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "Kısayollar";
+"customModeTitle" = "Özel";
+"settingsShortcutModeSection" = "Kısayol Modu";
+"settingsCustomShortcutsSection" = "Özel Kısayollar";
+"shortcutConflictMessageFormat" = "Bu kombinasyon zaten %@ tarafından kullanılıyor. Devam edip oradan kaldırılsın mı?";
+"shortcutConflictContinueButton" = "Devam Et";
+"shortcutCaptureHint" = "Bir tuş kombinasyonuna basın…";
+"shortcutsSelectAll" = "Tümünü Seç";
+"shortcutsNewFile" = "Yeni Dosya";
+"shortcutsClearSelection" = "Seçimi Kaldır";
+"shortcutsZoomIn" = "Yakınlaştır";
+"shortcutsZoomOut" = "Uzaklaştır";
+"shortcutsZoomReset" = "Yakınlaştırmayı Sıfırla";
+"shortcutsBackspaceGoUp" = "Yukarı Git (Seçim Yokken)";

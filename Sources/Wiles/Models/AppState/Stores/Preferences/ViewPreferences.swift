@@ -143,6 +143,25 @@ public final class ViewPreferences: PersistablePreferenceStore {
         }
     }
 
+    /// The live, currently-bound combo for every `ShortcutRegistry.editableCommands` entry — always
+    /// fully populated (never a sparse diff), starting at the Windows preset. Every dispatch/label/
+    /// menu call site in the app reads this one dictionary unconditionally; `navigationMode` has no
+    /// effect on resolution, only on which preset a Windows/Mac selection bulk-writes here (see
+    /// `applyPreset`) and whether Settings shows the editable row list.
+    public var activeShortcuts: [ShortcutBindingEntry] = ShortcutRegistry.preset(for: .windows)
+        .map { ShortcutBindingEntry(command: $0.key, binding: $0.value) } {
+        didSet {
+            activeShortcutsByCommand = Dictionary(uniqueKeysWithValues: activeShortcuts.map { ($0.command, $0.binding) })
+            guard !isRestoringDefaults else { return }
+            saveActiveShortcuts()
+        }
+    }
+
+    /// `activeShortcuts` keyed by command, kept in sync via `didSet` above — avoids an O(n) scan on
+    /// every label/dispatch lookup.
+    public private(set) var activeShortcutsByCommand: [ShortcutRegistry.Command: ShortcutBinding] =
+        Dictionary(uniqueKeysWithValues: ShortcutRegistry.preset(for: .windows).map { ($0.key, $0.value) })
+
     /// `listColumnStates` keyed by column, kept in sync via `didSet` above — avoids an O(n) array
     /// scan on every per-row/per-column width and visibility lookup while rendering the list.
     public private(set) var columnStatesByColumn: [ListColumn: ListColumnState] =
@@ -179,6 +198,7 @@ public final class ViewPreferences: PersistablePreferenceStore {
         loadBool(.skipDeleteConfirmation, into: \.skipDeleteConfirmation, from: defaults)
         loadTrailingInspector(defaults)
         loadListColumnStates(defaults)
+        loadActiveShortcuts(defaults)
 
         let width = defaults.double(forKey: DefaultsKey.sidebarWidth.rawValue)
         if width > 0 {
@@ -241,6 +261,49 @@ public final class ViewPreferences: PersistablePreferenceStore {
         perFolderViewModeEnabled = false
         perFolderViewModes = [:]
         listColumnStates = ListColumnState.defaults()
+        applyPreset(.windows)
+    }
+
+    /// Bulk-overwrites `activeShortcuts` with `mode`'s built-in preset — destructive: any Custom
+    /// edit not already part of that preset is gone, with no way back short of re-editing by hand.
+    /// Called only when the user explicitly selects Windows or Mac in Settings; selecting Custom
+    /// never calls this, so the live store is left exactly as it was (whatever the last-applied
+    /// preset plus any edits on top of it happened to be).
+    func applyPreset(_ mode: NavigationMode) {
+        activeShortcuts = ShortcutRegistry.preset(for: mode).map { ShortcutBindingEntry(command: $0.key, binding: $0.value) }
+    }
+
+    /// Writes a single captured binding for one command — the Custom-mode row-edit path. When
+    /// `clearingConflictOf` names another command already bound to the same combo (the "continue and
+    /// clear the previous one" confirmation), that command's binding is removed entirely rather than
+    /// reassigned, leaving it unbound until the user gives it a new key of its own.
+    func setShortcutBinding(
+        _ binding: ShortcutBinding,
+        for command: ShortcutRegistry.Command,
+        clearingConflictOf conflicting: ShortcutRegistry.Command? = nil) {
+        var byCommand = activeShortcutsByCommand
+        byCommand[command] = binding
+        if let conflicting {
+            byCommand.removeValue(forKey: conflicting)
+        }
+        activeShortcuts = byCommand.map { ShortcutBindingEntry(command: $0.key, binding: $0.value) }
+    }
+
+    private func saveActiveShortcuts() {
+        do {
+            let data = try JSONEncoder().encode(activeShortcuts)
+            UserDefaults.standard.set(data, forKey: DefaultsKey.activeShortcuts.rawValue)
+        } catch {
+            // Encoding failure here silently drops the user's shortcut customizations on next
+            // launch (falls back to the Windows preset) with no other signal.
+            ErrorReporter.report(error, context: "Encoding active shortcuts for persistence")
+        }
+    }
+
+    private func loadActiveShortcuts(_ defaults: UserDefaults) {
+        guard let data = defaults.data(forKey: DefaultsKey.activeShortcuts.rawValue),
+              let saved = try? JSONDecoder().decode([ShortcutBindingEntry].self, from: data) else { return }
+        withRestoringDefaults { activeShortcuts = saved }
     }
 
     /// Restores `trailingInspector`, falling back to the pre-enum `wiles_showPreviewSidebar` /

@@ -366,6 +366,7 @@ extension FileSystemTests {
         await sizeFilterLessOrEqualAndGigabyteUnitCoverage()
         await nonAsteriskRegexTriggerCoverage()
         await nonExistentDirectoryCoverage()
+        await permissionDeniedDirectoryCoverage()
         await setTagsNegativeCoverage()
         userTrashCoverage()
     }
@@ -453,6 +454,33 @@ extension FileSystemTests {
             "FileSystem",
             "NEG: loadDirectoryContents on a non-existent directory returns an empty array instead of crashing",
             result: results.isEmpty)
+    }
+
+    /// A permission-denied directory (e.g. `~/.Trash` without Full Disk Access) must load as empty
+    /// rather than throw — `EmptyDirectoryView` already has its own "Grant Full Disk Access" button
+    /// for this case. `loadItems` (via `try?`) can't distinguish "handled" from "threw and got
+    /// silently swallowed", so this calls `loadDirectoryContents` directly to assert both.
+    private nonisolated static func permissionDeniedDirectoryCoverage() async {
+        let restrictedDir = URL(fileURLWithPath: testTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        try? FileManager.default.createDirectory(at: restrictedDir, withIntermediateDirectories: true)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: restrictedDir.path)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: restrictedDir.path)
+            try? FileManager.default.removeItem(at: restrictedDir)
+        }
+        var threw = false
+        var items: [FileItem] = []
+        do {
+            items = try await FileSystemService.loadDirectoryContents(
+                at: restrictedDir,
+                options: DirectoryLoadOptions(showHidden: false, showTags: false, searchQuery: "", sortOption: .name, sortAscending: true, searchScope: .name))
+        } catch {
+            threw = true
+        }
+        await TestReporter.report(
+            "FileSystem",
+            "POS: a permission-denied directory loads as empty instead of throwing (matches EmptyDirectoryView's Full Disk Access flow)",
+            result: !threw && items.isEmpty)
     }
 
     /// Covers the throwing path of setTags when given a URL that does not exist on disk.

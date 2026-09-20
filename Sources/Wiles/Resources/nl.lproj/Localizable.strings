@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "Sneltoetsen";
+"customModeTitle" = "Aangepast";
+"settingsShortcutModeSection" = "Sneltoetsmodus";
+"settingsCustomShortcutsSection" = "Aangepaste sneltoetsen";
+"shortcutConflictMessageFormat" = "Deze combinatie wordt al gebruikt door %@. Doorgaan en daar verwijderen?";
+"shortcutConflictContinueButton" = "Doorgaan";
+"shortcutCaptureHint" = "Druk op een toetscombinatie…";
+"shortcutsSelectAll" = "Alles selecteren";
+"shortcutsNewFile" = "Nieuw bestand";
+"shortcutsClearSelection" = "Selectie opheffen";
+"shortcutsZoomIn" = "Inzoomen";
+"shortcutsZoomOut" = "Uitzoomen";
+"shortcutsZoomReset" = "Zoom herstellen";
+"shortcutsBackspaceGoUp" = "Omhoog (zonder selectie)";

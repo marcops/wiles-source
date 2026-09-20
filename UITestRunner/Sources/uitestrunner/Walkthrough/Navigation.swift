@@ -129,8 +129,10 @@ extension PlanWalkthrough {
 
     func featNavigationModeWindows() {
         reporter.beginFeature("Navigation mode — Windows Enter-to-open")
-        guard driver.openSettings(tab: "General") else { return }
-        let switched = driver.selectPickerOption("Windows Mode", popupIndex: 1)
+        // Shortcut Mode moved off General into its own "Shortcuts" tab, where it's the tab's only
+        // picker (popupIndex 0, not the old General tab's second popup after Language).
+        guard driver.openSettings(tab: "Shortcuts") else { return }
+        let switched = driver.selectPickerOption("Windows Mode", popupIndex: 0)
         driver.dismissSheet()
         Timing.pause(Timing.settle)
         guard switched else {
@@ -153,8 +155,8 @@ extension PlanWalkthrough {
         Timing.pause(Timing.animation)
 
         // Restore macOS mode.
-        if driver.openSettings(tab: "General") {
-            driver.selectPickerOption("macOS Mode", popupIndex: 1)
+        if driver.openSettings(tab: "Shortcuts") {
+            driver.selectPickerOption("macOS Mode", popupIndex: 0)
             driver.dismissSheet()
         }
         driver.navigateToWorkspace()

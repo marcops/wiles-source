@@ -17,11 +17,6 @@ struct GeneralSettingsView: View {
             }
 
             Section(appState.tr(.settingsBehaviorSection)) {
-                Picker(appState.tr(.shortcutMode), selection: $appState.preferences.view.navigationMode) {
-                    ForEach(NavigationMode.allCases) { mode in
-                        Text(appState.tr(mode.l10nKey)).tag(mode)
-                    }
-                }
                 Toggle(appState.tr(.skipDeleteConfirmation), isOn: $appState.preferences.view.skipDeleteConfirmation)
                     .help(appState.tr(.skipDeleteConfirmationHint))
                     .accessibilityHint(Text(appState.tr(.skipDeleteConfirmationHint)))

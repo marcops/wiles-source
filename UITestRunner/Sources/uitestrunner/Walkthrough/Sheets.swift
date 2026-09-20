@@ -6,7 +6,8 @@ extension PlanWalkthrough {
     func featSettingsTabs() {
         reporter.beginFeature("Settings — every tab switches")
         let tabProbe: [(String, [String])] = [
-            ("General", ["language", "behaviou", "shortcut"]),
+            ("General", ["language", "behaviou", "confirmation"]),
+            ("Shortcuts", ["windows", "custom", "mac"]),
             ("Appearance", ["theme", "translucen", "system", "%", "light"]),
             ("Sidebar", ["show tags", "show recents", "show favorites", "directory tree"]),
             ("Advanced", ["compact", "view", "density"]),
@@ -99,5 +100,60 @@ extension Walkthrough {
         reporter.check(
             driver.menuHasItem("View", path: ["Appearance"], containing: "Default"),
             "View ▸ Appearance ▸ Default reset is available")
+    }
+
+    // MARK: - Shortcuts
+
+    func featShortcuts() {
+        reporter.beginFeature("Shortcuts settings — Custom remap")
+        driver.navigateToWorkspace()
+        guard driver.openSettings(tab: "Shortcuts") else { return }
+
+        var hasAllModes = false
+        let modesDeadline = Date().addingTimeInterval(4)
+        repeat {
+            hasAllModes = ["Windows", "Custom"].allSatisfy { option in
+                driver.sheet()?.firstDescendant(where: AXMatch(textContains: option)) != nil
+            }
+            if !hasAllModes { Timing.pause(Timing.poll) }
+        } while !hasAllModes && Date() < modesDeadline
+        reporter.check(hasAllModes, "Shortcuts tab offers Windows / Mac / Custom modes")
+
+        let switchedToCustom = driver.selectPickerOption("Custom", popupIndex: 0)
+        reporter.check(switchedToCustom, "selected the 'Custom' shortcut mode")
+        Timing.pause(Timing.settle)
+
+        // "Undo" is the 2nd row in `ShortcutRegistry.editableCommands` order — on-screen without
+        // scrolling the Form, unlike a row further down the ~35-row Custom list (its AX frame is
+        // reported in the list's full unclipped layout coordinates, not the visible viewport, so a
+        // synthetic click at a scrolled-off row's frame silently misses everything).
+        let rowElement = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "Undo"), maxDepth: 28)
+        reporter.check(rowElement != nil, "Custom mode shows the full editable shortcut list (e.g. 'Undo')")
+
+        let rowTapped = rowElement.map { driver.tapElement($0) } ?? false
+        reporter.check(rowTapped, "tapped the 'Undo' row to start capturing a new key")
+        Timing.pause(Timing.settle)
+        let capturing = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "Press a key"), maxDepth: 28) != nil
+        reporter.check(capturing, "row entered capture mode ('Press a key combination…')")
+        driver.chord("9", .command)
+        Timing.pause(Timing.settle)
+        let remapped = driver.sheet()?.firstDescendant(where: AXMatch(textContains: "⌘ 9"), maxDepth: 28) != nil
+        if !remapped {
+            let dump = driver.sheet()?.allDescendants(where: AXMatch(textContains: "Undo"), maxDepth: 28)
+                .map { "\($0.role) title='\($0.title)' value='\($0.stringValue ?? "")'" }
+                .joined(separator: " | ") ?? "no sheet"
+            reporter.fail("remap diagnostic — Undo-related elements now: \(dump)")
+        }
+        reporter.check(remapped, "'Undo' now shows the newly captured ⌘9 combo")
+
+        driver.dismissSheet()
+
+        // Restore the Windows preset so later steps (and any other run) see default bindings —
+        // this also proves selecting a preset bulk-overwrites the Custom edit just made.
+        if driver.openSettings(tab: "Shortcuts") {
+            driver.selectPickerOption("Windows", popupIndex: 0)
+            driver.dismissSheet()
+        }
+        driver.navigateToWorkspace()
     }
 }

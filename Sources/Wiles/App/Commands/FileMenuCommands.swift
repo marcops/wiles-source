@@ -30,13 +30,13 @@ struct FileMenuCommands: LocalizedCommands {
         // Replacing `.newItem` gives full, translated control over it (see UI_TEST_BACKLOG.md).
         CommandGroup(replacing: .newItem) {
             Button(tr(.newWindow)) { openWindow(id: AppConstants.mainWindowID) }
-                .keyboardShortcut(.newWindow)
+                .keyboardShortcut(.newWindow, preferences: sharedPreferences)
         }
         // Same story for "Close": it has no dedicated CommandGroupPlacement, so it rides along
         // inside `.saveItem` (the only remaining File-menu placement for non-document scenes).
         CommandGroup(replacing: .saveItem) {
             Button(tr(.close)) { NSApplication.shared.keyWindow?.performClose(nil) }
-                .keyboardShortcut(.closeWindow)
+                .keyboardShortcut(.closeWindow, preferences: sharedPreferences)
         }
         CommandGroup(after: .newItem) {
             fileItemActionCommands
@@ -46,28 +46,28 @@ struct FileMenuCommands: LocalizedCommands {
     @ViewBuilder private var fileItemActionCommands: some View {
         if let appState, let windowUIState {
             Button(tr(.newFolder)) { appState.createNewFolderAndRename(windowUIState: windowUIState) }
-                .keyboardShortcut(.newFolder)
+                .keyboardShortcut(.newFolder, preferences: sharedPreferences)
             Button(tr(.newFileTitle)) { appState.createNewFileAndRename(windowUIState: windowUIState) }
-                .keyboardShortcut(.newFile)
+                .keyboardShortcut(.newFile, preferences: sharedPreferences)
             Divider()
             Button(tr(.open)) { appState.openSelectedItem() }
-                .keyboardShortcut(.open)
+                .keyboardShortcut(.open, preferences: sharedPreferences)
                 .disabled(appState.selection.selectedURLs.isEmpty)
             Button(tr(.properties)) { appState.openPropertiesForSelected(windowUIState: windowUIState) }
-                .keyboardShortcut(.properties)
+                .keyboardShortcut(.properties, preferences: sharedPreferences)
                 .disabled(appState.selection.selectedURLs.isEmpty)
             Button(tr(.quickLook)) { appState.triggerQuickLookForSelected(windowUIState: windowUIState) }
-                .keyboardShortcut(.quickLook)
+                .keyboardShortcut(.quickLook, preferences: sharedPreferences)
                 .disabled(isQuickLookDisabled)
             Button(tr(.rename)) { appState.triggerRenameForSelected(windowUIState: windowUIState) }
-                .keyboardShortcut(.rename)
+                .keyboardShortcut(.rename, preferences: sharedPreferences)
                 .disabled(appState.selection.selectedURLs.isEmpty)
             Divider()
             // `.disabled` while the terminal is focused so the plain Space / Delete menu key
             // equivalents can't fire from terminal input, and while any text field owns focus
             // so Backspace mid-rename can't Trash the file.
             Button(tr(.moveToTrash)) { appState.deleteSelected(windowUIState: windowUIState) }
-                .keyboardShortcut(.moveToTrash)
+                .keyboardShortcut(.moveToTrash, preferences: sharedPreferences)
                 .disabled(isMoveToTrashDisabled)
         }
     }

@@ -326,7 +326,7 @@ struct HeaderBarView: View {
                     .frame(width: 30, height: 28)
                     .foregroundColor(appState.selection.isSearching ? .accentColor : .primary)
             })
-            .help(appState.trWithShortcutHint(.actSearch, shortcut: ShortcutRegistry.label(.find)))
+            .help(appState.trWithShortcutHint(.actSearch, shortcut: ShortcutRegistry.label(.find, in: appState.preferences.view.activeShortcutsByCommand)))
     }
 
     private var searchEverywhereToggle: some View {

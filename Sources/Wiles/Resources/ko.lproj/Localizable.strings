@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "단축키";
+"customModeTitle" = "사용자 지정";
+"settingsShortcutModeSection" = "단축키 모드";
+"settingsCustomShortcutsSection" = "사용자 지정 단축키";
+"shortcutConflictMessageFormat" = "이 조합은 이미 %@에서 사용 중입니다. 계속 진행하고 그곳에서 제거하시겠습니까?";
+"shortcutConflictContinueButton" = "계속";
+"shortcutCaptureHint" = "키 조합을 누르세요…";
+"shortcutsSelectAll" = "모두 선택";
+"shortcutsNewFile" = "새 파일";
+"shortcutsClearSelection" = "선택 해제";
+"shortcutsZoomIn" = "확대";
+"shortcutsZoomOut" = "축소";
+"shortcutsZoomReset" = "확대/축소 재설정";
+"shortcutsBackspaceGoUp" = "상위 폴더로 이동(선택 항목 없음)";

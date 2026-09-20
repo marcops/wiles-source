@@ -8,20 +8,21 @@ struct SharedBackgroundContextMenu: View {
     private var windowUIState
 
     var body: some View {
-        Button(appState.trWithShortcutHint(.newFolder, shortcut: ShortcutRegistry.label(.newFolder))) {
+        Button(appState.trWithShortcutHint(.newFolder, shortcut: ShortcutRegistry.label(.newFolder, in: appState.preferences.view.activeShortcutsByCommand))) {
             appState.createNewFolderAndRename(in: targetFolderURL, windowUIState: windowUIState)
         }
         Button(appState.tr(.newFileTitle)) {
             appState.createNewFileAndRename(in: targetFolderURL, windowUIState: windowUIState)
         }
         if appState.transient.clipboard != nil {
-            Button(appState.trWithShortcutHint(.paste, shortcut: ShortcutRegistry.label(.paste))) {
+            Button(appState.trWithShortcutHint(.paste, shortcut: ShortcutRegistry.label(.paste, in: appState.preferences.view.activeShortcutsByCommand))) {
                 appState.pasteToCurrentDirectory(windowUIState: windowUIState)
             }
         } else {
-            Button(appState.trWithShortcutHint(.paste, shortcut: ShortcutRegistry.label(.paste))) { }.disabled(true)
+            Button(appState.trWithShortcutHint(.paste, shortcut: ShortcutRegistry.label(.paste, in: appState.preferences.view.activeShortcutsByCommand))) { }
+                .disabled(true)
         }
-        Button(appState.trWithShortcutHint(.selectAll, shortcut: ShortcutRegistry.label(.selectAll))) {
+        Button(appState.trWithShortcutHint(.selectAll, shortcut: ShortcutRegistry.label(.selectAll, in: appState.preferences.view.activeShortcutsByCommand))) {
             appState.selection.selectedURLs = Set(appState.fileSystem.items.map(\.url))
         }
         Divider()

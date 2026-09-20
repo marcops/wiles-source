@@ -13,7 +13,7 @@ public struct SmallModelEnumsTests {
     }
 
     private static func testNavigationMode() {
-        report("NavigationMode", "POS: CaseIterable has exactly the 2 known cases", result: NavigationMode.allCases.count == 2)
+        report("NavigationMode", "POS: CaseIterable has exactly the 3 known cases", result: NavigationMode.allCases.count == 3)
         for mode in NavigationMode.allCases {
             report("NavigationMode", "POS: rawValue round-trips for \(mode)", result: NavigationMode(rawValue: mode.rawValue) == mode)
             report("NavigationMode", "POS: id equals rawValue for \(mode)", result: mode.id == mode.rawValue)

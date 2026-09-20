@@ -12,7 +12,7 @@ struct SettingsView: View {
     var appState: AppState
 
     private enum Tab: CaseIterable, Identifiable {
-        case general, appearance, sidebar, advanced
+        case general, shortcuts, appearance, sidebar, advanced
         var id: Self {
             self
         }
@@ -81,6 +81,8 @@ struct SettingsView: View {
             switch selectedTab {
             case .general:
                 GeneralSettingsView(appState: appState)
+            case .shortcuts:
+                ShortcutsSettingsView(appState: appState)
             case .appearance:
                 AppearanceSettingsView(appState: appState)
             case .sidebar:
@@ -96,6 +98,7 @@ struct SettingsView: View {
     private func title(for tab: Tab) -> String {
         switch tab {
         case .general: appState.tr(.settingsGeneralTab)
+        case .shortcuts: appState.tr(.settingsShortcutsTab)
         case .appearance: appState.tr(.settingsAppearanceTab)
         case .sidebar: appState.tr(.settingsSidebarTab)
         case .advanced: appState.tr(.settingsAdvancedTab)
@@ -105,6 +108,7 @@ struct SettingsView: View {
     private func icon(for tab: Tab) -> String {
         switch tab {
         case .general: "gearshape"
+        case .shortcuts: "command"
         case .appearance: "paintbrush"
         case .sidebar: "sidebar.left"
         case .advanced: "slider.horizontal.3"

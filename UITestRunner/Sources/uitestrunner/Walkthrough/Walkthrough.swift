@@ -32,6 +32,7 @@ struct Walkthrough {
             ("featTags", featTags),
             ("featSmartFolders", featSmartFolders),
             ("featAppearanceSettings", featAppearanceSettings),
+            ("featShortcuts", featShortcuts),
         ]
         let selected = only.isEmpty ? steps
             : steps.filter { name, _ in name == "featSwitchToEnglish" || only.contains { name.localizedCaseInsensitiveContains($0) } }

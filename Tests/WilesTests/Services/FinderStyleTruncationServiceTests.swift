@@ -89,9 +89,9 @@ final class FinderStyleTruncationServiceTests: XCTestCase {
 
     func testWidthIsQuantisedSoSmallDeltasHitTheSameResult() {
         let name = "a-really-quite-long-file-name-that-must-be-middle-truncated.tiff"
-        let base = FinderStyleTruncationService.truncatedMiddle(name, font: font, maxWidth: 160, maxLines: 2)
-        // 160 and 163 fall in the same 8pt bucket → identical truncation.
-        XCTAssertEqual(FinderStyleTruncationService.truncatedMiddle(name, font: font, maxWidth: 163, maxLines: 2), base)
+        let base = FinderStyleTruncationService.truncatedMiddle(name, font: font, maxWidth: 160.0, maxLines: 2)
+        // 160.0 and 160.9 fall in the same 1pt bucket → identical truncation.
+        XCTAssertEqual(FinderStyleTruncationService.truncatedMiddle(name, font: font, maxWidth: 160.9, maxLines: 2), base)
         // Far enough apart to land in a different bucket → allowed to differ.
         let farther = FinderStyleTruncationService.truncatedMiddle(name, font: font, maxWidth: 320, maxLines: 2)
         XCTAssertNotEqual(farther, base)

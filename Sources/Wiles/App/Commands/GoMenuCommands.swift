@@ -12,22 +12,22 @@ struct GoMenuCommands: LocalizedCommands {
     var body: some Commands {
         CommandMenu(tr(.goMenuTitle)) {
             Button(tr(.back)) { appState?.goBack() }
-                .keyboardShortcut(.goBack)
+                .keyboardShortcut(.goBack, preferences: sharedPreferences)
                 .disabled((appState?.navigation.historyBack.isEmpty) ?? true)
             Button(tr(.forward)) { appState?.goForward() }
-                .keyboardShortcut(.goForward)
+                .keyboardShortcut(.goForward, preferences: sharedPreferences)
                 .disabled((appState?.navigation.historyForward.isEmpty) ?? true)
             Button(tr(.enclosingFolder)) { appState?.goUp() }
-                .keyboardShortcut(.enclosingFolder)
+                .keyboardShortcut(.enclosingFolder, preferences: sharedPreferences)
             Divider()
             Button(tr(.goToFolder)) {
                 if let appState, let windowUIState {
                     appState.startEditingPath(windowUIState: windowUIState)
                 }
             }
-            .keyboardShortcut(.goToFolder)
+            .keyboardShortcut(.goToFolder, preferences: sharedPreferences)
             Button(tr(.connectToServerEllipsis)) { windowUIState?.activeModal = .connectToServer }
-                .keyboardShortcut(.connectToServer)
+                .keyboardShortcut(.connectToServer, preferences: sharedPreferences)
         }
     }
 }

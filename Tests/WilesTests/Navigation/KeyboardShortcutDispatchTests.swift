@@ -36,6 +36,7 @@ public struct KeyboardShortcutDispatchTests {
         -> (AppState, WindowUIState) {
         let appState = AppState()
         appState.preferences.view.navigationMode = mode
+        appState.preferences.view.applyPreset(mode)
         appState.fileSystem.items = items
         return (appState, WindowUIState(preferences: appState.preferences))
     }
@@ -45,7 +46,7 @@ public struct KeyboardShortcutDispatchTests {
         let (appState, windowUIState) = context(items: items)
         appState.selection.selectedURLs = [items[0].url]
         let handled = nav.handleNavigationKeyDown(
-            code: ShortcutRegistry.physicalKeyCodes(.arrowNavigation)[1], isCmd: false, appState: appState, windowUIState: windowUIState)
+            code: KeyCode.arrowDown, isCmd: false, appState: appState, windowUIState: windowUIState)
         report(
             "Keyboard/Dispatch", "POS: ↓ is handled and moves selection to the next item",
             result: handled && appState.selection.selectedURLs == [items[1].url])
@@ -192,15 +193,16 @@ public struct KeyboardShortcutDispatchTests {
             .newFolder, .newFile, .open, .properties, .quickLook, .moveToTrash, .rename, .goBack, .goForward,
             .goToFolder, .connectToServer, .help, .shortcutsHUD, .toggleTerminal, .togglePreview, .toggleDiskUsage
         ]
+        let preset = ShortcutRegistry.preset(for: .windows)
         let allHaveKeyAndLabel = menuCommands.allSatisfy {
-            let shortcut = ShortcutRegistry.shortcut($0)
-            return shortcut.key != nil && !shortcut.label.isEmpty
+            guard let binding = preset[$0] else { return false }
+            return binding.keyEquivalent != nil && !ShortcutRegistry.label($0, in: preset).isEmpty
         }
         report("Keyboard/Dispatch", "POS: every menu-backed command has both a key and a non-empty label", result: allHaveKeyAndLabel)
 
         let combos = menuCommands.map { command -> String in
-            let shortcut = ShortcutRegistry.shortcut(command)
-            return "\(shortcut.key.map(String.init(describing:)) ?? "?")|\(shortcut.modifiers.rawValue)"
+            let binding = preset[command]
+            return "\(binding?.character ?? "?")|\(binding?.modifiersRawValue ?? -1)"
         }
         report(
             "Keyboard/Dispatch", "POS: no two menu-backed commands share the same key+modifiers combo",
@@ -208,21 +210,19 @@ public struct KeyboardShortcutDispatchTests {
 
         report(
             "Keyboard/Dispatch", "POS: Go Forward owns Cmd+] and zoom-in owns Cmd+=",
-            result: ShortcutRegistry.shortcut(.goForward).key == "]"
-                && ShortcutRegistry.shortcut(.zoomIn).key == "="
-                && !ShortcutRegistry.physicalKeyCodes(.zoomIn).contains(KeyCode.bracketRight))
+            result: preset[.goForward]?.character == "]"
+                && preset[.zoomIn]?.character == "="
+                && preset[.zoomIn]?.physicalKeyCode != KeyCode.bracketRight)
 
-        let everyCommandLabelled = ShortcutRegistry.Command.allCases.allSatisfy { !ShortcutRegistry.label($0).isEmpty }
+        let everyCommandLabelled = ShortcutRegistry.Command.allCases.allSatisfy { !ShortcutRegistry.label($0, in: preset).isEmpty }
         report(
-            "Keyboard/Dispatch", "POS: every ShortcutRegistry.Command has a non-empty label (no missing table entry)",
+            "Keyboard/Dispatch",
+            "POS: every ShortcutRegistry.Command has a non-empty label (Windows preset, or the two fixed non-editable interactions' own fixed label)",
             result: everyCommandLabelled)
 
-        // `⌃H` alternate for the hidden-files toggle now lives on the registry, not hardcoded in a view.
-        let hiddenFilesAlternate = ShortcutRegistry.shortcut(.toggleHiddenFiles).alternate
         report(
-            "Keyboard/Dispatch", "POS: toggleHiddenFiles carries its ⌃H alternate, and no other command does",
-            result: hiddenFilesAlternate == KeyboardShortcut("h", modifiers: .control)
-                && ShortcutRegistry.Command.allCases.filter { ShortcutRegistry.shortcut($0).alternate != nil } == [.toggleHiddenFiles])
+            "Keyboard/Dispatch", "POS: toggleHiddenFiles carries its fixed ⌃H alternate",
+            result: ShortcutRegistry.toggleHiddenFilesAlternate == KeyboardShortcut("h", modifiers: .control))
     }
 
     private static func report(_ category: String, _ name: String, result: Bool) {

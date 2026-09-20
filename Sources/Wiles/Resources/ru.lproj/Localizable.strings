@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "Горячие клавиши";
+"customModeTitle" = "Свои";
+"settingsShortcutModeSection" = "Режим горячих клавиш";
+"settingsCustomShortcutsSection" = "Свои горячие клавиши";
+"shortcutConflictMessageFormat" = "Эта комбинация уже используется для %@. Продолжить и убрать её оттуда?";
+"shortcutConflictContinueButton" = "Продолжить";
+"shortcutCaptureHint" = "Нажмите комбинацию клавиш…";
+"shortcutsSelectAll" = "Выбрать всё";
+"shortcutsNewFile" = "Новый файл";
+"shortcutsClearSelection" = "Снять выделение";
+"shortcutsZoomIn" = "Увеличить";
+"shortcutsZoomOut" = "Уменьшить";
+"shortcutsZoomReset" = "Сбросить масштаб";
+"shortcutsBackspaceGoUp" = "Перейти вверх (без выделения)";

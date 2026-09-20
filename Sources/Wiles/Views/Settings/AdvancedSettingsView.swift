@@ -63,7 +63,9 @@ struct AdvancedSettingsView: View {
 
     /// Windows mode toggles hidden files with Ctrl+H, macOS mode with Cmd+Shift+. — the label
     /// communicates the currently-active shortcut for the currently-active navigation mode.
+    /// `.toggleHiddenFiles` itself isn't one of Custom mode's mode-paired actions (same key in
+    /// every mode), so this is purely cosmetic wording; Custom defaults to the Windows-flavored copy.
     private var showHiddenFilesKey: L10n.Key {
-        appState.preferences.view.navigationMode == .windows ? .showHiddenFilesWindows : .showHiddenFilesMac
+        appState.preferences.view.navigationMode == .macOS ? .showHiddenFilesMac : .showHiddenFilesWindows
     }
 }

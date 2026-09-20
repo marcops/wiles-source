@@ -104,6 +104,11 @@ extension Screenshots {
             Shot(slug: "appearance-settings", stage: {
                 driver.openSettings(tab: "Appearance")
             }, cleanup: { driver.dismissSheet() }),
+
+            Shot(slug: "shortcuts", stage: {
+                driver.openSettings(tab: "Shortcuts")
+                driver.selectPickerOption("Custom", popupIndex: 0)
+            }, cleanup: { driver.dismissSheet() }),
         ]
     }
 

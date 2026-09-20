@@ -539,3 +539,19 @@
 "undoingEllipsis" = "Deshaciendo…";
 "redoingEllipsis" = "Rehaciendo…";
 "restoringEllipsis" = "Restaurando…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "Atajos";
+"customModeTitle" = "Personalizado";
+"settingsShortcutModeSection" = "Modo de atajos";
+"settingsCustomShortcutsSection" = "Atajos personalizados";
+"shortcutConflictMessageFormat" = "Esta combinación ya la usa %@. ¿Continuar y quitársela?";
+"shortcutConflictContinueButton" = "Continuar";
+"shortcutCaptureHint" = "Pulsa una combinación de teclas…";
+"shortcutsSelectAll" = "Seleccionar todo";
+"shortcutsNewFile" = "Nuevo archivo";
+"shortcutsClearSelection" = "Deseleccionar";
+"shortcutsZoomIn" = "Acercar";
+"shortcutsZoomOut" = "Alejar";
+"shortcutsZoomReset" = "Restablecer zoom";
+"shortcutsBackspaceGoUp" = "Subir (sin selección)";

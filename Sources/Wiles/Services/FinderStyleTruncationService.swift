@@ -10,8 +10,11 @@ public enum FinderStyleTruncationService {
 
     /// Available width is quantised to this many points before measuring, so dragging the icon-size
     /// slider (which changes the width by 1px/frame) does one TextKit relayout per bucket instead of
-    /// per pixel × every visible cell. Truncation here is already deliberately approximate.
-    private static let widthQuantum: CGFloat = 4
+    /// per pixel × every visible cell. Kept small (rather than the coarser 4pt originally used) since
+    /// this bucket floor directly caps how much of the available width a wrapped grid label can use —
+    /// a wider bucket was leaving a visible sliver of unused space in the selection highlight before a
+    /// narrow trailing character (e.g. "t") got bumped to the next line unnecessarily.
+    private static let widthQuantum: CGFloat = 1
 
     private static func quantisedWidth(_ width: CGFloat) -> CGFloat {
         guard width > 0 else { return width }

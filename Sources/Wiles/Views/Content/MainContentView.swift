@@ -252,19 +252,17 @@ struct MainContentView: View {
     private var keyboardShortcutsHandler: some View {
         HStack {
             Button("") { appState.selection.selectedURLs.removeAll() }
-                .keyboardShortcut(.clearSelection)
+                .keyboardShortcut(.clearSelection, preferences: appState.preferences)
                 .hidden()
                 .disabled(windowUIState.showShortcutsHUD)
             Button("") { toggleHiddenFiles() }
-                .keyboardShortcut(.toggleHiddenFiles)
+                .keyboardShortcut(.toggleHiddenFiles, preferences: appState.preferences)
                 .hidden()
                 .disabled(windowUIState.showShortcutsHUD)
-            if let alternate = ShortcutRegistry.shortcut(.toggleHiddenFiles).alternate {
-                Button("") { toggleHiddenFiles() }
-                    .keyboardShortcut(alternate)
-                    .hidden()
-                    .disabled(windowUIState.showShortcutsHUD)
-            }
+            Button("") { toggleHiddenFiles() }
+                .keyboardShortcut(ShortcutRegistry.toggleHiddenFilesAlternate)
+                .hidden()
+                .disabled(windowUIState.showShortcutsHUD)
         }
     }
 

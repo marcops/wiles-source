@@ -560,5 +560,22 @@ public enum L10n {
         case searchInvalidFilterToken
         case resultsTruncatedNotice
         case smartFolderLocationNotIndexed
+
+        // MARK: - Shortcuts settings tab (Windows/Mac/Custom remapping)
+
+        case settingsShortcutsTab
+        case customModeTitle
+        case settingsShortcutModeSection
+        case settingsCustomShortcutsSection
+        case shortcutConflictMessageFormat
+        case shortcutConflictContinueButton
+        case shortcutCaptureHint
+        case shortcutsSelectAll
+        case shortcutsNewFile
+        case shortcutsClearSelection
+        case shortcutsZoomIn
+        case shortcutsZoomOut
+        case shortcutsZoomReset
+        case shortcutsBackspaceGoUp
     }
 }

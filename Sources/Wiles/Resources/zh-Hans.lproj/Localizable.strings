@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "快捷键";
+"customModeTitle" = "自定义";
+"settingsShortcutModeSection" = "快捷键模式";
+"settingsCustomShortcutsSection" = "自定义快捷键";
+"shortcutConflictMessageFormat" = "此组合键已被 %@ 使用。要继续并清除该项吗?";
+"shortcutConflictContinueButton" = "继续";
+"shortcutCaptureHint" = "按下组合键…";
+"shortcutsSelectAll" = "全选";
+"shortcutsNewFile" = "新建文件";
+"shortcutsClearSelection" = "取消选择";
+"shortcutsZoomIn" = "放大";
+"shortcutsZoomOut" = "缩小";
+"shortcutsZoomReset" = "重置缩放";
+"shortcutsBackspaceGoUp" = "返回上级（无选中项时）";

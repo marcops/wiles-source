@@ -25,20 +25,6 @@ struct ShortcutsHUDOverlay: View {
     private static let headerSubtitleFontSize: CGFloat = 11
     private static let headerTextSpacing: CGFloat = 2
 
-    private static let tabRowSpacing: CGFloat = 8
-    private static let tabLabelFontSize: CGFloat = 11
-    private static let tabBadgeFontSize: CGFloat = 8
-    private static let tabBadgeHorizontalPadding: CGFloat = 5
-    private static let tabBadgeVerticalPadding: CGFloat = 2
-    private static let tabBadgeBackgroundOpacity: Double = 0.25
-    private static let tabBadgeCornerRadius: CGFloat = 4
-    private static let tabContentSpacing: CGFloat = 5
-    private static let tabHorizontalPadding: CGFloat = 10
-    private static let tabVerticalPadding: CGFloat = 5
-    private static let tabSelectedBackgroundOpacity: Double = 0.2
-    private static let tabUnselectedBackgroundOpacity: Double = 0.08
-    private static let tabCornerRadius: CGFloat = 8
-
     private static let columnsOuterSpacing: CGFloat = 12
     private static let columnsLeadingPadding: CGFloat = 20
     private static let columnsTrailingPadding: CGFloat = 12
@@ -57,13 +43,6 @@ struct ShortcutsHUDOverlay: View {
 
     var appState: AppState
     @Binding var isPresented: Bool
-    @State private var selectedFilter: ShortcutsFilter
-
-    init(appState: AppState, isPresented: Binding<Bool>) {
-        self.appState = appState
-        _isPresented = isPresented
-        _selectedFilter = State(initialValue: appState.preferences.view.navigationMode == .macOS ? .macOS : .windows)
-    }
 
     var body: some View {
         ZStack {
@@ -96,8 +75,6 @@ struct ShortcutsHUDOverlay: View {
             header
                 .padding(.horizontal, Self.cardHorizontalPadding)
                 .padding(.top, Self.cardTopPadding)
-            modeTabRow
-                .padding(.horizontal, Self.cardHorizontalPadding)
             Divider()
             shortcutColumns
             Divider()
@@ -138,45 +115,6 @@ struct ShortcutsHUDOverlay: View {
         }
     }
 
-    private var modeTabRow: some View {
-        HStack(spacing: Self.tabRowSpacing) {
-            ForEach(ShortcutsFilter.allCases) { filter in
-                modeTabButton(filter)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-    }
-
-    private func modeTabButton(_ filter: ShortcutsFilter) -> some View {
-        let isSelected = selectedFilter == filter
-        let isActual = filter.navigationMode == appState.preferences.view.navigationMode
-        return Button {
-            withAnimation(MotionTokens.snappySpring) { selectedFilter = filter }
-        } label: {
-            HStack(spacing: Self.tabContentSpacing) {
-                Text(appState.tr(filter.l10nKey))
-                    .font(.system(size: Self.tabLabelFontSize, weight: .semibold))
-                if isActual {
-                    Text(appState.tr(.shortcutsCurrentModeBadge).uppercased())
-                        .font(.system(size: Self.tabBadgeFontSize, weight: .bold))
-                        .padding(.horizontal, Self.tabBadgeHorizontalPadding)
-                        .padding(.vertical, Self.tabBadgeVerticalPadding)
-                        .background(Color.accentColor.opacity(Self.tabBadgeBackgroundOpacity))
-                        .cornerRadius(Self.tabBadgeCornerRadius)
-                }
-            }
-            .padding(.horizontal, Self.tabHorizontalPadding)
-            .padding(.vertical, Self.tabVerticalPadding)
-            .background(isSelected ? Color.accentColor.opacity(Self.tabSelectedBackgroundOpacity) : Color.secondary
-                .opacity(Self.tabUnselectedBackgroundOpacity))
-            .foregroundColor(isSelected ? Color.accentColor : Color.primary)
-            .cornerRadius(Self.tabCornerRadius)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(appState.tr(filter.l10nKey))
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-    }
-
     private var footer: some View {
         HStack {
             Spacer()
@@ -190,22 +128,16 @@ struct ShortcutsHUDOverlay: View {
         }
     }
 
+    /// Always the complete, current list — every group shown together, each shortcut's key reading
+    /// straight off whatever's actually bound right now (Windows preset, Mac preset, or a Custom
+    /// user's own edits). No tabs, no per-mode merging: there's only ever one live combo per command.
     private var shortcutColumns: some View {
         ScrollView {
             VStack(spacing: Self.columnsOuterSpacing) {
-                if selectedFilter == .all {
-                    shortcutGroup(title: appState.tr(.shortcutsNav), items: merged(navigationShortcuts(for: .macOS), navigationShortcuts(for: .windows)))
-                    shortcutGroup(
-                        title: appState.tr(.shortcutsFileActions),
-                        items: merged(fileActionsShortcuts(for: .macOS), fileActionsShortcuts(for: .windows)))
-                    shortcutGroup(title: appState.tr(.shortcutsSystem), items: merged(systemShortcuts(for: .macOS), systemShortcuts(for: .windows)))
-                    shortcutGroup(title: appState.tr(.shortcutsGeneral), items: generalShortcuts)
-                } else {
-                    let mode = selectedFilter.navigationMode ?? appState.preferences.view.navigationMode
-                    shortcutGroup(title: appState.tr(.shortcutsNav), items: navigationShortcuts(for: mode))
-                    shortcutGroup(title: appState.tr(.shortcutsFileActions), items: fileActionsShortcuts(for: mode))
-                    shortcutGroup(title: appState.tr(.shortcutsSystem), items: systemShortcuts(for: mode))
-                }
+                shortcutGroup(title: appState.tr(.shortcutsNav), items: navigationShortcuts)
+                shortcutGroup(title: appState.tr(.shortcutsFileActions), items: fileActionsShortcuts)
+                shortcutGroup(title: appState.tr(.shortcutsSystem), items: systemShortcuts)
+                shortcutGroup(title: appState.tr(.shortcutsGeneral), items: generalShortcuts)
             }
             .padding(.leading, Self.columnsLeadingPadding)
             .padding(.trailing, Self.columnsTrailingPadding)
@@ -216,74 +148,65 @@ struct ShortcutsHUDOverlay: View {
 
     private typealias Command = ShortcutRegistry.Command
 
+    private var activeShortcuts: [Command: ShortcutBinding] {
+        appState.preferences.view.activeShortcutsByCommand
+    }
+
+    private func label(_ command: Command) -> String {
+        ShortcutRegistry.label(command, in: activeShortcuts)
+    }
+
     private var backForwardLabel: String {
-        "\(ShortcutRegistry.label(.goBack))  /  \(ShortcutRegistry.label(.goForward))"
+        "\(label(.goBack))  /  \(label(.goForward))"
     }
 
-    /// Keeps `L10n.Key` (not resolved text) so `merged` can match entries by stable identity, not
-    /// position. Every key label comes from `ShortcutRegistry` so the cheat sheet can't drift from
-    /// the real bindings.
-    private func navigationShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
-        let parentCommand: Command = mode == .macOS ? .enclosingFolder : .enclosingFolderWindows
-        let openCommand: Command = mode == .macOS ? .openSelected : .openSelectedWindows
-        return [
-            (.actNavBackForward, backForwardLabel),
-            (.actParentFolder, ShortcutRegistry.label(parentCommand)),
-            (.shortcutsOpenFolder, ShortcutRegistry.label(openCommand))
-        ]
-    }
-
-    private func fileActionsShortcuts(for mode: NavigationMode) -> [(L10n.Key, String)] {
-        let renameCommand: Command = mode == .windows ? .renameWindows : .renameMacOS
-        return [
-            (.actCopyShortcut, ShortcutRegistry.label(.copy)),
-            (.actCutShortcut, ShortcutRegistry.label(.cut)),
-            (.actPasteShortcut, ShortcutRegistry.label(.paste)),
-            (.shortcutsRename, ShortcutRegistry.label(renameCommand)),
-            (.actQuickLook, ShortcutRegistry.label(.quickLook)),
-            (.actItemProperties, ShortcutRegistry.label(.properties)),
-            (.actNewFolderShortcut, ShortcutRegistry.label(.newFolder)),
-            (.actMoveTrash, ShortcutRegistry.label(.moveToTrash))
-        ]
-    }
-
-    private func systemShortcuts(for _: NavigationMode) -> [(L10n.Key, String)] {
+    private var navigationShortcuts: [(L10n.Key, String)] {
         [
-            (.actSearch, ShortcutRegistry.label(.find)),
-            (.shortcutsToggleHidden, ShortcutRegistry.label(.toggleHiddenFiles)),
-            (.actUndo, ShortcutRegistry.label(.undo)),
-            (.actRedo, ShortcutRegistry.label(.redo)),
-            (.shortcutsToggleOverlay, ShortcutRegistry.label(.shortcutsHUD))
+            (.actNavBackForward, backForwardLabel),
+            (.actParentFolder, label(.enclosingFolder)),
+            (.shortcutsOpenFolder, label(.openSelected))
         ]
     }
 
-    /// App/window-level shortcuts that don't depend on navigation mode, shown only on the "All" tab
-    /// (the per-mode tabs stay focused on the shortcuts that actually differ between modes).
+    private var fileActionsShortcuts: [(L10n.Key, String)] {
+        [
+            (.actCopyShortcut, label(.copy)),
+            (.actCutShortcut, label(.cut)),
+            (.actPasteShortcut, label(.paste)),
+            (.shortcutsSelectAll, label(.selectAll)),
+            (.shortcutsRename, label(.quickRename)),
+            (.actQuickLook, label(.quickLook)),
+            (.actItemProperties, label(.properties)),
+            (.actNewFolderShortcut, label(.newFolder)),
+            (.shortcutsNewFile, label(.newFile)),
+            (.actMoveTrash, label(.moveToTrash))
+        ]
+    }
+
+    private var systemShortcuts: [(L10n.Key, String)] {
+        [
+            (.actSearch, label(.find)),
+            (.shortcutsToggleHidden, label(.toggleHiddenFiles)),
+            (.actUndo, label(.undo)),
+            (.actRedo, label(.redo)),
+            (.shortcutsToggleOverlay, label(.shortcutsHUD))
+        ]
+    }
+
+    /// App/window-level shortcuts that don't depend on the anchor selection.
     private var generalShortcuts: [(L10n.Key, String)] {
         [
-            (.settingsMenuItem, ShortcutRegistry.label(.settings)),
-            (.newWindow, ShortcutRegistry.label(.newWindow)),
-            (.close, ShortcutRegistry.label(.closeWindow)),
-            (.open, ShortcutRegistry.label(.open)),
-            (.actToggleTerminal, ShortcutRegistry.label(.toggleTerminal)),
-            (.actTogglePreview, ShortcutRegistry.label(.togglePreview)),
-            (.goToFolder, ShortcutRegistry.label(.goToFolder)),
-            (.actConnectServer, ShortcutRegistry.label(.connectToServer)),
-            (.actDiskVisualizer, ShortcutRegistry.label(.toggleDiskUsage)),
-            (.wilesHelpAndShortcuts, ShortcutRegistry.label(.help))
+            (.settingsMenuItem, label(.settings)),
+            (.newWindow, label(.newWindow)),
+            (.close, label(.closeWindow)),
+            (.open, label(.open)),
+            (.actToggleTerminal, label(.toggleTerminal)),
+            (.actTogglePreview, label(.togglePreview)),
+            (.goToFolder, label(.goToFolder)),
+            (.actConnectServer, label(.connectToServer)),
+            (.actDiskVisualizer, label(.toggleDiskUsage)),
+            (.wilesHelpAndShortcuts, label(.help))
         ]
-    }
-
-    /// Merges macOS/Windows variants for the "All" tab, matching by `L10n.Key` (not `zip` position) so a length/order drift can't silently mispair actions.
-    private func merged(_ macList: [(L10n.Key, String)], _ windowsList: [(L10n.Key, String)]) -> [(L10n.Key, String)] {
-        let windowsByKey = Dictionary(windowsList, uniquingKeysWith: { first, _ in first })
-        return macList.compactMap { mac in
-            guard let windowsKeyLabel = windowsByKey[mac.0] else { return mac }
-            guard mac.1 != windowsKeyLabel else { return mac }
-            let macLabel = String(format: appState.tr(.shortcutMacSuffixFormat), mac.1)
-            let windowsLabel = String(format: appState.tr(.shortcutWindowsSuffixFormat), windowsKeyLabel)
-            return (mac.0, String(format: appState.tr(.shortcutModePairSeparatorFormat), macLabel, windowsLabel))
-        }
     }
 
     private func shortcutGroup(title: String, items: [(L10n.Key, String)]) -> some View {

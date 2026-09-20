@@ -62,15 +62,19 @@ public struct FileSystemService: Sendable {
 
     /// A directory that no longer exists (deleted, unmounted, or moved out from under the user
     /// while they were viewing it) is treated as empty — matching prior behavior and the "folder
-    /// vanished during navigation" flow, not a real failure worth an alert. Any other failure
-    /// (most notably permission denied on a protected folder) is a genuine read error that must be
-    /// distinguishable from "this folder legitimately has zero items," so it's reported and
-    /// re-thrown for the caller to surface to the user.
+    /// vanished during navigation" flow, not a real failure worth an alert. Permission-denied
+    /// (e.g. `~/.Trash` without Full Disk Access) is also treated as empty rather than re-thrown:
+    /// `EmptyDirectoryView` already checks `FileManager.isReadableFile` and shows a dedicated
+    /// "Grant Full Disk Access" button for exactly this case, so surfacing the raw Cocoa error via
+    /// an alert would just duplicate that with unlocalized OS wording and no actionable button. Any
+    /// other failure is a genuine read error that must be distinguishable from "this folder
+    /// legitimately has zero items," so it's reported and re-thrown for the caller to surface to
+    /// the user.
     private static func directoryEntries(at url: URL, keys: [URLResourceKey]) throws -> [URL] {
         do {
             return try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: keys, options: [.skipsSubdirectoryDescendants])
         } catch {
-            if let cocoaError = error as? CocoaError, cocoaError.code == .fileReadNoSuchFile {
+            if let cocoaError = error as? CocoaError, cocoaError.code == .fileReadNoSuchFile || cocoaError.code == .fileReadNoPermission {
                 return []
             }
             ErrorReporter.report(error, context: "Listing directory contents at \(url.path)")

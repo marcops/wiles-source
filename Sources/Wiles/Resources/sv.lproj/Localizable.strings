@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "Kortkommandon";
+"customModeTitle" = "Anpassad";
+"settingsShortcutModeSection" = "Kortkommandoläge";
+"settingsCustomShortcutsSection" = "Anpassade kortkommandon";
+"shortcutConflictMessageFormat" = "Denna kombination används redan av %@. Fortsätt och ta bort den därifrån?";
+"shortcutConflictContinueButton" = "Fortsätt";
+"shortcutCaptureHint" = "Tryck på en tangentkombination…";
+"shortcutsSelectAll" = "Markera allt";
+"shortcutsNewFile" = "Ny fil";
+"shortcutsClearSelection" = "Avmarkera";
+"shortcutsZoomIn" = "Zooma in";
+"shortcutsZoomOut" = "Zooma ut";
+"shortcutsZoomReset" = "Återställ zoom";
+"shortcutsBackspaceGoUp" = "Gå upp (utan markering)";

@@ -19,17 +19,19 @@ struct KeyboardZoomController {
     }
 
     /// Handles a Cmd/Ctrl + `=`/`-`/`0` zoom key. Returns `true` if `code` was a zoom shortcut.
-    /// Keycodes come from `ShortcutRegistry` so this and the cheat sheet can't disagree.
+    /// Reads the live `activeShortcutsByCommand` store directly — no mode branching, same as every
+    /// other raw-dispatch consumer of `ShortcutRegistry`.
     func handleZoomKeyDown(code: UInt16, appState: AppState) -> Bool {
-        if ShortcutRegistry.physicalKeyCodes(.zoomIn).contains(code) {
+        let store = appState.preferences.view.activeShortcutsByCommand
+        if store[.zoomIn]?.physicalKeyCode == code {
             appState.preferences.view.iconSize = min(IconSizeToken.maxSize, appState.preferences.view.iconSize + IconSizeToken.step)
             return true
         }
-        if ShortcutRegistry.physicalKeyCodes(.zoomOut).contains(code) {
+        if store[.zoomOut]?.physicalKeyCode == code {
             appState.preferences.view.iconSize = max(IconSizeToken.minSize, appState.preferences.view.iconSize - IconSizeToken.step)
             return true
         }
-        if ShortcutRegistry.physicalKeyCodes(.zoomReset).contains(code) {
+        if store[.zoomReset]?.physicalKeyCode == code {
             appState.preferences.view.iconSize = IconSizeToken.defaultSize
             return true
         }

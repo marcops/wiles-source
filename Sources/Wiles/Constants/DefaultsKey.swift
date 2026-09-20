@@ -40,6 +40,7 @@ enum DefaultsKey: String {
     case showRecents = "wiles_showRecents"
     case showSidebarSectionTitles = "wiles_showSidebarSectionTitles"
     case showTags = "wiles_showTags"
+    case activeShortcuts = "wiles_activeShortcuts"
     case showTerminalDrawer = "wiles_showTerminalDrawer"
     case skipDeleteConfirmation = "wiles_skipDeleteConfirmation"
     case sidebarTranslucentLevel = "wiles_sidebarTranslucentLevel"

@@ -695,9 +695,9 @@ final class WilesDriver {
                 return false
             }
         }
-        // The 4 tab buttons are a horizontal row of small `.onTapGesture` views at the sheet top.
+        // The 5 tab buttons are a horizontal row of small `.onTapGesture` views at the sheet top.
         // Take every small button in that band, sort by x, and click the one at the tab's index.
-        let order = ["General", "Appearance", "Sidebar", "Advanced"]
+        let order = ["General", "Shortcuts", "Appearance", "Sidebar", "Advanced"]
         guard let s = sheet(), !s.frame.isEmpty else { reporter.fail("Settings sheet gone"); return false }
         let topY = s.frame.minY
         let band = s.allDescendants(where: AXMatch(role: "AXButton"), maxDepth: 26)

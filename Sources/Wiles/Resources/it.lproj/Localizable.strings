@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Annullamento…";
 "redoingEllipsis" = "Ripristino…";
 "restoringEllipsis" = "Ripristino…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "Scorciatoie";
+"customModeTitle" = "Personalizzato";
+"settingsShortcutModeSection" = "Modalità scorciatoie";
+"settingsCustomShortcutsSection" = "Scorciatoie personalizzate";
+"shortcutConflictMessageFormat" = "Questa combinazione è già usata da %@. Continuare e rimuoverla da lì?";
+"shortcutConflictContinueButton" = "Continua";
+"shortcutCaptureHint" = "Premi una combinazione di tasti…";
+"shortcutsSelectAll" = "Seleziona tutto";
+"shortcutsNewFile" = "Nuovo file";
+"shortcutsClearSelection" = "Deseleziona";
+"shortcutsZoomIn" = "Ingrandisci";
+"shortcutsZoomOut" = "Riduci";
+"shortcutsZoomReset" = "Reimposta zoom";
+"shortcutsBackspaceGoUp" = "Vai su (senza selezione)";

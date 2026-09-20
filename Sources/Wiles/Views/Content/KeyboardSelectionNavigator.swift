@@ -1,10 +1,17 @@
 import AppKit
 import Foundation
+import SwiftUI
 
-/// Arrow-key selection navigation (incl. Shift-range-select), Cmd+Up/Down favorite reordering,
-/// and F2/Delete/Return edit shortcuts, extracted from `GlobalKeyMonitor.KeyMonitorNSView` so
-/// this logic is unit-testable without an `NSView`/window. Stateless: callers pass
-/// `AppState`/`WindowUIState` per call rather than this type holding a reference to the view.
+/// Arrow-key selection navigation (incl. Shift-range-select), Cmd+Up/Down favorite reordering, and
+/// the live-shortcut-driven edit actions (go up, open the anchor selection, quick-rename, move to
+/// Trash), extracted from `GlobalKeyMonitor.KeyMonitorNSView` so this logic is unit-testable without
+/// an `NSView`/window. Stateless: callers pass `AppState`/`WindowUIState` per call rather than this
+/// type holding a reference to the view.
+///
+/// Every edit action below reads `appState.preferences.view.activeShortcutsByCommand` directly and
+/// unconditionally — there is no `navigationMode` branching here. Switching Windows/Mac/Custom only
+/// changes what's *in* that store (`ViewPreferences.applyPreset`/`setShortcutBinding`), never how
+/// this file reads it.
 @MainActor
 struct KeyboardSelectionNavigator {
     private enum ArrowKey: Equatable {
@@ -21,39 +28,25 @@ struct KeyboardSelectionNavigator {
         }
     }
 
-    /// Handles arrow-key navigation, favorite reordering, and edit-action shortcuts
-    /// (F2/Delete/Return). Returns `true` if `code` was handled (caller should swallow the event).
+    /// Handles arrow-key navigation, favorite reordering, and the live-shortcut edit actions.
+    /// Returns `true` if `code` was handled (caller should swallow the event).
     func handleNavigationKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
+        if let arrowCode = ArrowKey(code: code),
+           isFavoriteReorderShortcut(
+               isCmd: isCmd, arrowCode: arrowCode,
+               selectedFavorite: windowUIState.selectedFavoriteURL, currentURL: appState.navigation.currentURL) {
+            appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1, windowUIState: windowUIState)
+            return true
+        }
+        if handleLiveShortcutKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState) {
+            return true
+        }
         if let arrowCode = ArrowKey(code: code) {
-            if isFavoriteReorderShortcut(
-                isCmd: isCmd, arrowCode: arrowCode,
-                selectedFavorite: windowUIState.selectedFavoriteURL, currentURL: appState.navigation.currentURL) {
-                appState.moveSelectedFavorite(offset: arrowCode == .up ? -1 : 1, windowUIState: windowUIState)
-                return true
-            }
-            if isCmd, let handled = handleCommandArrow(arrowCode, appState: appState) {
-                return handled
-            }
             let isShift = NSEvent.modifierFlags.contains(.shift)
             handleArrowKeyDown(arrowCode, isShift: isShift, appState: appState)
             return true
         }
-        return handleEditActionKeyDown(code: code, isCmd: isCmd, appState: appState, windowUIState: windowUIState)
-    }
-
-    /// Cmd+↑ = enclosing folder (Finder-standard); Cmd+↓ = open the selected item in macOS mode.
-    /// Returns `nil` to let a plain selection-move fall through (Cmd+←/→, or Cmd+↓ in Windows mode).
-    private func handleCommandArrow(_ key: ArrowKey, appState: AppState) -> Bool? {
-        switch key {
-        case .up:
-            appState.goUp()
-            return true
-        case .down where appState.preferences.view.navigationMode == .macOS:
-            appState.openSelectedItem()
-            return true
-        default:
-            return nil
-        }
+        return false
     }
 
     /// True when Cmd+Up/Down was pressed while the sidebar's currently-selected favorite
@@ -129,49 +122,82 @@ struct KeyboardSelectionNavigator {
         }
     }
 
-    private func handleEditActionKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
-        if ShortcutRegistry.physicalKeyCodes(.renameWindows).contains(code) {
-            if !appState.selection.selectedURLs.isEmpty {
-                appState.triggerRenameForSelected(windowUIState: windowUIState)
-                return true
-            }
-        } else if ShortcutRegistry.physicalKeyCodes(.moveToTrash).contains(code) {
-            if !appState.selection.selectedURLs.isEmpty {
-                appState.deleteSelected(windowUIState: windowUIState)
-                return true
-            } else if appState.preferences.view.navigationMode == .windows, !isCmd {
-                appState.goUp()
-                return true
-            }
-        } else if ShortcutRegistry.physicalKeyCodes(.renameMacOS).contains(code) {
-            return handleReturnKeyDown(isCmd: isCmd, appState: appState, windowUIState: windowUIState)
-        }
-        return false
-    }
+    /// Go up (`.enclosingFolder`), open the anchor selection (`.openSelected`), quick-rename
+    /// (`.quickRename`), move to Trash (`.moveToTrash`, plus its two fixed aliases below), and
+    /// go-up-with-no-selection (`.quickGoUp`) — every one read directly from the live store, with no
+    /// mode check anywhere. A Windows-preset user has `.quickRename` bound to F2 and `.quickGoUp`
+    /// bound to Backspace; a Mac-preset user has `.quickRename` on Return and no `.quickGoUp` binding
+    /// at all (so this simply never matches); a Custom user has whatever they typed.
+    private func handleLiveShortcutKeyDown(code: UInt16, isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
+        let store = appState.preferences.view.activeShortcutsByCommand
+        let modifiers = Self.currentEventModifiers(isCmd: isCmd)
 
-    private func handleReturnKeyDown(isCmd: Bool, appState: AppState, windowUIState: WindowUIState) -> Bool {
-        if isCmd, !appState.selection.selectedURLs.isEmpty {
+        if matches(.enclosingFolder, code: code, modifiers: modifiers, in: store) {
+            appState.goUp()
+            return true
+        }
+        if matches(.openSelected, code: code, modifiers: modifiers, in: store) {
+            appState.openSelectedItem()
+            return true
+        }
+        if matches(.quickRename, code: code, modifiers: modifiers, in: store), !appState.selection.selectedURLs.isEmpty {
+            appState.triggerRenameForSelected(windowUIState: windowUIState)
+            return true
+        }
+        if matchesMoveToTrash(code: code, modifiers: modifiers, in: store), !appState.selection.selectedURLs.isEmpty {
             appState.deleteSelected(windowUIState: windowUIState)
             return true
-        } else if !isCmd {
-            if appState.preferences.view.navigationMode == .windows,
-               let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first {
-                appState.openItem(anchor)
-                return true
-            } else if let item = macOSReturnKeyItem(appState: appState) {
-                windowUIState.renameItem = item
-                return true
-            }
+        }
+        if matches(.quickGoUp, code: code, modifiers: modifiers, in: store), appState.selection.selectedURLs.isEmpty {
+            appState.goUp()
+            return true
         }
         return false
     }
 
-    /// The selected item to rename when Return is pressed in macOS navigation mode (where Return
-    /// renames rather than navigates) — only applicable when exactly one item's URL is selected
-    /// and that URL still resolves to a loaded `FileItem`.
-    private func macOSReturnKeyItem(appState: AppState) -> FileItem? {
-        guard appState.preferences.view.navigationMode == .macOS else { return nil }
-        guard let anchor = appState.selection.keyboardSelectionAnchorURL ?? appState.selection.selectedURLs.first else { return nil }
-        return appState.fileSystem.itemsByURL[anchor]
+    private func matches(
+        _ command: ShortcutRegistry.Command,
+        code: UInt16,
+        modifiers: EventModifiers,
+        in store: [ShortcutRegistry.Command: ShortcutBinding]) -> Bool {
+        guard let binding = store[command], let physicalKeyCode = binding.physicalKeyCode else { return false }
+        return physicalKeyCode == code && binding.modifiers == modifiers
+    }
+
+    /// `.moveToTrash` answers to its live binding plus two fixed, non-customizable aliases: a
+    /// physical forward-delete key (a second hardware key for the same "Delete" action on an
+    /// extended keyboard — same shape as `.toggleHiddenFiles`'s `⌃H`), and Cmd+Return (a
+    /// long-standing convenience alias, independent of whatever key `.quickRename`/`.openSelected`
+    /// currently have).
+    private func matchesMoveToTrash(code: UInt16, modifiers: EventModifiers, in store: [ShortcutRegistry.Command: ShortcutBinding]) -> Bool {
+        if matches(.moveToTrash, code: code, modifiers: modifiers, in: store) {
+            return true
+        }
+        if modifiers.isEmpty, code == ShortcutRegistry.moveToTrashAlternatePhysicalKeyCode {
+            return true
+        }
+        return modifiers == .command && code == KeyCode.returnKey
+    }
+
+    /// `isCmd` is the authoritative source for the Command flag — the same parameter every caller
+    /// (`GlobalKeyMonitor`, and every test in `KeyboardShortcutDispatchTests`) already threads
+    /// through explicitly. Shift/Option/Control aren't passed as parameters, so those three still
+    /// read live `NSEvent.modifierFlags`, matching `handleArrowKeyDown`'s own `isShift` lookup above.
+    private static func currentEventModifiers(isCmd: Bool) -> EventModifiers {
+        let flags = NSEvent.modifierFlags
+        var modifiers: EventModifiers = []
+        if isCmd {
+            modifiers.insert(.command)
+        }
+        if flags.contains(.shift) {
+            modifiers.insert(.shift)
+        }
+        if flags.contains(.option) {
+            modifiers.insert(.option)
+        }
+        if flags.contains(.control) {
+            modifiers.insert(.control)
+        }
+        return modifiers
     }
 }

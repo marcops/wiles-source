@@ -540,3 +540,19 @@
 "undoingEllipsis" = "Undoing…";
 "redoingEllipsis" = "Redoing…";
 "restoringEllipsis" = "Restoring…";
+
+/* Shortcuts settings tab (Windows/Mac/Custom remapping) */
+"settingsShortcutsTab" = "ショートカット";
+"customModeTitle" = "カスタム";
+"settingsShortcutModeSection" = "ショートカットモード";
+"settingsCustomShortcutsSection" = "カスタムショートカット";
+"shortcutConflictMessageFormat" = "この組み合わせはすでに%@で使用されています。続行してそちらを解除しますか?";
+"shortcutConflictContinueButton" = "続行";
+"shortcutCaptureHint" = "キーの組み合わせを押してください…";
+"shortcutsSelectAll" = "すべて選択";
+"shortcutsNewFile" = "新規ファイル";
+"shortcutsClearSelection" = "選択を解除";
+"shortcutsZoomIn" = "拡大";
+"shortcutsZoomOut" = "縮小";
+"shortcutsZoomReset" = "ズームをリセット";
+"shortcutsBackspaceGoUp" = "上へ移動（未選択時）";

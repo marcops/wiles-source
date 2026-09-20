@@ -27,7 +27,7 @@ struct SharedFileItemContextMenu: View {
 
     @ViewBuilder private var openSection: some View {
         Button(appState.tr(.open)) { appState.openItem(item.url) }
-        Button(appState.trWithShortcutHint(.quickLook, shortcut: ShortcutRegistry.label(.quickLook))) { windowUIState.quickLookURL = item.url }
+        Button(appState.trWithShortcutHint(.quickLook, shortcut: shortcutLabel(.quickLook))) { windowUIState.quickLookURL = item.url }
         Menu(appState.tr(.openWith)) {
             openWithMenuContent
         }
@@ -53,16 +53,16 @@ struct SharedFileItemContextMenu: View {
     }
 
     @ViewBuilder private var clipboardSection: some View {
-        Button(appState.trWithShortcutHint(.cut, shortcut: ShortcutRegistry.label(.cut))) {
+        Button(appState.trWithShortcutHint(.cut, shortcut: shortcutLabel(.cut))) {
             appState.cutSelected()
         }
-        Button(appState.trWithShortcutHint(.copy, shortcut: ShortcutRegistry.label(.copy))) {
+        Button(appState.trWithShortcutHint(.copy, shortcut: shortcutLabel(.copy))) {
             appState.copySelected()
         }
         Menu(appState.tr(.copyPath)) {
             CopyPathMenuContent(urls: actionURLs, relativeTo: appState.navigation.currentURL, appState: appState)
         }
-        Button(appState.trWithShortcutHint(.paste, shortcut: ShortcutRegistry.label(.paste))) { appState.pasteToCurrentDirectory(windowUIState: windowUIState) }
+        Button(appState.trWithShortcutHint(.paste, shortcut: shortcutLabel(.paste))) { appState.pasteToCurrentDirectory(windowUIState: windowUIState) }
     }
 
     @ViewBuilder private var contentActionsSection: some View {
@@ -140,7 +140,7 @@ struct SharedFileItemContextMenu: View {
         Button(appState.trWithShortcutHint(.rename, shortcut: renameKeyboardHint)) {
             appState.triggerRenameForSelected(windowUIState: windowUIState)
         }
-        Button(appState.trWithShortcutHint(.moveToTrash, shortcut: ShortcutRegistry.label(.moveToTrash)), role: .destructive) {
+        Button(appState.trWithShortcutHint(.moveToTrash, shortcut: shortcutLabel(.moveToTrash)), role: .destructive) {
             appState.deleteSelected(windowUIState: windowUIState)
         }
         Button(appState.tr(.deleteImmediately), role: .destructive) {
@@ -157,7 +157,13 @@ struct SharedFileItemContextMenu: View {
     }
 
     private var renameKeyboardHint: String {
-        ShortcutRegistry.label(appState.preferences.view.navigationMode == .windows ? .renameWindows : .renameMacOS)
+        shortcutLabel(.quickRename)
+    }
+
+    private typealias Command = ShortcutRegistry.Command
+
+    private func shortcutLabel(_ command: Command) -> String {
+        ShortcutRegistry.label(command, in: appState.preferences.view.activeShortcutsByCommand)
     }
 
     @ViewBuilder private var shareTagsPropertiesSection: some View {
@@ -171,7 +177,7 @@ struct SharedFileItemContextMenu: View {
                 tagsMenuContent
             }
         }
-        Button(appState.trWithShortcutHint(.properties, shortcut: ShortcutRegistry.label(.properties))) {
+        Button(appState.trWithShortcutHint(.properties, shortcut: shortcutLabel(.properties))) {
             windowUIState.activeModal = .properties(item)
         }
     }

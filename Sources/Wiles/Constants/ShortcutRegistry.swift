@@ -1,124 +1,159 @@
 import SwiftUI
 
 /// Single source of truth for every keyboard shortcut in the app. Menu items (`*MenuCommands`),
-/// the `GlobalKeyMonitor` dispatch, the shortcuts cheat sheet (`ShortcutsHUDOverlay`), and
-/// context-menu hints all read their key combos and labels from here, so the four can't drift
-/// out of sync. Replaces the old scatter of literal `.keyboardShortcut("x", …)`, raw `KeyCode`
-/// constants in the monitor, and hand-typed `KeyLabel`/`"Cmd+X"` strings.
-enum ShortcutRegistry {
-    enum Command: CaseIterable {
+/// `GlobalKeyMonitor`'s raw dispatch, the shortcuts cheat sheet (`ShortcutsHUDOverlay`), and
+/// context-menu hints all read the *live* combo for a command from
+/// `ViewPreferences.activeShortcutsByCommand` — never from a fixed table here — so all of them
+/// can't drift out of sync with whatever the user actually has bound right now.
+///
+/// This type itself only defines the two built-in **presets** (`preset(for:)`, used to bulk-apply
+/// Windows or Mac when the user picks one in Settings) and command-agnostic helpers
+/// (`label(_:in:)`, `conflictingCommand`). There is no per-mode branching anywhere outside
+/// `preset(for:)` — every dispatch/label/menu call site reads the one live dictionary
+/// unconditionally, so switching modes changes what's *in* that dictionary, never how it's read.
+public enum ShortcutRegistry {
+    public enum Command: String, CaseIterable, Codable, Sendable {
         // Menu-backed
         case settings, undo, redo, cut, copy, paste, selectAll, find
         case newWindow, closeWindow, newFolder, newFile, open, properties, quickLook, moveToTrash, rename
         case goBack, goForward, goToFolder, connectToServer, enclosingFolder
         case help, shortcutsHUD, toggleTerminal, togglePreview, toggleDiskUsage
         // Monitor / hidden-button only (no menu item)
-        case toggleHiddenFiles, clearSelection, openSelected
+        case toggleHiddenFiles, clearSelection
         case zoomIn, zoomOut, zoomReset
-        case renameMacOS, renameWindows
-        case openSelectedWindows, enclosingFolderWindows
+        // One combo per logical action, replacing the old Windows/Mac-specific pairs — which key
+        // triggers "rename the anchor selection" / "open the anchor selection" / "go up with no
+        // selection" is just data (see `windowsOnlyBindings`/`macOnlyBindings`), not two Command cases.
+        case quickRename, openSelected, quickGoUp
+        // Fixed, non-editable, non-remappable spatial interactions — never in the live store, never
+        // bulk-reset by a preset. `label(_:in:)` falls back to `fixedLabel` for these two.
         case arrowNavigation, favoriteReorder
     }
 
-    struct Shortcut {
-        /// For SwiftUI `.keyboardShortcut(...)`. `nil` for a monitor-only command with no menu item.
-        var key: KeyEquivalent?
-        var modifiers: EventModifiers = []
-        /// `NSEvent.keyCode`s this command answers to in `GlobalKeyMonitor`. Empty for a menu-only command.
-        var physicalKeyCodes: [UInt16] = []
-        /// `KeyboardShortcut(localization: .custom)` — only `⌘/`, which must not be auto-remapped per locale.
-        var customLocalization = false
-        /// A second combo the command also answers to, wired as its own hidden button (only
-        /// `.toggleHiddenFiles`'s `⌃H` alternate). `nil` for everything else.
-        var alternate: KeyboardShortcut?
-        /// Human label for the cheat sheet and context-menu hints. Not localized — a physical key's
-        /// symbol doesn't change per language.
-        var label: String
-    }
+    /// Every command whose combo a Custom-mode user can individually remap and that a Windows/Mac
+    /// preset bulk-writes into the live store. Excludes `arrowNavigation`/`favoriteReorder` — not a
+    /// single rebindable combo to begin with.
+    static let editableCommands: [Command] = Command.allCases.filter { $0 != .arrowNavigation && $0 != .favoriteReorder }
 
-    /// Every `Command` must have an entry here. Completeness is enforced by the
-    /// `everyCommandLabelled` assertion in `KeyboardShortcutDispatchTests` (a missing entry leaves
-    /// an empty `label`) rather than a 40-branch `switch` that trips `cyclomatic_complexity`.
-    static func shortcut(_ command: Command) -> Shortcut {
-        table[command] ?? Shortcut(key: nil, label: "")
-    }
+    /// `.toggleHiddenFiles`'s fixed secondary combo — its own hidden button in `MainContentView`,
+    /// unaffected by the primary key's remap (same fixed-alternate shape as `moveToTrashAlternate`).
+    static let toggleHiddenFilesAlternate = KeyboardShortcut("h", modifiers: .control)
 
-    static func label(_ command: Command) -> String {
-        shortcut(command).label
-    }
+    /// Forward-delete is a second physical key for the same "Delete" action on an extended keyboard —
+    /// always live alongside whatever `.moveToTrash`'s primary (customizable) key currently is, the
+    /// same way `⌃H` always works alongside `.toggleHiddenFiles`'s primary key.
+    static let moveToTrashAlternatePhysicalKeyCode = KeyCode.forwardDelete
 
-    private static let table: [Command: Shortcut] = [
-        .settings: Shortcut(key: ",", modifiers: .command, label: "⌘ ,"),
-        .undo: Shortcut(key: "z", modifiers: .command, label: "⌘ Z"),
-        .redo: Shortcut(key: "z", modifiers: [.command, .shift], label: "⌘ ⇧ Z"),
-        .cut: Shortcut(key: "x", modifiers: .command, label: "⌘ X"),
-        .copy: Shortcut(key: "c", modifiers: .command, label: "⌘ C"),
-        .paste: Shortcut(key: "v", modifiers: .command, label: "⌘ V"),
-        .selectAll: Shortcut(key: "a", modifiers: .command, label: "⌘ A"),
-        .find: Shortcut(key: "f", modifiers: .command, label: "⌘ F"),
-        .newWindow: Shortcut(key: "n", modifiers: .command, label: "⌘ N"),
-        .closeWindow: Shortcut(key: "w", modifiers: .command, label: "⌘ W"),
-        .newFolder: Shortcut(key: "n", modifiers: [.command, .shift], label: "⌘ ⇧ N"),
-        .newFile: Shortcut(key: "n", modifiers: [.command, .option], label: "⌘ ⌥ N"),
-        .open: Shortcut(key: "o", modifiers: .command, label: "⌘ O"),
-        .properties: Shortcut(key: "i", modifiers: .command, label: "⌘ I"),
-        .quickLook: Shortcut(key: " ", modifiers: [], label: "Space"),
-        .rename: Shortcut(key: "r", modifiers: .command, label: "⌘ R"),
-        .moveToTrash: Shortcut(
-            key: .delete, modifiers: [], physicalKeyCodes: [KeyCode.backspace, KeyCode.forwardDelete], label: "Delete"),
-        .goBack: Shortcut(key: "[", modifiers: .command, label: "⌘ ["),
-        .goForward: Shortcut(key: "]", modifiers: .command, label: "⌘ ]"),
-        .goToFolder: Shortcut(key: "l", modifiers: .command, label: "⌘ L"),
-        .connectToServer: Shortcut(key: "k", modifiers: .command, label: "⌘ K"),
-        // Finder-standard "enclosing folder". `GlobalKeyMonitor` is what actually fires it (it
-        // swallows every arrow keydown first); the menu carries the same combo as a visible hint.
-        .enclosingFolder: Shortcut(key: .upArrow, modifiers: .command, label: "⌘ ↑"),
-        .help: Shortcut(key: "?", modifiers: .command, label: "⌘ ?"),
-        .shortcutsHUD: Shortcut(key: "/", modifiers: .command, customLocalization: true, label: "⌘ /"),
-        .toggleTerminal: Shortcut(key: "j", modifiers: .command, label: "⌘ J"),
-        .togglePreview: Shortcut(key: "p", modifiers: [.command, .shift], label: "⌘ ⇧ P"),
-        .toggleDiskUsage: Shortcut(key: "d", modifiers: [.command, .shift], label: "⌘ ⇧ D"),
-        // No menu item — the `⌘⇧.` combo plus an alternate `⌃H` are wired as hidden buttons.
-        .toggleHiddenFiles: Shortcut(
-            key: ".", modifiers: [.command, .shift],
-            alternate: KeyboardShortcut("h", modifiers: .control), label: "⌘ ⇧ ."),
-        .clearSelection: Shortcut(key: .escape, modifiers: [], label: "Esc"),
-        .openSelected: Shortcut(key: .downArrow, modifiers: .command, label: "⌘ ↓"),
+    /// The combo every `editableCommands` entry starts at, before any mode/Custom edit — everything
+    /// that doesn't vary between Windows and Mac (the vast majority: menu items, zoom, clipboard, …).
+    private static let commonBindings: [Command: ShortcutBinding] = [
+        .settings: ShortcutBinding(character: ",", modifiers: .command, physicalKeyCode: nil),
+        .undo: ShortcutBinding(character: "z", modifiers: .command, physicalKeyCode: nil),
+        .redo: ShortcutBinding(character: "z", modifiers: [.command, .shift], physicalKeyCode: nil),
+        .cut: ShortcutBinding(character: "x", modifiers: .command, physicalKeyCode: nil),
+        .copy: ShortcutBinding(character: "c", modifiers: .command, physicalKeyCode: nil),
+        .paste: ShortcutBinding(character: "v", modifiers: .command, physicalKeyCode: nil),
+        .selectAll: ShortcutBinding(character: "a", modifiers: .command, physicalKeyCode: nil),
+        .find: ShortcutBinding(character: "f", modifiers: .command, physicalKeyCode: nil),
+        .newWindow: ShortcutBinding(character: "n", modifiers: .command, physicalKeyCode: nil),
+        .closeWindow: ShortcutBinding(character: "w", modifiers: .command, physicalKeyCode: nil),
+        .newFolder: ShortcutBinding(character: "n", modifiers: [.command, .shift], physicalKeyCode: nil),
+        .newFile: ShortcutBinding(character: "n", modifiers: [.command, .option], physicalKeyCode: nil),
+        .open: ShortcutBinding(character: "o", modifiers: .command, physicalKeyCode: nil),
+        .properties: ShortcutBinding(character: "i", modifiers: .command, physicalKeyCode: nil),
+        .quickLook: ShortcutBinding(character: " ", modifiers: [], physicalKeyCode: nil),
+        .rename: ShortcutBinding(character: "r", modifiers: .command, physicalKeyCode: nil),
+        .moveToTrash: ShortcutBinding(character: "\u{7F}", modifiers: [], physicalKeyCode: KeyCode.backspace),
+        .goBack: ShortcutBinding(character: "[", modifiers: .command, physicalKeyCode: nil),
+        .goForward: ShortcutBinding(character: "]", modifiers: .command, physicalKeyCode: nil),
+        .goToFolder: ShortcutBinding(character: "l", modifiers: .command, physicalKeyCode: nil),
+        .connectToServer: ShortcutBinding(character: "k", modifiers: .command, physicalKeyCode: nil),
+        // `GlobalKeyMonitor` swallows every arrow keydown first, so `physicalKeyCode` is what
+        // actually fires this; `key`/`modifiers` still render the visible ⌘↑ menu hint.
+        .enclosingFolder: ShortcutBinding(character: "\u{F700}", modifiers: .command, physicalKeyCode: KeyCode.arrowUp),
+        .help: ShortcutBinding(character: "?", modifiers: .command, physicalKeyCode: nil),
+        .shortcutsHUD: ShortcutBinding(character: "/", modifiers: .command, physicalKeyCode: nil),
+        .toggleTerminal: ShortcutBinding(character: "j", modifiers: .command, physicalKeyCode: nil),
+        .togglePreview: ShortcutBinding(character: "p", modifiers: [.command, .shift], physicalKeyCode: nil),
+        .toggleDiskUsage: ShortcutBinding(character: "d", modifiers: [.command, .shift], physicalKeyCode: nil),
+        .toggleHiddenFiles: ShortcutBinding(character: ".", modifiers: [.command, .shift], physicalKeyCode: nil),
+        .clearSelection: ShortcutBinding(character: "\u{1B}", modifiers: [], physicalKeyCode: nil),
         // Cmd+] is `goForward` (standard macOS); zoom-in stays on `⌘=` / keypad `+` only.
-        .zoomIn: Shortcut(key: "=", modifiers: .command, physicalKeyCodes: [KeyCode.equals, KeyCode.keypadPlus], label: "⌘ ="),
-        .zoomOut: Shortcut(key: "-", modifiers: .command, physicalKeyCodes: [KeyCode.minus, KeyCode.keypadMinus], label: "⌘ -"),
-        .zoomReset: Shortcut(key: "0", modifiers: .command, physicalKeyCodes: [KeyCode.zero], label: "⌘ 0"),
-        .renameMacOS: Shortcut(key: nil, physicalKeyCodes: [KeyCode.returnKey], label: "Return"),
-        .renameWindows: Shortcut(key: nil, physicalKeyCodes: [KeyCode.f2], label: "F2"),
-        // Windows-mode navigation: Return opens, Backspace goes up a level (no selection).
-        .openSelectedWindows: Shortcut(key: nil, physicalKeyCodes: [KeyCode.returnKey], label: "Enter"),
-        .enclosingFolderWindows: Shortcut(key: nil, physicalKeyCodes: [KeyCode.backspace], label: "Backspace"),
-        .arrowNavigation: Shortcut(
-            key: nil,
-            physicalKeyCodes: [KeyCode.arrowUp, KeyCode.arrowDown, KeyCode.arrowLeft, KeyCode.arrowRight],
-            label: "↑ ↓ ← →"),
-        .favoriteReorder: Shortcut(
-            key: nil, modifiers: .command, physicalKeyCodes: [KeyCode.arrowUp, KeyCode.arrowDown], label: "⌘ ↑  /  ⌘ ↓")
+        .zoomIn: ShortcutBinding(character: "=", modifiers: .command, physicalKeyCode: KeyCode.equals),
+        .zoomOut: ShortcutBinding(character: "-", modifiers: .command, physicalKeyCode: KeyCode.minus),
+        .zoomReset: ShortcutBinding(character: "0", modifiers: .command, physicalKeyCode: KeyCode.zero)
     ]
 
-    /// Physical keycodes for a monitor command, resolved once so the dispatch code has a single
-    /// definition instead of its own `KeyCode` literals.
-    static func physicalKeyCodes(_ command: Command) -> [UInt16] {
-        shortcut(command).physicalKeyCodes
+    /// Windows-preset-only combos: F2 renames, Return opens, Backspace-with-no-selection goes up.
+    private static let windowsOnlyBindings: [Command: ShortcutBinding] = [
+        .quickRename: ShortcutBinding(character: "\u{F705}", modifiers: [], physicalKeyCode: KeyCode.f2),
+        .openSelected: ShortcutBinding(character: "\r", modifiers: [], physicalKeyCode: KeyCode.returnKey),
+        .quickGoUp: ShortcutBinding(character: "\u{7F}", modifiers: [], physicalKeyCode: KeyCode.backspace)
+    ]
+
+    /// Mac-preset-only combos: Return renames, Cmd+Down opens. No `quickGoUp` — Backspace-goes-up is
+    /// a Windows-only convenience, so the Mac preset simply never binds it (absent, not "off").
+    private static let macOnlyBindings: [Command: ShortcutBinding] = [
+        .quickRename: ShortcutBinding(character: "\r", modifiers: [], physicalKeyCode: KeyCode.returnKey),
+        .openSelected: ShortcutBinding(character: "\u{F701}", modifiers: .command, physicalKeyCode: KeyCode.arrowDown)
+    ]
+
+    /// The full combo set a Windows or Mac preset bulk-writes into `ViewPreferences.activeShortcuts`
+    /// when the user selects that mode — destructively replacing whatever was there before,
+    /// including any Custom edits. `.custom` has no preset of its own (selecting it never resets the
+    /// live store); the branch exists only so this stays a total function.
+    static func preset(for mode: NavigationMode) -> [Command: ShortcutBinding] {
+        switch mode {
+        case .windows, .custom: commonBindings.merging(windowsOnlyBindings) { _, new in new }
+        case .macOS: commonBindings.merging(macOnlyBindings) { _, new in new }
+        }
+    }
+
+    /// Fixed, human-readable labels for `arrowNavigation`/`favoriteReorder` — informational only in
+    /// the Help cheat sheet, since neither is ever a key in the live store.
+    private static func fixedLabel(_ command: Command) -> String {
+        switch command {
+        case .arrowNavigation: "↑ ↓ ← →"
+        case .favoriteReorder: "⌘ ↑  /  ⌘ ↓"
+        default: ""
+        }
+    }
+
+    /// The label for whatever `command` is actually bound to right now.
+    static func label(_ command: Command, in activeShortcuts: [Command: ShortcutBinding]) -> String {
+        guard let binding = activeShortcuts[command] else { return fixedLabel(command) }
+        return ShortcutLabelFormatter.label(character: binding.character, modifiers: binding.modifiers)
+    }
+
+    /// The other command already bound to `binding`, if any — checked before writing a single-row
+    /// edit in Custom mode so the caller can confirm the swap with the user first. Only checks
+    /// `activeShortcuts` itself: `arrowNavigation`/`favoriteReorder` are deliberately excluded since
+    /// they're designed to layer with a live-store combo (e.g. Cmd+Down is both the Mac preset's
+    /// `openSelected` and, in the narrow context of a selected favorite, favorite-reordering) rather
+    /// than exclusively own it — flagging that overlap as a "conflict" would be a false positive.
+    static func conflictingCommand(for binding: ShortcutBinding, excluding: Command, in activeShortcuts: [Command: ShortcutBinding]) -> Command? {
+        activeShortcuts.first { $0.key != excluding && $0.value.character == binding.character && $0.value.modifiers == binding.modifiers }?.key
     }
 }
 
 extension View {
-    /// Applies a registry command's key combo to a menu `Button`/`Toggle`. A monitor-only command
-    /// (nil `key`) is a no-op — those are dispatched by `GlobalKeyMonitor`, not a menu.
+    /// Applies whatever `command` is actually bound to right now to a menu `Button`/`Toggle`. A
+    /// command absent from `activeShortcuts` (only possible for the two fixed, non-editable
+    /// commands, which never have a menu item) is a no-op.
     @ViewBuilder
-    func keyboardShortcut(_ command: ShortcutRegistry.Command) -> some View {
-        let shortcut = ShortcutRegistry.shortcut(command)
-        if let key = shortcut.key {
+    func keyboardShortcut(_ command: ShortcutRegistry.Command, activeShortcuts: [ShortcutRegistry.Command: ShortcutBinding]) -> some View {
+        if let binding = activeShortcuts[command], let key = binding.keyEquivalent {
             keyboardShortcut(KeyboardShortcut(
-                key, modifiers: shortcut.modifiers, localization: shortcut.customLocalization ? .custom : .automatic))
+                key, modifiers: binding.modifiers,
+                localization: command == .shortcutsHUD ? .custom : .automatic))
         } else {
             self
         }
+    }
+
+    /// Convenience over the primitive above, reading the live store straight from the shared store —
+    /// what every real call site actually has in scope.
+    func keyboardShortcut(_ command: ShortcutRegistry.Command, preferences: PreferencesStore) -> some View {
+        keyboardShortcut(command, activeShortcuts: preferences.view.activeShortcutsByCommand)
     }
 }

@@ -15,9 +15,9 @@ struct EditMenuCommands: LocalizedCommands {
     var body: some Commands {
         CommandGroup(replacing: .undoRedo) {
             Button(tr(.undo)) { appState?.undoLastAction() }
-                .keyboardShortcut(.undo)
+                .keyboardShortcut(.undo, preferences: sharedPreferences)
             Button(tr(.redo)) { appState?.redoLastAction() }
-                .keyboardShortcut(.redo)
+                .keyboardShortcut(.redo, preferences: sharedPreferences)
         }
         CommandGroup(replacing: .pasteboard) {
             // While ANY text field is focused (rename, path bar, the header search box, or a field
@@ -36,7 +36,7 @@ struct EditMenuCommands: LocalizedCommands {
                     appState.toggleSearching(windowUIState: windowUIState)
                 }
             }
-            .keyboardShortcut(.find)
+            .keyboardShortcut(.find, preferences: sharedPreferences)
         }
     }
 
@@ -60,7 +60,7 @@ struct EditMenuCommands: LocalizedCommands {
                 appState?.cutSelected()
             }
         }
-        .keyboardShortcut(.cut)
+        .keyboardShortcut(.cut, preferences: sharedPreferences)
         .disabled(!isRenaming && (appState?.selection.selectedURLs.isEmpty ?? true))
     }
 
@@ -72,7 +72,7 @@ struct EditMenuCommands: LocalizedCommands {
                 appState?.copySelected()
             }
         }
-        .keyboardShortcut(.copy)
+        .keyboardShortcut(.copy, preferences: sharedPreferences)
         .disabled(!isRenaming && (appState?.selection.selectedURLs.isEmpty ?? true))
     }
 
@@ -84,7 +84,7 @@ struct EditMenuCommands: LocalizedCommands {
                 appState.pasteToCurrentDirectory(windowUIState: windowUIState)
             }
         }
-        .keyboardShortcut(.paste)
+        .keyboardShortcut(.paste, preferences: sharedPreferences)
         .disabled(!isRenaming && !canPasteFiles)
     }
 
@@ -103,6 +103,6 @@ struct EditMenuCommands: LocalizedCommands {
                 appState?.selectAllItems()
             }
         }
-        .keyboardShortcut(.selectAll)
+        .keyboardShortcut(.selectAll, preferences: sharedPreferences)
     }
 }
