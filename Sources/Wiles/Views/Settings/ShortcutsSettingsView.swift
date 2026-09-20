@@ -34,34 +34,26 @@ struct ShortcutsSettingsView: View {
         .quickGoUp: .shortcutsBackspaceGoUp
     ]
 
+    private static let sectionSpacing: CGFloat = 24
+    private static let sectionCornerRadius: CGFloat = 8
+    private static let rowVerticalPadding: CGFloat = 6
+    private static let rowHorizontalPadding: CGFloat = 12
+
     var appState: AppState
     @State private var editingCommand: Command?
     @State private var captureController = ShortcutCaptureController()
     @State private var pendingConflict: PendingConflict?
 
     var body: some View {
-        @Bindable var appState = appState
-        return Form {
-            Section(appState.tr(.settingsShortcutModeSection)) {
-                Picker(appState.tr(.shortcutMode), selection: $appState.preferences.view.navigationMode) {
-                    ForEach(NavigationMode.allCases) { mode in
-                        Text(appState.tr(mode.l10nKey)).tag(mode)
-                    }
-                }
-                .onChange(of: appState.preferences.view.navigationMode) { _, newMode in
-                    guard newMode != .custom else { return }
-                    appState.preferences.view.applyPreset(newMode)
+        ScrollView {
+            VStack(alignment: .leading, spacing: Self.sectionSpacing) {
+                modeSection
+                if appState.preferences.view.navigationMode == .custom {
+                    customShortcutsSection
                 }
             }
-            if appState.preferences.view.navigationMode == .custom {
-                Section(appState.tr(.settingsCustomShortcutsSection)) {
-                    ForEach(ShortcutRegistry.editableCommands, id: \.self) { command in
-                        shortcutRow(command)
-                    }
-                }
-            }
+            .padding()
         }
-        .formStyle(.grouped)
         .onDisappear { stopCapturing() }
         .confirmationDialog(
             conflictMessage,
@@ -77,31 +69,69 @@ struct ShortcutsSettingsView: View {
         .accessibilityLabel(Text(appState.tr(.settingsShortcutsTab)))
     }
 
-    /// A real `Button` (not a plain view + `.onTapGesture`) — inside `Form`'s macOS `List`-backed
-    /// rows, a bare `.onTapGesture` loses the click to the row's own native selection handling
-    /// before the gesture recognizer ever sees it. `.buttonStyle(.plain)` keeps it looking like an
-    /// ordinary settings row instead of a bordered button.
+    private var modeSection: some View {
+        @Bindable var appState = appState
+        return groupedSection(title: appState.tr(.settingsShortcutModeSection)) {
+            Picker(appState.tr(.shortcutMode), selection: $appState.preferences.view.navigationMode) {
+                ForEach(NavigationMode.allCases) { mode in
+                    Text(appState.tr(mode.l10nKey)).tag(mode)
+                }
+            }
+            .padding(.vertical, Self.rowVerticalPadding)
+            .padding(.horizontal, Self.rowHorizontalPadding)
+            .onChange(of: appState.preferences.view.navigationMode) { _, newMode in
+                guard newMode != .custom else { return }
+                appState.preferences.view.applyPreset(newMode)
+            }
+        }
+    }
+
+    private var customShortcutsSection: some View {
+        groupedSection(title: appState.tr(.settingsCustomShortcutsSection)) {
+            ForEach(Array(ShortcutRegistry.editableCommands.enumerated()), id: \.element) { index, command in
+                shortcutRow(command)
+                if index < ShortcutRegistry.editableCommands.count - 1 {
+                    Divider().padding(.leading, Self.rowHorizontalPadding)
+                }
+            }
+        }
+    }
+
+    /// Replicates `.formStyle(.grouped)`'s look (caps section title above a rounded, tinted box) by
+    /// hand — a plain `ScrollView`/`VStack`, not a `Form`/`List`, since a `List`-backed row on macOS
+    /// swallows a tap before either `.onTapGesture` or a `Button` with `.contentShape` in its label
+    /// reliably sees it (confirmed against the real app both ways); outside a `List` the shared
+    /// `TappableRow` pattern works normally.
+    private func groupedSection(title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            VStack(spacing: 0, content: content)
+                .background(RoundedRectangle(cornerRadius: Self.sectionCornerRadius).fill(Color(NSColor.controlBackgroundColor)))
+        }
+    }
+
     private func shortcutRow(_ command: Command) -> some View {
         let isEditing = editingCommand == command
         let title = appState.tr(labelKey(for: command))
         let currentLabel = ShortcutRegistry.label(command, in: appState.preferences.view.activeShortcutsByCommand)
         let valueText = isEditing ? appState.tr(.shortcutCaptureHint) : currentLabel
-        return Button {
-            startCapturing(command)
-        } label: {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(valueText)
-                    .foregroundStyle(isEditing ? Color.accentColor : Color.secondary)
-                    .font(.system(.body, design: .monospaced))
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(title))
-        .accessibilityValue(Text(valueText))
-        .accessibilityHint(isEditing ? Text(appState.tr(.shortcutCaptureHint)) : Text(""))
+        return TappableRow(
+            accessibilityLabel: title,
+            accessibilityHint: isEditing ? appState.tr(.shortcutCaptureHint) : nil,
+            action: { startCapturing(command) },
+            content: {
+                HStack {
+                    Text(title)
+                    Spacer()
+                    Text(valueText)
+                        .foregroundStyle(isEditing ? Color.accentColor : Color.secondary)
+                        .font(.system(.body, design: .monospaced))
+                }
+                .padding(.vertical, Self.rowVerticalPadding)
+                .padding(.horizontal, Self.rowHorizontalPadding)
+            })
     }
 
     private func startCapturing(_ command: Command) {
