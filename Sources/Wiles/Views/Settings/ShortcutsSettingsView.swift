@@ -152,7 +152,7 @@ struct ShortcutsSettingsView: View {
         // event can hand a local monitor a Cmd-held keyDown with that field empty even though the
         // key is a normal printable one — `characters` (which does reflect Cmd, unlike Shift/Option,
         // since Cmd isn't a character-remapping modifier) is a reliable fallback for exactly that case.
-        let resolvedCharacters = [event.charactersIgnoringModifiers, event.characters].compactMap { $0 }.first { !$0.isEmpty }
+        let resolvedCharacters = [event.charactersIgnoringModifiers, event.characters].compactMap(\.self).first { !$0.isEmpty }
         guard let characters = resolvedCharacters else { return }
         let binding = ShortcutBinding(character: characters, modifiers: Self.modifiers(from: event.modifierFlags), physicalKeyCode: event.keyCode)
         if let conflicting = ShortcutRegistry.conflictingCommand(for: binding, excluding: command, in: appState.preferences.view.activeShortcutsByCommand) {
