@@ -1,4 +1,4 @@
-# IGNORAR — arquivos triviais, pular nas próximas rodadas
+# IGNORE — trivial files, skip in future rounds
 
 - `App/Commands/LocalizedCommands.swift`
 - `Constants/AppConstants.swift`

@@ -1,227 +1,232 @@
-Quero uma revisão dedicada exclusivamente a bugs de RENDERIZAÇÃO/VISUAL — não
-arquitetura, não lógica de negócio, não concorrência de dados. `eval.md` já
-cobre isso. Este documento existe porque `eval.md` sozinho comprovadamente NÃO
-pega uma classe inteira de bug: código cuja LÓGICA está certa mas cujo efeito
-visual na tela está errado (ex.: scrollbar da sidebar que nunca aparece depois
-que a directory tree é expandida — `LazyVStack` recursivo dentro de um único
-`ScrollView` ancestral quebrando o recálculo de geometria do `NSScrollView`).
+I want a review dedicated exclusively to RENDERING/VISUAL bugs — not
+architecture, not business logic, not data concurrency. `eval.md` already
+covers that. This document exists because `eval.md` alone has demonstrably
+NOT caught an entire class of bug: code whose LOGIC is correct but whose
+visual effect on screen is wrong (e.g., a sidebar scrollbar that never
+appears after the directory tree is expanded — a recursive `LazyVStack`
+nested inside a single shared ancestor `ScrollView`, breaking the
+`NSScrollView`'s geometry recalculation).
 
-Motivo de existir um documento separado, não apenas mais uma seção em
-`eval.md`: revisão de arquitetura lê o código e pergunta "a lógica está
-certa?". Revisão de renderização lê o código e pergunta uma coisa
-fundamentalmente diferente — "quando ESTE valor muda, o que EXATAMENTE
-recalcula a tela, e QUANDO?" — e boa parte dos findings aqui só podem ser
-CONFIRMADOS rodando o app de verdade (`scripts/run_ui_test.sh`, que dirige o
-app pela Accessibility API), não só lendo texto. As duas óticas exigem checklist e metodologia
-diferentes; misturá-las faz a de renderização virar um item esquecido no meio
-de uma lista de 900 linhas sobre outra coisa.
+Reason for having a separate document instead of just another section in
+`eval.md`: an architecture review reads the code and asks "is the logic
+right?". A rendering review reads the code and asks a fundamentally
+different question — "when THIS value changes, what EXACTLY recalculates on
+screen, and WHEN?" — and a good part of the findings here can only be
+CONFIRMED by actually running the app (`scripts/run_ui_test.sh`, which
+drives the app through the Accessibility API), not just by reading text.
+The two lenses require different checklists and methodology; mixing them
+turns the rendering lens into a forgotten item buried inside a 900-line
+list about something else.
 
-## Escopo
+## Scope
 
-- Todo arquivo em `Sources/Wiles/Views/**/*.swift`.
-- Todo `NSViewRepresentable`/`NSViewControllerRepresentable` em qualquer
-  pasta (ex.: `ScrollerAutoHideSetter`, `SplitViewDividerSetter`,
+- Every file in `Sources/Wiles/Views/**/*.swift`.
+- Every `NSViewRepresentable`/`NSViewControllerRepresentable` in any folder
+  (e.g., `ScrollerAutoHideSetter`, `SplitViewDividerSetter`,
   `TranslucentVisualEffectView`).
-- Todo `ViewModifier` custom que afeta aparência/scroll/animação
+- Every custom `ViewModifier` that affects appearance/scroll/animation
   (`.translucentBackground`, `.resetPaginationAndPrefetchThumbnails`, etc.).
-- Qualquer `@State`/`@Binding`/`@Observable` propriedade que alimenta
-  diretamente um desses arquivos, mesmo que a própria propriedade viva em
-  `Models/AppState/`.
-- NÃO revise lógica de negócio, filesystem, concorrência de dados ou
-  persistência aqui — isso é `eval.md`. Se um finding for realmente sobre
-  lógica (não sobre o que aparece na tela), registre-o para `eval.md` em vez
-  de forçá-lo aqui.
+- Any `@State`/`@Binding`/`@Observable` property that directly feeds one of
+  these files, even if the property itself lives in `Models/AppState/`.
+- Do NOT review business logic, filesystem, data concurrency, or
+  persistence here — that's `eval.md`. If a finding is really about logic
+  (not about what appears on screen), record it for `eval.md` instead of
+  forcing it in here.
 
-## Watchers / Eventos Recorrentes (TEMPORÁRIO — pertence a `eval.md`, não é bug de render)
+## Watchers / Recurring Events (TEMPORARY — belongs in `eval.md`, not a render bug)
 
-Regra estacionada aqui a pedido do usuário; mover para a seção "Eventos de
-Alta Frequência" de `eval.md` quando houver oportunidade. Não é escopo deste
-documento (é lógica/concorrência, não render) — registrada aqui só para não
-se perder.
+Rule parked here at the user's request; move it to the "High-Frequency
+Events" section of `eval.md` when there's an opportunity. It's not in scope
+for this document (it's logic/concurrency, not rendering) — recorded here
+only so it doesn't get lost.
 
-Motivação: um bug real (sidebar/main content presos em "loading" para
-sempre) passou por várias rodadas de `eval.md` sem ser pego. A seção
-"Eventos de Alta Frequência" já existia e já nomeava o padrão certo
-("watchers", "coalescing", "eventos antigos processados quando o resultado
-já não é relevante"), mas o finding foi descartado porque a evidência
-("o load demora mais que o intervalo entre eventos") parecia depender de uma
-condição de runtime não demonstrável em código — exatamente o tipo de coisa
-que "Evidência e Confiança" rebaixa para MEDIUM/LOW confidence, e que depois
-o filtro de ROI descarta.
+Motivation: a real bug (sidebar/main content stuck "loading" forever) went
+through several rounds of `eval.md` without being caught. The
+"High-Frequency Events" section already existed and already named the
+right pattern ("watchers", "coalescing", "stale events processed when the
+result is no longer relevant"), but the finding was discarded because the
+evidence ("the load takes longer than the interval between events") seemed
+to depend on a runtime condition not demonstrable in the code — exactly the
+kind of thing "Evidence and Confidence" downgrades to MEDIUM/LOW
+confidence, which the ROI filter then discards.
 
-Regra nova: promova para CONFIRMED (não precisa de repro em runtime) todo
-caso em que TODAS as condições abaixo são verificáveis por leitura de
-código:
+New rule: promote to CONFIRMED (no runtime repro needed) every case where
+ALL of the conditions below are verifiable by reading the code:
 
-1. Existe uma fonte de evento recorrente e externa (FSEvents/watcher,
-   `NSNotification`, timer, mensagem de rede) que dispara uma função de
-   refresh/reload.
-2. Essa função faz cancel-and-restart da operação anterior (`task?.cancel()`
-   seguido de um novo `Task { }`) em vez de deixar a operação em andamento
-   terminar.
-3. O custo da operação cancelada escala com um fator externo sem limite
-   superior conhecido (contagem de arquivos, tamanho de resposta de rede,
-   etc.) — ou seja, não há garantia de que ela sempre termine mais rápido
-   que o intervalo entre eventos.
-4. Não existe, no CONSUMIDOR do evento (não no produtor), nenhum mecanismo
-   que só deixe uma nova tentativa substituir a anterior se a anterior já
-   tiver terminado (um debounce/coalescing do lado do PRODUTOR do evento,
-   por si só, não conta — ele limita a taxa de disparo, não impede que o
-   disparo seguinte cancele um trabalho ainda em andamento).
+1. There's a recurring, external event source (FSEvents/watcher,
+   `NSNotification`, timer, network message) that triggers a
+   refresh/reload function.
+2. That function does a cancel-and-restart of the previous operation
+   (`task?.cancel()` followed by a new `Task { }`) instead of letting the
+   in-flight operation finish.
+3. The cost of the cancelled operation scales with an external factor with
+   no known upper bound (file count, network response size, etc.) — i.e.,
+   there's no guarantee it will always finish faster than the interval
+   between events.
+4. There is no mechanism, on the event's CONSUMER side (not the producer),
+   that only lets a new attempt replace the previous one if the previous
+   one has already finished (a debounce/coalescing on the event PRODUCER
+   side alone doesn't count — it limits the firing rate, but doesn't stop
+   the next firing from cancelling work still in progress).
 
-Quando as 4 condições valem, isso é um livelock estrutural — não uma
-hipótese — mesmo sem uma pasta real grande/barulhenta à mão para reproduzir.
-O caso confirmado neste projeto: `DirectoryMonitor` (FSEvents) →
+When all 4 conditions hold, this is a structural livelock — not a
+hypothesis — even without a real large/noisy folder on hand to reproduce
+it. The case confirmed in this project: `DirectoryMonitor` (FSEvents) →
 `AppState.startDirectoryMonitoring`'s callback → `refreshCurrentDirectory`
-→ `fileSystem.refreshTask?.cancel()` + novo `Task`, com o custo de
-`FileItem.load`/`resolveHighResIcon` escalando com o número de arquivos da
-pasta. Corrigido com uma flag `isRefreshing` no consumidor: um evento que
-chega enquanto uma refresh já está rodando é descartado (não cancela),
-garantindo que pelo menos uma tentativa sempre chega ao fim. Teste de
-regressão: `AppStateDirectoryRefreshTests.testDirectoryListingCompletesUnderContinuousExternalWritePressure`.
+→ `fileSystem.refreshTask?.cancel()` + a new `Task`, with the cost of
+`FileItem.load`/`resolveHighResIcon` scaling with the number of files in
+the folder. Fixed with an `isRefreshing` flag on the consumer: an event
+that arrives while a refresh is already running is dropped (not
+cancelled), guaranteeing that at least one attempt always runs to
+completion. Regression test:
+`AppStateDirectoryRefreshTests.testDirectoryListingCompletesUnderContinuousExternalWritePressure`.
 
-## O que procurar
+## What to look for
 
-Para cada View, trace explicitamente:
+For each View, explicitly trace:
 
-`Valor/estado que muda → quem observa esse valor → o que especificamente
-recalcula na tela → QUANDO isso recalcula (mesmo frame? próximo layout pass?
-só na remontagem completa?) → o resultado visual final está correto?`
+`Value/state that changes → who observes that value → what specifically
+recalculates on screen → WHEN it recalculates (same frame? next layout
+pass? only on a full remount?) → is the final visual result correct?`
 
-Isso é o "teste de mesa de renderização": não basta confirmar que o dado
-mudou — tem que confirmar que o WIDGET certo, na hora certa, reagiu a essa
-mudança. Um dado correto com um widget que não recalcula na hora certa
-produz exatamente o tipo de bug que uma revisão de lógica nunca vê.
+This is the "rendering desk check": it's not enough to confirm the data
+changed — you have to confirm the RIGHT widget, at the right time, reacted
+to that change. Correct data with a widget that doesn't recalculate at the
+right time produces exactly the kind of bug a logic review never sees.
 
-### Padrões estaticamente reconhecíveis como red flag
+### Statically recognizable red-flag patterns
 
-Estes são verificáveis por leitura de código, sem precisar rodar o app —
-tratá-los como suspeitos automáticos, não como prova de bug:
+These are verifiable by reading the code, without needing to run the app —
+treat them as automatic suspects, not proof of a bug:
 
-- **`LazyVStack`/`LazyHStack` recursivo**: uma View que se auto-referencia
-  (`Self(...)`) e usa `LazyVStack` internamente, aninhando múltiplas
-  instâncias dentro de UM `ScrollView` ancestral compartilhado. Cada nível
-  de recursão é uma aposta sobre o `ScrollView` recalcular corretamente o
-  tamanho total quando um nível profundo muda de tamanho — muitas vezes não
-  recalcula. Prefira `VStack` simples nesse padrão, a menos que o número de
-  itens por nível seja genuinamente grande (centenas+).
-- **Conteúdo assíncrono chegando depois do layout inicial** (`.task`,
-  `Task {}`, callback) que escreve em `@State`/cache consumido por um
-  `ScrollView`/`Lazy*Stack`. Pergunte: o container pai recalcula tamanho
-  quando isso chega, ou só na próxima remontagem completa da View?
-- **`NSViewRepresentable` que localiza um `NSView` específico andando pela
-  hierarquia** (`superview`/`subviews`) para estilizá-lo — ex.: forçar
-  `scrollerStyle`, achar o `NSScrollView` real por baixo de um `ScrollView`
-  SwiftUI. Nunca aceite o comentário do próprio código como prova de que
-  funciona; é código não-verificável estaticamente por definição. Um gate
-  tipo `hasApplied` que nunca reaplica depois que a hierarquia muda de
-  tamanho é sinal concreto de que a instância encontrada pode ficar
-  obsoleta assim que o conteúdo cresce.
-- **Modificador de aparência aplicado no nível errado da árvore**
+- **Recursive `LazyVStack`/`LazyHStack`**: a View that self-references
+  (`Self(...)`) and uses `LazyVStack` internally, nesting multiple
+  instances inside ONE shared ancestor `ScrollView`. Each level of
+  recursion is a bet that the `ScrollView` will correctly recalculate the
+  total size when a deep level changes size — often it doesn't. Prefer a
+  plain `VStack` in this pattern, unless the number of items per level is
+  genuinely large (hundreds+).
+- **Async content arriving after the initial layout** (`.task`, `Task {}`,
+  callback) that writes to `@State`/a cache consumed by a
+  `ScrollView`/`Lazy*Stack`. Ask: does the parent container recalculate its
+  size when this arrives, or only on the View's next full remount?
+- **An `NSViewRepresentable` that locates a specific `NSView` by walking
+  the hierarchy** (`superview`/`subviews`) to style it — e.g., forcing
+  `scrollerStyle`, finding the real `NSScrollView` underneath a SwiftUI
+  `ScrollView`. Never take the code's own comment as proof that it works;
+  this is code that's not statically verifiable by definition. A
+  `hasApplied`-style gate that never reapplies after the hierarchy changes
+  size is a concrete sign the found instance can go stale as soon as the
+  content grows.
+- **An appearance modifier applied at the wrong level of the tree**
   (`.scrollIndicators`, `.animation`, `.clipShape`, `.mask`,
-  `.background`) — compare onde o comentário do código diz que o efeito
-  deveria aparecer versus em qual View exatamente o modificador está
-  anexado. `.background()` em particular cria ambiguidade sobre se a View
-  resultante é IRMÃ do conteúdo real ou fica ANINHADA dentro dele — a
-  diferença muda completamente que hierarquia AppKit resulta daquilo.
-- **`GeometryReader`/`ScrollViewReader` proxy usado depois que o valor que
-  originou aquele frame já mudou** — proxies capturados em closures
-  assíncronas podem estar obsoletos no momento em que são usados.
-- **`@State` local vs. referência compartilhada (`class`) usada como
-  "cache" atrás de várias Views** — se uma é `@State` (SwiftUI observa) e
-  a outra é uma referência plana compartilhada (SwiftUI não observa), qual
-  delas dispara o re-render real importa exatamente para ONDE e QUANDO a
-  tela atualiza. Ver `BoundedFolderNodeCache`'s doc comment para o caso já
-  corrigido no projeto.
-- **`.id()` trocando identidade da View** — força remontagem completa
-  (perde `@State`, reseta scroll position, reseta animação em andamento).
-  Verifique se isso é intencional ou um efeito colateral não percebido.
-- **Propriedade de um `NSView`/`NSScrollView` do AppKit setada só UMA VEZ
-  (gate tipo `hasApplied`/`hasAppliedStyle`), quando essa propriedade é uma
-  que o PRÓPRIO AppKit também reatribui em runtime por conta própria** —
-  ex.: `NSScrollView.scrollerStyle`, que o macOS recalcula sozinho conforme
-  o dispositivo de entrada (mouse físico vs. trackpad) sob "Show scroll
-  bars: Automatically based on mouse or trackpad", **sem nenhum aviso ao
-  app**. Um código que força esse valor uma vez no mount e nunca mais
-  reforça está numa corrida contra o próprio AppKit — quem "ganha" por
-  último (o app, no mount, ou o sistema, a qualquer scroll futuro) decide o
-  comportamento, e o sistema sempre ganha depois do primeiro scroll real.
-  Isso não aparece como `isHidden == true` nem como erro nenhum — o
-  `NSScroller` continua existindo e "não escondido" segundo o próprio
-  AppKit, só fica desenhado atrás do conteúdo (que não abriu espaço para o
-  estilo `.legacy` que substituiu o `.overlay`). Caso confirmado neste
-  projeto: `ScrollerAutoHideSetter` forçava `scrollerStyle = .overlay`
-  apenas uma vez; um mouse wheel real fazia o macOS trocar para `.legacy`
-  e nunca mais voltava — nem trocando outras seções da sidebar. Corrigido
-  reforçando o valor em TODA chamada (`layout()`/`updateNSView`) e também
-  diretamente nos observers de `NSScrollView.willStartLiveScrollNotification`/
-  `didLiveScrollNotification`/`didEndLiveScrollNotification` (o
-  `layout()`/`updateNSView` da View sozinho não necessariamente dispara
-  durante um gesto de scroll puro). Teste de regressão:
+  `.background`) — compare where the code's comment says the effect should
+  appear versus exactly which View the modifier is attached to.
+  `.background()` in particular creates ambiguity about whether the
+  resulting View is a SIBLING of the actual content or ends up NESTED
+  inside it — the difference completely changes which AppKit hierarchy
+  results from it.
+- **A `GeometryReader`/`ScrollViewReader` proxy used after the value that
+  originated that frame has already changed** — proxies captured in async
+  closures can be stale by the time they're used.
+- **Local `@State` vs. a shared reference (`class`) used as a "cache"
+  behind several Views** — if one is `@State` (SwiftUI observes it) and
+  the other is a plain shared reference (SwiftUI doesn't observe it),
+  which one actually triggers the re-render matters exactly for WHERE and
+  WHEN the screen updates. See `BoundedFolderNodeCache`'s doc comment for
+  the case already fixed in this project.
+- **`.id()` changing the View's identity** — forces a full remount (loses
+  `@State`, resets scroll position, resets any in-flight animation). Check
+  whether this is intentional or an unnoticed side effect.
+- **An AppKit `NSView`/`NSScrollView` property set only ONCE (a
+  `hasApplied`/`hasAppliedStyle`-style gate), when that property is one
+  that AppKit ITSELF also reassigns at runtime on its own** — e.g.,
+  `NSScrollView.scrollerStyle`, which macOS recalculates on its own based
+  on the input device (physical mouse vs. trackpad) under "Show scroll
+  bars: Automatically based on mouse or trackpad", **with no notice to the
+  app whatsoever**. Code that forces this value once on mount and never
+  reinforces it again is in a race against AppKit itself — whoever "wins"
+  last (the app, on mount, or the system, on any future scroll) decides
+  the behavior, and the system always wins after the first real scroll.
+  This doesn't show up as `isHidden == true` or as any kind of error — the
+  `NSScroller` still exists and is "not hidden" as far as AppKit itself is
+  concerned, it just gets drawn behind the content (which didn't make room
+  for the `.legacy` style that replaced `.overlay`). Case confirmed in
+  this project: `ScrollerAutoHideSetter` forced `scrollerStyle = .overlay`
+  only once; a real mouse wheel made macOS switch to `.legacy`, and it
+  never went back — not even by switching to other sidebar sections.
+  Fixed by reinforcing the value on EVERY call (`layout()`/`updateNSView`)
+  and also directly in the
+  `NSScrollView.willStartLiveScrollNotification`/`didLiveScrollNotification`/`didEndLiveScrollNotification`
+  observers (the View's own `layout()`/`updateNSView` doesn't necessarily
+  fire during a pure scroll gesture). Regression test:
   `ScrollerAutoHideSetterTests.testKeepOverlayStyleRevertsLegacyStyleBackToOverlay`.
-  Generalizando: sempre que um valor for tanto setado pelo app QUANTO
-  recalculado autonomamente pelo framework em resposta a um evento de
-  sistema (não só scroller — outros candidatos: `NSWindow.appearance`,
-  `NSApplication` sob mudança de tema, `NSTextView` sob spell-check
-  automático), um gate de "aplicar uma vez" é insuficiente por definição —
-  precisa reforçar continuamente ou observar o evento de sistema relevante
-  e reagir a ele.
+  Generalizing: whenever a value is both set by the app AND recalculated
+  autonomously by the framework in response to a system event (not just
+  the scroller — other candidates: `NSWindow.appearance`, `NSApplication`
+  under a theme change, `NSTextView` under automatic spell-check), a "set
+  once" gate is insufficient by definition — it needs to either keep
+  reinforcing continuously or observe the relevant system event and react
+  to it.
 
-### Metodologia: um finding aqui tem duas fases obrigatórias
+### Methodology: a finding here has two mandatory phases
 
-1. **Suspeita estática** — encontrar o padrão de risco acima, registrar
-   como candidato.
-2. **Confirmação em runtime** — TODO candidato que descreve um efeito
-   visual (aparece/some, anima errado, não recalcula tamanho) precisa de
-   uma confirmação real, não apenas leitura de código:
-   - Adicione um passo à walkthrough em `UITestRunner/Sources/uitestrunner/Walkthrough/`
-     que reproduza o cenário (ex.: expandir a árvore até haver overflow,
-     depois checar via AX que a scrollbar aparece).
-   - Rode com `scripts/run_ui_test.sh` (ou `--plan`); `validate.sh` roda os
-     dois passes. Não usa `xcodebuild` nem `swift test`.
-   - Confirme que o teste FALHA no código atual (prova que o bug é real e
-     que o teste de fato o detecta) antes de aplicar a correção, depois
-     confirme que PASSA depois da correção.
-   - Se não for possível escrever um teste automatizado razoável para um
-     candidato específico (ex.: comportamento que depende de preferência
-     de sistema do usuário), diga isso explicitamente no finding e marque
-     como "requer verificação manual" em vez de fingir que foi confirmado.
-   Um finding sem nenhuma das duas confirmações acima é uma SUSPEITA, não
-   um finding — reporte-o como tal (seção própria, não junto dos
-   confirmados).
+1. **Static suspicion** — find one of the risk patterns above, record it
+   as a candidate.
+2. **Runtime confirmation** — EVERY candidate that describes a visual
+   effect (appears/disappears, animates wrong, doesn't recalculate size)
+   needs a real confirmation, not just a code read:
+   - Add a step to the walkthrough in
+     `UITestRunner/Sources/uitestrunner/Walkthrough/` that reproduces the
+     scenario (e.g., expand the tree until it overflows, then check via AX
+     that the scrollbar appears).
+   - Run it with `scripts/run_ui_test.sh` (or `--plan`); `validate.sh`
+     runs both passes. It doesn't use `xcodebuild` or `swift test`.
+   - Confirm the test FAILS on the current code (proving the bug is real
+     and that the test actually catches it) before applying the fix, then
+     confirm it PASSES after the fix.
+   - If it's not possible to write a reasonable automated test for a
+     specific candidate (e.g., behavior that depends on a user system
+     preference), say so explicitly in the finding and mark it "requires
+     manual verification" instead of pretending it was confirmed.
+   A finding with neither of the two confirmations above is a SUSPICION,
+   not a finding — report it as such (its own section, not alongside
+   confirmed ones).
 
-## Testes de lógica (o que ainda cabe em unit test aqui)
+## Logic tests (what still belongs in a unit test here)
 
-Bugs de renderização pura não são alcançáveis por unit test (XCTest não
-observa pixels/NSScroller). Mas a LÓGICA que alimenta o render às vezes é
-testável isoladamente — e DEVE ganhar um unit test quando for:
+Pure rendering bugs are not reachable by unit test (XCTest doesn't observe
+pixels/`NSScroller`). But the LOGIC that feeds the render is sometimes
+testable in isolation — and SHOULD get a unit test when it is:
 
-- Semântica de referência vs. valor de um cache/estado compartilhado entre
-  Views (ex.: `BoundedFolderNodeCacheTests.testReferenceSemanticsShare-
-  MutationsAcrossHolders`) — prova a PROPRIEDADE de que o bug de fan-out
-  dependia, sem precisar renderizar nada.
-- Funções puras que computam o que vai para a tela (formatação, ordenação,
-  filtragem, geometria calculada manualmente) — não a renderização em si.
-- Condições de guarda que decidem SE algo deveria re-renderizar (ex.: "só
-  aplica se `expandedPaths.contains(url)`") — teste a condição isolada da
-  View.
+- Reference vs. value semantics of a cache/state shared between Views
+  (e.g.,
+  `BoundedFolderNodeCacheTests.testReferenceSemanticsShareMutationsAcrossHolders`)
+  — proves the PROPERTY the fan-out bug depended on, without needing to
+  render anything.
+- Pure functions that compute what goes on screen (formatting, sorting,
+  filtering, manually computed geometry) — not the rendering itself.
+- Guard conditions that decide WHETHER something should re-render (e.g.,
+  "only apply if `expandedPaths.contains(url)`") — test the condition in
+  isolation from the View.
 
-Não force um unit test para o que só é observável correndo o app de
-verdade — isso produz um teste que sempre passa e não prova nada (falso
-senso de segurança), que é pior do que admitir "isto precisa de UI test".
+Don't force a unit test for something only observable by actually running
+the app — that produces a test that always passes and proves nothing (a
+false sense of security), which is worse than admitting "this needs a UI
+test".
 
-## Classificação, ROI, Safety Gate, formato de finding
+## Classification, ROI, Safety Gate, finding format
 
-Reaproveite integralmente o esquema de `eval.md`: IDs `[Severidade][Impacto]-
-[ROIx100]`, fórmula de ROI, Safety Gate, seção NOT WORTH, seção "Findings
-skipped by comments". Não duplique aqui — a única diferença é o ESCOPO
-(render, não arquitetura) e a EXIGÊNCIA extra de confirmação em runtime
-descrita acima.
+Reuse `eval.md`'s scheme in full: IDs `[Severity][Impact]-[ROIx100]`, the
+ROI formula, Safety Gate, the NOT WORTH section, the "Findings skipped by
+comments" section. Don't duplicate it here — the only difference is the
+SCOPE (rendering, not architecture) and the extra runtime-confirmation
+REQUIREMENT described above.
 
-## Resultado final
+## Final result
 
-Gere/atualize `TODO/RENDER_CODE_REVIEW.md`, incrementalmente, seguindo a
-mesma disciplina de `TODO/ARCHITECTURE_CODE_REVIEW.md` (apagar findings do
-arquivo assim que corrigidos e testados — não marcar como done). Cada
-finding confirmado deve linkar o teste de UI que o comprova (caminho do
-arquivo + nome do método de teste).
+Generate/update `TODO/RENDER_CODE_REVIEW.md`, incrementally, following the
+same discipline as `TODO/ARCHITECTURE_CODE_REVIEW.md` (delete findings from
+the file as soon as they're fixed and tested — don't mark them as done).
+Each confirmed finding must link to the UI test that proves it (file path +
+test method name).

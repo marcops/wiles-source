@@ -1,64 +1,64 @@
-Quero uma revisão arquitetural e de código COMPLETA do projeto.
+I want a COMPLETE architectural and code review of the project.
 
-IMPORTANTE:
-- Analise APENAS arquivos de código-fonte.
-- NÃO analise testes, arquivos de teste, mocks de teste ou código exclusivamente relacionado a testes.
-- Pule todos os arquivos listados em `IGNORAR.md`.
-- Não faça uma revisão superficial ou apenas por amostragem.
-- Revise linha a linha os arquivos de código relevantes.
-- Não altere o código durante esta etapa. Apenas analise e gere o relatório.
-- Ao final, gere um `TODO/ARCHITECTURE_CODE_REVIEW.md`` dentro da pasta `TODO`.
+IMPORTANT:
+- Analyze ONLY source code files.
+- Do NOT analyze tests, test files, test mocks, or code exclusively related to tests.
+- Skip every file listed in `IGNORAR.md`.
+- Do not do a superficial or sampling-only review.
+- Review the relevant code files line by line.
+- Do not change the code during this step. Only analyze and produce the report.
+- At the end, generate a `TODO/ARCHITECTURE_CODE_REVIEW.md` inside the `TODO` folder.
 
-Nunca considere a revisão concluída enquanto 100% dos arquivos de código relevantes não tiverem sido analisados.
+Never consider the review complete until 100% of the relevant code files have been analyzed.
 
-## Objetivo
+## Goal
 
-Quero uma revisão feita como se você fosse simultaneamente:
+I want a review done as if you were simultaneously:
 
 1. Senior/Staff Swift Engineer
 2. Software Architect
-3. Especialista em arquitetura e design patterns
-4. Especialista em Swift/SwiftUI e performance
+3. Architecture and design patterns specialist
+4. Swift/SwiftUI and performance specialist
 5. UI/UX Engineer
 6. Product Engineer
 
-Não quero que você simplesmente valide se o código atual está "bom".
+I don't want you to simply validate whether the current code is "good".
 
-Quero que você tente DESCOBRIR problemas e oportunidades que eu ainda não percebi.
+I want you to try to DISCOVER problems and opportunities I haven't noticed yet.
 
-A arquitetura atual é uma arquitetura própria do projeto. Ela deve ser respeitada como contexto, mas NÃO deve ser considerada correta simplesmente porque já foi adotada.
+The current architecture is the project's own architecture. It should be respected as context, but must NOT be considered correct simply because it has already been adopted.
 
-Se você acreditar que alguma decisão arquitetural atual está errada, excessivamente complexa, difícil de manter ou inadequada para o produto, diga explicitamente.
+If you believe any current architectural decision is wrong, excessively complex, hard to maintain, or unsuitable for the product, say so explicitly.
 
-## O que procurar
+## What to look for
 
-Analise, entre outras coisas:
+Analyze, among other things:
 
-### Código
+### Code
 
 - DRY
 - KISS
-- SOLID quando realmente aplicável
+- SOLID when actually applicable
 - Clean Code
-- responsabilidades mal distribuídas
-- abstrações desnecessárias
-- duplicação
-- código excessivamente complexo
-- métodos/classes grandes demais
-- acoplamento desnecessário
-- dependências desnecessárias
-- estado duplicado
-- lógica espalhada
-- condições que poderiam ser simplificadas
-- APIs internas inconsistentes
+- poorly distributed responsibilities
+- unnecessary abstractions
+- duplication
+- excessively complex code
+- methods/classes that are too large
+- unnecessary coupling
+- unnecessary dependencies
+- duplicated state
+- scattered logic
+- conditions that could be simplified
+- inconsistent internal APIs
 - naming
-- tipos inadequados
+- inadequate types
 - force unwraps / force casts
-- tratamento de erros
+- error handling
 - edge cases
-- estados impossíveis ou inconsistentes
+- impossible or inconsistent states
 - race conditions
-- problemas de concorrência
+- concurrency issues
 - memory management
 - retain cycles
 - lifecycle issues
@@ -67,40 +67,40 @@ Analise, entre outras coisas:
 - Sendable
 - async/await
 - performance
-- allocations desnecessárias
-- trabalho repetido
-- operações que poderiam ser lazy
-- operações de I/O desnecessárias
-- problemas de escalabilidade
+- unnecessary allocations
+- repeated work
+- operations that could be lazy
+- unnecessary I/O operations
+- scalability issues
 
-### Arquitetura
+### Architecture
 
-Verifique criticamente:
+Critically check:
 
-- separação de responsabilidades
-- boundaries entre componentes
-- dependências
-- direção das dependências
-- acoplamento
-- coesão
-- extensibilidade
-- testabilidade estrutural (SEM analisar os testes)
-- gerenciamento de estado
-- persistência
-- comunicação entre componentes
-- eventos
-- serviços
+- separation of responsibilities
+- boundaries between components
+- dependencies
+- direction of dependencies
+- coupling
+- cohesion
+- extensibility
+- structural testability (WITHOUT analyzing the tests)
+- state management
+- persistence
+- communication between components
+- events
+- services
 - stores
 - models
 - views
 - view models
-- protocolos
-- abstrações
-- composição
+- protocols
+- abstractions
+- composition
 - lifecycle
-- isolamento de features
+- feature isolation
 
-Avalie também se patterns como:
+Also evaluate whether patterns such as:
 
 - Strategy
 - Factory
@@ -113,20 +113,19 @@ Avalie também se patterns como:
 - Dependency Injection
 - etc.
 
-seriam úteis.
+would be useful.
 
-MAS NÃO introduza design patterns apenas porque eles existem.
+BUT do NOT introduce design patterns just because they exist.
 
-Um pattern só deve ser sugerido quando resolver um problema real.
+A pattern should only be suggested when it solves a real problem.
 
-# Análise de Sequências e Máquina de Estados
+# Sequence and State Machine Analysis
 
-Não analise apenas funções isoladamente.
+Don't analyze functions in isolation only.
 
-Quando uma operação depende de múltiplas funções ou componentes, trace a
-sequência completa.
+When an operation depends on multiple functions or components, trace the complete sequence.
 
-Exemplos:
+Examples:
 
 View → Store → Service → filesystem
 View → Process manager → Process → termination callback
@@ -135,557 +134,538 @@ User input → parser → URL → filesystem
 Watcher → debounce → reload → UI
 Shared service → View lifecycle → resource
 
-Para cada sequência, procure inconsistências entre os estados assumidos por
-cada camada.
+For each sequence, look for inconsistencies between the states assumed by each layer.
 
-Verifique especialmente:
+Check especially:
 
-- quem pode chamar a operação;
-- em qual estado ela pode ser chamada;
-- o que acontece se for chamada duas vezes;
-- o que acontece se for chamada durante outra operação;
-- o que acontece se falhar;
-- o que acontece se for cancelada;
-- o que acontece se o owner desaparecer;
-- se callbacks podem chegar depois do encerramento;
-- se o estado final realmente corresponde ao resultado da operação.
+- who can call the operation;
+- in which state it can be called;
+- what happens if it's called twice;
+- what happens if it's called during another operation;
+- what happens if it fails;
+- what happens if it's cancelled;
+- what happens if the owner disappears;
+- whether callbacks can arrive after termination;
+- whether the final state actually matches the operation's outcome.
 
-Um finding pode estar na interação entre componentes mesmo que cada
-componente isoladamente pareça correto.
+A finding can live in the interaction between components even if each component looks correct in isolation.
 
 
-Depois da análise local de cada arquivo, faça também análise transversal
-entre os componentes relacionados.
+After the local analysis of each file, also do a cross-cutting analysis across related components.
 
-Não considere uma função correta apenas porque sua implementação local parece
-correta.
+Don't consider a function correct just because its local implementation looks correct.
 
-Trace seus callers, callees, estado compartilhado, lifecycle e efeitos
-colaterais quando isso for necessário para determinar seu comportamento real.
+Trace its callers, callees, shared state, lifecycle, and side effects when necessary to determine its real behavior.
 
 
-## EVITE OVERENGINEERING
+## AVOID OVERENGINEERING
 
-Esta é uma regra PRINCIPAL da revisão.
+This is a MAIN rule of the review.
 
-Não quero transformar código simples em uma arquitetura complexa apenas para seguir princípios teóricos.
+I don't want to turn simple code into a complex architecture just to follow theoretical principles.
 
-Sempre questione:
+Always question:
 
-- Essa abstração realmente reduz complexidade?
-- Esse protocolo realmente é necessário?
-- Essa camada realmente agrega valor?
-- Essa classe precisa existir?
-- Esse pattern resolve um problema real?
-- Estamos criando infraestrutura para um problema que ainda não existe?
-- O código poderia ser significativamente mais simples?
-- Estamos abstraindo algo que provavelmente nunca terá outra implementação?
-- Estamos criando indireção demais?
-- Estamos sacrificando legibilidade para ganhar flexibilidade hipotética?
+- Does this abstraction actually reduce complexity?
+- Is this protocol actually necessary?
+- Does this layer actually add value?
+- Does this class need to exist?
+- Does this pattern solve a real problem?
+- Are we building infrastructure for a problem that doesn't exist yet?
+- Could the code be significantly simpler?
+- Are we abstracting something that will probably never have another implementation?
+- Are we creating too much indirection?
+- Are we sacrificing readability to gain hypothetical flexibility?
 
-Se a solução atual for simples e correta, NÃO sugira mudança apenas porque existe uma arquitetura "mais sofisticada".
+If the current solution is simple and correct, do NOT suggest a change just because a "more sophisticated" architecture exists.
 
-Quero otimizar para:
+I want to optimize for:
 
-    simplicidade
-    + corretude
-    + manutenção
-    + baixo acoplamento
-    + baixo risco de bugs
+    simplicity
+    + correctness
+    + maintainability
+    + low coupling
+    + low bug risk
     + performance
-    + evolução futura
+    + future evolution
 
-e NÃO para:
+and NOT for:
 
-    quantidade de abstrações
-    + quantidade de protocolos
-    + quantidade de patterns
-    + arquitetura por arquitetura
+    quantity of abstractions
+    + quantity of protocols
+    + quantity of patterns
+    + architecture for architecture's sake
 
-OU SEJA
-    se algo for complexo e tem como tornar simples avise, a busca e por menos linhas, menos codigo, mais simplicidade, menos bug, menos ifs e corner cases.
+IN OTHER WORDS
+    if something is complex and can be made simpler, flag it — the goal is fewer lines, less code, more simplicity, fewer bugs, fewer ifs and corner cases.
 
-## Quero descobertas, não apenas validação
+## I want discoveries, not just validation
 
-Procure ativamente por coisas como:
+Actively look for things like:
 
-- bugs que ainda não foram percebidos
-- comportamentos incorretos em edge cases
-- estados que podem ficar inconsistentes
-- caminhos que podem causar crashes
+- bugs that haven't been noticed yet
+- incorrect behavior in edge cases
+- states that can become inconsistent
+- paths that can cause crashes
 - race conditions
-- problemas de lifecycle
+- lifecycle issues
 - memory leaks
-- problemas de performance
-- código que funciona hoje mas provavelmente quebrará com evolução do produto
-- decisões que dificultarão futuras features
-- pontos onde uma pequena mudança agora evitará uma grande mudança depois
-- responsabilidades que deveriam estar em outro lugar
-- código que pode ser removido
-- código que pode ser consolidado
-- código que pode ser simplificado
-- abstrações que podem desaparecer
-- componentes que podem ser combinados
-- componentes que deveriam ser separados
-- dependências que podem ser eliminadas
-- lógica que deveria estar centralizada
-- lógica que NÃO deveria estar centralizada
-- inconsistências entre features
-- convenções que não estão sendo seguidas
-- oportunidades de padronização
-código aparentemente morto;
-APIs sem consumidores;
-abstrações sem múltiplas implementações;
-propriedades sem necessidade;
-branches inalcançáveis.
+- performance issues
+- code that works today but will probably break as the product evolves
+- decisions that will make future features harder
+- points where a small change now will avoid a big change later
+- responsibilities that should live elsewhere
+- code that can be removed
+- code that can be consolidated
+- code that can be simplified
+- abstractions that could disappear
+- components that could be combined
+- components that should be split apart
+- dependencies that can be eliminated
+- logic that should be centralized
+- logic that should NOT be centralized
+- inconsistencies between features
+- conventions that aren't being followed
+- standardization opportunities
+apparently dead code;
+APIs with no consumers;
+abstractions with no multiple implementations;
+unnecessary properties;
+unreachable branches.
 
 
-No swift
+In Swift
 
-public desnecessário;
+unnecessary public;
 internal vs private;
-protocols expostos sem necessidade;
-tipos que vazam abstrações de implementação.
+protocols exposed without need;
+types that leak implementation abstractions.
 @State
 @StateObject
 @ObservedObject
 @Environment
 @EnvironmentObject
 @Bindable
-identity das views
+view identity
 body recomputation
-reference types dentro de value views
+reference types inside value views
 derived state
 view lifecycle.
 
-## Produto / negócio
+## Product / business
 
-Também analise o código do ponto de vista de Produto.
+Also analyze the code from a Product standpoint.
 
-Procure decisões técnicas que possam dificultar:
+Look for technical decisions that might hinder:
 
-- futuras funcionalidades
-- evolução do produto
-- mudanças de UX
-- mudanças de comportamento
-- configuração
-- escalabilidade funcional
-- suporte a novos casos de uso
+- future features
+- product evolution
+- UX changes
+- behavior changes
+- configuration
+- functional scalability
+- support for new use cases
 
-Se encontrar algo que faça sentido preparar agora por razões de negócio, indique.
+If you find something worth preparing for now for business reasons, point it out.
 
-Porém:
+However:
 
-NÃO implemente ou recomende antecipadamente infraestrutura para funcionalidades hipotéticas sem justificativa concreta.
+Do NOT implement or preemptively recommend infrastructure for hypothetical features without concrete justification.
 
-Não registre diferenças puramente estilísticas como findings, salvo quando afetarem consistência, legibilidade, manutenção ou risco.
+Don't record purely stylistic differences as findings, except when they affect consistency, readability, maintenance, or risk.
 
-Diferencie claramente:
+Clearly distinguish:
 
-- problema atual
-- melhoria preventiva
-- preparação razoável para o futuro
+- current problem
+- preventive improvement
+- reasonable preparation for the future
 - overengineering
 
 
-# Controle de Findings Duplicados
+# Duplicate Finding Control
 
-Se o mesmo problema aparecer em vários arquivos:
-- determine se existe uma causa arquitetural comum;
+If the same problem appears in several files:
+- determine whether there is a common architectural cause;
 
-Um finding deve existir porque existe impacto em pelo menos um destes:
+A finding should exist because there is impact on at least one of these:
 
-- corretude;
-- risco;
-- manutenção;
-- complexidade;
+- correctness;
+- risk;
+- maintenance;
+- complexity;
 - performance;
 - lifecycle;
-- arquitetura;
-- UX/produto;
-- evolução do sistema.
+- architecture;
+- UX/product;
+- system evolution.
 
-Se o benefício for puramente subjetivo, não registre.
+If the benefit is purely subjective, don't record it.
 
-## Evidência e Confiança
+## Evidence and Confidence
 
-Não registre como BUG um comportamento apenas hipotético.
+Don't record a purely hypothetical behavior as a BUG.
 
-Para cada finding, determine o nível de evidência:
+For each finding, determine the level of evidence:
 
-- CONFIRMED — o código demonstra diretamente o problema;
-- HIGH CONFIDENCE — o comportamento é consequência clara do fluxo analisado;
-- MEDIUM CONFIDENCE — depende de uma condição específica não totalmente
-  demonstrável no código;
-- LOW CONFIDENCE — hipótese que merece investigação adicional.
+- CONFIRMED — the code directly demonstrates the problem;
+- HIGH CONFIDENCE — the behavior is a clear consequence of the analyzed flow;
+- MEDIUM CONFIDENCE — depends on a specific condition not fully demonstrable in the code;
+- LOW CONFIDENCE — hypothesis that deserves further investigation.
 
-Findings LOW CONFIDENCE não devem receber severidade alta nem ROI elevado.
+LOW CONFIDENCE findings should not receive high severity or high ROI.
 
-Quando possível, descreva o caminho de execução que demonstra o problema.
+When possible, describe the execution path that demonstrates the problem.
 
-## Tracing de Dependências
+## Dependency Tracing
 
-Quando necessário para confirmar um finding, trace:
+When necessary to confirm a finding, trace:
 
 - callers;
 - callees;
-- referências ao símbolo;
-- mutations do estado;
+- references to the symbol;
+- state mutations;
 - lifecycle;
 - owners;
 - callbacks;
 - delegates;
 - publishers/subscribers;
-- notificações;
-- tasks relacionadas.
+- notifications;
+- related tasks.
 
-Não faça tracing indiscriminado de todo o projeto para cada símbolo.
+Don't do indiscriminate tracing of the whole project for every symbol.
 
-Expanda a análise apenas quando necessário para entender o comportamento ou
-confirmar o impacto de um finding.
+Expand the analysis only when necessary to understand the behavior or confirm the impact of a finding.
 
 ## UI / UX
 
-Analise também:
+Also analyze:
 
-- estados de loading
+- loading states
 - empty states
 - error states
-- feedback visual
-- estados inconsistentes
-- comportamento inesperado
-- ações destrutivas
-- confirmações
+- visual feedback
+- inconsistent states
+- unexpected behavior
+- destructive actions
+- confirmations
 - affordances
-- navegação
-- acessibilidade
-- consistência
-- comportamento de sheets/dialogs
-- feedback após operações
-- UX de erros
-- UX de operações longas
-- estados impossíveis de UI
+- navigation
+- accessibility
+- consistency
+- sheet/dialog behavior
+- feedback after operations
+- error UX
+- long-operation UX
+- impossible UI states
 
-Procure problemas que possam não ser óbvios apenas olhando para a arquitetura.
-Quero descobertas, não apenas validação
+Look for problems that might not be obvious just by looking at the architecture.
+I want discoveries, not just validation
 
-## Invariantes
+## Invariants
 
-Para componentes que possuem estado significativo, identifique seus
-invariantes.
+For components with significant state, identify their invariants.
 
-Exemplos:
+Examples:
 
-- se A existe, B também deve existir;
-- se uma operação está `running`, existe exatamente um owner;
-- se o preflight aprovou uma operação, o executor deve conseguir executá-la;
-- se um recurso está `active`, seu lifecycle owner ainda deve existir;
-- se uma View observa determinado estado, esse estado deve representar a
-  fonte de verdade correspondente.
+- if A exists, B must also exist;
+- if an operation is `running`, exactly one owner exists;
+- if the preflight approved an operation, the executor must be able to execute it;
+- if a resource is `active`, its lifecycle owner must still exist;
+- if a View observes a given state, that state must represent the corresponding source of truth.
 
-Procure caminhos capazes de quebrar esses invariantes.
+Look for paths capable of breaking these invariants.
 
-Quando um finding depender de um invariante, descreva explicitamente:
+When a finding depends on an invariant, explicitly describe:
 
-`Invariante → caminho que o quebra → estado resultante → impacto`.
+`Invariant → path that breaks it → resulting state → impact`.
 
-## Idempotência e Operações Repetidas
+## Idempotency and Repeated Operations
 
-Para operações de lifecycle, persistência, filesystem, network e state
-management, verifique:
+For lifecycle, persistence, filesystem, network, and state management operations, check:
 
-- o que acontece se a operação for chamada duas vezes;
-- se `start()` pode ser chamado duas vezes;
-- se `stop()` pode ser chamado antes de `start()`;
-- se `cancel()` pode ser chamado duas vezes;
-- se uma operação concluída pode ser repetida;
-- se callbacks podem chegar duplicados;
-- se retries podem executar efeitos colaterais novamente.
+- what happens if the operation is called twice;
+- whether `start()` can be called twice;
+- whether `stop()` can be called before `start()`;
+- whether `cancel()` can be called twice;
+- whether a completed operation can be repeated;
+- whether callbacks can arrive duplicated;
+- whether retries can re-execute side effects.
 
-Identifique operações que deveriam ser idempotentes mas não são.
+Identify operations that should be idempotent but aren't.
 
 ## Cancellation
 
-Para todo código assíncrono relevante, analise:
+For all relevant asynchronous code, analyze:
 
-- propagação de `Task` cancellation;
+- `Task` cancellation propagation;
 - `Task.isCancelled` / `checkCancellation()`;
-- tasks órfãs;
+- orphaned tasks;
 - detached tasks;
-- operações que continuam após a View desaparecer;
-- callbacks depois do cancelamento;
-- cleanup após cancelamento;
-- tasks duplicadas;
-- possibilidade de operações concorrentes sobre o mesmo recurso.
+- operations that continue after the View disappears;
+- callbacks after cancellation;
+- cleanup after cancellation;
+- duplicated tasks;
+- possibility of concurrent operations on the same resource.
 
-Não considere uma operação cancelável apenas porque retorna `Task` ou usa
-`async/await`.
+Don't consider an operation cancellable just because it returns `Task` or uses `async/await`.
 
-Verifique se o cancelamento realmente interrompe ou invalida o trabalho.
+Check whether cancellation actually stops or invalidates the work.
 
-## Eventos de Alta Frequência
+## High-Frequency Events
 
-Para watchers, notifications, keyboard events, scroll, drag, typing e outras
-fontes de eventos frequentes, analise:
+For watchers, notifications, keyboard events, scroll, drag, typing, and other sources of frequent events, analyze:
 
 - debounce;
 - throttle;
 - coalescing;
-- deduplicação;
-- filas;
+- deduplication;
+- queues;
 - backpressure;
-- trabalho redundante;
-- eventos obsoletos;
-- processamento no MainActor.
+- redundant work;
+- stale events;
+- MainActor processing.
 
-Verifique se eventos antigos continuam sendo processados quando seu resultado
-já não é relevante.
+Check whether stale events keep being processed when their result is no longer relevant.
 
-Procure especialmente por pipelines onde:
+Look especially for pipelines where:
 
-`evento → state mutation → render → trabalho`
+`event → state mutation → render → work`
 
-é executado repetidamente quando poderia ser coalescido.
+is executed repeatedly when it could be coalesced.
 
-## Simplificação e Redução de Código
+## Simplification and Code Reduction
 
-Procure ativamente oportunidades para remover complexidade.
+Actively look for opportunities to remove complexity.
 
-Considere:
+Consider:
 
-- eliminar abstrações;
-- remover protocolos desnecessários;
-- eliminar wrappers;
-- combinar tipos que não possuem responsabilidade independente;
-- remover estados redundantes;
-- substituir state machines desnecessárias por tipos/enum simples;
-- eliminar branches redundantes;
-- substituir pipelines excessivamente indiretos por chamadas diretas;
-- remover configuração duplicada;
-- reduzir número de layers;
-- remover código morto;
-- centralizar somente quando isso realmente reduzir duplicação;
-- substituir mecanismos customizados por APIs nativas quando isso reduzir
-  complexidade.
+- eliminating abstractions;
+- removing unnecessary protocols;
+- eliminating wrappers;
+- combining types that have no independent responsibility;
+- removing redundant state;
+- replacing unnecessary state machines with simple types/enums;
+- eliminating redundant branches;
+- replacing excessively indirect pipelines with direct calls;
+- removing duplicated configuration;
+- reducing the number of layers;
+- removing dead code;
+- centralizing only when it actually reduces duplication;
+- replacing custom mechanisms with native APIs when that reduces complexity.
 
-Para cada proposta de simplificação, estime também:
+For each simplification proposal, also estimate:
 
-- linhas/camadas potencialmente removíveis;
-- número de componentes afetados;
-- risco da mudança;
-- se a simplificação reduz ou apenas desloca complexidade.
+- potentially removable lines/layers;
+- number of affected components;
+- risk of the change;
+- whether the simplification reduces complexity or just shifts it.
 
-Não proponha simplificação se ela apenas mover a complexidade para outro
-lugar.
+Don't propose a simplification if it just moves the complexity elsewhere.
 
 ## Complexity Budget
 
-Ao avaliar uma abstração, considere a complexidade total introduzida:
+When evaluating an abstraction, consider the total complexity introduced:
 
-- quantidade de tipos;
-- quantidade de protocolos;
-- quantidade de layers;
-- quantidade de indirection;
-- quantidade de state;
-- quantidade de lifecycle;
-- quantidade de branches;
-- quantidade de pontos de configuração.
+- number of types;
+- number of protocols;
+- number of layers;
+- amount of indirection;
+- amount of state;
+- amount of lifecycle;
+- number of branches;
+- number of configuration points.
 
-Uma solução que reduz duplicação mas aumenta significativamente a complexidade
-estrutural deve ser avaliada criticamente.
+A solution that reduces duplication but significantly increases structural complexity should be critically evaluated.
 
-Prefira a solução com menor complexidade total que preserve corretude,
-manutenção e evolução.
+Prefer the solution with the lowest total complexity that preserves correctness, maintainability, and evolvability.
 
-## Minha arquitetura atual
+## My current architecture
 
-Não assuma que minha arquitetura está correta.
+Don't assume my architecture is correct.
 
-Use-a como contexto.
+Use it as context.
 
-Se encontrar algo que você acredita que deveria ser diferente:
+If you find something you believe should be different:
 
-1. explique o problema;
-2. explique por que a arquitetura atual não é ideal;
-3. explique a alternativa;
-4. explique o custo/migração;
-5. diga se vale fazer agora ou posteriormente.
+1. explain the problem;
+2. explain why the current architecture is not ideal;
+3. explain the alternative;
+4. explain the cost/migration;
+5. say whether it's worth doing now or later.
 
-Não faça uma reescrita arquitetural simplesmente por preferência pessoal.
+Don't do an architectural rewrite simply out of personal preference.
 
-## Novas regras
+## New rules
 
-Não se limite às regras acima.
+Don't limit yourself to the rules above.
 
-Se durante a revisão você identificar uma regra de engenharia que deveria existir no projeto, apresente-a como:
+If during the review you identify an engineering rule that should exist in the project, present it as:
 
-SUGESTÃO DE NOVA REGRA
+SUGGESTED NEW RULE
 
-Explique:
+Explain:
 
-- qual é a regra;
-- qual problema ela evita;
-- exemplos encontrados no projeto;
-- se deveria virar guideline, code review rule ou lint rule.
+- what the rule is;
+- what problem it prevents;
+- examples found in the project;
+- whether it should become a guideline, code review rule, or lint rule.
 
 ## LINT
 
-Ao final, faça uma análise específica procurando oportunidades de automatização.
+At the end, do a specific analysis looking for automation opportunities.
 
-Verifique se alguma das descobertas pode virar uma regra de Lint.
+Check whether any of the discoveries can become a Lint rule.
 
-Para cada candidato, informe:
+For each candidate, provide:
 
-- regra proposta;
-- problema que ela evita;
-- exemplo do código atual;
-- se é possível detectar automaticamente;
-- se deveria ser Regex, SwiftLint custom rule ou outra abordagem;
-- risco de falsos positivos;
-- benefício esperado.
+- proposed rule;
+- problem it prevents;
+- example from the current code;
+- whether it can be detected automatically;
+- whether it should be Regex, a SwiftLint custom rule, or another approach;
+- risk of false positives;
+- expected benefit.
 
-Se houver uma regra simples que possa ser implementada por Regex e que seja realmente útil, proponha-a.
+If there's a simple rule that could be implemented with Regex and that's genuinely useful, propose it.
 
-NÃO crie regras de lint apenas por criar.
+Do NOT create lint rules just to create them.
 
-Se tiver algum que pode gerar falso positivo NAO Queremos
-OU SEJA NAO QUEREMOS HEURISTICOS QUE PODEM DAR FALSO POSITIVO. TEM QUE SER 100% ASSERTIVO
+If any of them can produce a false positive, we do NOT want it.
+IN OTHER WORDS, WE DO NOT WANT HEURISTICS THAT CAN PRODUCE FALSE POSITIVES. IT HAS TO BE 100% ASSERTIVE.
 
 ## IGNORAR.md
 
-Existem arquivos em `IGNORAR.md` que são deliberadamente simples e não precisam ser avaliados.
+There are files in `IGNORAR.md` that are deliberately simple and don't need to be evaluated.
 
-Pule esses arquivos.
+Skip those files.
 
-Durante a revisão, se encontrar outros arquivos que claramente não precisam de revisão futura porque são triviais, repetitivos, gerados ou não agregam valor arquitetural, sugira adicioná-los ao `IGNORAR.md`.
+During the review, if you find other files that clearly don't need future review because they're trivial, repetitive, generated, or add no architectural value, suggest adding them to `IGNORAR.md`.
 
-Não adicione automaticamente sem justificar no relatório.
+Don't add them automatically without justifying it in the report.
 
-## Classificação das descobertas
+## Classification of findings
 
-Para cada problema encontrado, classifique:
+For each problem found, classify:
 
 CRITICAL (C)
-- pode causar bugs graves, corrupção de estado, crashes, perda de dados ou problemas arquiteturais importantes.
+- can cause serious bugs, state corruption, crashes, data loss, or major architectural problems.
 
 HIGH (H)
-- problema importante que deveria ser corrigido.
+- important problem that should be fixed.
 
 MEDIUM (M)
-- melhoria relevante de arquitetura, manutenção, performance ou qualidade.
+- relevant improvement to architecture, maintenance, performance, or quality.
 
 LOW (L)
-- melhoria pequena ou de qualidade.
+- small or quality improvement.
 
 SUGGESTION (S)
-- ideia futura, melhoria opcional ou possível evolução.
+- future idea, optional improvement, or possible evolution.
 
 ARCHITECTURAL CONCERN (A)
-- decisão estrutural que merece reconsideração.
+- structural decision that deserves reconsideration.
 
 OVERENGINEERING (O)
-- abstração, complexidade ou arquitetura que poderia ser simplificada.
+- abstraction, complexity, or architecture that could be simplified.
 
 BUG (B)
-- comportamento potencialmente incorreto.
+- potentially incorrect behavior.
 
 PERFORMANCE (P)
-- oportunidade concreta de melhorar performance.
+- concrete opportunity to improve performance.
 
 PRODUCT/UX (U)
-- problema ou oportunidade relacionada à experiência ou ao produto.
+- problem or opportunity related to experience or product.
 
 
-## Custo × Benefício / ROI
+## Cost × Benefit / ROI
 
-Para cada melhoria sugerida, estime:
+For each suggested improvement, estimate:
 
-- Impacto: 0–100
-- Redução de risco: 0–100
-- Benefício de manutenção: 0–100
-- Benefício de performance: 0–100
-- Benefício de simplicidade: 0–100
-- Esforço: 0–100
-- Risco da mudança: 0–100
+- Impact: 0–100
+- Risk reduction: 0–100
+- Maintenance benefit: 0–100
+- Performance benefit: 0–100
+- Simplicity benefit: 0–100
+- Effort: 0–100
+- Change risk: 0–100
 
-Calcule:
+Calculate:
 
 VALUE =
-(Impacto × 0.30) +
-(Redução de risco × 0.25) +
-(Benefício de manutenção × 0.20) +
-(Benefício de performance × 0.10) +
-(Benefício de simplicidade × 0.15)
+(Impact × 0.30) +
+(Risk reduction × 0.25) +
+(Maintenance benefit × 0.20) +
+(Performance benefit × 0.10) +
+(Simplicity benefit × 0.15)
 
 COST =
-(Esforço × 0.70) +
-(Risco da mudança × 0.30)
+(Effort × 0.70) +
+(Change risk × 0.30)
 
 ROI = VALUE / COST
 
 
-Quando não houver evidência suficiente para estimar algum fator, marque como
-"UNKNOWN" em vez de inventar precisão.
+When there isn't enough evidence to estimate a given factor, mark it as "UNKNOWN" instead of inventing precision.
 
-A estimativa deve ser baseada no impacto concreto observado no código, e não
-na quantidade de princípios ou regras violadas.
+The estimate should be based on the concrete impact observed in the code, not on the number of principles or rules violated.
 
-Não recomende uma melhoria apenas porque ela é tecnicamente correta.
-A melhoria deve apresentar benefício proporcional ao custo e risco da alteração.
+Don't recommend an improvement just because it's technically correct.
+The improvement must show a benefit proportional to the cost and risk of the change.
 
 
-## Para cada descoberta
+## For each discovery
 
-Inclua:
+Include:
 
-- Severidade
-- Categoria
-- Arquivo
-- símbolo/método/classe relevante
-- problema
-- por que é um problema
-- impacto
-- solução sugerida
-- complexidade da correção
+- Severity
+- Category
+- File
+- relevant symbol/method/class
+- problem
+- why it's a problem
+- impact
+- suggested solution
+- fix complexity
 - ROI
 
-Quando possível, inclua uma pequena explicação do código envolvido.
+When possible, include a short explanation of the code involved.
 
-Não faça sugestões vagas como "melhorar arquitetura".
+Don't make vague suggestions like "improve architecture".
 
-Quero saber EXATAMENTE:
+I want to know EXACTLY:
 
-"o que está errado"
-→ "por que está errado"
-→ "o que fazer"
-→ "qual benefício isso traz"
+"what's wrong"
+→ "why it's wrong"
+→ "what to do"
+→ "what benefit it brings"
 
 
-## Resultado final
+## Final result
 
-Crie um relatório em:
+Create a report at:
 
 `TODO/ARCHITECTURE_CODE_REVIEW.md`
 
-O relatório deve conter pelo menos:
+The report must contain at least:
 
 # Architecture & Code Review
 
 ## Findings by ID
 
-ID deve ser composto por severidade, impacto  e ROI
-ou seja BA-127 (roi *100=) (bug alto 1,27)
-ou SM-089 (sugestion medium 0,89)
-ou por exemplo
-OU CL-290 (critical low 2,9)
+The ID must be composed of severity, impact, and ROI
+e.g. BA-127 (roi *100=) (bug high 1.27)
+or SM-089 (suggestion medium 0.89)
+or for example
+or CL-290 (critical low 2.9)
 
 **## Finding ID**
 
-Cada finding deve receber um ID no formato:
+Each finding must receive an ID in the format:
 
 `[SEVERITY][IMPACT]-[ROI × 100]`
 
-Onde:
+Where:
 
 Severity:
 - C = Critical
@@ -700,58 +680,55 @@ Impact:
 - M = Medium
 - L = Low
 
-Exemplos:
+Examples:
 
 - `CH-290` = Critical severity / High impact / ROI 2.90
 - `HM-142` = High severity / Medium impact / ROI 1.42
 - `SL-085` = Suggestion severity / Low impact / ROI 0.85
 
-O ROI deve ser arredondado para duas casas decimais e multiplicado por 100
-para formar o sufixo numérico do ID.
+ROI must be rounded to two decimal places and multiplied by 100 to form the ID's numeric suffix.
 
-O ID deve permanecer estável durante a revisão, mesmo que a ordem dos findings mude.
+The ID must remain stable throughout the review, even if the order of findings changes.
 
-FIcando os findings POR EXEMPLO
+Findings would look, FOR EXAMPLE, like this:
 
-### [SL-242] Duplicação de `ThumbnailService.maxDimension` e `FileItem.highResIconSize`
-- ROI: 2.42 (Forte candidato)
+### [SL-242] Duplication of `ThumbnailService.maxDimension` and `FileItem.highResIconSize`
+- ROI: 2.42 (Strong candidate)
 - LOW / DRY / magic number
-- Arquivos: `Services/ThumbnailService.swift`, `Models/FileItem.swift`
-- Problema: o mesmo valor e propósito estão definidos em dois lugares.
-- Solução: centralizar em um único token compartilhado.
-- Complexidade: baixa.
+- Files: `Services/ThumbnailService.swift`, `Models/FileItem.swift`
+- Problem: the same value and purpose are defined in two places.
+- Solution: centralize into a single shared token.
+- Complexity: low.
 
 # NOT WORTH
-[SL-085] LOW / DRY — duplicação de X em A.swift e B.swift — ROI 0.85.
-[SM-062] MEDIUM / SIMPLIFICATION — X poderia ser simplificado — ROI 0.62.
+[SL-085] LOW / DRY — duplication of X in A.swift and B.swift — ROI 0.85.
+[SM-062] MEDIUM / SIMPLIFICATION — X could be simplified — ROI 0.62.
 
-O FILTRO do NOT WORTH e:
+The NOT WORTH FILTER is:
 
-LOW, SUGESTION, COSMETIC,UI UX,  + ROI < 1.00 → NOT WORTH
+LOW, SUGGESTION, COSMETIC, UI UX + ROI < 1.00 → NOT WORTH
 MEDIUM + ROI < 0.70 → NOT WORTH
-Todas as demais descobertas permanecem na lista principal.
+All other discoveries remain in the main list.
 
-Os itens em NOT WORTH devem ser resumidos em UMA ÚNICA LINHA cada.
-OU SEJA NAO FICAM COMPLETOS NO FINDINGS ID
+Items in NOT WORTH must be summarized in a SINGLE LINE each.
+IN OTHER WORDS, THEY DO NOT APPEAR IN FULL IN FINDINGS BY ID.
 
-Não incluir os detalhes completos desses itens.
-Não criar seções adicionais, consolidações ou agrupamentos além de NOT WORTH.
+Do not include the full details of these items.
+Do not create additional sections, consolidations, or groupings beyond NOT WORTH.
 
-# NOT WORTH — REGRA ESTRITA DE DESCARTE
+# NOT WORTH — STRICT DISCARD RULE
 
-`NOT WORTH` NÃO significa "ROI baixo, portanto ignorar".
+`NOT WORTH` does NOT mean "low ROI, therefore ignore".
 
-Antes de colocar QUALQUER finding em `NOT WORTH`, faça obrigatoriamente esta
-verificação:
+Before putting ANY finding in `NOT WORTH`, you must perform this check:
 
 ### 1. Safety Gate
 
-Se o finding envolver QUALQUER um dos itens abaixo, ele NÃO PODE ser colocado
-em `NOT WORTH`, independentemente do ROI:
+If the finding involves ANY of the items below, it CANNOT be placed in `NOT WORTH`, regardless of ROI:
 
-- corrupção de dados;
-- perda de dados;
-- perda de estado persistido;
+- data corruption;
+- data loss;
+- persisted state loss;
 - crash;
 - resource leak;
 - process leak;
@@ -759,119 +736,112 @@ em `NOT WORTH`, independentemente do ROI:
 - deadlock;
 - race condition;
 - security issue;
-- comportamento incorreto observável pelo usuário;
-- operação que pode falhar depois de ter sido declarada válida;
-- estado inconsistente;
+- incorrect behavior observable by the user;
+- an operation that can fail after having been declared valid;
+- inconsistent state;
 - filesystem corruption;
-- arquivo temporário órfão após crash/falha;
-- operação de Undo/Redo que pode não reverter corretamente;
-- lifecycle incorreto;
-- callback após owner/resource ter sido encerrado;
-- operação que pode deixar recursos ou estado em condição inválida.
+- orphaned temp file after a crash/failure;
+- an Undo/Redo operation that might not revert correctly;
+- incorrect lifecycle;
+- callback after the owner/resource has been torn down;
+- an operation that can leave resources or state in an invalid condition.
 
-A presença de qualquer desses problemas OVERRIDE o filtro de ROI.
+The presence of any of these problems OVERRIDES the ROI filter.
 
-### 2. Somente depois aplicar o filtro de ROI
+### 2. Only apply the ROI filter afterward
 
-Depois da Safety Gate:
+After the Safety Gate:
 
 - LOW + ROI < 1.00 → `NOT WORTH`
 - MEDIUM + ROI < 0.70 → `NOT WORTH`
 
-Todos os demais permanecem em `Findings by ID`.
+All others remain in `Findings by ID`.
 
-### 3. Não classificar incorretamente o tipo do problema
+### 3. Don't misclassify the type of problem
 
-Não classifique como `PERFORMANCE`, `COSMETIC`, `DRY` ou `EDGE CASE`
-um finding cujo efeito final seja:
+Don't classify as `PERFORMANCE`, `COSMETIC`, `DRY`, or `EDGE CASE` a finding whose final effect is:
 
-- operação incorreta;
-- estado inconsistente;
-- perda de dados;
-- falha de Undo;
-- filesystem inconsistente;
-- lifecycle incorreto.
+- incorrect operation;
+- inconsistent state;
+- data loss;
+- Undo failure;
+- inconsistent filesystem;
+- incorrect lifecycle.
 
-Classifique pelo IMPACTO REAL do comportamento.
+Classify by the REAL IMPACT of the behavior.
 
-Exemplo:
+Example:
 
-`crash durante operação → arquivo temporário fica órfão`
+`crash during operation → temp file becomes orphaned`
 
-NÃO é apenas:
+is NOT just:
 
 `LOW / EDGE`
 
-É:
+It is:
 
 `LOW / BUG / filesystem recovery`
 
-Outro exemplo:
+Another example:
 
-`trashItem não retorna URL → Undo recebe URL incorreta → Undo falha`
+`trashItem doesn't return a URL → Undo receives the wrong URL → Undo fails`
 
-NÃO é apenas:
+is NOT just:
 
 `LOW / EDGE`
 
-É:
+It is:
 
 `LOW / BUG / UX`
 
-Outro exemplo:
+Another example:
 
-`sanitizer aceita nome <= 255 Characters → filesystem rejeita > 255 bytes`
+`sanitizer accepts a name <= 255 characters → filesystem rejects > 255 bytes`
 
-NÃO é apenas:
+is NOT just:
 
 `LOW / PERFORMANCE`
 
-É:
+It is:
 
 `LOW / BUG / filesystem`
 
-### 4. Discrepância entre ROI e severidade
+### 4. Discrepancy between ROI and severity
 
-Quando um finding protegido pela Safety Gate tiver ROI baixo,
-mantenha-o na lista principal e explique:
+When a finding protected by the Safety Gate has a low ROI, keep it in the main list and explain:
 
-> ROI baixo devido à baixa frequência/probabilidade, mas não descartado
-> porque o comportamento pode produzir [efeito concreto].
+> Low ROI due to low frequency/probability, but not discarded because the behavior can produce [concrete effect].
 
-Nunca aumente artificialmente o ROI para justificar sua permanência.
+Never artificially inflate the ROI to justify keeping it.
 
-### 5. Regra fundamental
+### 5. Fundamental rule
 
-`NOT WORTH` é reservado exclusivamente para melhorias que sejam:
+`NOT WORTH` is reserved exclusively for improvements that are:
 
-- não críticas;
-- não incorretas;
-- não destrutivas;
-- não causadoras de inconsistência;
-- não relacionadas a lifecycle incorreto;
-- não causadoras de leak;
-- não causadoras de crash;
-- não causadoras de perda de dados/estado;
-- e cujo benefício não justifique o custo da correção.
+- not critical;
+- not incorrect;
+- not destructive;
+- not causing inconsistency;
+- not related to incorrect lifecycle;
+- not causing a leak;
+- not causing a crash;
+- not causing data/state loss;
+- and whose benefit doesn't justify the cost of the fix.
 
-Se houver dúvida entre `NOT WORTH` e `Findings by ID`,
-mantenha em `not worth`.
+If in doubt between `NOT WORTH` and `Findings by ID`,
+keep it in `NOT WORTH`.
 
-# Disciplina de ROI
+# ROI Discipline
 
-Não aumente artificialmente o ROI porque um problema é tecnicamente
-interessante.
+Don't artificially inflate the ROI just because a problem is technically interesting.
 
-Um finding de performance só deve receber alto benefício de performance se
-houver um caminho de execução plausivelmente frequente ou custoso.
+A performance finding should only receive a high performance benefit if there's a plausibly frequent or costly execution path.
 
-Um finding de edge case só deve receber alto impacto se o código demonstrar
-que o estado pode realmente ocorrer.
+An edge-case finding should only receive high impact if the code demonstrates that the state can actually occur.
 
-Se o impacto, frequência ou custo forem incertos, use UNKNOWN.
+If impact, frequency, or cost are uncertain, use UNKNOWN.
 
-Não use princípios arquiteturais isoladamente como justificativa para elevar
-Impacto ou Redução de risco.
+Don't use architectural principles in isolation as justification for raising Impact or Risk Reduction.
 
 ## Suggested New Engineering Rules
 
@@ -879,50 +849,50 @@ Impacto ou Redução de risco.
 
 ## Files That Could Be Added to IGNORAR.md
 
-## NOTA DO PROJETO
+## PROJECT NOTE
 
-E quero uma nota para o projeto:
+And I want a note for the project:
 Global
-arquitetura
-codigo
-produto
-e algum outro que ache que faz sentido
+architecture
+code
+product
+and any other you think makes sense
 
 
-# REGRA FINAL
+# FINAL RULE
 
-Não quero uma revisão complacente.
+I don't want a complacent review.
 
-Não presuma que o código está correto porque ele compila.
+Don't assume the code is correct just because it compiles.
 
-Não presuma que a arquitetura está correta porque foi projetada deliberadamente.
+Don't assume the architecture is correct just because it was deliberately designed.
 
-Não introduza complexidade sem benefício real.
+Don't introduce complexity without real benefit.
 
-Não procure apenas violações de regras.
+Don't look only for rule violations.
 
-Procure também aquilo que NÃO está explicitamente proibido, mas que poderia ser melhor.
+Also look for what is NOT explicitly forbidden, but that could be better.
 
-O objetivo é encontrar problemas que um desenvolvedor normalmente não perceberia em uma revisão superficial e deixar o projeto:
+The goal is to find problems a developer wouldn't normally notice in a superficial review, and leave the project:
 
-- mais simples
-- mais seguro
-- mais previsível
-- mais performático
-- mais fácil de evoluir
-- mais fácil de manter
-- menos propenso a bugs
+- simpler
+- safer
+- more predictable
+- more performant
+- easier to evolve
+- easier to maintain
+- less bug-prone
 
-Sem overengineering.
+Without overengineering.
 
-REGRA IMPORTANTE:
-NAO GERE O ARQUIVO NO FINAL; VAI FAZENDO APPEND CONFORME FOR AVALIANDO
-Conforme for fazendo vai dando a % de progresso no chat
-com quantos high, medium, low, etc encontrados
+IMPORTANT RULE:
+DO NOT GENERATE THE FILE AT THE END; APPEND TO IT AS YOU EVALUATE
+As you go, report the % progress in the chat
+with how many high, medium, low, etc. were found
 
 
-Se voce pensou em ignorar algum item porque ele tem comentario, coloca este finding com o item completo do finding (todas as propriedades, roi etc)
-mas em uma sessao no FINAL
+If you considered ignoring an item because it has a comment, still include this finding with the item's full details (all properties, ROI, etc.)
+but in a section at the END:
 FINDINGS skipped by comments in the SOURCE CODE
 
-Flickers sao graves, por iso mesmo que seja not worth, coloca eles numa lista separada so de flickers.
+Flickers are serious, so even if one would be not worth, put flickers in a separate, dedicated list.
