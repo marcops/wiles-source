@@ -26,7 +26,8 @@ struct WilesApp: App {
             repo: CrashReportingConstants.githubRepo,
             token: CrashReportingConstants.githubToken,
             appVersion: AppConstants.appVersion,
-            build: AppConstants.appBuild)
+            build: AppConstants.appBuild,
+            baseURL: CrashReportingConstants.githubBaseURL)
         GitBeacon.installCrashHandler()
     }
 

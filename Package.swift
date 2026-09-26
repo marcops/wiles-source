@@ -12,7 +12,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", exact: "1.2.1"),
-        .package(url: "https://github.com/marcops/git-beacon-mac.git", from: "0.0.4")
+        .package(url: "https://github.com/marcops/git-beacon-mac.git", from: "0.0.5")
     ],
     targets: [
         .executableTarget(
